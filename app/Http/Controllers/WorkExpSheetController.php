@@ -99,7 +99,7 @@ class WorkExpSheetController extends Controller
         $workEntries = WorkExpSheet::where('user_id', auth()->id())->get();
 
         //info($workEntries);
-        return view('dashboard_user.work_exp', ['workEntries' => $workEntries]);
+        return view('pds.wes', ['workEntries' => $workEntries]);
     }
 
     /**

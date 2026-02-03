@@ -114,7 +114,7 @@
             <!-- Button -->
             <div class="flex justify-center">
                 @if($p['button'])
-                <a href="{{ route('viewer.view_exam') }}" class="bg-[#008000] hover:bg-green-900 transition text-white text-sm font-medium rounded-full flex items-center gap-2 px-4 py-1.5">
+                <a href="{{ route('viewer.view_exam') }}" class="bg-[#00127.0.0.1] hover:bg-green-900 transition text-white text-sm font-medium rounded-full flex items-center gap-2 px-4 py-1.5">
                     <i class="fa-solid fa-play"></i>
                     View Answers
                 </a>

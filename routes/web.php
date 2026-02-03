@@ -1,5 +1,5 @@
 <?php
-// Testing
+
 use Illuminate\Support\Facades\{Route, Auth};
 use App\Http\Controllers\Forms;
 use App\Http\Controllers\Auth\{
@@ -78,7 +78,7 @@ Route::middleware(['auth'])->group(function () {
 });
 
 // ==================================================================================================
-// USER LOGOUTjkabsdjhasdjhagda
+// USER LOGOUT
 // ==================================================================================================
 Route::post('/logout', function () {
     Auth::logout();
@@ -257,6 +257,8 @@ Route::middleware(['auth', BlockIfAdmin::class])->group(function () {
 
     Route::get('/pds/c4', [Forms\PDSController::class, 'c4ShowForm'])->name('display_c4');
     Route::post('/pds/submit_c4', [Forms\PDSController::class, 'c4SubmitForm'])->name('submit_c4');
+
+    Route::get('/pds/wes', [WorkExpSheetController::class, 'show'])->name('display_wes');
 
     Route::get('/pds/c5', [Forms\PDSController::class, 'c5DisplayForm'])->name('display_c5');
     Route::post('/pds/finalize', [Forms\PDSController::class, 'finalizePDS'])->name('finalize_pds');

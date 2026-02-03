@@ -142,7 +142,7 @@ class PDSController extends Controller
             'first_name'     => 'required|max:255|string',
             'middle_name'    => 'nullable|max:255|string',
             'name_extension' => 'nullable|max:255|string',
-            'civil_status'   => 'required|alpha|in:single,married,widowed,separated,other',
+            'civil_status'   => 'required|string|in:single,married,widowed,separated,other',
             'date_of_birth'  => 'required|date:Y-m-d',
             'place_of_birth' => 'required|max:255|string',
             'citizenship'    => 'required|max:255|in:Filipino,Dual Citizenship',

@@ -52,6 +52,14 @@
                     OTP expires in 5 minutes, after which you will need to resend a new OTP.<br>
                     Please do not reload this page as it may invalidate the OTP.
                 </p>
+                
+                @if (config('app.debug'))
+                <div class="mb-4 text-center">
+                    <span class="text-yellow-300 font-montserrat text-sm font-bold">
+                        Dev OTP: {{ session('pending_registration.otp') }}
+                    </span>
+                </div>
+                @endif
 
                 <input
                     required

@@ -17,7 +17,7 @@ class JobVacancyFactory extends Factory
             'position_title' => $this->faker->jobTitle,
             'place_of_assignment' => $this->faker->company . ', ' . $this->faker->city,
             'salary_grade' => $type === 'Plantilla' ? 'SG-' . $this->faker->numberBetween(1, 30) : null,
-            'monthly_salary' => $this->faker->randomFloat(2, 18000, 60000),
+            'monthly_salary' => $this->faker->randomFloat(2, 1127.0.0.1, 60000),
             'status' => $this->faker->randomElement(['OPEN', 'CLOSED']),
             'closing_date' => $this->faker->dateTimeBetween('+5 days', '+2 months'),
             'qualification_education' => 'Bachelor’s degree relevant to the job',

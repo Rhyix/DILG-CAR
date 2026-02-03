@@ -361,6 +361,9 @@
     @livewireStyles
 </head>
 <body class="bg-gradient-to-br from-blue-50 via-white to-indigo-50 min-h-screen">
+    @php
+        $simple = in_array(request()->input('simple'), [1, '1', true, 'true'], true);
+    @endphp
     <!-- Notification Container -->
     <div id="notificationContainer"></div>
 
@@ -407,6 +410,7 @@
         </div>
     @endif
 
+    @if(!$simple)
     <!-- Header -->
     <header class="bg-white shadow-lg sticky top-0 z-50 glass-effect">
         <div class="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
@@ -438,7 +442,9 @@
             </div>
         </div>
     </header>
+    @endif
 
+    @if(!$simple)
     <!-- Desktop Progress Indicator -->
     <div class="hidden md:block bg-white shadow-sm sticky top-14 sm:top-16 z-40">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -449,10 +455,22 @@
             </div>
         </div>
     </div>
+    @endif
 
-    <main class="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-8 mb-20 sm:mb-0">
-        @yield('content')
-    </main>
+    @if($simple)
+        <div class="flex h-screen w-full overflow-hidden">
+            <div class="sidebar-desktop">
+                @include('partials.sidebar')
+            </div>
+            <main class="flex-1 overflow-y-auto ml-2 p-3 sm:p-10 pt-8 mt-0 sm:mt-1 space-y-10 md:ml-20 transition-all duration-300" style="margin-left: 0; padding-left: 18px;">
+                @yield('content')
+            </main>
+        </div>
+    @else
+        <main class="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-8 mb-20 sm:mb-0">
+            @yield('content')
+        </main>
+    @endif
 
     <script>
         // Track completed sections for visual indicators only
@@ -485,6 +503,12 @@
                 title: 'Other Information'
             },
             {
+                id: 'display_wes',
+                label: 'WORK EXPERIENCE SHEET',
+                icon: 'assignment',
+                title: 'Work Experience Sheet'
+            },
+            {
                 id: 'display_c5',
                 label: 'UPLOAD PDF',
                 icon: 'upload_file',
@@ -500,6 +524,7 @@
             if (path.includes('/pds/c2') || path.includes('/c2')) return 'display_c2';
             if (path.includes('/pds/c3') || path.includes('/c3')) return 'display_c3';
             if (path.includes('/pds/c4') || path.includes('/c4')) return 'display_c4';
+            if (path.includes('/pds/wes') || path.includes('/wes')) return 'display_wes';
             if (path.includes('/pds/c5') || path.includes('/c5')) return 'display_c5';
             
             // Default to first page if no match
@@ -649,6 +674,7 @@
                 'display_c2': '/pds/c2', 
                 'display_c3': '/pds/c3',
                 'display_c4': '/pds/c4',
+                'display_wes': '/pds/wes',
                 'display_c5': '/pds/c5'
             };
             
@@ -697,6 +723,7 @@
 
         // Updated progress bar - all sections are always available
         function updateProgressBar() {
+            if ({{ $simple ? 'true' : 'false' }}) return;
             const progressBar = document.getElementById('progressBar');
             if (!progressBar) return;
             
@@ -742,6 +769,7 @@
 
         // Updated mobile nav menu - all sections are always available
         function updateMobileNavMenu() {
+            if ({{ $simple ? 'true' : 'false' }}) return;
             const menuContent = document.querySelector('.nav-menu-content');
             if (!menuContent) return;
             
@@ -795,6 +823,7 @@
                 'display_c2': 'Employment history and professional background',
                 'display_c3': 'Educational background and training programs',
                 'display_c4': 'Additional details, references, and declarations',
+                'display_wes': 'Detailed duties and accomplishments (attached sheet)',
                 'display_c5': 'Generate and download your completed PDS form'
             };
             return descriptions[stepId] || '';

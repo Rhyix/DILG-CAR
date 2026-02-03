@@ -28,7 +28,7 @@
                     @csrf
                     <button type="submit"
                         class="w-[130px] 
-                               {{ $admin->is_active ? 'bg-[#C5292F] hover:bg-red-700' : 'bg-[#008000] hover:bg-green-700' }} 
+                               {{ $admin->is_active ? 'bg-[#C5292F] hover:bg-red-700' : 'bg-[#00127.0.0.1] hover:bg-green-700' }} 
                                text-white font-semibold rounded-full flex items-center justify-center gap-2 px-5 py-2 transition">
                         {{ $admin->is_active ? 'DEACTIVATE' : 'ACTIVATE' }}
                     </button>

@@ -50,7 +50,14 @@ class RegisterController extends Controller
 
         //info(now());
         //info(now()->addMinutes(5));
-        Mail::to($request->email)->send(new OTPmail($otp));
+        try {
+            Mail::to($request->email)->send(new OTPmail($otp));
+        } catch (\Throwable $e) {
+            activity()
+                ->withProperties(['ip' => request()->ip(), 'email' => $request->email, 'section' => 'Register'])
+                ->event('send')
+                ->log('Failed to send OTP via mail.');
+        }
         //info("mail");
 
         activity()
@@ -158,7 +165,14 @@ class RegisterController extends Controller
         $data['expires_at'] = now()->addMinutes(5);
         session(['pending_registration' => $data]);
 
-        Mail::to($data['email'])->send(new OTPmail($newOtp));
+        try {
+            Mail::to($data['email'])->send(new OTPmail($newOtp));
+        } catch (\Throwable $e) {
+            activity()
+                ->withProperties(['ip' => request()->ip(), 'email' => $data['email'] ?? 'Unknown', 'section' => 'Register'])
+                ->event('send')
+                ->log('Failed to resend OTP via mail.');
+        }
 
         activity()
             ->withProperties(['ip' => request()->ip(), 'email' => $data['email'] ?? 'Unknown', 'section' => 'Register'])

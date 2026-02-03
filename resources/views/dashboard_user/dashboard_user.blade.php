@@ -102,9 +102,40 @@
 
         <!-- Personal Data Sheet -->
         <article class="col-span-12 sm:col-span-5 rounded-xl bg-white border-4 border-[#002C76] p-8 flex flex-col gap-4">
-            <h2 class="text-base sm:text-3xl font-extrabold flex items-center gap-3 font-montserrat text-[#002C76]">
-                <i class="w-5 h-5" data-feather="file"></i> PERSONAL DATA SHEET
-            </h2>
+            <button type="button" id="pdsDropdownToggle" class="text-left text-base sm:text-3xl font-extrabold flex items-center justify-between gap-3 font-montserrat text-[#002C76]">
+                <span class="flex items-center gap-3">
+                    <i class="w-5 h-5" data-feather="file"></i> PERSONAL DATA SHEET
+                </span>
+                <i class="w-5 h-5" data-feather="chevron-down"></i>
+            </button>
+            <div id="pdsDropdown" class="hidden mt-2 bg-blue-50 rounded-lg p-2">
+                <div class="space-y-1">
+                    <a href="{{ route('display_c1', ['simple' => 1]) }}" class="flex items-center rounded-md px-3 py-2 text-sm font-semibold transition text-[#002C76] hover:text-white hover:bg-[#002C76]">
+                        <i data-feather="user" class="w-4 h-4 stroke-[3] flex-shrink-0"></i>
+                        <span class="ml-3">Personal Information</span>
+                    </a>
+                    <a href="{{ route('display_c2', ['simple' => 1]) }}" class="flex items-center rounded-md px-3 py-2 text-sm font-semibold transition text-[#002C76] hover:text-white hover:bg-[#002C76]">
+                        <i data-feather="briefcase" class="w-4 h-4 stroke-[3] flex-shrink-0"></i>
+                        <span class="ml-3">Work Experience</span>
+                    </a>
+                    <a href="{{ route('display_c3', ['simple' => 1]) }}" class="flex items-center rounded-md px-3 py-2 text-sm font-semibold transition text-[#002C76] hover:text-white hover:bg-[#002C76]">
+                        <i data-feather="book-open" class="w-4 h-4 stroke-[3] flex-shrink-0"></i>
+                        <span class="ml-3">Learning & Development</span>
+                    </a>
+                    <a href="{{ route('display_c4', ['simple' => 1]) }}" class="flex items-center rounded-md px-3 py-2 text-sm font-semibold transition text-[#002C76] hover:text-white hover:bg-[#002C76]">
+                        <i data-feather="info" class="w-4 h-4 stroke-[3] flex-shrink-0"></i>
+                        <span class="ml-3">Other Information</span>
+                    </a>
+                    <a href="{{ route('display_wes', ['simple' => 1]) }}" class="flex items-center rounded-md px-3 py-2 text-sm font-semibold transition text-[#002C76] hover:text-white hover:bg-[#002C76]">
+                        <i data-feather="briefcase" class="w-4 h-4 stroke-[3] flex-shrink-0"></i>
+                        <span class="ml-3">Work Experience Sheet</span>
+                    </a>
+                    <a href="{{ route('display_c5', ['simple' => 1]) }}" class="flex items-center rounded-md px-3 py-2 text-sm font-semibold transition text-[#002C76] hover:text-white hover:bg-[#002C76]">
+                        <i data-feather="upload" class="w-4 h-4 stroke-[3] flex-shrink-0"></i>
+                        <span class="ml-3">Upload PDF</span>
+                    </a>
+                </div>
+            </div>
 
             <!-- Progress Bar -->
             <div class="w-full bg-gray-200 h-2 rounded-full">
@@ -232,5 +263,11 @@
     });
 
     window.onload = () => openSidebar();
+    
+    const pdsToggle = document.getElementById('pdsDropdownToggle');
+    const pdsDropdown = document.getElementById('pdsDropdown');
+    pdsToggle?.addEventListener('click', () => {
+        pdsDropdown.classList.toggle('hidden');
+    });
 </script>
 @endsection
