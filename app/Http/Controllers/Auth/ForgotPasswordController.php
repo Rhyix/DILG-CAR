@@ -1,0 +1,215 @@
+<?php
+
+namespace App\Http\Controllers\Auth;
+
+use App\Http\Controllers\Controller;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Hash;
+use Carbon\Carbon;
+use App\Mail\ResetOTPmail;
+use Spatie\Activitylog\Models\Activity;
+
+
+class ForgotPasswordController extends Controller
+{
+    // 1. Show forgot password email input form
+    public function showForgotPasswordForm()
+    {
+        return view('login_register.forgot_password');
+    }
+
+    // 2. Process email input, generate OTP, send email, redirect to OTP input form
+    public function sendOtp(Request $request)
+    {
+        $request->validate(['email' => 'required|email']);
+
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user) {
+            return back()->withErrors(['email' => 'Email not found.']);
+        }
+
+        // Generate OTP
+        $otp = rand(100000, 999999);
+        $user->otp = $otp;
+        $user->otp_expires_at = Carbon::now()->addMinutes(5);
+        $user->save();
+
+        // Send OTP email
+        Mail::to($request->email)->send(new ResetOTPmail($otp));
+
+        activity()
+            ->withProperties(['ip' => request()->ip(), 'email' => $request->email, 'section' => 'Forgot Password'])
+            ->event('send')
+            ->log('Sent OTP for password reset.');
+
+        return redirect()->route('forgot.password.otp.form')->with([
+            'status' => 'OTP sent to your email.',
+            'email' => $user->email,
+            'otpExpiresAt' => $user->otp_expires_at
+        ]);
+    }
+
+    // 3. Show OTP input form
+    public function showOtpForm(Request $request)
+    {
+        $email = session('email');
+        $otpExpiresAt = session('otpExpiresAt');
+
+        if (!$email) {
+            return redirect()->route('forgot.password.form')->withErrors(['email' => 'Session expired. Please start again.']);
+        }
+
+        activity()
+            ->withProperties(['ip' => request()->ip(), 'email' => $email ?? 'Unknown', 'section' => 'Forgot Password'])
+            ->event('view')
+            ->log('Viewed OTP input form for password reset.');
+
+        return view('login_register.forgot_password_otp', compact('email', 'otpExpiresAt'));
+    }
+
+    // 4. Verify OTP and redirect to password reset form
+    public function verifyOtp(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'otp' => 'required'
+        ]);
+
+        $user = User::where('email', $request->email)
+                    ->where('otp', $request->otp)
+                    ->where('otp_expires_at', '>', Carbon::now())
+                    ->first();
+
+        if (!$user) {
+            activity()
+                ->withProperties(['ip' => request()->ip(), 'email' => $request->email, 'section' => 'Forgot Password'])
+                ->event('verify')
+                ->log('Invalid or expired OTP attempted.');
+
+            return back()->withErrors(['otp' => 'Invalid or expired OTP.'])->withInput();
+        }
+
+        // OTP verified - clear it
+        $user->otp = null;
+        $user->otp_expires_at = null;
+        $user->save();
+
+        // Store session flag for reset form access
+        session(['password_reset_verified' => $user->email]);
+
+        activity()
+            ->withProperties(['ip' => request()->ip(), 'email' => $user->email, 'section' => 'Forgot Password'])
+            ->event('verify')
+            ->log('OTP verified for password reset.');
+
+        return redirect()->route('forgot.password.reset.form', ['email' => $user->email]);
+    }
+
+    // 5. Show password reset form
+    public function showResetForm($email)
+    {
+        // Check session verification
+        if (session('password_reset_verified') !== $email) {
+            activity()
+                ->withProperties(['ip' => request()->ip(), 'email' => $email, 'section' => 'Forgot Password'])
+                ->event('view')
+                ->log('Attempted to access reset form without OTP verification.');
+
+            return redirect()->route('forgot.password.form')
+                ->withErrors(['otp' => 'Please verify OTP first.']);
+        }
+
+        // Clear session to prevent reuse
+        session()->forget('password_reset_verified');
+
+        $user = User::where('email', $email)->first();
+
+        if (!$user) {
+            activity()
+                ->withProperties(['ip' => request()->ip(), 'email' => $email, 'section' => 'Forgot Password'])
+                ->event('view')
+                ->log('Invalid password reset link accessed.');
+
+            return redirect()->route('forgot.password.form')->withErrors(['email' => 'Invalid reset link.']);
+        }
+
+        activity()
+            ->withProperties(['ip' => request()->ip(), 'email' => $email, 'section' => 'Forgot Password'])
+            ->event('view')
+            ->log('Viewed password reset form.');
+
+        return view('login_register.reset_password', compact('email'));
+    }
+
+    // 6. Process password reset
+    public function resetPassword(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'password' => 'required|confirmed|min:6',
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user) {
+            activity()
+                ->withProperties(['ip' => request()->ip(), 'email' => $request->email, 'section' => 'Forgot Password'])
+                ->event('reset')
+                ->log('Password reset failed (email not found).');
+
+            return back()->withErrors(['email' => 'Email not found.']);
+        }
+
+        $user->password = Hash::make($request->password);
+        $user->save();
+
+        activity()
+            ->withProperties(['ip' => request()->ip(), 'email' => $user->email, 'section' => 'Forgot Password'])
+            ->event('reset')
+            ->log('Password reset successfully.');
+
+        return redirect()->route('login')->with('status', 'Password reset successful. You may now log in.');
+    }
+
+    // 7. Resend OTP (expires old OTP, generates new)
+    public function resendOtp(Request $request)
+    {
+        $request->validate(['email' => 'required|email']);
+
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user) {
+            activity()
+                ->withProperties(['ip' => request()->ip(), 'email' => $request->email, 'section' => 'Forgot Password'])
+                ->event('send')
+                ->log('Password reset failed (email not found).');
+
+            return response()->json(['error' => 'Email not found.'], 404);
+        }
+
+        // Expire old OTP immediately
+        $user->otp_expires_at = Carbon::now();
+
+        // Generate new OTP
+        $otp = rand(100000, 999999);
+        $user->otp = $otp;
+        $user->otp_expires_at = Carbon::now()->addMinutes(5);
+        $user->save();
+
+        // Send new OTP email
+        Mail::to($user->email)->send(new ResetOTPmail($otp));
+
+        activity()
+            ->withProperties(['ip' => request()->ip(), 'email' => $user->email, 'section' => 'Forgot Password'])
+            ->event('send')
+            ->log('Resent OTP for password reset.');
+
+        return response()->json([
+            'message' => 'New OTP sent successfully.',
+            'otpExpiresAt' => $user->otp_expires_at->toDateTimeString()
+        ]);
+    }
+}

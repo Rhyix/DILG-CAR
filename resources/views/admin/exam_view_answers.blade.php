@@ -1,0 +1,225 @@
+@extends('layout.admin')
+
+@section('title', 'Juan Dela Cruz - Answers')
+
+@push('styles')
+    <!-- Montserrat Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body, .font-montserrat {
+            font-family: 'Montserrat', sans-serif !important;
+        }
+    </style>
+@endpush
+
+@section('content')
+<div class="px-6 mb-6 flex justify-between items-center font-montserrat">
+    <div class="flex items-center gap-4">
+        <!-- Back Button -->
+        <button aria-label="Go back" title="Go back"
+            class="w-12 h-12 rounded-full bg-[#D8DCE3] flex justify-center items-center text-[#1E3664] hover:bg-[#c0c7d8] transition"
+            onclick="window.history.back()">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="#1E3664" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+        </button>
+
+        <div>
+            <h2 id="applicant-name" class="text-2xl font-bold uppercase text-[#002C76]">{{ $userName->name }}</h2>
+            <p class="uppercase text-sm font-semibold text-gray-700 tracking-wide">Examination Answers</p>
+            <p class="text-xs font-medium text-gray-500">For Position: <span class="font-semibold text-[#002C76]">{{ $positionTitle->position_title }}</span></p>
+        </div>
+    </div>
+
+    <div class="flex flex-col items-end space-y-1 text-sm text-gray-700 font-montserrat">
+        <div class="text-right leading-tight">
+            <p><span class="font-medium text-gray-600">Last Refreshed:</span> <span id="last-refreshed">--</span></p>
+            <p><span class="font-medium text-gray-600">Score:</span> <span id="score">--</span></p>
+        </div>
+        <button onclick="renderAnswers()" aria-label="Refresh answers" title="Refresh answers"
+            class="mt-2 w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-700 flex justify-center items-center transition shadow-md">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <polyline points="1 4 1 10 7 10"></polyline>
+                <polyline points="23 20 23 14 17 14"></polyline>
+                <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path>
+            </svg>
+        </button>
+    </div>
+</div>
+<form action="{{ route('admin.save_result', ['vacancy_id' => $vacancy_id, 'user_id' => $user_id] ) }}" method="POST">
+@csrf
+<input type="hidden" name="result" id="result">
+<div id="question-container" class="px-6 pb-10 font-montserrat"></div>
+</form>
+<script>
+    const Questions = @json($examResults) ;
+
+    // This object stores the updated correctness per question
+    const checkedAnswers = {};
+
+    let correctCount = 0;
+    let final_score = 0;
+    let highest_score = 0;
+
+
+    function updateScore(questionId, score) {
+        const selects = document.querySelectorAll('.scored');
+        final_score = 0;
+        highest_score = Questions.length;
+        selects.forEach((select) => {
+            if(select.value !== ''){
+                final_score += parseInt(select.value);
+                highest_score += 3;
+            }else{
+                highest_score -= 1;
+            }
+        });
+
+        const scoreEl = document.getElementById('score');
+        scoreEl.textContent = `${final_score} / ${highest_score}`;
+
+        const resultEl = document.getElementById('result');
+        resultEl.value = `${final_score} / ${highest_score}`;
+
+
+        console.log(' ')
+        console.log(`Question ${questionId} scored as: ${final_score}`);
+    }
+
+    function updateDropdownColor(selectElement) {
+        const classMap = {
+            "4": ["bg-green-100", "text-green-700"],
+            "3": ["bg-[#bbdb44]/20", "text-[#749300]"],
+            "2": ["bg-[#f7e379]/40", "text-[#b29100]"],
+            "1": ["bg-[#f2a134]/30", "text-[#cc6d00]"],
+            "0": ["bg-red-100", "text-red-700"],
+            "not scored": ["bg-gray-200", "text-gray-500"]
+        };
+
+        // Remove all existing bg/text classes
+            selectElement.classList.remove(
+                "bg-green-100", "text-green-700",
+                "bg-[#bbdb44]/20", "text-[#749300]",
+                "bg-[#f7e379]/40", "text-[#b29100]",
+                "bg-[#f2a134]/30", "text-[#cc6d00]",
+                "bg-red-100", "text-red-700",
+                "bg-gray-200", "text-gray-500"
+            );
+        const selected = selectElement.value;
+        const [bgClass, textClass] = classMap[selected] || [];
+
+        if (bgClass && textClass) {
+            selectElement.classList.add(bgClass, textClass);
+        }
+    }
+
+
+    // Optional: Apply color on page load based on pre-selected value
+    document.addEventListener("DOMContentLoaded", () => {
+        document.querySelectorAll("select[id^='score-select-']").forEach(select => {
+        updateDropdownColor(select);
+        });
+    });
+
+    function renderAnswers() {
+        const container = document.getElementById('question-container');
+        const refreshedEl = document.getElementById('last-refreshed');
+        const scoreEl = document.getElementById('score');
+        container.innerHTML = '';
+
+        Questions.forEach((q, index) => {
+            const userAnswer = q.given_answer ?? 'No answer yet';
+            // use manual check if available, otherwise fallback to auto
+            const isCorrect = q.is_correct;
+            const isEssay = q.is_essay;
+            if (isCorrect) correctCount++;
+
+            const div = document.createElement('div');
+            div.className = 'bg-white rounded-xl border border-blue-200 shadow-md p-6 mb-6 max-w-3xl mx-auto';
+
+            div.innerHTML = `
+                <div class="flex justify-between items-start mb-1">
+                    <div>
+                        <p class="text-lg font-semibold text-gray-800">QUESTION ${index + 1} of ${Questions.length}</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        ${!isEssay ? `
+                            <input name="scores[${q.id}]" type="hidden" ${isCorrect ? 'value="1"' : 'value="0"'}>
+                            <span class="text-sm font-semibold px-3 py-1 rounded-full ${isCorrect ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
+                                ${isCorrect ? 'Correct' : 'Incorrect'}
+                            </span>
+                        ` : `
+                            <div class="flex items-end gap-4">
+                                <div class="flex-1">
+                                    <select
+                                        name="scores[${q.id}]"
+                                        id="score-select-${q.id}"
+                                        onchange="updateScore(${q.id}, this.value); updateDropdownColor(this)"
+                                        class="text-sm font-semibold px-3 py-1 rounded-full transition ease-in-out duration-150 scored">
+                                        <option value="" ${q.score == '' ? 'selected' : ''}>Not Scored</option>
+                                        <option value=4 ${q.score == '4' ? 'selected' : ''}>4 - Excellent</option>
+                                        <option value=3 ${q.score == '3' ? 'selected' : ''}>3 - Great</option>
+                                        <option value=2 ${q.score == '2' ? 'selected' : ''}>2 - Good</option>
+                                        <option value=1 ${q.score == '1' ? 'selected' : ''}>1 - Fair</option>
+                                        <option value=0 ${q.score == '0' ? 'selected' : ''}>0 - Poor</option>
+                                    </select>
+                                </div>
+                            </div>
+                        `}
+                    </div>
+                </div>
+                <p class="mb-3 text-gray-700">${q.question}</p>
+                <div class="bg-gray-100 text-gray-900 rounded px-4 py-3">
+                    <p class="whitespace-pre-line"><strong class="mr-1">Answer:</strong>${userAnswer}</p>
+                </div>
+            `;
+
+
+            container.appendChild(div);
+
+            if(isEssay === 1){updateDropdownColor(div.querySelector(`#score-select-${q.id}`));};
+
+        });
+
+        // Save score + time
+        refreshedEl.textContent = new Date().toLocaleString();
+        scoreEl.textContent = `${final_score} / ${highest_score}`;
+
+        // Show Save Score button
+        const saveBtn = document.createElement('div');
+        saveBtn.className = 'flex justify-end mt-8 max-w-3xl mx-auto';
+        saveBtn.innerHTML = `
+            <button type="submit"
+                class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md transition">
+                Save Score
+            </button>
+        `;
+        container.appendChild(saveBtn);
+        updateScore();
+    }
+
+    function updateCorrect(questionId, isChecked) {
+        checkedAnswers[questionId] = isChecked;
+        renderAnswers(); // re-render to update tag color/score
+    }
+
+    /*function saveScore() {
+        const results = Questions.map(q => ({
+            question_id: q.id,
+            is_correct: checkedAnswers[q.id] ?? (
+                mockAnswers[q.id]?.trim().toLowerCase() === correctAnswers[q.id]?.trim().toLowerCase()
+            )
+        }));
+
+        console.log('Saving score:', results);
+
+        alert('Score saved successfully! (Check console for data)');
+        // TODO: Send via AJAX to backend
+    }*/
+
+    document.addEventListener('DOMContentLoaded', renderAnswers);
+</script>
+
+@include('partials.loader')
+
+@endsection

@@ -1,0 +1,113 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class JobVacancy extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'vacancy_id',
+        'position_title',
+        'vacancy_type',
+        'pcn_no',
+        'plantilla_item_no',
+        'closing_date',
+        'status',
+        'monthly_salary',
+        'salary_grade',
+        'place_of_assignment',
+        'qualification_education',
+        'qualification_training',
+        'qualification_experience',
+        'qualification_eligibility',
+        'competencies',
+        'expected_output',
+        'scope_of_work',
+        'duration_of_work',
+        'to_person',
+        'to_position',
+        'to_office',
+        'to_office_address',
+        'last_modified_by',
+    ];
+
+    protected $casts = [
+        'closing_date' => 'datetime',
+        'monthly_salary' => 'decimal:2',
+    ];
+
+    /**
+     * Boot model events to generate vacancy_id.
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($job) {
+            if (empty($job->vacancy_id)) {
+                $job->vacancy_id = 'TEMP'; // temporary placeholder
+            }
+        });
+
+        static::created(function ($job) {
+            if ($job->vacancy_id === 'TEMP') {
+                $acronym = self::generateAcronym($job->position_title);
+                $suffix = str_pad($job->id, 3, '0', STR_PAD_LEFT);
+                $job->vacancy_id = $acronym . '-' . $suffix;
+            } else {
+                $suffix = str_pad($job->id, 3, '0', STR_PAD_LEFT);
+                $job->vacancy_id = strtok($job->vacancy_id, '-') . '-' . $suffix;
+            }
+            $job->save();
+        });
+
+        static::updating(function ($job) {
+            if ($job->isDirty('vacancy_id')) {
+                $suffix = str_pad($job->id, 3, '0', STR_PAD_LEFT);
+                $job->vacancy_id = strtok($job->vacancy_id, '-') . '-' . $suffix;
+            }
+        });
+    }
+
+    /**
+     * Generate acronym based on position title.
+     */
+    public static function generateAcronym($title)
+    {
+        $words = preg_split('/\s+/', trim($title));
+        if (empty($words)) return '';
+
+        $acronymParts = [];
+        $lastIndex = count($words) - 1;
+
+        for ($i = 0; $i < $lastIndex; $i++) {
+            $acronymParts[] = strtoupper(substr($words[$i], 0, 1));
+        }
+
+        $lastWord = strtoupper($words[$lastIndex]);
+
+        // Check if last word is Roman numeral
+        $isRoman = preg_match('/^(M{0,3})(CM|CD|D?C{0,3})?(XC|XL|L?X{0,3})?(IX|IV|V?I{0,3})$/', $lastWord);
+        $acronymParts[] = $isRoman ? $lastWord : strtoupper(substr($lastWord, 0, 1));
+
+        return implode('', $acronymParts);
+    }
+
+    /**
+     * Relationship: Applications submitted for this vacancy.
+     */
+    public function applications()
+    {
+        return $this->hasMany(Applications::class, 'vacancy_id', 'vacancy_id');
+    }
+
+    public function getRouteKeyName()
+    {
+        return 'vacancy_id'; // or 'pcn_no' or any unique field
+    }
+
+}

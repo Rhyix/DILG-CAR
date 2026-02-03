@@ -1,0 +1,198 @@
+@if(session('success'))
+    @include('partials.alerts_template', [
+        'showTrigger' => false,
+        'title' => 'Success',
+        'message' => session('success'),
+        'okText' => 'OK',
+        'showCancel' => false
+    ])
+@endif
+
+@if(session('error'))
+    @include('partials.alerts_template', [
+        'showTrigger' => false,
+        'title' => 'Not allowed',
+        'message' => session('error'),
+        'okText' => 'OK',
+        'showCancel' => false
+    ])
+@endif
+
+@extends('layout.app')
+@section('title', 'DILG - Job Description')
+@section('content')
+    <main class="flex-1 min-w-0 space-y-8 font-montserrat mt-6">
+
+        <!-- Back Button -->
+        <section class="flex items-center gap-2 sm:gap-4 ml-12 sm:ml-0">
+          <button onclick="window.location.href='{{ route('job_vacancy') }}'"
+                  class="use-loader sm:w-14 sm:h-14 w-11 h-10 ml-2 rounded-full bg-[#002C76] flex items-center justify-center shadow-md hover:bg-opacity-90 transition">
+                  <i data-feather="arrow-left" class="w-4 h-4 sm:w-5 h-5 text-white"></i>
+              </button>
+          <h1
+              class="w-full max-w-full text-lg sm:text-4xl font-extrabold text-white font-montserrat flex items-center gap-3 bg-[#002C76] px-4 py-2 rounded-lg shadow-md">
+              <i data-feather="briefcase" class="w-5 h-5"></i> Job Description
+          </h1>
+        </section>
+
+        @php
+            $isClosed = strtolower($vacancy->status) === 'closed';
+            $statusColor = $isClosed ? 'bg-red-600' : 'bg-green-600';
+            $status = $isClosed ? 'CLOSED' : 'OPEN';
+            $borderColor = $isClosed ? 'border-red-600' : 'border-green-600';
+            $hasApplied = $vacancy->applications->contains('user_id', auth()->id());
+        @endphp
+
+        <!-- Main Job Info Card -->
+        <section class="bg-white p-4 md:p-6 rounded-lg shadow border-l-4 {{ $borderColor }}">
+            <div class="flex flex-col md:flex-row md:justify-between md:items-start md:space-x-6">
+                <!-- Left: Title and Details -->
+                <div class="space-y-2 w-full md:w-2/3">
+                    <h2 class="text-2xl md:text-4xl font-extrabold text-[#002C76] break-words">{{ $vacancy->position_title }}</h2>
+                    <p class="text-gray-600 text-base md:text-lg">
+                        @if ($vacancy->vacancy_type === 'COS')
+                            CONTRACT OF SERVICE
+                        @elseif ($vacancy->vacancy_type === 'Plantilla')
+                            PLANTILLA ITEM
+                        @else
+                            {{ $vacancy->vacancy_type }}
+                        @endif
+                    </p>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1 text-sm mt-2">
+                        <p><span class="font-semibold">Date Posted:</span> {{ $vacancy->created_at }}</p>
+                        <p><span class="font-semibold">Deadline:</span> {{ \Carbon\Carbon::parse($vacancy->closing_date)->subMinute()->format('n/j/Y g:i A') }}</p>
+                        <p><span class="font-semibold">Place of Assignment:</span> {{ $vacancy->place_of_assignment }}</p>
+
+                        @if(strtolower($vacancy->vacancy_type) == 'plantilla')
+                            <p><span class="font-semibold">Item No.:</span> {{ $vacancy->plantilla_item_no }}</p>
+                            <p><span class="font-semibold">Salary Grade:</span> {{ $vacancy->salary_grade }}</p>
+                        @endif
+
+                        <p><span class="font-semibold">Compensation:</span> {{ $vacancy->monthly_salary }}</p>
+                    </div>
+                </div>
+
+                <!-- Right: Status and Buttons -->
+                <div class="flex flex-col items-end gap-2 mt-4 md:mt-0 w-full md:w-auto md:ml-auto">
+                    <span class="text-black font-bold text-sm flex items-center gap-1 uppercase">
+                        {{ $status }}
+                        <span class="w-3 h-3 {{ $statusColor }} rounded-full"></span>
+                    </span>
+
+                    @if ($hasApplied)
+                        <!-- Already Applied Button -->
+                        <button disabled
+                            class="flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-gray-400 text-white text-sm font-semibold shadow cursor-not-allowed w-full md:w-auto">
+                            <i data-feather="check-circle" class="w-4 h-4"></i> ALREADY APPLIED
+                        </button>
+                    @elseif (!$isClosed)
+                    <!-- Apply Button -->
+                        <button type="button"
+                            {{ !$hasPDS ? 'disabled' : '' }}
+                            onclick="openApplyModal()"
+                            class="flex items-center justify-center gap-2 px-6 py-3 rounded-full text-sm font-semibold shadow transition w-full md:w-auto
+                                  {{ !$hasPDS ? 'bg-gray-400 cursor-not-allowed text-white' : 'bg-green-600 hover:bg-green-700 text-white' }}">
+                            <i data-feather="arrow-right" class="w-4 h-4"></i> {{ !$hasPDS ? 'NO PDS YET' : 'APPLY' }}
+                        </button>
+                    @else
+                    <!-- Application Closed Button -->
+                        <button disabled
+                            class="flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-gray-400 text-white text-sm font-semibold shadow cursor-not-allowed w-full md:w-auto">
+                            <i data-feather="x-circle" class="w-4 h-4"></i> APPLICATION CLOSED
+                        </button>
+                    @endif
+
+                    <!-- PDS Button -->
+                    <button onclick="window.location.href='{{ route('display_c1') }}'"
+                        class="use-loader flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow transition w-full md:w-auto">
+                        <i data-feather="arrow-right" class="w-4 h-4"></i> {{ !$hasPDS ? 'CREATE PDS' : 'UPDATE PDS' }}
+                    </button>
+
+                    <!--Work Experience Sheet Button -->
+                    <button onclick="window.location.href='{{ route('work_experience') }}'"
+                        class="use-loader flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow transition w-full md:w-auto">
+                        <i data-feather="arrow-right" class="w-4 h-4"></i> WORK EXPERIENCE SHEET
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+    <!-- Modal -->
+    <div id="applyModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden">
+        <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
+            <h2 class="text-lg font-semibold mb-4">Application Letter</h2>
+
+            <form id="applyForm" action="{{ route('application.store', $vacancy->vacancy_id) }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <input type="file" name="application_file" accept="application/pdf" required class="mb-4 border p-2 w-full">
+
+                <div class="flex justify-end gap-2">
+                    <button type="button" onclick="closeApplyModal()" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">Cancel</button>
+                    <button type="submit" class="use-loader px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Submit Application</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+        <!-- Qualifications -->
+        <section class="bg-white p-6 rounded-lg shadow space-y-2 border-l-4 border-[#002C76]">
+            <h3 class="text-xl font-bold text-[#002C76]">QUALIFICATION STANDARDS</h3>
+            <p><span class="font-semibold">Education:</span> <br/> {{ $vacancy->qualification_education }}</p>
+            <p><span class="font-semibold">Experience:</span> <br/> {{ $vacancy->qualification_experience }}</p>
+            <p><span class="font-semibold">Training:</span> <br/> {{ $vacancy->qualification_training }}</p>
+            <p><span class="font-semibold">Eligibility:</span> <br/> {{ $vacancy->qualification_eligibility }}</p>
+            @if(strtolower($vacancy->vacancy_type) == 'plantilla')
+                <p>
+                    <span class="font-semibold">Competencies:</span> <br/>
+                    {!! nl2br(e($vacancy->competencies)) !!}
+                </p>
+            @endif
+        </section>
+
+        <!-- COS Details -->
+        @if(strtolower($vacancy->vacancy_type) == 'cos')
+            <section class="bg-white p-6 rounded-lg shadow space-y-2 border-l-4 border-green-600">
+                <h3 class="text-xl font-bold text-green-700">COS DETAILS</h3>
+                <p>
+                    <span class="font-semibold">Scope of Work:</span> <br/>
+                    {!! nl2br(e($vacancy->scope_of_work)) !!}
+                </p>
+                <p>
+                    <span class="font-semibold">Expected Output / Deliverables:</span> <br/>
+                    {!! nl2br(e($vacancy->expected_output)) !!}
+                </p>
+                <p>
+                    <span class="font-semibold">Duration of Work:</span> <br/>
+                    {!! nl2br(e($vacancy->duration_of_work)) !!}
+                </p>
+            </section>
+        @endif
+
+        <!-- Application Details -->
+        <section class="bg-white p-6 rounded-lg shadow space-y-2 border-l-4 border-[#002C76]">
+            <h3 class="text-xl font-bold text-[#002C76]">APPLICATION</h3>
+            <p>Qualified applicants are advised to apply online through <a href="https://car.dilg.gov.ph/dilg-car-vacancy/" class="text-blue-600 font-bold underline">this portal</a>.</p>
+            <p>Application Letter/Letter of Intent and other documents shall be addressed to: </p>
+            <p class="font-bold text-lg">{{ $vacancy->to_person }}<br>
+                <span class="font-normal">{{ $vacancy->to_position }}</span><br>
+                <span class="font-normal">{{ $vacancy->to_office }}</span><br>
+                <span class="font-normal">{{ $vacancy->to_office_address }}</span>
+            </p>
+            <p class="text-red-600 font-bold">APPLICATIONS WITH INCOMPLETE DOCUMENTS SHALL NOT BE ENTERTAINED.</p>
+        </section>
+
+        @include('partials.loader')
+    </main>
+@endsection
+
+<script>
+    function openApplyModal() {
+    document.getElementById('applyModal').classList.remove('hidden');
+    }
+
+    function closeApplyModal() {
+    document.getElementById('applyModal').classList.add('hidden');
+    }
+</script>

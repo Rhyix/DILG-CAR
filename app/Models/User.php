@@ -1,0 +1,139 @@
+<?php
+
+namespace App\Models;
+
+// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+
+class User extends Authenticatable
+{
+    /** @use HasFactory<\Database\Factories\UserFactory> */
+    use HasFactory, Notifiable;
+
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var list<string>
+     */
+    protected $fillable = [
+        'name',
+        'email',
+        'password',
+        'email_verified_at',
+    ];
+
+    /**
+     * The attributes that should be hidden for serialization.
+     *
+     * @var list<string>
+     */
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+        ];
+    }
+
+    /**
+     * Defines a one-to-one relationship with a User and a Personal Information record.
+     *
+     * @return HasOne<PersonalInformation, User>
+     */
+    public function personalInformation() {
+        return $this->hasOne(PersonalInformation::class, 'user_id');
+    }
+
+    /**
+     * Defines a one-to-one relationship with a User and a Family Background record.
+     *
+     * @return HasOne<FamilyBackground, User>
+     */
+    public function familyBackground() {
+        return $this->hasOne(FamilyBackground::class, 'user_id');
+    }
+
+    /**
+     * Defines a one-to-one relationship with a User and a Educational Background record.
+     *
+     * @return HasOne<EducationalBackground, User>
+     */
+    public function educationalBackground() {
+        return $this->hasOne(EducationalBackground::class, 'user_id');
+    }
+
+    /**
+     * Defines a one-to-many relationship with a User and a Work Experience record.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<WorkExperience, User>
+     */
+    public function workExperience() {
+        return $this->hasMany(WorkExperience::class, 'user_id');
+    }
+
+    /**
+     * Defines a one-to-many relationship with a User and a Civil Service Eligibility record.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<CivilServiceEligibility, User>
+     */
+    public function civilServiceEligibility() {
+        return $this->hasMany(CivilServiceEligibility::class, 'user_id');
+    }
+
+    /**
+     * Defines a one-to-many relationship with a User and a Learning and Development record.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<CivilServiceEligibility, User>
+     */
+    public function learningAndDevelopment() {
+        return $this->hasMany(LearningAndDevelopment::class, 'user_id');
+    }
+
+    /**
+     * Defines a one-to-many relationship with a User and a Voluntary Work record.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<VoluntaryWork, User>
+     */
+    public function voluntaryWork() {
+        return $this->hasMany(VoluntaryWork::class, 'user_id');
+    }
+
+    /**
+     * Defines a one-to-many relationship with a User and a Other Information record.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<VoluntaryWork, User>
+     */
+    public function otherInformation() {
+        return $this->hasMany(OtherInformation::class, 'user_id');
+    }
+
+    /**
+     * Defines a one-to-one relationship with a User and a Related Questions record.
+     *
+     * @return HasOne<RelatedQuestions, User>
+     */
+    public function relatedQuestions() {
+        return $this->hasOne(RelatedQuestions::class, 'user_id');
+    }
+
+    /**
+     * Defines a one-to-one relationship with a User and a Miscellaneous Information record.
+     * @return HasOne<MiscInfos, User>
+     */
+    public function miscInfos() {
+        return $this->hasOne(MiscInfos::class, 'user_id');
+    }
+}
