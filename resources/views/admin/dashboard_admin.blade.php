@@ -12,7 +12,8 @@
         </h1>
     </section>
 
-    <!-- Stats Summary -->
+    <!-- OLD STATS SUMMARY -->
+    <!-- Stats Summary
     <section class="border border-blue-700 rounded-2xl max-w-full flex divide-x divide-blue-700 bg-white select-none"
         style="box-shadow: 0 3px 6px rgb(29 78 216 / 0.24);">
         @php
@@ -34,8 +35,87 @@
                 <span class="text-sm font-semibold text-gray-400 font-montserrat">{{ $stat['label'] }}</span>
             </div>
         </a>
-        @endforeach
-    </section>
+        @endforeach        
+    </section> -->
+
+    <!--NEW SUGGESTION-->
+    <div class="grid grid-cols-4 gap-6">
+        <!-- Open Vacancies -->
+        <div
+        class="cursor-pointer flex items-center justify-between border border-[#002C76] rounded-xl p-4 bg-white shadow-xl
+                hover:shadow-xl hover:-translate-y-1 hover:bg-blue-50 hover:scale-105
+                transition-all duration-300 ease-out"
+        >
+            <div class="flex flex-col items-start space-y-1">
+                <span class="text-[#313131]">OPEN VACANCIES</span>
+                <span class="font-extrabold text-6xl font-montserrat">{{ $openVacancyCount }}</span>
+            </div>
+            <div class="w-16 h-16 flex items-center justify-center rounded-full bg-blue-100">
+                <svg class="w-8 h-8 text-[#002C76]" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M20 7h-4a2 2 0 01-2-2V4H10v1a2 2 0 01-2 2H4v11a2 2 0 002 2h12a2 2 0 002-2V7z" />
+                </svg>
+            </div>
+        </div>
+
+        <!-- Reviewed Applications -->
+        <div
+        class="cursor-pointer flex items-center justify-between border border-[#002C76] rounded-xl p-4 bg-white shadow-xl
+                hover:shadow-xl hover:-translate-y-1 hover:bg-blue-50 hover:scale-105
+                transition-all duration-300 ease-out"
+        >
+            <div class="flex flex-col items-start space-y-1">
+                <span class="text-[#313131]">REVIEWED APPLICATIONS</span>
+                <span class="font-extrabold text-6xl font-montserrat">{{ $reviewedApplicationsCount }}</span>
+            </div>
+            <div class="w-16 h-16 flex items-center justify-center rounded-full bg-blue-100">
+                <svg class="w-8 h-8 text-[#002C76]" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M9 5h6m-6 4h6m-7 4l2 2 4-4M7 3h10a2 2 0 012 2v14a2 2 0 01-2 2H7a2 2 0 01-2-2V5a2 2 0 012-2z" />
+                </svg>
+            </div>
+        </div>
+
+        <!-- Upcoming Exams -->
+        <div
+        class="cursor-pointer flex items-center justify-between border border-[#002C76] rounded-xl p-4 bg-white shadow-xl
+                hover:shadow-xl hover:-translate-y-1 hover:bg-blue-50 hover:scale-105
+                transition-all duration-300 ease-out"
+        >
+            <div class="flex flex-col items-start space-y-1">
+                <span class="text-[#313131]">UPCOMING EXAMS</span>
+                <span class="font-extrabold text-6xl font-montserrat">{{ $upcomingExamsCount }}</span>
+            </div>
+            <div class="w-16 h-16 flex items-center justify-center rounded-full bg-blue-100">
+                <svg class="w-8 h-8 text-[#002C76]" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M8 7V3m8 4V3m-9 8h10m-12 9h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v11a2 2 0 002 2z" />
+                </svg>
+            </div>
+        </div>
+
+        <!-- System Users -->
+        <div
+        class="cursor-pointer flex items-center justify-between border border-[#002C76] rounded-xl p-4 bg-white shadow-xl
+                hover:shadow-xl hover:-translate-y-1 hover:bg-blue-50 hover:scale-105
+                transition-all duration-300 ease-out"
+        >
+            <div class="flex flex-col items-start space-y-1">
+                <span class="text-[#313131]">SYSTEM USERS</span>
+                <span class="font-extrabold text-6xl font-montserrat">{{ $systemUsersCount }}</span>
+            </div>
+            <div class="w-16 h-16 flex items-center justify-center rounded-full bg-blue-100">
+                <svg class="w-8 h-8 text-[#002C76]" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M17 20h5v-1a4 4 0 00-4-4h-1M9 20H4v-1a4 4 0 014-4h1m6-5a4 4 0 10-8 0 4 4 0 008 0zm6 4a3 3 0 10-6 0 3 3 0 006 0z" />
+                </svg>
+            </div>
+        </div>
+    </div>
+
+
+
+
 
     <!-- Job Vacancies + Exam Management Row -->
     <section class="flex flex-row gap-6 max-w-full">

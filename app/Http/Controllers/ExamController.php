@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Log;
 use App\Models\JobVacancy;
 use App\Models\ExamDetail;
 use App\Models\Applications;
@@ -72,6 +73,31 @@ public function submit(Request $request, $vacancy_id)
             ->log('Accessed edit exam page.');
 
         return view('admin.exam_edit', ['exam_items' => $exam_items, 'vacancy_id' => $vacancy_id]);
+    }
+
+    public function editExamVue(Request $request, $vacancy_id)
+    {
+        $exam_items = ExamItems::where('vacancy_id', $vacancy_id)->get();
+
+        activity()
+            ->causedBy(auth('admin')->user())
+            ->event('view')
+            ->withProperties(['vacancy_id' => $vacancy_id, 'section' => 'Exam Management'])
+            ->log('Accessed edit exam page (Vue).');
+
+        return view('admin.exam_edit_vue', ['exam_items' => $exam_items, 'vacancy_id' => $vacancy_id]);
+    }
+
+    public function updateExamVue(Request $request, $vacancy_id)
+    {
+        \Log::info($request->all());
+        return response()->json(['message' => 'Data received']);
+    }
+
+    public function previewExam($vacancy_id)
+    {
+        $exam_items = ExamItems::where('vacancy_id', $vacancy_id)->get();
+        return view('admin.exam_preview', compact('exam_items'));
     }
 
     public function updateExam(Request $request, $vacancy_id)

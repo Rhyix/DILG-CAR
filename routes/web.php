@@ -312,6 +312,10 @@ Route::middleware([RedirectIfNotAdmin::class])->group(function () {
     Route::get('/admin/vacancies/{vacancy_id}/edit', [JobVacancyController::class, 'edit'])->name('vacancies.edit');
     Route::put('/admin/vacancies/cos/{vacancy_id}/edit', [JobVacancyController::class, 'update'])->name('vacancies.update');
     Route::delete('/admin/vacancies/{vacancy_id}/delete', [JobVacancyController::class, 'delete'])->name('vacancies.delete');
+    Route::get('/admin/exam/{vacancy_id}/edit-vue', [ExamController::class, 'editExamVue'])->name('admin.exam.edit.vue');
+    Route::post('/admin/exam/{vacancy_id}/update-vue', [ExamController::class, 'updateExamVue'])->name('admin.exam.update.vue');
+Route::get('/admin/exam/{vacancy_id}/preview', [ExamController::class, 'previewExam'])->name('admin.exam.preview');
+
     Route::get('/admin/applicant_status/{user_id}/{vacancy_id}', [AdminController::class, 'viewApplicantStatus'])->name('admin.applicant_status');
     Route::post('/admin/applicant_status/{user_id}/{vacancy_id}', [AdminController::class, 'updateApplicantStatus'])->name('admin.applicant_status.update');
 

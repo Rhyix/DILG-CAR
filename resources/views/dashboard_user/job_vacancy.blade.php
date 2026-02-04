@@ -74,9 +74,9 @@
 <!-- Updated HTML with mobile classes -->
 <!-- Page Header -->
 <section class="flex items-center gap-2 sm:gap-4 ml-12 sm:ml-0" style="margin-top:0">
-                <h1 class="w-full max-w-full text-lg sm:text-4xl font-extrabold text-white font-montserrat flex items-center gap-3 bg-[#002C76] px-4 py-2 rounded-lg shadow-md" style="margin-top:0px;">
-                    <i data-feather="briefcase" class="w-6 h-6 text-white"></i> Browse Job Vacancies
-                </h1>
+    <h1 class="w-full max-w-full text-lg sm:text-4xl font-extrabold text-white font-montserrat flex items-center gap-3 bg-[#002C76] px-4 py-2 rounded-lg shadow-md" style="margin-top:0px;">
+        <i data-feather="briefcase" class="w-6 h-6 text-white"></i> Browse Job Vacancies
+    </h1>
 </section>
 
 <!-- Sorting & Filtering -->

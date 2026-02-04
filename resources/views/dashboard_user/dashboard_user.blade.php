@@ -15,7 +15,7 @@
     }
 </style>
 
-<main class="mt-7 sm:mt-0 flex-1 min-w-0 space-y-10 bg-[#F3F8FF] font-sans text-gray-900 overflow-x-hidden p-6" style="margin-top: 0">
+<main class="mt-1 flex-1 min-w-0 space-y-10 bg-[#F3F8FF] font-sans text-gray-900 overflow-x-hidden px-6" style="margin-top: 0">
     <!-- Welcome Section -->
     <section class="text-center sm:text-left">
         <div class="text-xl font-normal mb-1 font-montserrat">Welcome,</div>
@@ -25,7 +25,7 @@
     <section class="grid grid-cols-12 gap-6 w-full">
 
         <!-- My Job Applications -->
-        <article class="col-span-12 sm:col-span-7 rounded-xl bg-white text-[#002C76] border-4 border-[#002C76] p-8 flex flex-col gap-4">
+        <article class="shadow-lg shadow-black/50 col-span-12 sm:col-span-7 rounded-xl bg-white text-[#002C76] border-2 border-[#002C76] p-8 flex flex-col gap-4">
             <h2 class="text-base sm:text-2xl font-extrabold flex items-center gap-3 font-montserrat">
                 <i class="w-5 h-5" data-feather="clipboard"></i> MY JOB APPLICATIONS
             </h2>
@@ -52,7 +52,7 @@
                 ->take(3);
         @endphp
 
-        <article class="col-span-12 sm:col-span-5 bg-white border-4 border-[#002C76] rounded-xl p-6 flex flex-col gap-4">
+        <article class="shadow-lg shadow-black/50 col-span-12 sm:col-span-5 bg-white border-2 border-[#002C76] rounded-xl p-6 flex flex-col gap-4">
             <h2 class="text-base sm:text-xl font-extrabold flex items-center gap-3 font-montserrat text-[#C9282D]">
                 <i class="w-5 h-5" data-feather="check-square"></i> DEADLINE OF APPLICATIONS
             </h2>
@@ -81,7 +81,7 @@
         </article>
 
         <!-- Job Vacancies -->
-        <article class="col-span-12 sm:col-span-7 rounded-xl bg-white border-4 border-[#002C76] p-8 flex flex-col text-[#002C76] min-h-[360px]">
+        <article class="shadow-lg shadow-black/50 col-span-12 sm:col-span-7 rounded-xl bg-white border-2 border-[#002C76] p-8 flex flex-col text-[#002C76] min-h-[360px]">
             <h2 class="text-base sm:text-2xl font-extrabold flex items-center gap-3 font-montserrat mb-2">
                 <i class="w-5 h-5" data-feather="box"></i> JOB VACANCIES
             </h2>
@@ -101,7 +101,7 @@
         </article>
 
         <!-- Personal Data Sheet -->
-        <article class="col-span-12 sm:col-span-5 rounded-xl bg-white border-4 border-[#002C76] p-8 flex flex-col gap-4">
+        <article class="shadow-lg shadow-black/50 col-span-12 sm:col-span-5 rounded-xl bg-white border-2 border-[#002C76] p-8 flex flex-col gap-4">
             <button type="button" id="pdsDropdownToggle" class="text-left text-base sm:text-3xl font-extrabold flex items-center justify-between gap-3 font-montserrat text-[#002C76]">
                 <span class="flex items-center gap-3">
                     <i class="w-5 h-5" data-feather="file"></i> PERSONAL DATA SHEET

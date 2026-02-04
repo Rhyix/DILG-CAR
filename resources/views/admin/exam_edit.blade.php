@@ -21,7 +21,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
         </button>
-        <h1 class="w-full flex items-center font-extrabold text-3xl border-4 border-[#002C76] text-[#002C76] rounded-xl px-4 py-2 gap-3">
+        <h1 class="shadow-lg shadow-black/30 w-full flex items-center font-extrabold text-3xl border-2 border-[#002C76] text-[#002C76] rounded-xl px-4 py-2 gap-3">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m-6-8h6m2 12H7a2 2 0 01-2-2V6a2 2 0 012-2h7.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V18a2 2 0 01-2 2z" />
             </svg>
