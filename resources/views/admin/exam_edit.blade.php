@@ -12,22 +12,19 @@
 @endpush
 
 @section('content')
-<div x-data="examEditor()" class="w-full px-10 py-8 space-y-10 max-w-full font-montserrat">
+<div x-data="examEditor()" class="w-full max-w-full font-montserrat">
 
     <!-- Header -->
-    <div class="flex items-center gap-4">
-        <button aria-label="Back" onclick="window.location.href='{{ route('admin_exam_management') }}'" class="use-loader p-2 rounded-full bg-[#D9D9D9] hover:bg-[#002C76] h-11 w-11 flex items-center justify-center transition">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-[#002c76] hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+    <section class="flex items-center space-x-4 mb-4 max-w-full border-b border-[#0D2B70]">
+        <button aria-label="Back" onclick="window.location.href='{{ route('admin_exam_management') }}'" class="use-loader group">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-[#0D2B70] hover:opacity-80 transition" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
         </button>
-        <h1 class="w-full flex items-center font-extrabold text-3xl border-4 border-[#002C76] text-[#002C76] rounded-xl px-4 py-2 gap-3">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m-6-8h6m2 12H7a2 2 0 01-2-2V6a2 2 0 012-2h7.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V18a2 2 0 01-2 2z" />
-            </svg>
-            Edit Exam Questions
+        <h1 class="flex items-center gap-3 w-full py-2 tracking-wide select-none">
+            <span class="text-[#0D2B70] text-4xl font-montserrat whitespace-nowrap">Edit Exam Questions</span>
         </h1>
-    </div>
+    </section>
 
     <!-- Question Form -->
     <form method="POST" @submit.prevent="submitForm" action="{{ route('admin.exam.update', $vacancy_id) }}">
@@ -48,72 +45,98 @@
             </button>
         </div>
 
-        <!-- Question List -->
-        <div class="space-y-8" x-show="questions.length > 0">
-            <template x-for="(q, index) in questions" :key="index">
-                <div class="p-6 bg-white rounded-lg shadow border border-gray-200 w-full relative">
-
-                    <!-- Reorder/Delete Buttons -->
-                    <div class="absolute top-4 right-4 flex space-x-2">
-                        <button type="button" @click="moveUp(index)" x-show="index > 0" class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-blue-700 hover:bg-blue-100 rounded" title="Move Up">
-                            <i data-feather="arrow-up" class="w-4 h-4"></i>
-                        </button>
-                        <button type="button" @click="moveDown(index)" x-show="index < questions.length - 1" class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-blue-700 hover:bg-blue-100 rounded" title="Move Down">
-                            <i data-feather="arrow-down" class="w-4 h-4"></i>
-                        </button>
-                        <button type="button" @click="removeQuestion(index)" class="w-8 h-8 flex items-center justify-center text-red-500 hover:bg-red-100 rounded" title="Remove">
-                            <i data-feather="x" class="w-4 h-4"></i>
-                        </button>
+<!-- Question List -->
+<div class="space-y-8" x-show="questions.length > 0">
+    <template x-for="(q, index) in questions" :key="index">
+        <div class="p-6 bg-white rounded-lg shadow border border-gray-200 w-full relative">
+            <!-- Question Label -->
+            <!-- <div class="mb-4 font-regular text-lg" x-text="`Question ${index + 1} of ${questions.length}`"></div> -->
+                        
+            <!-- Question Body -->
+            <div class="">
+                <!-- <textarea required class="w-full h-40 resize-none border border-blue-300 rounded-lg p-4" placeholder="Enter your question..." x-model="q.text"></textarea> -->                        
+                <div class="flex flex-row justify-between items-center gap-2">
+                    <input type="text" required class="w-full border border-blue-300 rounded-lg h-10 px-4" placeholder="Untitled Question" x-model="q.duration">
+                    <div>
+                        
+                    <select id="typeOfQuestion"
+                        x-model="q.type"
+                        class="h-10 cursor-pointer px-4 rounded-md border border-[#0D2B70] text-[#0D2B70] font-semibold bg-white
+                            focus:outline-none focus:ring-2 focus:ring-[#0D2B70] focus:ring-offset-1">
+                        <option value="MCQ">MCQ</option>
+                        <option value="Essay">Essay</option>
+                    </select>
                     </div>
+                </div>
 
-                    <!-- Question Label -->
-                    <div class="mb-4 font-regular text-lg" x-text="`Question ${index + 1} of ${questions.length}`"></div>
-
-                    <!-- Question Body -->
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <textarea required class="w-full h-40 resize-none border border-blue-300 rounded-lg p-4" placeholder="Enter your question..." x-model="q.text"></textarea>
-
-                        <div class="space-y-4">
-                            <div class="flex gap-4">
-                                <div class="w-1/2">
-                                    <label class="font-semibold block mb-1">Type:</label>
-                                    <select class="w-full border border-gray-300 rounded px-3 py-2" x-model="q.type">
-                                        <option value="MCQ">MCQ</option>
-                                        <option value="Essay">Essay</option>
-                                    </select>
-                                </div>
-                                <div class="w-1/2" x-show="q.type === 'MCQ'">
-                                    <label class="font-semibold block mb-1">Answer:</label>
-                                    <select class="w-full border border-gray-300 rounded px-3 py-2" x-model="q.answer">
-                                        <option value="A">A</option>
-                                        <option value="B">B</option>
-                                        <option value="C">C</option>
-                                        <option value="D">D</option>
-                                    </select>
-                                </div>
+                <!-- MCQ Choices -->
+                <div class="mt-4 space-y-2" x-show="q.type === 'MCQ'">
+                    <template x-for="(option, optIndex) in q.choices" :key="optIndex">
+                        <div class="flex items-center gap-3 group">
+                            <!-- Radio Button (Functional) -->
+                            <div @click="q.correctAnswer = optIndex" 
+                                class="w-5 h-5 rounded-full border-2 flex-shrink-0 cursor-pointer transition-all flex items-center justify-center"
+                                :class="q.correctAnswer === optIndex ? 'border-[#0D2B70] bg-[#0D2B70]' : 'border-gray-400 hover:border-[#0D2B70]'">
+                                <div x-show="q.correctAnswer === optIndex" 
+                                    class="w-2 h-2 rounded-full bg-white"></div>
                             </div>
+                            
+                            <!-- Option Input -->
+                            <input type="text" 
+                                x-model="q.choices[optIndex]" 
+                                class="w-full border-b border-transparent hover:border-gray-300 focus:border-[#0D2B70] focus:outline-none py-1 px-2 transition-colors"
+                                placeholder="Option">
 
-                            <!-- MCQ Choices in 2x2 format (Responsive) -->
-                            <div class="grid grid-cols-2 gap-4" x-show="q.type === 'MCQ'">
-                                <template x-for="(letter, index) in ['A', 'B', 'C', 'D']" :key="letter">
-                                    <div class="flex items-center gap-2 min-w-0">
-                                        <!-- Always-square letter box -->
-                                        <div class="min-w-[2rem] min-h-[2rem] w-8 h-8 flex-shrink-0 flex items-center justify-center bg-[#002C76] text-white font-bold rounded">
-                                            <span x-text="letter"></span>
-                                        </div>
-                                        <!-- Flexible answer input -->
-                                        <input type="text"
-                                            class="w-full border border-blue-500 rounded px-3 py-2"
-                                            :placeholder="`(${letter})`"
-                                            x-model="q.choices[letter]">
-                                    </div>
-                                </template>
-                            </div>
+                            <!-- Remove Option Button -->
+                            <button type="button" 
+                                @click="removeOption(index, optIndex)"
+                                class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-opacity p-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                        </div>
+                    </template>
+
+                    <!-- Add Option / Add Other -->
+                    <div class="flex items-center gap-3">
+                        <div class="w-5 h-5 rounded-full border-2 border-gray-300 flex-shrink-0"></div>
+                        <div class="flex items-center gap-1 text-sm text-gray-500">
+                            <button type="button" 
+                                @click="addOption(index)"
+                                class="hover:underline hover:text-[#0D2B70] font-medium">
+                                Add option
+                            </button>
+                            <!-- <span>or</span>
+                            <button type="button" class="hover:underline hover:text-[#0D2B70] font-medium">
+                                add "Other"
+                            </button> -->
                         </div>
                     </div>
                 </div>
-            </template>
+
+                <div class="flex flex-row justify-between items-center gap-2">
+                    <span class="italic text-sm text-[#0D2B70]">
+                        Tick the option to declare as answer.
+                    </span>
+                    <div>
+                        <button type="button" 
+                            @click="duplicateQuestion(index)"
+                            class="bg-[#002C76] hover:bg-blue-900 text-white font-bold py-2 px-6 rounded">
+                            Duplicate
+                        </button>
+                        <button type="button" 
+                            @click="removeQuestion(index)"
+                            class="bg-red-700 hover:bg-red-800 text-white font-bold py-2 px-6 rounded">
+                            Remove
+                        </button>
+                    </div>
+                </div>
+
+            </div>
         </div>
+    </template>
+</div>
 
         <!-- Add More -->
         <div class="text-right" x-show="questions.length > 0">
@@ -146,23 +169,65 @@
         return {
             questions: [], // Start with no questions
             init() {
-            const data = @json($exam_items);
-            this.questions = data.map(q => ({
-                    text: q.question,
-                    type: q.is_essay ? 'Essay' : 'MCQ',
-                    answer: q.ans || '',
-                    choices: q.choices || { A: '', B: '', C: '', D: '' },
-                }));
+                const data = @json($exam_items);
+                this.questions = data.map(q => {
+                    let parsedChoices = [];
+                    // Ensure choices is an array for the new format
+                    if (q.choices) {
+                         // If it's already an array (from JSON decode or new format)
+                         if (Array.isArray(q.choices)) {
+                             parsedChoices = q.choices;
+                         } 
+                         // If it's an object {A:..., B:...} (legacy format), convert to array
+                         else if (typeof q.choices === 'object') {
+                             parsedChoices = Object.values(q.choices).filter(val => val !== '');
+                         }
+                         // If it's a string (from DB), try to parse
+                         else if (typeof q.choices === 'string') {
+                             try {
+                                 const parsed = JSON.parse(q.choices);
+                                 if (Array.isArray(parsed)) {
+                                     parsedChoices = parsed;
+                                 } else if (typeof parsed === 'object') {
+                                     parsedChoices = Object.values(parsed).filter(val => val !== '');
+                                 }
+                             } catch(e) { console.error('Error parsing choices', e); }
+                         }
+                    }
+
+                    // Ensure at least one empty option if none exist
+                    if (parsedChoices.length === 0 && (!q.is_essay)) {
+                        parsedChoices = ['Option 1'];
+                    }
+
+                    return {
+                        text: q.question,
+                        type: q.is_essay ? 'Essay' : 'MCQ',
+                        answer: q.ans || '',
+                        duration: q.duration || '', // Added duration mapping if available in DB
+                        choices: parsedChoices,
+                    };
+                });
             },
 
             addQuestion() {
                 this.questions.push({
                     text: '',
                     type: 'MCQ',
-                    answer: 'A',
-                    choices: { A: '', B: '', C: '', D: '' },
+                    answer: '',
+                    duration: '',
+                    choices: ['Option 1'], // Start with Option 1
                 });
                 this.$nextTick(() => feather.replace());
+            },
+
+            addOption(questionIndex) {
+                const currentLength = this.questions[questionIndex].choices.length;
+                this.questions[questionIndex].choices.push(`Option ${currentLength + 1}`);
+            },
+
+            removeOption(questionIndex, optionIndex) {
+                this.questions[questionIndex].choices.splice(optionIndex, 1);
             },
             removeQuestion(index) {
                 this.questions.splice(index, 1);

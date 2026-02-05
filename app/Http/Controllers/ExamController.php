@@ -118,12 +118,17 @@ public function submit(Request $request, $vacancy_id)
     public function examManagement(Request $request)
     {
         $search = $request->input('search');
+        $jobType = $request->input('job_type');
 
         $jobVacancies = JobVacancy::query()
             ->when($search, function ($query, $search) {
-                $query->where('position_title', 'like', '%' . $search . '%')
-                    ->orWhere('vacancy_id', 'like', '%' . $search . '%')
-                    ->orWhere('vacancy_type', 'like', '%' . $search . '%');
+                $query->where(function($q) use ($search) {
+                    $q->where('position_title', 'like', '%' . $search . '%')
+                      ->orWhere('vacancy_id', 'like', '%' . $search . '%');
+                });
+            })
+            ->when($jobType, function ($query, $jobType) {
+                $query->where('vacancy_type', $jobType);
             })
             ->orderBy('created_at', 'desc')
             ->get();
