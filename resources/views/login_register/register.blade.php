@@ -16,6 +16,26 @@
   <style>
     body { font-family: 'Montserrat', sans-serif; }
     [x-cloak] { display: none !important; }
+    .auth-wrapper { overflow: hidden; }
+    .form-section, .logo-section {
+      transition: transform 400ms cubic-bezier(0.4, 0, 0.2, 1);
+      will-change: transform;
+    }
+    .auth-wrapper.animate-out.login-to-register .form-section {
+      transform: translateX(100%);
+    }
+    .auth-wrapper.animate-out.login-to-register .logo-section {
+      transform: translateX(-100%);
+    }
+    .auth-wrapper.animate-out.register-to-login .form-section {
+      transform: translateX(-100%);
+    }
+    .auth-wrapper.animate-out.register-to-login .logo-section {
+      transform: translateX(100%);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .form-section, .logo-section { transition: none; }
+    }
   </style>
 </head>
 <body class="min-h-screen bg-white flex items-center justify-center">
@@ -50,11 +70,10 @@
   </div>
 </template>
 
-<!-- Main Content -->
-<div class="w-full min-h-screen flex flex-col lg:flex-row">
+<div class="auth-wrapper w-full min-h-screen flex flex-col lg:flex-row">
 
   <!-- Left: Branding -->
-  <div class="flex-1 bg-blue-800 text-white flex flex-col items-center justify-center p-8 text-center">
+  <div class="logo-section flex-1 bg-blue-800 text-white flex flex-col items-center justify-center p-8 text-center">
     <img src="{{ asset('images/dilg_logo.png') }}" alt="DILG Logo" class="w-28 sm:w-36 md:w-40 mb-6" />
     <h1 class="text-xl sm:text-2xl md:text-3xl font-extrabold leading-tight">
       DEPARTMENT OF THE INTERIOR<br/>AND LOCAL GOVERNMENT
@@ -65,10 +84,9 @@
   </div>
 
   <!-- Right: Registration Form -->
-  <div class="flex-1 flex items-center justify-center p-6 bg-white">
+  <div class="form-section flex-1 flex items-center justify-center p-6 bg-white">
     <form method="POST" action="{{ route('register') }}" autocomplete="off"
-      class="no-spinner w-full max-w-md bg-white rounded-xl border border-blue-400 p-8 shadow-xl"
-      x-on:submit.prevent="if (agreed && checkboxChecked) { isSubmitting = true; $el.submit(); }">
+      class="w-full max-w-md bg-white rounded-xl border border-blue-400 p-8 shadow-xl">
       @csrf
 
       <h2 class="text-3xl font-bold text-center text-blue-900 mb-2">SIGN UP</h2>
@@ -121,17 +139,17 @@
 
       <!-- Register Button -->
       <button type="submit"
-        :disabled="!(agreed && checkboxChecked) || isSubmitting"
-        :class="{ 'opacity-50 cursor-not-allowed': !(agreed && checkboxChecked), 'cursor-wait': isSubmitting }"
+        :disabled="!(agreed && checkboxChecked)"
+        :class="{ 'opacity-50 cursor-not-allowed': !(agreed && checkboxChecked) }"
         class="w-full bg-yellow-400 hover:bg-yellow-500 text-blue-900 font-bold py-3 rounded-full shadow-md transition ease-in-out duration-200">
-        <span x-text="isSubmitting ? 'Processing…' : 'REGISTER'"></span>
+        REGISTER
       </button>
 
       <!-- Google Login -->
       <div class="flex items-center justify-center my-4">
         <a :class="{
             'opacity-50 cursor-not-allowed': !(agreed && checkboxChecked),
-            'use-loader flex items-center justify-center gap-3 w-full bg-white border-2 border-yellow-400 text-blue-900 font-bold py-2 rounded-full hover:bg-yellow-100 shadow-md transition ease-in-out duration-200': true
+            'flex items-center justify-center gap-3 w-full bg-white border-2 border-yellow-400 text-blue-900 font-bold py-2 rounded-full hover:bg-yellow-100 shadow-md transition ease-in-out duration-200': true
           }"
           :href="(agreed && checkboxChecked) ? '{{ route('google.login') }}' : '#'">
           <img src="{{ asset('images/google-icon.png') }}" alt="Google Icon" class="w-5 h-5">
@@ -141,13 +159,32 @@
 
       <p class="text-xs text-blue-700 text-center">
         Already have an account?
-        <a href="{{ route('login') }}" class="use-loader font-bold hover:underline">LOG-IN</a>
+        <a href="{{ route('login') }}" class="switch-auth font-bold hover:underline" data-direction="register-to-login">LOG-IN</a>
       </p>
     </form>
   </div>
 </div>
 
-@include('partials.loader')
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var wrapper = document.querySelector('.auth-wrapper');
+    document.querySelectorAll('.switch-auth').forEach(function (el) {
+      el.addEventListener('click', function (e) {
+        e.preventDefault();
+        var dir = el.getAttribute('data-direction') || 'register-to-login';
+        var href = el.getAttribute('href');
+        if (!wrapper || !href) {
+          window.location.href = href;
+          return;
+        }
+        wrapper.classList.add('animate-out', dir);
+        setTimeout(function () {
+          window.location.href = href;
+        }, 400);
+      });
+    });
+  });
+  </script>
 
 <!-- AlpineJS Logic -->
 <script>
@@ -157,7 +194,6 @@
       agreed: false,
       checkboxChecked: false,
       hasErrors: hasErrors === 'true',
-        isSubmitting: false,
       initModal() {
         if (!this.hasErrors && !localStorage.getItem('modalShown')) {
           this.showModal = true;
