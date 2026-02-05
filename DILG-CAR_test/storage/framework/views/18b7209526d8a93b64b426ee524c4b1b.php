@@ -1,0 +1,1 @@
+child-<?php echo e($index); ?><?php /**PATH C:\xampp\htdocs\PDS-main\storage\framework\views/062b6214fa4879ab595e14ca30681c73.blade.php ENDPATH**/ ?>
