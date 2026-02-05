@@ -117,8 +117,8 @@
         {{-- Sidebar --}}
         @include('partials.sidebar_admin')
 
-        {{-- Main Content Fixed --}}
-        <main class="flex-1 overflow-hidden p-6 flex flex-col h-full">
+        {{-- Main Content Scrollable --}}
+        <main class="flex-1 overflow-y-auto p-10 pt-8 space-y-10">
             @yield('content')
         </main>
 
