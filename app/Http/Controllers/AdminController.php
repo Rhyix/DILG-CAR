@@ -162,6 +162,8 @@ class AdminController extends Controller
 
         $openVacancies = Vacancy::where('status', 'OPEN')->get();
         $openVacancyCount = $openVacancies->count();
+        $cosVacancyCount = $openVacancies->where('vacancy_type', 'COS')->count();
+        $plantillaVacancyCount = $openVacancies->where('vacancy_type', 'Plantilla')->count();
 
         $onGoingApplications = Applications::with(['personalInformation', 'vacancy'])
             ->whereIn('status', ['Incomplete', 'Pending'])
@@ -194,6 +196,8 @@ class AdminController extends Controller
         return view('admin.dashboard_admin', [
             'openVacancies' => $openVacancies,
             'openVacancyCount' => $openVacancyCount,
+            'cosVacancyCount' => $cosVacancyCount,
+            'plantillaVacancyCount' => $plantillaVacancyCount,
             'onGoingApplications' => $onGoingApplications,
             'onGoingApplicationsCount' => $onGoingApplicationsCount,
             'reviewedApplications' => $reviewedApplications,
