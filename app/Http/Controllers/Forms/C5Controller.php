@@ -7,11 +7,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use App\Models\UploadedDocument;
 
-class C5controller extends Controller
+class C5Controller extends Controller
 {
     public function store(Request $request)
     {
-        $user = auth()->user(); // Assumes user is logged in
+        $user = \Illuminate\Support\Facades\Auth::user();
 
         // ✅ Validate uploaded PDF files (all are optional)
         $request->validate([
@@ -70,7 +70,7 @@ class C5controller extends Controller
 
     public function editC5()
     {
-    $user = auth()->user();
+    $user = \Illuminate\Support\Facades\Auth::user();
     $documents = UploadedDocument::where('user_id', $user->id)->first();
 
     return view('c5_update', compact('documents'));
@@ -80,7 +80,7 @@ class C5controller extends Controller
 {
     //dd('You are in editC5()', $);
 
-    $user = auth()->user();
+    $user = \Illuminate\Support\Facades\Auth::user();
 
     $request->validate([
         'cert_uploads.application_letter' => 'nullable|file|mimes:pdf|max:10240',

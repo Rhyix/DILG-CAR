@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Forms;
 
-use Storage;
+use Illuminate\Support\Facades\Storage;
 use App\Models;
 use App\Models\MiscInfos;
 
@@ -32,7 +32,7 @@ class PDSController extends Controller
     private function c1GetFormFromDB() {
 
         $c1_full_info = [];
-        $current_user = auth()->user();
+        $current_user = Auth::user();
         $user_personal_info = $current_user->personalInformation?->attributesToArray();
         if ($user_personal_info != null) {
 
@@ -120,7 +120,7 @@ class PDSController extends Controller
         $grad_schools       = session('form.c1.grad', []);
 /*
         activity()
-            ->causedBy(auth()->user())
+            ->causedBy(Auth::user())
             ->log('Viewed C1 form.');
 */
         // dd($vocational_schools);
@@ -143,7 +143,7 @@ class PDSController extends Controller
             'middle_name'    => 'nullable|max:255|string',
             'name_extension' => 'nullable|max:255|string',
             'civil_status'   => 'required|string|in:single,married,widowed,separated,other',
-            'date_of_birth'  => 'required|date:Y-m-d',
+            'date_of_birth'  => 'required|date_format:Y-m-d',
             'place_of_birth' => 'required|max:255|string',
             'citizenship'    => 'required|max:255|in:Filipino,Dual Citizenship',
             'sex'            => 'required|in:male,female',
@@ -153,6 +153,10 @@ class PDSController extends Controller
             'email_address'  => 'required|email:rfc',
             'height'         => 'required|integer|max:999',
             'weight'         => 'required|integer|max:999',
+            'elem_from'      => 'required|date_format:Y-m-d',
+            'elem_to'        => 'required|date_format:Y-m-d',
+            'jhs_from'       => 'required|date_format:Y-m-d',
+            'jhs_to'         => 'required|date_format:Y-m-d',
 
         ]);
 
@@ -172,6 +176,10 @@ class PDSController extends Controller
             'height',
             'weight',
             'blood_type',
+            'elem_from',
+            'elem_to',
+            'jhs_from',
+            'jhs_to',
 
         ]);
 
@@ -186,12 +194,16 @@ class PDSController extends Controller
         session(['form.c1' => $c1_form_data]);
 
         activity()
-            ->causedBy(auth()->user())
+            ->causedBy(Auth::user())
             ->log('Updated C1 form session.');
 
-        auth()->user()->touch();
+        \App\Models\User::query()->whereKey(Auth::id())->update(['updated_at' => now()]);
         //dd(session('form.c1'));
-        return redirect()->route($go_to);
+        $routeParams = [];
+        if ($request->query('simple')) {
+            $routeParams['simple'] = 1;
+        }
+        return redirect()->route($go_to, $routeParams);
     }
 
 
@@ -203,7 +215,7 @@ class PDSController extends Controller
      */
     private function c2GetFormFromDB() {
 
-        $current_user_id = auth()->id();
+        $current_user_id = Auth::id();
         $all_user_work_exps = WorkExperience::where(
             'user_id',
             '=',
@@ -254,7 +266,7 @@ class PDSController extends Controller
         $all_user_civil_service_eligibility = session('form.c2.all_user_civil_service_eligibility');
 /*
         activity()
-            ->causedBy(auth()->user())
+            ->causedBy(Auth::user())
             ->log('Viewed C2 form.');
 */
         return view('pds.c2', compact('all_user_work_exps', 'all_user_civil_service_eligibility'));
@@ -348,11 +360,15 @@ class PDSController extends Controller
         session(['form.c2' => $c2_full_info]);
 
         activity()
-            ->causedBy(auth()->user())
+            ->causedBy(Auth::user())
             ->log('Updated C2 form session.');
 
-        auth()->user()->touch();
-        return redirect()->route($go_to);
+        \App\Models\User::query()->whereKey(Auth::id())->update(['updated_at' => now()]);
+        $routeParams = [];
+        if ($request->query('simple')) {
+            $routeParams['simple'] = 1;
+        }
+        return redirect()->route($go_to, $routeParams);
 
     }
 
@@ -369,7 +385,7 @@ class PDSController extends Controller
         }
 
         activity()
-            ->causedBy(auth()->user())
+            ->causedBy(Auth::user())
             ->withProperties(['target_row' => $target_row, 'id' => $id])
             ->log("Deleted row in C2 form.");
 
@@ -512,11 +528,15 @@ class PDSController extends Controller
         // ========================================================================
 /*
         activity()
-            ->causedBy(auth()->user())
+            ->causedBy(Auth::user())
             ->log('Submitted C3 form data.');
 */  
-        auth()->user()->touch();
-        return redirect()->route($go_to);
+        \App\Models\User::query()->whereKey(Auth::id())->update(['updated_at' => now()]);
+        $routeParams = [];
+        if ($request->query('simple')) {
+            $routeParams['simple'] = 1;
+        }
+        return redirect()->route($go_to, $routeParams);
     }
 
     public function c3ShowForm(){
@@ -528,7 +548,7 @@ class PDSController extends Controller
         $data_otherInfo = session('data_otherInfo', []);
 /*
         activity()
-            ->causedBy(auth()->user())
+            ->causedBy(Auth::user())
             ->log('Viewed C3 form.');
 */
         return view('pds.c3', compact('data_learning', 'data_voluntary', 'data_otherInfo'));
@@ -731,10 +751,10 @@ class PDSController extends Controller
         session(['form.c4' => $validated_misc_data]);
 /*
         activity()
-            ->causedBy(auth()->user())
+            ->causedBy(Auth::user())
             ->log('Submitted C4 form data.');
 */
-        auth()->user()->touch();
+        \App\Models\User::query()->whereKey(Auth::id())->update(['updated_at' => now()]);
         return redirect()->route($go_to);
     }
 
@@ -768,7 +788,7 @@ class PDSController extends Controller
         //dd($data);
 /*
         activity()
-            ->causedBy(auth()->user())
+            ->causedBy(Auth::user())
             ->log('Viewed C4 form.');
 */
         return view('pds.c4', compact('data'));
@@ -847,7 +867,7 @@ class PDSController extends Controller
             $store_path = $file->store("uploads/pds-files", 'public');
 
             $document = UploadedDocument::firstOrCreate([
-                'user_id' => auth()->id(),
+                'user_id' => Auth::id(),
                 'document_type' => $doc_type
             ]);
 
@@ -868,7 +888,7 @@ class PDSController extends Controller
 
         }
         activity()
-    ->causedBy(auth()->user())
+    ->causedBy(Auth::user())
     ->log('Store C5 form.');
 
     }
@@ -1004,7 +1024,7 @@ class PDSController extends Controller
         // create a personal information record compact database insertion
         // IF the record does not exist for the current user.
         $user_personal_info = Models\PersonalInformation::firstOrCreate([
-            'user_id' => auth()->id()
+            'user_id' => Auth::id()
         ]);
 
         $user_personal_info->update([
@@ -1043,7 +1063,7 @@ class PDSController extends Controller
         //*******************************
 
         $user_family_bg = Models\FamilyBackground::firstOrCreate([
-            'user_id' => auth()->id()
+            'user_id' => Auth::id()
         ]);
 
         $user_family_bg->update([
@@ -1072,7 +1092,7 @@ class PDSController extends Controller
         //********************************
 
         $user_educational_bg = Models\EducationalBackground::firstOrCreate([
-            'user_id' => auth()->id()
+            'user_id' => Auth::id()
         ]);
 
         $user_educational_bg->update([
@@ -1195,7 +1215,7 @@ class PDSController extends Controller
         }
 
         activity()
-            ->causedBy(auth()->user())
+            ->causedBy(Auth::user())
             ->event('save')
             ->log('Finalized PDS submission.');
 
@@ -1206,7 +1226,7 @@ class PDSController extends Controller
     public function showSubmittedForm() {
         // TODO: Get all data from DB
 
-        $user = auth()->user();
+    $user = Auth::user();
         // If user has not submitted PDS, redirect to C1 form
         // if (!$user->has_pds) {
         //     return redirect()->route('display_c1');
@@ -1253,7 +1273,7 @@ class PDSController extends Controller
 
                 // Delete old file if exists
                 if ($application->file_storage_path) {
-                    \Storage::disk('public')->delete($application->file_storage_path);
+                    \Illuminate\Support\Facades\Storage::disk('public')->delete($application->file_storage_path);
                 }
 
                 //Update the application record
@@ -1280,12 +1300,12 @@ class PDSController extends Controller
         //$this->c5StoreFilesToDB($uploaded_files);
 
         activity()
-            ->causedBy(auth()->user())
+            ->causedBy(Auth::user())
             ->event('save')
             ->withProperties(['user_id' => $user_id, 'vacancy_id' => $vacancy_id, 'section' => 'Personal Data Sheet'])
             ->log('Uploaded application documents (Admin).');
 
-        auth()->user()->touch();
+        \App\Models\User::query()->whereKey(Auth::id())->update(['updated_at' => now()]);
         return redirect()->back()->with('success', 'Documents uploaded successfully.');
     }
 

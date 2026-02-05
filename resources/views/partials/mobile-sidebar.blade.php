@@ -32,20 +32,11 @@
             <x-mobile-nav-link icon="home" label="Home" :active="request()->routeIs('dashboard_user')" href="{{ route('dashboard_user') }}" />
             <x-mobile-nav-link icon="archive" label="Job Vacancies" :active="request()->routeIs('job_vacancy')" href="{{ route('job_vacancy') }}" />
             <x-mobile-nav-link icon="user" label="My Applications" :active="request()->routeIs('my_applications')" href="{{ route('my_applications') }}" />
-            <x-mobile-nav-link icon="briefcase" label="Work Experience" :active="request()->routeIs('work_experience')" href="{{ route('work_experience') }}" />
             <x-mobile-nav-link icon="file-text" label="Personal Data Sheet" :active="request()->routeIs('display_c1')" href="{{ route('display_c1') }}" />
             <x-mobile-nav-link icon="info" label="About This Website" :active="request()->routeIs('about')" href="{{ route('about') }}" />
         </nav>
         
-        <!-- Footer -->
-        <div class="p-4 border-t border-gray-200">
-            <button @click="showLogoutModal = true" class="flex items-center gap-2 text-[#C9282D] font-bold hover:bg-red-100 w-full px-4 py-2 rounded-md transition">
-                <i data-feather="log-out" class="w-5 h-5 stroke-[3]"></i>
-                Log Out
-            </button>
-        </div>
     </aside>
 </div>
 
-<!-- Logout Modal (Shared with Desktop for DRYness) -->
-@include('partials.logout-modal')
+<!-- No mobile logout; manage from profile menu -->

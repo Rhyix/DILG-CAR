@@ -33,12 +33,5 @@
         </nav>
     </div>
 
-    <!-- Optional: Keep Logout button if needed -->
-    <div class="px-2 pb-6">
-        <a href="{{ route('login') }}"
-            class="group flex items-center rounded-md border border-[#FFFFFF] px-4 py-2 text-sm font-bold text-[#C9282D] hover:bg-[#C9282D] hover:bg-opacity-20 hover:border-red-500 transition w-fit">
-            <i data-feather="log-out" class="w-5 h-5 stroke-[3] flex-shrink-0"></i>
-            <span id="textLogOut" class="sidebar-text-hidden ml-3">LOG-OUT</span>
-        </a>
-    </div>
+    <!-- No logout in viewer sidebar -->
 </aside>

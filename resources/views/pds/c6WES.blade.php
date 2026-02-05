@@ -325,10 +325,10 @@
             <div class="mobile-form-element">
               <label class="block text-sm font-semibold mobile-label" :class="entry.isDisplayed ? '' : 'text-gray-400'">DURATION</label>
               <div class="flex flex-col sm:flex-row mobile-duration gap-2">
-                <input :readonly="!entry.isDisplayed" required :name="'entries[' + index + '][start_date]'" type="date" class="mobile-input h-11 w-full border rounded px-3 py-2" x-model="entry.start_date">
+                <input :readonly="!entry.isDisplayed" required :name="'entries[' + index + '][start_date]'" type="text" class="wes-date mobile-input h-11 w-full border rounded px-3 py-2" x-model="entry.start_date">
                 <span class="text-center sm:pt-2 mobile-duration-to text-gray-500">to</span>
                 <div class="flex flex-col w-full">
-                  <input :class="entry.present ? 'text-gray-400' : ''" :readonly="!entry.isDisplayed || entry.present" :required="!entry.present" :name="'entries[' + index + '][end_date]'" type="date" class="mobile-input w-full border rounded px-3 py-2" x-model="entry.end_date">
+                  <input :class="entry.present ? 'text-gray-400' : ''" :readonly="!entry.isDisplayed || entry.present" :required="!entry.present" :name="'entries[' + index + '][end_date]'" type="text" class="wes-date mobile-input w-full border rounded px-3 py-2" x-model="entry.end_date">
                   <label class="text-xs mt-1"><input type="checkbox" x-model="entry.present" @change="if(entry.present) entry.end_date = ''"> Present</label>
                 </div>
               </div>
@@ -447,5 +447,24 @@
 @endif
 
 @include('partials.loader')
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    function initWESDates() {
+      document.querySelectorAll('.wes-date').forEach(function (el) {
+        if (!el.classList.contains('flatpickr-input')) {
+          flatpickr(el, { dateFormat: 'Y-m-d', allowInput: true });
+        }
+      });
+    }
+    initWESDates();
+    const root = document.getElementById('workSheet');
+    if (root) {
+      const observer = new MutationObserver(initWESDates);
+      observer.observe(root, { childList: true, subtree: true });
+    }
+  });
+  </script>
 </body>
 </html>

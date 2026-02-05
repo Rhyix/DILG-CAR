@@ -144,8 +144,51 @@
         </div>
 
         <!-- Main Content -->
-        <main class="flex-1 overflow-y-auto ml-2 p-3 sm:p-10 pt-8 mt-0 sm:mt-1 space-y-10 md:ml-20 transition-all duration-300" style="margin-left: 0; padding-left: 18px;">
+        <main class="flex-1 overflow-y-auto ml-2 pt-0 md:ml-20 transition-all duration-300" style="margin-left: 0; padding-left: 18px;">
+            <header class="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-gray-200 px-4 sm:px-8 py-3 flex items-center justify-end gap-6">
+                <div id="notifBell" class="relative">
+                    <button id="notifToggle" aria-label="Notifications" class="relative p-2 rounded hover:bg-gray-100">
+                        <i data-feather="bell" class="w-5 h-5"></i>
+                        <span id="notifBadge" class="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center">0</span>
+                    </button>
+                    <div id="notifMenu" class="hidden absolute right-0 mt-2 w-80 max-h-[360px] overflow-y-auto bg-white shadow-lg rounded-lg border border-gray-200 p-2">
+                        <div class="flex items-center justify-between px-2 py-1">
+                            <div class="font-semibold">Notifications</div>
+                            <button id="notifMarkAll" class="text-xs text-blue-600 hover:underline">Mark all as read</button>
+                        </div>
+                        <ul id="notifList" class="mt-1"></ul>
+                        <button id="notifLoadMore" class="w-full mt-2 text-xs py-2 rounded bg-gray-100 hover:bg-gray-200">Load more</button>
+                    </div>
+                </div>
+                <div class="relative">
+                    <button id="profileToggle" aria-label="Profile menu" class="flex items-center gap-2 p-2 rounded hover:bg-gray-100">
+                        @php
+                            $u = Auth::user();
+                            $avatar = $u->avatar_path ? asset('storage/'.$u->avatar_path) : null;
+                            $initials = collect(explode(' ', $u->name))->map(fn($p)=>mb_substr($p,0,1))->join('');
+                        @endphp
+                        @if($avatar)
+                            <img src="{{ $avatar }}" alt="Avatar" class="w-8 h-8 rounded-full object-cover">
+                        @else
+                            <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">{{ $initials }}</div>
+                        @endif
+                        <span class="text-sm font-semibold">{{ $u->name }}</span>
+                        <i data-feather="chevron-down" class="w-4 h-4"></i>
+                    </button>
+                    <div id="profileMenu" class="hidden absolute right-0 mt-2 w-56 bg-white shadow-lg rounded-lg border border-gray-200 p-2">
+                        <a href="{{ route('profile.show') }}" class="block px-3 py-2 text-sm rounded hover:bg-gray-100">View Profile</a>
+                        <a href="{{ route('profile.edit') }}" class="block px-3 py-2 text-sm rounded hover:bg-gray-100">Edit Profile</a>
+                        <a href="{{ route('profile.password.form') }}" class="block px-3 py-2 text-sm rounded hover:bg-gray-100">Change Password</a>
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button type="submit" class="w-full text-left px-3 py-2 text-sm rounded hover:bg-gray-100">Logout</button>
+                        </form>
+                    </div>
+                </div>
+            </header>
+            <div class="p-3 sm:p-10 pt-8 mt-0 sm:mt-1 space-y-10">
             @yield('content')
+            </div>
         </main>
 
         <!-- Chatbot -->
@@ -160,6 +203,64 @@
             Alpine.effect(() => {
                 feather.replace();
             });
+        });
+        document.addEventListener('DOMContentLoaded', () => {
+            feather.replace();
+            const notifToggle = document.getElementById('notifToggle');
+            const notifMenu = document.getElementById('notifMenu');
+            const notifBadge = document.getElementById('notifBadge');
+            const notifList = document.getElementById('notifList');
+            const notifLoadMore = document.getElementById('notifLoadMore');
+            const notifMarkAll = document.getElementById('notifMarkAll');
+            let page = 1;
+            let loading = false;
+            function fetchCount(){
+                fetch("{{ route('notifications.count') }}", { headers: {'X-Requested-With':'XMLHttpRequest'} })
+                    .then(r=>r.json()).then(d=>{ notifBadge.textContent = d.count; notifBadge.style.display = d.count>0?'flex':'none'; });
+            }
+            function fetchItems(reset=false){
+                if (loading) return; loading = true;
+                if (reset) { page = 1; notifList.innerHTML = ''; }
+                fetch("{{ route('notifications.fetch') }}?page="+page, { headers: {'X-Requested-With':'XMLHttpRequest'} })
+                    .then(r=>r.json()).then(d=>{
+                        d.data.forEach(n => {
+                            const li = document.createElement('li');
+                            li.innerHTML = `{!! str_replace("\n",'', view('components.notification-item', ['notification' => (object) ['id'=>'__ID__','data'=>[],'created_at'=>now(),'read_at'=>null]])->render()) !!}`;
+                            li.setAttribute('data-id', n.id);
+                            li.querySelector('.font-semibold').textContent = n.data.title ?? 'Notification';
+                            li.querySelector('.text-sm').textContent = n.data.message ?? '';
+                            page = d.current_page + 1;
+                            li.addEventListener('click', () => {
+                                fetch("{{ url('/notifications') }}/"+n.id+"/read", { method:'POST', headers:{'X-CSRF-TOKEN':'{{ csrf_token() }}' } })
+                                    .then(()=>{ li.querySelector('span')?.remove(); fetchCount(); });
+                                if (n.data.action_url) { window.location.href = n.data.action_url; }
+                            });
+                            notifList.appendChild(li);
+                        });
+                        notifLoadMore.style.display = d.next_page_url ? 'block':'none';
+                    }).finally(()=>{ loading=false; });
+            }
+            notifToggle?.addEventListener('click', ()=>{
+                notifMenu.classList.toggle('hidden');
+                if (!notifMenu.classList.contains('hidden')) { fetchItems(true); fetchCount(); }
+            });
+            notifLoadMore?.addEventListener('click', ()=> fetchItems(false));
+            notifMarkAll?.addEventListener('click', ()=> {
+                fetch("{{ route('notifications.mark_all') }}", { method:'POST', headers:{'X-CSRF-TOKEN':'{{ csrf_token() }}' } })
+                    .then(()=>{ fetchCount(); notifMenu.classList.add('hidden'); });
+            });
+            const profileToggle = document.getElementById('profileToggle');
+            const profileMenu = document.getElementById('profileMenu');
+            profileToggle?.addEventListener('click', ()=> profileMenu.classList.toggle('hidden'));
+            setInterval(fetchCount, 15000);
+            fetchCount();
+            const isAuthed = @json(auth()->check());
+            const channelId = @json(auth()->id());
+            if (window.Echo && isAuthed && channelId) {
+                window.Echo.private('notifications.' + channelId).listen('.NewSystemNotification', () => {
+                    fetchCount();
+                });
+            }
         });
 
         const sidebar = document.getElementById('sidebar');

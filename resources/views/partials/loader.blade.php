@@ -57,6 +57,7 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     const loader = document.getElementById('loader');
+    const spinner = loader ? loader.querySelector('.loader') : null;
 
     // Generic form
     const forms = document.querySelectorAll('form');
@@ -64,7 +65,12 @@
 
     forms.forEach(form => {
       form.addEventListener('submit', (e) => {
-        if (form.checkValidity()) {
+        if (!form.checkValidity()) return;
+        if (form.classList.contains('no-spinner')) {
+          if (spinner) spinner.classList.add('hidden');
+          loader?.classList.remove('hidden');
+        } else {
+          if (spinner) spinner.classList.remove('hidden');
           loader?.classList.remove('hidden');
         }
         console.log('Form submitted'); // For debugging

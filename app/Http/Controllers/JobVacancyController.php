@@ -153,7 +153,7 @@ class JobVacancyController extends Controller
             'pcn_no' => $validated['pcn_no'] ?? null,
             'plantilla_item_no' => $validated['plantilla_item_no'] ?? null,
 
-            'last_modified_by' => auth()->user()->name ?? 'System',
+            'last_modified_by' => Auth::user()?->name ?? 'System',
             'last_modified_at' => now(),
         ]);
 
@@ -433,7 +433,7 @@ public function storeVacancy(Request $request)
 
     public function getOpenVacanciesForDashboard()
     {
-        $userId = auth()->id();
+        $userId = Auth::id();
 
         $vacancies = JobVacancy::where('status', 'OPEN')->orderBy('created_at', 'desc')->get();
 
@@ -442,7 +442,7 @@ public function storeVacancy(Request $request)
                         ->orderBy('created_at', 'desc')
                         ->get();
         
-        $pdsProgress = (int) round($this->calculatePdsProgress(auth()->id()));
+        $pdsProgress = (int) round($this->calculatePdsProgress(Auth::id()));
         $hasPDS = PersonalInformation::where('user_id', Auth::id())->exists();
         $hasWES = WorkExpSheet::where('user_id', Auth::id())->exists();
 
@@ -459,7 +459,7 @@ public function storeVacancy(Request $request)
         $vacancy = JobVacancy::where('vacancy_id', $vacancy_id)->firstOrFail();
 
         // Check if user already applied
-        $existing = \App\Models\Applications::where('user_id', auth()->id())
+        $existing = \App\Models\Applications::where('user_id', Auth::id())
             ->where('vacancy_id', $vacancy->vacancy_id)
             ->first();
 
@@ -475,7 +475,7 @@ public function storeVacancy(Request $request)
 
         // Create application
         \App\Models\Applications::create([
-            'user_id' => auth()->id(),
+            'user_id' => Auth::id(),
             'vacancy_id' => $vacancy->vacancy_id,
             'status' => 'Pending',
             'is_valid' => true,
@@ -490,7 +490,7 @@ public function storeVacancy(Request $request)
 
         activity()
             ->event('apply job')
-            ->causedBy(auth()->user())
+            ->causedBy(Auth::user())
             ->performedOn($vacancy)
             ->withProperties(['vacancy_id' => $vacancy->vacancy_id, 'section' => 'Job Vacancy'])
             ->log('Applied to job vacancy.');
@@ -500,7 +500,7 @@ public function storeVacancy(Request $request)
 
     public function myApplications()
     {
-        $applications = Applications::where('user_id', auth()->id())
+        $applications = Applications::where('user_id', Auth::id())
                         ->with('vacancy')
                         ->orderBy('created_at', 'desc')
                         ->get();
@@ -533,7 +533,7 @@ public function storeVacancy(Request $request)
         }
 
         // TODO create controller here for Application Status
-        $userId = auth()->id();
+        $userId = Auth::id();
         $uploadedDocuments = UploadedDocument::where('user_id', $userId)->get()->keyBy('document_type');
         $documents = [];
 

@@ -14,8 +14,54 @@
         z-index: 50;
     }
 </style>
+<style>
+    #pdsDropdown {
+        max-height: 240px;
+        overflow-y: auto;
+    }
+    #pdsRightPane {
+        display: none;
+    }
+    #pdsRightPane.show {
+        display: block;
+    }
+    #pdsRightPane iframe {
+        width: 100%;
+        height: 100%;
+        border: 0;
+    }
+    #pdsDropdownToggle [data-feather="chevron-down"] {
+        display: none !important;
+    }
+    #pdsRightPane {
+        position: relative;
+    }
+    #pdsPaneLoader {
+        position: absolute;
+        inset: 0;
+        background: rgba(255,255,255,0.7);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 10;
+    }
+    #pdsRightPane.loading #pdsPaneLoader {
+        display: flex;
+    }
+    .pane-spinner {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        border: 4px solid #cbd5e1;
+        border-top-color: #2563eb;
+        animation: pane-spin 0.8s linear infinite;
+    }
+    @keyframes pane-spin {
+        to { transform: rotate(360deg); }
+    }
+</style>
 
-<main class="mt-1 flex-1 min-w-0 space-y-10 bg-[#F3F8FF] font-sans text-gray-900 overflow-x-hidden px-6" style="margin-top: 0">
+<main class="mt-7 sm:mt-0 flex-1 min-w-0 space-y-10 bg-[#F3F8FF] font-sans text-gray-900 overflow-x-hidden p-6" style="margin-top: 0">
     <!-- Welcome Section -->
     <section class="text-center sm:text-left">
         <div class="text-xl font-normal mb-1 font-montserrat">Welcome,</div>
@@ -25,7 +71,7 @@
     <section class="grid grid-cols-12 gap-6 w-full">
 
         <!-- My Job Applications -->
-        <article class="shadow-lg shadow-black/50 col-span-12 sm:col-span-7 rounded-xl bg-white text-[#002C76] border-2 border-[#002C76] p-8 flex flex-col gap-4">
+        <article class="col-span-12 sm:col-span-7 rounded-xl bg-white text-[#002C76] border-4 border-[#002C76] p-8 flex flex-col gap-4">
             <h2 class="text-base sm:text-2xl font-extrabold flex items-center gap-3 font-montserrat">
                 <i class="w-5 h-5" data-feather="clipboard"></i> MY JOB APPLICATIONS
             </h2>
@@ -52,7 +98,7 @@
                 ->take(3);
         @endphp
 
-        <article class="shadow-lg shadow-black/50 col-span-12 sm:col-span-5 bg-white border-2 border-[#002C76] rounded-xl p-6 flex flex-col gap-4">
+        <article class="col-span-12 sm:col-span-5 bg-white border-4 border-[#002C76] rounded-xl p-6 flex flex-col gap-4">
             <h2 class="text-base sm:text-xl font-extrabold flex items-center gap-3 font-montserrat text-[#C9282D]">
                 <i class="w-5 h-5" data-feather="check-square"></i> DEADLINE OF APPLICATIONS
             </h2>
@@ -81,7 +127,7 @@
         </article>
 
         <!-- Job Vacancies -->
-        <article class="shadow-lg shadow-black/50 col-span-12 sm:col-span-7 rounded-xl bg-white border-2 border-[#002C76] p-8 flex flex-col text-[#002C76] min-h-[360px]">
+        <article class="col-span-12 sm:col-span-7 rounded-xl bg-white border-4 border-[#002C76] p-8 flex flex-col text-[#002C76] min-h-[360px]">
             <h2 class="text-base sm:text-2xl font-extrabold flex items-center gap-3 font-montserrat mb-2">
                 <i class="w-5 h-5" data-feather="box"></i> JOB VACANCIES
             </h2>
@@ -101,7 +147,7 @@
         </article>
 
         <!-- Personal Data Sheet -->
-        <article class="shadow-lg shadow-black/50 col-span-12 sm:col-span-5 rounded-xl bg-white border-2 border-[#002C76] p-8 flex flex-col gap-4">
+        <article class="col-span-12 sm:col-span-5 rounded-xl bg-white border-4 border-[#002C76] p-8 flex flex-col gap-4">
             <button type="button" id="pdsDropdownToggle" class="text-left text-base sm:text-3xl font-extrabold flex items-center justify-between gap-3 font-montserrat text-[#002C76]">
                 <span class="flex items-center gap-3">
                     <i class="w-5 h-5" data-feather="file"></i> PERSONAL DATA SHEET
@@ -201,6 +247,10 @@
                     <i data-feather="download" class="w-4 h-4"></i> Export PDS
                 </a>
             </div>
+            <div id="pdsRightPane" class="mt-4 h-[700px] rounded-xl border border-blue-200 overflow-hidden bg-white shadow-sm">
+                <iframe id="pdsFrame" src="about:blank"></iframe>
+                <div id="pdsPaneLoader"><div class="pane-spinner"></div></div>
+            </div>
         </article>
 
     </section>
@@ -268,6 +318,76 @@
     const pdsDropdown = document.getElementById('pdsDropdown');
     pdsToggle?.addEventListener('click', () => {
         pdsDropdown.classList.toggle('hidden');
+    });
+    const pdsLinks = document.querySelectorAll('#pdsDropdown a');
+    const pdsRightPane = document.getElementById('pdsRightPane');
+    const pdsFrame = document.getElementById('pdsFrame');
+    function showPaneLoader(){ pdsRightPane.classList.add('loading'); }
+    function hidePaneLoader(){ pdsRightPane.classList.remove('loading'); }
+    pdsLinks.forEach(a => {
+        a.addEventListener('click', (e) => {
+            e.preventDefault();
+            showPaneLoader();
+            pdsRightPane.classList.add('show');
+            pdsFrame.src = a.href;
+        });
+    });
+    function ensureSimple(u) {
+        const url = new URL(u, window.location.origin);
+        if (!url.searchParams.has('simple')) url.searchParams.set('simple', '1');
+        return url.toString();
+    }
+    function rewriteNextOrder(doc) {
+        const href = doc.location.href;
+        const formC1 = doc.querySelector('form#myForm[action*="submit_c1"]');
+        const formC2 = doc.querySelector('form#myForm[action*="submit_c2"]');
+        const formC3 = doc.querySelector('form#learning-form[action*="submit_c3"]');
+        const formC4 = doc.querySelector('form#other-info-form[action*="submit_c4"]');
+        if (formC1) {
+            formC1.action = ensureSimple('/pds/submit_c1/display_c2');
+            formC1.addEventListener('submit', () => { if (parent.showPaneLoader) parent.showPaneLoader(); });
+        }
+        if (formC2) {
+            formC2.action = ensureSimple('/pds/submit_c2/display_c3');
+            formC2.addEventListener('submit', () => { if (parent.showPaneLoader) parent.showPaneLoader(); });
+        }
+        if (formC3) {
+            formC3.action = ensureSimple('/pds/submit_c3/display_c4');
+            formC3.addEventListener('submit', () => { if (parent.showPaneLoader) parent.showPaneLoader(); });
+        }
+        if (formC4) {
+            formC4.action = ensureSimple('/pds/submit_c4/display_wes');
+            formC4.addEventListener('submit', () => { if (parent.showPaneLoader) parent.showPaneLoader(); });
+        }
+        const wesNext = Array.from(doc.querySelectorAll('button')).find(b => /Upload PDF/i.test(b.textContent));
+        if (wesNext) {
+            wesNext.addEventListener('click', (ev) => {
+                ev.preventDefault();
+                if (parent.showPaneLoader) parent.showPaneLoader();
+                const routeDisplayC5 = @json(route('display_c5'));
+                doc.location.href = ensureSimple(routeDisplayC5);
+            }, { once: true });
+        }
+        doc.querySelectorAll('a').forEach(link=>{
+            link.addEventListener('click', ()=> { if (parent.showPaneLoader) parent.showPaneLoader(); });
+        });
+    }
+    pdsFrame.addEventListener('load', () => {
+        const doc = pdsFrame.contentWindow.document;
+        rewriteNextOrder(doc);
+        const loc = pdsFrame.contentWindow.location;
+        const pathname = loc.pathname || '';
+        const needsSimple = !new URL(loc.href).searchParams.has('simple') && /(display_c1|display_c2|display_c3|display_c4|display_wes|display_c5)/.test(pathname);
+        if (needsSimple) {
+            showPaneLoader();
+            pdsFrame.src = ensureSimple(loc.href);
+            return;
+        }
+        const style = doc.createElement('style');
+        style.textContent = '#loader{display:none!important}';
+        doc.head.appendChild(style);
+        doc.querySelectorAll('.use-loader').forEach(el => el.classList.remove('use-loader'));
+        hidePaneLoader();
     });
 </script>
 @endsection

@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Notifications\DatabaseNotification;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class User extends Authenticatable
 {
@@ -23,6 +25,8 @@ class User extends Authenticatable
         'email',
         'password',
         'email_verified_at',
+        'avatar_path',
+        'bio',
     ];
 
     /**
@@ -135,5 +139,24 @@ class User extends Authenticatable
      */
     public function miscInfos() {
         return $this->hasOne(MiscInfos::class, 'user_id');
+    }
+
+    /**
+     * User's extended profile record.
+     *
+     * @return HasOne<Profile, User>
+     */
+    public function profile() {
+        return $this->hasOne(Profile::class, 'user_id');
+    }
+
+    public function notifications(): MorphMany
+    {
+        return $this->morphMany(DatabaseNotification::class, 'notifiable');
+    }
+
+    public function unreadNotifications(): MorphMany
+    {
+        return $this->notifications()->whereNull('read_at');
     }
 }

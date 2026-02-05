@@ -5,6 +5,23 @@
 <aside id="sidebar"
     class="sidebar sidebar-transition fixed ml-5 mt-5 mb-5 flex flex-col justify-between bg-white text-[#002C76] rounded-xl shadow-lg {{ $simple ? 'overflow-y-auto w-72' : 'overflow-hidden w-16' }} relative z-60 h-[95vh]">
 
+    <style>
+        #pdsMenu.pds-menu {
+            overflow: hidden;
+            max-height: 0;
+            opacity: 0;
+            transition: max-height 200ms ease, opacity 200ms ease;
+        }
+        #pdsMenu.pds-menu.show {
+            max-height: 600px;
+            opacity: 1;
+        }
+        #pdsCaret.rotate-180 {
+            transform: rotate(180deg);
+            transition: transform 200ms ease;
+        }
+    </style>
+
     <!-- Toggle Button -->
     <button id="toggleSidebar" class="p-2 focus:outline-none absolute top-3 left-3 z-20" aria-label="Toggle sidebar">
         <i data-feather="menu" class="w-5 h-5 stroke-[3]"></i>
@@ -56,15 +73,6 @@
                 <span id="textMyApplications" class="sidebar-text-hidden ml-3">MY APPLICATIONS</span>
             </a>
 
-            <a href="{{ route('work_experience') }}"
-                class="group flex items-center rounded-md px-4 py-2 text-sm font-bold transition use-loader
-                    {{ request()->routeIs('work_experience')
-                        ? 'bg-[#002C76] text-white'
-                        : 'text-[#002C76] hover:text-white hover:bg-[#002C76]' }}">
-                <i data-feather="briefcase" class="w-5 h-5 stroke-[3] flex-shrink-0"></i>
-                <span id="textWorkExperience" class="sidebar-text-hidden ml-3">WORK EXPERIENCE</span>
-            </a>
-
             <div class="w-full">
                 <div class="flex items-center justify-between w-full rounded-md px-4 py-2 text-sm font-bold transition
                     {{ (request()->routeIs('display_c1') || request()->routeIs('display_c2') || request()->routeIs('display_c3') || request()->routeIs('display_c4') || request()->routeIs('display_wes') || request()->routeIs('display_c5'))
@@ -78,7 +86,7 @@
                         <i id="pdsCaret" data-feather="chevron-down" class="w-4 h-4 stroke-[3]"></i>
                     </button>
                 </div>
-                <div id="pdsMenu" class="{{ (request()->routeIs('display_c1') || request()->routeIs('display_c2') || request()->routeIs('display_c3') || request()->routeIs('display_c4') || request()->routeIs('display_wes') || request()->routeIs('display_c5')) ? '' : 'hidden' }} mt-1 pl-10 space-y-1">
+                <div id="pdsMenu" class="pds-menu {{ (request()->routeIs('display_c1') || request()->routeIs('display_c2') || request()->routeIs('display_c3') || request()->routeIs('display_c4') || request()->routeIs('display_wes') || request()->routeIs('display_c5')) ? 'show' : '' }} mt-1 pl-10 space-y-1">
                     <a href="{{ route('display_c1', ['simple' => 1]) }}"
                         class="flex items-center rounded-md px-3 py-2 text-sm font-semibold transition
                             {{ request()->routeIs('display_c1')
@@ -141,67 +149,45 @@
         </nav>
     </div>
 
-    <!-- Bottom Section -->
-    <div class="px-2 pb-6">
-        <button
-            id="logoutButton"
-            class="group flex items-center rounded-md border border-[#FFFFFF] px-4 py-2 text-sm font-bold text-[#C9282D] hover:bg-[#C9282D] hover:bg-opacity-20 hover:border-red-500 transition w-full"
-        >
-            <i data-feather="log-out" class="w-5 h-5 stroke-[3] flex-shrink-0"></i>
-            <span id="textLogOut" class="sidebar-text-hidden ml-3">LOG-OUT</span>
-        </button>
-    </div>
+    <!-- Bottom Section intentionally empty: logout moved to profile menu -->
 </aside>
-
-<!-- Logout Confirmation Modal -->
-<div id="logoutModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-50">
-    <div class="bg-white rounded-xl p-6 shadow-lg max-w-sm w-full">
-        <h2 class="text-lg font-bold text-[#002C76] mb-4">Confirm Logout</h2>
-        <p class="mb-6 text-gray-700">Are you sure you want to log out?</p>
-        <div class="flex justify-end gap-4">
-            <button id="cancelLogout" class="px-4 py-2 -mt-4 text-sm font-semibold text-gray-600 hover:text-gray-800">
-                Cancel
-            </button>
-            <form method="POST" action="{{ route('logout') }}">
-                @csrf
-                <button type="submit" class="px-4 py-2 bg-[#C9282D] text-white text-sm font-semibold rounded hover:bg-red-700">
-                    Log Out
-                </button>
-            </form>
-        </div>
-    </div>
-</div>
 
 <!-- Sidebar Script -->
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        const logoutButton = document.getElementById('logoutButton');
-        const logoutModal = document.getElementById('logoutModal');
-        const cancelLogout = document.getElementById('cancelLogout');
-
-        logoutButton.addEventListener('click', () => {
-            logoutModal.classList.remove('hidden');
-            logoutModal.classList.add('flex');
-        });
-
-        cancelLogout.addEventListener('click', () => {
-            logoutModal.classList.add('hidden');
-            logoutModal.classList.remove('flex');
-        });
-
         feather.replace();
         const pdsToggle = document.getElementById('pdsToggle');
         const pdsMenu = document.getElementById('pdsMenu');
         const pdsCaret = document.getElementById('pdsCaret');
         if (pdsToggle && pdsMenu && pdsCaret) {
-            if (!pdsMenu.classList.contains('hidden')) {
+            if (pdsMenu.classList.contains('show')) {
                 pdsCaret.classList.add('rotate-180');
             }
+            const collapsed = sessionStorage.getItem('pdsCollapsed') === 'true';
+            if (collapsed) {
+                pdsMenu.classList.remove('show');
+                pdsCaret.classList.remove('rotate-180');
+            }
             pdsToggle.addEventListener('click', () => {
-                pdsMenu.classList.toggle('hidden');
+                pdsMenu.classList.toggle('show');
                 pdsCaret.classList.toggle('rotate-180');
+                const nowCollapsed = !pdsMenu.classList.contains('show');
+                sessionStorage.setItem('pdsCollapsed', nowCollapsed ? 'true' : 'false');
             });
         }
+        const pdsLink = document.querySelector('#sidebar a[href*="display_c1"]');
+        if (pdsLink) {
+            pdsLink.classList.remove('use-loader');
+            pdsLink.addEventListener('click', (e) => {
+                e.preventDefault();
+            });
+        }
+        const pdsMenuLinks = document.querySelectorAll('#pdsMenu a');
+        pdsMenuLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                sessionStorage.setItem('pdsCollapsed', 'false');
+            });
+        });
 
         // Ensure sidebar stays open and allow scroll when PDS submenu is open
         const sidebarEl = document.getElementById('sidebar');
@@ -209,7 +195,7 @@
         const logo = document.querySelector('img[alt="DILG Logo"]');
         const textElements = [
             "sidebarText", "textHome", "textJobVacancies", "textMyApplications",
-            "textPersonalDataSheet", "textAboutWebsite", "textWorkExperience", "textLogOut"
+            "textPersonalDataSheet", "textAboutWebsite", "textWorkExperience"
         ].map(id => document.getElementById(id));
 
         const isSimple = {{ $simple ? 'true' : 'false' }};

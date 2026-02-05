@@ -24,6 +24,8 @@ use App\Http\Controllers\{
 use App\Http\Middleware\RedirectIfNotAdmin;
 use App\Http\Middleware\ViewerAccess;
 use App\Http\Middleware\BlockIfAdmin;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\ProfileController;
 
 use App\Events\PackageSent;
 use Illuminate\Support\Facades\Storage;
@@ -280,6 +282,26 @@ Route::middleware(['auth', BlockIfAdmin::class])->group(function () {
 
     // APPLICATION ROUTE
     Route::post('/apply/{vacancy_id}', [JobVacancyController::class, 'apply'])->name('application.store');
+
+    // =========================
+    // Notifications
+    // =========================
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notifications/fetch', [NotificationController::class, 'fetch'])->name('notifications.fetch');
+    Route::get('/notifications/count', [NotificationController::class, 'unreadCount'])->name('notifications.count');
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
+    Route::post('/notifications/mark-all', [NotificationController::class, 'markAll'])->name('notifications.mark_all');
+    Route::post('/notifications/cleanup', [NotificationController::class, 'cleanup'])->name('notifications.cleanup');
+
+    // =========================
+    // Profile
+    // =========================
+    Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
+    Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::post('/profile/edit', [ProfileController::class, 'update'])->name('profile.update');
+    Route::post('/profile/avatar', [ProfileController::class, 'avatar'])->name('profile.avatar');
+    Route::get('/profile/password', fn() => view('profile.password'))->name('profile.password.form');
+    Route::post('/profile/password', [ProfileController::class, 'password'])->name('profile.password');
 });
 
 // ==================================================================================================
@@ -312,10 +334,6 @@ Route::middleware([RedirectIfNotAdmin::class])->group(function () {
     Route::get('/admin/vacancies/{vacancy_id}/edit', [JobVacancyController::class, 'edit'])->name('vacancies.edit');
     Route::put('/admin/vacancies/cos/{vacancy_id}/edit', [JobVacancyController::class, 'update'])->name('vacancies.update');
     Route::delete('/admin/vacancies/{vacancy_id}/delete', [JobVacancyController::class, 'delete'])->name('vacancies.delete');
-    Route::get('/admin/exam/{vacancy_id}/edit-vue', [ExamController::class, 'editExamVue'])->name('admin.exam.edit.vue');
-    Route::post('/admin/exam/{vacancy_id}/update-vue', [ExamController::class, 'updateExamVue'])->name('admin.exam.update.vue');
-Route::get('/admin/exam/{vacancy_id}/preview', [ExamController::class, 'previewExam'])->name('admin.exam.preview');
-
     Route::get('/admin/applicant_status/{user_id}/{vacancy_id}', [AdminController::class, 'viewApplicantStatus'])->name('admin.applicant_status');
     Route::post('/admin/applicant_status/{user_id}/{vacancy_id}', [AdminController::class, 'updateApplicantStatus'])->name('admin.applicant_status.update');
 

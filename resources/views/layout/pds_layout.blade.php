@@ -10,6 +10,24 @@
     <!-- <script src="https://unpkg.com/alpinejs" defer></script> -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <script src="https://unpkg.com/feather-icons"></script>
+    <script>
+        (function earlySimpleEnforce(){
+            try {
+                var url = new URL(window.location.href);
+                var isPdsPath = /\/pds\//i.test(url.pathname) || /\/c[1-5]|\/wes/i.test(url.pathname);
+                if (isPdsPath && !url.searchParams.has('simple')) {
+                    url.searchParams.set('simple','1');
+                    window.location.replace(url.toString());
+                }
+            } catch(e){}
+        })();
+        document.addEventListener('DOMContentLoaded', function(){
+            if (window.feather && typeof window.feather.replace === 'function') {
+                window.feather.replace();
+            }
+        });
+    </script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -72,9 +90,7 @@
         /* Custom focus styles */
         .custom-focus:focus {
             outline: none;
-            ring: 2px;
-            ring-offset: 2px;
-            ring-blue-500;
+            box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #3b82f6;
             border-color: #6B7280;
         }
 
@@ -150,6 +166,34 @@
             text-transform: uppercase;
         }
 
+        .floating-label-input {
+            font-size: clamp(0.95rem, 0.9rem + 0.3vw, 1.1rem);
+            line-height: 1.55;
+            padding: 0.9rem 1rem;
+            letter-spacing: 0.01em;
+            color: #111827;
+        }
+        .floating-label {
+            font-size: clamp(0.85rem, 0.8rem + 0.25vw, 0.98rem);
+            color: #374151;
+            letter-spacing: 0.02em;
+        }
+        @media (max-width: 640px) {
+            .floating-label-input {
+                padding: 0.75rem 0.9rem;
+                line-height: 1.5;
+            }
+            .floating-label {
+                font-size: 0.9rem;
+            }
+        }
+        .floating-label-input::placeholder {
+            color: #6B7280;
+        }
+        .floating-label-input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
         /* Validation styles */
         .error-field {
             border-color: #ef4444 !important;
@@ -473,6 +517,20 @@
     @endif
 
     <script>
+        (function enforceSimpleLayout() {
+            try {
+                const url = new URL(window.location.href);
+                const isPdsPath = /\/pds\//i.test(url.pathname) || /\/c[1-5]|\/wes/i.test(url.pathname);
+                const hasSimple = url.searchParams.has('simple');
+                if (isPdsPath && !hasSimple) {
+                    url.searchParams.set('simple', '1');
+                    window.location.replace(url.toString());
+                }
+            } catch (e) {
+                console.warn('Simple layout enforcement skipped:', e);
+            }
+        })();
+
         // Track completed sections for visual indicators only
         const completedSections = new Set();
 
@@ -999,6 +1057,135 @@
             console.log('All sections are freely accessible!');
             debugState();
         }, 1000);
+    </script>
+    <script>
+        (function(){
+            const keyPrefix = 'pds:';
+            const pageKey = keyPrefix + window.location.pathname.toLowerCase();
+            const coreKey = keyPrefix + 'core';
+            function getStore() {
+                try {
+                    localStorage.setItem('__pds_test__','1'); localStorage.removeItem('__pds_test__');
+                    return localStorage;
+                } catch(e) {
+                    try {
+                        sessionStorage.setItem('__pds_test__','1'); sessionStorage.removeItem('__pds_test__');
+                        return sessionStorage;
+                    } catch(_) { return { getItem(){return null;}, setItem(){}, removeItem(){} }; }
+                }
+            }
+            const store = getStore();
+            function loadState() {
+                try {
+                    const raw = store.getItem(pageKey);
+                    return raw ? JSON.parse(raw) : {};
+                } catch(e) {
+                    return {};
+                }
+            }
+            function saveState(state) {
+                try {
+                    store.setItem(pageKey, JSON.stringify(state));
+                } catch(e) {}
+            }
+            function loadCore() {
+                try {
+                    const raw = store.getItem(coreKey);
+                    return raw ? JSON.parse(raw) : {};
+                } catch(e) {
+                    return {};
+                }
+            }
+            function saveCore(state) {
+                try {
+                    store.setItem(coreKey, JSON.stringify(state));
+                } catch(e) {}
+            }
+            function saveCoreValue(k, v) {
+                const s = loadCore();
+                s[k] = v;
+                saveCore(s);
+            }
+            function sanitize(el, v) {
+                if (v == null) return v;
+                let s = typeof v === 'string' ? v.trim() : v;
+                const ml = el.maxLength && el.maxLength > 0 ? el.maxLength : null;
+                if (ml) s = String(s).slice(0, ml);
+                return s;
+            }
+            function setValue(el, val) {
+                const t = el.type;
+                if (t === 'checkbox') {
+                    el.checked = !!val;
+                } else if (t === 'radio') {
+                    if (el.value === String(val)) el.checked = true;
+                } else {
+                    el.value = val == null ? '' : String(val);
+                }
+                if (el.tagName === 'SELECT') el.dispatchEvent(new Event('change'));
+            }
+            function getValue(el) {
+                const t = el.type;
+                if (t === 'checkbox') return el.checked;
+                if (t === 'radio') return el.checked ? el.value : null;
+                return el.value;
+            }
+            function keyFor(el) {
+                return el.name || el.id || '';
+            }
+            function debounce(fn, ms) {
+                let t; return function(){ clearTimeout(t); const a=arguments, self=this; t=setTimeout(function(){ fn.apply(self,a); }, ms); };
+            }
+            const saveDebounced = debounce(function(k, v){
+                const s = loadState(); s[k] = v; saveState(s);
+            }, 150);
+            function bind(el, state) {
+                const k = keyFor(el);
+                if (!k) return;
+                const coreKeys = new Set(['sex','civil_status','citizenship','dual_type','dual_country']);
+                const coreState = loadCore();
+                const hasCore = coreKeys.has(k) && coreState.hasOwnProperty(k) && coreState[k] !== undefined && coreState[k] !== null;
+                const hasPage = state.hasOwnProperty(k) && state[k] !== null && state[k] !== undefined;
+                if (hasCore) {
+                    setValue(el, coreState[k]);
+                } else if (hasPage) {
+                    setValue(el, state[k]);
+                }
+                const handler = () => {
+                    const v = sanitize(el, getValue(el));
+                    if (v === null && el.type === 'radio') return;
+                    saveDebounced(k, v);
+                    if (coreKeys.has(k)) saveCoreValue(k, v);
+                };
+                el.addEventListener('input', handler);
+                el.addEventListener('change', handler);
+            }
+            function init(root) {
+                const state = loadState();
+                root.querySelectorAll('input, textarea, select').forEach(el => bind(el, state));
+            }
+            document.addEventListener('DOMContentLoaded', function(){
+                init(document);
+                const observer = new MutationObserver(function(muts){
+                    muts.forEach(m => {
+                        m.addedNodes.forEach(n => {
+                            if (n.nodeType === 1) init(n);
+                        });
+                    });
+                });
+                observer.observe(document.body, { childList: true, subtree: true });
+                window.addEventListener('beforeunload', function(){
+                    const inputs = document.querySelectorAll('input, textarea, select');
+                    const s = loadState();
+                    const c = loadCore();
+                    const coreKeys = new Set(['sex','civil_status','citizenship','dual_type','dual_country']);
+                    inputs.forEach(el => { const k = keyFor(el); if (k) s[k] = sanitize(el, getValue(el)); });
+                    saveState(s);
+                    inputs.forEach(el => { const k = keyFor(el); if (k && coreKeys.has(k)) c[k] = sanitize(el, getValue(el)); });
+                    saveCore(c);
+                });
+            });
+        })();
     </script>
     @livewireScripts
 

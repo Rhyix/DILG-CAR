@@ -32,9 +32,7 @@
         /* Custom focus styles */
         .custom-focus:focus {
             outline: none;
-            ring: 2px;
-            ring-offset: 2px;
-            ring-blue-500;
+            box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #3b82f6;
             border-color: #3b82f6;
         }
 
@@ -195,7 +193,7 @@
                     </div>
 
                     <div class="relative">
-                        <input type="date" id="date_of_birth" name="date_of_birth" value="{{ old('date_of_birth', session('form.date_of_birth')) }}" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
+                        <input type="text" id="date_of_birth" name="date_of_birth" value="{{ old('date_of_birth', session('form.date_of_birth')) }}" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
                         <label for="date_of_birth" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">Date of Birth *</label>
                     </div>
                 </div>
@@ -212,8 +210,20 @@
                         <label for="weight" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Weight (kg)</label>
                     </div>
                     <div class="relative">
-                        <input type="text" id="blood_type" name="blood_type" value="{{ old('blood_type', session('form.blood_type')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
-                        <label for="blood_type" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Blood Type</label>
+                        @php
+                            $blood = old('blood_type', session('form.blood_type'));
+                            $validBlood = ['A+','A-','B+','B-','AB+','AB-','O+','O-'];
+                        @endphp
+                        <select id="blood_type" name="blood_type" class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all appearance-none bg-white" required>
+                            <option value="" disabled {{ $blood == '' ? 'selected' : '' }}>Select Blood Type</option>
+                            @foreach($validBlood as $bt)
+                                <option value="{{ $bt }}" {{ $blood === $bt ? 'selected' : '' }}>{{ $bt }}</option>
+                            @endforeach
+                            @if($blood && !in_array($blood, $validBlood))
+                                <option value="{{ $blood }}" selected>{{ $blood }}</option>
+                            @endif
+                        </select>
+                        <label for="blood_type" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">Blood Type</label>
                     </div>
                 </div>
 
@@ -519,11 +529,11 @@
                     <h3 class="text-lg font-semibold text-gray-700 mb-4">Elementary</h3>
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                         <div class="relative">
-                            <input type="month" id="elem_from" name="elem_from" value="{{ old('elem_from', session('form.elem_from')) }}" class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
+                            <input type="text" aria-label="From date" id="elem_from" name="elem_from" value="{{ old('elem_from', session('form.elem_from')) }}" class="edu-date w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
                             <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">From</label>
                         </div>
                         <div class="relative">
-                            <input type="month" id="elem_to" name="elem_to" value="{{ old('elem_to', session('form.elem_to')) }}" class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
+                            <input type="text" aria-label="To date" id="elem_to" name="elem_to" value="{{ old('elem_to', session('form.elem_to')) }}" class="edu-date w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
                             <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">To</label>
                         </div>
                         <div class="relative col-span-2">
@@ -554,11 +564,11 @@
                     <h3 class="text-lg font-semibold text-gray-700 mb-4">Secondary</h3>
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                         <div class="relative">
-                            <input type="month" id="secondary_from" name="secondary_from" value="{{ old('secondary_from', session('form.secondary_from')) }}" class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
+                            <input type="text" aria-label="From date" id="secondary_from" name="secondary_from" value="{{ old('secondary_from', session('form.secondary_from')) }}" class="edu-date w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
                             <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">From</label>
                         </div>
                         <div class="relative">
-                            <input type="month" id="secondary_to" name="secondary_to" value="{{ old('secondary_to', session('form.secondary_to')) }}" class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
+                            <input type="text" aria-label="To date" id="secondary_to" name="secondary_to" value="{{ old('secondary_to', session('form.secondary_to')) }}" class="edu-date w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
                             <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">To</label>
                         </div>
                         <div class="relative col-span-2">
@@ -677,5 +687,14 @@
         @include('partials.loader')
     </main>
 </body>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
+    flatpickr("#date_of_birth", {dateFormat: "Y-m-d", allowInput: true});
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.edu-date').forEach(function(el) {
+            flatpickr(el, {dateFormat: "Y-m-d", allowInput: true});
+        });
+    });
+</script>
 </html>
-

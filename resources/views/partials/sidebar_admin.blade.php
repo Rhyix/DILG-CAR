@@ -80,45 +80,15 @@
         </nav>
     </div>
 
-    <!-- Bottom -->
-    <div class="px-2 pb-6 w-full">
-        <button
-            id="logoutButton"
-            class="group w-full flex items-center rounded-md border border-[#FFFFFF] px-4 py-2 text-sm font-bold text-[#C9282D] hover:bg-[#C9282D] hover:bg-opacity-20 hover:border-red-500 transition">
-            <i data-feather="log-out" class="w-5 h-5 stroke-[3] flex-shrink-0"></i>
-            <span id="textLogOut" class="sidebar-text-hidden ml-3">LOG-OUT</span>
-        </button>
+    <div class="px-2 pb-4">
+        <form method="POST" action="{{ route('admin.logout') }}">
+            @csrf
+            <button type="submit"
+                class="group flex items-center w-full rounded-md px-4 py-2 text-sm font-bold transition
+                       bg-[#C5292F] text-white hover:bg-red-700">
+                <i data-feather="log-out" class="w-5 h-5 stroke-[3] flex-shrink-0"></i>
+                <span id="textLogOut" class="sidebar-text-hidden ml-3">LOGOUT</span>
+            </button>
+        </form>
     </div>
 </aside>
-
-<!-- Logout Confirmation Modal -->
-<div id="logoutModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-50">
-    <div class="bg-white rounded-xl p-6 shadow-lg max-w-sm w-full">
-        <h2 class="text-lg font-bold text-[#002C76] mb-4">Confirm Logout</h2>
-        <p class="mb-6 text-gray-700">Are you sure you want to log out?</p>
-        <div class="flex justify-end gap-4 items-center">
-            <button id="cancelLogout" class="px-4 py-2 text-sm font-semibold text-gray-600 hover:text-gray-800">
-                Cancel
-            </button>
-            <form method="POST" action="{{ route('admin.logout') }}" class="m-0">
-                @csrf
-                <button type="submit" class="px-4 py-2 bg-[#C9282D] text-sm font-semibold rounded text-white hover:bg-red-700">
-                    Log Out
-                </button>
-            </form>
-        </div>
-    </div>
-</div>
-
-<script>
-    document.getElementById('logoutButton').addEventListener('click', function () {
-        document.getElementById('logoutModal').classList.remove('hidden');
-        document.getElementById('logoutModal').classList.add('flex');
-    });
-
-    document.getElementById('cancelLogout').addEventListener('click', function () {
-        document.getElementById('logoutModal').classList.add('hidden');
-        document.getElementById('logoutModal').classList.remove('flex');
-    });
-</script>
-

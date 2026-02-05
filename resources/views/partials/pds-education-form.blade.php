@@ -150,10 +150,11 @@
                         <div class="mobile-stack md:grid md:grid-cols-4 gap-4 sm:gap-6">
                             <!-- From and To dates -->
                             <div class="relative">
-                                <input type="month" 
-                                       name="{{ $education_type }}[{{ $index }}][from]" 
-                                       value="{{ old($education_type.'.'.$index.'.from', $data['from'] ?? '') }}" 
-                                       class="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base"
+                                <input type="text"
+                                       aria-label="From date"
+                                       name="{{ $education_type }}[{{ $index }}][from]"
+                                       value="{{ old($education_type.'.'.$index.'.from', $data['from'] ?? '') }}"
+                                       class="edu-date w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base"
                                        {{ $education_type == 'college' ? 'required' : '' }}>
                                 <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">
                                     From{{ $education_type == 'college' ? '*' : '' }}
@@ -161,10 +162,11 @@
                             </div>
                             
                             <div class="relative">
-                                <input type="month" 
-                                       name="{{ $education_type }}[{{ $index }}][to]" 
-                                       value="{{ old($education_type.'.'.$index.'.to', $data['to'] ?? '') }}" 
-                                       class="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base"
+                                <input type="text"
+                                       aria-label="To date"
+                                       name="{{ $education_type }}[{{ $index }}][to]"
+                                       value="{{ old($education_type.'.'.$index.'.to', $data['to'] ?? '') }}"
+                                       class="edu-date w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base"
                                        {{ $education_type == 'college' ? 'required' : '' }}>
                                 <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">
                                     To{{ $education_type == 'college' ? '*' : '' }}
@@ -257,10 +259,11 @@
                     <div class="mobile-stack md:grid md:grid-cols-4 gap-4 sm:gap-6">
                         <!-- From and To dates -->
                         <div class="relative">
-                            <input type="month" 
-                                   name="{{ $education_type }}[__INDEX__][from]" 
-                                   value="" 
-                                   class="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base"
+                            <input type="text"
+                                   aria-label="From date"
+                                   name="{{ $education_type }}[__INDEX__][from]"
+                                   value=""
+                                   class="edu-date w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base"
                                    {{ $education_type == 'college' ? 'required' : '' }}>
                             <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">
                                 From{{ $education_type == 'college' ? '*' : '' }}
@@ -268,10 +271,11 @@
                         </div>
                         
                         <div class="relative">
-                            <input type="month" 
-                                   name="{{ $education_type }}[__INDEX__][to]" 
-                                   value="" 
-                                   class="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base"
+                            <input type="text"
+                                   aria-label="To date"
+                                   name="{{ $education_type }}[__INDEX__][to]"
+                                   value=""
+                                   class="edu-date w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base"
                                    {{ $education_type == 'college' ? 'required' : '' }}>
                             <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">
                                 To{{ $education_type == 'college' ? '*' : '' }}
@@ -350,6 +354,17 @@
         </template>
 
         <script>
+            function initEducationFlatpickr(scopeEl) {
+                try {
+                    if (!window.flatpickr || !scopeEl) return;
+                    const targets = scopeEl.querySelectorAll('input.edu-date');
+                    targets.forEach(el => {
+                        if (el.dataset.fpApplied === '1') return;
+                        flatpickr(el, { dateFormat: "Y-m-d", allowInput: true });
+                        el.dataset.fpApplied = '1';
+                    });
+                } catch (e) {}
+            }
             function addEducationRow(type) {
                 const container = document.getElementById(`${type}-container`);
                 const template = document.getElementById(`${type}-template`).innerHTML;
@@ -360,6 +375,7 @@
                     .replace(/__DISPLAY_INDEX__/g, currentCount + 1);
 
                 container.insertAdjacentHTML('beforeend', newRowHtml);
+                initEducationFlatpickr(container);
             }
 
             function removeEducationRow(button, type) {
@@ -386,7 +402,12 @@
                         }
                     });
                 });
+                initEducationFlatpickr(container);
             }
+            document.addEventListener('DOMContentLoaded', () => {
+                const container = document.getElementById('{{ $education_type }}-container');
+                initEducationFlatpickr(container);
+            });
         </script>
     </div>
 </section>
