@@ -2,18 +2,18 @@
 @section('title', 'DILG - Dashboard Admin')
 
 @section('content')
-<main class="space-y-6">
+<div class="flex flex-col h-full gap-4">
 
-    <!-- Welcome Back -->
-    <section>
-        <p class="text-xl font-normal text-black font-montserrat">Welcome back,</p>
-        <h1 class="text-3xl font-extrabold text-black uppercase font-montserrat">
-            {{ auth('admin')->user()->name ?? 'Admin' }}
-        </h1>
+    <!-- Welcome Section -->
+    <section class="shrink-0">
+        <div class="flex flex-col md:flex-row items-start md:items-center gap-2">
+            <p class="text-lg font-normal text-gray-800 font-montserrat">Welcome!</p>
+            <h1 class="text-lg font-bold text-[#002C76] uppercase font-montserrat tracking-wide">
+                {{ auth('admin')->user()->name ?? 'Admin' }}
+            </h1>
+        </div>
     </section>
 
-<<<<<<< HEAD
-<<<<<<< Updated upstream
     <!-- Key Metrics Grid -->
     <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
         <!-- Available Vacancies -->
@@ -29,24 +29,6 @@
                             <span class="font-extrabold text-4xl text-[#002C76] font-montserrat">{{ $openVacancyCount }}</span>
                             <span class="text-[10px] text-gray-600 uppercase tracking-wider mt-1">POSITIONS</span>
                         </div>
-=======
-    <!-- Stats Summary -->
-=======
-    <!-- OLD STATS SUMMARY -->
-    <!-- Stats Summary
->>>>>>> parent of e08d54a (admin dashboard)
-    <section class="border border-blue-700 rounded-2xl max-w-full flex divide-x divide-blue-700 bg-white select-none"
-        style="box-shadow: 0 3px 6px rgb(29 78 216 / 0.24);">
-        @php
-            $stats = [
-                ['url' => '/admin/vacancies_management', 'icon' => 'briefcase', 'label' => 'Open Vacancies', 'count' => $openVacancyCount],
-                ['url' => '/admin/applications_list', 'icon' => 'folder-closed', 'label' => 'Reviewed Applications', 'count' => $reviewedApplicationsCount],
-                ['url' => '/admin/exam_management', 'icon' => 'file-signature', 'label' => 'Upcoming Exams', 'count' => $upcomingExamsCount],
-                ['url' => '/admin/admin_account_management', 'icon' => 'user', 'label' => 'System Users', 'count' => $systemUsersCount],
-            ];
-        @endphp
-<<<<<<< HEAD
->>>>>>> Stashed changes
 
                         <!-- Vertical Divider -->
                         <div class="h-12 w-0.5 bg-[#002C76] mx-4"></div>
@@ -62,320 +44,362 @@
                         </div>
                     </div>
                 </div>
-<<<<<<< Updated upstream
 
                 <!-- Icon (Briefcase) -->
                 <div class="w-10 h-10 flex items-center justify-center rounded-full bg-blue-50 group-hover:bg-[#002C76] transition-colors duration-300">
                     <svg class="w-5 h-5 text-[#002C76] transition-colors duration-300 group-hover:text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M20 7h-4a2 2 0 01-2-2V4H10v1a2 2 0 01-2 2H4v11a2 2 0 002 2h12a2 2 0 002-2V7z" />
                     </svg>
-=======
-
-        @foreach ($stats as $stat)
-        <a href="{{ $stat['url'] }}" class="flex-1 block use-loader">
-            <div class="flex flex-col items-center p-4 space-y-1 hover:bg-blue-50">
-                <div class="flex justify-center items-center rounded-full bg-blue-300 w-10 h-10">
-                    <i class="fa-solid fa-{{ $stat['icon'] }} text-blue-700 text-lg"></i>
->>>>>>> parent of e08d54a (admin dashboard)
                 </div>
-                <span class="font-extrabold text-xl font-montserrat">{{ $stat['count'] }}</span>
-                <span class="text-sm font-semibold text-gray-400 font-montserrat">{{ $stat['label'] }}</span>
             </div>
-        </a>
-        @endforeach        
-    </section> -->
-
-    <!--NEW SUGGESTION-->
-    <div class="grid grid-cols-4 gap-6">
-        <!-- Open Vacancies -->
-        <div
-        class="cursor-pointer flex items-center justify-between border border-[#002C76] rounded-xl p-4 bg-white shadow-xl
-                hover:shadow-xl hover:-translate-y-1 hover:bg-blue-50 hover:scale-105
-                transition-all duration-300 ease-out"
-        >
-            <div class="flex flex-col items-start space-y-1">
-                <span class="text-[#313131]">OPEN VACANCIES</span>
-                <span class="font-extrabold text-6xl font-montserrat">{{ $openVacancyCount }}</span>
-            </div>
-            <div class="w-16 h-16 flex items-center justify-center rounded-full bg-blue-100">
-                <svg class="w-8 h-8 text-[#002C76]" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                        d="M20 7h-4a2 2 0 01-2-2V4H10v1a2 2 0 01-2 2H4v11a2 2 0 002 2h12a2 2 0 002-2V7z" />
-                </svg>
-            </div>
+            <!-- Decorative Background Circle -->
+            <div class="absolute bottom-0 right-0 w-20 h-20 bg-blue-50 rounded-full -mr-6 -mb-6 opacity-20 group-hover:scale-150 transition-transform duration-500 ease-out"></div>
         </div>
 
         <!-- Reviewed Applications -->
-        <div
-        class="cursor-pointer flex items-center justify-between border border-[#002C76] rounded-xl p-4 bg-white shadow-xl
-                hover:shadow-xl hover:-translate-y-1 hover:bg-blue-50 hover:scale-105
-                transition-all duration-300 ease-out"
-        >
-            <div class="flex flex-col items-start space-y-1">
-                <span class="text-[#313131]">REVIEWED APPLICATIONS</span>
-                <span class="font-extrabold text-6xl font-montserrat">{{ $reviewedApplicationsCount }}</span>
+        <div class="cursor-pointer group relative overflow-hidden bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1">
+            <div class="flex justify-between items-start z-10 relative h-full">
+                <div class="flex flex-col justify-center h-full space-y-1">
+                    <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Reviewed Applications</span>
+                    <span class="font-extrabold text-4xl text-[#002C76] font-montserrat">{{ $reviewedApplicationsCount }}</span>
+                </div>
+                <div class="w-10 h-10 flex items-center justify-center rounded-full bg-blue-50 group-hover:bg-[#002C76] transition-colors duration-300">
+                    <svg class="w-5 h-5 text-[#002C76] group-hover:text-white transition-colors duration-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5h6m-6 4h6m-7 4l2 2 4-4M7 3h10a2 2 0 012 2v14a2 2 0 01-2 2H7a2 2 0 01-2-2V5a2 2 0 012-2z" />
+                    </svg>
+                </div>
             </div>
-            <div class="w-16 h-16 flex items-center justify-center rounded-full bg-blue-100">
-                <svg class="w-8 h-8 text-[#002C76]" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                        d="M9 5h6m-6 4h6m-7 4l2 2 4-4M7 3h10a2 2 0 012 2v14a2 2 0 01-2 2H7a2 2 0 01-2-2V5a2 2 0 012-2z" />
-                </svg>
-            </div>
+            <div class="absolute bottom-0 right-0 w-20 h-20 bg-blue-50 rounded-full -mr-6 -mb-6 opacity-20 group-hover:scale-150 transition-transform duration-500 ease-out"></div>
         </div>
 
         <!-- Upcoming Exams -->
-        <div
-        class="cursor-pointer flex items-center justify-between border border-[#002C76] rounded-xl p-4 bg-white shadow-xl
-                hover:shadow-xl hover:-translate-y-1 hover:bg-blue-50 hover:scale-105
-                transition-all duration-300 ease-out"
-        >
-            <div class="flex flex-col items-start space-y-1">
-                <span class="text-[#313131]">UPCOMING EXAMS</span>
-                <span class="font-extrabold text-6xl font-montserrat">{{ $upcomingExamsCount }}</span>
+        <div class="cursor-pointer group relative overflow-hidden bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1">
+            <div class="flex justify-between items-start z-10 relative h-full">
+                <div class="flex flex-col justify-center h-full space-y-1">
+                    <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Upcoming Exams</span>
+                    <span class="font-extrabold text-4xl text-[#002C76] font-montserrat">{{ $upcomingExamsCount }}</span>
+                </div>
+                <div class="w-10 h-10 flex items-center justify-center rounded-full bg-blue-50 group-hover:bg-[#002C76] transition-colors duration-300">
+                    <svg class="w-5 h-5 text-[#002C76] group-hover:text-white transition-colors duration-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10m-12 9h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v11a2 2 0 002 2z" />
+                    </svg>
+                </div>
             </div>
-            <div class="w-16 h-16 flex items-center justify-center rounded-full bg-blue-100">
-                <svg class="w-8 h-8 text-[#002C76]" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                        d="M8 7V3m8 4V3m-9 8h10m-12 9h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v11a2 2 0 002 2z" />
-                </svg>
-            </div>
+            <div class="absolute bottom-0 right-0 w-20 h-20 bg-blue-50 rounded-full -mr-6 -mb-6 opacity-20 group-hover:scale-150 transition-transform duration-500 ease-out"></div>
         </div>
 
         <!-- System Users -->
-        <div
-        class="cursor-pointer flex items-center justify-between border border-[#002C76] rounded-xl p-4 bg-white shadow-xl
-                hover:shadow-xl hover:-translate-y-1 hover:bg-blue-50 hover:scale-105
-                transition-all duration-300 ease-out"
-        >
-            <div class="flex flex-col items-start space-y-1">
-                <span class="text-[#313131]">SYSTEM USERS</span>
-                <span class="font-extrabold text-6xl font-montserrat">{{ $systemUsersCount }}</span>
+        <div class="cursor-pointer group relative overflow-hidden bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1">
+            <div class="flex justify-between items-start z-10 relative h-full">
+                <div class="flex flex-col justify-center h-full space-y-1">
+                    <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">System Users</span>
+                    <span class="font-extrabold text-4xl text-[#002C76] font-montserrat">{{ $systemUsersCount }}</span>
+                </div>
+                <div class="w-10 h-10 flex items-center justify-center rounded-full bg-blue-50 group-hover:bg-[#002C76] transition-colors duration-300">
+                    <svg class="w-5 h-5 text-[#002C76] group-hover:text-white transition-colors duration-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-1a4 4 0 00-4-4h-1M9 20H4v-1a4 4 0 014-4h1m6-5a4 4 0 10-8 0 4 4 0 008 0zm6 4a3 3 0 10-6 0 3 3 0 006 0z" />
+                    </svg>
+                </div>
             </div>
-            <div class="w-16 h-16 flex items-center justify-center rounded-full bg-blue-100">
-                <svg class="w-8 h-8 text-[#002C76]" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                        d="M17 20h5v-1a4 4 0 00-4-4h-1M9 20H4v-1a4 4 0 014-4h1m6-5a4 4 0 10-8 0 4 4 0 008 0zm6 4a3 3 0 10-6 0 3 3 0 006 0z" />
-                </svg>
+            <div class="absolute bottom-0 right-0 w-20 h-20 bg-blue-50 rounded-full -mr-6 -mb-6 opacity-20 group-hover:scale-150 transition-transform duration-500 ease-out"></div>
+        </div>
+    </section>
+
+    <!-- Main Analytics Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-1 min-h-0 overflow-hidden">
+        
+        <!-- Left Column: Line Chart & Bottom Widgets -->
+        <div class="lg:col-span-2 flex flex-col gap-4 h-full min-h-0">
+            
+            <!-- Monthly Applications Chart -->
+            <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow duration-300 flex-1 min-h-0 flex flex-col">
+                <div class="flex items-center gap-2 mb-2 shrink-0">
+                    <div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
+                        <i class="fas fa-calendar-day text-[#002C76] text-sm"></i>
+                    </div>
+                    <h2 class="text-base font-bold text-[#002C76] font-montserrat">Monthly Applications</h2>
+                </div>
+                <div class="relative w-full flex-1 min-h-0">
+                    <canvas id="monthlyApplicantsLineChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Bottom Widgets Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 h-[40%] min-h-[180px] shrink-0">
+                <!-- Applicants Status (Pie Chart) -->
+                <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow duration-300 flex flex-col h-full overflow-hidden">
+                    <div class="flex items-center gap-2 mb-2 shrink-0">
+                        <div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
+                            <i class="fas fa-users text-[#002C76] text-sm"></i>
+                        </div>
+                        <h2 class="text-base font-bold text-[#002C76] font-montserrat">Applicants Status</h2>
+                    </div>
+                    <div class="flex-1 flex items-center justify-center relative min-h-0 overflow-hidden">
+                        <div class="relative w-full h-full max-h-[160px] flex items-center justify-center">
+                            <canvas id="applicantsPie"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Upcoming Examinations (Calendar) -->
+                <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow duration-300 flex flex-col h-full overflow-hidden">
+                    <div class="flex items-center gap-2 mb-2 shrink-0">
+                        <div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
+                            <i class="fas fa-calendar-alt text-[#002C76] text-sm"></i>
+                        </div>
+                        <h2 class="text-base font-bold text-[#002C76] font-montserrat">Examination Calendar</h2>
+                    </div>
+                    <div class="flex-1 flex justify-center items-center overflow-hidden">
+                        <input id="examCalendar" class="hidden" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Job Vacancies Ratio -->
+        <div class="lg:col-span-1 h-full min-h-0">
+            <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow duration-300 h-full flex flex-col min-h-0">
+                <div class="flex items-center gap-2 mb-4 shrink-0">
+                    <div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
+                        <i class="fas fa-briefcase text-[#002C76] text-sm"></i>
+                    </div>
+                    <h2 class="text-base font-bold text-[#002C76] font-montserrat">Job Vacancies Ratio</h2>
+                </div>
+                <div class="flex-1 relative min-h-0">
+                    <canvas id="jobBarChart"></canvas>
+                </div>
             </div>
         </div>
     </div>
 
+</div>
 
-<<<<<<< HEAD
 @push('scripts')
 <!-- Libraries -->
-=======
-                <span class="font-extrabold text-xl font-montserrat">{{ $stat['count'] }}</span>
-                <span class="text-sm font-semibold text-gray-400 font-montserrat">{{ $stat['label'] }}</span>
-            </div>
-        </a>
-        @endforeach
-    </section>
-=======
-
-
->>>>>>> parent of e08d54a (admin dashboard)
-
-    <!-- Job Vacancies + Exam Management Row -->
-    <section class="flex flex-row gap-6 max-w-full">
-        <!-- Job Vacancies -->
-        <div class="flex-1 bg-blue-900 rounded-2xl p-6 text-white shadow-lg flex flex-col">
-            <h2 class="font-extrabold text-2xl flex items-center gap-3 mb-5 font-montserrat">
-                <i class="fa-solid fa-clipboard"></i> JOB VACANCIES
-            </h2>
-
-            <div class="text-lg font-light space-y-1 mb-6 max-w-md font-montserrat">
-                @forelse ($openVacancies as $vacancy)
-                    <p>{{ $vacancy->position_title }}</p>
-                @empty
-                    <p class="italic text-sm text-gray-300">No open vacancies.</p>
-                @endforelse
-            </div>
-
-            <div class="mt-auto flex justify-end pt-6">
-                <button onclick="window.location.href='/admin/vacancies_management'"
-                    class="use-loader bg-red-700 hover:bg-red-800 transition font-montserrat font-semibold rounded-lg py-3 px-6 flex items-center space-x-2 shadow-md shadow-red-900/50">
-                    <i class="fa-regular fa-eye"></i>
-                    <span>Edit Job Vacancies</span>
-                </button>
-            </div>
-        </div>
-
-        <!-- Exam Management -->
-        <div class="flex-1 bg-blue-900 rounded-2xl p-6 text-white shadow-lg flex flex-col">
-            <h2 class="font-extrabold text-2xl flex items-center gap-3 mb-5 font-montserrat">
-                <i class="fa-solid fa-file-pen"></i> EXAM MANAGEMENT
-            </h2>
-
-            <div class="flex flex-col text-white text-sm mr-4">
-                <p class="font-bold uppercase mb-1 font-montserrat">Upcoming Exams</p>
-                <ul class="space-y-3">
-                    @forelse ($upcomingExams as $exam)
-                        <li class="grid grid-cols-[minmax(300px,_auto)_160px_80px] items-center">
-                            <div class="flex items-center">
-                                <i class="fa-solid fa-paperclip"></i>
-                                <strong class="ml-2 font-montserrat">
-                                    {{ $exam->vacancy->position_title ?? 'Unknown Position' }}
-                                </strong>
-                            </div>
-                            <div class="flex items-center">
-                                <i class="fa-solid fa-calendar"></i>
-                                <span class="ml-2 font-montserrat">
-                                    {{ \Carbon\Carbon::parse($exam->date)->format('F j, Y') }}
-                                </span>
-                            </div>
-                            <div class="flex items-center">
-                                <i class="fa-solid fa-clock"></i>
-                                <span class="ml-2 font-montserrat">
-                                    {{ \Carbon\Carbon::parse($exam->time)->format('H:i') }}
-                                </span>
-                            </div>
-                        </li>
-                    @empty
-                        <li class="text-sm text-white font-montserrat">No upcoming exams.</li>
-                    @endforelse
-                </ul>
-            </div>
-
-            <div class="mt-auto flex justify-end pt-6">
-                <button onclick="window.location.href='/admin/exam_management'"
-                    class="use-loader bg-red-700 hover:bg-red-800 transition font-semibold rounded-lg py-3 px-6 flex items-center space-x-2 shadow-md shadow-red-900/50">
-                    <i class="fa-regular fa-file-lines"></i>
-                    <span class="font-montserrat">Manage Exam</span>
-                </button>
-            </div>
-        </div>
-    </section>
-
-    <!-- Applicants Over Time + Reviewed Applicants --> <!-- FIXED THE CONTAINER-->
-    <section class="grid grid-cols-1 xl:grid-cols-2 gap-6 max-w-full h-[380px]">
-        <!-- Chart Box -->
-        <div class="bg-white border border-blue-700 rounded-2xl p-6 shadow-lg flex flex-col justify-between h-full">
-            <div class="space-y-4">
-                <h2 class="text-xl font-extrabold font-montserrat text-blue-900">Monthly Applicants</h2>
-    
-                <div class="relative h-[230px]">
-                    <canvas id="applicantsChart" class="w-full h-full"></canvas>
-                </div>
-    
-                <div class="flex justify-end mt-4">
-                    <form method="GET" action="{{ route('dashboard_admin') }}" class="mb-4">
-                        <label for="year" class="text-sm font-semibold mr-2 text-blue-900">Select Year:</label>
-                        <select name="year" id="year" onchange="this.form.submit()" class="border border-blue-6700 rounded px-2 py-1">
-                            @foreach ($years as $year)
-                                <option value="{{ $year }}" {{ $selectedYear == $year ? 'selected' : '' }}>
-                                    {{ $year }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </form>
-                </div>
-            </div>
-        </div>
-    
-        <!-- Reviewed Applicants -->
-        <div class="bg-white border border-blue-700 rounded-2xl p-6 shadow-md flex flex-col justify-between h-full">
-            <div>
-                <h3 class="text-lg font-extrabold font-montserrat mb-4 text-blue-900">REVIEWED APPLICANTS</h3>
-                <div class="text-blue-900 space-y-2 text-sm font-montserrat overflow-y-auto max-h-[260px] pr-2">
-                    @forelse ($reviewedApplications as $applicant)
-                        <div class="flex items-center gap-2">
-                            <i class="fa-solid fa-user text-blue-600"></i>
-                            <span>{{ optional($applicant->personalInformation)->first_name ?? 'N/A' }} {{ optional($applicant->personalInformation)->surname ?? '' }}</span>
-                        </div>
-                    @empty
-                        <p class="text-gray-500 italic">No reviewed applicants.</p>
-                    @endforelse
-                </div>
-            </div>
-            <div class="pt-6 flex justify-end">
-                <a href="{{ route('applications_list') }}" class="use-loader bg-red-700 hover:bg-red-800 transition font-semibold text-white rounded-lg py-3 px-6 flex items-center space-x-2 shadow-md shadow-red-900/50">
-                    <i class="fa-regular fa-file-lines text-base"></i>
-                    <span class="font-montserrat text-sm">View Applicants</span>
-                </a>
-            </div>
-        </div>
-    </section>
-    
-
-
-<!-- Chart.js Script -->
-<<<<<<< HEAD
->>>>>>> Stashed changes
-=======
->>>>>>> parent of e08d54a (admin dashboard)
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://kit.fontawesome.com/a076d05399.js"></script>
+
+<style>
+    /* Calendar Customization */
+    .flatpickr-calendar {
+        box-shadow: none !important;
+        border: none !important;
+        width: 100% !important;
+    }
+    .flatpickr-days {
+        width: 100% !important;
+    }
+    .dayContainer {
+        width: 100% !important;
+        min-width: unset !important;
+        max-width: unset !important;
+    }
+    .flatpickr-day {
+        max-width: unset !important;
+        height: 38px !important;
+        line-height: 38px !important;
+        color: #374151 !important; /* text-gray-700 to ensure visibility */
+    }
+    .flatpickr-day.flatpickr-disabled, 
+    .flatpickr-day.flatpickr-disabled:hover {
+        color: #9ca3af !important; /* text-gray-400 for disabled dates */
+        background: transparent !important;
+        border-color: transparent !important;
+        cursor: default !important;
+    }
+    .flatpickr-day.selected, 
+    .flatpickr-day.startRange, 
+    .flatpickr-day.endRange, 
+    .flatpickr-day.selected.inRange, 
+    .flatpickr-day.startRange.inRange, 
+    .flatpickr-day.endRange.inRange, 
+    .flatpickr-day.selected:focus, 
+    .flatpickr-day.startRange:focus, 
+    .flatpickr-day.endRange:focus, 
+    .flatpickr-day.selected:hover, 
+    .flatpickr-day.startRange:hover, 
+    .flatpickr-day.endRange:hover, 
+    .flatpickr-day.selected.prevMonthDay, 
+    .flatpickr-day.startRange.prevMonthDay, 
+    .flatpickr-day.endRange.prevMonthDay, 
+    .flatpickr-day.selected.nextMonthDay, 
+    .flatpickr-day.startRange.nextMonthDay, 
+    .flatpickr-day.endRange.nextMonthDay {
+        background: #002C76 !important;
+        border-color: #002C76 !important;
+        color: #fff !important;
+        font-weight: bold !important;
+    }
+    .flatpickr-day.event-day {
+        font-weight: bold !important;
+        color: #002C76 !important;
+        border: 1px solid #002C76 !important;
+        background-color: #f0f9ff !important;
+    }
+    .flatpickr-current-month .flatpickr-monthDropdown-months .flatpickr-monthDropdown-month {
+        background-color: white !important;
+        color: black !important;
+    }
+    span.flatpickr-weekday {
+        background: transparent !important;
+        color: #002C76 !important;
+        font-weight: bold !important;
+    }
+</style>
+
 <script>
-    let myChart;
-
     document.addEventListener("DOMContentLoaded", function () {
-        const chartLabels = {!! $chartLabels !!};
-        const chartData = {!! $chartData !!};
-
-        const canvas = document.getElementById('applicantsChart');
-        const ctx = canvas.getContext('2d');
-
-        // Set an explicit height for the canvas to prevent collapse
-        canvas.height = 230;
-
-        myChart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: chartLabels,
-                datasets: [{
-                    label: 'Applicants in {{ $selectedYear }}',
-                    data: chartData,
-                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
-                    borderColor: 'rgba(0, 44, 118, 1)',
-                    borderWidth: 1,
-                    borderRadius: 4,
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            stepSize: 1
+        
+        // --- Monthly Applications Chart ---
+        const ctxLine = document.getElementById('monthlyApplicantsLineChart');
+        if (ctxLine) {
+            new Chart(ctxLine, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                    datasets: [{
+                        label: 'Applications',
+                        data: [120, 150, 180, 200, 170, 160, 190, 220, 250, 280, 300, 320],
+                        borderColor: '#002C76',
+                        backgroundColor: (context) => {
+                            const ctx = context.chart.ctx;
+                            const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+                            gradient.addColorStop(0, 'rgba(0, 44, 118, 0.2)');
+                            gradient.addColorStop(1, 'rgba(0, 44, 118, 0)');
+                            return gradient;
+                        },
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 3,
+                        pointBackgroundColor: '#fff',
+                        pointBorderColor: '#002C76',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#002C76',
+                            titleFont: { family: 'Montserrat' },
+                            bodyFont: { family: 'Montserrat' },
+                            padding: 10,
+                            cornerRadius: 8,
+                            displayColors: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { font: { family: 'Montserrat' } }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            border: { dash: [4, 4] },
+                            grid: { color: '#f3f4f6' },
+                            ticks: { font: { family: 'Montserrat' }, stepSize: 50 }
                         }
                     }
+                }
+            });
+        }
+
+        // --- Applicants Pie Chart ---
+        const ctxPie = document.getElementById('applicantsPie');
+        if (ctxPie) {
+            new Chart(ctxPie, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Reviewed', 'New'],
+                    datasets: [{
+                        data: [50, 30],
+                        backgroundColor: ['#002C76', '#E5E7EB'],
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
                 },
-                plugins: {
-                    legend: {
-                        display: true,
-                        position: 'top'
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: { family: 'Montserrat', size: 12 },
+                                usePointStyle: true,
+                                padding: 20
+                            }
+                        }
                     }
                 }
-            }
-        });
+            });
+        }
 
-        // Resize on window resize
-        window.addEventListener('resize', () => {
-            if (myChart) {
-                myChart.resize();
-                myChart.update();
-            }
-        });
+        // --- Job Vacancies Ratio Bar Chart ---
+        const ctxBar = document.getElementById('jobBarChart');
+        if (ctxBar) {
+            new Chart(ctxBar, {
+                type: 'bar',
+                data: {
+                    labels: ['COS', 'Plantilla'],
+                    datasets: [{
+                        label: 'Vacancies',
+                        data: [{{ $cosVacancyCount }}, {{ $plantillaVacancyCount }}],
+                        backgroundColor: ['#002C76', '#9CA3AF'],
+                        borderRadius: 8,
+                        barThickness: 50
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: '#f3f4f6' },
+                            ticks: { font: { family: 'Montserrat' }, stepSize: 2 }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { font: { family: 'Montserrat' } }
+                        }
+                    }
+                }
+            });
+        }
 
-        // Poll for container size changes (e.g., due to sidebar toggle)
-        let lastWidth = canvas.offsetWidth;
-        setInterval(() => {
-            const newWidth = canvas.offsetWidth;
-            if (newWidth !== lastWidth && newWidth > 0) {
-                lastWidth = newWidth;
-                if (myChart) {
-                    myChart.resize();
-                    myChart.update();
+        // --- Calendar ---
+        const examDates = @json($upcomingExams->pluck('date')->map(fn($d) => \Carbon\Carbon::parse($d)->format('Y-m-d'))->unique()->values());
+
+        flatpickr("#examCalendar", {
+            inline: true,
+            dateFormat: "Y-m-d",
+            enable: examDates.length > 0 ? examDates : [],
+            disableMobile: true,
+            static: true,
+            locale: {
+                firstDayOfWeek: 1 // Start week on Monday
+            },
+            onDayCreate: function(dObj, dStr, fp, dayElem) {
+                // Improve accessibility and styling
+                if (examDates.includes(dStr)) {
+                    dayElem.classList.add('event-day');
+                    dayElem.setAttribute('title', 'Exam Scheduled');
                 }
             }
-        }, 500);
+        });
+
     });
 </script>
-@include('partials.loader')
-
-
-
-</main>
+@endpush
 @endsection
