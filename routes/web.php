@@ -475,15 +475,15 @@ Route::get('/mobile-locked', function () {
 
 
 // LIVE SERVER ROUTES
-Route::get('/preview-file/{encodedPath}', function ($encodedPath) {
-    $relativePath = base64_decode($encodedPath); // decode from base64
+Route::get('storage/{filename}', function ($filename) {
+    $path = storage_path('app/public/' . $filename);
 
-    if (!Storage::disk('public')->exists($relativePath)) {
+    if (!file_exists($path)) {
         abort(404);
     }
 
-    $file = Storage::disk('public')->get($relativePath);
-    $type = Storage::disk('public')->mimeType($relativePath);
+    $file = file_get_contents($path);
+    $type = mime_content_type($path);
 
-    return Response::make($file, 200)->header("Content-Type", $type);
-});
+    return response($file, 200)->header("Content-Type", $type);
+})->where('filename', '.*');

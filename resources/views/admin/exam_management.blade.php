@@ -62,12 +62,12 @@
         </div>
     </form>
 
-    <!-- Table Header -->
+    <!-- TABLE -->
     <div class="overflow-hidden rounded-xl border border-[#0D2B70]">
         <table class="w-full text-left border-collapse">
             <thead class="bg-[#0D2B70] text-white">
                 <tr>
-                    <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider">Job ID</th>
+                    <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider">Vacancy ID</th>
                     <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider">Job Title</th>
                     <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider">Job Type</th>
                     <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider">Action</th>
@@ -177,7 +177,9 @@
                     </td>
                     <td class="py-4 px-6 text-center">
                         <button onclick="window.location.href='/admin/exam_management/manage_exam/${vacancy.vacancy_id}'" 
-                            class="bg-[#0D2B70] transition-transform duration-200 ease-in-out hover:scale-105 text-white font-bold py-2 px-6 rounded-md text-sm">
+                                class="text-[#0D2B70] border border-[#0D2B70] font-bold py-2 px-6 rounded-md text-sm
+                                transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
+                                hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md">
                             Manage
                         </button>
                     </td>

@@ -100,8 +100,9 @@
     }
 
     input[type=number] {
-        -moz-appearance: textfield; /* Firefox */
-    }
+            -moz-appearance: textfield; /* Firefox */
+            appearance: textfield;
+        }
 
 
     </style>

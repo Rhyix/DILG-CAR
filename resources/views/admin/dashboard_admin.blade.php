@@ -351,7 +351,7 @@
                     labels: ['COS', 'Plantilla'],
                     datasets: [{
                         label: 'Vacancies',
-                        data: [{{ $cosVacancyCount }}, {{ $plantillaVacancyCount }}],
+                        data: [{{ $cosVacancyCount ?? 0 }}, {{ $plantillaVacancyCount ?? 0 }}],
                         backgroundColor: ['#002C76', '#9CA3AF'],
                         borderRadius: 8,
                         barThickness: 50

@@ -10,40 +10,39 @@ use App\Models\Applications;
 use App\Models\ExamItems;
 use App\Models\User;
 use Illuminate\Support\Facades\Mail;
-use App\Mail\NotifyApplicantMail;
-use Spatie\Activitylog\Models\Activity;
+use Illuminate\Support\Facades\Log;
 
 
 class ExamController extends Controller
 {
-public function submit(Request $request, $vacancy_id)
-{    //dd($request->all());
+    public function submit(Request $request, $vacancy_id)
+    {    //dd($request->all());
 
-    $validated = $request->validate([
-        'vacancy_id' => 'required|string',
-        'user_id' => 'required|integer',
-        'answers' => 'nullable|array',
-    ]);
+        $validated = $request->validate([
+            'vacancy_id' => 'required|string',
+            'user_id' => 'required|integer',
+            'answers' => 'nullable|array',
+        ]);
 
-    $answerRecord = Applications::where('vacancy_id', $validated['vacancy_id'])
-    ->where('user_id', $validated['user_id'])
-    ->firstOrFail();
+        $answerRecord = Applications::where('vacancy_id', $validated['vacancy_id'])
+        ->where('user_id', $validated['user_id'])
+        ->firstOrFail();
 
-    // Update the answers field
-    $answerRecord->answers = $validated['answers'];
-    $answerRecord->save();
+        // Update the answers field
+        $answerRecord->answers = $validated['answers'];
+        $answerRecord->save();
 
-    //$message = "submitted successfully";
-    //info($message);
+        //$message = "submitted successfully";
+        //info($message);
 
-    activity()
-    ->causedBy(auth()->user())
-    ->event('submit')
-    ->withProperties(['vacancy_id' => $vacancy_id, 'user_id' => $validated['user_id'], 'section' => 'Exam'])
-    ->log('Submitted exam answers.');
+        activity()
+        ->causedBy(auth()->user())
+        ->event('submit')
+        ->withProperties(['vacancy_id' => $vacancy_id, 'user_id' => $validated['user_id'], 'section' => 'Exam'])
+        ->log('Submitted exam answers.');
 
-    return redirect()->route('user.exam_thankyou', compact('vacancy_id', ));
-}
+        return redirect()->route('user.exam_thankyou', compact('vacancy_id', ));
+    }
 
 
     public function logSwitch(Request $request)

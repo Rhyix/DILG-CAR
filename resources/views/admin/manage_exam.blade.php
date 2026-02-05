@@ -2,169 +2,224 @@
 @section('title', 'DILG - Manage Exam')
 @section('content')
 
-<main class="w-full max-w-7xl space-x-2">
-    <!-- Title bar -->
-    <div class="flex items-center gap-4 mb-5">
-        <button aria-label="Back" onclick="window.history.back()" class="p-2 rounded-full bg-[#D9D9D9] hover:bg-[#002C76] h-11 w-11 flex items-center justify-center transition">
-            <svg xmlns="http://www.w3.org/2000/svg" class="use-loader h-8 w-8 text-[#002c76] hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+<main class="w-full max-w-7xl h-[calc(100vh-6rem)] flex flex-col space-y-4 overflow-hidden">
+    <!-- header -->
+    <section class="flex-none flex items-center space-x-4 max-w-full border-b border-[#0D2B70]">
+        <button aria-label="Back" onclick="window.location.href='{{ route('admin_exam_management') }}'" class="use-loader group">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-[#0D2B70] hover:opacity-80 transition" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
         </button>
+        <h1 class="flex items-center gap-3 w-full py-2 tracking-wide select-none">
+            <span class="text-[#0D2B70] text-4xl font-montserrat whitespace-nowrap">Exam Overview</span>
+        </h1>
+    </section>  
 
-        <!-- Title and Sub-labels Container -->
-        <div class="flex flex-col gap-2 w-full">
-            <div class="flex items-center px-4 py-2 rounded-xl bg-[#F1F6FF] border-2 border-[#002C76] text-[#002C76] font-extrabold font-montserrat text-3xl gap-3">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m-6-8h6m2 12H7a2 2 0 01-2-2V6a2 2 0 012-2h7.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V18a2 2 0 01-2 2z" />
-                </svg>
-                Manage Exam
+    <!-- OLD SCHEDULE -->
+    <section class="flex-none rounded-xl shadow-sm">
+        <!-- Top Row: Info and Buttons -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+            <!-- Left Info -->
+            <div class="text-sm text-[#002C76] font-montserrat">
+                <span class="text-3xl">{{ $vacancy->position_title }}</span>
+                <p><span class="font-bold">VACANCY ID:</span> {{ $vacancy->vacancy_id }}, {{ $vacancy->vacancy_type }} Position</p>
             </div>
-        </div>
-    </div>
 
-    <!-- Vacancy Info + Action Buttons -->
-<section class="bg-[#F1F6FF] p-6 rounded-xl shadow-sm">
-    <!-- Top Row: Info and Buttons -->
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
-        <!-- Left Info -->
-        <div class="space-y-1 text-sm text-[#002C76] font-montserrat">
-            <p><span class="font-bold">VACANCY ID:</span> {{ $vacancy->vacancy_id }}</p>
-            <p><span class="font-bold">EXAM ID:</span> {{ $vacancy->vacancy_id }}-EXAM</p>
-            <p><span class="font-bold">EXAM LINK:</span> sample.domain.com/exam/{{ $vacancy->vacancy_id }}-exam</p>
         </div>
 
-        <!-- Right Buttons -->
-        <div class="flex flex-col">
-            <div class="flex gap-2">
-                <button class="bg-[#2559B1] hover:bg-blue-900 text-white text-sm font-semibold rounded-full px-4 py-2 flex items-center gap-2 shadow">
-                    <i class="fa-regular fa-copy"></i> Copy Link
-                </button>
-                <button onclick="window.location.href='{{ route('admin.exam.edit', $vacancy->vacancy_id) }}'" class="use-loader bg-red-600 hover:bg-red-800 text-white text-sm font-semibold rounded-full px-4 py-2 flex items-center gap-2 shadow">
-                    <i class="fa-solid fa-pencil"></i> Edit Questions
-                </button>
-                <button id="notify_button" onclick="notifyApplicants('{{ $vacancy->vacancy_id }}')" {{ !isset($examDetails['time'])? 'disabled' : '' }}
-                class="{{ !isset($examDetails['time'])? 'opacity-50 cursor-not-allowed' : '' }} bg-green-600 hover:bg-green-800 text-white text-sm font-semibold rounded-full px-4 py-2 flex items-center gap-2 shadow">
-                    <i class="fa-solid fa-bell"></i> Notify applicants
-                </button>
+        <!-- horizontal rule -->
+        <div class="border-t border-gray-300 my-4"></div>
+
+    </section>
+
+    <div class="flex-1 flex flex-row min-h-0 gap-4 pb-4">
+        <!-- TABLE -->
+        <div class="w-[70%] flex flex-col rounded-xl border border-[#0D2B70] overflow-hidden">
+            <div class="flex-none bg-[#0D2B70] text-white">
+                <table class="w-full text-left border-collapse">
+                    <thead class="bg-[#0D2B70] text-white">
+                        <tr>
+                            <th class="py-4 px-6 text-left font-bold uppercase text-sm tracking-wider w-[30%]">Name</th>
+                            <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider w-[20%]">Score</th>
+                            <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider w-[25%]">Status</th>
+                            <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider w-[25%]">Action</th>
+                        </tr>
+                    </thead>
+                </table>
             </div>
-            <p id="notifiedAt" class="self-end font-montserrat text-xs m-2 mt-1">
-                @if ($examDetails && $examDetails->notified_at)
-                    Already Notified: {{ $examDetails->notified_at }}
-                @endif
-            </p>
+            <div class="flex-1 overflow-y-auto">
+                <table class="w-full text-left border-collapse">
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        @if (count($participants) > 0)
+                            @foreach ($participants as $index => $p)
+                            <tr class="hover:bg-blue-50 transition-colors duration-200">
+                                <!-- Name -->
+                            <td class="py-4 px-6 text-[#0D2B70] font-semibold w-[30%]">
+                                {{ $user_name[$index] ?? 'Unknown User' }}
+                            </td>
+
+                                <!-- Score -->
+                                <td class="py-4 px-6 text-center text-[#0D2B70] font-medium w-[20%]">
+                                    {{ $p->result ?: '-' }}
+                                </td>
+
+                                <!-- Status -->
+                            <td class="py-4 px-6 text-center w-[25%]">
+                                <div class="inline-flex items-center gap-2 text-[#0D2B70] font-medium">
+                                    @php
+                                        $statusColors = [
+                                            'ready' => '#4ade80',        // green-400
+                                            'in-progress' => '#facc15',  // yellow-400
+                                            'submitted' => '#3b82f6',    // blue-500
+                                            'pending' => '#f75555',      // red
+                                        ];
+
+                                        $status = strtolower($p->status ?? 'pending');
+                                        $color = $statusColors[$status] ?? '#9ca3af'; // gray-400 as default
+                                    @endphp
+                                    <i class="fa-solid fa-circle text-xs" style="color: {{ $color }}"></i>
+                                    <span>{{ $p->status ?? 'Pending' }}</span>
+                                </div>
+                            </td>
+
+                            <!-- Action Button -->
+                            <td class="py-4 px-6 text-center w-[25%]">
+                                <button class="text-[#0D2B70] border border-[#0D2B70] font-bold py-2 px-6 rounded-md text-sm
+                                        transition-all duration-150 ease-[cubic-bezier(0.4,0,0.2,1)]
+                                        hover:scale-105 hover:bg-[#002C76] hover:text-white hover:shadow-md inline-flex items-center gap-2">
+                                    <x-heroicon-o-eye class="w-4 h-4" />
+                                    
+                                    <span>View</span>
+                                </button>
+                            </td>
+                            </tr>
+                            @endforeach
+                        @else
+                            <tr>
+                                <td colspan="4" class="py-10 text-center text-gray-500">
+                                    <p class="text-xl font-semibold">There are no participants yet.</p>
+                                </td>
+                            </tr>
+                        @endif
+                    </tbody>
+                </table>
+            </div>
         </div>
-    </div>
 
-    <!-- Divider -->
-    <div class="border-t border-gray-300 my-4"></div>
+        <!--     scheduling form, buttons -->
+        <div class="w-[30%] flex flex-col justify-between h-full px-2">
+            <!-- Top Section: Form and Primary Actions -->
+            <div class="flex flex-col gap-4">
+                <span class="text-3xl text-[#0D2B70] font-bold">
+                    Schedule Exam
+                </span>
+                                        
+                <!-- VENUE -->
+                <div class="flex flex-col">
+                    <label for="venue" class="text-[#0D2B70] font-semibold text-sm mb-1">
+                        Venue <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="venue" name="venue" required
+                        class="w-full px-4 py-1 border border-[#0D2B70] rounded-lg 
+                            focus:outline-none focus:ring-2 focus:ring-[#0D2B70] focus:border-transparent
+                            transition-all duration-200 text-[#0D2B70] placeholder-gray-400"
+                        placeholder="Enter venue location"
+                    />
+                </div>
 
-    <!-- Bottom Row: Title + Action -->
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-        <!-- Job Title -->
-        <div>
-            <div class="text-xl md:text-2xl font-extrabold text-[#002C76]">{{ $vacancy->position_title}}</div>
-            <div class="text-sm font-semibold text-[#002C76]">{{ $vacancy->vacancy_type}}</div>
-        </div>
+                <!-- DATE -->
+                <div class="flex flex-col">
+                    <label for="date" class="text-[#0D2B70] font-semibold text-sm mb-1">
+                        Date <span class="text-red-500">*</span>
+                    </label>
+                    <input type="date" id="date" name="date" required
+                        class="w-full px-4 py-1 border border-[#0D2B70] rounded-lg 
+                            focus:outline-none focus:ring-2 focus:ring-[#0D2B70] focus:border-transparent
+                            transition-all duration-200 text-[#0D2B70] placeholder-gray-400"
+                    />
+                </div>
 
-        <!-- Start Exam -->
-        <div class="flex flex-col items-center justify-center space-y-1 text-center min-w-[170px]">
-            <button class="bg-green-600 hover:bg-green-800 transition text-white text-sm font-semibold rounded-full flex items-center gap-2 px-5 py-2">
-                <i class="fa-solid fa-play"></i> Start Exam
-            </button>
-            <span class="text-sm font-bold text-red-600">2/4 are READY</span>
-        </div>
-    </div>
+                <!-- STARTING AND ENDING TIME -->
+                <div class="flex flex-row justify-between gap-2">
+                    <!-- STARTING TIME -->
+                    <div class="flex flex-col w-1/2">
+                        <label for="time" class="text-[#0D2B70] font-semibold text-sm mb-1">
+                            Start Time <span class="text-red-500">*</span>
+                        </label>
+                        <input type="time" id="time" name="time" required
+                            class="w-full px-4 py-1 border border-[#0D2B70] rounded-lg 
+                                focus:outline-none focus:ring-2 focus:ring-[#0D2B70] focus:border-transparent
+                                transition-all duration-200 text-[#0D2B70] placeholder-gray-400"
+                        />
+                    </div>
 
-        <form id="examDetailsForm">
-            <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                <!-- Time -->
-            <div>
-                <label class="block text-sm font-semibold text-[#002C76] mb-1">Time:</label>
-                <input type="time" name="time" value="{{ $examDetails->time ?? '' }}" required
-                 class="w-full text-sm px-3 py-2 border border-[#002C76] rounded-md focus:outline-none focus:ring-1 focus:ring-[#002C76] shadow-sm">
-            </div>
-            <div>
-                <label class="block text-sm font-semibold text-[#002C76] mb-1">Date:</label>
-                <input type="date" name="date" value="{{ $examDetails->date ?? '' }}" required
-                 class="w-full text-sm px-3 py-2 border border-[#002C76] rounded-md focus:outline-none focus:ring-1 focus:ring-[#002C76] shadow-sm">
-            </div>
-           <div>
-                <label class="block text-sm font-semibold text-[#002C76] mb-1">Place:</label>
-                <input type="text" name="place" placeholder="Enter place" value="{{ $examDetails->place ?? '' }}" required
-                    class="w-full text-sm px-3 py-2 border border-[#002C76] rounded-md focus:outline-none focus:ring-1 focus:ring-[#002C76] shadow-sm">
-            </div>
-            <div>
-                <label class="block text-sm font-semibold text-[#002C76] mb-1">Duration(mins):</label>
-                <input style="-moz-appearance: textfield; -webkit-appearance: textfield; margin: 0;" type="number" max="999" name="duration" placeholder="Enter Duration" value="{{ $examDetails->duration ?? '' }}" required
-                    class="w-full text-sm px-3 py-2 border border-[#002C76] rounded-md focus:outline-none focus:ring-1 focus:ring-[#002C76] shadow-sm">
-            </div>
-                <!-- Button -->
-                <div class="sm:col-span-4 flex justify-end">
-                    <button type="submit" disabled class="opacity-50 cursor-not-allowed bg-green-600 hover:bg-green-800 transition text-white text-sm font-semibold rounded-full flex items-center gap-2 px-5 py-2">
-                        <i class="fa-solid fa-save"></i> Save Details
+                    <!-- ENDING TIME -->
+                    <div class="flex flex-col w-1/2">
+                        <label for="time_end" class="text-[#0D2B70] font-semibold text-sm mb-1">
+                            End Time <span class="text-red-500">*</span>
+                        </label>
+                        <input type="time" id="time_end" name="time_end" required
+                            class="w-full px-4 py-1 border border-[#0D2B70] rounded-lg 
+                                focus:outline-none focus:ring-2 focus:ring-[#0D2B70] focus:border-transparent
+                                transition-all duration-200 text-[#0D2B70] placeholder-gray-400"
+                        />
+                    </div>
+                </div>
+
+                <!-- DURATION -->
+                <div class="flex flex-col">
+                    <label for="duration" class="text-[#0D2B70] font-semibold text-sm mb-1">
+                        Duration <span class="text-red-500"></span>
+                    </label>
+                    <input type="text" id="venue" name="duration" disabled
+                        class="w-full px-4 py-1 border border-[#0D2B70] rounded-lg 
+                            focus:outline-none focus:ring-2 focus:ring-[#0D2B70] focus:border-transparent
+                            transition-all duration-200 text-[#0D2B70] placeholder-gray-400"
+                        placeholder="Duration"
+                    />
+                </div>
+
+                <!-- SAVE AND START EXAM BUTTONS-->
+                <div class="flex flex-row justify-between gap-2 mt-2">
+                    <button class="w-full px-4 py-2 border border-[#0D2B70] rounded-lg 
+                            hover:scale-105 flex items-center justify-center gap-2
+                            transition-all duration-200 text-[#0D2B70] placeholder-gray-400 font-semibold">
+                        <x-heroicon-o-check class="w-5 h-5" />
+                        <span>Save</span>
+                    </button>
+                    <button class="w-full px-4 py-2 bg-[#0D2B70] rounded-lg 
+                            hover:scale-105 flex items-center justify-center gap-2
+                            transition-all duration-200 text-white placeholder-gray-400 font-semibold">
+                        <x-heroicon-o-play class="w-5 h-5" />
+                        <span>Start Exam</span>
                     </button>
                 </div>
             </div>
-        </form>
-
-</section>
 
 
-    <!-- Table Header -->
-    <section class="grid grid-cols-4 gap-5 bg-[#0D2B70] text-white font-bold rounded-3xl py-5 px-6 select-none w-full">
-        <div class="flex items-center justify-start">NAME</div>
-        <div class="flex items-center justify-center">SCORE</div>
-        <div class="flex items-center justify-start">STATUS</div>
-        <div class="flex items-center justify-center"></div>
-    </section>
-
-    <!-- Table Rows -->
-    <section class="space-y-3 w-full mt-4">
-        @if (count($participants) > 0)
-            @foreach ($participants as $index => $p)
-            <div class="grid grid-cols-4 gap-4 border-2 border-[#0D2B70] rounded-3xl py-4 px-6 items-center text-[#0D2B70] bg-white shadow-sm">
-                <!-- Name -->
-                <div class="font-bold text-sm truncate">{{ $user_name[$index] }}</div>
-
-                <!-- Score (center-aligned to match header) -->
-                <div class="flex justify-center font-bold text-sm">{{ $p['result'] ?: '-' }}</div>
-
-                <!-- Status -->
-                <div class="text-sm font-semibold text-center flex items-center justify-start gap-2">
-                    @php
-                        $statusColors = [
-                            'ready' => '#4ade80',        // green-400
-                            'in-progress' => '#facc15',  // yellow-400
-                            'submitted' => '#3b82f6',  // blue-500
-                            'pending' => '#f75555',  // red
-                        ];
-
-                        $status = strtolower($p['status']);
-                        $color = $statusColors[$status] ?? '#9ca3af'; // gray-400 as default
-                    @endphp
-                    <i class="fa-solid fa-circle" style="color: {{ $color }}"></i>
-                    {{ $p['status'] }}
-                </div>
-
-                <!-- Button -->
-                <div class="flex justify-end">
-                    @if($p['result'] > 0)
-                    <a href="{{ route('admin.view_exam', [$p->vacancy_id, $p->user_id] ) }}" class="bg-[#00127.0.0.1] hover:bg-green-900 transition text-white text-sm font-medium rounded-full flex items-center gap-2 px-4 py-1.5">
-                        <i class="fa-solid fa-play"></i>
-                        View Answers
-                    </a>
-                    @else
-                    <div class="h-[36px] w-[130px]"></div> <!-- Maintains layout spacing -->
-                    @endif
-                </div>
+            <!-- SEND LINK AND EDIT QUESTIONS (Bottom Section) -->
+            <div class="flex flex-col gap-2 mt-auto">
+                <button class="w-full px-4 py-2 border border-[#0D2B70] rounded-lg 
+                        hover:scale-105 flex items-center justify-center gap-2
+                        transition-all duration-200 text-[#0D2B70] placeholder-gray-400 font-semibold">
+                    <x-heroicon-o-paper-airplane class="w-5 h-5" />
+                    <span>Send Link via Email</span>
+                </button>
+                <button onclick="window.location.href='{{ route('admin.exam.edit', $vacancy->vacancy_id) }}'"
+                        class="w-full px-4 py-2 bg-[#0D2B70] rounded-lg 
+                        hover:scale-105 flex items-center justify-center gap-2
+                        transition-all duration-200 text-white placeholder-gray-400 font-semibold">
+                    <x-heroicon-o-pencil-square class="w-5 h-5" />
+                    <span>Edit Questions</span>
+                </button>
             </div>
-            @endforeach
-        @else
-            <div x-show="questions.length === 0" class="text-center text-gray-500 mt-10">
-            <p class="text-xl font-semibold">There are no participants yet.</p>
-            </div>
-        @endif
-    </section>
+
+        </div>
+
+                                        
+    </div>
+
+
     @include('partials.loader')
 </main>
 <script>

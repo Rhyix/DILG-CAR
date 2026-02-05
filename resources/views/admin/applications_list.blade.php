@@ -103,30 +103,38 @@
     @include('partials.loader')
 </section>
 <script>
-    const searchInput = document.getElementById('searchInput');
-    let debounceTimeout;
+    // Debounce Function to prevent traffic overload
+    function debounce(func, wait) {
+        let timeout;
+        return function(...args) {
+            const context = this;
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(context, args), wait);
+        };
+    }
 
+    const searchInput = document.getElementById('searchInput');
     const statusFilter = document.getElementById('statusFilter');
 
-function getSearchAndStatus() {
-    return {
-        search: searchInput.value.trim(),
-        status: statusFilter.value.trim()
-    };
-}
+    function getSearchAndStatus() {
+        return {
+            search: searchInput.value.trim(),
+            status: statusFilter.value.trim()
+        };
+    }
 
-searchInput.addEventListener('input', function () {
-    clearTimeout(debounceTimeout);
-    debounceTimeout = setTimeout(() => {
+    // Debounced Search Handler (500ms delay)
+    const handleSearch = debounce(function() {
         const { search, status } = getSearchAndStatus();
         fetchVacancies(search, status);
-    }, 300);
-});
+    }, 500);
 
-statusFilter.addEventListener('change', function () {
-    const { search, status } = getSearchAndStatus();
-    fetchVacancies(search, status);
-});
+    searchInput.addEventListener('input', handleSearch);
+
+    statusFilter.addEventListener('change', function () {
+        const { search, status } = getSearchAndStatus();
+        fetchVacancies(search, status);
+    });
 
 
 function fetchVacancies(search = '', status = '') {
