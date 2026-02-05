@@ -6,17 +6,17 @@
 <style>
   [x-cloak] { display: none !important; }
 </style>
-<main class="w-full space-y-6">
+<main class="w-full h-[calc(98vh-6rem)] flex flex-col space-y-4 overflow-hidden">
 
     <!-- Header with back arrow and title -->
-    <section class="flex items-center space-x-4 mb-4 max-w-full">
+    <section class="flex-none flex items-center space-x-4 max-w-full">
         <h1 class="flex items-center gap-3 w-full border-b border-[#0D2B70] text-white text-4xl font-montserrat py-2 tracking-wide select-none">
             <span class="whitespace-nowrap text-[#0D2B70]">Vacancies Management</span>
         </h1>
     </section>
 
     <!-- Search and Controls -->
-    <section class="flex flex-wrap gap-4 items-end justify-between">
+    <section class="flex-none flex flex-wrap gap-4 items-end justify-between">
         <!-- Search Box -->
         <form class="relative flex-1 min-w-[300px]" onsubmit="return false;">
             <input id="searchInput" type="search" placeholder="Search" aria-label="Search" value="{{ session('vacancyFilterSearch') }}"
@@ -218,7 +218,7 @@
                 </div>
             </div>
 
-            <!-- Download Button -->
+            <!-- template Button -->
             <div x-data="{ open: false }" class="relative">
                 <button
                     @click="open = !open"
@@ -314,34 +314,35 @@
         </div>
     @endif
 
-    <!-- Filters Section -->
-    <section class="flex gap-4 items-end">
-  
-    </section>
-    
-    <!-- Table Header -->
-    <section class="grid grid-cols-6 gap-4 bg-[#0D2B70] text-white font-bold rounded-t-xl py-4 px-6 select-none items-center border-b border-[#0D2B70]">
-        <div class="text-left">Plantilla Item No.</div>
-        <div class="text-left">Job Title</div>
-        <div class="text-left">Monthly Salary</div>
-        <div class="text-left">Closing Date</div>
-        <div class="text-left">Place of Assignment</div>
-        <div class="text-center">Actions</div>
-    </section>
-
-    <!-- Table Body -->
-    <section class="border border-[#0D2B70] rounded-b-xl overflow-hidden">
-        <section class="space-y-0" id="vacancy-list">
-            @forelse ($vacancies as $vacancy)
-                @include('partials.admin_job_vacancy_card', ['vacancy' => $vacancy, 'index' => $loop->index])
-            @empty
-                <div class="text-center text-gray-500 font-semibold text-3xl">
-                    <i data-feather="info" class="w-7 h-7 inline-block mr-2 text-gray-400 font-montserrat"></i>
-                    No Job Vacancy
-                </div>
-            @endforelse
-        </section>
-    </section>
+    <!-- Table Container -->
+    <div class="flex-1 flex flex-col min-h-0 overflow-hidden border border-[#0D2B70] rounded-xl">
+        <div class="flex-1 overflow-auto">
+            <table class="w-full text-left border-collapse">
+                <thead class="bg-[#0D2B70] text-white sticky top-0 z-10">
+                    <tr>
+                        <th class="py-4 px-6 font-normal">Plantilla Item No.</th>
+                        <th class="py-4 px-6 font-normal">Job Title</th>
+                        <th class="py-4 px-6 font-normal">Monthly Salary</th>
+                        <th class="py-4 px-6 font-normal">Closing Date</th>
+                        <th class="py-4 px-6 font-normal">Place of Assignment</th>
+                        <th class="py-4 px-6 font-normal text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="vacancy-list" class="divide-y divide-[#0D2B70]">
+                    @forelse ($vacancies as $vacancy)
+                        @include('partials.admin_job_vacancy_card', ['vacancy' => $vacancy, 'index' => $loop->index])
+                    @empty
+                        <tr>
+                            <td colspan="6" class="text-center text-gray-500 text-3xl pt-10 pb-10">
+                                <i data-feather="info" class="w-7 h-7 inline-block mr-2 text-gray-400 font-montserrat"></i>
+                                No Job Vacancy
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
 </main>
 
 @push('scripts')
