@@ -9,22 +9,18 @@
 <main class="w-full space-y-6">
 
     <!-- Header with back arrow and title -->
-    <section class="flex items-center space-x-4 mb-4">
-        <h1 class="w-full flex items-center bg-[#0D2B70] text-white rounded-xl text-2xl font-extrabold font-montserrat px-8 py-3 tracking-wide select-none">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 mr-3" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 110-4h6a2 2 0 110 4M9 5v2m6-2v2" />
-            </svg>
-            VACANCIES MANAGEMENT
+    <section class="flex items-center space-x-4 mb-4 max-w-full">
+        <h1 class="flex items-center gap-3 w-full border-b border-[#0D2B70] text-white text-4xl font-montserrat py-2 tracking-wide select-none">
+            <span class="whitespace-nowrap text-[#0D2B70]">Vacancies Management</span>
         </h1>
     </section>
 
-    <!-- Search and Add New Vacancy button -->
-    <section class="flex justify-between items-center">
-        <form class="relative w-full max-w-xs" onsubmit="return false;">
+    <!-- Search and Controls -->
+    <section class="flex flex-wrap gap-4 items-end justify-between">
+        <!-- Search Box -->
+        <form class="relative flex-1 min-w-[300px]" onsubmit="return false;">
             <input id="searchInput" type="search" placeholder="Search" aria-label="Search" value="{{ session('vacancyFilterSearch') }}"
-                class="pl-10 pr-4 py-1.5 rounded-full border border-[#0D2B70] placeholder:text-[#7D93B3] placeholder:font-semibold text-[#0D2B70] focus:outline-none focus:ring-2 focus:ring-[#0D2B70] focus:ring-offset-1"
+                class="pl-10 pr-4 py-2 rounded-md w-full border border-[#0D2B70] placeholder:text-[#7D93B3] placeholder:font-semibold text-[#0D2B70] focus:outline-none focus:ring-2 focus:ring-[#0D2B70] focus:ring-offset-1"
                 oninput="fetchVacanciesDebounced()" />
             <svg xmlns="http://www.w3.org/2000/svg"
                 class="w-5 h-5 text-[#7D93B3] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
@@ -33,196 +29,268 @@
                     d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
             </svg>
         </form>
-        <div class="flex items-center space-x-3">
-    <!-- Export Dropdown -->
-        <div x-data="{ open: false, alertExportCOS: false }" class="relative">
-            <button
-                @click="open = !open"
-                class="font-semibold flex items-center px-4 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-800 transition"
-            >
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                        d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4" />
-                </svg>
-                Export
-                <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" stroke-width="2"
-                    viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path>
-                </svg>
-            </button>
-            <div
-                x-show="open"
-                x-cloak
-                @click.away="open = false"
-                x-transition
-                class="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-lg z-50"
-            >
-            <!-- COS Export --> 
-                @include('partials.alerts_template', [
-                    'id' => 'exportCOS',
-                    'showTrigger' => true,
-                    'triggerText' => 'Export COS vacancies',
-                    'triggerClass' => 'block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold text-left',
-                    'title' => 'Export Confirmation',
-                    'message' => 'Are you sure you want to export COS vacancies?',
-                    'showCancel' => true,
-                    'cancelText' => 'No, Cancel',
-                    'okText' => 'Yes, Export',
-                    'okAction' => "window.location.href='" . route('exportJobVacancyCOS') . "'",
-                ])
-                @include('partials.alerts_template', [
-                    'id' => 'exportPlantilla',
-                    'showTrigger' => true,
-                    'triggerText' => 'Export Plantilla vacancies',
-                    'triggerClass' => 'block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold text-left',
-                    'title' => 'Export Confirmation',
-                    'message' => 'Are you sure you want to export Plantilla vacancies?',
-                    'showCancel' => true,
-                    'cancelText' => 'No, Cancel',
-                    'okText' => 'Yes, Export',
-                    'okAction' => "window.location.href='" . route('exportJobVacancyPlantilla') . "'",
-                ])
-                @include('partials.alerts_template', [
-                    'id' => 'exportAll',
-                    'showTrigger' => true,
-                    'triggerText' => 'Export All vacancies',
-                    'triggerClass' => 'block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold text-left',
-                    'title' => 'Export Confirmation',
-                    'message' => 'Are you sure you want to export All vacancies?',
-                    'showCancel' => true,
-                    'cancelText' => 'No, Cancel',
-                    'okText' => 'Yes, Export',
-                    'okAction' => "window.location.href='" . route('exportJobVacancyAll') . "'",
-                ])
+
+        <!-- Filters and Action Buttons -->
+        <div class="flex gap-4 items-end flex-wrap">
+            <!-- Job Type Filter -->
+            <div class="flex flex-col gap-2">
+                <label for="jobFilter" class="font-semibold text-[#0D2B70] text-sm">Job Type</label>
+                <select aria-label="Filter by Job Type" id="jobFilter"
+                    class="rounded-md text-[#0D2B70] p-2 px-3 font-semibold cursor-pointer border border-[#0D2B70]">
+                    <option value="" {{ session('vacancyFilterJob') == '' ? 'selected' : '' }}>All</option>
+                    <option value="COS" {{ session('vacancyFilterJob') == 'COS' ? 'selected' : '' }}>COS</option>
+                    <option value="Plantilla" {{ session('vacancyFilterJob') == 'Plantilla' ? 'selected' : '' }}>PLANTILLA</option>
+                </select>
+            </div>
+
+            <!-- Status Filter -->
+            <div class="flex flex-col gap-2">
+                <label for="statusFilter" class="font-semibold text-[#0D2B70] text-sm">Status</label>
+                <select aria-label="Filter by Status" id="statusFilter"
+                    class="rounded-md text-[#0D2B70] p-2 px-3 font-semibold cursor-pointer border border-[#0D2B70]">
+                    <option value="" {{ session('vacancyFilterStatus') == '' ? 'selected' : '' }}>All</option>
+                    <option value="OPEN" {{ session('vacancyFilterStatus') == 'OPEN' ? 'selected' : '' }}>OPEN</option>
+                    <option value="CLOSED" {{ session('vacancyFilterStatus') == 'CLOSED' ? 'selected' : '' }}>CLOSED</option>
+                </select>
+            </div>
+
+            <!-- Export Button -->
+            <div x-data="{ open: false }" class="relative">
+                <button
+                    @click="open = !open"
+                    class="font-semibold flex items-center px-4 py-2 bg-white text-[#0D2B70] rounded-md hover:bg-[#0D2B70]  transition whitespace-nowrap
+                            hover:text-white hover:shadow-md border border-[#0D2B70]"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4" />
+                    </svg>
+                    Export
+                    <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" stroke-width="2"
+                        viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </button>
+                <div
+                    x-show="open"
+                    x-cloak
+                    @click.away="open = false"
+                    x-transition
+                    class="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-lg z-50"
+                >
+                    @include('partials.alerts_template', [
+                        'id' => 'exportCOS',
+                        'showTrigger' => true,
+                        'triggerText' => 'Export COS vacancies',
+                        'triggerClass' => 'block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold text-left',
+                        'title' => 'Export Confirmation',
+                        'message' => 'Are you sure you want to export COS vacancies?',
+                        'showCancel' => true,
+                        'cancelText' => 'No, Cancel',
+                        'okText' => 'Yes, Export',
+                        'okAction' => "window.location.href='" . route('exportJobVacancyCOS') . "'",
+                    ])
+                    @include('partials.alerts_template', [
+                        'id' => 'exportPlantilla',
+                        'showTrigger' => true,
+                        'triggerText' => 'Export Plantilla vacancies',
+                        'triggerClass' => 'block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold text-left',
+                        'title' => 'Export Confirmation',
+                        'message' => 'Are you sure you want to export Plantilla vacancies?',
+                        'showCancel' => true,
+                        'cancelText' => 'No, Cancel',
+                        'okText' => 'Yes, Export',
+                        'okAction' => "window.location.href='" . route('exportJobVacancyPlantilla') . "'",
+                    ])
+                    @include('partials.alerts_template', [
+                        'id' => 'exportAll',
+                        'showTrigger' => true,
+                        'triggerText' => 'Export All vacancies',
+                        'triggerClass' => 'block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold text-left',
+                        'title' => 'Export Confirmation',
+                        'message' => 'Are you sure you want to export All vacancies?',
+                        'showCancel' => true,
+                        'cancelText' => 'No, Cancel',
+                        'okText' => 'Yes, Export',
+                        'okAction' => "window.location.href='" . route('exportJobVacancyAll') . "'",
+                    ])
+                </div>
+            </div>
+
+            <!-- Import Button -->
+            <div x-data="{ open: false }" class="relative">
+                <button
+                    @click="open = !open"
+                    class="font-semibold flex items-center px-4 py-2 bg-white text-[#0D2B70] rounded-md hover:bg-[#0D2B70]  transition whitespace-nowrap
+                            hover:text-white hover:shadow-md border border-[#0D2B70]"
+                >
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    Import
+                    <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" stroke-width="2"
+                        viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </button>
+                <div
+                    x-show="open"
+                    x-cloak
+                    @click.away="open = false"
+                    x-transition
+                    class="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-lg z-50"
+                >
+                    @include('partials.alerts_template', [
+                        'id' => 'importCOS',
+                        'showTrigger' => true,
+                        'triggerText' => 'Import COS vacancies',
+                        'triggerClass' => 'block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold text-left',
+                        'title' => 'Import Confirmation',
+                        'message' => 'Upload your CSV file to import COS vacancies.',
+                        'showCancel' => true,
+                        'cancelText' => 'Cancel',
+                        'okText' => null,
+                        'content' =>
+                        '<form action="' . route('importJobVacancyCOS') . '" method="POST" enctype="multipart/form-data" class="flex flex-col items-center gap-3 w-full">
+                            ' . csrf_field() . '
+                            <input type="file" name="import_file" accept=".csv" required class="border border-gray-300 rounded px-2 py-1 w-full">
+                            <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-full font-semibold transition">
+                                Import COS Vacancies
+                            </button>
+                        </form>',
+                    ])
+                    @include('partials.alerts_template', [
+                        'id' => 'importPlantilla',
+                        'showTrigger' => true,
+                        'triggerText' => 'Import Plantilla vacancies',
+                        'triggerClass' => 'block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold text-left',
+                        'title' => 'Import Confirmation',
+                        'message' => 'Upload your CSV file to import Plantilla vacancies.',
+                        'showCancel' => true,
+                        'cancelText' => 'Cancel',
+                        'okText' => null,
+                        'content' =>
+                        '<form action="' . route('importJobVacancyPlantilla') . '" method="POST" enctype="multipart/form-data" class="flex flex-col items-center gap-3 w-full">
+                            ' . csrf_field() . '
+                            <input type="file" name="import_file" accept=".csv" required class="border border-gray-300 rounded px-2 py-1 w-full">
+                            <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-full font-semibold transition">
+                                Import Plantilla Vacancies
+                            </button>
+                        </form>',
+                    ])
+                    @include('partials.alerts_template', [
+                        'id' => 'downloadCOS',
+                        'showTrigger' => true,
+                        'triggerText' => 'Download COS template',
+                        'triggerClass' => 'block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold text-left',
+                        'title' => 'Download Confirmation',
+                        'message' => 'Download the COS template?',
+                        'showCancel' => true,
+                        'cancelText' => 'No, Cancel',
+                        'okText' => 'Yes, Download',
+                        'okAction' => "window.location.href='" . route('downloadCOSTemplate') . "'",
+                    ])
+                    @include('partials.alerts_template', [
+                        'id' => 'downloadPlantilla',
+                        'showTrigger' => true,
+                        'triggerText' => 'Download Plantilla templates',
+                        'triggerClass' => 'block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold text-left',
+                        'title' => 'Download Confirmation',
+                        'message' => 'Download the Plantilla template?',
+                        'showCancel' => true,
+                        'cancelText' => 'No, Cancel',
+                        'okText' => 'Yes, Download',
+                        'okAction' => "window.location.href='" . route('downloadPlantillaTemplate') . "'",
+                    ])
+                </div>
+            </div>
+
+            <!-- Download Button -->
+            <div x-data="{ open: false }" class="relative">
+                <button
+                    @click="open = !open"
+                    class="font-semibold flex items-center px-4 py-2 bg-white text-[#0D2B70] rounded-md hover:bg-[#0D2B70]  transition whitespace-nowrap
+                            hover:text-white hover:shadow-md border border-[#0D2B70]"
+                >
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    </svg>
+                    Download
+                    <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" stroke-width="2"
+                        viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </button>
+                <div
+                    x-show="open"
+                    x-cloak
+                    @click.away="open = false"
+                    x-transition
+                    class="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-lg z-50"
+                >
+                    @include('partials.alerts_template', [
+                        'id' => 'downloadCOS',
+                        'showTrigger' => true,
+                        'triggerText' => 'Download COS template',
+                        'triggerClass' => 'block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold text-left',
+                        'title' => 'Download Confirmation',
+                        'message' => 'Download the COS vacancy template?',
+                        'showCancel' => true,
+                        'cancelText' => 'Cancel',
+                        'okText' => 'Download',
+                        'okAction' => "window.location.href='" . route('downloadCOSTemplate') . "'",
+                    ])
+                    @include('partials.alerts_template', [
+                        'id' => 'downloadPlantilla',
+                        'showTrigger' => true,
+                        'triggerText' => 'Download Plantilla template',
+                        'triggerClass' => 'block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold text-left',
+                        'title' => 'Download Confirmation',
+                        'message' => 'Download the Plantilla vacancy template?',
+                        'showCancel' => true,
+                        'cancelText' => 'Cancel',
+                        'okText' => 'Download',
+                        'okAction' => "window.location.href='" . route('downloadPlantillaTemplate') . "'",
+                    ])
+                </div>
+            </div>
+
+            <!-- Add New Vacancy Button -->
+            <div x-data="{ open: false }" class="relative">
+                <button
+                    @click="open = !open"
+                        class = "font-semibold flex items-center px-4 py-2 bg-white text-[#0D2B70] rounded-md hover:bg-[#0D2B70]  transition whitespace-nowrap
+                                 hover:text-white hover:shadow-md border border-[#0D2B70]"
+                                           >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 stroke-[3]" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor" stroke-width="3">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6" />
+                    </svg>
+                    Add New Vacancy
+                    <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" stroke-width="2"
+                        viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </button>
+                <div
+                    x-show="open"
+                    x-cloak
+                    @click.away="open = false"
+                    x-transition
+                    class="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-lg z-50"
+                >
+                    <a href="{{ route('addcos') }}"
+                        class="use-loader block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold">
+                        Add COS Vacancy
+                    </a>
+                    <a href="{{ route('addplantilla') }}"
+                        class="use-loader block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold">
+                        Add Plantilla Vacancy
+                    </a>
+                </div>
             </div>
         </div>
-        <!-- Import Dropdown -->
-        <div x-data="{ open: false }" class="relative">
-            <button
-                @click="open = !open"
-                class="font-semibold flex items-center px-4 py-2 bg-green-600 text-white rounded-full hover:bg-green-700 transition"
-            >
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path>
-                </svg>
-                Import
-                <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" stroke-width="2"
-                    viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path>
-                </svg>
-            </button>   
-            <div
-                x-show="open"
-                x-cloak
-                @click.away="open = false"
-                x-transition
-                class="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-lg z-50"
-            >
-            {{-- Import COS Vacancies --}}
-            @include('partials.alerts_template', [
-                'id' => 'importCOS',
-                'showTrigger' => true,
-                'triggerText' => 'Import COS vacancies',
-                'triggerClass' => 'block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold text-left',
-                'title' => 'Import Confirmation',
-                'message' => 'Upload your CSV file to import COS vacancies.',
-                'showCancel' => true,
-                'cancelText' => 'Cancel',
-                'okText' => null, // disables default OK button to render form instead
-                'content' =>
-                '<form action="' . route('importJobVacancyCOS') . '" method="POST" enctype="multipart/form-data" class="flex flex-col items-center gap-3 w-full">
-                    ' . csrf_field() . '
-                    <input type="file" name="import_file" accept=".csv" required class="border border-gray-300 rounded px-2 py-1 w-full">
-                    <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-full font-semibold transition">
-                        Import COS Vacancies
-                    </button>
-                </form>',
-            ])
-
-            {{-- Import Plantilla Vacancies --}}
-            @include('partials.alerts_template', [
-                'id' => 'importPlantilla',
-                'showTrigger' => true,
-                'triggerText' => 'Import Plantilla vacancies',
-                'triggerClass' => 'block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold text-left',
-                'title' => 'Import Confirmation',
-                'message' => 'Upload your CSV file to import Plantilla vacancies.',
-                'showCancel' => true,
-                'cancelText' => 'Cancel',
-                'okText' => null,
-                'content' =>
-                '<form action="' . route('importJobVacancyPlantilla') . '" method="POST" enctype="multipart/form-data" class="flex flex-col items-center gap-3 w-full">
-                    ' . csrf_field() . '
-                    <input type="file" name="import_file" accept=".csv" required class="border border-gray-300 rounded px-2 py-1 w-full">
-                    <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-full font-semibold transition">
-                        Import Plantilla Vacancies
-                    </button>
-                </form>',
-            ])
-
-                @include('partials.alerts_template', [
-                    'id' => 'exportCOS',
-                    'showTrigger' => true,
-                    'triggerText' => 'Download COS template',
-                    'triggerClass' => 'block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold text-left',
-                    'title' => 'Export Confirmation',
-                    'message' => 'Are you sure you want to import Plantilla vacancies?',
-                    'showCancel' => true,
-                    'cancelText' => 'No, Cancel',
-                    'okText' => 'Yes, Download',
-                    'okAction' => "window.location.href='" . route('downloadCOSTemplate') . "'",
-                ])
-                @include('partials.alerts_template', [
-                    'id' => 'exportCOS',
-                    'showTrigger' => true,
-                    'triggerText' => 'Download Plantilla templates',
-                    'triggerClass' => 'block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold text-left',
-                    'title' => 'Export Confirmation',
-                    'message' => 'Are you sure you want to import Plantilla vacancies?',
-                    'showCancel' => true,
-                    'cancelText' => 'No, Cancel',
-                    'okText' => 'Yes, Download',
-                    'okAction' => "window.location.href='" . route('downloadPlantillaTemplate') . "'",
-                ])
-            </div>
-        </div>
-
-        <!-- Add New Vacancy Dropdown -->
-        <div x-data="{ open: false }" class="relative">
-            <button
-                @click="open = !open"
-                class="bg-[#C5292F] hover:bg-red-700 transition text-white font-semibold rounded-full flex items-center gap-2 px-5 py-2 select-none"
-            >
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 stroke-[3]" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor" stroke-width="3">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6" />
-                </svg>
-                Add New Vacancy
-                <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" stroke-width="2"
-                    viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path>
-                </svg>
-            </button>
-            <div
-                x-show="open"
-                x-cloak
-                @click.away="open = false"
-                x-transition
-                class="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-lg z-50"
-            >
-                <a href="{{ route('addcos') }}"
-                    class="use-loader block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold">
-                    Add COS Vacancy
-                </a>
-                <a href="{{ route('addplantilla') }}"
-                    class="use-loader block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold">
-                    Add Plantilla Vacancy
-                </a>
-            </div>
-        </div>
-    </div>
-
     </section>
 
     @if(session('success'))
@@ -268,42 +336,33 @@
         </div>
     @endif
 
+    <!-- Filters Section -->
+    <section class="flex gap-4 items-end">
+  
+    </section>
+    
     <!-- Table Header -->
-    <section
-        class="grid grid-cols-6 gap-4 bg-[#0D2B70] text-white font-bold rounded-xl py-5 px-6 select-none items-center min-h-[70px]">
-        <div class="flex items-center justify-start">PLANTILLA ITEM NO.</div>
-        <div class="flex items-left justify-start gap-3 flex-col">JOB TITLE
-            <select aria-label="Filter Status" id="jobFilter"
-                class="rounded-md text-[#0D2B70] p-1 px-2 font-semibold cursor-pointer w-3/4">
-                <option value="" {{ session('vacancyFilterJob') == '' ? 'selected' : '' }}>All</option>
-                <option value="COS" {{ session('vacancyFilterJob') == 'COS' ? 'selected' : '' }}>COS</option>
-                <option value="Plantilla" {{ session('vacancyFilterJob') == 'Plantilla' ? 'selected' : '' }}>PLANTILLA</option>
-            </select>
-        </div>
-        <div class="flex items-center justify-start">MONTHLY SALARY</div>
-        <div class="flex items-center justify-center">DEADLINE OF APPLICATION</div>
-        <div class="flex items-center justify-start">PLACE OF ASSIGNMENT</div>
-        <div class="flex items-left justify-center gap-3 flex-col">
-            STATUS
-            <select aria-label="Filter Status" id="statusFilter"
-                class="rounded-md text-[#0D2B70] p-1 px-2 font-semibold cursor-pointer w-3/4">
-                <option value="" {{ session('vacancyFilterStatus') == '' ? 'selected' : '' }}>All</option>
-                <option value="OPEN" {{ session('vacancyFilterStatus') == 'OPEN' ? 'selected' : '' }}>OPEN</option>
-                <option value="CLOSED" {{ session('vacancyFilterStatus') == 'CLOSED' ? 'selected' : '' }}>CLOSED</option>
-            </select>
-        </div>
+    <section class="grid grid-cols-6 gap-4 bg-[#0D2B70] text-white font-bold rounded-t-xl py-4 px-6 select-none items-center border-b border-[#0D2B70]">
+        <div class="text-left">Plantilla Item No.</div>
+        <div class="text-left">Job Title</div>
+        <div class="text-left">Monthly Salary</div>
+        <div class="text-left">Closing Date</div>
+        <div class="text-left">Place of Assignment</div>
+        <div class="text-center">Actions</div>
     </section>
 
-    <!-- Table Rows -->
-    <section class="space-y-4" id="vacancy-list">
-        @forelse ($vacancies as $vacancy)
-            @include('partials.admin_job_vacancy_card', ['vacancy' => $vacancy, 'index' => $loop->index])
-        @empty
-            <div class="text-center text-gray-500 font-semibold text-3xl mt-10">
-                <i data-feather="info" class="w-7 h-7 inline-block mr-2 text-gray-400 font-montserrat"></i>
-                No Job Vacancy
-            </div>
-        @endforelse
+    <!-- Table Body -->
+    <section class="border border-[#0D2B70] rounded-b-xl overflow-hidden">
+        <section class="space-y-0" id="vacancy-list">
+            @forelse ($vacancies as $vacancy)
+                @include('partials.admin_job_vacancy_card', ['vacancy' => $vacancy, 'index' => $loop->index])
+            @empty
+                <div class="text-center text-gray-500 font-semibold text-3xl">
+                    <i data-feather="info" class="w-7 h-7 inline-block mr-2 text-gray-400 font-montserrat"></i>
+                    No Job Vacancy
+                </div>
+            @endforelse
+        </section>
     </section>
 </main>
 
@@ -353,7 +412,7 @@
             .then(html => {
                 document.getElementById('vacancy-list').innerHTML = html;
                 loader_?.classList.add('hidden');
-                attachLoaderListeners(); // Re-bind to new buttons
+                attachLoaderListeners(); 
             })
             .catch(() => {
                 alert('Failed to load vacancies.');

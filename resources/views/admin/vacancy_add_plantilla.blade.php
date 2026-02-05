@@ -51,13 +51,13 @@
     </p>
 
     <div class="flex justify-end gap-4">
-      <button type="button" onclick="history.back()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-full flex items-center gap-2">
+      <button id="discardBtn" type="button" onclick="history.back()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-full flex items-center gap-2">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
         </svg>
         DISCARD
       </button>
-      <button type="submit" form="plantillaForm" class="use-loader bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-full flex items-center gap-2">
+      <button id="saveBtn" type="submit" form="plantillaForm" class="use-loader bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-full flex items-center gap-2">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
         </svg>

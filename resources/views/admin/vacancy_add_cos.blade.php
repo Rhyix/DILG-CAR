@@ -48,22 +48,6 @@
     <p class="text-xs text-gray-500 font-light">
       Last Modified by: {{ $vacancy->last_modified_by ?? 'System' }} {{ $vacancy->updated_at ?? now()->format('m/d/Y H:i:s') }}
     </p>
-
-    <!-- Action buttons -->
-    <div class="flex justify-end gap-4">
-      <button type="button" onclick="history.back()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-full flex items-center gap-2">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-        </svg>
-        DISCARD
-      </button>
-      <button type="submit" form="vacancy-form" class="use-loader bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-full flex items-center gap-2">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-        </svg>
-        SAVE
-      </button>
-    </div>
   </div>
 
   <!-- Form -->
@@ -174,6 +158,24 @@
     </div>
 
   </form>
+      <!-- Action buttons -->
+    <div class="flex justify-end gap-4">
+      <button id="vacancy-discard-btn" type="button" onclick="history.back()" class="border-2 border-red-600 hover:bg-red-600 hover:text-white 
+      text-red-600 px-4 py-2 rounded-md flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+        DISCARD
+      </button>
+      <button id="vacancy-save-btn" type="submit" form="vacancy-form" class="border-2 border-[#0D2B70] hover:bg-[#0D2B70] hover:text-white 
+      text-[#0D2B70] px-4 py-2 rounded-md flex items-center gap-2">
+
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+        SAVE
+      </button>
+    </div>
   @include('partials.loader')
 </main>
 
