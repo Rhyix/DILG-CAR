@@ -86,7 +86,12 @@
   <!-- Right: Registration Form -->
   <div class="form-section flex-1 flex items-center justify-center p-6 bg-white">
     <form method="POST" action="{{ route('register') }}" autocomplete="off"
+<<<<<<< Updated upstream
       class="w-full max-w-md bg-white rounded-xl border border-blue-400 p-8 shadow-xl">
+=======
+      class="no-spinner w-full max-w-md bg-white rounded-xl border border-blue-400 p-8 shadow-xl"
+      x-on:submit.prevent="if (agreed && checkboxChecked) { isSubmitting = true; $el.submit(); }">
+>>>>>>> Stashed changes
       @csrf
 
       <h2 class="text-3xl font-bold text-center text-blue-900 mb-2">SIGN UP</h2>
@@ -139,10 +144,17 @@
 
       <!-- Register Button -->
       <button type="submit"
+<<<<<<< Updated upstream
         :disabled="!(agreed && checkboxChecked)"
         :class="{ 'opacity-50 cursor-not-allowed': !(agreed && checkboxChecked) }"
         class="w-full bg-yellow-400 hover:bg-yellow-500 text-blue-900 font-bold py-3 rounded-full shadow-md transition ease-in-out duration-200">
         REGISTER
+=======
+        :disabled="!(agreed && checkboxChecked) || isSubmitting"
+        :class="{ 'opacity-50 cursor-not-allowed': !(agreed && checkboxChecked), 'cursor-wait': isSubmitting }"
+        class="w-full bg-yellow-400 hover:bg-yellow-500 text-blue-900 font-bold py-3 rounded-full shadow-md transition ease-in-out duration-200">
+        <span x-text="isSubmitting ? 'Processing…' : 'REGISTER'"></span>
+>>>>>>> Stashed changes
       </button>
 
       <!-- Google Login -->
@@ -194,6 +206,7 @@
       agreed: false,
       checkboxChecked: false,
       hasErrors: hasErrors === 'true',
+        isSubmitting: false,
       initModal() {
         if (!this.hasErrors && !localStorage.getItem('modalShown')) {
           this.showModal = true;
