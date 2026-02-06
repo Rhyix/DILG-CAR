@@ -8,7 +8,12 @@
   onclick="window.location.href='{{ route('applicants_profile.all', ['vacancy_id' => $vacancy->vacancy_id]) }}'"
   class="text-[#0D2B70] select-none hover:bg-blue-50 transition-colors duration-200 cursor-pointer"
 >
-  <td class="py-4 px-6 ml-2">{{ $vacancy->plantilla_item_no }}</td>
+  <td class="py-4 px-6 ml-2">
+    <div class="flex items-center gap-2">
+      <div class="w-3 h-3 rounded-full {{ $vacancy->status === 'OPEN' ? 'bg-green-500' : 'bg-red-500' }}"></div>
+      {{ $vacancy->plantilla_item_no }}
+    </div>
+  </td>
   <td class="py-4 px-6">
     <p>{{ $vacancy->position_title }}</p>
     <p class="text-[#0D2B70]/70 text-[0.9rem] italic">{{ $vacancy->vacancy_type }}</p>

@@ -34,7 +34,15 @@ class AdminController extends Controller
     public function manage()
     {
         $admins = Admin::all();
-        return view('admin.admin_account_management', compact('admins'));
+        $users = User::all();
+
+        activity()
+            ->causedBy(auth('admin')->user())
+            ->event('view')
+            ->withProperties(['section' => 'System Users Management'])
+            ->log('Viewed admin account management.');
+
+        return view('admin.admin_account_management', compact('admins', 'users'));
     }
 
     public function store(Request $request)

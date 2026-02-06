@@ -339,7 +339,6 @@ Route::middleware([RedirectIfNotAdmin::class])->group(function () {
 
     Route::get("/admin/activity_log", [activityLogController::class, 'view']) -> name('admin_activity_log');
     Route::get('/admin/activity-log/data', [activityLogController::class, 'fetch'])->name('admin.activity_log.fetch');
-    Route::get('/admin/generate_report', fn() => view('admin.generate_report'))->name('generate_report');
 
 });
 
@@ -364,7 +363,7 @@ Route::middleware([ViewerAccess::class])->group(function () {
     Route::post('/admin/exam_management/{vacancy_id}/details/save', [ExamController::class, 'saveExamDetails']);
 
 
-    Route::get('/admin/exam_management', [ExamController::class, 'examManagement'])->name('admin_exam_management');
+    Route::get('/admin/exam_library', fn() => view('admin.exam_library'))->name('admin.exam_library');
     Route::get('/admin/exam_management/{vacancy_id}/edit', [ExamController::class, 'editExam'])->name('admin.exam.edit');
     Route::post('/admin/exam_management/{vacancy_id}/edit', [ExamController::class, 'updateExam'])->name('admin.exam.update');
 

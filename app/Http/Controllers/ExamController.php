@@ -11,7 +11,7 @@ use App\Models\ExamItems;
 use App\Models\User;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
-
+use App\Jobs\SendExamNotification;
 
 class ExamController extends Controller
 {
@@ -277,32 +277,43 @@ class ExamController extends Controller
 
     public function notifyApplicants(Request $request, $vacancy_id)
     {
+        try {
+            $exam_detail = ExamDetail::select('id')->where('vacancy_id', $vacancy_id)->firstOrFail();
+            $exam_id = $exam_detail->id;
 
-        $exam_id = ExamDetail::select('id')->where('vacancy_id', $vacancy_id)->first();
-
-        // Example: get applications for this vacancy
-        $participants = Applications::where('vacancy_id', $vacancy_id)->get();
-        info($participants);
-        foreach ($participants as $p) {
-            $user_id = $p->user_id;
-            $user_email = User::select('email')->where('id', $user_id)->firstOrFail();
-            if ($user_id) {
-                Mail::to($user_email)->queue(new NotifyApplicantMail($vacancy_id, $user_id, $exam_id->id));
+            $participants = Applications::where('vacancy_id', $vacancy_id)->get();
+            
+            if ($participants->isEmpty()) {
+                return response()->json(['success' => false, 'message' => 'No participants found for this vacancy.']);
             }
+
+            $sender_email = auth('admin')->user()->email ?? config('mail.from.address');
+
+            foreach ($participants as $p) {
+                $user_id = $p->user_id;
+                if ($user_id) {
+                    // Dispatch the job to the queue
+                    SendExamNotification::dispatch($vacancy_id, $user_id, $exam_id, $sender_email);
+                }
+            }
+
+            ExamDetail::where('vacancy_id', $vacancy_id)->first()->update(['notified_at' => now()]);
+
+            activity()
+                ->causedBy(auth('admin')->user())
+                ->event('notify')
+                ->withProperties(['vacancy_id' => $vacancy_id, 'section' => 'Exam Management'])
+                ->log('Queued exam notifications for all applicants.');
+
+            return response()->json(['success' => true, 'notified_at' => now()->format('Y-m-d H:i:s'), 'message' => 'Notifications sent successfully.']);
+        
+        } catch (\Exception $e) {
+            Log::error("Error notifying applicants: " . $e->getMessage());
+            return response()->json([
+                'success' => false, 
+                'message' => 'Server Error: ' . $e->getMessage()
+            ], 500);
         }
-
-        //info('check');
-        ExamDetail::where('vacancy_id',$vacancy_id)->first()->update(['notified_at' => now()]);
-
-        //info('check');
-
-        activity()
-            ->causedBy(auth('admin')->user())
-            ->event('notify')
-            ->withProperties(['vacancy_id' => $vacancy_id, 'section' => 'Exam Management'])
-            ->log('Notified all applicants for exam.');
-
-        return response()->json(['success' => true, 'notified_at' => now()->format('Y-m-d H:i:s'), 'message' => 'Applications notified.']);
     }
 
     public function saveExamDetails(Request $request, $vacancy_id)
@@ -321,6 +332,16 @@ class ExamController extends Controller
         );
 
         $examDetails = ExamDetail::where('vacancy_id', $vacancy_id)->first();
+        
+        $notified = false;
+        $notified_at = null;
+
+        if ($request->boolean('notify')) {
+            $this->notifyApplicants($request, $vacancy_id);
+            $examDetails->refresh();
+            $notified = true;
+            $notified_at = $examDetails->notified_at;
+        }
 
         activity()
             ->causedBy(auth()->user())
@@ -328,7 +349,13 @@ class ExamController extends Controller
             ->withProperties(['vacancy_id' => $vacancy_id, 'section' => 'Exam Management'])
             ->log('Saved exam schedule and details.');
 
-        return response()->json(['success' => true, 'message' => 'Exam details saved.', 'examDetails' => $examDetails]);
+        return response()->json([
+            'success' => true, 
+            'message' => 'Exam details saved.', 
+            'examDetails' => $examDetails,
+            'notified' => $notified,
+            'notified_at' => $notified_at
+        ]);
     }
 
 }

@@ -66,13 +66,15 @@
     forms.forEach(form => {
       form.addEventListener('submit', (e) => {
         if (!form.checkValidity()) return;
+        
+        // If the form has 'no-spinner' class, do NOT show the loader at all.
         if (form.classList.contains('no-spinner')) {
-          if (spinner) spinner.classList.add('hidden');
-          loader?.classList.remove('hidden');
-        } else {
-          if (spinner) spinner.classList.remove('hidden');
-          loader?.classList.remove('hidden');
+             return; 
         }
+
+        if (spinner) spinner.classList.remove('hidden');
+        loader?.classList.remove('hidden');
+        
         console.log('Form submitted'); // For debugging
         // Browser handles native validation
       });
