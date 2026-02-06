@@ -21,9 +21,6 @@ use Illuminate\Support\Facades\Validator;
 
 use Illuminate\Support\Facades\Mail;
 use App\Mail\NotifyApplicationStatus;
-use PhpOffice\PhpSpreadsheet\Spreadsheet;
-use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 
 
 
@@ -401,75 +398,6 @@ class AdminController extends Controller
             'documents' => $documents,
             'admin_name' => $adminName,
         ]);
-    }
-
-    public function generateReport(Request $request)
-    {
-        $validated = $request->validate([
-            'report_type' => ['required', 'in:daily,weekly,monthly'],
-            'start_date' => ['required', 'date'],
-            'end_date' => ['required', 'date', 'after_or_equal:start_date'],
-            'format' => ['required', 'in:pdf,excel'],
-        ]);
-
-        // Normalize date range using Carbon for better handling
-        $start = Carbon::createFromFormat('Y-m-d', $validated['start_date'])->startOfDay();
-        $end = Carbon::createFromFormat('Y-m-d', $validated['end_date'])->endOfDay();
-
-        if ($validated['format'] === 'excel') {
-            // Query applications within date range
-            $applications = Applications::with(['personalInformation', 'vacancy', 'user'])
-                ->whereBetween('created_at', [$start, $end])
-                ->orderBy('created_at', 'desc')
-                ->get();
-
-            $spreadsheet = new Spreadsheet();
-            $sheet = $spreadsheet->getActiveSheet();
-            $sheet->setTitle('Report');
-
-            // Header row
-            $headers = ['ID', 'Applicant', 'Vacancy', 'Status', 'Applied At'];
-            $col = 1;
-            foreach ($headers as $h) {
-                $sheet->setCellValueByColumnAndRow($col++, 1, $h);
-            }
-
-            // Data rows
-            $row = 2;
-            foreach ($applications as $app) {
-                $sheet->setCellValueByColumnAndRow(1, $row, $app->id);
-
-                $applicant = 'N/A';
-                if ($app->personalInformation) {
-                    $pi = $app->personalInformation;
-                    $applicant = trim(($pi->first_name ?? '') . ' ' . ($pi->surname ?? '')) ?: 'N/A';
-                } elseif ($app->user) {
-                    $applicant = $app->user->name ?? 'N/A';
-                }
-
-                $sheet->setCellValueByColumnAndRow(2, $row, $applicant);
-                $sheet->setCellValueByColumnAndRow(3, $row, $app->vacancy?->position_title ?? 'N/A');
-                $sheet->setCellValueByColumnAndRow(4, $row, $app->status ?? 'N/A');
-                $sheet->setCellValueByColumnAndRow(5, $row, $app->created_at?->format('Y-m-d H:i:s') ?? '');
-                $row++;
-            }
-
-            $writer = new Xlsx($spreadsheet);
-            $filename = 'report_' . $validated['report_type'] . '_' . $validated['start_date'] . '_' . $validated['end_date'] . '.xlsx';
-
-            $response = new StreamedResponse(function () use ($writer) {
-                $writer->save('php://output');
-            });
-
-            $response->headers->set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-            $response->headers->set('Content-Disposition', 'attachment; filename="' . $filename . '"');
-            $response->headers->set('Cache-Control', 'max-age=0');
-
-            return $response;
-        }
-
-        // PDF export or other formats not implemented yet
-        return redirect()->route('generate_report')->with('success', 'Report request received — PDF export not implemented yet.');
     }
 
     public function updateApplicantStatus(Request $request, $user_id, $vacancy_id)

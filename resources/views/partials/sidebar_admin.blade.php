@@ -33,7 +33,6 @@
             <i data-feather="home" class="w-5 h-5 stroke-[3] flex-shrink-0"></i>
             <span id="textHome" class="sidebar-text-hidden ml-3">HOME</span>
             </a>
-            
             <a href="{{ route('vacancies_management') }}"
             class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition
                     {{ request()->routeIs('vacancies_management')
@@ -45,11 +44,11 @@
 
             <a href="{{ route('applications_list') }}"
             class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition
-                    {{ request()->routeIs('applications_list')
+                    {{ request()->routeIs('admin_applications_list')
                         ? 'bg-[#002C76] text-white'
                         : 'text-[#002C76] hover:text-white hover:bg-[#002C76]' }}">
             <i data-feather="user" class="w-5 h-5 stroke-[3] flex-shrink-0"></i>
-            <span id="textJobVacancies" class="sidebar-text-hidden ml-3">APPLICATIONS LIST</span>
+            <span id="textMyApplications" class="sidebar-text-hidden ml-3">APPLICATIONS LIST</span>
             </a>
 
             <a href="{{ route('admin_exam_management') }}"
@@ -67,7 +66,7 @@
                         ? 'bg-[#002C76] text-white'
                         : 'text-[#002C76] hover:text-white hover:bg-[#002C76]' }}">
             <i data-feather="bar-chart-2" class="w-5 h-5 stroke-[3] flex-shrink-0"></i>
-            <span id="textGenerateReport" class="sidebar-text-hidden ml-3">GENERATE REPORT</span>
+            <span id="textGenerateReport" class="ml-3">GENERATE REPORT</span>
             </a>
 
             <a href="{{ route('admin_account_management') }}"
@@ -75,7 +74,7 @@
                     {{ request()->routeIs('admin_account_management')
                         ? 'bg-[#002C76] text-white'
                         : 'text-[#002C76] hover:text-white hover:bg-[#002C76]' }}">
-            <i class="fa-solid fa-wrench w-5 h-5 stroke-[3] flex-shrink-0"></i>
+            <i class="fa-solid fa-wrench class="w-5 h-5 stroke-[3] flex-shrink-0"></i>
             <span id="textAboutWebsite" class="sidebar-text-hidden ml-3">SYSTEM USER MANAGEMENT</span>
             </a>
             <a href="{{ route('admin_activity_log') }}"

@@ -340,7 +340,6 @@ Route::middleware([RedirectIfNotAdmin::class])->group(function () {
     Route::get("/admin/activity_log", [activityLogController::class, 'view']) -> name('admin_activity_log');
     Route::get('/admin/activity-log/data', [activityLogController::class, 'fetch'])->name('admin.activity_log.fetch');
     Route::get('/admin/generate_report', fn() => view('admin.generate_report'))->name('generate_report');
-    Route::post('/admin/generate_report', [AdminController::class, 'generateReport'])->name('admin.report.store');
 
 });
 
