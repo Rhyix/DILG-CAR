@@ -139,7 +139,8 @@
             "textPersonalDataSheet",
             "textAboutWebsite",
             "textLogOut",
-            "textActivityLog"
+            "textActivityLog",
+            "textGenerateReport"
         ].map(id => document.getElementById(id));
 
         const logo = document.querySelector('img[alt="DILG Logo"]');

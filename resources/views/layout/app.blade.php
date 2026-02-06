@@ -161,9 +161,12 @@
                     </div>
                 </div>
                 <div class="relative">
+                    @php
+                        $u = Auth::user() ?? Auth::guard('admin')->user();
+                    @endphp
+                    @if($u)
                     <button id="profileToggle" aria-label="Profile menu" class="flex items-center gap-2 p-2 rounded hover:bg-gray-100">
                         @php
-                            $u = Auth::user();
                             $avatar = $u->avatar_path ? asset('storage/'.$u->avatar_path) : null;
                             $initials = collect(explode(' ', $u->name))->map(fn($p)=>mb_substr($p,0,1))->join('');
                         @endphp
@@ -175,6 +178,8 @@
                         <span class="text-sm font-semibold">{{ $u->name }}</span>
                         <i data-feather="chevron-down" class="w-4 h-4"></i>
                     </button>
+                    @endif
+                    @if(Auth::check())
                     <div id="profileMenu" class="hidden absolute right-0 mt-2 w-56 bg-white shadow-lg rounded-lg border border-gray-200 p-2">
                         <a href="{{ route('profile.show') }}" class="block px-3 py-2 text-sm rounded hover:bg-gray-100">View Profile</a>
                         <a href="{{ route('profile.edit') }}" class="block px-3 py-2 text-sm rounded hover:bg-gray-100">Edit Profile</a>
@@ -184,6 +189,14 @@
                             <button type="submit" class="w-full text-left px-3 py-2 text-sm rounded hover:bg-gray-100">Logout</button>
                         </form>
                     </div>
+                    @elseif(Auth::guard('admin')->check())
+                    <div id="profileMenu" class="hidden absolute right-0 mt-2 w-56 bg-white shadow-lg rounded-lg border border-gray-200 p-2">
+                        <form method="POST" action="{{ route('admin.logout') }}">
+                            @csrf
+                            <button type="submit" class="w-full text-left px-3 py-2 text-sm rounded hover:bg-gray-100">Logout</button>
+                        </form>
+                    </div>
+                    @endif
                 </div>
             </header>
             <div class="p-3 sm:p-10 pt-8 mt-0 sm:mt-1 space-y-10">
@@ -315,6 +328,8 @@
                 } else {
                     isOpen ? openSidebar() : closeSidebar();
                 }
+            } else {
+                closeSidebar();
             }
         });
     </script>
