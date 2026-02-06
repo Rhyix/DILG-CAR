@@ -33,7 +33,11 @@
             <i data-feather="home" class="w-5 h-5 stroke-[3] flex-shrink-0"></i>
             <span id="textHome" class="sidebar-text-hidden ml-3">HOME</span>
             </a>
+<<<<<<< Updated upstream
             
+=======
+
+>>>>>>> Stashed changes
             <a href="{{ route('vacancies_management') }}"
             class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition
                     {{ request()->routeIs('vacancies_management')
@@ -51,6 +55,15 @@
             <i data-feather="user" class="w-5 h-5 stroke-[3] flex-shrink-0"></i>
             <span id="textJobVacancies" class="sidebar-text-hidden ml-3">APPLICATIONS LIST</span>
             </a>
+
+            <!-- <a href="{{ route('applications_list') }}"
+            class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition
+                    {{ request()->routeIs('admin_applications_list')
+                        ? 'bg-[#002C76] text-white'
+                        : 'text-[#002C76] hover:text-white hover:bg-[#002C76]' }}">
+            <i data-feather="user" class="w-5 h-5 stroke-[3] flex-shrink-0"></i>
+            <span id="textMyApplications" class="sidebar-text-hidden ml-3">APPLICATIONS LIST</span>
+            </a> -->
 
             <a href="{{ route('admin_exam_management') }}"
             class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition
