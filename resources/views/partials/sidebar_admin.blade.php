@@ -1,9 +1,9 @@
 <!-- resources/views/partials/sidebar.blade.php -->
 <aside id="sidebar"
-    class="sidebar sidebar-transition fixed ml-5 mt-5 mb-5 flex flex-col justify-between bg-white text-[#002C76] rounded-xl shadow-lg overflow-hidden w-16 relative">
+    class="sidebar sidebar-transition fixed flex flex-col justify-space-between bg-white text-[#002C76] rounded-xl shadow-lg overflow-hidden w-16 relative">
 
     <!-- Upper -->
-    <div>
+    <div class="justify-content-center items-center">
         <button id="toggleSidebar" class="p-2 focus:outline-none absolute top-3 left-3 z-20" aria-label="Toggle sidebar">
             <i data-feather="menu" class="w-5 h-5 stroke-[3]"></i>
         </button>
@@ -23,8 +23,8 @@
                 </div>
             </div>
         </a>
-
-        <nav class="mt-8 space-y-1 px-2 font-montserrat">
+    <!-- nav bar -->
+        <nav class="mt-5 px-2 font-montserrat">
             <a href="{{ route('dashboard_admin') }}"
             class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition
                     {{ request()->routeIs('dashboard_admin')
@@ -33,11 +33,7 @@
             <i data-feather="home" class="w-5 h-5 stroke-[3] flex-shrink-0"></i>
             <span id="textHome" class="sidebar-text-hidden ml-3">HOME</span>
             </a>
-<<<<<<< Updated upstream
             
-=======
-
->>>>>>> Stashed changes
             <a href="{{ route('vacancies_management') }}"
             class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition
                     {{ request()->routeIs('vacancies_management')
@@ -53,17 +49,8 @@
                         ? 'bg-[#002C76] text-white'
                         : 'text-[#002C76] hover:text-white hover:bg-[#002C76]' }}">
             <i data-feather="user" class="w-5 h-5 stroke-[3] flex-shrink-0"></i>
-            <span id="textJobVacancies" class="sidebar-text-hidden ml-3">APPLICATIONS LIST</span>
-            </a>
-
-            <!-- <a href="{{ route('applications_list') }}"
-            class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition
-                    {{ request()->routeIs('admin_applications_list')
-                        ? 'bg-[#002C76] text-white'
-                        : 'text-[#002C76] hover:text-white hover:bg-[#002C76]' }}">
-            <i data-feather="user" class="w-5 h-5 stroke-[3] flex-shrink-0"></i>
             <span id="textMyApplications" class="sidebar-text-hidden ml-3">APPLICATIONS LIST</span>
-            </a> -->
+            </a>
 
             <a href="{{ route('admin_exam_management') }}"
             class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition

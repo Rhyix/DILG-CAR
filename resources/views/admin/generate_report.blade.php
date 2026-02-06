@@ -19,6 +19,7 @@
         </section>
     </div>
     <!-- Filter Section -->
+    <div>
     <section class="bg-[#F1F6FF] p-6 rounded-xl shadow-sm mb-6">
         <form action="{{ route('admin.report.store') }}" method="POST" class="space-y-4">
             @csrf
@@ -26,13 +27,25 @@
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 <!-- Report Type -->
                 <div>
-                    <label for="report_type" class="block text-xs sm:text-sm font-semibold text-[#002C76] mb-2">Report Type</label>
-                    <select name="report_type" id="report_type" class="w-full px-2 sm:px-3 py-2 text-xs sm:text-sm border border-[#002C76] rounded-md bg-white text-[#002C76] font-semibold" required>
-                        <option value="">Select Report Type</option>
+                    <label for="report_length" class="block text-xs sm:text-sm font-semibold text-[#002C76] mb-2">Report Length</label>
+                    <select name="report_length" id="report_length" class="w-full px-2 sm:px-3 py-2 text-xs sm:text-sm border border-[#002C76] rounded-md bg-white text-[#002C76] font-semibold" required>
+                        <option value="" >Select Report Length</option>
                         <option value="daily">Daily Report</option>
                         <option value="weekly">Weekly Report</option>
                         <option value="monthly">Monthly Report</option>
                     </select>
+                </div>
+
+                <div>
+                    <div>
+                        <label for="report_type" class="block text-xs sm:text-sm font-semibold text-[#002C76] mb-2">Report Type</label>
+                        <select name="report_type" id="report_type" class="w-full px-2 sm:px-3 py-2 text-xs sm:text-sm border border-[#002C76] rounded-md bg-white text-[#002C76] font-semibold">
+                            <option value="">Select Type</option> 
+                            <option value="vacancies">Vacancies</option>
+                            <option value="application">Applicants</option>
+                            <option value="user">Users</option>
+                        </select>
+                    </div>
                 </div>
 
                 <!-- Start Date -->
@@ -59,54 +72,51 @@
 
             <!-- Action Buttons -->
             <div class="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-4">
-                <button type="submit" class="bg-green-600 hover:bg-green-800 transition text-white text-sm sm:text-base font-semibold rounded-full px-4 sm:px-6 py-2 flex items-center justify-center gap-2">
+                <button type="submit" class="bg-green-600 hover:bg-green-800 transition text-white text-sm sm:text-base font-semibold rounded-md px-4 sm:px-6 py-2 flex items-center justify-center gap-2">
                     <i class="fa-solid fa-download"></i> Export Report
                 </button>
-                <button type="button" onclick="filterAndPreview()" class="bg-[#2559B1] hover:bg-blue-900 text-white text-sm sm:text-base font-semibold rounded-full px-4 sm:px-6 py-2 flex items-center justify-center gap-2">
+                <button type="button" onclick="filterAndPreview()" class="bg-[#2559B1] hover:bg-blue-900 text-white text-sm sm:text-base font-semibold rounded-md px-4 sm:px-6 py-2 flex items-center justify-center gap-2">
                     <i class="fa-solid fa-eye"></i> Preview
                 </button>
-                <a href="{{ route('dashboard_admin') }}" class="bg-gray-600 hover:bg-gray-800 text-white text-sm sm:text-base font-semibold rounded-full px-4 sm:px-6 py-2 flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-left-long"></i> Back
-                </a>
             </div>
         </form>
     </section>
 
-    <!-- Table Header -->
-    <section class="grid grid-cols-3 sm:grid-cols-5 gap-2 sm:gap-4 bg-[#0D2B70] text-white font-bold rounded-md py-3 sm:py-5 px-3 sm:px-6 select-none w-full mt-4 sm:mt-6">
-        <div class="flex items-center justify-start text-xs sm:text-sm">ID</div>
-        <div class="flex items-center justify-start text-xs sm:text-sm">APPLICANT</div>
-        <div class="hidden sm:flex items-center justify-start text-xs sm:text-sm">VACANCY</div>
-        <div class="flex items-center justify-center text-xs sm:text-sm">STATUS</div>
-        <div class="flex items-center justify-center text-xs sm:text-sm">DATE</div>
-        <div class="flex items-center justify-center">APPLIED DATE</div>
-    </section>
-
-    <!-- Table Rows -->
-    <section class="space-y-3 w-full mt-4" id="applicationsTable">
+    <table class="w-full text-left border-collapse rounded-t-xl overflow-hidden">
+    <thead class="bg-[#0D2B70] text-white">
+        <tr>
+            <th class="py-4 px-6 text-left font-bold uppercase text-sm tracking-wider w-[10%]">ID</th>
+            <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider">APPLICANT</th>
+            <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider">VACANCY</th>
+            <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider">STATUS</th>
+            <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider">DATE</th>
+            <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider">APPLIED DATE</th>
+        </tr>
+    </thead>
+    <tbody class="bg-white text-black">
         @php
             $applications = [];
         @endphp
 
         @if(count($applications) === 0)
-            <section class="grid grid-cols-5 gap-4 bg-gray-100 border-b-4 border-[#0D2B70] rounded-md py-4 px-6 shadow-md items-center text-center text-gray-500">
-                <div colspan="5" class="col-span-5 text-center py-8">
+            <tr>
+                <td colspan="6" class="text-center py-8">
                     <p class="text-lg font-semibold">No applications found. Filter and preview to see results.</p>
-                </div>
-            </section>
+                </td>
+            </tr>
         @else
             @foreach ($applications as $app)
-                <section class="grid grid-cols-3 sm:grid-cols-5 gap-2 sm:gap-4 bg-white border-b-4 border-[#0D2B70] rounded-lg sm:rounded-2xl py-2 sm:py-4 px-3 sm:px-6 shadow-md items-center">
-                    <div class="font-semibold text-xs sm:text-sm text-[#002C76]">{{ $app->id }}</div>
-                    <div class="font-semibold text-xs sm:text-sm text-[#002C76] truncate">
+                <tr class="border-b border-gray-200 hover:bg-gray-100 transition">
+                    <td class="py-4 px-6 font-semibold text-xs sm:text-sm">{{ $app->id }}</td>
+                    <td class="py-4 px-6 font-semibold text-xs sm:text-sm truncate text-center">
                         @if($app->personalInformation)
                             {{ trim(($app->personalInformation->first_name ?? '') . ' ' . ($app->personalInformation->surname ?? '')) ?: 'N/A' }}
                         @else
                             {{ $app->user->name ?? 'N/A' }}
                         @endif
-                    </div>
-                    <div class="hidden sm:block text-xs sm:text-sm text-[#002C76]">{{ $app->vacancy?->position_title ?? 'N/A' }}</div>
-                    <div class="flex justify-center">
+                    </td>
+                    <td class="hidden sm:table-cell py-4 px-6 text-xs sm:text-sm text-center">{{ $app->vacancy?->position_title ?? 'N/A' }}</td>
+                    <td class="py-4 px-6 text-center">
                         @php
                             $statusColor = match($app->status) {
                                 'Pending' => 'yellow',
@@ -119,12 +129,14 @@
                         <span class="px-2 sm:px-3 py-1 rounded-full text-white font-semibold text-xs sm:text-sm bg-{{ $statusColor }}-500">
                             {{ $app->status ?? 'N/A' }}
                         </span>
-                    </div>
-                    <div class="text-xs sm:text-sm text-[#002C76] text-center">{{ $app->created_at?->format('d/m/Y') ?? 'N/A' }}</div>
-                </section>
+                    </td>
+                    <td class="py-4 px-6 text-xs sm:text-sm text-center">{{ $app->created_at?->format('d/m/Y') ?? 'N/A' }}</td>
+                </tr>
             @endforeach
         @endif
-    </section>
+    </tbody>
+</table>
+
 </main>
 
 <script>
