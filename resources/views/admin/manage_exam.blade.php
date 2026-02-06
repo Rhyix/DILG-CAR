@@ -20,6 +20,7 @@
         @php
             // Determine exam status
             $isExamActive = false;
+            $isExamCompleted = false; // New flag
             $statusMessage = '';
             $statusClass = '';
 
@@ -35,6 +36,7 @@
                      $statusClass = 'bg-yellow-100 text-yellow-800 border-yellow-400';
                  } elseif ($now->gt($endDateTime)) {
                      // Current time is after end time
+                     $isExamCompleted = true; // Set completed flag
                      $statusMessage = 'Exam Completed';
                      $statusClass = 'bg-green-100 text-green-800 border-green-400';
                  } elseif ($now->lt($startDateTime)) {
@@ -60,7 +62,7 @@
                     @endif
                     <span class="font-bold uppercase text-xs tracking-wide">{{ $statusMessage }}</span>
                 </div>
-                @if($isExamActive)
+                @if($isExamActive || $isExamCompleted)
                     <span class="text-[10px] font-semibold opacity-80 hidden md:inline">Editing disabled</span>
                 @endif
             </div>
@@ -175,7 +177,7 @@
                     </label>
                     <input type="text" id="venue" name="place" required
                         value="{{ $examDetails->place ?? '' }}"
-                        {{ $isExamActive ? 'disabled' : '' }}
+                        {{ $isExamActive || $isExamCompleted ? 'disabled' : '' }}
                         class="w-full px-4 py-1 border border-[#0D2B70] rounded-lg 
                             focus:outline-none focus:ring-2 focus:ring-[#0D2B70] focus:border-transparent
                             transition-all duration-200 text-[#0D2B70] placeholder-gray-400 disabled:bg-gray-100 disabled:cursor-not-allowed"
@@ -190,7 +192,7 @@
                     </label>
                     <input type="date" id="date" name="date" required
                         value="{{ $examDetails->date ?? '' }}"
-                        {{ $isExamActive ? 'disabled' : '' }}
+                        {{ $isExamActive || $isExamCompleted ? 'disabled' : '' }}
                         class="w-full px-4 py-1 border border-[#0D2B70] rounded-lg 
                             focus:outline-none focus:ring-2 focus:ring-[#0D2B70] focus:border-transparent
                             transition-all duration-200 text-[#0D2B70] placeholder-gray-400 disabled:bg-gray-100 disabled:cursor-not-allowed"
@@ -206,7 +208,7 @@
                         </label>
                         <input type="time" id="time" name="time" required
                             value="{{ $examDetails->time ?? '' }}"
-                            {{ $isExamActive ? 'disabled' : '' }}
+                            {{ $isExamActive || $isExamCompleted ? 'disabled' : '' }}
                             class="w-full px-4 py-1 border border-[#0D2B70] rounded-lg 
                                 focus:outline-none focus:ring-2 focus:ring-[#0D2B70] focus:border-transparent
                                 transition-all duration-200 text-[#0D2B70] placeholder-gray-400 disabled:bg-gray-100 disabled:cursor-not-allowed"
@@ -227,7 +229,7 @@
                         @endphp
                         <input type="time" id="time_end" name="time_end" required
                             value="{{ $endTime }}"
-                            {{ $isExamActive ? 'disabled' : '' }}
+                            {{ $isExamActive || $isExamCompleted ? 'disabled' : '' }}
                             class="w-full px-4 py-1 border border-[#0D2B70] rounded-lg 
                                 focus:outline-none focus:ring-2 focus:ring-[#0D2B70] focus:border-transparent
                                 transition-all duration-200 text-[#0D2B70] placeholder-gray-400 disabled:bg-gray-100 disabled:cursor-not-allowed"
@@ -254,7 +256,7 @@
                 <!-- SAVE AND START EXAM BUTTONS-->
                 <div class="flex flex-col justify-between gap-2 mt-2">
                     <button type="submit" name="action" value="save_notify" 
-                            {{ $isExamActive ? 'disabled' : '' }}
+                            {{ $isExamActive || $isExamCompleted ? 'disabled' : '' }}
                             class="w-full px-4 py-2 border border-[#0D2B70] rounded-lg 
                             hover:scale-105 flex items-center justify-center gap-2
                             transition-all duration-200 text-[#0D2B70] placeholder-gray-400 font-semibold disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100">
@@ -262,7 +264,7 @@
                         <span>Save & Notify Applicants</span>
                     </button>
                     <button type="button" id="notify_button" onclick="notifyApplicants('{{ $vacancy->vacancy_id }}')" 
-                            {{ $isExamActive ? 'disabled' : '' }}
+                            {{ $isExamActive || $isExamCompleted ? 'disabled' : '' }}
                             class="w-full px-4 py-2 border border-[#0D2B70] rounded-lg 
                             hover:scale-105 flex items-center justify-center gap-2
                             transition-all duration-200 text-[#0D2B70] placeholder-gray-400 font-semibold disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100">
@@ -276,7 +278,7 @@
             <!-- SEND LINK AND EDIT QUESTIONS (Bottom Section) -->
             <div class="flex flex-row gap-2 mt-auto">
                 <button type="button" onclick="handleEditClick(event)"
-                        {{ $isExamActive ? 'disabled' : '' }}
+                        {{ $isExamActive || $isExamCompleted ? 'disabled' : '' }}
                         class="w-full px-4 py-2 bg-[#0D2B70] rounded-lg 
                         hover:scale-105 flex items-center justify-center gap-2
                         transition-all duration-200 text-white placeholder-gray-400 font-semibold disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100">
@@ -285,7 +287,8 @@
                 </button>
                 <button type="button" class="w-full px-4 py-2 bg-[#0D2B70] rounded-lg 
                         hover:scale-105 flex items-center justify-center gap-2
-                        transition-all duration-200 text-white placeholder-gray-400 font-semibold">
+                        transition-all duration-200 text-white placeholder-gray-400 font-semibold disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                        {{ $isExamActive || $isExamCompleted ? 'disabled' : '' }}>
                     <x-heroicon-o-play class="w-5 h-5" />
                     <span>Start Exam</span>
                 </button>
@@ -490,9 +493,15 @@
     function handleEditClick(e) {
         e.preventDefault();
         const isExamActive = @json($isExamActive);
+        const isExamCompleted = @json($isExamCompleted);
         
         if (isExamActive) {
             alert('Cannot edit questions while an exam is currently in progress.');
+            return;
+        }
+
+        if (isExamCompleted) {
+            alert('Cannot edit questions after the exam has been completed.');
             return;
         }
         

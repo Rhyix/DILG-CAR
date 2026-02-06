@@ -118,8 +118,10 @@ class ExamController extends Controller
     {
         $search = $request->input('search');
         $jobType = $request->input('job_type');
+        $examStatus = $request->input('exam_status');
 
         $jobVacancies = JobVacancy::query()
+            ->with(['examDetail']) // Eager load the relationship
             ->when($search, function ($query, $search) {
                 $query->where(function($q) use ($search) {
                     $q->where('position_title', 'like', '%' . $search . '%')
@@ -131,16 +133,41 @@ class ExamController extends Controller
             })
             ->orderBy('created_at', 'desc')
             ->get();
+        
+        // Append status to each vacancy
+        $jobVacancies->transform(function ($vacancy) {
+            $status = 'Unscheduled';
+            if ($vacancy->examDetail) {
+                $detail = $vacancy->examDetail;
+                if ($detail->date && $detail->time && $detail->duration) {
+                     $startDateTime = \Carbon\Carbon::parse($detail->date . ' ' . $detail->time);
+                     $endDateTime = $startDateTime->copy()->addMinutes($detail->duration);
+                     $now = now();
+
+                     if ($now->between($startDateTime, $endDateTime)) {
+                         $status = 'Ongoing';
+                     } elseif ($now->gt($endDateTime)) {
+                         $status = 'Completed';
+                     } else {
+                         $status = 'Scheduled';
+                     }
+                }
+            }
+            $vacancy->exam_status = $status;
+            return $vacancy;
+        });
+
+        // Filter by Exam Status (PHP-side filtering since status is calculated)
+        if ($examStatus) {
+            $jobVacancies = $jobVacancies->filter(function ($vacancy) use ($examStatus) {
+                return $vacancy->exam_status === $examStatus;
+            })->values(); // Reset keys
+        }
 
         // If AJAX request, return JSON
         if ($request->ajax()) {
             return response()->json($jobVacancies);
         }
-/*
-        activity()
-            ->causedBy(auth()->user())
-            ->log('Viewed exam management page.');
-*/
 
         return view('admin.exam_management', [
             'vacancies' => $jobVacancies,

@@ -110,4 +110,9 @@ class JobVacancy extends Model
         return 'vacancy_id'; // or 'pcn_no' or any unique field
     }
 
+    public function examDetail()
+    {
+        return $this->hasOne(ExamDetail::class, 'vacancy_id', 'vacancy_id');
+    }
+
 }

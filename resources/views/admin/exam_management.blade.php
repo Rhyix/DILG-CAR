@@ -52,6 +52,20 @@
                     <option value="Plantilla">Plantilla</option>
                 </select>
             </div>
+
+            <!-- exam status dropdown (New) -->
+            <div class="flex flex-row items-center ml-4">
+                <span class="text-[#0D2B70] font-semibold mr-2">Status</span>    
+                <select id="examStatusFilter"
+                        class="h-10 cursor-pointer px-4 rounded-md border border-[#0D2B70] text-[#0D2B70] font-semibold bg-white
+                            focus:outline-none focus:ring-2 focus:ring-[#0D2B70] focus:ring-offset-1">
+                    <option value="">All</option>
+                    <option value="Unscheduled">Unscheduled</option>
+                    <option value="Scheduled">Scheduled</option>
+                    <option value="Ongoing">Ongoing</option>
+                    <option value="Completed">Completed</option>
+                </select>
+            </div>
         </div>
 
         <!-- exam library button -->
@@ -70,6 +84,7 @@
                     <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider">Vacancy ID</th>
                     <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider">Job Title</th>
                     <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider">Job Type</th>
+                    <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider">Status</th>
                     <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider">Action</th>
                 </tr>
             </thead>
@@ -84,6 +99,21 @@
                     </td>
                     <td class="py-4 px-6 text-center text-[#0D2B70]">
                         {{ $vacancy->vacancy_type }}
+                    </td>
+                    <td class="py-4 px-6 text-center">
+                        @php
+                            $statusColor = 'bg-gray-300 text-gray-800'; // Default: Unscheduled
+                            if ($vacancy->exam_status === 'Scheduled') {
+                                $statusColor = 'bg-blue-100 text-blue-800';
+                            } elseif ($vacancy->exam_status === 'Ongoing') {
+                                $statusColor = 'bg-yellow-100 text-yellow-800';
+                            } elseif ($vacancy->exam_status === 'Completed') {
+                                $statusColor = 'bg-green-100 text-green-800';
+                            }
+                        @endphp
+                        <span class="px-2 py-1 rounded-full text-xs font-bold {{ $statusColor }}">
+                            {{ strtoupper($vacancy->exam_status) }}
+                        </span>
                     </td>
                     <td class="py-4 px-6 text-center">
                         <button onclick="window.location.href='{{ route('admin.manage_exam', $vacancy->vacancy_id) }}'" 
@@ -103,6 +133,7 @@
     <script>
         const searchInput = document.getElementById('examIdFilter');
         const jobTypeFilter = document.getElementById('jobTypeFilter');
+        const examStatusFilter = document.getElementById('examStatusFilter');
 
         // DEBOUNCE FUNCTION WAG IDELETE PLS
         function debounce(func, wait) {
@@ -127,14 +158,21 @@
             fetchVacancies();
         });
 
+        // Listener for Exam Status Dropdown
+        examStatusFilter.addEventListener('change', function() {
+            fetchVacancies();
+        });
+
         function fetchVacancies() {
             const query = searchInput.value;
             const jobType = jobTypeFilter.value;
+            const examStatus = examStatusFilter.value;
 
             // Build query parameters
             const params = new URLSearchParams();
             if (query) params.append('search', query);
             if (jobType) params.append('job_type', jobType);
+            if (examStatus) params.append('exam_status', examStatus);
 
             fetch(`/admin/exam_management?${params.toString()}`, {
                 headers: {
@@ -164,6 +202,15 @@
             }
 
             vacancies.forEach(vacancy => {
+                let statusColor = 'bg-gray-100 text-gray-800';
+                if (vacancy.exam_status === 'Scheduled') {
+                    statusColor = 'bg-blue-100 text-blue-800';
+                } else if (vacancy.exam_status === 'Ongoing') {
+                    statusColor = 'bg-yellow-100 text-yellow-800';
+                } else if (vacancy.exam_status === 'Completed') {
+                    statusColor = 'bg-green-100 text-green-800';
+                }
+
                 container.innerHTML += `
                 <tr class="hover:bg-blue-50 transition-colors duration-200">
                     <td class="py-4 px-6 text-center text-[#0D2B70] font-semibold">
@@ -174,6 +221,11 @@
                     </td>
                     <td class="py-4 px-6 text-center text-[#0D2B70]">
                         ${vacancy.vacancy_type}
+                    </td>
+                    <td class="py-4 px-6 text-center">
+                        <span class="px-2 py-1 rounded-full text-xs font-bold ${statusColor}">
+                            ${vacancy.exam_status.toUpperCase()}
+                        </span>
                     </td>
                     <td class="py-4 px-6 text-center">
                         <button onclick="window.location.href='/admin/exam_management/manage_exam/${vacancy.vacancy_id}'" 
