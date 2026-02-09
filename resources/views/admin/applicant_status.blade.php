@@ -7,7 +7,7 @@
 		@section('content')
 					<!-- Main Content -->
 					<main class="flex-1 min-w-0 space-y-10">
-						<div class="bg-white p-6 mt-6 rounded-xl shadow-lg max-w-6xl mx-auto font-montserrat">
+						<div class="bg-white p-6 mt-6 rounded-xl shadow-lg mx-auto font-montserrat">
 							@if (session('success'))
 								<div class="mb-6 px-4 py-3 bg-green-100 border border-green-400 text-green-800 rounded-lg shadow text-sm font-semibold flex items-center justify-between"
 									role="alert">
@@ -19,15 +19,15 @@
 
 							<!-- Header -->
 							<!-- <section class="flex items-center gap-4 mb-3">
-																					<button onclick="goBack()"
-																					class="use-loader w-14 h-14 rounded-full bg-[#D9D9D9] flex items-center justify-center shadow-md hover:bg-opacity-90 transition hover:bg-[#002c76]">
-																					<i data-feather="arrow-left" class="w-5 h-5 text-[#09244B] hover:text-white"></i>
-																					</button>
-																					<h1
-																					class="w-full max-w-full text-4xl font-extrabold text-white font-montserrat flex items-center gap-3 bg-[#002C76] px-4 py-2 rounded-lg shadow-md">
-																					<i data-feather="folder" class="w-6 h-6 text-white"></i> Applicant Status
-																					</h1>
-																				</section> -->
+																																																																																																																																																																																																												<bu			tton onclick="goBack()"
+																																																																																																																																																																																																												cla			ss="use-loader w-14 h-14 rounded-full bg-[#D9D9D9] flex items-center justify-center shadow-md hover:bg-opacity-90 transition hover:bg-[#002c76]">
+																																																																																																																																																																																																												<i 			data-feather="arrow-left" class="w-5 h-5 text-[#09244B] hover:text-white"></i>
+																																																																																																																																																																																																												</b			utton>
+																																																																																																																																																																																																												<h1			
+																																																																																																																																																																																																												cla			ss="w-full max-w-full text-4xl font-extrabold text-white font-montserrat flex items-center gap-3 bg-[#002C76] px-4 py-2 rounded-lg shadow-md">
+																																																																																																																																																																																																												<i 			data-feather="folder" class="w-6 h-6 text-white"></i> Applicant Status
+																																																																																																																																																																																																												</h			1>
+																																																																																																																																																																																																											</s			ection> -->
 							<div class="flex items-center gap-4 border-b border-[#0D2B70] pb-4 mb-6">
 								<button aria-label="Back" onclick="window.location.href='{{ route('applications_list') }}'"
 									class="use-loader group">
@@ -45,72 +45,25 @@
 
 							<form method="POST" action="{{ route('admin.applicant_status.update', [$user_id, $vacancy_id]) }}">
 								@csrf
-								<!-- <div class="flex items-center justify-between mb-6">
-															<div class="text-sm text-gray-700">
-																@if ($application->updated_at && $admin_name)
-																	LAST MODIFIED BY: <span class="font-semibold">{{ strtoupper($admin_name) }} on {{ \Carbon\Carbon::parse($application->updated_at)->format('F d, Y') }}</span>
-																@else
-																	LAST MODIFIED BY: <span class="italic text-gray-500">Not modified yet</span>
-																@endif
-															</div>
-															<div class="flex space-x-4">
-																<button
-																	type="button"
-																	onclick="confirmDiscard()"
-																	class="flex items-center px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600">
-																	<span class="mr-2">
-																		<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
-																			<path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
-																		</svg>
-																	</span>
-																	DISCARD CHANGES
-																</button>
-
-																<button type="submit" class="use-loader flex items-center px-4 py-2 bg-green-500 text-white font-bold rounded-lg hover:bg-green-600" id="submit-btn">
-																	<span class="mr-2">
-																		<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
-																			<path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.746 3.746 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z" />
-																		</svg>
-																	</span> SAVE AND NOTIFY APPLICANT
-																</button>
-															</div>
-															</div> -->
-
 								<section class="flex items-center justify-between mb-6">
 									<div class="flex flex-col w-full">
 										<!-- Applicant Info -->
-										<div class="text-3xl font-extrabold text-[#002C76] mb-2">{{ $applicant_name }}</div>
-										<div class="grid grid-cols-3 gap-2">
+										<div class="text-3xl font-semibold text-[#002C76] mb-2">{{ $applicant_name }}</div>
+										<div class="grid grid-cols-3 gap-2 mb-3">
 											<div class="flex flex-col text-sm">
-												<span class="font-bold">Job Applied:</span>
+												<span class="font-semibold">Job Applied:</span>
 												<span>{{ $job_applied }}</span>
 											</div>
 											<div class="flex flex-col text-sm">
-												<span class="font-bold">PLACE OF ASSIGNMENT:</span>
+												<span class="font-semibold">PLACE OF ASSIGNMENT:</span>
 												<span>{{ $place_of_assignment }}</span>
 											</div>
 											<div class="flex flex-col text-sm">
-												<span class="font-bold">COMPENSATION:</span>
+												<span class="font-semibold">COMPENSATION:</span>
 												<span>₱{{ number_format($compensation, 2) }}</span>
 											</div>
 										</div>
 										<div class="flex items-end gap-4">
-
-											<!-- 1. Validation Dropdown -->
-											<!-- <div class="flex-1 min-w-[200px]">
-																						<label class="block text-sm font-semibold text-[#002C76] mb-1">Validation Status:</label>
-																						<select
-																						name="status"
-																						id="validation"
-																						class="w-full text-gray-900 border-2 border-blue-600 rounded-md p-2 focus:bg-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 transition ease-in-out duration-150"
-																						required>
-																						@php $selectedStatus = old('status', $application->status); @endphp
-																						<option value="Pending" {{ $selectedStatus === 'Pending' ? 'selected' : '' }}>Pending</option>    
-																						<option value="Complete" {{ $selectedStatus === 'Complete' ? 'selected' : '' }}>Complete</option>
-																						<option value="Incomplete" {{ $selectedStatus === 'Incomplete' ? 'selected' : '' }}>Incomplete</option>
-																						<option value="Closed" {{ $selectedStatus === 'Closed' ? 'selected' : '' }}>Closed</option>
-																						</select>
-																					</div> -->
 
 											<!-- deadline -->
 											<div class="flex-1">
@@ -159,304 +112,374 @@
 										<!-- </form> -->
 
 									</div>
+
+
 									<!-- <div class="flex items-right gap-4 flex-col">
-																<a href="{{ route('vacancies.edit', ['vacancy_id' => $application->vacancy->vacancy_id]) }}">
-																	<button type="button"
-																		class="use-loader border-2 border-[#002C76] text-black-300 rounded-lg px-4 py-2 text-base flex items-center gap-3 font-montserrat hover:bg-[#002C76] hover:text-white transition">
-																		<i data-feather="eye" class="w-5 h-5 gap-3"></i> View Job Description
-																	</button>
-																</a>
-															</div> -->
+																																																																																																																							<a 			href="{{ route('vacancies.edit', ['vacancy_id' => $application->vacancy->vacancy_id]) }}">
+																																																																																																																								<bu			tton type="button"
+																																																																																																																									cla			ss="use-loader border-2 border-[#002C76] text-black-300 rounded-lg px-4 py-2 text-base flex items-center gap-3 font-montserrat hover:bg-[#002C76] hover:text-white transition">
+																																																																																																																									<i 			data-feather="eye" class="w-5 h-5 gap-3"></i> View Job Description
+																																																																																																																								</b			utton>
+																																																																																																																							</a			>
+																																																																																																																						</d			iv> -->
 								</section>
 
-								<div class="flex flex-grow max-w-7xl mx-auto w-full p-6 gap-6">
+
+								<!-- MAIN DOCUMENT PREVIEW -->
+								<div class="flex max-w-full mx-auto w-full px-6 py-4 gap-6">
 
 									<!-- Left Side Panel - Required Documents -->
 									<section aria-label="Required Documents Panel"
-										class="w-80 bg-white rounded-lg border border-blue-400 p-5 shadow-sm flex flex-col scrollbar-thin overflow-y-auto max-h-auto">
-										<h2 class="text-sm font-semibold text-gray-600 mb-3 uppercase tracking-wide">Required
-											Documents</h2>
-										<ul class="text-xs text-gray-700 space-y-1" id="document-list">
-											<!-- Documents will be injected here by JS -->
-										</ul>
+										class="w-64 bg-white rounded-lg border border-blue-400 p-3 shadow-sm flex flex-col">
+										<h2 class="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">Required Documents
+										</h2>
+										<div
+											class="overflow-y-auto scrollbar-thin scrollbar-thumb-blue-400 scrollbar-track-gray-100">
+											<ul class="text-xs text-gray-700 space-y-2" id="document-list">
+												<!-- Documents will be injected here by JS -->
+											</ul>
+										</div>
+
+										<hr class="my-3">
+
+										<!-- DYNAMIC MESSAGE -->
+										<div class="relative bg-white rounded-lg p-4 border border-gray-300	">
+											<div id="document-status"
+												class="font-bold text-red-600 mb-5 transition-opacity duration-500">
+												DOCUMENTS SUBMITTED: INCOMPLETE
+											</div>
+											<div id="actions-heading" class="font-bold text-gray-800 mb-3 hidden">
+												ACTIONS REQUIRED FROM THE APPLICANT
+											</div>
+											<p id="actions-helper" class="text-sm text-gray-600 mb-5">
+												Please validate all documents first to enable actions required from the applicant.
+											</p>
+											<div id="checkboxes-container"
+												class="transition-opacity duration-500 opacity-0 pointer-events-none">
+												<div class="space-y-3">
+													<!-- Checkbox 1 -->
+													<div class="flex items-center">
+														<label class="flex items-center cursor-pointer relative">
+															<input type="checkbox"
+																class="peer h-6 w-6 cursor-pointer transition-all appearance-none rounded-full bg-slate-100 shadow hover:shadow-md border border-slate-300 checked:bg-[#002C76] checked:border-[#002C76]" />
+															<span
+																class="absolute text-white opacity-0 peer-checked:opacity-100 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+																<svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5"
+																	viewBox="0 0 20 20" fill="currentColor" stroke="currentColor"
+																	stroke-width="1">
+																	<path fill-rule="evenodd"
+																		d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+																		clip-rule="evenodd" />
+																</svg>
+															</span>
+														</label>
+														<span class="ml-3 text-gray-700">Pre-Qualifying Exam (PQE)</span>
+													</div>
+
+													<!-- Checkbox 2 -->
+													<div class="flex items-center">
+														<label class="flex items-center cursor-pointer relative">
+															<input type="checkbox"
+																class="peer h-6 w-6 cursor-pointer transition-all appearance-none rounded-full bg-slate-100 shadow hover:shadow-md border border-slate-300 checked:bg-[#002C76] checked:border-[#002C76]" />
+															<span
+																class="absolute text-white opacity-0 peer-checked:opacity-100 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+																<svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5"
+																	viewBox="0 0 20 20" fill="currentColor" stroke="currentColor"
+																	stroke-width="1">
+																	<path fill-rule="evenodd"
+																		d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+																		clip-rule="evenodd" />
+																</svg>
+															</span>
+														</label>
+														<span class="ml-3 text-gray-700">Written Exam</span>
+													</div>
+
+													<!-- Checkbox 3 -->
+													<div class="flex items-center">
+														<label class="flex items-center cursor-pointer relative">
+															<input type="checkbox"
+																class="peer h-6 w-6 cursor-pointer transition-all appearance-none rounded-full bg-slate-100 shadow hover:shadow-md border border-slate-300 checked:bg-[#002C76] checked:border-[#002C76]" />
+															<span
+																class="absolute text-white opacity-0 peer-checked:opacity-100 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+																<svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5"
+																	viewBox="0 0 20 20" fill="currentColor" stroke="currentColor"
+																	stroke-width="1">
+																	<path fill-rule="evenodd"
+																		d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+																		clip-rule="evenodd" />
+																</svg>
+															</span>
+														</label>
+														<span class="ml-3 text-gray-700">Interview</span>
+													</div>
+
+													<!-- Checkbox 4 -->
+													<div class="flex items-center">
+														<label class="flex items-center cursor-pointer relative">
+															<input type="checkbox"
+																class="peer h-6 w-6 cursor-pointer transition-all appearance-none rounded-full bg-slate-100 shadow hover:shadow-md border border-slate-300 checked:bg-[#002C76] checked:border-[#002C76]" />
+															<span
+																class="absolute text-white opacity-0 peer-checked:opacity-100 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+																<svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5"
+																	viewBox="0 0 20 20" fill="currentColor" stroke="currentColor"
+																	stroke-width="1">
+																	<path fill-rule="evenodd"
+																		d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+																		clip-rule="evenodd" />
+																</svg>
+															</span>
+														</label>
+														<span class="ml-3 text-gray-700">Group Orals</span>
+													</div>
+
+													<!-- Checkbox 5 -->
+													<div class="flex items-center">
+														<label class="flex items-center cursor-pointer relative">
+															<input type="checkbox"
+																class="peer h-6 w-6 cursor-pointer transition-all appearance-none rounded-full bg-slate-100 shadow hover:shadow-md border border-slate-300 checked:bg-[#002C76] checked:border-[#002C76]" />
+															<span
+																class="absolute text-white opacity-0 peer-checked:opacity-100 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+																<svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5"
+																	viewBox="0 0 20 20" fill="currentColor" stroke="currentColor"
+																	stroke-width="1">
+																	<path fill-rule="evenodd"
+																		d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+																		clip-rule="evenodd" />
+																</svg>
+															</span>
+														</label>
+														<span class="ml-3 text-gray-700">Competency-Based Assessment (CBA)</span>
+													</div>
+												</div>
+											</div>
 									</section>
 
-									<!-- Right Side Panel - Document Preview -->
+									<!-- MIDDLE - Document Preview -->
 									<section aria-label="Document Preview"
-										class="flex-1 bg-blue-100 rounded-lg border border-blue-400 p-5 flex flex-col">
+										class="flex-1 bg-white rounded-2xl border-4 border-[#002C76] p-6 flex flex-col min-w-0">
 
-										<!-- Wrapper to hold the remarks box and toggle -->
-										<div class="relative mb-4 w-full flex items-start gap-4">
+										<!-- Document Header -->
+										<div class="mb-4">
+											<h2 id="document-title" class="text-2xl font-bold text-[#002C76] mb-1">Application
+												Letter</h2>
+											<p id="document-modified" class="text-sm text-gray-600">Last modified by: <span
+													class="font-medium">Jane Doe</span></p>
+										</div>
 
-											<!-- Document Remarks Box (Wider) -->
-											<div class="w-[80%]">
+										<!-- Remarks and Buttons Row -->
+										<div class="mb-4 flex items-start gap-3">
+											<!-- Remarks Textarea -->
+											<div class="flex-1">
 												<label for="remarks"
-													class="block text-xs font-semibold text-gray-600 mb-1 uppercase tracking-wide border border-blue-400 rounded-md bg-white p-2">
-													Document Remarks
-												</label>
-												<textarea id="remarks" rows="2"
-													class="w-full text-xs font-bold text-gray-700 rounded-md p-2 resize-none border border-gray-300"
-													aria-live="polite">Select a document to preview</textarea>
+													class="block text-sm font-semibold text-gray-700 mb-2">Remarks:</label>
+												<textarea id="remarks" rows="4" disabled
+													class="w-full text-sm text-gray-700 rounded-lg p-3 resize-none border-2 border-[#002C76] focus:border-[#0066CC] focus:ring-2 focus:ring-blue-200 transition bg-gray-50"
+													placeholder="Select a document to view and add remarks...">Select a document to preview</textarea>
 											</div>
 
-											<!-- Toggle Switch (Hidden Initially) -->
-											<div id="toggle-container" class="mt-7 ml-auto hidden">
-												<input type="checkbox" id="favorite" class="input-toggle hidden" />
-												<label for="favorite"
-													class="toggle-label border bg-white px-3 border-blue-400 rounded-lg p-1 inline-flex items-center cursor-pointer shadow">
-													<div class="toggle-circle mr-2"></div>
-													<div class="toggle-text text-sm font-semibold">
-														<span class="option-1">Disapproved With Deficiency</span>
-														<span class="option-2">Okay/Confirmed</span>
-													</div>
-												</label>
+											<!-- Buttons Column -->
+											<div class="flex flex-col gap-2 pt-7">
+												<button id="reset-btn" type="button"
+													class="px-6 py-2 bg-white border-2 border-[#002C76] text-[#002C76] rounded-lg font-semibold hover:bg-gray-50 transition min-w-[120px]">
+													Reset
+												</button>
+												<button id="confirm-btn" type="button"
+													class="px-6 py-2 bg-white border-2 border-[#002C76] text-[#002C76] rounded-lg font-semibold hover:bg-gray-50 transition min-w-[120px]">
+													Confirm
+												</button>
 											</div>
 										</div>
 
 										<!-- Preview Frame -->
-										<div class="flex-grow bg-white rounded-md border border-blue-400 p-3 overflow-auto">
+										<div class="flex-1 bg-gray-50 rounded-xl border-2 border-[#002C76] p-3 overflow-hidden">
 											<iframe id="doc-preview" src="" title="Document Preview"
-												class="w-full h-[60vh] rounded-md" frameborder="0"
+												class="w-full h-full rounded-lg border-0 bg-white"
 												aria-label="Document content preview"></iframe>
+										</div>
+
+										<!-- Hidden Toggle (for compatibility) -->
+										<div id="toggle-container" class="hidden">
+											<input type="checkbox" id="favorite" class="input-toggle hidden" />
 										</div>
 									</section>
 
+									<!-- RIGHT - STANDARDS, REVIEW, PROGRESS -->
+									<div class="flex flex-col gap-3 text-sm w-72 flex-shrink-0">
+										<!-- Progress Circle -->
+										<div class="bg-white rounded-lg p-4 border border-gray-300 flex flex-col items-center">
+											<h3 class="font-bold text-gray-800 mb-3 text-center text-sm">Application Progress</h3>
+
+											<!-- Circular Progress -->
+											<div class="relative w-32 h-32 mb-3">
+												<!-- Background Circle -->
+												<svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+													<circle cx="50" cy="50" r="40" stroke="#E5E7EB" stroke-width="10" fill="none" />
+													<!-- Progress Circle -->
+													<circle id="progress-circle" cx="50" cy="50" r="40" stroke="#002C76"
+														stroke-width="10" fill="none" stroke-linecap="round"
+														stroke-dasharray="251.3" stroke-dashoffset="251.3"
+														class="transition-all duration-1000 ease-out" />
+												</svg>
+
+												<!-- Percentage Text -->
+												<div
+													class="absolute inset-0 flex flex-col items-center justify-center leading-tight">
+													<span id="progress-percentage"
+														class="text-2xl font-bold text-[#002C76]">0%</span>
+													<span id="progress-count" class="text-[10px] text-gray-500 font-medium">0/15
+														DOCS</span>
+												</div>
+											</div>
+
+											<!-- Progress Status Text -->
+											<div class="text-center">
+												<p id="progress-status"
+													class="text-xs font-bold text-gray-600 uppercase tracking-widest">
+													Getting Started
+												</p>
+											</div>
+										</div>
+
+										<!--  -->
+										<div class="bg-white rounded-lg p-4 border border-gray-300">
+											<div class="font-bold text-gray-800 mb-4">Qualification Standards</div>
+
+											<!-- Education -->
+											<div class="flex items-start mb-3">
+												<span class="font-semibold w-32">EDUCATION:</span>
+												<div class="flex items-center space-x-4 flex-1">
+													<label class="inline-flex items-center">
+														<input type="radio" name="qs_education_input" value="yes"
+															class="h-4 w-4 accent-[#002C76]" {{ old('qs_education', $application->qs_education ?? '') === 'yes' ? 'checked' : '' }}>
+														<span class="ml-2">YES</span>
+													</label>
+													<label class="inline-flex items-center">
+														<input type="radio" name="qs_education_input" value="no"
+															class="h-4 w-4 accent-[#002C76]" {{ old('qs_education', $application->qs_education ?? '') === 'no' ? 'checked' : '' }}>
+														<span class="ml-2">NO</span>
+													</label>
+												</div>
+											</div>
+
+											<!-- Eligibility -->
+											<div class="flex items-start mb-3">
+												<span class="font-semibold w-32">ELIGIBILITY:</span>
+												<div class="flex items-center space-x-4 flex-1">
+													<label class="inline-flex items-center">
+														<input type="radio" name="qs_eligibility_input" value="yes"
+															class="h-4 w-4 accent-[#002C76]" {{ old('qs_eligibility', $application->qs_eligibility ?? '') === 'yes' ? 'checked' : '' }}>
+														<span class="ml-2">YES</span>
+													</label>
+													<label class="inline-flex items-center">
+														<input type="radio" name="qs_eligibility_input" value="no"
+															class="h-4 w-4 accent-[#002C76]" {{ old('qs_eligibility', $application->qs_eligibility ?? '') === 'no' ? 'checked' : '' }}>
+														<span class="ml-2">NO</span>
+													</label>
+												</div>
+											</div>
+
+											<!-- Experience -->
+											<div class="flex items-start mb-3">
+												<span class="font-semibold w-32">EXPERIENCE:</span>
+												<div class="flex items-center space-x-4 flex-1">
+													<label class="inline-flex items-center">
+														<input type="radio" name="qs_experience_input" value="yes"
+															class="h-4 w-4 accent-[#002C76]" {{ old('qs_experience', $application->qs_experience ?? '') === 'yes' ? 'checked' : '' }}>
+														<span class="ml-2">YES</span>
+													</label>
+													<label class="inline-flex items-center">
+														<input type="radio" name="qs_experience_input" value="no"
+															class="h-4 w-4 accent-[#002C76]" {{ old('qs_experience', $application->qs_experience ?? '') === 'no' ? 'checked' : '' }}>
+														<span class="ml-2">NO</span>
+													</label>
+												</div>
+											</div>
+
+											<!-- Training -->
+											<div class="flex items-start mb-3">
+												<span class="font-semibold w-32">TRAINING:</span>
+												<div class="flex items-center space-x-4 flex-1">
+													<label class="inline-flex items-center">
+														<input type="radio" name="qs_training_input" value="yes"
+															class="h-4 w-4 accent-[#002C76]" {{ old('qs_training', $application->qs_training ?? '') === 'yes' ? 'checked' : '' }}>
+														<span class="ml-2">YES</span>
+													</label>
+													<label class="inline-flex items-center">
+														<input type="radio" name="qs_training_input" value="no"
+															class="h-4 w-4 accent-[#002C76]" {{ old('qs_training', $application->qs_training ?? '') === 'no' ? 'checked' : '' }}>
+														<span class="ml-2">NO</span>
+													</label>
+												</div>
+											</div>
+
+											<!-- Result -->
+											<div class="mt-6 flex items-start">
+												<span class="font-bold w-32 mt-3">RESULT:</span>
+												<div class="flex items-center space-x-4 flex-1">
+													<label class="inline-flex items-center">
+														<input type="radio" name="qs_result_input" value="qualified"
+															class="h-4 w-4 accent-[#002C76]" {{ old('qs_result', $application->qs_result ?? '') === 'qualified' ? 'checked' : '' }}>
+														<span class="ml-2">QUALIFIED</span>
+													</label>
+													<label class="inline-flex items-center">
+														<input type="radio" name="qs_result_input" value="not qualified"
+															class="h-4 w-4 accent-[#002C76]" {{ old('qs_result', $application->qs_result ?? '') === 'not qualified' ? 'checked' : '' }}>
+														<span class="ml-2">NOT QUALIFIED</span>
+													</label>
+												</div>
+											</div>
+										</div>
+
+										<div class="bg-white rounded-lg p-4 border border-gray-300">
+											<div class="font-bold text-gray-800 mb-2">REMARKS</div>
+
+											<!-- Vertical Text Area -->
+											@php
+												$confirmedCount = collect($documents)->where('status', 'confirmed')->count();
+												$isComplete = $confirmedCount === 15;
+
+												$defaultRemarks = '';
+
+												if ($isComplete) {
+													$defaultRemarks = "No further action required. Wait for further instruction on the next assessment phase.";
+												} else {
+													$deadline = $application->deadline_date && $application->deadline_time
+														? \Carbon\Carbon::parse($application->deadline_date . ' ' . $application->deadline_time)->format('F d, Y h:i A')
+														: null;
+
+													$defaultRemarks = $deadline
+														? "Correct and/or submit the above-noted inconsistencies and/or deficiencies not later than $deadline."
+														: "No remarks yet";
+												}
+											@endphp
+
+											<textarea id="application_remarks_input"
+												class="w-full p-2 border border-gray-400 rounded mb-3 focus:outline-none resize-none"
+												rows="4" placeholder="Enter your remarks here..."
+												style="min-height: 200px; text-align: start;">{{ old('application_remarks', $application->application_remarks ?? $defaultRemarks) }}</textarea>
+										</div>
+
+
+										<!-- action buttons -->
+										<div class="flex flex-col gap-2">
+											<button class="bg-[#002C76] text-white py-2 px-6 rounded-md">
+												Notify Applicant
+											</button>
+											<button class="bg-red-600 text-white py-2 px-6 rounded-md">
+												Discard
+											</button>
+											<button class="bg-green-600 text-white py-2 px-6 rounded-md">
+												Save
+											</button>
+										</div>
+									</div>
+
 
 								</div>
-								<!-- Exam Details Section -->
-								<div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-									<div class="relative bg-white rounded-lg p-4 border border-gray-300">
-										<div id="document-status"
-											class="font-bold text-red-600 mb-5 transition-opacity duration-500">
-											DOCUMENTS SUBMITTED: INCOMPLETE
-										</div>
-										<div id="actions-heading" class="font-bold text-gray-800 mb-3 hidden">
-											ACTIONS REQUIRED FROM THE APPLICANT
-										</div>
-										<p id="actions-helper" class="text-sm text-gray-600 mb-5">
-											Please validate all documents first to enable actions required from the applicant.
-										</p>
-										<div id="checkboxes-container"
-											class="transition-opacity duration-500 opacity-0 pointer-events-none">
-											<div class="space-y-3">
-												<!-- Checkbox 1 -->
-												<div class="flex items-center">
-													<label class="flex items-center cursor-pointer relative">
-														<input type="checkbox"
-															class="peer h-6 w-6 cursor-pointer transition-all appearance-none rounded-full bg-slate-100 shadow hover:shadow-md border border-slate-300 checked:bg-[#002C76] checked:border-[#002C76]" />
-														<span
-															class="absolute text-white opacity-0 peer-checked:opacity-100 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-															<svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5"
-																viewBox="0 0 20 20" fill="currentColor" stroke="currentColor"
-																stroke-width="1">
-																<path fill-rule="evenodd"
-																	d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-																	clip-rule="evenodd" />
-															</svg>
-														</span>
-													</label>
-													<span class="ml-3 text-gray-700">Pre-Qualifying Exam (PQE)</span>
-												</div>
 
-												<!-- Checkbox 2 -->
-												<div class="flex items-center">
-													<label class="flex items-center cursor-pointer relative">
-														<input type="checkbox"
-															class="peer h-6 w-6 cursor-pointer transition-all appearance-none rounded-full bg-slate-100 shadow hover:shadow-md border border-slate-300 checked:bg-[#002C76] checked:border-[#002C76]" />
-														<span
-															class="absolute text-white opacity-0 peer-checked:opacity-100 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-															<svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5"
-																viewBox="0 0 20 20" fill="currentColor" stroke="currentColor"
-																stroke-width="1">
-																<path fill-rule="evenodd"
-																	d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-																	clip-rule="evenodd" />
-															</svg>
-														</span>
-													</label>
-													<span class="ml-3 text-gray-700">Written Exam</span>
-												</div>
-
-												<!-- Checkbox 3 -->
-												<div class="flex items-center">
-													<label class="flex items-center cursor-pointer relative">
-														<input type="checkbox"
-															class="peer h-6 w-6 cursor-pointer transition-all appearance-none rounded-full bg-slate-100 shadow hover:shadow-md border border-slate-300 checked:bg-[#002C76] checked:border-[#002C76]" />
-														<span
-															class="absolute text-white opacity-0 peer-checked:opacity-100 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-															<svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5"
-																viewBox="0 0 20 20" fill="currentColor" stroke="currentColor"
-																stroke-width="1">
-																<path fill-rule="evenodd"
-																	d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-																	clip-rule="evenodd" />
-															</svg>
-														</span>
-													</label>
-													<span class="ml-3 text-gray-700">Interview</span>
-												</div>
-
-												<!-- Checkbox 4 -->
-												<div class="flex items-center">
-													<label class="flex items-center cursor-pointer relative">
-														<input type="checkbox"
-															class="peer h-6 w-6 cursor-pointer transition-all appearance-none rounded-full bg-slate-100 shadow hover:shadow-md border border-slate-300 checked:bg-[#002C76] checked:border-[#002C76]" />
-														<span
-															class="absolute text-white opacity-0 peer-checked:opacity-100 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-															<svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5"
-																viewBox="0 0 20 20" fill="currentColor" stroke="currentColor"
-																stroke-width="1">
-																<path fill-rule="evenodd"
-																	d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-																	clip-rule="evenodd" />
-															</svg>
-														</span>
-													</label>
-													<span class="ml-3 text-gray-700">Group Orals</span>
-												</div>
-
-												<!-- Checkbox 5 -->
-												<div class="flex items-center">
-													<label class="flex items-center cursor-pointer relative">
-														<input type="checkbox"
-															class="peer h-6 w-6 cursor-pointer transition-all appearance-none rounded-full bg-slate-100 shadow hover:shadow-md border border-slate-300 checked:bg-[#002C76] checked:border-[#002C76]" />
-														<span
-															class="absolute text-white opacity-0 peer-checked:opacity-100 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-															<svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5"
-																viewBox="0 0 20 20" fill="currentColor" stroke="currentColor"
-																stroke-width="1">
-																<path fill-rule="evenodd"
-																	d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-																	clip-rule="evenodd" />
-															</svg>
-														</span>
-													</label>
-													<span class="ml-3 text-gray-700">Competency-Based Assessment (CBA)</span>
-												</div>
-											</div>
-										</div>
-									</div>
-									<div class="bg-white rounded-lg p-4 border border-gray-300">
-										<div class="font-bold text-gray-800 mb-4">QUALIFICATION STANDARDS</div>
-
-										<!-- Education -->
-										<div class="flex items-start mb-3">
-											<span class="font-semibold w-32">EDUCATION:</span>
-											<div class="flex items-center space-x-4 flex-1">
-												<label class="inline-flex items-center">
-													<input type="radio" name="qs_education_input" value="yes"
-														class="h-4 w-4 accent-[#002C76]" {{ old('qs_education', $application->qs_education ?? '') === 'yes' ? 'checked' : '' }}>
-													<span class="ml-2">YES</span>
-												</label>
-												<label class="inline-flex items-center">
-													<input type="radio" name="qs_education_input" value="no"
-														class="h-4 w-4 accent-[#002C76]" {{ old('qs_education', $application->qs_education ?? '') === 'no' ? 'checked' : '' }}>
-													<span class="ml-2">NO</span>
-												</label>
-											</div>
-										</div>
-
-										<!-- Eligibility -->
-										<div class="flex items-start mb-3">
-											<span class="font-semibold w-32">ELIGIBILITY:</span>
-											<div class="flex items-center space-x-4 flex-1">
-												<label class="inline-flex items-center">
-													<input type="radio" name="qs_eligibility_input" value="yes"
-														class="h-4 w-4 accent-[#002C76]" {{ old('qs_eligibility', $application->qs_eligibility ?? '') === 'yes' ? 'checked' : '' }}>
-													<span class="ml-2">YES</span>
-												</label>
-												<label class="inline-flex items-center">
-													<input type="radio" name="qs_eligibility_input" value="no"
-														class="h-4 w-4 accent-[#002C76]" {{ old('qs_eligibility', $application->qs_eligibility ?? '') === 'no' ? 'checked' : '' }}>
-													<span class="ml-2">NO</span>
-												</label>
-											</div>
-										</div>
-
-										<!-- Experience -->
-										<div class="flex items-start mb-3">
-											<span class="font-semibold w-32">EXPERIENCE:</span>
-											<div class="flex items-center space-x-4 flex-1">
-												<label class="inline-flex items-center">
-													<input type="radio" name="qs_experience_input" value="yes"
-														class="h-4 w-4 accent-[#002C76]" {{ old('qs_experience', $application->qs_experience ?? '') === 'yes' ? 'checked' : '' }}>
-													<span class="ml-2">YES</span>
-												</label>
-												<label class="inline-flex items-center">
-													<input type="radio" name="qs_experience_input" value="no"
-														class="h-4 w-4 accent-[#002C76]" {{ old('qs_experience', $application->qs_experience ?? '') === 'no' ? 'checked' : '' }}>
-													<span class="ml-2">NO</span>
-												</label>
-											</div>
-										</div>
-
-										<!-- Training -->
-										<div class="flex items-start mb-3">
-											<span class="font-semibold w-32">TRAINING:</span>
-											<div class="flex items-center space-x-4 flex-1">
-												<label class="inline-flex items-center">
-													<input type="radio" name="qs_training_input" value="yes"
-														class="h-4 w-4 accent-[#002C76]" {{ old('qs_training', $application->qs_training ?? '') === 'yes' ? 'checked' : '' }}>
-													<span class="ml-2">YES</span>
-												</label>
-												<label class="inline-flex items-center">
-													<input type="radio" name="qs_training_input" value="no"
-														class="h-4 w-4 accent-[#002C76]" {{ old('qs_training', $application->qs_training ?? '') === 'no' ? 'checked' : '' }}>
-													<span class="ml-2">NO</span>
-												</label>
-											</div>
-										</div>
-
-										<!-- Result -->
-										<div class="mt-6 flex items-start">
-											<span class="font-bold w-32 mt-3">RESULT:</span>
-											<div class="flex items-center space-x-4 flex-1">
-												<label class="inline-flex items-center">
-													<input type="radio" name="qs_result_input" value="qualified"
-														class="h-4 w-4 accent-[#002C76]" {{ old('qs_result', $application->qs_result ?? '') === 'qualified' ? 'checked' : '' }}>
-													<span class="ml-2">QUALIFIED</span>
-												</label>
-												<label class="inline-flex items-center">
-													<input type="radio" name="qs_result_input" value="not qualified"
-														class="h-4 w-4 accent-[#002C76]" {{ old('qs_result', $application->qs_result ?? '') === 'not qualified' ? 'checked' : '' }}>
-													<span class="ml-2">NOT QUALIFIED</span>
-												</label>
-											</div>
-										</div>
-									</div>
-
-									<div class="bg-white rounded-lg p-4 border border-gray-300">
-										<div class="font-bold text-gray-800 mb-2">REMARKS</div>
-
-										<!-- Vertical Text Area -->
-										@php
-											$confirmedCount = collect($documents)->where('status', 'confirmed')->count();
-											$isComplete = $confirmedCount === 15;
-
-											$defaultRemarks = '';
-
-											if ($isComplete) {
-												$defaultRemarks = "No further action required. Wait for further instruction on the next assessment phase.";
-											} else {
-												$deadline = $application->deadline_date && $application->deadline_time
-													? \Carbon\Carbon::parse($application->deadline_date . ' ' . $application->deadline_time)->format('F d, Y h:i A')
-													: null;
-
-												$defaultRemarks = $deadline
-													? "Correct and/or submit the above-noted inconsistencies and/or deficiencies not later than $deadline."
-													: "No remarks yet";
-											}
-										@endphp
-
-										<textarea id="application_remarks_input"
-											class="w-full p-2 border border-gray-400 rounded mb-3 focus:outline-none resize-none"
-											rows="4" placeholder="Enter your remarks here..."
-											style="min-height: 200px; text-align: start;">{{ old('application_remarks', $application->application_remarks ?? $defaultRemarks) }}</textarea>
-									</div>
-								</div>
 
 						</div>
-
 
 						@include('partials.loader')
 					</main>
@@ -624,8 +647,62 @@
 						}
 
 
+
 						// Initialize documents list
 						renderDocuments(documents);
+
+						// Update Progress Circle
+						function updateProgressCircle() {
+							const totalDocs = 15;
+							const confirmedDocs = documents.filter(doc => doc.status === 'Okay/Confirmed').length;
+							const percentage = Math.round((confirmedDocs / totalDocs) * 100);
+
+							// Update circle
+							const circle = document.getElementById('progress-circle');
+							const circumference = 2 * Math.PI * 70; // 2πr where r=70
+							const offset = circumference - (percentage / 100) * circumference;
+
+							circle.style.strokeDashoffset = offset;
+
+							// Update color based on progress
+							if (percentage === 100) {
+								circle.style.stroke = '#10B981'; // Green
+							} else if (percentage >= 75) {
+								circle.style.stroke = '#3B82F6'; // Blue
+							} else if (percentage >= 50) {
+								circle.style.stroke = '#F59E0B'; // Amber
+							} else if (percentage >= 25) {
+								circle.style.stroke = '#EF4444'; // Red
+							} else {
+								circle.style.stroke = '#6B7280'; // Gray
+							}
+
+							// Update text
+							document.getElementById('progress-percentage').textContent = percentage + '%';
+							document.getElementById('progress-count').textContent = `${confirmedDocs}/${totalDocs} docs`;
+
+							// Update status message
+							const statusEl = document.getElementById('progress-status');
+							if (percentage === 100) {
+								statusEl.textContent = 'Complete! 🎉';
+								statusEl.className = 'text-sm font-semibold text-green-600';
+							} else if (percentage >= 75) {
+								statusEl.textContent = 'Almost There!';
+								statusEl.className = 'text-sm font-semibold text-blue-600';
+							} else if (percentage >= 50) {
+								statusEl.textContent = 'Good Progress';
+								statusEl.className = 'text-sm font-semibold text-amber-600';
+							} else if (percentage >= 25) {
+								statusEl.textContent = 'Keep Going';
+								statusEl.className = 'text-sm font-semibold text-red-600';
+							} else {
+								statusEl.textContent = 'Getting Started';
+								statusEl.className = 'text-sm font-semibold text-gray-600';
+							}
+						}
+
+						// Initial update
+						updateProgressCircle();
 
 						let currentSelectedDoc = null; // Keep track of the currently selected document
 
@@ -679,6 +756,7 @@
 								}
 
 								renderDocuments(documents); // Refresh the icon status
+								updateProgressCircle(); // Update progress circle
 							}
 						});
 

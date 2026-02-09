@@ -34,7 +34,7 @@ use Illuminate\Support\Facades\Response;
 // ==================================================================================================
 // HOME ROUTE - Smart redirect based on authentication
 // ==================================================================================================
-Route::get('/', function() {
+Route::get('/', function () {
     if (Auth::guard('admin')->check()) {
         $user = Auth::guard('admin')->user();
         return $user->role === 'viewer'
@@ -154,31 +154,31 @@ Route::get('/pds_print', fn() => view('dashboard_user.pds_print'))->name('pds_pr
 */
 
 //Route::middleware(['auth', BlockIfAdmin::class])   // 👈 here!
-     //->group(function () {
+//->group(function () {
 
-        Route::get('/dashboard', [JobVacancyController::class, 'getOpenVacanciesForDashboard'])->name('dashboard_user');
+Route::get('/dashboard', [JobVacancyController::class, 'getOpenVacanciesForDashboard'])->name('dashboard_user');
 
-        Route::view('/about','dashboard_user.about')
-               ->name('about');
+Route::view('/about', 'dashboard_user.about')
+    ->name('about');
 
-        Route::middleware(['auth'])->group(function () {
-        Route::get('/my_applications', [JobVacancyController::class, 'myApplications'])->name('my_applications');
-        });
-        Route::get('/my-applications/sort', [JobVacancyController::class, 'sortMyApplications'])->name('my_applications.sort');
-        // User application status get route
-        Route::get('/application_status/{user}/{vacancy}', [JobVacancyController::class, 'applicationStatus'])->name('application_status');
+Route::middleware(['auth'])->group(function () {
+    Route::get('/my_applications', [JobVacancyController::class, 'myApplications'])->name('my_applications');
+});
+Route::get('/my-applications/sort', [JobVacancyController::class, 'sortMyApplications'])->name('my_applications.sort');
+// User application status get route
+Route::get('/application_status/{user}/{vacancy}', [JobVacancyController::class, 'applicationStatus'])->name('application_status');
 
-        Route::get ('/job-vacancies',[JobVacancyController::class,'jobVacancy'])
-               ->name('job_vacancy');
+Route::get('/job-vacancies', [JobVacancyController::class, 'jobVacancy'])
+    ->name('job_vacancy');
 
-        Route::get ('/{id}/job_description',[JobVacancyController::class,'jobDescription'])
-               ->name('job_description');
+Route::get('/{id}/job_description', [JobVacancyController::class, 'jobDescription'])
+    ->name('job_description');
 
-        Route::get ('/job-vacancies/filter',[JobVacancyController::class,'filterVacancy'])
-               ->name('vacancies.filter');
+Route::get('/job-vacancies/filter', [JobVacancyController::class, 'filterVacancy'])
+    ->name('vacancies.filter');
 
-        Route::get ('/pds_print', fn () => view('dashboard_user.pds_print'))
-               ->name('pds_print');
+Route::get('/pds_print', fn() => view('dashboard_user.pds_print'))
+    ->name('pds_print');
 
 //Route::middleware('guest:admin')->group(function () {
 //    Route::get('/admin/login', [AdminAuthController::class, 'showLoginForm'])->name('admin.login');
@@ -269,7 +269,7 @@ Route::middleware(['auth', BlockIfAdmin::class])->group(function () {
     Route::get('/pds/submit', [Forms\PDSController::class, 'showSubmittedForm'])->name('display_final_pds');
 
     // Exporting PDF (WIP)
-   // Route::get('/export-pds/{id}', [Forms\ExportPDSController::class, 'exportPDS'])->name('export.pds');
+    // Route::get('/export-pds/{id}', [Forms\ExportPDSController::class, 'exportPDS'])->name('export.pds');
 
     // PDS Update Routes
     Route::view('/pds_update', 'pds_update.pds_update')->name('pds_update');
@@ -320,8 +320,12 @@ Route::middleware([RedirectIfNotAdmin::class])->group(function () {
     Route::put('/admin/{id}/update', [AdminController::class, 'update'])->name('admin.update');
     Route::get('/admin/search', [AdminController::class, 'search'])->name('admin.search');
 
-    Route::get('/admin/vacancies_management/add/plantilla', function () {return view('admin.vacancy_add_plantilla');})->name('addplantilla');
-    Route::get('/admin/vacancies_management/add/cos', function () {return view('admin.vacancy_add_cos');})->name('addcos');
+    Route::get('/admin/vacancies_management/add/plantilla', function () {
+        return view('admin.vacancy_add_plantilla');
+    })->name('addplantilla');
+    Route::get('/admin/vacancies_management/add/cos', function () {
+        return view('admin.vacancy_add_cos');
+    })->name('addcos');
 
     Route::post('/admin/vacancies_management/add/cos/store', [JobVacancyController::class, 'storeVacancy'])->name('vacancies.store');
     // Route::put('/admin/vacancies_management/cos/{vacancy}/update', [JobVacancyController::class, 'update'])->name('vacancy.update');
@@ -337,7 +341,7 @@ Route::middleware([RedirectIfNotAdmin::class])->group(function () {
     Route::get('/admin/applicant_status/{user_id}/{vacancy_id}', [AdminController::class, 'viewApplicantStatus'])->name('admin.applicant_status');
     Route::post('/admin/applicant_status/{user_id}/{vacancy_id}', [AdminController::class, 'updateApplicantStatus'])->name('admin.applicant_status.update');
 
-    Route::get("/admin/activity_log", [activityLogController::class, 'view']) -> name('admin_activity_log');
+    Route::get("/admin/activity_log", [activityLogController::class, 'view'])->name('admin_activity_log');
     Route::get('/admin/activity-log/data', [activityLogController::class, 'fetch'])->name('admin.activity_log.fetch');
 
 });
@@ -363,7 +367,19 @@ Route::middleware([ViewerAccess::class])->group(function () {
     Route::post('/admin/exam_management/{vacancy_id}/details/save', [ExamController::class, 'saveExamDetails']);
 
 
-    Route::get('/admin/exam_library', fn() => view('admin.exam_library'))->name('admin.exam_library');
+
+    // Exam Library Routes
+    Route::get('/admin/exam-library', [App\Http\Controllers\ExamLibraryController::class, 'index'])->name('admin.exam_library');
+    Route::post('/admin/exam-library/series', [App\Http\Controllers\ExamLibraryController::class, 'storeSeries'])->name('admin.exam_library.series.store');
+    Route::put('/admin/exam-library/series/{id}', [App\Http\Controllers\ExamLibraryController::class, 'updateSeries'])->name('admin.exam_library.series.update');
+    Route::delete('/admin/exam-library/series/{id}', [App\Http\Controllers\ExamLibraryController::class, 'deleteSeries'])->name('admin.exam_library.series.delete');
+    Route::get('/admin/exam-library/series/{id}', [App\Http\Controllers\ExamLibraryController::class, 'getSeriesQuestions'])->name('admin.exam_library.series.show');
+    Route::get('/admin/exam-library/series/{id}/questions', [App\Http\Controllers\ExamLibraryController::class, 'getSeriesQuestions'])->name('admin.exam_library.series.questions');
+    Route::post('/admin/exam-library/series/{id}/questions', [App\Http\Controllers\ExamLibraryController::class, 'storeQuestion'])->name('admin.exam_library.questions.store');
+    Route::put('/admin/exam-library/questions/{id}', [App\Http\Controllers\ExamLibraryController::class, 'updateQuestion'])->name('admin.exam_library.questions.update');
+    Route::delete('/admin/exam-library/questions/{id}', [App\Http\Controllers\ExamLibraryController::class, 'deleteQuestion'])->name('admin.exam_library.questions.delete');
+    Route::get('/admin/exam-library/questions/selection', [App\Http\Controllers\ExamLibraryController::class, 'getQuestionsForSelection'])->name('admin.exam_library.questions.selection');
+
     Route::get('/admin/exam_management/{vacancy_id}/edit', [ExamController::class, 'editExam'])->name('admin.exam.edit');
     Route::post('/admin/exam_management/{vacancy_id}/edit', [ExamController::class, 'updateExam'])->name('admin.exam.update');
 
@@ -420,6 +436,11 @@ Route::get('/admin/reviewed/{vacancy_id}', [ShowApplicantsProfile::class, 'revie
 Route::get('/admin/applicants/{vacancy_id}', [ShowApplicantsProfile::class, 'index'])->name('admin.applicants');
 Route::get('/admin/applicants-profile/sort', [ShowApplicantsProfile::class, 'ajaxSortApplicants'])->name('admin.applicants.sort');
 Route::get('/admin/all-applicants/{vacancy_id}', [ShowApplicantsProfile::class, 'allApplicants'])->name('applicants_profile.all');
+
+// Manage Applicants Routes (New)
+Route::get('/admin/manage_applicants/{vacancy_id}', [ShowApplicantsProfile::class, 'manageApplicants'])->name('admin.manage_applicants');
+Route::get('/admin/manage_applicants/new', [ShowApplicantsProfile::class, 'ajaxFilterNewApplicants'])->name('admin.manage_applicants.new');
+Route::get('/admin/manage_applicants/reviewed', [ShowApplicantsProfile::class, 'ajaxFilterReviewedApplicants'])->name('admin.manage_applicants.reviewed');
 // ==================================================================================================
 // APPLICATION ROUTE
 // CHAT-BOT ROUTES
@@ -449,7 +470,7 @@ Route::post('/chat', [GeminiChatController::class, 'chat']);
 // ==================================================================================================
 // TEST ROUTES
 // ==================================================================================================
-Route::get('/test-event', function() {
+Route::get('/test-event', function () {
     broadcast(new PackageSent('test data', 'test'));
     return 'Event broadcasted';
 });

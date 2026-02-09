@@ -70,7 +70,8 @@
 
         <!-- exam library button -->
         <div class="flex justify-end">
-            <button class="h-10 hover:scale-105 animate-ease-in-out px-6 border border-[#0D2B70] transition bg-white font-semibold rounded-md flex items-center gap-2 text-sm">
+            <button onclick="window.location.href='{{ route('admin.exam_library') }}'" 
+                class="h-10 hover:scale-105 animate-ease-in-out px-6 border border-[#0D2B70] transition bg-white font-semibold rounded-md flex items-center gap-2 text-sm">
                 <span class="text-[#0D2B70] font-bold">Exam Library</span>
             </button>
         </div>
