@@ -17,26 +17,17 @@
         <!-- Main Content -->
         <main class="w-full space-y-6">
             <!-- Header with Back Button and Title -->
-            <section class="flex items-center gap-4">
-                <button aria-label="Go back" title="Go back" onclick="window.location.href='{{ route('applications_list') }}'"
-                    class="w-12 h-12 rounded-full bg-[#D8DCE3] flex justify-center items-center text-[#1E3664] hover:bg-[#c0c7d8] transition">
-                    <!-- Back arrow icon -->
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="#1E3664"
-                        stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
-                    </svg>
-                </button>
-
-                <h1
-                    class="flex items-center gap-3 w-full bg-[#0D2B70] text-white rounded-xl text-2xl font-extrabold font-montserrat px-8 py-4 tracking-wide select-none">
-                    <!-- Bootstrap Person icon -->
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor"
-                        class="bi bi-person" viewBox="0 0 16 16">
-                        <path
-                        d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6m2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0m4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4m-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10s-3.516.68-4.168 1.332c-.678.678-.83 1.418-.832 1.664z" />
-                    </svg>
-                    <span class="whitespace-nowrap">APPLICANTS PROFILE</span>
-                </h1>
+            <section class="flex items-center gap-4 border-b border-[#0D2B70]">
+                <div class="flex items-center gap-4">
+                    <button aria-label="Back" onclick="window.location.href='{{ route('applications_list') }}'" class="use-loader group">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-[#0D2B70] hover:opacity-80 transition" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                        </svg>
+                    </button>
+                    <h1 class="flex items-center gap-3 py-2 tracking-wide select-none">
+                        <span class="text-[#0D2B70] text-2xl md:text-3xl lg:text-4xl font-montserrat">Applicants Profile</span>
+                    </h1>
+                </div>
             </section>
 
             <section class="flex flex-wrap gap-4 justify-between items-center">

@@ -48,13 +48,13 @@ class AdminController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'username'      => ['required', 'string', 'max:255', 'unique:admins,username'],
-            'name'          => ['required', 'string', 'max:255'],
-            'office'        => ['required', 'string', 'max:255'],
-            'designation'   => ['required', 'string', 'max:255'],
-            'email'         => ['required', 'string', 'email', 'max:255', 'unique:admins,email'],
-            'password'      => ['required', 'string', 'min:8'],
-            'account_type'  => ['required', Rule::in(['admin', 'viewer'])],
+            'username' => ['required', 'string', 'max:255', 'unique:admins,username'],
+            'name' => ['required', 'string', 'max:255'],
+            'office' => ['required', 'string', 'max:255'],
+            'designation' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:admins,email'],
+            'password' => ['required', 'string', 'min:8'],
+            'account_type' => ['required', Rule::in(['admin', 'viewer'])],
         ], [
             'username.unique' => 'The username has already been taken.',
             'email.unique' => 'The email has already been taken.',
@@ -154,7 +154,7 @@ class AdminController extends Controller
             ->orderBy('month')
             ->get();
 
-                //info('check');
+        //info('check');
 
         $months = collect(range(1, 12))->map(fn($m) => Carbon::create()->month($m)->format('F'))->toArray();
 
@@ -163,7 +163,7 @@ class AdminController extends Controller
             $monthCounts[(int) $record->month] = (int) $record->total;
         }
 
-                //info('check');
+        //info('check');
 
         $chartLabels = $months;
         $chartData = array_values($monthCounts);
@@ -178,7 +178,7 @@ class AdminController extends Controller
             ->take(6)
             ->get();
 
-                //info('check');
+        //info('check');
 
         $onGoingApplicationsCount = $onGoingApplications->count();
         $reviewedApplications = $this->getReviewedApplications();
@@ -219,7 +219,7 @@ class AdminController extends Controller
             'selectedYear' => $selectedYear,
             'years' => $years,
         ]);
-                //info('check');
+        //info('check');
 
     }
 
@@ -239,11 +239,11 @@ class AdminController extends Controller
         $admin = Admin::findOrFail($id);
 
         $validator = Validator::make($request->all(), [
-            'username'     => ['required', 'string', 'max:255', Rule::unique('admins')->ignore($admin->id)],
-            'name'         => ['required', 'string', 'max:255'],
-            'office'       => ['required', 'string', 'max:255'],
-            'designation'  => ['required', 'string', 'max:255'],
-            'email'        => ['required', 'string', 'email', 'max:255', Rule::unique('admins')->ignore($admin->id)],
+            'username' => ['required', 'string', 'max:255', Rule::unique('admins')->ignore($admin->id)],
+            'name' => ['required', 'string', 'max:255'],
+            'office' => ['required', 'string', 'max:255'],
+            'designation' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('admins')->ignore($admin->id)],
             'account_type' => ['required', Rule::in(['admin', 'viewer'])],
         ]);
 
@@ -298,18 +298,19 @@ class AdminController extends Controller
 
     public function viewApplicantStatus($user_id, $vacancy_id)
     {
-        $application = Applications::with(['personalInformation', 'vacancy'])
+        $application = Applications::with(['personalInformation', 'vacancy', 'user'])
             ->where('user_id', $user_id)
             ->where('vacancy_id', $vacancy_id)
             ->first();
 
-            if (!$application || !$application->vacancy) {
-                abort(404, 'Application or vacancy not found.');
-            }
+        if (!$application || !$application->vacancy) {
+            abort(404, 'Application or vacancy not found.');
+        }
 
         $pi = $application->personalInformation;
         $vacancy = $application->vacancy;
 
+        // Get name from PDS if available, otherwise fall back to user's name
         $formattedName = $pi
             ? trim(
                 $pi->first_name . ' ' .
@@ -317,7 +318,7 @@ class AdminController extends Controller
                 $pi->surname . ' ' .
                 $pi->name_extension
             )
-            : 'User has not completed their PDS yet.';
+            : ($application->user ? $application->user->name : 'N/A');
 
         $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->first();
         $adminName = $application->updatedByAdmin?->username ?? null;
@@ -325,66 +326,67 @@ class AdminController extends Controller
         $uploadedDocuments = UploadedDocument::where('user_id', $user_id)->get()->keyBy('document_type');
         $documents = [];
 
-    $labelMap = [
-        'application_letter'        => 'Application Letter',
-        'signed_pds'                => 'Signed Personal Data Sheet',
-        'signed_work_exp_sheet'     => 'Signed Work Experience Sheet',
-        'pqe_result'                => 'Pre-Qualifying Exam (PQE) Result',
-        'cert_eligibility'          => 'Certificate of Eligibility / Board Rating',
-        'ipcr'                      => 'Certification of Numerical Rating / Performance Rating / IPCR',
-        'non_academic'              => 'Non-Academic Awards Received',
-        'cert_training'             => 'Certified/Authenticated Copy of Certificates of Training/Participation',
-        'designation_order'         => 'List with Certified Photocopy of Duly Confirmed Designation Order/s',
-        'transcript_records'        => 'Transcript of Records (Baccalaureate Degree)',
-        'photocopy_diploma'         => 'Diploma',
-        'grade_masteraldoctorate'   => 'Certified Photocopy of Certificate of Grades with Masteral/Doctorate Units Earned',
-        'tor_masteraldoctorate'     => 'Certified Photocopy of TOR with Masteral/Doctorate Degree',
-        'cert_employment'           => 'Certificate of Employment (If Any)',
-        'other_documents'           => 'Other Documents Submitted',
-    ];
+        $labelMap = [
+            'application_letter' => 'Application Letter',
+            'signed_pds' => 'Signed Personal Data Sheet',
+            'signed_work_exp_sheet' => 'Signed Work Experience Sheet',
+            'pqe_result' => 'Pre-Qualifying Exam (PQE) Result',
+            'cert_eligibility' => 'Certificate of Eligibility / Board Rating',
+            'ipcr' => 'Certification of Numerical Rating / Performance Rating / IPCR',
+            'non_academic' => 'Non-Academic Awards Received',
+            'cert_training' => 'Certified/Authenticated Copy of Certificates of Training/Participation',
+            'designation_order' => 'List with Certified Photocopy of Duly Confirmed Designation Order/s',
+            'transcript_records' => 'Transcript of Records (Baccalaureate Degree)',
+            'photocopy_diploma' => 'Diploma',
+            'grade_masteraldoctorate' => 'Certified Photocopy of Certificate of Grades with Masteral/Doctorate Units Earned',
+            'tor_masteraldoctorate' => 'Certified Photocopy of TOR with Masteral/Doctorate Degree',
+            'cert_employment' => 'Certificate of Employment (If Any)',
+            'other_documents' => 'Other Documents Submitted',
+        ];
 
         foreach (UploadedDocument::DOCUMENTS as $docType) {
-            if ($docType === 'isApproved') continue;
+            if ($docType === 'isApproved')
+                continue;
 
-        $doc = $uploadedDocuments->get($docType);
-
-        if ($docType === 'application_letter') {
-        $documents[] = [ // Get from Applications table instead
-            'id' => 'application_letter',
-            'text' => $labelMap['application_letter'],
-            'status' => $application->file_status ?? 'invalid',
-            //'preview' => $application->file_storage_path ? asset('storage/' . $application->file_storage_path) : '',
-            'preview' => $application->file_storage_path 
-                    ? url('/preview-file/' . base64_encode($application->file_storage_path)) 
-                    : '',
-            'remarks' => $application->file_remarks ?? 'No remarks provided.',
-            'isBold' => true,
-        ];
-        } else {
             $doc = $uploadedDocuments->get($docType);
 
+            if ($docType === 'application_letter') {
+                $documents[] = [ // Get from Applications table instead
+                    'id' => 'application_letter',
+                    'text' => $labelMap['application_letter'],
+                    'status' => $application->file_status ?? 'invalid',
+                    //'preview' => $application->file_storage_path ? asset('storage/' . $application->file_storage_path) : '',
+                    'preview' => $application->file_storage_path
+                        ? url('/preview-file/' . base64_encode($application->file_storage_path))
+                        : '',
+                    'remarks' => $application->file_remarks ?? 'No remarks provided.',
+                    'isBold' => true,
+                ];
+            } else {
+                $doc = $uploadedDocuments->get($docType);
+
+                $documents[] = [
+                    'id' => $docType,
+                    'text' => $labelMap[$docType] ?? ucwords(str_replace('_', ' ', $docType)),
+                    'status' => $doc ? $doc->status : 'invalid',
+                    //'preview' => $doc ? asset('storage/' . $doc->storage_path) : '',
+                    'preview' => $doc ? url('/preview-file/' . base64_encode($doc->storage_path)) : '',
+                    'remarks' => $doc ? ($doc->remarks ?: $doc->original_name) : 'Document missing.',
+                    'isBold' => true,
+                ];
+            }
+            /*
             $documents[] = [
                 'id' => $docType,
                 'text' => $labelMap[$docType] ?? ucwords(str_replace('_', ' ', $docType)),
                 'status' => $doc ? $doc->status : 'invalid',
-                //'preview' => $doc ? asset('storage/' . $doc->storage_path) : '',
-                'preview' => $doc ? url('/preview-file/' . base64_encode($doc->storage_path)) : '',
+                'preview' => $doc ? asset('storage/' . $doc->storage_path) : '',
                 'remarks' => $doc ? ($doc->remarks ?: $doc->original_name) : 'Document missing.',
-                'isBold' => true,
+                'isBold' => true
             ];
+            */
         }
-        /*
-        $documents[] = [
-            'id' => $docType,
-            'text' => $labelMap[$docType] ?? ucwords(str_replace('_', ' ', $docType)),
-            'status' => $doc ? $doc->status : 'invalid',
-            'preview' => $doc ? asset('storage/' . $doc->storage_path) : '',
-            'remarks' => $doc ? ($doc->remarks ?: $doc->original_name) : 'Document missing.',
-            'isBold' => true
-        ];
-        */
-    }
-    //dd($documents);
+        //dd($documents);
 
         activity()
             ->causedBy(auth('admin')->user())
@@ -525,7 +527,11 @@ class AdminController extends Controller
 
         $userEmail = User::where('id', $user_id)->value('email');
         Mail::to($userEmail)->send(new NotifyApplicationStatus(
-            auth('admin')->user()->username, $changes, $application->status, $user_id, $vacancy_id
+            auth('admin')->user()->username,
+            $changes,
+            $application->status,
+            $user_id,
+            $vacancy_id
         ));
 
         // Log only if there are changes
