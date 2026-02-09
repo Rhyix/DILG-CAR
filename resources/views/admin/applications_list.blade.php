@@ -48,7 +48,8 @@
                         <th class="py-4 px-6 font-normal">Vacancy ID</th>
                         <th class="py-4 px-6 font-normal">Job Title</th>
                         <th class="py-4 px-6 font-normal text-center">Status</th>
-                        <th class="py-4 px-6 font-normal text-center">Actions</th>
+                        <th class="py-4 px-6 font-normal text-center">Reviewed Applicants</th>
+                        <th class="py-4 px-6 font-normal text-center">New Applicants</th>
                     </tr>
                 </thead>
                 <tbody id="vacancy-list" class="divide-y divide-[#0D2B70]">
@@ -81,12 +82,30 @@
                         <!-- Reviewed Applicants -->
                         <td class="py-4 px-6 text-center">
                             <div class="flex justify-center items-center">
-                                <button onclick="window.location.href='{{ route('admin.manage', ['vacancy_id' => $vacancy->vacancy_id]) }}'" 
+                                <button onclick="window.location.href='{{ route('admin.reviewed', ['vacancy_id' => $vacancy->vacancy_id]) }}'" 
                                     class="text-[#0D2B70] border border-[#0D2B70] font-bold py-1 px-4 rounded-md text-sm
                                     transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
                                     hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md flex items-center gap-2">
                                     <x-heroicon-o-eye class="w-4 h-4" />
-                                    <span>Manage</span>
+                                    <span>View Reviewed</span>
+                                </button>
+                            </div>
+                        </td>
+
+                        <!-- New Applicants -->
+                        <td class="py-4 px-6 text-center">
+                            <div class="flex justify-center items-center relative">
+                                <button onclick="window.location.href='{{ route('admin.applicants', ['vacancy_id' => $vacancy->vacancy_id]) }}'" 
+                                    class="text-[#0D2B70] border border-[#0D2B70] font-bold py-1 px-4 rounded-md text-sm
+                                    transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
+                                    hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md flex items-center gap-2 relative">
+                                    <x-heroicon-o-user-group class="w-4 h-4" />
+                                    <span>New Applicants</span>
+                                    @if($vacancy->pending_count > 0)
+                                    <span class="absolute top-0 right-0 -mt-2 -mr-2 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full leading-none z-10 shadow-sm border border-white">
+                                        {{ $vacancy->pending_count }}
+                                    </span>
+                                    @endif
                                 </button>
                             </div>
                         </td>
