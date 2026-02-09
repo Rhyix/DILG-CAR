@@ -158,7 +158,7 @@
     </div>
 
   </form>
-    <!-- Action buttons -->
+      <!-- Action buttons -->
     <div class="flex justify-end gap-4">
       <button id="vacancy-discard-btn" type="button" onclick="history.back()" class="border-2 border-red-600 hover:bg-red-600 hover:text-white 
       text-red-600 px-4 py-2 rounded-md flex items-center gap-2">
