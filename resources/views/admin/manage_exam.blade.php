@@ -2,9 +2,9 @@
 @section('title', 'DILG - Manage Exam')
 @section('content')
 
-<main class="w-full max-w-7xl h-[calc(100vh-6rem)] flex flex-col space-y-4 overflow-hidden">
+<main class="w-full mx-auto h-[calc(100vh-6rem)] flex flex-col space-y-4 overflow-hidden px-4 lg:px-0">
     <!-- header -->
-    <section class="flex-none flex items-center justify-between space-x-4 max-w-full border-b border-[#0D2B70]">
+    <section class="flex-none flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 max-w-full border-b border-[#0D2B70] pb-4">
         <div class="flex items-center gap-4">
             <button aria-label="Back" onclick="window.location.href='{{ route('admin_exam_management') }}'" class="use-loader group">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-[#0D2B70] hover:opacity-80 transition" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
@@ -12,7 +12,7 @@
                 </svg>
             </button>
             <h1 class="flex items-center gap-3 py-2 tracking-wide select-none">
-                <span class="text-[#0D2B70] text-4xl font-montserrat whitespace-nowrap">Exam Overview</span>
+                <span class="text-[#0D2B70] text-2xl md:text-3xl lg:text-4xl font-montserrat">Exam Overview</span>
             </h1>
         </div>
 
@@ -52,7 +52,7 @@
         @endphp
 
         @if($statusMessage)
-            <div class="px-4 py-1 border-l-4 rounded shadow-sm flex items-center gap-3 {{ $statusClass }} mr-4">
+            <div class="px-4 py-1 border-l-4 rounded shadow-sm flex items-center gap-3 {{ $statusClass }} lg:mr-4 w-full lg:w-auto">
                 <div class="flex items-center gap-2">
                     @if($isExamActive)
                         <span class="relative flex h-2 w-2">
@@ -76,8 +76,8 @@
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
             <!-- Left Info -->
             <div class="text-sm text-[#002C76] font-montserrat">
-                <span class="text-3xl">{{ $vacancy->position_title }}</span>
-                <p><span class="font-bold">VACANCY ID:</span> {{ $vacancy->vacancy_id }}, {{ $vacancy->vacancy_type }} Position</p>
+                <span class="text-xl md:text-2xl lg:text-3xl block">{{ $vacancy->position_title }}</span>
+                <p class="text-xs md:text-sm"><span class="font-bold">VACANCY ID:</span> {{ $vacancy->vacancy_id }}, {{ $vacancy->vacancy_type }} Position</p>
             </div>
 
         </div>
@@ -87,17 +87,17 @@
 
     </section>
 
-    <div class="flex-1 flex flex-row min-h-0 gap-4 pb-4">
+    <div class="flex-1 flex flex-col lg:flex-row min-h-0 gap-4 pb-4 overflow-auto lg:overflow-hidden">
         <!-- TABLE -->
-        <div class="w-[70%] flex flex-col rounded-xl border border-[#0D2B70] overflow-hidden">
+        <div class="w-full lg:w-[70%] flex flex-col rounded-xl border border-[#0D2B70] overflow-hidden min-h-[300px] lg:min-h-0">
             <div class="flex-none bg-[#0D2B70] text-white">
                 <table class="w-full text-left border-collapse">
                     <thead class="bg-[#0D2B70] text-white">
                         <tr>
-                            <th class="py-4 px-6 text-left font-bold uppercase text-sm tracking-wider w-[30%]">Name</th>
-                            <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider w-[20%]">Score</th>
-                            <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider w-[25%]">Status</th>
-                            <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider w-[25%]">Action</th>
+                            <th class="py-3 px-3 md:py-4 md:px-6 text-left font-bold uppercase text-xs md:text-sm tracking-wider w-[35%] md:w-[30%]">Name</th>
+                            <th class="py-3 px-3 md:py-4 md:px-6 text-center font-bold uppercase text-xs md:text-sm tracking-wider w-[15%] md:w-[20%]">Score</th>
+                            <th class="py-3 px-3 md:py-4 md:px-6 text-center font-bold uppercase text-xs md:text-sm tracking-wider w-[25%]">Status</th>
+                            <th class="py-3 px-3 md:py-4 md:px-6 text-center font-bold uppercase text-xs md:text-sm tracking-wider w-[25%]">Action</th>
                         </tr>
                     </thead>
                 </table>
@@ -109,18 +109,18 @@
                             @foreach ($participants as $index => $p)
                             <tr class="hover:bg-blue-50 transition-colors duration-200">
                                 <!-- Name -->
-                                <td class="py-4 px-6 text-[#0D2B70] font-semibold w-[30%]">
+                                <td class="py-3 px-3 md:py-4 md:px-6 text-[#0D2B70] font-semibold text-xs md:text-sm w-[35%] md:w-[30%]">
                                     {{ $user_name[$index] ?? 'Unknown User' }}
                                 </td>
 
                                 <!-- Score -->
-                                <td class="py-4 px-6 text-center text-[#0D2B70] font-medium w-[20%]">
+                                <td class="py-3 px-3 md:py-4 md:px-6 text-center text-[#0D2B70] font-medium text-xs md:text-sm w-[15%] md:w-[20%]">
                                     {{ $p->result ?: '-' }}
                                 </td>
 
                                 <!-- Status -->
-                                <td class="py-4 px-6 text-center w-[25%]">
-                                    <div class="inline-flex items-center gap-2 text-[#0D2B70] font-medium">
+                                <td class="py-3 px-3 md:py-4 md:px-6 text-center w-[25%]">
+                                    <div class="inline-flex items-center gap-1 md:gap-2 text-[#0D2B70] font-medium text-xs md:text-sm">
                                         @php
                                             $statusColors = [
                                                 'ready' => '#4ade80',        // green-400
@@ -138,12 +138,12 @@
                                 </td>
 
                                 <!-- Action Button -->
-                                <td class="py-4 px-6 text-center w-[25%]">
-                                    <button class="text-[#0D2B70] border border-[#0D2B70] font-bold py-2 px-6 rounded-md text-sm
+                                <td class="py-3 px-3 md:py-4 md:px-6 text-center w-[25%]">
+                                    <button class="text-[#0D2B70] border border-[#0D2B70] font-bold py-1.5 px-3 md:py-2 md:px-6 rounded-md text-xs md:text-sm
                                             transition-all duration-150 ease-[cubic-bezier(0.4,0,0.2,1)]
-                                            hover:scale-105 hover:bg-[#002C76] hover:text-white hover:shadow-md inline-flex items-center gap-2">
-                                        <x-heroicon-o-eye class="w-4 h-4" />
-                                        <span>View</span>
+                                            hover:scale-105 hover:bg-[#002C76] hover:text-white hover:shadow-md inline-flex items-center gap-1 md:gap-2">
+                                        <x-heroicon-o-eye class="w-3 h-3 md:w-4 md:h-4" />
+                                        <span class="hidden sm:inline">View</span>
                                     </button>
                                 </td>
                             </tr>
@@ -161,12 +161,12 @@
         </div>
 
         <!--     scheduling form, buttons -->
-        <div class="w-[30%] flex flex-col justify-between h-full px-2">
+        <div class="w-full lg:w-[30%] lg:min-w-[320px] flex flex-col justify-between h-full px-2 lg:px-2 mt-4 lg:mt-0">
             <form id="examDetailsForm" class="flex flex-col h-full no-spinner">
             @csrf
             <!-- Top Section: Form and Primary Actions -->
             <div class="flex flex-col gap-4">
-                <span class="text-3xl text-[#0D2B70] font-bold">
+                <span class="text-xl md:text-2xl lg:text-3xl text-[#0D2B70] font-bold">
                     Schedule Exam
                 </span>
                                         
@@ -200,9 +200,9 @@
                 </div>
 
                 <!-- STARTING AND ENDING TIME -->
-                <div class="flex flex-row justify-between gap-2">
+                <div class="flex flex-col sm:flex-row justify-between gap-2">
                     <!-- STARTING TIME -->
-                    <div class="flex flex-col w-1/2">
+                    <div class="flex flex-col w-full sm:w-1/2">
                         <label for="time" class="text-[#0D2B70] font-semibold text-sm mb-1">
                             Start Time <span class="text-red-500">*</span>
                         </label>
@@ -216,7 +216,7 @@
                     </div>
 
                     <!-- ENDING TIME -->
-                    <div class="flex flex-col w-1/2">
+                    <div class="flex flex-col w-full sm:w-1/2">
                         <label for="time_end" class="text-[#0D2B70] font-semibold text-sm mb-1">
                             End Time <span class="text-red-500">*</span>
                         </label>
@@ -257,40 +257,40 @@
                 <div class="flex flex-col justify-between gap-2 mt-2">
                     <button type="submit" name="action" value="save_notify" 
                             {{ $isExamActive || $isExamCompleted ? 'disabled' : '' }}
-                            class="w-full px-4 py-2 border border-[#0D2B70] rounded-lg 
+                            class="w-full flex-shrink-0 px-4 py-2 border border-[#0D2B70] rounded-lg 
                             hover:scale-105 flex items-center justify-center gap-2
                             transition-all duration-200 text-[#0D2B70] placeholder-gray-400 font-semibold disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100">
-                        <x-heroicon-o-check class="w-5 h-5" />
-                        <span>Save & Notify Applicants</span>
+                        <x-heroicon-o-check class="w-5 h-5 flex-shrink-0" />
+                        <span class="whitespace-nowrap">Save & Notify Applicants</span>
                     </button>
                     <button type="button" id="notify_button" onclick="notifyApplicants('{{ $vacancy->vacancy_id }}')" 
                             {{ $isExamActive || $isExamCompleted ? 'disabled' : '' }}
-                            class="w-full px-4 py-2 border border-[#0D2B70] rounded-lg 
+                            class="w-full flex-shrink-0 px-4 py-2 border border-[#0D2B70] rounded-lg 
                             hover:scale-105 flex items-center justify-center gap-2
                             transition-all duration-200 text-[#0D2B70] placeholder-gray-400 font-semibold disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100">
-                        <x-heroicon-o-paper-airplane class="w-5 h-5" />
-                        <span>Send Link via Email</span>
+                        <x-heroicon-o-paper-airplane class="w-5 h-5 flex-shrink-0" />
+                        <span class="whitespace-nowrap">Send Link via Email</span>
                     </button>
                 </div>
             </div>
 
 
             <!-- SEND LINK AND EDIT QUESTIONS (Bottom Section) -->
-            <div class="flex flex-row gap-2 mt-auto">
+            <div class="flex flex-col sm:flex-row gap-2 mt-4">
                 <button type="button" onclick="handleEditClick(event)"
                         {{ $isExamActive || $isExamCompleted ? 'disabled' : '' }}
-                        class="w-full px-4 py-2 bg-[#0D2B70] rounded-lg 
+                        class="w-full flex-shrink-0 px-4 py-2 bg-[#0D2B70] rounded-lg 
                         hover:scale-105 flex items-center justify-center gap-2
                         transition-all duration-200 text-white placeholder-gray-400 font-semibold disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100">
-                    <x-heroicon-o-pencil-square class="w-5 h-5" />
-                    <span>Edit Questions</span>
+                    <x-heroicon-o-pencil-square class="w-5 h-5 flex-shrink-0" />
+                    <span class="whitespace-nowrap">Edit Questions</span>
                 </button>
-                <button type="button" class="w-full px-4 py-2 bg-[#0D2B70] rounded-lg 
+                <button type="button" class="w-full flex-shrink-0 px-4 py-2 bg-[#0D2B70] rounded-lg 
                         hover:scale-105 flex items-center justify-center gap-2
                         transition-all duration-200 text-white placeholder-gray-400 font-semibold disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                         {{ $isExamActive || $isExamCompleted ? 'disabled' : '' }}>
-                    <x-heroicon-o-play class="w-5 h-5" />
-                    <span>Start Exam</span>
+                    <x-heroicon-o-play class="w-5 h-5 flex-shrink-0" />
+                    <span class="whitespace-nowrap">Start Exam</span>
                 </button>
 
             </div>
