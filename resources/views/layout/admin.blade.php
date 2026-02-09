@@ -35,7 +35,7 @@
         }
 
         .sidebar-transition {
-            transition: width 0.4s ease, padding 0.4s ease;
+            transition: width 0.25s ease, padding 0.25s ease;
         }
 
         .sidebar-text-hidden {
@@ -43,18 +43,18 @@
             pointer-events: none;
             width: 0;
             overflow: hidden;
-            transition: all 0.3s ease;
+            transition: none;
         }
 
         .sidebar-text-visible {
             opacity: 1;
             pointer-events: auto;
             width: auto;
-            transition: all 0.3s ease;
+            transition: opacity 0.15s ease;
         }
 
         .logo-transition {
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
         }
 
         .logo-small {
@@ -81,30 +81,38 @@
             align-items: center;
         }
 
-            /* Custom scrollbar for left panel */
-    .scrollbar-thin::-webkit-scrollbar {
-      width: 6px;
-    }
-    .scrollbar-thin::-webkit-scrollbar-track {
-      background: transparent;
-    }
-    .scrollbar-thin::-webkit-scrollbar-thumb {
-      background-color: #374151; /* Tailwind gray-700 */
-      border-radius: 9999px;
-    }
+        /* Custom scrollbar for left panel */
+        .scrollbar-thin::-webkit-scrollbar {
+            width: 6px;
+        }
 
-    input[type=number]::-webkit-inner-spin-button,
-    input[type=number]::-webkit-outer-spin-button {
-        -webkit-appearance: none;
-        margin: 0;
-    }
+        .scrollbar-thin::-webkit-scrollbar-track {
+            background: transparent;
+        }
 
-    input[type=number] {
-            -moz-appearance: textfield; /* Firefox */
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+            background-color: #374151;
+            /* Tailwind gray-700 */
+            border-radius: 9999px;
+        }
+
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        input[type=number] {
+            -moz-appearance: textfield;
+            /* Firefox */
             appearance: textfield;
         }
 
-
+        /* Disable transitions on page load */
+        .sidebar-preload,
+        .sidebar-preload * {
+            transition: none !important;
+        }
     </style>
 
     @stack('styles')
@@ -118,111 +126,250 @@
         {{-- Sidebar --}}
         @include('partials.sidebar_admin')
 
+        {{-- Immediate sidebar initialization to prevent glitch --}}
+        <script>
+            (function () {
+                const sidebar = document.getElementById('sidebar');
+                const logo = document.querySelector('img[alt="DILG Logo"]');
+                const textElements = [
+                    "sidebarText", "textHome", "textJobVacancies", "textMyApplications",
+                    "textPersonalDataSheet", "textAboutWebsite", "textLogOut", "textActivityLog"
+                ].map(id => document.getElementById(id));
+                
+                const isMobile = window.innerWidth < 1024;
+                const isOpen = localStorage.getItem('sidebarOpen') === 'true';
+
+                // Apply state immediately
+                if (isMobile) {
+                    sidebar.classList.add('w-16', '-translate-x-full');
+                    sidebar.classList.remove('w-72', 'translate-x-0');
+                    if (logo) logo.classList.add('logo-small');
+                    textElements.forEach(el => {
+                        if (el) {
+                            el.classList.add('sidebar-text-hidden');
+                            el.classList.remove('sidebar-text-visible');
+                        }
+                    });
+                } else {
+                    if (isOpen) {
+                        sidebar.classList.remove('w-16', '-translate-x-full');
+                        sidebar.classList.add('w-72', 'translate-x-0');
+                        if (logo) logo.classList.remove('logo-small');
+                        textElements.forEach(el => {
+                            if (el) {
+                                el.classList.remove('sidebar-text-hidden');
+                                el.classList.add('sidebar-text-visible');
+                            }
+                        });
+                    } else {
+                        sidebar.classList.add('w-16');
+                        sidebar.classList.remove('w-72', 'translate-x-0', '-translate-x-full');
+                        if (logo) logo.classList.add('logo-small');
+                        textElements.forEach(el => {
+                            if (el) {
+                                el.classList.add('sidebar-text-hidden');
+                                el.classList.remove('sidebar-text-visible');
+                            }
+                        });
+                    }
+                }
+
+                // Make visible immediately
+                sidebar.style.visibility = 'visible';
+                
+                // Remove preload class after a tiny delay
+                setTimeout(() => {
+                    sidebar.classList.remove('sidebar-preload');
+                }, 50);
+            })();
+        </script>
+
         {{-- Main Content Scrollable --}}
-        <main class="flex-1 overflow-y-auto p-10 pt-8 space-y-10">
+        <main class="flex-1 overflow-y-auto p-10 pt-8 space-y-10 relative">
+            <!-- Mobile Menu Button (visible only on mobile) -->
+            <button id="mobileMenuButton" onclick="window.openSidebar ? window.openSidebar() : null"
+                class="lg:hidden fixed top-4 left-4 z-20 bg-[#002C76] text-white p-3 rounded-lg shadow-lg hover:bg-[#001a4d] transition-all duration-200"
+                aria-label="Open menu">
+                <i data-feather="menu" class="w-6 h-6"></i>
+            </button>
+
             @yield('content')
         </main>
 
     </div>
 </body>
 
-    <!-- JS Scripts -->
-    <script>
-        feather.replace();
+<!-- JS Scripts -->
+<script>
+    feather.replace();
 
-        const sidebar = document.getElementById('sidebar');
-        const textElements = [
-            "sidebarText",
-            "textHome",
-            "textJobVacancies",
-            "textMyApplications",
-            "textPersonalDataSheet",
-            "textAboutWebsite",
-            "textLogOut",
-            "textActivityLog"
-        ].map(id => document.getElementById(id));
+    const sidebar = document.getElementById('sidebar');
+    const sidebarOverlay = document.getElementById('sidebarOverlay');
+    const textElements = [
+        "sidebarText",
+        "textHome",
+        "textJobVacancies",
+        "textMyApplications",
+        "textPersonalDataSheet",
+        "textAboutWebsite",
+        "textLogOut",
+        "textActivityLog"
+    ].map(id => document.getElementById(id));
 
-        const logo = document.querySelector('img[alt="DILG Logo"]');
-        const toggleButton = document.getElementById('toggleSidebar');
-        let isOpen = localStorage.getItem('sidebarOpen') === 'true'; // Retrieve sidebar state from localStorage
+    const logo = document.querySelector('img[alt="DILG Logo"]');
+    const toggleButton = document.getElementById('toggleSidebar');
 
-        function openSidebar() {
-            sidebar.classList.remove('w-16');
-            sidebar.classList.add('w-72');
-            logo.classList.remove('logo-small');
-            textElements.forEach(el => {
+    // Check if we're on mobile
+    const isMobile = () => window.innerWidth < 1024;
+
+    // Retrieve sidebar state from localStorage (default to false/closed)
+    let isOpen = localStorage.getItem('sidebarOpen') === 'true';
+
+    function openSidebar() {
+        sidebar.classList.remove('w-16', '-translate-x-full');
+        sidebar.classList.add('w-72', 'translate-x-0');
+        logo.classList.remove('logo-small');
+        textElements.forEach(el => {
+            if (el) {
                 el.classList.remove('sidebar-text-hidden');
                 el.classList.add('sidebar-text-visible');
-            });
-            isOpen = true;
-            localStorage.setItem('sidebarOpen', 'false'); // Save state to localStorage
+            }
+        });
+
+        // Show overlay on mobile
+        if (isMobile() && sidebarOverlay) {
+            sidebarOverlay.classList.remove('hidden');
+            // Prevent body scroll on mobile when sidebar is open
+            document.body.style.overflow = 'hidden';
         }
 
-        function closeSidebar() {
-            sidebar.classList.remove('w-72');
-            sidebar.classList.add('w-16');
-            logo.classList.add('logo-small');
-            textElements.forEach(el => {
+        // Hide mobile menu button when sidebar is open
+        const mobileMenuButton = document.getElementById('mobileMenuButton');
+        if (mobileMenuButton && isMobile()) {
+            mobileMenuButton.style.display = 'none';
+        }
+
+        isOpen = true;
+        localStorage.setItem('sidebarOpen', 'true');
+    }
+
+    function closeSidebar() {
+        sidebar.classList.remove('w-72', 'translate-x-0');
+        sidebar.classList.add('w-16');
+
+        // On mobile, slide it off-screen
+        if (isMobile()) {
+            sidebar.classList.add('-translate-x-full');
+        }
+
+        logo.classList.add('logo-small');
+        textElements.forEach(el => {
+            if (el) {
                 el.classList.remove('sidebar-text-visible');
                 el.classList.add('sidebar-text-hidden');
-            });
-            isOpen = false;
-            localStorage.setItem('sidebarOpen', 'false'); // Save state to localStorage
-        }
-
-        toggleButton?.addEventListener('click', () => {
-            if (isOpen) {
-                closeSidebar();
-            } else {
-                openSidebar();
             }
         });
 
-        window.onload = () => {
-            if (isOpen) {
-                openSidebar();
-            } else {
-                closeSidebar();
+        // Hide overlay
+        if (sidebarOverlay) {
+            sidebarOverlay.classList.add('hidden');
+            // Re-enable body scroll
+            document.body.style.overflow = '';
+        }
+
+        // Show mobile menu button when sidebar is closed
+        const mobileMenuButton = document.getElementById('mobileMenuButton');
+        if (mobileMenuButton && isMobile()) {
+            mobileMenuButton.style.display = 'block';
+        }
+
+        isOpen = false;
+        localStorage.setItem('sidebarOpen', 'false');
+    }
+
+    // Make functions globally accessible
+    window.closeSidebar = closeSidebar;
+    window.openSidebar = openSidebar;
+
+    toggleButton?.addEventListener('click', () => {
+        if (isOpen) {
+            closeSidebar();
+        } else {
+            openSidebar();
+        }
+    });
+
+    // Handle window resize - close sidebar on mobile when resizing
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+            if (isMobile() && isOpen) {
+                // On mobile, if sidebar is open, keep it open but ensure overlay is visible
+                if (sidebarOverlay) {
+                    sidebarOverlay.classList.remove('hidden');
+                }
+            } else if (!isMobile()) {
+                // On desktop, remove mobile-specific classes
+                sidebar.classList.remove('-translate-x-full');
+                if (sidebarOverlay) {
+                    sidebarOverlay.classList.add('hidden');
+                }
+                document.body.style.overflow = '';
             }
-        };
+        }, 250);
+    });
 
-        const form = document.querySelector('form');
-        const loader = document.getElementById('loader');
+    // Initialize feather icons only (state already applied inline)
+    function initializeSidebarState() {
+        // Just initialize feather icons
+        feather.replace();
+    }
 
-        if (form) {
-            form.addEventListener('submit', () => {
+    // Call initialization for feather icons
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeSidebarState);
+    } else {
+        initializeSidebarState();
+    }
+
+    const form = document.querySelector('form');
+    const loader = document.getElementById('loader');
+
+    if (form) {
+        form.addEventListener('submit', () => {
+            loader?.classList.remove('hidden');
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('a.use-loader').forEach(link => {
+            link.addEventListener('click', function (e) {
+                e.preventDefault();
                 loader?.classList.remove('hidden');
+                setTimeout(() => {
+                    window.location.href = this.href;
+                }, 100);
             });
+        });
+    });
+
+    window.addEventListener('pageshow', function (event) {
+        if (event.persisted) {
+            document.querySelector('.background')?.classList.add('hidden');
         }
+    });
 
-        document.addEventListener('DOMContentLoaded', () => {
-            document.querySelectorAll('a.use-loader').forEach(link => {
-                link.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    loader?.classList.remove('hidden');
-                    setTimeout(() => {
-                        window.location.href = this.href;
-                    }, 100);
-                });
-            });
-        });
+    function viewPDF(filePath, title = 'Document') {
+        const previewContainer = document.getElementById('pdf-preview');
 
-        window.addEventListener('pageshow', function (event) {
-            if (event.persisted) {
-                document.querySelector('.background')?.classList.add('hidden');
-            }
-        });
-
-        function viewPDF(filePath, title = 'Document') {
-            const previewContainer = document.getElementById('pdf-preview');
-
-            previewContainer.innerHTML = `
+        previewContainer.innerHTML = `
                 <div class="border rounded-lg shadow p-4 mt-4">
                     <p class="font-semibold text-gray-700 mb-2">📄 ${title}</p>
                     <embed src="${filePath}" type="application/pdf" class="w-full h-96 rounded border">
                 </div>
             `;
-        }
+    }
 
 </script>
 
