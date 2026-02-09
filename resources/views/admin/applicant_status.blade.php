@@ -18,16 +18,11 @@
         @endif
 
           <!-- Header -->
-        <section class="flex items-center gap-4 mb-3">
-          <button onclick="goBack()"
-            class="use-loader w-14 h-14 rounded-full bg-[#D9D9D9] flex items-center justify-center shadow-md hover:bg-opacity-90 transition hover:bg-[#002c76]">
-            <i data-feather="arrow-left" class="w-5 h-5 text-[#09244B] hover:text-white"></i>
-          </button>
-          <h1
-            class="w-full max-w-full text-4xl font-extrabold text-white font-montserrat flex items-center gap-3 bg-[#002C76] px-4 py-2 rounded-lg shadow-md">
-            <i data-feather="folder" class="w-6 h-6 text-white"></i> Applicant Status
-          </h1>
-        </section>
+          <section class="flex-none flex items-center space-x-4 max-w-full">
+              <h1 class="flex items-center gap-3 w-full border-b border-[#0D2B70] text-white text-4xl font-montserrat py-2 tracking-wide select-none">
+                  <span class="whitespace-nowrap text-[#0D2B70]">Applicant Status</span>
+              </h1>
+          </section>
         <form method="POST" action="{{ route('admin.applicant_status.update', [$user_id, $vacancy_id]) }}">
           @csrf
           <div class="flex items-center justify-between mb-6">
@@ -37,30 +32,6 @@
                 @else
                     LAST MODIFIED BY: <span class="italic text-gray-500">Not modified yet</span>
                 @endif
-            </div>
-            <!-- Buttons (OPTIONAL: Show buttons only when changes are made) -->
-            <div class="flex space-x-4">
-                <!-- Discard Button -->
-                <button
-                    type="button"
-                    onclick="confirmDiscard()"
-                    class="flex items-center px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600">
-                    <span class="mr-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
-                        </svg>
-                    </span>
-                    DISCARD CHANGES
-                </button>
-                
-                <!-- Save Button -->
-                <button type="submit" class="use-loader flex items-center px-4 py-2 bg-green-500 text-white font-bold rounded-lg hover:bg-green-600" id="submit-btn">
-                    <span class="mr-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.746 3.746 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z" />
-                        </svg>
-                    </span> SAVE AND NOTIFY APPLICANT
-                </button>
             </div>
           </div>
           <section class="flex items-center justify-between mb-6">  
@@ -421,8 +392,64 @@
                     style="min-height: 200px; text-align: start;"
                 >{{ old('application_remarks', $application->application_remarks ?? $defaultRemarks) }}</textarea>
               </div>
+
       </div>
-    
+          <!-- Buttons -->
+          <div class="flex flex-row justify-between gap-4 mt-4 w-full">
+            <!-- Notify Button -->
+              <button
+                type="submit"
+                id="submit-btn"
+                class="use-loader flex items-center px-4 py-2 bg-[#0D2B70] text-white font-bold rounded-lg hover:bg-green-600 shadow-lg">
+                
+                <span class="mr-2">
+                  <svg xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke-width="1.5"
+                      stroke="currentColor"
+                      class="size-6">
+                    <path stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M6 12L3.269 3.125A59.768 59.768 0 0 1 21.485 12 59.77 59.77 0 0 1 3.27 20.875L6 12Zm0 0h7.5" />
+                  </svg>
+                </span>
+
+                NOTIFY APPLICANT
+              </button>
+
+
+              <div class="flex flex-row gap-4">
+                <!-- Discard Button -->
+                <button
+                    type="button"
+                    onclick="confirmDiscard()"
+                    class="flex items-center px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 shadow-lg">
+                    <span class="mr-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                        </svg>
+                    </span>
+                    DISCARD CHANGES
+                </button>
+
+                <!-- Save Button -->
+                <button
+                    type="submit"
+                    id="submit-btn"
+                    class="use-loader flex items-center px-4 py-2 bg-green-500 text-white font-bold rounded-lg hover:bg-green-600 shadow-lg">
+                    <span class="mr-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.746 3.746 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z" />
+                        </svg>
+                    </span>
+                    SAVE
+                </button>
+              </div>
+              
+
+              
+          </div>
   </div>
   
 
