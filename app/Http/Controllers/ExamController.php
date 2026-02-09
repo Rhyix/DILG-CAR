@@ -25,8 +25,8 @@ class ExamController extends Controller
         ]);
 
         $answerRecord = Applications::where('vacancy_id', $validated['vacancy_id'])
-        ->where('user_id', $validated['user_id'])
-        ->firstOrFail();
+            ->where('user_id', $validated['user_id'])
+            ->firstOrFail();
 
         // Update the answers field
         $answerRecord->answers = $validated['answers'];
@@ -36,10 +36,10 @@ class ExamController extends Controller
         //info($message);
 
         activity()
-        ->causedBy(auth()->user())
-        ->event('submit')
-        ->withProperties(['vacancy_id' => $vacancy_id, 'user_id' => $validated['user_id'], 'section' => 'Exam'])
-        ->log('Submitted exam answers.');
+            ->causedBy(auth()->user())
+            ->event('submit')
+            ->withProperties(['vacancy_id' => $vacancy_id, 'user_id' => $validated['user_id'], 'section' => 'Exam'])
+            ->log('Submitted exam answers.');
 
         return redirect()->route('user.exam_thankyou', compact('vacancy_id', ));
     }
@@ -63,6 +63,7 @@ class ExamController extends Controller
     {
         //info('edit_exam');
         $exam_items = ExamItems::where('vacancy_id', $vacancy_id)->get();
+        $vacancy = JobVacancy::select('position_title', 'vacancy_type')->where('vacancy_id', $vacancy_id)->firstOrFail();
 
         activity()
             ->causedBy(auth('admin')->user())
@@ -70,7 +71,7 @@ class ExamController extends Controller
             ->withProperties(['vacancy_id' => $vacancy_id, 'section' => 'Exam Management'])
             ->log('Accessed edit exam page.');
 
-        return view('admin.exam_edit', ['exam_items' => $exam_items, 'vacancy_id' => $vacancy_id]);
+        return view('admin.exam_edit', ['exam_items' => $exam_items, 'vacancy_id' => $vacancy_id, 'vacancy' => $vacancy]);
     }
 
     public function updateExam(Request $request, $vacancy_id)
@@ -79,30 +80,62 @@ class ExamController extends Controller
 
         // Validate if needed
         foreach ($questions as $q) {
-            // Example validation logic per question
-            if (!isset($q['text']) || empty($q['text'])) {
+            // Check question text - frontend now uses 'text' field
+            $questionText = $q['text'] ?? $q['duration'] ?? '';
+
+            if (empty($questionText)) {
                 return back()->withErrors(['msg' => 'Each question must have text.']);
             }
         }
+
         $existingItemsCount = ExamItems::where('vacancy_id', $vacancy_id)->count();
 
         // Example: if you want to delete existing and insert all new questions
         ExamItems::where('vacancy_id', $vacancy_id)->delete();
 
         foreach ($questions as $q) {
-            ExamItems::insert([
+            // Handle correct answer index for MCQ
+            $ans = null;
+            $choices = null; // Default to null for non-MCQ
+
+            if ($q['type'] === 'MCQ') {
+                // For create(), we pass the array directly if casting is enabled, 
+                // but let's stick to explicit control to match the fillable logic.
+                // Actually, since we are switching to create(), we can pass array if cast is present.
+                // But let's verify casts. ExamItems has 'choices' => 'array'.
+                // So we should pass the ARRAY, and Eloquent will JSON encode it.
+                $choices = $q['choices'];
+
+                // If correctAnswer index is provided (from frontend), map it to the actual choice value
+                if (isset($q['correctAnswer']) && isset($q['choices'][$q['correctAnswer']])) {
+                    $ans = $q['choices'][$q['correctAnswer']];
+                } else {
+                    // Fallback: if 'answer' string is sent directly
+                    $ans = $q['answer'] ?? null;
+                }
+            } else {
+                // Essay logic
+                $ans = null;
+                $choices = null;
+            }
+
+            // Map question text (frontend now uses 'text' field consistently)
+            $questionText = $q['text'] ?? $q['duration'] ?? '';
+
+            // Use create() to ensure fillable protection and automatic casting
+            ExamItems::create([
                 'vacancy_id' => $vacancy_id,
-                'question' => $q['text'],
+                'question' => $questionText,
                 'is_essay' => $q['type'] === 'Essay' ? 1 : 0,
-                'ans' => $q['type'] === 'MCQ' ? $q['answer'] : null,
-                'choices' => $q['type'] === 'MCQ' ? json_encode($q['choices']) : null,
-                'updated_at' => now(),
+                'ans' => $ans,
+                'choices' => $choices,
+                // 'duration' is excluded as it's likely not in the DB schema
             ]);
         }
 
         $exam_items = ExamItems::where('vacancy_id', $vacancy_id)->get();
 
-        $action = ($existingItemsCount > 0) ? 'update' : 'ureate';
+        $action = ($existingItemsCount > 0) ? 'update' : 'create';
 
         activity()
             ->causedBy(auth('admin')->user())
@@ -111,7 +144,7 @@ class ExamController extends Controller
             ->log($action . 'd exam questions.');
 
 
-        return redirect()->route('admin.exam.edit', ['exam_items' => $exam_items, 'vacancy_id' => $vacancy_id])->with('success', 'Exam updated successfully.');
+        return redirect()->route('admin.exam.edit', ['vacancy_id' => $vacancy_id])->with('success', 'Exam updated successfully.');
     }
 
     public function examManagement(Request $request)
@@ -123,9 +156,9 @@ class ExamController extends Controller
         $jobVacancies = JobVacancy::query()
             ->with(['examDetail']) // Eager load the relationship
             ->when($search, function ($query, $search) {
-                $query->where(function($q) use ($search) {
+                $query->where(function ($q) use ($search) {
                     $q->where('position_title', 'like', '%' . $search . '%')
-                      ->orWhere('vacancy_id', 'like', '%' . $search . '%');
+                        ->orWhere('vacancy_id', 'like', '%' . $search . '%');
                 });
             })
             ->when($jobType, function ($query, $jobType) {
@@ -133,24 +166,24 @@ class ExamController extends Controller
             })
             ->orderBy('created_at', 'desc')
             ->get();
-        
+
         // Append status to each vacancy
         $jobVacancies->transform(function ($vacancy) {
             $status = 'Unscheduled';
             if ($vacancy->examDetail) {
                 $detail = $vacancy->examDetail;
                 if ($detail->date && $detail->time && $detail->duration) {
-                     $startDateTime = \Carbon\Carbon::parse($detail->date . ' ' . $detail->time);
-                     $endDateTime = $startDateTime->copy()->addMinutes($detail->duration);
-                     $now = now();
+                    $startDateTime = \Carbon\Carbon::parse($detail->date . ' ' . $detail->time);
+                    $endDateTime = $startDateTime->copy()->addMinutes($detail->duration);
+                    $now = now();
 
-                     if ($now->between($startDateTime, $endDateTime)) {
-                         $status = 'Ongoing';
-                     } elseif ($now->gt($endDateTime)) {
-                         $status = 'Completed';
-                     } else {
-                         $status = 'Scheduled';
-                     }
+                    if ($now->between($startDateTime, $endDateTime)) {
+                        $status = 'Ongoing';
+                    } elseif ($now->gt($endDateTime)) {
+                        $status = 'Completed';
+                    } else {
+                        $status = 'Scheduled';
+                    }
                 }
             }
             $vacancy->exam_status = $status;
@@ -177,12 +210,12 @@ class ExamController extends Controller
 
     public function manageExam(Request $request, $vacancy_id)
     {
-        $vacancy = JobVacancy::select('vacancy_id','position_title', 'vacancy_type')->where('vacancy_id', $vacancy_id)->first();
+        $vacancy = JobVacancy::select('vacancy_id', 'position_title', 'vacancy_type')->where('vacancy_id', $vacancy_id)->first();
         $participants = Applications::where('vacancy_id', $vacancy_id)->get();
         $examDetails = ExamDetail::where('vacancy_id', $vacancy_id)->first();
 
         $user_name = [];
-        foreach($participants as $p){
+        foreach ($participants as $p) {
             $user_id = $p['user_id'];
             $user = User::find($user_id);
             $user_name[] = $user ? $user->name : 'Unknown User';
@@ -200,7 +233,8 @@ class ExamController extends Controller
         return view('admin.manage_exam', ['vacancy' => $vacancy, 'participants' => $participants, 'user_name' => $user_name, 'examDetails' => $examDetails]);
     }
 
-    public function examLobby(Request $request, $vacancy_id){
+    public function examLobby(Request $request, $vacancy_id)
+    {
 
         activity()
             ->causedBy(auth()->user())
@@ -210,7 +244,8 @@ class ExamController extends Controller
         return view('exam_user.exam_lobby', $vacancy_id);
     }
 
-    public function examQuestion(Request $request, $vacancy_id){
+    public function examQuestion(Request $request, $vacancy_id)
+    {
         $columns = Schema::getColumnListing('exam_items');
         $columns = array_diff($columns, ['ans']);
 
@@ -225,14 +260,15 @@ class ExamController extends Controller
             ->withProperties(['vacancy_id' => $vacancy_id, 'section' => 'Exam'])
             ->log('Viewed exam questions page.');
 
-        return view('exam_user.exam_question_page',  compact('vacancy_id', 'examItems'));
+        return view('exam_user.exam_question_page', compact('vacancy_id', 'examItems'));
     }
 
-    public function viewExam(Request $request, $vacancy_id, $user_id ){
+    public function viewExam(Request $request, $vacancy_id, $user_id)
+    {
         //dd($request->all());
         info($user_id);
-        $application = Applications::select('user_id','answers', 'scores')->where('user_id', $user_id)->where('vacancy_id', $vacancy_id)->firstOrFail();
-        $examItems = ExamItems::select('id','question', 'ans', 'is_essay')->where('vacancy_id', $vacancy_id)->get();
+        $application = Applications::select('user_id', 'answers', 'scores')->where('user_id', $user_id)->where('vacancy_id', $vacancy_id)->firstOrFail();
+        $examItems = ExamItems::select('id', 'question', 'ans', 'is_essay')->where('vacancy_id', $vacancy_id)->get();
         $positionTitle = JobVacancy::select('position_title')->where('vacancy_id', $vacancy_id)->firstOrFail();
         $userName = User::select('name')->find($user_id);
 
@@ -268,21 +304,24 @@ class ExamController extends Controller
             ->withProperties(['vacancy_id' => $vacancy_id, 'user_id' => $user_id, 'section' => 'Exam Management'])
             ->log('Viewed applicant exam answers.');
 
-        return view('admin.exam_view_answers', ['examResults' => $examResults,
-                                                'positionTitle' => $positionTitle,
-                                                'vacancy_id' => $vacancy_id,
-                                                'user_id' => $user_id,
-                                                'userName' => $userName]);
+        return view('admin.exam_view_answers', [
+            'examResults' => $examResults,
+            'positionTitle' => $positionTitle,
+            'vacancy_id' => $vacancy_id,
+            'user_id' => $user_id,
+            'userName' => $userName
+        ]);
     }
 
-    public function saveResult(Request $request, $vacancy_id, $user_id){
+    public function saveResult(Request $request, $vacancy_id, $user_id)
+    {
         //dd($request->all());
 
         $scores = $request->input('scores');
         $result = $request->input('result');
 
         $validated = $request->validate([
-        'scores' => 'nullable|array',
+            'scores' => 'nullable|array',
         ]);
 
         Applications::where('vacancy_id', $vacancy_id)
@@ -299,7 +338,7 @@ class ExamController extends Controller
             ->log('Saved exam results.');
 
 
-        return redirect()->route('admin.manage_exam',  ['vacancy_id' => $vacancy_id, 'massage' => 'Result Saved!']);
+        return redirect()->route('admin.manage_exam', ['vacancy_id' => $vacancy_id, 'massage' => 'Result Saved!']);
     }
 
     public function notifyApplicants(Request $request, $vacancy_id)
@@ -309,7 +348,7 @@ class ExamController extends Controller
             $exam_id = $exam_detail->id;
 
             $participants = Applications::where('vacancy_id', $vacancy_id)->get();
-            
+
             if ($participants->isEmpty()) {
                 return response()->json(['success' => false, 'message' => 'No participants found for this vacancy.']);
             }
@@ -333,11 +372,11 @@ class ExamController extends Controller
                 ->log('Queued exam notifications for all applicants.');
 
             return response()->json(['success' => true, 'notified_at' => now()->format('Y-m-d H:i:s'), 'message' => 'Notifications sent successfully.']);
-        
+
         } catch (\Exception $e) {
             Log::error("Error notifying applicants: " . $e->getMessage());
             return response()->json([
-                'success' => false, 
+                'success' => false,
                 'message' => 'Server Error: ' . $e->getMessage()
             ], 500);
         }
@@ -359,7 +398,7 @@ class ExamController extends Controller
         );
 
         $examDetails = ExamDetail::where('vacancy_id', $vacancy_id)->first();
-        
+
         $notified = false;
         $notified_at = null;
 
@@ -377,8 +416,8 @@ class ExamController extends Controller
             ->log('Saved exam schedule and details.');
 
         return response()->json([
-            'success' => true, 
-            'message' => 'Exam details saved.', 
+            'success' => true,
+            'message' => 'Exam details saved.',
             'examDetails' => $examDetails,
             'notified' => $notified,
             'notified_at' => $notified_at
