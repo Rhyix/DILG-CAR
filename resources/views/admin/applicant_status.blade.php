@@ -59,277 +59,275 @@
 									<!-- Main Info Cards -->
 									<div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
-										<!-- Deadline Card -->
-										<div class="bg-white rounded-lg border border-gray-200 p-4 shadow-lg">
-											<div class="text-sm font-semibold text-gray-700 mb-3">Deadline:</div>
-											<div class="flex gap-2">
-												<input type="date" name="deadline_date"
-													class="flex-1 text-sm px-3 py-2 rounded border border-gray-300 focus:ring-2 focus:ring-[#002C76] focus:border-[#002C76] outline-none"
-													value="{{ old('deadline_date', $application->deadline_date ? \Carbon\Carbon::parse($application->deadline_date)->format('Y-m-d') : '') }}">
-												<input type="time" name="deadline_time"
-													class="flex-1 text-sm px-3 py-2 rounded border border-gray-300 focus:ring-2 focus:ring-[#002C76] focus:border-[#002C76] outline-none"
-													value="{{ old('deadline_time', optional(\Carbon\Carbon::parse($application->deadline_time))->format('H:i')) }}">
+										<!-- deadline -->
+										<div class="flex-1">
+											<label class="block text-sm font-semibold text-[#002C76] mb-1">Deadline:</label>
+											<input type="date" name="deadline_date"
+												class="w-full text-sm px-3 py-2 border border-[#002C76] rounded-md focus:outline-none focus:ring-1 focus:ring-[#002C76] shadow-sm"
+												value="{{ old('deadline_date', $application->deadline_date ? \Carbon\Carbon::parse($application->deadline_date)->format('Y-m-d') : '') }}">
+										</div>
+
+										<!-- 3. Time Picker -->
+										<div class="flex-1">
+											<input type="time" name="deadline_time"
+												class="flex-1 text-sm px-3 py-2 rounded border border-gray-300 focus:ring-2 focus:ring-[#002C76] focus:border-[#002C76] outline-none"
+												value="{{ old('deadline_time', optional(\Carbon\Carbon::parse($application->deadline_time))->format('H:i')) }}">
+										</div>
+										<div id="deadlineWarning" class="text-red-500 text-xs mt-2 hidden">
+											<i data-feather="alert-triangle" class="inline w-3 h-3"></i> Deadline passed
+										</div>
+									</div>
+
+									<!-- Qualification Standards Card -->
+									<div class="bg-white rounded-lg border border-gray-200 p-4 shadow-lg">
+										<div class="flex flex-row mb-4 gap-4">
+											<div class="text-sm font-semibold text-gray-700">Qualification Standards:</div>
+
+											<!-- Result -->
+											<div class="flex items-center  cursor-pointer group" onclick="toggleResult(this)">
+												@php
+													$resultStatus = old('qs_result', $application->qs_result ?? 'Not Qualified');
+													$textColor = $resultStatus === 'Qualified' ? 'text-green-600' : 'text-red-600';
+												@endphp
+												<span
+													class="result-text text-sm font-semibold {{ $textColor }} group-hover:opacity-80 transition-opacity"
+													data-state="{{ $resultStatus }}">{{ $resultStatus }}</span>
+												<input type="hidden" name="qs_result" class="result-input"
+													value="{{ $resultStatus }}">
 											</div>
-											<div id="deadlineWarning" class="text-red-500 text-xs mt-2 hidden">
-												<i data-feather="alert-triangle" class="inline w-3 h-3"></i> Deadline passed
+										</div>
+										<div class="grid grid-cols-2 md:grid-cols-4 items-center gap-x-4 gap-y-2">
+											<!-- Education -->
+											<div class="flex items-center  cursor-pointer group"
+												onclick="toggleQS(this.querySelector('.qs-toggle'))">
+												<button type="button"
+													class="qs-toggle w-2.5 h-2.5 shrink-0 rounded-full transition-all {{ old('qs_education', $application->qs_education ?? 'no') == 'yes' ? 'bg-green-500' : 'bg-red-500' }}"
+													data-field="qs_education"
+													data-state="{{ old('qs_education', $application->qs_education ?? 'no') }}">
+												</button>
+												<span class="text-xs text-gray-700 group-hover:text-[#002C76]">Education</span>
+												<input type="hidden" name="qs_education"
+													value="{{ old('qs_education', $application->qs_education ?? 'no') }}">
+											</div>
+
+											<!-- Eligibility -->
+											<div class="flex items-center  cursor-pointer group"
+												onclick="toggleQS(this.querySelector('.qs-toggle'))">
+												<button type="button"
+													class="qs-toggle w-2.5 h-2.5 shrink-0 rounded-full transition-all {{ old('qs_eligibility', $application->qs_eligibility ?? 'no') == 'yes' ? 'bg-green-500' : 'bg-red-500' }}"
+													data-field="qs_eligibility"
+													data-state="{{ old('qs_eligibility', $application->qs_eligibility ?? 'no') }}">
+												</button>
+												<span class="text-xs text-gray-700 group-hover:text-[#002C76]">Eligibility</span>
+												<input type="hidden" name="qs_eligibility"
+													value="{{ old('qs_eligibility', $application->qs_eligibility ?? 'no') }}">
+											</div>
+
+											<!-- Experience -->
+											<div class="flex items-center  cursor-pointer group"
+												onclick="toggleQS(this.querySelector('.qs-toggle'))">
+												<button type="button"
+													class="qs-toggle w-2.5 h-2.5 shrink-0 rounded-full transition-all {{ old('qs_experience', $application->qs_experience ?? 'no') == 'yes' ? 'bg-green-500' : 'bg-red-500' }}"
+													data-field="qs_experience"
+													data-state="{{ old('qs_experience', $application->qs_experience ?? 'no') }}">
+												</button>
+												<span class="text-xs text-gray-700 group-hover:text-[#002C76]">Experience</span>
+												<input type="hidden" name="qs_experience"
+													value="{{ old('qs_experience', $application->qs_experience ?? 'no') }}">
+											</div>
+
+											<!-- Training -->
+											<div class="flex items-center  cursor-pointer group"
+												onclick="toggleQS(this.querySelector('.qs-toggle'))">
+												<button type="button"
+													class="qs-toggle w-2.5 h-2.5 shrink-0 rounded-full transition-all {{ old('qs_training', $application->qs_training ?? 'no') == 'yes' ? 'bg-green-500' : 'bg-red-500' }}"
+													data-field="qs_training"
+													data-state="{{ old('qs_training', $application->qs_training ?? 'no') }}">
+												</button>
+												<span class="text-xs text-gray-700 group-hover:text-[#002C76]">Training</span>
+												<input type="hidden" name="qs_training"
+													value="{{ old('qs_training', $application->qs_training ?? 'no') }}">
+											</div>
+										</div>
+									</div>
+
+									<!-- Application Progress Card -->
+									<div class="bg-white rounded-lg border border-gray-200 p-4 shadow-lg">
+										<div class="text-sm font-semibold text-gray-700 mb-3">Application Progress:</div>
+										<div class="flex items-center gap-3">
+											<!-- Progress Bar -->
+											<div class="flex-1 h-4 bg-gray-300 rounded-full overflow-hidden">
+												<div id="linear-progress-bar"
+													class="h-full bg-[#002C76] transition-all duration-500 ease-out"
+													style="width: 0%">
+												</div>
+											</div>
+
+											<!-- Progress Text -->
+											<div class="flex items-center gap-2">
+												<span id="progress-percentage" class="text-xs font-semibold text-gray-900">0%</span>
+												<span class="text-xs text-gray-500">
+													<span id="progress-count">0/15</span> Documents
+												</span>
+
+												<!-- Info Icon -->
+												<button type="button"
+													onclick="const t = document.getElementById('status-tooltip'); t.classList.toggle('hidden');"
+													class="text-gray-400 hover:text-[#002C76] transition-colors">
+													<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+														viewBox="0 0 24 24" stroke="currentColor">
+														<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+															d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+													</svg>
+												</button>
 											</div>
 										</div>
 
-										<!-- Qualification Standards Card -->
-										<div class="bg-white rounded-lg border border-gray-200 p-4 shadow-lg">
-											<div class="flex flex-row mb-4 gap-4">
-												<div class="text-sm font-semibold text-gray-700">Qualification Standards:</div>
-
-												<!-- Result -->
-												<div class="flex items-center  cursor-pointer group" onclick="toggleResult(this)">
-													@php
-														$resultStatus = old('qs_result', $application->qs_result ?? 'Not Qualified');
-														$textColor = $resultStatus === 'Qualified' ? 'text-green-600' : 'text-red-600';
-													@endphp
-													<span
-														class="result-text text-sm font-semibold {{ $textColor }} group-hover:opacity-80 transition-opacity"
-														data-state="{{ $resultStatus }}">{{ $resultStatus }}</span>
-													<input type="hidden" name="qs_result" class="result-input"
-														value="{{ $resultStatus }}">
-												</div>
+										<!-- Tooltip -->
+										<div id="status-tooltip" class="hidden mt-3 p-3 bg-gray-50 rounded border border-gray-200">
+											<div id="document-status" class="text-xs font-semibold text-red-600 mb-2 text-center">
+												DOCUMENTS SUBMITTED: INCOMPLETE
 											</div>
-											<div class="grid grid-cols-2 md:grid-cols-4 items-center gap-x-4 gap-y-2">
-												<!-- Education -->
-												<div class="flex items-center  cursor-pointer group"
-													onclick="toggleQS(this.querySelector('.qs-toggle'))">
-													<button type="button"
-														class="qs-toggle w-2.5 h-2.5 shrink-0 rounded-full transition-all {{ old('qs_education', $application->qs_education ?? 'no') == 'yes' ? 'bg-green-500' : 'bg-red-500' }}"
-														data-field="qs_education"
-														data-state="{{ old('qs_education', $application->qs_education ?? 'no') }}">
-													</button>
-													<span class="text-xs text-gray-700 group-hover:text-[#002C76]">Education</span>
-													<input type="hidden" name="qs_education"
-														value="{{ old('qs_education', $application->qs_education ?? 'no') }}">
-												</div>
-
-												<!-- Eligibility -->
-												<div class="flex items-center  cursor-pointer group"
-													onclick="toggleQS(this.querySelector('.qs-toggle'))">
-													<button type="button"
-														class="qs-toggle w-2.5 h-2.5 shrink-0 rounded-full transition-all {{ old('qs_eligibility', $application->qs_eligibility ?? 'no') == 'yes' ? 'bg-green-500' : 'bg-red-500' }}"
-														data-field="qs_eligibility"
-														data-state="{{ old('qs_eligibility', $application->qs_eligibility ?? 'no') }}">
-													</button>
-													<span
-														class="text-xs text-gray-700 group-hover:text-[#002C76]">Eligibility</span>
-													<input type="hidden" name="qs_eligibility"
-														value="{{ old('qs_eligibility', $application->qs_eligibility ?? 'no') }}">
-												</div>
-
-												<!-- Experience -->
-												<div class="flex items-center  cursor-pointer group"
-													onclick="toggleQS(this.querySelector('.qs-toggle'))">
-													<button type="button"
-														class="qs-toggle w-2.5 h-2.5 shrink-0 rounded-full transition-all {{ old('qs_experience', $application->qs_experience ?? 'no') == 'yes' ? 'bg-green-500' : 'bg-red-500' }}"
-														data-field="qs_experience"
-														data-state="{{ old('qs_experience', $application->qs_experience ?? 'no') }}">
-													</button>
-													<span class="text-xs text-gray-700 group-hover:text-[#002C76]">Experience</span>
-													<input type="hidden" name="qs_experience"
-														value="{{ old('qs_experience', $application->qs_experience ?? 'no') }}">
-												</div>
-
-												<!-- Training -->
-												<div class="flex items-center  cursor-pointer group"
-													onclick="toggleQS(this.querySelector('.qs-toggle'))">
-													<button type="button"
-														class="qs-toggle w-2.5 h-2.5 shrink-0 rounded-full transition-all {{ old('qs_training', $application->qs_training ?? 'no') == 'yes' ? 'bg-green-500' : 'bg-red-500' }}"
-														data-field="qs_training"
-														data-state="{{ old('qs_training', $application->qs_training ?? 'no') }}">
-													</button>
-													<span class="text-xs text-gray-700 group-hover:text-[#002C76]">Training</span>
-													<input type="hidden" name="qs_training"
-														value="{{ old('qs_training', $application->qs_training ?? 'no') }}">
-												</div>
-											</div>
-										</div>
-
-										<!-- Application Progress Card -->
-										<div class="bg-white rounded-lg border border-gray-200 p-4 shadow-lg">
-											<div class="text-sm font-semibold text-gray-700 mb-3">Application Progress:</div>
-											<div class="flex items-center gap-3">
-												<!-- Progress Bar -->
-												<div class="flex-1 h-4 bg-gray-300 rounded-full overflow-hidden">
-													<div id="linear-progress-bar"
-														class="h-full bg-[#002C76] transition-all duration-500 ease-out"
-														style="width: 0%">
-													</div>
-												</div>
-
-												<!-- Progress Text -->
-												<div class="flex items-center gap-2">
-													<span id="progress-percentage"
-														class="text-xs font-semibold text-gray-900">0%</span>
-													<span class="text-xs text-gray-500">
-														<span id="progress-count">0/15</span> Documents
-													</span>
-
-													<!-- Info Icon -->
-													<button type="button"
-														onclick="const t = document.getElementById('status-tooltip'); t.classList.toggle('hidden');"
-														class="text-gray-400 hover:text-[#002C76] transition-colors">
-														<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
-															viewBox="0 0 24 24" stroke="currentColor">
-															<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-																d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-														</svg>
-													</button>
-												</div>
-											</div>
-
-											<!-- Tooltip -->
-											<div id="status-tooltip"
-												class="hidden mt-3 p-3 bg-gray-50 rounded border border-gray-200">
-												<div id="document-status"
-													class="text-xs font-semibold text-red-600 mb-2 text-center">
-													DOCUMENTS SUBMITTED: INCOMPLETE
-												</div>
-												<div id="actions-block" class="hidden">
-													<div class="text-xs font-semibold text-[#002C76] mb-2 text-center">Actions
-														Required</div>
-													<div id="checkboxes-container" class="space-y-1.5">
-														@foreach(['Pre-Qualifying Exam (PQE)', 'Written Exam', 'Interview', 'Group Orals', 'Competency-Based Assessment (CBA)'] as $step)
-															<label
-																class="flex items-center gap-2 cursor-pointer group hover:bg-white p-1 rounded">
-																<input type="checkbox"
-																	class="w-3.5 h-3.5 rounded border-gray-300 text-[#002C76] focus:ring-[#002C76]" />
-																<span
-																	class="text-xs text-gray-700 group-hover:text-[#002C76]">{{ $step }}</span>
-															</label>
-														@endforeach
-													</div>
+											<div id="actions-block" class="hidden">
+												<div class="text-xs font-semibold text-[#002C76] mb-2 text-center">Actions
+													Required</div>
+												<div id="checkboxes-container" class="space-y-1.5">
+													@foreach(['Pre-Qualifying Exam (PQE)', 'Written Exam', 'Interview', 'Group Orals', 'Competency-Based Assessment (CBA)'] as $step)
+														<label
+															class="flex items-center gap-2 cursor-pointer group hover:bg-white p-1 rounded">
+															<input type="checkbox"
+																class="w-3.5 h-3.5 rounded border-gray-300 text-[#002C76] focus:ring-[#002C76]" />
+															<span
+																class="text-xs text-gray-700 group-hover:text-[#002C76]">{{ $step }}</span>
+														</label>
+													@endforeach
 												</div>
 											</div>
 										</div>
 									</div>
 								</div>
-
-								@foreach($documents as $doc)
-									<input type="hidden" name="document_statuses[{{ $doc['id'] }}]" id="status-input-{{ $doc['id'] }}"
-										value="{{ $doc['status'] ?? 'Pending' }}">
-									<input type="hidden" name="document_remarks[{{ $doc['id'] }}]" id="remarks-input-{{ $doc['id'] }}"
-										value="{{ $doc['remarks'] ?? '' }}">
-								@endforeach
-
-								<!-- lower part -->
-								<div class="flex flex-row gap-4">
-									<!-- Left Side Panel - Required Documents -->
-									<section aria-label="Required Documents Panel"
-										class="w-64 bg-white rounded-lg border border-gray-300 p-3 shadow-lg flex flex-col">
-										<h2 class="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">Required
-											Documents
-										</h2>
-										<div
-											class="overflow-y-auto scrollbar-thin scrollbar-thumb-blue-400 scrollbar-track-gray-100">
-											<ul class="text-xs text-gray-700 space-y-2" id="document-list">
-												<!-- Documents will be injected here by JS -->
-											</ul>
-										</div>
-
-										<hr class="my-3">
-
-										<!-- applicant remarks -->
-										<div class="bg-white rounded-lg text-sm mb-4">
-											<div class="font-bold text-gray-800 mb-2">Applicant Remarks</div>
-
-											<!-- Vertical Text Area -->
-											@php
-												$confirmedCount = collect($documents)->where('status', 'confirmed')->count();
-												$isComplete = $confirmedCount === 15;
-
-												$defaultRemarks = '';
-
-												if ($isComplete) {
-													$defaultRemarks = "No further action required. Wait for further instruction on the next assessment phase.";
-												} else {
-													$deadline = $application->deadline_date && $application->deadline_time
-														? \Carbon\Carbon::parse($application->deadline_date . ' ' . $application->deadline_time)->format('F d, Y h:i A')
-														: null;
-
-													$defaultRemarks = $deadline
-														? "Correct and/or submit the above-noted inconsistencies and/or deficiencies not later than $deadline."
-														: "No remarks yet";
-												}
-											@endphp
-
-											<textarea id="application_remarks_input"
-												class="w-full p-2 border border-gray-400 rounded mb-3 focus:outline-none resize-none"
-												rows="4" placeholder="Enter your remarks here..."
-												style="min-height: 200px; text-align: start;">{{ old('application_remarks', $application->application_remarks ?? $defaultRemarks) }}</textarea>
-										</div>
-
-
-										<!-- action buttons -->
-										<div class="flex flex-col gap-2">
-											<button class="border border-[#002C76] text-[#002C76] py-2 px-6 rounded-md">
-												Notify Applicant
-											</button>
-											<button class="border border-green-600 text-green-600 py-2 px-6 rounded-md">
-												Save
-											</button>
-
-										</div>
-									</section>
-
-									<!-- MIDDLE - Document Preview -->
-									<section aria-label="Document Preview"
-										class="flex-1 bg-white rounded-xl border border-gray-300 shadow-lg p-6 flex flex-col min-w-0">
-
-										<!-- Document Header -->
-										<div class="mb-4">
-											<!-- document name -->
-											<h2 id="document-title" class="text-2xl font-bold text-[#002C76] mb-1">Application
-												Letter</h2>
-											<!-- status (pending, approved, rejected) -->
-											<span id="document-status" class="text-sm text-gray-600">Status: Pending</span>
-											<p id="document-modified" class="text-sm text-gray-600">Last modified by: <span
-													class="font-medium">Jane
-													Doe</span></p>
-										</div>
-
-										<!-- Remarks and Buttons Row -->
-										<div class="mb-4 flex items-start gap-3">
-											<!-- Remarks Textarea -->
-											<div class="flex-1">
-												<label for="remarks" class="block text-sm font-semibold text-gray-700 mb-2">Document
-													Remarks:</label>
-												<textarea id="remarks" rows="4" disabled
-													class="w-full text-sm text-gray-700 rounded-lg p-3 resize-none border border-[#002C76] focus:border-[#0066CC] focus:ring-2 focus:ring-blue-200 transition bg-gray-50"
-													placeholder="Select a document to view and add remarks...">Select a document to preview</textarea>
-											</div>
-
-											<!-- Buttons Column -->
-											<div class="flex flex-col justify-around h-full pt-7">
-												<button id="reset-btn" type="button"
-													class="px-6 py-2 bg-white border border-[#002C76] text-[#002C76] rounded-lg font-semibold hover:bg-gray-50 transition min-w-[120px]">
-													Reset
-												</button>
-												<button id="confirm-btn" type="button"
-													class="px-6 py-2 bg-white border border-[#002C76] text-[#002C76] rounded-lg font-semibold hover:bg-gray-50 transition min-w-[120px]">
-													Confirm
-												</button>
-											</div>
-										</div>
-
-										<!-- Preview Frame -->
-										<div class="flex-1 bg-gray-50 rounded-xl border border-[#002C76] p-3 overflow-hidden">
-											<iframe id="doc-preview" src="" title="Document Preview"
-												class="w-full h-full rounded-lg border-0 bg-white"
-												aria-label="Document content preview"></iframe>
-										</div>
-
-										<!-- Hidden Toggle (for compatibility) -->
-										<div id="toggle-container" class="hidden">
-											<input type="checkbox" id="favorite" class="input-toggle hidden" />
-										</div>
-									</section>
-								</div>
 						</div>
+
+						@foreach($documents as $doc)
+							<input type="hidden" name="document_statuses[{{ $doc['id'] }}]" id="status-input-{{ $doc['id'] }}"
+								value="{{ $doc['status'] ?? 'Pending' }}">
+							<input type="hidden" name="document_remarks[{{ $doc['id'] }}]" id="remarks-input-{{ $doc['id'] }}"
+								value="{{ $doc['remarks'] ?? '' }}">
+						@endforeach
+
+						<!-- lower part -->
+						<div class="flex flex-row gap-4">
+							<!-- Left Side Panel - Required Documents -->
+							<section aria-label="Required Documents Panel"
+								class="w-64 bg-white rounded-lg border border-gray-300 p-3 shadow-lg flex flex-col">
+								<h2 class="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">Required
+									Documents
+								</h2>
+								<div class="overflow-y-auto scrollbar-thin scrollbar-thumb-blue-400 scrollbar-track-gray-100">
+									<ul class="text-xs text-gray-700 space-y-2" id="document-list">
+										<!-- Documents will be injected here by JS -->
+									</ul>
+								</div>
+
+								<hr class="my-3">
+
+								<!-- applicant remarks -->
+								<div class="bg-white rounded-lg text-sm mb-4">
+									<div class="font-bold text-gray-800 mb-2">Applicant Remarks</div>
+
+									<!-- Vertical Text Area -->
+									@php
+										$confirmedCount = collect($documents)->where('status', 'confirmed')->count();
+										$isComplete = $confirmedCount === 15;
+
+										$defaultRemarks = '';
+
+										if ($isComplete) {
+											$defaultRemarks = "No further action required. Wait for further instruction on the next assessment phase.";
+										} else {
+											$deadline = $application->deadline_date && $application->deadline_time
+												? \Carbon\Carbon::parse($application->deadline_date . ' ' . $application->deadline_time)->format('F d, Y h:i A')
+												: null;
+
+											$defaultRemarks = $deadline
+												? "Correct and/or submit the above-noted inconsistencies and/or deficiencies not later than $deadline."
+												: "No remarks yet";
+										}
+									@endphp
+
+									<textarea id="application_remarks_input"
+										class="w-full p-2 border border-gray-400 rounded mb-3 focus:outline-none resize-none"
+										rows="4" placeholder="Enter your remarks here..."
+										style="min-height: 200px; text-align: start;">{{ old('application_remarks', $application->application_remarks ?? $defaultRemarks) }}</textarea>
+								</div>
+
+
+								<!-- action buttons -->
+								<div class="flex flex-col gap-2">
+									<button class="border border-[#002C76] text-[#002C76] py-2 px-6 rounded-md">
+										Notify Applicant
+									</button>
+									<button class="border border-green-600 text-green-600 py-2 px-6 rounded-md">
+										Save
+									</button>
+
+								</div>
+							</section>
+
+							<!-- MIDDLE - Document Preview -->
+							<section aria-label="Document Preview"
+								class="flex-1 bg-white rounded-xl border border-gray-300 shadow-lg p-6 flex flex-col min-w-0">
+
+								<!-- Document Header -->
+								<div class="mb-4">
+									<!-- document name -->
+									<h2 id="document-title" class="text-2xl font-bold text-[#002C76] mb-1">Application
+										Letter</h2>
+									<!-- status (pending, approved, rejected) -->
+									<span id="document-status" class="text-sm text-gray-600">Status: Pending</span>
+									<p id="document-modified" class="text-sm text-gray-600">Last modified by: <span
+											class="font-medium">Jane
+											Doe</span></p>
+								</div>
+
+								<!-- Remarks and Buttons Row -->
+								<div class="mb-4 flex items-start gap-3">
+									<!-- Remarks Textarea -->
+									<div class="flex-1">
+										<label for="remarks" class="block text-sm font-semibold text-gray-700 mb-2">Document
+											Remarks:</label>
+										<textarea id="remarks" rows="4" disabled
+											class="w-full text-sm text-gray-700 rounded-lg p-3 resize-none border border-[#002C76] focus:border-[#0066CC] focus:ring-2 focus:ring-blue-200 transition bg-gray-50"
+											placeholder="Select a document to view and add remarks...">Select a document to preview</textarea>
+									</div>
+
+									<!-- Buttons Column -->
+									<div class="flex flex-col justify-around h-full pt-7">
+										<button id="reset-btn" type="button"
+											class="px-6 py-2 bg-white border border-[#002C76] text-[#002C76] rounded-lg font-semibold hover:bg-gray-50 transition min-w-[120px]">
+											Reset
+										</button>
+										<button id="confirm-btn" type="button"
+											class="px-6 py-2 bg-white border border-[#002C76] text-[#002C76] rounded-lg font-semibold hover:bg-gray-50 transition min-w-[120px]">
+											Confirm
+										</button>
+									</div>
+								</div>
+
+								<!-- Preview Frame -->
+								<div class="flex-1 bg-gray-50 rounded-xl border border-[#002C76] p-3 overflow-hidden">
+									<iframe id="doc-preview" src="" title="Document Preview"
+										class="w-full h-full rounded-lg border-0 bg-white"
+										aria-label="Document content preview"></iframe>
+								</div>
+
+								<!-- Hidden Toggle (for compatibility) -->
+								<div id="toggle-container" class="hidden">
+									<input type="checkbox" id="favorite" class="input-toggle hidden" />
+								</div>
+							</section>
+						</div>
+				</div>
 
 
 				</div>
