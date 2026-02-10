@@ -30,14 +30,14 @@
     <!-- Table Container -->
     <div class="flex-1 flex flex-col min-h-0 overflow-hidden border border-[#0D2B70] rounded-xl">
         <div class="flex-1 overflow-auto">
-            <table class="w-full text-left border-collapse">
+            <table class="w-full text-left border-collapse table-fixed">
                 <thead class="bg-[#0D2B70] text-white sticky top-0 z-10">
                     <tr>
-                        <th class="py-4 px-6 font-semibold">Username</th>
-                        <th class="py-4 px-6 font-semibold">Email Address</th>
-                        <th class="py-4 px-6 font-semibold text-center">Account Type</th>
-                        <th class="py-4 px-6 font-semibold text-center">Account Status</th>
-                        <th class="py-4 px-6 font-semibold text-center">Actions</th>
+                        <th class="py-4 px-6 font-semibold w-[20%]">Username</th>
+                        <th class="py-4 px-6 font-semibold w-[30%]">Email Address</th>
+                        <th class="py-4 px-6 font-semibold text-center w-[15%]">Account Type</th>
+                        <th class="py-4 px-6 font-semibold text-center w-[15%]">Account Status</th>
+                        <th class="py-4 px-6 font-semibold text-center w-[20%]">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-[#0D2B70]">
@@ -45,20 +45,20 @@
                     @foreach ($admins as $admin)
                     <tr class="text-[#0D2B70] select-none hover:bg-blue-50 transition-colors duration-200">
                         <!-- Username -->
-                        <td class="py-4 px-6 font-normal">{{ $admin->username }}</td>
+                        <td class="py-4 px-6 font-normal w-[20%]">{{ $admin->username }}</td>
                         
                         <!-- Email -->
-                        <td class="py-4 px-6 font-normal overflow-hidden text-ellipsis whitespace-nowrap">
+                        <td class="py-4 px-6 font-normal overflow-hidden text-ellipsis whitespace-nowrap w-[30%]">
                             {{ $admin->email }}
                         </td>
                         
                         <!-- Role -->
-                        <td class="py-4 px-6 text-center font-semibold">
+                        <td class="py-4 px-6 text-center font-semibold w-[15%]">
                             {{ ucfirst($admin->role) }}
                         </td>
                         
                         <!-- Status -->
-                        <td class="py-4 px-6 text-center">
+                        <td class="py-4 px-6 text-center w-[15%]">
                             <span class="px-3 py-1 rounded-full border-2
                                 {{ $admin->is_active ? 'bg-green-200 border-green-700 text-green-700' : 'bg-red-200 border-red-700 text-red-700' }}">
                                 {{ $admin->is_active ? 'Active' : 'Inactive' }}
@@ -66,15 +66,21 @@
                         </td>
 
                         <!-- Actions -->
-                        <td class="py-4 px-6 text-center">
+                        <td class="py-4 px-6 text-center w-[20%]">
                             <div class="flex justify-center items-center gap-3">
                                 <form method="POST" action="{{ route($admin->is_active ? 'admin.deactivate' : 'admin.activate', $admin->id) }}">
                                     @csrf
                                     <button type="submit"
-                                        class="w-[130px] 
-                                            {{ $admin->is_active ? 'bg-[#C5292F] hover:bg-red-700' : 'bg-[#00127.0.0.1] hover:bg-green-700' }} 
-                                            text-white font-semibold rounded-full flex items-center justify-center gap-2 px-5 py-2 transition">
-                                        {{ $admin->is_active ? 'DEACTIVATE' : 'ACTIVATE' }}
+                                        title="{{ $admin->is_active ? 'Deactivate Admin' : 'Activate Admin' }}"
+                                        class="use-loader 
+                                        {{ $admin->is_active 
+                                            ? 'text-[#C5292F]' 
+                                            : 'text-green-600 border border-green-600 hover:bg-green-600' }} 
+                                        py-1 px-3 rounded-md text-sm
+                                        transition-all duration-150 ease-[cubic-bezier(0.4,0,0.2,1)]
+                                        hover:scale-110">
+
+                                        <i data-feather="{{ $admin->is_active ? 'user-x' : 'user-check' }}" class="w-5 h-5"></i>
                                     </button>
                                 </form>
 
@@ -88,22 +94,22 @@
                     @foreach ($users as $user)
                     <tr class="text-[#0D2B70] select-none hover:bg-blue-50 transition-colors duration-200">
                         <!-- Username -->
-                        <td class="py-4 px-6 font-normal">
+                        <td class="py-4 px-6 font-normal w-[20%]">
                              {{ $user->last_name }}, {{ $user->first_name }}
                         </td>
                         
                         <!-- Email -->
-                        <td class="py-4 px-6 font-normal overflow-hidden text-ellipsis whitespace-nowrap">
+                        <td class="py-4 px-6 font-normal overflow-hidden text-ellipsis whitespace-nowrap w-[30%]">
                             {{ $user->email }}
                         </td>
                         
                         <!-- Role -->
-                        <td class="py-4 px-6 text-center font-semibold">
+                        <td class="py-4 px-6 text-center font-semibold w-[15%]">
                             Applicant
                         </td>
                         
                         <!-- Status -->
-                        <td class="py-4 px-6 text-center font-bold">
+                        <td class="py-4 px-6 text-center font-bold w-[15%]">
                              @if($user->email_verified_at)
                                 <span class="text-green-600">Verified</span>
                              @else
@@ -112,7 +118,7 @@
                         </td>
 
                         <!-- Actions -->
-                        <td class="py-4 px-6 text-center">
+                        <td class="py-4 px-6 text-center w-[20%]">
                             <div class="flex justify-center items-center gap-3">
                                 <span class="text-gray-400 text-sm italic">No actions available</span>
                             </div>

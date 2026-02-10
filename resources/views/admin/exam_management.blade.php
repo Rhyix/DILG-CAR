@@ -2,7 +2,7 @@
 @section('title', 'DILG - Admin Exam Management')
 @section('content')
 
-<main class="w-full space-y-6">
+<main class="w-full h-[calc(98vh-6rem)] flex flex-col space-y-6 overflow-hidden">
 
     <section class="flex items-center space-x-4 mb-4 max-w-full">
         <h1 class="flex items-center gap-3 w-full border-b border-[#0D2B70] text-white text-4xl font-montserrat py-2 tracking-wide select-none">
@@ -78,57 +78,63 @@
     </form>
 
     <!-- TABLE -->
-    <div class="overflow-hidden rounded-xl border border-[#0D2B70]">
-        <table class="w-full text-left border-collapse">
-            <thead class="bg-[#0D2B70] text-white">
+    <div class="flex-1 flex flex-col min-h-0 overflow-hidden rounded-xl border border-[#0D2B70]">
+        <div class="flex-none bg-[#0D2B70] text-white">
+            <table class="w-full text-left border-collapse table-fixed">
+                <thead class="bg-[#0D2B70] text-white sticky top-0 z-10">
                 <tr>
-                    <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider">Vacancy ID</th>
-                    <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider">Job Title</th>
-                    <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider">Job Type</th>
-                    <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider">Status</th>
-                    <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider">Action</th>
+                    <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider w-[15%]">Vacancy ID</th>
+                    <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider w-[35%]">Job Title</th>
+                    <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider w-[20%]">Job Type</th>
+                    <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider w-[15%]">Status</th>
+                    <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider w-[15%]">Action</th>
                 </tr>
             </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-                @foreach ($vacancies as $vacancy)
-                <tr class="hover:bg-blue-50 transition-colors duration-200">
-                    <td class="py-4 px-6 text-center text-[#0D2B70] font-semibold">
-                        {{ $vacancy->vacancy_id }}
-                    </td>
-                    <td class="py-4 px-6 text-[#0D2B70] font-medium">
-                        {{ $vacancy->position_title }}
-                    </td>
-                    <td class="py-4 px-6 text-center text-[#0D2B70]">
-                        {{ $vacancy->vacancy_type }}
-                    </td>
-                    <td class="py-4 px-6 text-center">
-                        @php
-                            $statusColor = 'bg-gray-300 text-gray-800'; // Default: Unscheduled
-                            if ($vacancy->exam_status === 'Scheduled') {
-                                $statusColor = 'bg-blue-100 text-blue-800';
-                            } elseif ($vacancy->exam_status === 'Ongoing') {
-                                $statusColor = 'bg-yellow-100 text-yellow-800';
-                            } elseif ($vacancy->exam_status === 'Completed') {
-                                $statusColor = 'bg-green-100 text-green-800';
-                            }
-                        @endphp
-                        <span class="px-2 py-1 rounded-full text-xs font-bold {{ $statusColor }}">
-                            {{ strtoupper($vacancy->exam_status) }}
-                        </span>
-                    </td>
-                    <td class="py-4 px-6 text-center">
-                        <button onclick="window.location.href='{{ route('admin.manage_exam', $vacancy->vacancy_id) }}'" 
-                                class="text-[#0D2B70] border border-[#0D2B70] font-bold py-2 px-6 rounded-md text-sm
-                                transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
-                                hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md"
-                        >
-                            Manage
-                        </button>
-                    </td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
+            </table>
+        </div>
+        <div class="flex-1 overflow-auto">
+            <table class="w-full text-left border-collapse table-fixed">
+                <tbody class="bg-white divide-y divide-gray-200">
+                    @foreach ($vacancies as $vacancy)
+                    <tr class="hover:bg-blue-50 transition-colors duration-200">
+                        <td class="py-4 px-6 text-center text-[#0D2B70] font-semibold w-[15%]">
+                            {{ $vacancy->vacancy_id }}
+                        </td>
+                        <td class="py-4 px-6 text-center text-[#0D2B70] font-medium w-[35%]">
+                            {{ $vacancy->position_title }}
+                        </td>
+                        <td class="py-4 px-6 text-center text-[#0D2B70] w-[20%]">
+                            {{ $vacancy->vacancy_type }}
+                        </td>
+                        <td class="py-4 px-6 text-center w-[15%]">
+                            @php
+                                $statusColor = 'bg-gray-300 text-gray-800';
+                                if ($vacancy->exam_status === 'Scheduled') {
+                                    $statusColor = 'bg-blue-100 text-blue-800';
+                                } elseif ($vacancy->exam_status === 'Ongoing') {
+                                    $statusColor = 'bg-yellow-100 text-yellow-800';
+                                } elseif ($vacancy->exam_status === 'Completed') {
+                                    $statusColor = 'bg-green-100 text-green-800';
+                                }
+                            @endphp
+                            <span class="px-2 py-1 rounded-full text-xs font-bold {{ $statusColor }}">
+                                {{ strtoupper($vacancy->exam_status) }}
+                            </span>
+                        </td>
+                        <td class="py-4 px-6 text-center w-[15%]">
+                            <button onclick="window.location.href='{{ route('admin.manage_exam', $vacancy->vacancy_id) }}'" 
+                                    class="text-[#0D2B70] border border-[#0D2B70] font-bold py-2 px-6 rounded-md text-sm
+                                    transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
+                                    hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md"
+                            >
+                                Manage
+                            </button>
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <script>
@@ -214,21 +220,21 @@
 
                 container.innerHTML += `
                 <tr class="hover:bg-blue-50 transition-colors duration-200">
-                    <td class="py-4 px-6 text-center text-[#0D2B70] font-semibold">
+                    <td class="py-4 px-6 text-center text-[#0D2B70] font-semibold w-[15%]">
                         ${vacancy.vacancy_id}
                     </td>
-                    <td class="py-4 px-6 text-[#0D2B70] font-medium">
+                    <td class="py-4 px-6 text-center text-[#0D2B70] font-medium w-[35%]">
                         ${vacancy.position_title}
                     </td>
-                    <td class="py-4 px-6 text-center text-[#0D2B70]">
+                    <td class="py-4 px-6 text-center text-[#0D2B70] w-[20%]">
                         ${vacancy.vacancy_type}
                     </td>
-                    <td class="py-4 px-6 text-center">
+                    <td class="py-4 px-6 text-center w-[15%]">
                         <span class="px-2 py-1 rounded-full text-xs font-bold ${statusColor}">
                             ${vacancy.exam_status.toUpperCase()}
                         </span>
                     </td>
-                    <td class="py-4 px-6 text-center">
+                    <td class="py-4 px-6 text-center w-[15%]">
                         <button onclick="window.location.href='/admin/exam_management/manage_exam/${vacancy.vacancy_id}'" 
                                 class="text-[#0D2B70] border border-[#0D2B70] font-bold py-2 px-6 rounded-md text-sm
                                 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]

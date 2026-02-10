@@ -7,3 +7,4 @@
         <p class="text-sm text-gray-500">Browse available job vacancies and apply to get started!</p>
     </div>
 @endforelse
+    

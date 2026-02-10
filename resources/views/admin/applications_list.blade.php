@@ -40,74 +40,68 @@
             </div>
         </div>
 
-        <!-- Table Container -->
-        <div class="flex-1 flex flex-col min-h-0 overflow-hidden border border-[#0D2B70] rounded-xl">
-            <div class="flex-1 overflow-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead class="bg-[#0D2B70] text-white sticky top-0 z-10">
-                        <tr>
-                            <th class="py-4 px-6 font-normal">Vacancy ID</th>
-                            <th class="py-4 px-6 font-normal">Job Title</th>
-                            <th class="py-4 px-6 font-normal text-center">Status</th>
-                            <th class="py-4 px-6 font-normal text-center">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="vacancy-list" class="divide-y divide-[#0D2B70]">
-                        @forelse ($vacancies as $vacancy)
-                            <tr class="text-[#0D2B70] select-none hover:bg-blue-50 transition-colors duration-200">
-                                <!-- Vacancy ID -->
-                                <td class="py-4 px-6">{{ $vacancy->vacancy_id }}</td>
-
-                                <!-- Job Title and Type -->
-                                <td class="py-4 px-6">
-                                    <p>{{ $vacancy->position_title }}</p>
-                                    <p class="text-[#0D2B70]/70 text-[0.9rem] italic">{{ $vacancy->vacancy_type }}</p>
-                                </td>
-
-                                <!-- Status -->
-                                <td class="py-4 px-6 text-center">
-                                    <div class="flex justify-center items-center gap-3 font-normal">
-                                        @php
-                                            $statusColor = match (strtolower($vacancy->status)) {
-                                                'open' => 'bg-green-600',
-                                                'closed' => 'bg-red-600',
-                                                default => 'bg-gray-400'
-                                            };
-                                        @endphp
-                                        <span class="w-5 h-5 rounded-full inline-block {{ $statusColor }}"></span>
-                                        <span class="text-center font-semibold uppercase">{{ $vacancy->status }}</span>
-                                    </div>
-                                </td>
-
-                        <!-- Manage Button -->
-                        <td class="py-4 px-6 text-center">
-                            <div class="flex justify-center items-center">
-                                <button onclick="window.location.href='{{ route('admin.manage_applicants', ['vacancy_id' => $vacancy->vacancy_id]) }}'" 
-                                    class="text-[#0D2B70] border border-[#0D2B70] font-bold py-1 px-4 rounded-md text-sm
-                                    transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
-                                    hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md flex items-center gap-2 relative">
-                                    <x-heroicon-o-cog-6-tooth class="w-4 h-4" />
-                                    <span>Manage</span>
-                                    @if($vacancy->pending_count > 0)
-                                    <span class="absolute top-0 right-0 -mt-2 -mr-2 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full leading-none z-10 shadow-sm border border-white">
-                                        {{ $vacancy->pending_count }}
-                                    </span>
-                                    @endif
-                                </button>
-                            </div>
-                        </td>
-                            </tr>
-                        @empty
+       <!-- Table Container -->
+            <div class="flex flex-col border border-[#0D2B70] rounded-xl h-[500px]">
+                <div class="overflow-auto flex-1">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-[#0D2B70] text-white sticky top-0 z-20">
                             <tr>
-                                <td colspan="4" class="text-center py-10 text-gray-500 text-xl">
-                                    No applications found.
-                                </td>
+                                <th class="py-4 px-6 font-normal">Vacancy ID</th>
+                                <th class="py-4 px-6 font-normal">Job Title</th>
+                                <th class="py-4 px-6 font-normal text-center">Status</th>
+                                <th class="py-4 px-6 font-normal text-center">Actions</th>
                             </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody id="vacancy-list" class="divide-y divide-[#0D2B70]">
+                            @forelse ($vacancies as $vacancy)
+                                <tr class="text-[#0D2B70] select-none hover:bg-blue-50 transition-colors duration-200">
+                                    <td class="py-4 px-6">{{ $vacancy->vacancy_id }}</td>
+                                    <td class="py-4 px-6">
+                                        <p>{{ $vacancy->position_title }}</p>
+                                        <p class="text-[#0D2B70]/70 text-[0.9rem] italic">{{ $vacancy->vacancy_type }}</p>
+                                    </td>
+                                    <td class="py-4 px-6 text-center">
+                                        <div class="flex justify-center items-center gap-3 font-normal">
+                                            @php
+                                                $statusColor = match (strtolower($vacancy->status)) {
+                                                    'open' => 'bg-green-600',
+                                                    'closed' => 'bg-red-600',
+                                                    default => 'bg-gray-400'
+                                                };
+                                            @endphp
+                                            <span class="w-5 h-5 rounded-full inline-block {{ $statusColor }}"></span>
+                                            <span class="text-center font-semibold uppercase">{{ $vacancy->status }}</span>
+                                        </div>
+                                    </td>
+                                    <td class="py-4 px-6 text-center">
+                                        <div class="flex justify-center items-center">
+                                            <button onclick="window.location.href='{{ route('admin.manage_applicants', ['vacancy_id' => $vacancy->vacancy_id]) }}'" 
+                                                class="text-[#0D2B70] border border-[#0D2B70] font-bold py-1 px-4 rounded-md text-sm
+                                                transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
+                                                hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md flex items-center gap-2 relative">
+                                                <x-heroicon-o-cog-6-tooth class="w-4 h-4" />
+                                                <span>Manage</span>
+                                                @if($vacancy->pending_count > 0)
+                                                <span class="absolute top-0 right-0 -mt-2 -mr-2 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full leading-none z-10 shadow-sm border border-white">
+                                                    {{ $vacancy->pending_count }}
+                                                </span>
+                                                @endif
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="4" class="text-center py-10 text-gray-500 text-xl">
+                                        No applications found.
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
             </div>
-        </div>
+
 
         @include('partials.loader')
     </main>

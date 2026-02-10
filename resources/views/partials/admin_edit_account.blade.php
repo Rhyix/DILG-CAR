@@ -7,7 +7,7 @@
     }" class="inline">
 
     <button @click="showEditAccount = true" aria-label="Edit" title="Edit"
-        class="stroke-[#0D2B70] hover:stroke-[#c5292f] transition">
+        class="stroke-[#0D2B70] hover:scale-110 transition">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24"
             stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round"
@@ -27,7 +27,7 @@
             <button @click="showEditAccount = false; forceShowOnError = false"
                 class="absolute top-4 right-4 text-red-500 text-2xl font-bold hover:text-red-700">&times;</button>
 
-            <h2 class="text-2xl font-extrabold text-[#C5292F] text-center mb-4">Edit Admin Account</h2>
+            <h2 class="text-2xl font-extrabold text-[#0D2B70] text-center mb-4">Edit Admin Account</h2>
 
             <form class="space-y-4" method="POST" action="{{ route('admin.update', $admin->id) }}">
                 @csrf
