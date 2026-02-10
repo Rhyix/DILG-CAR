@@ -93,7 +93,7 @@
                     @click="open = !open"
                     class="font-semibold flex items-center px-4 py-2 bg-white text-[#0D2B70] rounded-md hover:bg-[#0D2B70]  transition whitespace-nowrap
                             hover:text-white hover:shadow-md border border-[#0D2B70]"
-                        >
+                >
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round"
@@ -150,6 +150,7 @@
                     ])
                 </div>
             </div>
+
             <!-- Import Button -->
             <div x-data="{ open: false }" class="relative">
                 <button
@@ -265,6 +266,8 @@
                     ])
                 </div>
             </div>
+
+            
     </section>
 
     @if(session('success'))
