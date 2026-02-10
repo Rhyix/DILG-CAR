@@ -8,7 +8,7 @@
 </style>
 <main class="w-full h-[calc(98vh-6rem)] flex flex-col space-y-4 overflow-hidden">
 
-    <!-- Header with back arrow and title -->
+    <!-- Header Section -->
     <section class="flex-none flex items-center space-x-4 max-w-full">
         <h1 class="flex items-center gap-3 w-full border-b border-[#0D2B70] text-white text-4xl font-montserrat py-2 tracking-wide select-none">
             <span class="whitespace-nowrap text-[#0D2B70]">Vacancies Management</span>
@@ -58,8 +58,7 @@
                 <button
                     @click="open = !open"
                         class = "font-semibold flex items-center px-4 py-2 bg-white text-[#0D2B70] rounded-md hover:bg-[#0D2B70]  transition whitespace-nowrap
-                                 hover:text-white hover:shadow-md border border-[#0D2B70]"
-                                           >
+                                 hover:text-white hover:shadow-md border border-[#0D2B70]">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 stroke-[3]" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor" stroke-width="3">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6" />

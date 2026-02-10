@@ -12,8 +12,7 @@ class activityLogController extends Controller
     public function view(Request $request)
     {
         // Get admin names
-        $adminNames = Activity::where('causer_type', Admin::class)
-            ->whereNotNull('causer_id')
+        $adminNames = Activity::whereNotNull('causer_id')
             ->with('causer')
             ->get()
             ->filter(fn($act) => $act->causer && $act->causer->name) // skip missing admins
@@ -24,8 +23,7 @@ class activityLogController extends Controller
 
 
         // Get sections from properties->section instead of log_name
-        $sections = Activity::where('causer_type', Admin::class)
-            ->whereNotNull('properties->section')
+        $sections = Activity::whereNotNull('properties->section')
             ->get()
             ->pluck('properties.section')
             ->unique()
@@ -33,8 +31,7 @@ class activityLogController extends Controller
             ->values();
 
         // Initial logs shown on load (descending by default)
-        $activities = Activity::where('causer_type', Admin::class)
-            ->whereNotIn('event', ['login', 'view'])
+        $activities = Activity::whereNotIn('event', ['view'])
             ->orderBy('created_at', 'desc')
             ->with('causer', 'subject')
             ->get();
@@ -47,8 +44,7 @@ class activityLogController extends Controller
     public function fetch(Request $request)
     {
         $query = Activity::query()
-            ->where('causer_type', Admin::class)
-            ->whereNotIn('event', ['login', 'view'])
+            ->whereNotIn('event', ['view'])
             ->with('causer', 'subject');
 
         if ($search = $request->input('search')) {
@@ -100,9 +96,69 @@ class activityLogController extends Controller
                 'id' => $activity->id,
                 'timestamp' => $activity->created_at->format('Y-m-d H:i:s'),
                 'admin_name' => optional($activity->causer)->name ?? 'N/A',
+                'role' => (function () use ($activity) {
+                    if (!$activity->causer) return 'N/A';
+                    if ($activity->causer_type === Admin::class) {
+                        return $activity->causer->role ?? 'Admin';
+                    }
+                    return 'User';
+                })(),
                 'section' => $activity->properties['section'] ?? 'N/A',
-                'description' => $activity->description ?? 'N/A',
-                'target' => $target,
+                'description' => (function () use ($activity, $target) {
+                    $actor = optional($activity->causer)->name ?? 'Someone';
+                    $desc = $activity->description ?? '';
+                    $event = $activity->event ?? null;
+                    $isLogin = strcasecmp((string)$event, 'login') === 0 || stripos($desc, 'logged in') !== false;
+                    $isLogout = strcasecmp((string)$event, 'logout') === 0 || stripos($desc, 'logged out') !== false;
+                    if ($isLogin) {
+                        return $actor . ' logged in.';
+                    }
+                    if ($isLogout) {
+                        return $actor . ' logged out.';
+                    }
+                    $core = $desc ?: 'performed an action';
+                    $core = rtrim($core, ". \t\n\r\0\x0B");
+                    if (function_exists('lcfirst')) {
+                        $core = lcfirst($core);
+                    }
+                    $section = $activity->properties['section'] ?? null;
+                    if ($section === 'System Users Management') {
+                        $core = str_ireplace('an admin account', 'the account', $core);
+                    }
+                    if ($target !== 'N/A') {
+                        $core .= ' of ' . $target;
+                    }
+                    return $actor . ' ' . $core . '.';
+                })(),
+                'description_html' => (function () use ($activity, $target) {
+                    $actor = optional($activity->causer)->name ?? 'Someone';
+                    $actorHtml = '<strong>' . htmlspecialchars($actor, ENT_QUOTES, 'UTF-8') . '</strong>';
+                    $desc = $activity->description ?? '';
+                    $event = $activity->event ?? null;
+                    $isLogin = strcasecmp((string)$event, 'login') === 0 || stripos($desc, 'logged in') !== false;
+                    $isLogout = strcasecmp((string)$event, 'logout') === 0 || stripos($desc, 'logged out') !== false;
+                    if ($isLogin) {
+                        return $actorHtml . ' logged in.';
+                    }
+                    if ($isLogout) {
+                        return $actorHtml . ' logged out.';
+                    }
+                    $core = $desc ?: 'performed an action';
+                    $core = rtrim($core, ". \t\n\r\0\x0B");
+                    if (function_exists('lcfirst')) {
+                        $core = lcfirst($core);
+                    }
+                    $section = $activity->properties['section'] ?? null;
+                    if ($section === 'System Users Management') {
+                        $core = str_ireplace('an admin account', 'the account', $core);
+                    }
+                    $coreHtml = htmlspecialchars($core, ENT_QUOTES, 'UTF-8');
+                    $suffix = '';
+                    if ($target !== 'N/A') {
+                        $suffix = ' of ' . htmlspecialchars($target, ENT_QUOTES, 'UTF-8');
+                    }
+                    return $actorHtml . ' ' . $coreHtml . $suffix . '.';
+                })(),
                 'vacancy_id' => $activity->properties['vacancy_id'] ?? null,
                 'subject' => $activity->subject ? $activity->subject : 'N/A',
             ];
