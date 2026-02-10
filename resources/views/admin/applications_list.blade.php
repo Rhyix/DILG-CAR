@@ -4,7 +4,6 @@
 
     <main class="w-full h-[calc(100vh-6rem)] flex flex-col space-y-4 overflow-hidden">
 
-<<<<<<< Updated upstream
         <!-- Header with back arrow and title -->
         <section class="flex-none flex items-center space-x-4 max-w-full">
             <h1
@@ -12,13 +11,6 @@
                 <span class="whitespace-nowrap text-[#0D2B70]">Applications List</span>
             </h1>
         </section>
-=======
-    <section class="flex-none flex items-center space-x-4 max-w-full">
-        <h1 class="flex items-center gap-3 w-full border-b border-[#0D2B70] text-white text-4xl font-montserrat py-2 tracking-wide select-none">
-            <span class="whitespace-nowrap text-[#0D2B70]">Applications List</span>
-        </h1>
-    </section>
->>>>>>> Stashed changes
 
         {{-- Search & Sort Section --}}
         <div class="flex-none flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -48,7 +40,6 @@
             </div>
         </div>
 
-<<<<<<< Updated upstream
        <!-- Table Container -->
             <div class="flex flex-col border border-[#0D2B70] rounded-xl h-[500px]">
                 <div class="overflow-auto flex-1">
@@ -110,127 +101,6 @@
                     </table>
                 </div>
             </div>
-=======
-    <!-- Table Container -->
-    <div class="flex-1 flex flex-col min-h-0 overflow-hidden border border-[#0D2B70] rounded-xl">
-        <div class="flex-1 overflow-auto">
-            <table class="w-full text-left border-collapse">
-                <thead class="bg-[#0D2B70] text-white sticky top-0 z-10">
-                    <tr>
-                        <th class="py-4 px-6 font-normal">Vacancy ID</th>
-                        <th class="py-4 px-6 font-normal">Job Title</th>
-                        <th class="py-4 px-6 font-normal text-center">Status</th>
-                        <th class="py-4 px-6 font-normal text-center">Reviewed Applicants</th>
-                        <th class="py-4 px-6 font-normal text-center">New Applicants</th>
-                    </tr>
-                </thead>
-                <tbody id="vacancy-list" class="divide-y divide-[#0D2B70]">
-                    @forelse ($vacancies as $vacancy)
-                    <tr class="text-[#0D2B70] select-none hover:bg-blue-50 transition-colors duration-200">
-                        <!-- Vacancy ID -->
-                        <td class="py-4 px-6">{{ $vacancy->vacancy_id }}</td>
-
-                        <!-- Job Title and Type -->
-                        <td class="py-4 px-6">
-                            <p>{{ $vacancy->position_title }}</p>
-                            <p class="text-[#0D2B70]/70 text-[0.9rem] italic">{{ $vacancy->vacancy_type }}</p>
-                        </td>
-
-                        <!-- Status -->
-                        <td class="py-4 px-6 text-center">
-                            <div class="flex justify-center items-center gap-3 font-normal">
-                                @php
-                                    $statusColor = match(strtolower($vacancy->status)) {
-                                        'open' => 'bg-green-600',
-                                        'closed' => 'bg-red-600',
-                                        default => 'bg-gray-400'
-                                    };
-                                @endphp
-                                <span class="w-3 h-3 rounded-full inline-block {{ $statusColor }}"></span>
-                                <span class="text-center font-semibold uppercase">{{ $vacancy->status }}</span>
-                            </div>
-                        </td>
-
-                        <!-- Reviewed Applicants -->
-                        <td class="py-4 px-6 text-center">
-                            <div class="flex justify-center items-center">
-                                <button onclick="window.location.href='{{ route('admin.reviewed', ['vacancy_id' => $vacancy->vacancy_id]) }}'" 
-                                    class="text-[#0D2B70] border border-[#0D2B70] font-bold py-1 px-4 rounded-md text-sm
-                                    transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
-                                    hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md flex items-center gap-2">
-                                    <x-heroicon-o-eye class="w-4 h-4" />
-                                    <span>View Reviewed</span>
-                                </button>
-                            </div>
-                        </td>
-
-                        <!-- New Applicants -->
-                        <td class="py-4 px-6 text-center">
-                            <div class="flex justify-center items-center relative">
-                                <button onclick="window.location.href='{{ route('admin.applicants', ['vacancy_id' => $vacancy->vacancy_id]) }}'" 
-                                    class="text-[#0D2B70] border border-[#0D2B70] font-bold py-1 px-4 rounded-md text-sm
-                                    transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
-                                    hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md flex items-center gap-2 relative">
-                                    <x-heroicon-o-user-group class="w-4 h-4" />
-                                    <span>New Applicants</span>
-                                    @if($vacancy->pending_count > 0)
-                                    <span class="absolute top-0 right-0 -mt-2 -mr-2 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full leading-none z-10 shadow-sm border border-white">
-                                        {{ $vacancy->pending_count }}
-                                    </span>
-                                    @endif
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr>
-                        <td colspan="5" class="text-center py-10 text-gray-500 text-xl">
-                            No applications found.
-                        </td>
-                    </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    @include('partials.loader')
-</main>
-
-<script>
-    // Debounce Function to prevent traffic overload
-    function debounce(func, wait) {
-        let timeout;
-        return function(...args) {
-            const context = this;
-            clearTimeout(timeout);
-            timeout = setTimeout(() => func.apply(context, args), wait);
-        };
-    }
-
-    const searchInput = document.getElementById('searchInput');
-    const statusFilter = document.getElementById('statusFilter');
-
-    function getSearchAndStatus() {
-        return {
-            search: searchInput.value.trim(),
-            status: statusFilter.value.trim()
-        };
-    }
-
-    // Debounced Search Handler (500ms delay)
-    const handleSearch = debounce(function() {
-        const { search, status } = getSearchAndStatus();
-        fetchVacancies(search, status);
-    }, 500);
-
-    searchInput.addEventListener('input', handleSearch);
-
-    statusFilter.addEventListener('change', function () {
-        const { search, status } = getSearchAndStatus();
-        fetchVacancies(search, status);
-    });
->>>>>>> Stashed changes
 
 
         @include('partials.loader')
