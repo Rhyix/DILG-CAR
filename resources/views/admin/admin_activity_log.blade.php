@@ -16,84 +16,106 @@
     </section>
 
     <!-- Filters -->
-    <section class="px-2 rounded-xl flex items-center justify-between gap-4 overflow-x-auto">
-        <form method="GET" class="flex items-center gap-2 flex-nowrap">
-            <!-- Search Input -->
-            <div class="relative w-[325px]">
-                <svg
-                    class="w-5 h-5 text-[#7D93B3] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    stroke-width="2"
-                >
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"
-                    />
-                </svg>
-
-                <input
-                    type="search"
-                    placeholder="Search..."
-                    x-model="search"
-                    @input="onInputChange"
-                    class="pl-10 pr-4 py-1.5 rounded-md border-2 border-[#0D2B70] placeholder:text-[#7D93B3] placeholder:font-semibold text-[#0D2B70] focus:outline-none focus:ring-2 focus:ring-[#0D2B70] focus:ring-offset-1 w-full"
+    <section
+    class="px-2 rounded-xl flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4"
+>
+    <form
+        method="GET"
+        class="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 w-full"
+    >
+        <!-- Search Input -->
+        <div class="relative w-full sm:w-[250px] md:w-[325px]">
+            <svg
+                class="w-5 h-5 text-[#7D93B3] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+            >
+                <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"
                 />
-            </div>
+            </svg>
 
-            <!-- Sort Order -->
-            <select x-model="sortOrder" @change="fetchLogs"
-                class="border-2 border-[#0D2B70] rounded-md px-4 py-2 text-sm font-semibold text-[#0D2B70]">
-                <option value="desc">LATEST</option>
-                <option value="asc">OLDEST</option>
-            </select>
-
-            <!-- Admin Name -->
-            <select x-model="adminName" @change="fetchLogs"
-                class="border-2 border-[#0D2B70] rounded-md px-4 py-2 text-sm font-semibold text-[#0D2B70]">
-                <option value="">All Admins</option>
-                @foreach ($adminNames as $name)
-                    <option value="{{ $name }}">{{ $name }}</option>
-                @endforeach
-            </select>
-
-            <!-- Section Filter -->
-            <select x-model="section" @change="fetchLogs"
-                class="border-2 border-[#0D2B70] rounded-md px-4 py-2 text-sm font-semibold text-[#0D2B70]">
-                <option value="">All Sections</option>
-                @foreach ($sections as $sec)
-                    <option value="{{ $sec }}">{{ $sec }}</option>
-                @endforeach
-            </select>
-
-            <!-- Date Range -->
-            <input id="dateRange" x-model="dateRange" @change="fetchLogs" type="text"
-                placeholder="Select Date Range"
-                class="border-2 border-[#0D2B70] rounded-md px-4 py-2 text-sm font-semibold text-[#0D2B70]" />
-
-        </form>
-
-
-        <!-- Export Button -->
-        <div class="shrink-0">
-            @include('partials.alerts_template', [
-                'id' => 'exportAll',
-                'showTrigger' => true,
-                'triggerText' => 'Export Log',
-                'triggerClass' => 'font-semibold flex items-center px-4 py-2 bg-white text-[#0D2B70] rounded-md hover:bg-[#0D2B70]  transition whitespace-nowrap
-                                 hover:text-white hover:shadow-md border border-[#0D2B70]',
-                'title' => 'Export Confirmation',
-                'message' => 'Are you sure you want to export All activities?',
-                'showCancel' => true,
-                'cancelText' => 'No, Cancel',
-                'okText' => 'Yes, Export',
-                'okAction' => "window.location.href='" . route('exportActivities') . "'",
-            ])
+            <input
+                type="search"
+                placeholder="Search..."
+                x-model="search"
+                @input="onInputChange"
+                class="pl-10 pr-4 py-1.5 rounded-md border-2 border-[#0D2B70]
+                       placeholder:text-[#7D93B3] placeholder:font-semibold
+                       text-[#0D2B70] focus:outline-none focus:ring-2
+                       focus:ring-[#0D2B70] focus:ring-offset-1 w-full"
+            />
         </div>
-    </section>
+
+        <!-- Sort Order -->
+        <select
+            x-model="sortOrder"
+            @change="fetchLogs"
+            class="w-full sm:w-auto border-2 border-[#0D2B70] rounded-md px-4 py-2 text-sm font-semibold text-[#0D2B70]"
+        >
+            <option value="desc">LATEST</option>
+            <option value="asc">OLDEST</option>
+        </select>
+
+        <!-- Admin Name -->
+        <select
+            x-model="adminName"
+            @change="fetchLogs"
+            class="w-full sm:w-auto border-2 border-[#0D2B70] rounded-md px-4 py-2 text-sm font-semibold text-[#0D2B70]"
+        >
+            <option value="">All Admins</option>
+            @foreach ($adminNames as $name)
+                <option value="{{ $name }}">{{ $name }}</option>
+            @endforeach
+        </select>
+
+        <!-- Section Filter -->
+        <select
+            x-model="section"
+            @change="fetchLogs"
+            class="w-full sm:w-auto border-2 border-[#0D2B70] rounded-md px-4 py-2 text-sm font-semibold text-[#0D2B70]"
+        >
+            <option value="">All Sections</option>
+            @foreach ($sections as $sec)
+                <option value="{{ $sec }}">{{ $sec }}</option>
+            @endforeach
+        </select>
+
+        <!-- Date Range -->
+        <input
+            id="dateRange"
+            x-model="dateRange"
+            @change="fetchLogs"
+            type="text"
+            placeholder="Select Date Range"
+            class="w-full sm:w-auto border-2 border-[#0D2B70] rounded-md px-4 py-2 text-sm font-semibold text-[#0D2B70]"
+        />
+    </form>
+
+    <!-- Export Button -->
+    <div class="shrink-0 w-full lg:w-auto">
+        @include('partials.alerts_template', [
+            'id' => 'exportAll',
+            'showTrigger' => true,
+            'triggerText' => 'Export Log',
+            'triggerClass' => 'w-full lg:w-auto font-semibold flex justify-center items-center px-4 py-2 bg-white text-[#0D2B70] rounded-md
+                               hover:bg-[#0D2B70] transition whitespace-nowrap
+                               hover:text-white hover:shadow-md border border-[#0D2B70]',
+            'title' => 'Export Confirmation',
+            'message' => 'Are you sure you want to export All activities?',
+            'showCancel' => true,
+            'cancelText' => 'No, Cancel',
+            'okText' => 'Yes, Export',
+            'okAction' => "window.location.href='" . route('exportActivities') . "'",
+        ])
+    </div>
+</section>
+
     <!--
         <form class="bg-white px-6 py-4 rounded-xl shadow flex items-center justify-start gap-4 overflow-x-auto">
             <input type="checkbox" id="selectAll"

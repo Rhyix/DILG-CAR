@@ -6,7 +6,7 @@
 
     <!-- Header with back arrow and title -->
     <section class="flex-none flex items-center space-x-4 max-w-full">
-        <h1 class="flex items-center gap-3 w-full border-b border-[#0D2B70] text-white text-4xl font-montserrat py-2 tracking-wide select-none">
+        <h1 class="flex items-center gap-3 w-full border-b border-[#0D2B70] text-white text-4xl font-montserrat tracking-wide select-none">
             <span class="whitespace-nowrap text-[#0D2B70]">Manage Users</span>
         </h1>
     </section>
