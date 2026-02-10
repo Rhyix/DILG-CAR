@@ -11,6 +11,9 @@ use App\Models\ExamItems;
 use App\Models\User;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
+
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use App\Jobs\SendExamNotification;
 
 class ExamController extends Controller
@@ -221,16 +224,126 @@ class ExamController extends Controller
             $user_name[] = $user ? $user->name : 'Unknown User';
         }
 
-        //info($user_name);
-        //connect the user name here
-        //info($vacancy);
+        // Get qualified applicants for Tab 1
+        $qualifiedApplicants = Applications::where('vacancy_id', $vacancy_id)
+            ->where('status', 'qualified')
+            ->with(['user'])
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($app) {
+                return [
+                    'id' => $app->id,
+                    'user_id' => $app->user_id,
+                    'vacancy_id' => $app->vacancy_id,
+                    'name' => $app->user->name ?? 'Unknown',
+                    'email' => $app->user->email ?? 'N/A',
+                    'application_date' => $app->created_at->format('M d, Y'),
+                    'status' => $app->status,
+                    'link_sent_at' => $app->link_sent_at,
+                    'link_sent' => !is_null($app->link_sent_at),
+                    'read_at' => $app->read_at,
+                    'is_read' => !is_null($app->read_at),
+                ];
+            });
 
         activity()
             ->causedBy(auth()->user())
             ->withProperties(['vacancy_id' => $vacancy_id, 'section' => 'Exam Management'])
             ->log('Managed exam participants and details.');
 
-        return view('admin.manage_exam', ['vacancy' => $vacancy, 'participants' => $participants, 'user_name' => $user_name, 'examDetails' => $examDetails]);
+        return view('admin.manage_exam', [
+            'vacancy' => $vacancy,
+            'participants' => $participants,
+            'user_name' => $user_name,
+            'examDetails' => $examDetails,
+            'qualifiedApplicants' => $qualifiedApplicants
+        ]);
+    }
+
+    public function getQualifiedApplicants(Request $request, $vacancy_id)
+    {
+        $search = $request->get('search', '');
+        $status = $request->get('status', '');
+
+        $query = Applications::where('vacancy_id', $vacancy_id)
+            ->where('status', 'qualified')
+            ->with(['user', 'personalInformation']);
+
+        // Apply search filter
+        if (!empty($search)) {
+            $query->whereHas('user', function ($q) use ($search) {
+                $q->where('name', 'LIKE', "%{$search}%")
+                    ->orWhere('email', 'LIKE', "%{$search}%");
+            });
+        }
+
+        $applicants = $query->orderBy('created_at', 'desc')->get();
+
+        // Transform data for the view
+        $qualifiedApplicants = $applicants->map(function ($app) {
+            return [
+                'id' => $app->id,
+                'user_id' => $app->user_id,
+                'vacancy_id' => $app->vacancy_id,
+                'name' => $app->user->name ?? 'Unknown',
+                'email' => $app->user->email ?? 'N/A',
+                'application_date' => $app->created_at->format('M d, Y'),
+                'status' => $app->status,
+                'link_sent_at' => $app->link_sent_at,
+                'link_sent' => !is_null($app->link_sent_at),
+                'read_at' => $app->read_at,
+                'is_read' => !is_null($app->read_at),
+            ];
+        });
+
+        // If AJAX request, return JSON
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'applicants' => $qualifiedApplicants
+            ]);
+        }
+
+        return $qualifiedApplicants;
+    }
+
+    public function getLobbyData(Request $request, $vacancy_id)
+    {
+        // Get all applications that are considered participants for this exam
+        // Assuming participants are those who have applied and been qualified/sent a link,
+        // OR simply anyone associated with this vacancy ID depending on your logic.
+        // The original code used: Applications::where('vacancy_id', $vacancy_id)->get();
+        // So I'll stick to that but add eager loading.
+
+        $participants = Applications::where('vacancy_id', $vacancy_id)
+            ->with('user')
+            ->get();
+
+        $lobbyData = $participants->map(function ($p) {
+            $statusColors = [
+                'ready' => '#4ade80',        // green-400
+                'in-progress' => '#facc15',  // yellow-400
+                'submitted' => '#3b82f6',    // blue-500
+                'pending' => '#f75555',      // red
+            ];
+
+            $status = strtolower($p->status ?? 'pending');
+            $color = $statusColors[$status] ?? '#9ca3af';
+
+            return [
+                'user_id' => $p->user_id,
+                'name' => $p->user->name ?? 'Unknown User',
+                'result' => $p->result ?: '-',
+                'status' => $p->status ?? 'Pending',
+                'status_color' => $color,
+                'vacancy_id' => $p->vacancy_id // needed for view button link
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'participants' => $lobbyData
+        ]);
     }
 
     public function examLobby(Request $request, $vacancy_id)
@@ -344,8 +457,15 @@ class ExamController extends Controller
     public function notifyApplicants(Request $request, $vacancy_id)
     {
         try {
-            $exam_detail = ExamDetail::select('id')->where('vacancy_id', $vacancy_id)->firstOrFail();
-            $exam_id = $exam_detail->id;
+            // Check if details have been saved first
+            $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->first();
+
+            if (!$examDetail || !$examDetail->details_saved) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Please save exam details first before sending links.'
+                ], 400);
+            }
 
             $participants = Applications::where('vacancy_id', $vacancy_id)->get();
 
@@ -353,17 +473,16 @@ class ExamController extends Controller
                 return response()->json(['success' => false, 'message' => 'No participants found for this vacancy.']);
             }
 
-            $sender_email = auth('admin')->user()->email ?? config('mail.from.address');
+            $userIds = $participants->pluck('user_id')->toArray();
 
-            foreach ($participants as $p) {
-                $user_id = $p->user_id;
-                if ($user_id) {
-                    // Dispatch the job to the queue
-                    SendExamNotification::dispatch($vacancy_id, $user_id, $exam_id, $sender_email);
-                }
-            }
+            $this->sendRefinedNotifications($userIds, $vacancy_id, $examDetail);
 
-            ExamDetail::where('vacancy_id', $vacancy_id)->first()->update(['notified_at' => now()]);
+            // Update exam details as notified
+            $examDetail->update([
+                'notified_at' => now(),
+                'link_sent' => true,
+                'link_sent_at' => now()
+            ]);
 
             activity()
                 ->causedBy(auth('admin')->user())
@@ -371,7 +490,12 @@ class ExamController extends Controller
                 ->withProperties(['vacancy_id' => $vacancy_id, 'section' => 'Exam Management'])
                 ->log('Queued exam notifications for all applicants.');
 
-            return response()->json(['success' => true, 'notified_at' => now()->format('Y-m-d H:i:s'), 'message' => 'Notifications sent successfully.']);
+            return response()->json([
+                'success' => true,
+                'notified_at' => now()->format('Y-m-d H:i:s'),
+                'link_sent_at' => now()->format('Y-m-d H:i:s'),
+                'message' => 'Notifications sent successfully.'
+            ]);
 
         } catch (\Exception $e) {
             Log::error("Error notifying applicants: " . $e->getMessage());
@@ -380,6 +504,79 @@ class ExamController extends Controller
                 'message' => 'Server Error: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    public function notifySelectedApplicants(Request $request, $vacancy_id)
+    {
+        try {
+            $validated = $request->validate([
+                'user_ids' => 'required|array',
+                'user_ids.*' => 'integer|exists:users,id'
+            ]);
+
+            $userIds = $validated['user_ids'];
+            $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->firstOrFail();
+
+            if (!$examDetail->details_saved) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Please save exam details first before sending links.'
+                ], 400);
+            }
+
+            $count = $this->sendRefinedNotifications($userIds, $vacancy_id, $examDetail);
+
+            activity()
+                ->causedBy(auth('admin')->user())
+                ->event('notify_selected')
+                ->withProperties(['vacancy_id' => $vacancy_id, 'count' => $count, 'section' => 'Exam Management'])
+                ->log('Queued exam notifications for selected applicants.');
+
+            return response()->json([
+                'success' => true,
+                'message' => "$count applicants notified successfully."
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error("Error in notifySelectedApplicants: " . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Server Error: ' . $e->getMessage()], 500);
+        }
+    }
+
+    private function sendRefinedNotifications(array $userIds, string $vacancy_id, ExamDetail $examDetail)
+    {
+        return DB::transaction(function () use ($userIds, $vacancy_id, $examDetail) {
+            $sender_email = auth('admin')->user()->email ?? config('mail.from.address');
+            $count = 0;
+
+            foreach ($userIds as $user_id) {
+                // Find application
+                $application = Applications::where('vacancy_id', $vacancy_id)
+                    ->where('user_id', $user_id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($application) {
+                    // Generate Token if not exists or expired (though we might just regenerate always for new link sending)
+                    $token = Str::random(64);
+
+                    // Set expiration to Exam Date + Duration + Buffer (e.g. 1 day)
+                    // Or simply 48 hours for now as a default
+                    $expiresAt = now()->addHours(48);
+
+                    $application->update([
+                        'exam_token' => $token,
+                        'exam_token_expires_at' => $expiresAt,
+                        'link_sent_at' => now(),
+                    ]);
+
+                    // Dispatch Job
+                    SendExamNotification::dispatch($vacancy_id, $user_id, $examDetail->id, $sender_email);
+                    $count++;
+                }
+            }
+            return $count;
+        });
     }
 
     public function saveExamDetails(Request $request, $vacancy_id)
@@ -391,6 +588,9 @@ class ExamController extends Controller
             'place' => 'required|string',
             'duration' => 'required|integer',
         ]);
+
+        // Add details_saved flag
+        $validated['details_saved'] = true;
 
         ExamDetail::updateOrCreate(
             ['vacancy_id' => $vacancy_id],
@@ -424,4 +624,60 @@ class ExamController extends Controller
         ]);
     }
 
+    public function startExam(Request $request, $vacancy_id)
+    {
+        try {
+            $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->first();
+
+            if (!$examDetail) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Exam details not found.'
+                ], 404);
+            }
+
+            if (!$examDetail->link_sent) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Please send exam links to applicants first.'
+                ], 400);
+            }
+
+            // Mark exam as started
+            $examDetail->update(['is_started' => true]);
+
+            activity()
+                ->causedBy(auth('admin')->user())
+                ->event('start')
+                ->withProperties(['vacancy_id' => $vacancy_id, 'section' => 'Exam Management'])
+                ->log('Started the exam.');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Exam started successfully.'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error("Error starting exam: " . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Server Error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function confirmNotification($token)
+    {
+        $application = Applications::where('exam_token', $token)->first();
+
+        if (!$application) {
+            abort(404, 'Invalid token');
+        }
+
+        if (!$application->read_at) {
+            $application->update(['read_at' => now()]);
+        }
+
+        return view('exam.confirmation');
+    }
 }

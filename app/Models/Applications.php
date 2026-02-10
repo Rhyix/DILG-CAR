@@ -8,8 +8,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 class Applications extends Model
 {
     use HasFactory;
- 
-    protected $fillable =[
+
+    protected $fillable = [
         'user_id',
         'updated_by_admin_id',
         'vacancy_id',
@@ -31,7 +31,11 @@ class Applications extends Model
         'qs_experience',
         'qs_training',
         'qs_result',
-        'application_remarks'
+        'application_remarks',
+        'link_sent_at',
+        'exam_token',
+        'exam_token_expires_at',
+        'read_at'
     ];
 
     protected $casts = [
@@ -46,7 +50,7 @@ class Applications extends Model
 
     public function personalInformation()
     {
-    return $this->belongsTo(PersonalInformation::class, 'user_id', 'user_id');
+        return $this->belongsTo(PersonalInformation::class, 'user_id', 'user_id');
     }
 
     public function user()

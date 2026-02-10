@@ -135,7 +135,7 @@
                     "sidebarText", "textHome", "textJobVacancies", "textMyApplications",
                     "textPersonalDataSheet", "textAboutWebsite", "textLogOut", "textActivityLog"
                 ].map(id => document.getElementById(id));
-                
+
                 const isMobile = window.innerWidth < 1024;
                 const isOpen = localStorage.getItem('sidebarOpen') === 'true';
 
@@ -176,7 +176,7 @@
 
                 // Make visible immediately
                 sidebar.style.visibility = 'visible';
-                
+
                 // Remove preload class after a tiny delay
                 setTimeout(() => {
                     sidebar.classList.remove('sidebar-preload');
@@ -185,7 +185,7 @@
         </script>
 
         {{-- Main Content Scrollable --}}
-        <main class="flex-1 overflow-y-auto p-10 pt-8 space-y-10 relative">
+        <main class="flex-1 overflow-y-auto p-6 sm:p-8 md:p-10 pt-6 sm:pt-8 relative">
             <!-- Mobile Menu Button (visible only on mobile) -->
             <button id="mobileMenuButton" onclick="window.openSidebar ? window.openSidebar() : null"
                 class="lg:hidden fixed top-4 left-4 z-20 bg-[#002C76] text-white p-3 rounded-lg shadow-lg hover:bg-[#001a4d] transition-all duration-200"

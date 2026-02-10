@@ -140,6 +140,7 @@ class AdminController extends Controller
         //info('check');
         $selectedYear = $request->query('year', now()->year);
 
+        // Get all years with applications, or default to current year
         $years = DB::table('applications')
             ->selectRaw('YEAR(created_at) as year')
             ->distinct()
@@ -147,6 +148,12 @@ class AdminController extends Controller
             ->pluck('year')
             ->toArray();
 
+        // If no years found, add current year as default
+        if (empty($years)) {
+            $years = [now()->year];
+        }
+
+        // Get monthly application counts for selected year
         $monthlyApplicants = DB::table('applications')
             ->selectRaw('MONTH(created_at) as month, COUNT(*) as total')
             ->whereYear('created_at', $selectedYear)
@@ -156,17 +163,22 @@ class AdminController extends Controller
 
         //info('check');
 
-        $months = collect(range(1, 12))->map(fn($m) => Carbon::create()->month($m)->format('F'))->toArray();
+        // Generate month labels (Jan, Feb, Mar, etc.)
+        $monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-        $monthCounts = array_fill(1, 12, 0);
+        // Initialize all months with 0
+        $monthCounts = array_fill(0, 12, 0);
+
+        // Fill in actual counts
         foreach ($monthlyApplicants as $record) {
-            $monthCounts[(int) $record->month] = (int) $record->total;
+            $monthIndex = (int) $record->month - 1; // Convert to 0-based index
+            $monthCounts[$monthIndex] = (int) $record->total;
         }
 
         //info('check');
 
-        $chartLabels = $months;
-        $chartData = array_values($monthCounts);
+        $chartLabels = $monthLabels;
+        $chartData = $monthCounts;
 
         $openVacancies = Vacancy::where('status', 'OPEN')->get();
         $openVacancyCount = $openVacancies->count();
@@ -214,8 +226,8 @@ class AdminController extends Controller
             'systemUsersCount' => $systemUsersCount,
             'upcomingExams' => $upcomingExams,
             'upcomingExamsCount' => $upcomingExamsCount,
-            'chartLabels' => json_encode($chartLabels),
-            'chartData' => json_encode($chartData),
+            'chartLabels' => $chartLabels,
+            'chartData' => $chartData,
             'selectedYear' => $selectedYear,
             'years' => $years,
         ]);

@@ -58,6 +58,8 @@ Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->na
 Route::post('/register', [RegisterController::class, 'register'])->name('register');
 Route::get('/otp', [RegisterController::class, 'OTPForm'])->name('otp');
 Route::post('/otp', [RegisterController::class, 'OTPCheck'])->name('otp_check');
+
+Route::get('/exam/confirm/{token}', [ExamController::class, 'confirmNotification'])->name('exam.confirm_notification');
 Route::post('/otp/resend', [RegisterController::class, 'resendOTP'])->name('otp_resend');
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login.form');
 Route::post('/login', [LoginController::class, 'login'])->name('login')->middleware('throttle:5,1');
@@ -362,10 +364,13 @@ Route::middleware([ViewerAccess::class])->group(function () {
     Route::get('/admin/exam_management/{vacancy_id}/view_exam/{user_id}', [ExamController::class, 'viewExam'])->name('admin.view_exam');
     Route::post('/admin/exam_management/{vacancy_id}/view_exam/{user_id}', [ExamController::class, 'saveResult'])->name('admin.save_result');
     Route::get('/admin/exam_management/{vacancy_id}/manage', [ExamController::class, 'manageExam'])->name('admin.manage_exam');
+    Route::get('/admin/exam_management/{vacancy_id}/qualified', [ExamController::class, 'getQualifiedApplicants'])->name('admin.exam.qualified');
     Route::post('/admin/exam_management/{vacancy_id}/notify', [ExamController::class, 'notifyApplicants'])->name('admin.exam_notify');
     //Route::get('/admin/exam_management/{vacancy_id}/notify', [ExamController::class, 'notifyApplicants'])->name('admin.exam_notify');
     Route::post('/admin/exam_management/{vacancy_id}/details/save', [ExamController::class, 'saveExamDetails']);
-
+    Route::post('/admin/exam_management/{vacancy_id}/start', [ExamController::class, 'startExam'])->name('admin.exam_start');
+    Route::get('/admin/exam_management/{vacancy_id}/lobby-data', [ExamController::class, 'getLobbyData'])->name('admin.exam.lobby_data');
+    Route::post('/admin/exam_management/{vacancy_id}/notify-selected', [ExamController::class, 'notifySelectedApplicants'])->name('admin.exam.notify_selected');
 
 
     // Exam Library Routes
