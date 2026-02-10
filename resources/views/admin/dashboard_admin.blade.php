@@ -329,16 +329,16 @@
                     // Get data from backend
                     const chartLabels = {!! json_encode($chartLabels ?? []) !!};
                     const chartData = {!! json_encode($chartData ?? []) !!};
-                    
+
                     // Debug logging
                     console.log('Chart Labels:', chartLabels);
                     console.log('Chart Data:', chartData);
-                    
+
                     // Check if there's any data
                     const hasData = chartData && Array.isArray(chartData) && chartData.some(value => value > 0);
-                    
+
                     console.log('Has Data:', hasData);
-                    
+
                     if (!hasData) {
                         // Hide chart and show no data message
                         ctxLine.style.display = 'none';
