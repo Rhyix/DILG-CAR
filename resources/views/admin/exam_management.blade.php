@@ -10,7 +10,7 @@
         </h1>
     </section>
 
-    <form onsubmit="return false;" class="relative w-full grid grid-cols-2">
+    <form onsubmit="return false;" class="relative w-full">
         <!-- search bar and from type dropdown -->
         <div class="flex flex-row items-center">
             <!-- search bar -->
@@ -43,7 +43,7 @@
 
             <!-- form type dropdown -->
             <div class="flex flex-row items-center ml-4">
-                <span class="text-[#0D2B70] font-semibold mr-2">Job Type</span>    
+                <span class="text-[#0D2B70] font-semibold mr-2 flex flex-row">Job Type</span>    
                 <select id="jobTypeFilter"
                         class="h-10 cursor-pointer px-4 rounded-md border border-[#0D2B70] text-[#0D2B70] font-semibold bg-white
                             focus:outline-none focus:ring-2 focus:ring-[#0D2B70] focus:ring-offset-1">
@@ -66,14 +66,13 @@
                     <option value="Completed">Completed</option>
                 </select>
             </div>
-        </div>
-
-        <!-- exam library button -->
-        <div class="flex justify-end">
-            <button onclick="window.location.href='{{ route('admin.exam_library') }}'" 
-                class="h-10 hover:scale-105 animate-ease-in-out px-6 border border-[#0D2B70] transition bg-white font-semibold rounded-md flex items-center gap-2 text-sm">
-                <span class="text-[#0D2B70] font-bold">Exam Library</span>
-            </button>
+            <!-- exam library button -->
+            <div class="flex justify-end ml-auto">
+                <button onclick="window.location.href='{{ route('admin.exam_library') }}'" 
+                    class="h-10 hover:scale-105 animate-ease-in-out px-6 border border-[#0D2B70] transition bg-white font-semibold rounded-md flex items-center gap-2 text-sm">
+                    <span class="text-[#0D2B70] font-bold">Exam Library</span>
+                </button>
+            </div>
         </div>
     </form>
 
