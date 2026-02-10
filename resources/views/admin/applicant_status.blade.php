@@ -68,9 +68,15 @@
 											<!-- deadline -->
 											<div class="flex-1">
 												<label class="block text-sm font-semibold text-[#002C76] mb-1">Deadline:</label>
-												<input type="date" name="deadline_date"
+												<input 
+													type="text" 
+													name="deadline_date"
+													id="deadline_date"
 													class="w-full text-sm px-3 py-2 border border-[#002C76] rounded-md focus:outline-none focus:ring-1 focus:ring-[#002C76] shadow-sm"
-													value="{{ old('deadline_date', $application->deadline_date ? \Carbon\Carbon::parse($application->deadline_date)->format('Y-m-d') : '') }}">
+													value="{{ old('deadline_date', $application->deadline_date ? \Carbon\Carbon::parse($application->deadline_date)->format('m-d-Y') : '') }}"
+													maxlength="10"
+													placeholder="MM-DD-YYYY"
+												>
 											</div>
 
 											<!-- 3. Time Picker -->

@@ -115,7 +115,7 @@
                 <!-- Submit Button -->
                 <div class="flex justify-end pt-4">
                     <button type="submit"
-                        class="use-loader bg-[#C5292F] hover:bg-red-700 text-white font-semibold px-6 py-2 rounded-full flex items-center gap-2">
+                        class="use-loader bg-[#C5292F] hover:bg-red-700 text-white font-semibold px-6 py-2 rounded-md flex items-center gap-2">
                         UPDATE
                     </button>
                 </div>
