@@ -11,9 +11,12 @@ use App\Models\ExamItems;
 use App\Models\User;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
+<<<<<<< Updated upstream
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+=======
+>>>>>>> Stashed changes
 use App\Jobs\SendExamNotification;
 
 class ExamController extends Controller
@@ -457,6 +460,7 @@ class ExamController extends Controller
     public function notifyApplicants(Request $request, $vacancy_id)
     {
         try {
+<<<<<<< Updated upstream
             // Check if details have been saved first
             $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->first();
 
@@ -483,6 +487,28 @@ class ExamController extends Controller
                 'link_sent' => true,
                 'link_sent_at' => now()
             ]);
+=======
+            $exam_detail = ExamDetail::select('id')->where('vacancy_id', $vacancy_id)->firstOrFail();
+            $exam_id = $exam_detail->id;
+
+            $participants = Applications::where('vacancy_id', $vacancy_id)->get();
+            
+            if ($participants->isEmpty()) {
+                return response()->json(['success' => false, 'message' => 'No participants found for this vacancy.']);
+            }
+
+            $sender_email = auth('admin')->user()->email ?? config('mail.from.address');
+
+            foreach ($participants as $p) {
+                $user_id = $p->user_id;
+                if ($user_id) {
+                    // Dispatch the job to the queue
+                    SendExamNotification::dispatch($vacancy_id, $user_id, $exam_id, $sender_email);
+                }
+            }
+
+            ExamDetail::where('vacancy_id', $vacancy_id)->first()->update(['notified_at' => now()]);
+>>>>>>> Stashed changes
 
             activity()
                 ->causedBy(auth('admin')->user())
@@ -490,6 +516,7 @@ class ExamController extends Controller
                 ->withProperties(['vacancy_id' => $vacancy_id, 'section' => 'Exam Management'])
                 ->log('Queued exam notifications for all applicants.');
 
+<<<<<<< Updated upstream
             return response()->json([
                 'success' => true,
                 'notified_at' => now()->format('Y-m-d H:i:s'),
@@ -577,6 +604,17 @@ class ExamController extends Controller
             }
             return $count;
         });
+=======
+            return response()->json(['success' => true, 'notified_at' => now()->format('Y-m-d H:i:s'), 'message' => 'Notifications sent successfully.']);
+        
+        } catch (\Exception $e) {
+            Log::error("Error notifying applicants: " . $e->getMessage());
+            return response()->json([
+                'success' => false, 
+                'message' => 'Server Error: ' . $e->getMessage()
+            ], 500);
+        }
+>>>>>>> Stashed changes
     }
 
     public function saveExamDetails(Request $request, $vacancy_id)
@@ -598,6 +636,16 @@ class ExamController extends Controller
         );
 
         $examDetails = ExamDetail::where('vacancy_id', $vacancy_id)->first();
+        
+        $notified = false;
+        $notified_at = null;
+
+        if ($request->boolean('notify')) {
+            $this->notifyApplicants($request, $vacancy_id);
+            $examDetails->refresh();
+            $notified = true;
+            $notified_at = $examDetails->notified_at;
+        }
 
         $notified = false;
         $notified_at = null;
@@ -616,8 +664,13 @@ class ExamController extends Controller
             ->log('Saved exam schedule and details.');
 
         return response()->json([
+<<<<<<< Updated upstream
             'success' => true,
             'message' => 'Exam details saved.',
+=======
+            'success' => true, 
+            'message' => 'Exam details saved.', 
+>>>>>>> Stashed changes
             'examDetails' => $examDetails,
             'notified' => $notified,
             'notified_at' => $notified_at

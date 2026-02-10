@@ -6,7 +6,11 @@
 
     <!-- Header with back arrow and title -->
     <section class="flex-none flex items-center space-x-4 max-w-full">
+<<<<<<< Updated upstream
         <h1 class="flex items-center gap-3 w-full border-b border-[#0D2B70] text-white text-4xl font-montserrat tracking-wide select-none">
+=======
+        <h1 class="flex items-center gap-3 w-full border-b border-[#0D2B70] text-white text-4xl font-montserrat py-2 tracking-wide select-none">
+>>>>>>> Stashed changes
             <span class="whitespace-nowrap text-[#0D2B70]">Manage Users</span>
         </h1>
     </section>
@@ -30,6 +34,7 @@
     <!-- Table Container -->
     <div class="flex-1 flex flex-col min-h-0 overflow-hidden border border-[#0D2B70] rounded-xl">
         <div class="flex-1 overflow-auto">
+<<<<<<< Updated upstream
             <table class="w-full text-left border-collapse table-fixed">
                 <thead class="bg-[#0D2B70] text-white sticky top-0 z-10">
                     <tr>
@@ -38,6 +43,16 @@
                         <th class="py-4 px-6 font-semibold text-center w-[15%]">Account Type</th>
                         <th class="py-4 px-6 font-semibold text-center w-[15%]">Account Status</th>
                         <th class="py-4 px-6 font-semibold text-center w-[20%]">Actions</th>
+=======
+            <table class="w-full text-left border-collapse">
+                <thead class="bg-[#0D2B70] text-white sticky top-0 z-10">
+                    <tr>
+                        <th class="py-4 px-6 font-semibold">Username</th>
+                        <th class="py-4 px-6 font-semibold">Email Address</th>
+                        <th class="py-4 px-6 font-semibold text-center">Account Type</th>
+                        <th class="py-4 px-6 font-semibold text-center">Account Status</th>
+                        <th class="py-4 px-6 font-semibold text-center">Actions</th>
+>>>>>>> Stashed changes
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-[#0D2B70]">
@@ -45,20 +60,35 @@
                     @foreach ($admins as $admin)
                     <tr class="text-[#0D2B70] select-none hover:bg-blue-50 transition-colors duration-200">
                         <!-- Username -->
+<<<<<<< Updated upstream
                         <td class="py-4 px-6 font-normal w-[20%]">{{ $admin->username }}</td>
                         
                         <!-- Email -->
                         <td class="py-4 px-6 font-normal overflow-hidden text-ellipsis whitespace-nowrap w-[30%]">
+=======
+                        <td class="py-4 px-6 font-normal">{{ $admin->username }}</td>
+                        
+                        <!-- Email -->
+                        <td class="py-4 px-6 font-normal overflow-hidden text-ellipsis whitespace-nowrap">
+>>>>>>> Stashed changes
                             {{ $admin->email }}
                         </td>
                         
                         <!-- Role -->
+<<<<<<< Updated upstream
                         <td class="py-4 px-6 text-center font-semibold w-[15%]">
+=======
+                        <td class="py-4 px-6 text-center font-semibold">
+>>>>>>> Stashed changes
                             {{ ucfirst($admin->role) }}
                         </td>
                         
                         <!-- Status -->
+<<<<<<< Updated upstream
                         <td class="py-4 px-6 text-center w-[15%]">
+=======
+                        <td class="py-4 px-6 text-center">
+>>>>>>> Stashed changes
                             <span class="px-3 py-1 rounded-full border-2
                                 {{ $admin->is_active ? 'bg-green-200 border-green-700 text-green-700' : 'bg-red-200 border-red-700 text-red-700' }}">
                                 {{ $admin->is_active ? 'Active' : 'Inactive' }}
@@ -66,11 +96,16 @@
                         </td>
 
                         <!-- Actions -->
+<<<<<<< Updated upstream
                         <td class="py-4 px-6 text-center w-[20%]">
+=======
+                        <td class="py-4 px-6 text-center">
+>>>>>>> Stashed changes
                             <div class="flex justify-center items-center gap-3">
                                 <form method="POST" action="{{ route($admin->is_active ? 'admin.deactivate' : 'admin.activate', $admin->id) }}">
                                     @csrf
                                     <button type="submit"
+<<<<<<< Updated upstream
                                         title="{{ $admin->is_active ? 'Deactivate Admin' : 'Activate Admin' }}"
                                         class="use-loader 
                                         {{ $admin->is_active 
@@ -119,6 +154,50 @@
 
                         <!-- Actions -->
                         <td class="py-4 px-6 text-center w-[20%]">
+=======
+                                        class="w-[130px] 
+                                            {{ $admin->is_active ? 'bg-[#C5292F] hover:bg-red-700' : 'bg-[#00127.0.0.1] hover:bg-green-700' }} 
+                                            text-white font-semibold rounded-full flex items-center justify-center gap-2 px-5 py-2 transition">
+                                        {{ $admin->is_active ? 'DEACTIVATE' : 'ACTIVATE' }}
+                                    </button>
+                                </form>
+
+                                @include('partials.admin_edit_account', ['admin' => $admin])
+                            </div>
+                        </td>
+                    </tr>
+                    @endforeach
+
+                    <!-- Regular Users -->
+                    @foreach ($users as $user)
+                    <tr class="text-[#0D2B70] select-none hover:bg-blue-50 transition-colors duration-200">
+                        <!-- Username -->
+                        <td class="py-4 px-6 font-normal">
+                             {{ $user->last_name }}, {{ $user->first_name }}
+                        </td>
+                        
+                        <!-- Email -->
+                        <td class="py-4 px-6 font-normal overflow-hidden text-ellipsis whitespace-nowrap">
+                            {{ $user->email }}
+                        </td>
+                        
+                        <!-- Role -->
+                        <td class="py-4 px-6 text-center font-semibold">
+                            Applicant
+                        </td>
+                        
+                        <!-- Status -->
+                        <td class="py-4 px-6 text-center font-bold">
+                             @if($user->email_verified_at)
+                                <span class="text-green-600">Verified</span>
+                             @else
+                                <span class="text-red-600">Unverified</span>
+                             @endif
+                        </td>
+
+                        <!-- Actions -->
+                        <td class="py-4 px-6 text-center">
+>>>>>>> Stashed changes
                             <div class="flex justify-center items-center gap-3">
                                 <span class="text-gray-400 text-sm italic">No actions available</span>
                             </div>

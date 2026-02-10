@@ -33,8 +33,8 @@
                 <input
                     id="examIdFilter"
                     type="text"
-                    placeholder="Search by Job Title or ID"
-                    aria-label="Search by Job Title or ID"
+                    placeholder="Search by Exam Title or ID"
+                    aria-label="Search by Exam Title or ID"
                     class="h-10 w-full pl-10 pr-4 rounded-md border border-[#0D2B70]
                         text-[#0D2B70] placeholder:text-[#7D93B3] placeholder:font-semibold
                         focus:outline-none focus:ring-2 focus:ring-[#0D2B70] focus:ring-offset-1"
@@ -53,6 +53,7 @@
                 </select>
             </div>
 
+<<<<<<< Updated upstream
             <!-- exam status dropdown (New) -->
             <div class="flex flex-row items-center ml-4">
                 <span class="text-[#0D2B70] font-semibold mr-2">Status</span>    
@@ -73,6 +74,14 @@
                     <span class="text-[#0D2B70] font-bold">Exam Library</span>
                 </button>
             </div>
+=======
+        <!-- exam library button -->
+        <div class="flex justify-end">
+            <button onclick="window.location.href='{{ route('admin.exam_library') }}'"
+                class="h-10 hover:scale-105 animate-ease-in-out px-6 border border-[#0D2B70] transition bg-white font-semibold rounded-md flex items-center gap-2 text-sm">
+                <span class="text-[#0D2B70] font-bold">Exam Library</span>
+            </button>
+>>>>>>> Stashed changes
         </div>
     </form>
 

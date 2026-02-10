@@ -373,6 +373,7 @@ Route::middleware([ViewerAccess::class])->group(function () {
     Route::post('/admin/exam_management/{vacancy_id}/notify-selected', [ExamController::class, 'notifySelectedApplicants'])->name('admin.exam.notify_selected');
 
 
+<<<<<<< Updated upstream
     // Exam Library Routes
     Route::get('/admin/exam-library', [App\Http\Controllers\ExamLibraryController::class, 'index'])->name('admin.exam_library');
     Route::post('/admin/exam-library/series', [App\Http\Controllers\ExamLibraryController::class, 'storeSeries'])->name('admin.exam_library.series.store');
@@ -385,6 +386,9 @@ Route::middleware([ViewerAccess::class])->group(function () {
     Route::delete('/admin/exam-library/questions/{id}', [App\Http\Controllers\ExamLibraryController::class, 'deleteQuestion'])->name('admin.exam_library.questions.delete');
     Route::get('/admin/exam-library/questions/selection', [App\Http\Controllers\ExamLibraryController::class, 'getQuestionsForSelection'])->name('admin.exam_library.questions.selection');
 
+=======
+    Route::get('/admin/exam_library', fn() => view('admin.exam_library'))->name('admin.exam_library');
+>>>>>>> Stashed changes
     Route::get('/admin/exam_management/{vacancy_id}/edit', [ExamController::class, 'editExam'])->name('admin.exam.edit');
     Route::post('/admin/exam_management/{vacancy_id}/edit', [ExamController::class, 'updateExam'])->name('admin.exam.update');
 
