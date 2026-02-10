@@ -19,7 +19,7 @@
     <section class="px-2 rounded-xl flex items-center justify-between gap-4 overflow-x-auto">
         <form method="GET" class="flex items-center gap-2 flex-nowrap">
             <!-- Search Input -->
-            <div class="relative w-[325px]">
+            <div class="relative w-[300px]">
                 <svg
                     class="w-5 h-5 text-[#7D93B3] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
                     xmlns="http://www.w3.org/2000/svg"
@@ -157,7 +157,7 @@
     </div>
 
 <!-- Activity Table -->
-<section class="space-y-1">
+<section class="space-y-1 pr-10">
     <div class="border border-[#0D2B70] rounded-xl overflow-hidden">
         <div>
             <table class="w-full text-left border-collapse">

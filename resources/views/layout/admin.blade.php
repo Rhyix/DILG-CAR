@@ -185,7 +185,7 @@
         </script>
 
         {{-- Main Content Scrollable --}}
-        <main class="flex-1 overflow-y-auto p-10 pt-8 space-y-10 relative">
+        <main class="flex-1 overflow-y-auto pl-10 pr-10q space-y-10 relative">
             <!-- Mobile Menu Button (visible only on mobile) -->
             <button id="mobileMenuButton" onclick="window.openSidebar ? window.openSidebar() : null"
                 class="lg:hidden fixed top-4 left-4 z-20 bg-[#002C76] text-white p-3 rounded-lg shadow-lg hover:bg-[#001a4d] transition-all duration-200"
