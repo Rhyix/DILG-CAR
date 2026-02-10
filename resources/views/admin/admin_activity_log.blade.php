@@ -3,7 +3,7 @@
 @section('title', 'Admin Activity Log')
 @section('content')
 
-<main class="w-full h-[calc(98vh-6rem)] flex flex-col space-y-6 font-montserrat overflow-hidden -mt-6" x-data="logTable()">
+<main class="w-full space-y-6 font-montserrat" x-data="logTable()">
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
@@ -16,7 +16,7 @@
     </section>
 
     <!-- Filters -->
-    <section class="px-6 py-4 rounded-xl flex items-center justify-between gap-4 overflow-x-auto">
+    <section class="px-2 rounded-xl flex items-center justify-between gap-4 overflow-x-auto">
         <form method="GET" class="flex items-center gap-2 flex-nowrap">
             <!-- Search Input -->
             <div class="relative w-[325px]">
@@ -135,14 +135,31 @@
         </form>
     -->
     <!-- Entry Count Info -->
-    <div x-show="logsData.length > 0">
-        Showing <span x-text="startEntry"></span>–<span x-text="endEntry"></span> out of <span x-text="logsData.length"></span> entries
+     <div class="flex flex-row justify-between">
+        <div x-show="logsData.length > 0">
+            Showing <span x-text="startEntry"></span>–<span x-text="endEntry"></span> out of <span x-text="logsData.length"></span> entries
+        manage</div>
+            <div class="items-end justify-end gap-6">
+                <button @click="prevPage" :disabled="currentPage === 1"
+                    class="w-9 h-9 rounded-full bg-gray-200 text-[#0D2B70] hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">
+                    &lt;
+                </button>
+
+                <span class="text-lg text-gray-700 font-semibold">
+                    <span x-text="currentPage"></span> of <span x-text="totalPages"></span>
+                </span>
+
+                <button @click="nextPage" :disabled="currentPage === totalPages"
+                    class="w-9 h-9 rounded-full bg-gray-200 text-[#0D2B70] hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">
+                    &gt;
+                </button>
+            </div>
     </div>
 
 <!-- Activity Table -->
-<section class="flex-1 flex flex-col min-h-0">
-    <div class="flex-1 flex flex-col min-h-0 overflow-hidden border border-[#0D2B70] rounded-xl">
-        <div class="flex-1 overflow-auto">
+<section class="space-y-1">
+    <div class="border border-[#0D2B70] rounded-xl overflow-hidden">
+        <div>
             <table class="w-full text-left border-collapse">
                 <!-- Table Header -->
                 <thead class="bg-[#0D2B70] text-white sticky top-0 z-10">
@@ -152,7 +169,6 @@
                         <th class="py-4 px-6 font-normal">Role</th>
                         <th class="py-4 px-6 font-normal">Section</th>
                         <th class="py-4 px-6 font-normal">Description</th>
-                        <th class="py-4 px-6 font-normal text-center">Actions</th>
                     </tr>
                 </thead>
                 <!-- Table Body -->
@@ -164,11 +180,6 @@
                             <td class="py-4 px-6" x-text="log.role"></td>
                             <td class="py-4 px-6" x-text="log.section"></td>
                             <td class="py-4 px-6 text-left whitespace-normal break-words max-w-[420px]" x-html="log.description_html"></td>
-                            <td class="py-4 px-6 text-center">
-                                <button @click="viewLog(log.id)" class="use-loader font-semibold px-4 py-2 bg-white text-[#0D2B70] rounded-md hover:bg-[#0D2B70] transition whitespace-nowrap hover:text-white hover:shadow-md border border-[#0D2B70]">
-                                    View
-                                </button>
-                            </td>
                         </tr>
                     </template>
                 </tbody>
@@ -179,7 +190,7 @@
 
 
     <!-- Pagination -->
-    <section class="flex items-center justify-center gap-6 pt-4">
+    <!-- <section class="flex items-center justify-center gap-6 pt-4">
         <button @click="prevPage" :disabled="currentPage === 1"
             class="w-9 h-9 rounded-full bg-gray-200 text-[#0D2B70] hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">
             &lt;
@@ -193,7 +204,7 @@
             class="w-9 h-9 rounded-full bg-gray-200 text-[#0D2B70] hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">
             &gt;
         </button>
-    </section>
+    </section> -->
 
 </main>
 
@@ -204,7 +215,7 @@
     function logTable() {
         return {
             logsData: [],
-            perPage: 50,
+            perPage: 10,
             currentPage: 1,
             search: '',
             adminName: '',
@@ -225,6 +236,8 @@
             },
 
             init() {
+                this.setPerPageByViewportHeight();
+                window.addEventListener('resize', () => this.setPerPageByViewportHeight());
                 this.fetchLogs();
             },
 
@@ -248,6 +261,15 @@
             onInputChange() {
                 clearTimeout(this.debounceTimer);
                 this.debounceTimer = setTimeout(() => this.fetchLogs(), 500);
+            },
+
+            setPerPageByViewportHeight() {
+                const base = window.innerHeight || 800;
+                const reserved = 320;
+                const row = 64;
+                const calc = Math.floor((base - reserved) / row);
+                this.perPage = Math.max(5, Math.min(calc, 50));
+                if (this.currentPage > this.totalPages) this.currentPage = this.totalPages;
             },
 
             get totalPages() {
