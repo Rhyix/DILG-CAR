@@ -18,7 +18,6 @@
         "livewire/livewire": "*",
         "phpoffice/phpspreadsheet": "^4.4",
         "phpoffice/phpword": "^1.4",
-        "predis/predis": "^3.3",
         "pusher/pusher-php-server": "^7.2",
         "setasign/fpdf": "^1.8",
         "setasign/fpdi": "^2.6",

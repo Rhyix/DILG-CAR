@@ -4,11 +4,7 @@
 
 <main class="w-full mx-auto h-[calc(100vh-6rem)] flex flex-col space-y-4 overflow-hidden px-4 lg:px-0">
     <!-- header -->
-<<<<<<< Updated upstream
     <section class="flex-none flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 max-w-full border-b border-[#0D2B70] pb-4">
-=======
-    <section class="flex-none flex items-center justify-between space-x-4 max-w-full border-b border-[#0D2B70]">
->>>>>>> Stashed changes
         <div class="flex items-center gap-4">
             <button aria-label="Back" onclick="window.location.href='{{ route('admin_exam_management') }}'" class="use-loader group">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-[#0D2B70] hover:opacity-80 transition" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
@@ -16,17 +12,12 @@
                 </svg>
             </button>
             <h1 class="flex items-center gap-3 py-2 tracking-wide select-none">
-<<<<<<< Updated upstream
                 <span class="text-[#0D2B70] text-2xl md:text-3xl lg:text-4xl font-montserrat">Exam Overview</span>
-=======
-                <span class="text-[#0D2B70] text-4xl font-montserrat whitespace-nowrap">Exam Overview</span>
->>>>>>> Stashed changes
             </h1>
         </div>
 
         <!-- EXAM STATUS BANNER (Compact) -->
         @php
-<<<<<<< Updated upstream
             // Determine exam status
             $isExamActive = false;
             $isExamCompleted = false; // New flag
@@ -62,46 +53,6 @@
 
         @if($statusMessage)
             <div class="px-4 py-1 border-l-4 rounded shadow-sm flex items-center gap-3 {{ $statusClass }} lg:mr-4 w-full lg:w-auto">
-=======
-        // Determine exam status
-        $isExamActive = false;
-        $isExamCompleted = false;
-        $statusMessage = '';
-        $statusClass = '';
-
-        if(isset($examDetails->date) && isset($examDetails->time) && isset($examDetails->duration)) {
-             $startDateTime = \Carbon\Carbon::parse($examDetails->date . ' ' . $examDetails->time);
-             $endDateTime = $startDateTime->copy()->addMinutes($examDetails->duration);
-             $now = now();
-
-             if ($now->between($startDateTime, $endDateTime)) {
-                 // Current time is between start and end
-                 $isExamActive = true;
-                 $statusMessage = 'Exam in Progress';
-                 $statusClass = 'bg-yellow-100 text-yellow-800 border-yellow-400';
-             } elseif ($now->gt($endDateTime)) {
-                 // Current time is after end time
-                 $isExamCompleted = true;
-                 $statusMessage = 'Exam Completed';
-                 $statusClass = 'bg-green-100 text-green-800 border-green-400';
-             } elseif ($now->lt($startDateTime)) {
-                 // Current time is before start time (Future)
-                 $statusMessage = 'Exam Scheduled';
-                 $statusClass = 'bg-blue-100 text-blue-800 border-blue-400';
-             }
-        } else {
-            // Default status if details are not fully set
-            $statusMessage = 'Not Scheduled';
-            $statusClass = 'bg-gray-100 text-gray-800 border-gray-400';
-        }
-        
-        // Disable fields if exam is active OR completed
-        $shouldDisable = $isExamActive || $isExamCompleted;
-    @endphp
-
-        @if($statusMessage)
-            <div class="px-4 py-1 border-l-4 rounded shadow-sm flex items-center gap-3 {{ $statusClass }} mr-4">
->>>>>>> Stashed changes
                 <div class="flex items-center gap-2">
                     @if($isExamActive)
                         <span class="relative flex h-2 w-2">
@@ -111,11 +62,7 @@
                     @endif
                     <span class="font-bold uppercase text-xs tracking-wide">{{ $statusMessage }}</span>
                 </div>
-<<<<<<< Updated upstream
                 @if($isExamActive || $isExamCompleted)
-=======
-                @if($isExamActive)
->>>>>>> Stashed changes
                     <span class="text-[10px] font-semibold opacity-80 hidden md:inline">Editing disabled</span>
                 @endif
             </div>
@@ -163,7 +110,6 @@
                     </span>
                 </button>
             </div>
-<<<<<<< Updated upstream
             
             <!-- Tab Content: Qualified Applicants -->
             <div id="content-qualified" class="tab-content flex-1 flex flex-col min-h-0 overflow-hidden">
@@ -179,18 +125,6 @@
                                 d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
                         </svg>
                     </form>
-=======
-            <div class="flex-1 overflow-y-auto">
-                <table class="w-full text-left border-collapse">
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        @if (count($participants) > 0)
-                            @foreach ($participants as $index => $p)
-                            <tr class="hover:bg-blue-50 transition-colors duration-200">
-                                <!-- Name -->
-                                <td class="py-4 px-6 text-[#0D2B70] font-semibold w-[30%]">
-                                    {{ $user_name[$index] ?? 'Unknown User' }}
-                                </td>
->>>>>>> Stashed changes
 
                     <!-- Bulk Actions -->
                     <div class="flex items-center gap-2">
@@ -203,7 +137,6 @@
                     </div>
                 </div>
 
-<<<<<<< Updated upstream
                 <!-- Table Container -->
                 <div class="flex-1 flex flex-col min-h-0 overflow-hidden border border-[#0D2B70] rounded-xl">
                     <div class="flex-1 overflow-auto">
@@ -280,39 +213,6 @@
                  <div class="flex-none bg-[#0D2B70] text-white">
                     <table class="w-full text-left border-collapse">
                         <thead class="bg-[#0D2B70] text-white">
-=======
-                                <!-- Status -->
-                                <td class="py-4 px-6 text-center w-[25%]">
-                                    <div class="inline-flex items-center gap-2 text-[#0D2B70] font-medium">
-                                        @php
-                                            $statusColors = [
-                                                'ready' => '#4ade80',        // green-400
-                                                'in-progress' => '#facc15',  // yellow-400
-                                                'submitted' => '#3b82f6',    // blue-500
-                                                'pending' => '#f75555',      // red
-                                            ];
-
-                                            $status = strtolower($p->status ?? 'pending');
-                                            $color = $statusColors[$status] ?? '#9ca3af'; // gray-400 as default
-                                        @endphp
-                                        <i class="fa-solid fa-circle text-xs" style="color: {{ $color }}"></i>
-                                        <span>{{ $p->status ?? 'Pending' }}</span>
-                                    </div>
-                                </td>
-
-                                <!-- Action Button -->
-                                <td class="py-4 px-6 text-center w-[25%]">
-                                    <button class="text-[#0D2B70] border border-[#0D2B70] font-bold py-2 px-6 rounded-md text-sm
-                                            transition-all duration-150 ease-[cubic-bezier(0.4,0,0.2,1)]
-                                            hover:scale-105 hover:bg-[#002C76] hover:text-white hover:shadow-md inline-flex items-center gap-2">
-                                        <x-heroicon-o-eye class="w-4 h-4" />
-                                        <span>View</span>
-                                    </button>
-                                </td>
-                            </tr>
-                            @endforeach
-                        @else
->>>>>>> Stashed changes
                             <tr>
                                 <th class="py-3 px-3 md:py-4 md:px-6 text-left font-bold uppercase text-xs md:text-sm tracking-wider w-[35%] md:w-[30%]">Name</th>
                                 <th class="py-3 px-3 md:py-4 md:px-6 text-center font-bold uppercase text-xs md:text-sm tracking-wider w-[15%] md:w-[20%]">Score</th>
@@ -395,7 +295,6 @@
 
 
         <!--     scheduling form, buttons -->
-<<<<<<< Updated upstream
         <!-- RIGHT COLUMN: Scheduling form -->
         <div class="w-full lg:w-[30%] lg:min-w-[320px] flex flex-col mt-4 lg:mt-0 pl-2">
             <form id="examDetailsForm" class="flex flex-col h-full justify-between pb-2">
@@ -404,39 +303,17 @@
             <div class="flex flex-col gap-3">
                 <!-- Header -->
                 <span class="text-xl text-[#0D2B70] font-bold border-b border-gray-200 pb-2 mb-1">
-=======
-        <div class="w-[30%] flex flex-col justify-between h-full px-2">
-            <form id="examDetailsForm" class="flex flex-col h-full no-spinner">
-            @csrf
-            <!-- Top Section: Form and Primary Actions -->
-            <div class="flex flex-col gap-4">
-                <span class="text-3xl text-[#0D2B70] font-bold">
->>>>>>> Stashed changes
                     Schedule Exam
                 </span>
                 
                 <!-- VENUE -->
                 <div class="flex flex-col">
-<<<<<<< Updated upstream
                     <label for="venue" class="text-[#0D2B70] font-bold text-xs mb-1">Venue <span class="text-red-500">*</span></label>
                     <input type="text" id="venue" name="place" required
                         value="{{ $examDetails->place ?? '' }}"
                         {{ ($isExamActive || $isExamCompleted || ($examDetails && $examDetails->details_saved)) ? 'disabled' : '' }}
                         class="w-full px-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-[#0D2B70] focus:border-[#0D2B70] placeholder-gray-400 disabled:bg-gray-100"
                         placeholder="Enter venue" />
-=======
-                    <label for="venue" class="text-[#0D2B70] font-semibold text-sm mb-1">
-                        Venue <span class="text-red-500">*</span>
-                    </label>
-                    <input type="text" id="venue" name="place" required
-                        value="{{ $examDetails->place ?? '' }}"
-                        {{ $shouldDisable ? 'disabled' : '' }}
-                        class="w-full px-4 py-1 border border-[#0D2B70] rounded-lg 
-                            focus:outline-none focus:ring-2 focus:ring-[#0D2B70] focus:border-transparent
-                            transition-all duration-200 text-[#0D2B70] placeholder-gray-400 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                        placeholder="Enter venue location"
-                    />
->>>>>>> Stashed changes
                 </div>
 
                 <!-- DATE -->
@@ -444,16 +321,8 @@
                     <label for="date" class="text-[#0D2B70] font-bold text-xs mb-1">Date <span class="text-red-500">*</span></label>
                     <input type="date" id="date" name="date" required
                         value="{{ $examDetails->date ?? '' }}"
-<<<<<<< Updated upstream
                         {{ ($isExamActive || $isExamCompleted || ($examDetails && $examDetails->details_saved)) ? 'disabled' : '' }}
                         class="w-full px-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-[#0D2B70] disabled:bg-gray-100" />
-=======
-                        {{ $shouldDisable ? 'disabled' : '' }}
-                        class="w-full px-4 py-1 border border-[#0D2B70] rounded-lg 
-                            focus:outline-none focus:ring-2 focus:ring-[#0D2B70] focus:border-transparent
-                            transition-all duration-200 text-[#0D2B70] placeholder-gray-400 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                    />
->>>>>>> Stashed changes
                 </div>
 
                 <!-- TIME ROW -->
@@ -462,49 +331,20 @@
                         <label for="time" class="text-[#0D2B70] font-bold text-xs mb-1">Start Time <span class="text-red-500">*</span></label>
                         <input type="time" id="time" name="time" required
                             value="{{ $examDetails->time ?? '' }}"
-<<<<<<< Updated upstream
                             {{ ($isExamActive || $isExamCompleted || ($examDetails && $examDetails->details_saved)) ? 'disabled' : '' }}
                             class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-[#0D2B70] disabled:bg-gray-100" />
-=======
-                            {{ $shouldDisable ? 'disabled' : '' }}
-                            class="w-full px-4 py-1 border border-[#0D2B70] rounded-lg 
-                                focus:outline-none focus:ring-2 focus:ring-[#0D2B70] focus:border-transparent
-                                transition-all duration-200 text-[#0D2B70] placeholder-gray-400 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                        />
->>>>>>> Stashed changes
                     </div>
                     <div class="flex flex-col w-1/2">
-<<<<<<< Updated upstream
                         <label for="time_end" class="text-[#0D2B70] font-bold text-xs mb-1">End Time <span class="text-red-500">*</span></label>
                         <input type="time" id="time_end" name="time_end" required
                             value="{{ $endTime ?? '' }}"
                             {{ ($isExamActive || $isExamCompleted || ($examDetails && $examDetails->details_saved)) ? 'disabled' : '' }}
                             class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-[#0D2B70] disabled:bg-gray-100" />
-=======
-                        <label for="time_end" class="text-[#0D2B70] font-semibold text-sm mb-1">
-                            End Time <span class="text-red-500">*</span>
-                        </label>
-                        @php
-                            $endTime = '';
-                            if (isset($examDetails->time) && isset($examDetails->duration)) {
-                                $startTime = \Carbon\Carbon::parse($examDetails->time);
-                                $endTime = $startTime->addMinutes($examDetails->duration)->format('H:i');
-                            }
-                        @endphp
-                        <input type="time" id="time_end" name="time_end" required
-                            value="{{ $endTime }}"
-                            {{ $shouldDisable ? 'disabled' : '' }}
-                            class="w-full px-4 py-1 border border-[#0D2B70] rounded-lg 
-                                focus:outline-none focus:ring-2 focus:ring-[#0D2B70] focus:border-transparent
-                                transition-all duration-200 text-[#0D2B70] placeholder-gray-400 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                        />
->>>>>>> Stashed changes
                     </div>
                 </div>
 
                 <!-- DURATION -->
                 <div class="flex flex-col">
-<<<<<<< Updated upstream
                     <label for="duration_display" class="text-[#0D2B70] font-bold text-xs mb-1">Duration</label>
                     <input type="text" id="duration_display" readonly
                         value="{{ isset($examDetails->duration) ? $examDetails->duration . ' minutes' : '' }}"
@@ -545,61 +385,6 @@
                         Start Exam
                     </button>
                 </div>
-=======
-                    <label for="duration_display" class="text-[#0D2B70] font-semibold text-sm mb-1">
-                        Duration <span class="text-red-500"></span>
-                    </label>
-                    <input type="text" id="duration_display" readonly
-                        value="{{ isset($examDetails->duration) ? $examDetails->duration . ' minutes' : '' }}"
-                        class="w-full px-4 py-1 border border-[#0D2B70] rounded-lg bg-gray-50
-                            focus:outline-none focus:ring-2 focus:ring-[#0D2B70] focus:border-transparent
-                            transition-all duration-200 text-[#0D2B70] placeholder-gray-400"
-                        placeholder="Duration (minutes)"
-                    />
-                    <!-- Hidden input to store the raw numeric value for form submission -->
-                    <input type="hidden" id="duration" name="duration" value="{{ $examDetails->duration ?? '' }}">
-                </div>
-
-                <!-- SAVE AND START EXAM BUTTONS-->
-                <div class="flex flex-col justify-between gap-2 mt-2">
-                    <button type="submit" name="action" value="save_notify" 
-                            {{ $shouldDisable ? 'disabled' : '' }}
-                            class="w-full px-4 py-2 border border-[#0D2B70] rounded-lg 
-                            hover:scale-105 flex items-center justify-center gap-2
-                            transition-all duration-200 text-[#0D2B70] placeholder-gray-400 font-semibold disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100">
-                        <x-heroicon-o-check class="w-5 h-5" />
-                        <span>Save & Notify Applicants</span>
-                    </button>
-                    <button type="button" id="notify_button" onclick="notifyApplicants('{{ $vacancy->vacancy_id }}')" 
-                            {{ $shouldDisable ? 'disabled' : '' }}
-                            class="w-full px-4 py-2 border border-[#0D2B70] rounded-lg 
-                            hover:scale-105 flex items-center justify-center gap-2
-                            transition-all duration-200 text-[#0D2B70] placeholder-gray-400 font-semibold disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100">
-                        <x-heroicon-o-paper-airplane class="w-5 h-5" />
-                        <span>Send Link via Email</span>
-                    </button>
-                </div>
-            </div>
-
-
-            <!-- SEND LINK AND EDIT QUESTIONS (Bottom Section) -->
-            <div class="flex flex-row gap-2 mt-auto">
-                <button type="button" onclick="handleEditClick(event)"
-                        {{ $shouldDisable ? 'disabled' : '' }}
-                        class="w-full px-4 py-2 bg-[#0D2B70] rounded-lg 
-                        hover:scale-105 flex items-center justify-center gap-2
-                        transition-all duration-200 text-white placeholder-gray-400 font-semibold disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100">
-                    <x-heroicon-o-pencil-square class="w-5 h-5" />
-                    <span>Edit Questions</span>
-                </button>
-                <button type="button" class="w-full px-4 py-2 bg-[#0D2B70] rounded-lg 
-                        hover:scale-105 flex items-center justify-center gap-2
-                        transition-all duration-200 text-white placeholder-gray-400 font-semibold">
-                    <x-heroicon-o-play class="w-5 h-5" />
-                    <span>Start Exam</span>
-                </button>
-
->>>>>>> Stashed changes
             </div>
             </form>
         </div>
@@ -622,56 +407,10 @@
     @include('partials.loader')
 </main>
 <script>
-<<<<<<< Updated upstream
     // Send exam link via email
     function sendExamLink(vacancyId) {
         if (!confirm("Are you sure you want to send exam links to all applicants?")) {
             return;
-=======
-        function notifyApplicants(vacancyId) {
-            if (!confirm("Are you sure you want to notify all applicants?")) {
-                return;
-            }
-
-            notifEl = document.getElementById('notifiedAt');
-
-            fetch(`/admin/exam_management/${vacancyId}/notify`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                },
-                body: JSON.stringify({ vacancy_id: vacancyId })
-            })
-            .then(response => {
-                if (!response.ok) {
-                    return response.text().then(text => { 
-                        try {
-                            const json = JSON.parse(text);
-                            throw new Error(json.message || text);
-                        } catch(e) {
-                            throw new Error(text || response.statusText);
-                        }
-                    });
-                }
-                return response.json();
-            })
-            .then(data => {
-                if(data.success) {
-                    notifEl.innerText = "Already Notified: " + data.notified_at;
-
-                    alert("Applicants notified successfully!");
-                } else {
-                    alert("Failed to notify applicants: " + data.message);
-                }
-            })
-            .catch(error => {
-                console.error("Error:", error);
-                alert("An error occurred while notifying applicants: " + error.message);
-            });
-
-
->>>>>>> Stashed changes
         }
 
         const sendLinkButton = document.getElementById('sendLinkButton');
@@ -781,11 +520,7 @@
             formData.append('notify', '1');
         }
 
-<<<<<<< Updated upstream
         const saveButton = document.getElementById('saveNotifyButton');
-=======
-        const saveButton = document.querySelector('#examDetailsForm button[type="submit"]');
->>>>>>> Stashed changes
         const originalText = saveButton.innerHTML;
         saveButton.disabled = true;
         saveButton.innerHTML = '<span>Saving...</span>';
@@ -806,7 +541,6 @@
         .then(data => {
             saveButton.innerHTML = originalText;
             if (data.success) {
-<<<<<<< Updated upstream
                 // Keep save button disabled permanently
                 saveButton.disabled = true;
                 saveButton.classList.add('opacity-50', 'cursor-not-allowed');
@@ -821,24 +555,10 @@
                 const sendLinkButton = document.getElementById('sendLinkButton');
                 sendLinkButton.disabled = false;
                 sendLinkButton.classList.remove('opacity-50', 'cursor-not-allowed');
-=======
-                saveButton.disabled = true;
-                saveButton.classList.add('opacity-50', 'cursor-not-allowed');
-
-                const notifyButton = document.querySelector('#notify_button');
-                notifyButton.disabled = false;
-                notifyButton.classList.remove('opacity-50', 'cursor-not-allowed');
->>>>>>> Stashed changes
                 
                 let msg = "Exam details saved successfully!";
                 if (data.notified) {
                     msg += " Applicants have been notified.";
-<<<<<<< Updated upstream
-=======
-                    if(document.getElementById('notifiedAt')) {
-                        document.getElementById('notifiedAt').innerText = "Already Notified: " + data.notified_at;
-                    }
->>>>>>> Stashed changes
                 }
                 alert(msg);
             } else {
@@ -886,13 +606,7 @@
         }
     });
 
-    // Auto-calculate duration
-    const startTimeInput = document.getElementById('time');
-    const endTimeInput = document.getElementById('time_end');
-    const durationInput = document.getElementById('duration');
-    const durationDisplay = document.getElementById('duration_display');
 
-<<<<<<< Updated upstream
     // Run validation on page load
     validateForm();
 
@@ -1297,55 +1011,7 @@
              }
         }
     });
-=======
-    function calculateDuration() {
-        const start = startTimeInput.value;
-        const end = endTimeInput.value;
->>>>>>> Stashed changes
 
-        if (start && end) {
-            const startDate = new Date(`1970-01-01T${start}:00`);
-            const endDate = new Date(`1970-01-01T${end}:00`);
-
-            let diffMs = endDate - startDate;
-            let diffMins = Math.round(diffMs / 60000);
-
-            if (diffMins > 0) {
-                durationInput.value = diffMins;
-                durationDisplay.value = `${diffMins} minutes`;
-                // Trigger change event to update button state
-                durationInput.dispatchEvent(new Event('input')); 
-            } else {
-                durationInput.value = '';
-                durationDisplay.value = 'Invalid Time';
-            }
-        } else {
-            durationInput.value = '';
-            durationDisplay.value = '';
-        }
-    }
-
-    startTimeInput.addEventListener('input', calculateDuration);
-    endTimeInput.addEventListener('input', calculateDuration);
-
-    // Prevent navigation if exam is active and user tries to edit
-    function handleEditClick(e) {
-        e.preventDefault();
-        const isExamActive = @json($isExamActive);
-        const isExamCompleted = @json($isExamCompleted);
-        
-        if (isExamActive) {
-            alert('Cannot edit questions while an exam is currently in progress.');
-            return;
-        }
-
-        if (isExamCompleted) {
-            alert('Cannot edit questions after an exam has been completed.');
-            return;
-        }
-        
-        window.location.href = '{{ route('admin.exam.edit', $vacancy->vacancy_id) }}';
-    }
 </script>
 
 @endsection
