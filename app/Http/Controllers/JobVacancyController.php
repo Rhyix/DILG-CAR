@@ -170,116 +170,116 @@ class JobVacancyController extends Controller
         return redirect()->route('vacancies_management')->with('success', 'Job vacancy updated successfully.');
     }
 
-public function storeVacancy(Request $request)
+    public function storeVacancy(Request $request)
     {
         //try {
-            $validated = $request->validate([
-                'position_title' => 'required|string|max:255',
-                'vacancy_type' => 'required|in:COS,Plantilla',
-                'pcn_no' => 'nullable|string',
-                'plantilla_item_no' => 'nullable|string',
-                'closing_date' => 'required|date',
-                //'status' => 'required|in:OPEN,CLOSED',
-                'monthly_salary' => 'required|numeric',
-                'salary_grade' => 'nullable|string',
-                'place_of_assignment' => 'required|string',
+        $validated = $request->validate([
+            'position_title' => 'required|string|max:255',
+            'vacancy_type' => 'required|in:COS,Plantilla',
+            'pcn_no' => 'nullable|string',
+            'plantilla_item_no' => 'nullable|string',
+            'closing_date' => 'required|date',
+            //'status' => 'required|in:OPEN,CLOSED',
+            'monthly_salary' => 'required|numeric',
+            'salary_grade' => 'nullable|string',
+            'place_of_assignment' => 'required|string',
 
-                // Qualification standards
-                'qualification_education' => 'required|string',
-                'qualification_training' => 'required|string',
-                'qualification_experience' => 'required|string',
-                'qualification_eligibility' => 'required|string',
+            // Qualification standards
+            'qualification_education' => 'required|string',
+            'qualification_training' => 'required|string',
+            'qualification_experience' => 'required|string',
+            'qualification_eligibility' => 'required|string',
 
-                // Plantilla-only
-                'competencies' => 'nullable|string',
+            // Plantilla-only
+            'competencies' => 'nullable|string',
 
-                // COS-only
-                'expected_output' => 'nullable|string',
-                'scope_of_work' => 'nullable|string',
-                'duration_of_work' => 'nullable|string',
+            // COS-only
+            'expected_output' => 'nullable|string',
+            'scope_of_work' => 'nullable|string',
+            'duration_of_work' => 'nullable|string',
 
-                // Application submission
-                'to_person' => 'required|string',
-                'to_position' => 'required|string',
-                'to_office' => 'required|string',
-                'to_office_address' => 'required|string',
-            ]);
+            // Application submission
+            'to_person' => 'required|string',
+            'to_position' => 'required|string',
+            'to_office' => 'required|string',
+            'to_office_address' => 'required|string',
+        ]);
 
-            // 🔷 Generate vacancy_id
-            /*
-            $positionTitle = $validated['position_title'];
-            $words = preg_split('/\s+/', $positionTitle);
-            $ranks = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
-            $filteredWords = array_values(array_filter($words, fn($word) => !in_array(strtoupper($word), $ranks)));
+        // 🔷 Generate vacancy_id
+        /*
+        $positionTitle = $validated['position_title'];
+        $words = preg_split('/\s+/', $positionTitle);
+        $ranks = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
+        $filteredWords = array_values(array_filter($words, fn($word) => !in_array(strtoupper($word), $ranks)));
 
-            if(count($filteredWords) == 1){
-                $letters = strtoupper(substr($filteredWords[0], 0, 3));
-            } else {
-                $letters = '';
-                for($i = 0; $i < min(3, count($filteredWords)); $i++){
-                    $letters .= strtoupper(substr($filteredWords[$i], 0, 1));
-                }
+        if(count($filteredWords) == 1){
+            $letters = strtoupper(substr($filteredWords[0], 0, 3));
+        } else {
+            $letters = '';
+            for($i = 0; $i < min(3, count($filteredWords)); $i++){
+                $letters .= strtoupper(substr($filteredWords[$i], 0, 1));
             }
+        }
 
-            $latestVacancy = JobVacancy::where('vacancy_id', 'like', $letters . '-%')->latest('vacancy_id')->first();
-            $num = $latestVacancy ? intval(substr($latestVacancy->vacancy_id, strpos($latestVacancy->vacancy_id, '-') + 1)) + 1 : 1;
-            $vacancy_id = $letters . '-' . str_pad($num, 3, '0', STR_PAD_LEFT);
-            */
+        $latestVacancy = JobVacancy::where('vacancy_id', 'like', $letters . '-%')->latest('vacancy_id')->first();
+        $num = $latestVacancy ? intval(substr($latestVacancy->vacancy_id, strpos($latestVacancy->vacancy_id, '-') + 1)) + 1 : 1;
+        $vacancy_id = $letters . '-' . str_pad($num, 3, '0', STR_PAD_LEFT);
+        */
 
-            $closingDate = Carbon::parse($validated['closing_date']);
-            $today = Carbon::today();
+        $closingDate = Carbon::parse($validated['closing_date']);
+        $today = Carbon::today();
 
-            $status = $closingDate->lt($today) ? 'CLOSED' : 'OPEN';
+        $status = $closingDate->lt($today) ? 'CLOSED' : 'OPEN';
 
-            // 🔷 Create vacancy
-            $vacancy = JobVacancy::create([
-                //'vacancy_id' => $vacancy_id,
-                'position_title' => $validated['position_title'],
-                'vacancy_type' => $validated['vacancy_type'],
-                'pcn_no' => $validated['pcn_no'] ?? null,
-                'plantilla_item_no' => $validated['plantilla_item_no'] ?? null,
-                'closing_date' => $validated['closing_date'],
+        // 🔷 Create vacancy
+        $vacancy = JobVacancy::create([
+            //'vacancy_id' => $vacancy_id,
+            'position_title' => $validated['position_title'],
+            'vacancy_type' => $validated['vacancy_type'],
+            'pcn_no' => $validated['pcn_no'] ?? null,
+            'plantilla_item_no' => $validated['plantilla_item_no'] ?? null,
+            'closing_date' => $validated['closing_date'],
 
-                'status' => $status,
-                'monthly_salary' => $validated['monthly_salary'],
-                'salary_grade' => $validated['salary_grade'] ?? null,
-                'place_of_assignment' => $validated['place_of_assignment'],
+            'status' => $status,
+            'monthly_salary' => $validated['monthly_salary'],
+            'salary_grade' => $validated['salary_grade'] ?? null,
+            'place_of_assignment' => $validated['place_of_assignment'],
 
-                // Qualification standards
-                'qualification_education' => $validated['qualification_education'],
-                'qualification_training' => $validated['qualification_training'],
-                'qualification_experience' => $validated['qualification_experience'],
-                'qualification_eligibility' => $validated['qualification_eligibility'],
+            // Qualification standards
+            'qualification_education' => $validated['qualification_education'],
+            'qualification_training' => $validated['qualification_training'],
+            'qualification_experience' => $validated['qualification_experience'],
+            'qualification_eligibility' => $validated['qualification_eligibility'],
 
-                // Plantilla only
-                'competencies' => $validated['competencies'] ?? null,
+            // Plantilla only
+            'competencies' => $validated['competencies'] ?? null,
 
-                // COS only
-                'expected_output' => $validated['expected_output'] ?? null,
-                'scope_of_work' => $validated['scope_of_work'] ?? null,
-                'duration_of_work' => $validated['duration_of_work'] ?? null,
-
-
-                // Application submission
-                'to_person' => $validated['to_person'],
-                'to_position' => $validated['to_position'],
-                'to_office' => $validated['to_office'],
-                'to_office_address' => $validated['to_office_address'],
-            ]);
+            // COS only
+            'expected_output' => $validated['expected_output'] ?? null,
+            'scope_of_work' => $validated['scope_of_work'] ?? null,
+            'duration_of_work' => $validated['duration_of_work'] ?? null,
 
 
-                ExamDetail::create(['vacancy_id' => $vacancy->vacancy_id]);
-            Log::info('Competencies field debug:', ['competencies' => $validated['competencies'] ?? 'NOT SET']);
-
-            activity()
-                ->event('create')
-                ->causedBy(auth('admin')->user())
-                ->performedOn($vacancy)
-                ->withProperties(['vacancy_id' => $vacancy->vacancy_id, 'section' => 'Job Vacancy'])
-                ->log('Created new job vacancy.');
+            // Application submission
+            'to_person' => $validated['to_person'],
+            'to_position' => $validated['to_position'],
+            'to_office' => $validated['to_office'],
+            'to_office_address' => $validated['to_office_address'],
+        ]);
 
 
-            return redirect()->route('vacancies_management')->with('success', 'Vacancy created successfully.');
+        ExamDetail::create(['vacancy_id' => $vacancy->vacancy_id]);
+        Log::info('Competencies field debug:', ['competencies' => $validated['competencies'] ?? 'NOT SET']);
+
+        activity()
+            ->event('create')
+            ->causedBy(auth('admin')->user())
+            ->performedOn($vacancy)
+            ->withProperties(['vacancy_id' => $vacancy->vacancy_id, 'section' => 'Job Vacancy'])
+            ->log('Created new job vacancy.');
+
+
+        return redirect()->route('vacancies_management')->with('success', 'Vacancy created successfully.');
         /*} catch (\Exception $e) {
             Log::error('Vacancy Store Error: '.$e->getMessage());
             Log::error('Request Data: ' . json_encode($request->all()));
@@ -339,48 +339,48 @@ public function storeVacancy(Request $request)
     {
         $status = $request->get('status');
         $search = $request->get('search');
-        $job    = $request->get('job');
+        $job = $request->get('job');
 
         $vacancies = JobVacancy::when($status, function ($query) use ($status) {
-                $query->where('status', $status);
-            })
+            $query->where('status', $status);
+        })
             ->when($job, function ($query) use ($job) {
                 $query->where('vacancy_type', $job);
             })
             ->when($search, function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
                     $q
-                    ->orWhere('vacancy_id', 'like', "%{$search}%")
-                    ->orWhere('position_title', 'like', "%{$search}%")
-                    ->orWhere('vacancy_type', 'like', "%{$search}%")
-                    ->orWhere('monthly_salary', 'like', "%{$search}%")
-                    ->orWhere('place_of_assignment', 'like', "%{$search}%")
-                    ->orWhere('status', 'like', "%{$search}%")
-                    ->orWhere('closing_date', 'like', "%{$search}%")
-                    ->orWhere('qualification_education', 'like', "%{$search}%")
-                    ->orWhere('qualification_training', 'like', "%{$search}%")
-                    ->orWhere('qualification_experience', 'like', "%{$search}%")
-                    ->orWhere('qualification_eligibility', 'like', "%{$search}%")
-                    ->orWhere('scope_of_work', 'like', "%{$search}%")
-                    ->orWhere('expected_output', 'like', "%{$search}%")
-                    ->orWhere('duration_of_work', 'like', "%{$search}%")
-                    ->orWhere('to_person', 'like', "%{$search}%")
-                    ->orWhere('to_position', 'like', "%{$search}%")
-                    ->orWhere('to_office', 'like', "%{$search}%")
-                    ->orWhere('to_office_address', 'like', "%{$search}%")
-                    ->orWhere('created_at', 'like', "%{$search}%")
-                    ->orWhere('updated_at', 'like', "%{$search}%");
+                        ->orWhere('vacancy_id', 'like', "%{$search}%")
+                        ->orWhere('position_title', 'like', "%{$search}%")
+                        ->orWhere('vacancy_type', 'like', "%{$search}%")
+                        ->orWhere('monthly_salary', 'like', "%{$search}%")
+                        ->orWhere('place_of_assignment', 'like', "%{$search}%")
+                        ->orWhere('status', 'like', "%{$search}%")
+                        ->orWhere('closing_date', 'like', "%{$search}%")
+                        ->orWhere('qualification_education', 'like', "%{$search}%")
+                        ->orWhere('qualification_training', 'like', "%{$search}%")
+                        ->orWhere('qualification_experience', 'like', "%{$search}%")
+                        ->orWhere('qualification_eligibility', 'like', "%{$search}%")
+                        ->orWhere('scope_of_work', 'like', "%{$search}%")
+                        ->orWhere('expected_output', 'like', "%{$search}%")
+                        ->orWhere('duration_of_work', 'like', "%{$search}%")
+                        ->orWhere('to_person', 'like', "%{$search}%")
+                        ->orWhere('to_position', 'like', "%{$search}%")
+                        ->orWhere('to_office', 'like', "%{$search}%")
+                        ->orWhere('to_office_address', 'like', "%{$search}%")
+                        ->orWhere('created_at', 'like', "%{$search}%")
+                        ->orWhere('updated_at', 'like', "%{$search}%");
                 });
             })
             ->orderByRaw("CASE WHEN status = 'OPEN' THEN 1 ELSE 2 END")
             ->orderBy('created_at', 'desc')
             ->get();
 
-            session(['vacancyFilterSearch' => $search]);
-            session(['vacancyFilterJob' => $job]);
-            session(['vacancyFilterStatus' => $status]);
+        session(['vacancyFilterSearch' => $search]);
+        session(['vacancyFilterJob' => $job]);
+        session(['vacancyFilterStatus' => $status]);
 
-            info(session()->all());
+        info(session()->all());
         //dd(session()->all());
 
         /*activity()
@@ -438,10 +438,10 @@ public function storeVacancy(Request $request)
         $vacancies = JobVacancy::where('status', 'OPEN')->orderBy('created_at', 'desc')->get();
 
         $applications = \App\Models\Applications::where('user_id', $userId)
-                        ->with(['vacancy'])
-                        ->orderBy('created_at', 'desc')
-                        ->get();
-        
+            ->with(['vacancy'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
         $pdsProgress = (int) round($this->calculatePdsProgress(Auth::id()));
         $hasPDS = PersonalInformation::where('user_id', Auth::id())->exists();
         $hasWES = WorkExpSheet::where('user_id', Auth::id())->exists();
@@ -501,9 +501,9 @@ public function storeVacancy(Request $request)
     public function myApplications()
     {
         $applications = Applications::where('user_id', Auth::id())
-                        ->with('vacancy')
-                        ->orderBy('created_at', 'desc')
-                        ->get();
+            ->with('vacancy')
+            ->orderBy('created_at', 'desc')
+            ->get();
         /*
         activity()
             ->causedBy(auth()->user())
@@ -512,7 +512,7 @@ public function storeVacancy(Request $request)
 
         return view('dashboard_user.my_applications', compact('applications'));
     }
-    
+
     // USEREND application status
     public function applicationStatus($user_id, $vacancy_id)
     {
@@ -538,26 +538,29 @@ public function storeVacancy(Request $request)
         $documents = [];
 
         $labelMap = [
-            'application_letter'        => 'Application Letter',
-            'signed_pds'                => 'Signed Personal Data Sheet',
-            'signed_work_exp_sheet'     => 'Signed Work Experience Sheet',
-            'pqe_result'                => 'Pre-Qualifying Exam (PQE) Result',
-            'cert_eligibility'          => 'Certificate of Eligibility / Board Rating',
-            'ipcr'                      => 'Certification of Numerical Rating / Performance Rating / IPCR',
-            'non_academic'              => 'Non-Academic Awards Received',
-            'cert_training'             => 'Certified/Authenticated Copy of Certificates of Training/Participation',
-            'designation_order'         => 'List with Certified Photocopy of Duly Confirmed Designation Order/s',
-            'transcript_records'        => 'Transcript of Records (Baccalaureate Degree)',
-            'photocopy_diploma'         => 'Diploma',
-            'grade_masteraldoctorate'   => 'Certified Photocopy of Certificate of Grades with Masteral/Doctorate Units Earned',
-            'tor_masteraldoctorate'     => 'Certified Photocopy of TOR with Masteral/Doctorate Degree',
-            'cert_employment'           => 'Certificate of Employment (If Any)',
-            'other_documents'           => 'Other Documents Submitted',
+            'application_letter' => 'Application Letter',
+            'signed_pds' => 'Signed Personal Data Sheet',
+            'signed_work_exp_sheet' => 'Signed Work Experience Sheet',
+            'pqe_result' => 'Pre-Qualifying Exam (PQE) Result',
+            'cert_eligibility' => 'Certificate of Eligibility / Board Rating',
+            'ipcr' => 'Performance Rating/IPCR in the last period (if applicable)',
+            'non_academic' => 'Non-Academic Awards Received',
+            'cert_training' => 'Certificate/s of Training Attended/Participated relevant to the position being applied',
+            'designation_order' => 'List with Certified Photocopy of Duly Confirmed Designation Order/s',
+            'transcript_records' => 'Transcript of Records (Baccalaureate Degree)',
+            'photocopy_diploma' => 'Diploma',
+            'grade_masteraldoctorate' => 'Certified Photocopy of Certificate of Grades with Masteral/Doctorate Units Earned',
+            'tor_masteraldoctorate' => 'Certified Photocopy of TOR with Masteral/Doctorate Degree',
+            'cert_employment' => 'Certificate of Employment (If Any)',
+            'cert_lgoo_induction' => 'Certificate of Completion of LGOO Induction Training',
+            'passport_photo' => '2" x 2" or Passport Size Picture',
+            'other_documents' => 'Other Documents Submitted',
         ];
 
         foreach (UploadedDocument::DOCUMENTS as $docType) {
             // Skip "isApproved" since it's not a document
-            if ($docType === 'isApproved') continue;
+            if ($docType === 'isApproved')
+                continue;
 
             $doc = $uploadedDocuments->get($docType);
 
@@ -567,13 +570,13 @@ public function storeVacancy(Request $request)
                     'text' => $labelMap['application_letter'],
                     'status' => $application->file_status ?? 'invalid',
                     //'preview' => $application->file_storage_path ? asset('storage/' . $application->file_storage_path) : '',
-                    'preview' => $application->file_storage_path 
-                    ? url('/preview-file/' . base64_encode($application->file_storage_path)) 
-                    : '',
+                    'preview' => $application->file_storage_path
+                        ? url('/preview-file/' . base64_encode($application->file_storage_path))
+                        : '',
                     'remarks' => $application->file_remarks ?? 'No remarks provided.',
                     'isBold' => true,
                 ];
-            }else {
+            } else {
                 $doc = $uploadedDocuments->get($docType);
 
                 $documents[] = [
@@ -610,20 +613,38 @@ public function storeVacancy(Request $request)
 
         $simpleFields = [
             // Personal Info 14 fields
-            'surname', 'first_name', 'civil_status', 'date_of_birth', 'place_of_birth',
-            'citizenship', 'sex', 'mobile_no', 'email_address',
-            'height', 'weight', 'permanent_address', 'residential_address',
+            'surname',
+            'first_name',
+            'civil_status',
+            'date_of_birth',
+            'place_of_birth',
+            'citizenship',
+            'sex',
+            'mobile_no',
+            'email_address',
+            'height',
+            'weight',
+            'permanent_address',
+            'residential_address',
             // Family Background
-            'mother_maiden_surname', 'mother_maiden_first_name',
+            'mother_maiden_surname',
+            'mother_maiden_first_name',
 
             // Elementary
-            'elem_year_graduated', 'elem_from', 'elem_to', 'elem_school',
+            'elem_year_graduated',
+            'elem_from',
+            'elem_to',
+            'elem_school',
 
             // Junior High
-            'jhs_year_graduated', 'jhs_from', 'jhs_to', 'jhs_school',
+            'jhs_year_graduated',
+            'jhs_from',
+            'jhs_to',
+            'jhs_school',
 
             //College 2 fields
-            'college', 'grad',
+            'college',
+            'grad',
 
         ];
 
@@ -647,11 +668,23 @@ public function storeVacancy(Request $request)
         // C4: Misc Info Section
         $c4 = \App\Models\MiscInfos::where('user_id', $userId)->first();
         $c4Fields = [
-            'related_34_a', 'related_34_b', 'guilty_35_a', 'criminal_35_b', 'convicted_36',
-            'separated_37', 'candidate_38', 'resigned_38_b', 'immigrant_39',
-            'indigenous_40_a', 'pwd_40_b', 'solo_parent_40_c',
-            'govt_id_type', 'govt_id_number', 'govt_id_date_issued',
-            'govt_id_place_issued', 'photo_upload',
+            'related_34_a',
+            'related_34_b',
+            'guilty_35_a',
+            'criminal_35_b',
+            'convicted_36',
+            'separated_37',
+            'candidate_38',
+            'resigned_38_b',
+            'immigrant_39',
+            'indigenous_40_a',
+            'pwd_40_b',
+            'solo_parent_40_c',
+            'govt_id_type',
+            'govt_id_number',
+            'govt_id_date_issued',
+            'govt_id_place_issued',
+            'photo_upload',
         ];
 
         $c4Filled = collect($c4Fields)->filter(function ($field) use ($c4) {
@@ -665,10 +698,20 @@ public function storeVacancy(Request $request)
         // C5: Uploaded PDF Documents
         $c5Documents = \App\Models\UploadedDocument::where('user_id', $userId)->get();
         $pdfFields = [
-             'pqe_result', 'cert_eligibility', 'ipcr',
-            'non_academic', 'cert_training', 'designation_order', 'transcript_records',
-            'photocopy_diploma', 'grade_masteraldoctorate', 'tor_masteraldoctorate',
-            'cert_employment', 'other_documents',
+            'pqe_result',
+            'cert_eligibility',
+            'ipcr',
+            'non_academic',
+            'cert_training',
+            'designation_order',
+            'transcript_records',
+            'photocopy_diploma',
+            'grade_masteraldoctorate',
+            'tor_masteraldoctorate',
+            'cert_employment',
+            'cert_lgoo_induction',
+            'passport_photo',
+            'other_documents',
         ];
 
         $c5Filled = collect($pdfFields)->filter(fn($type) => $c5Documents->contains('document_type', $type));
@@ -678,7 +721,7 @@ public function storeVacancy(Request $request)
         return min($progress, 100);
     }
 
-        public function sortMyApplications(Request $request)
+    public function sortMyApplications(Request $request)
     {
         $sortOrder = $request->query('sort_order', 'latest');
 

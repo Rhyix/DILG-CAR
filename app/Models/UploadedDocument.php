@@ -24,6 +24,8 @@ class UploadedDocument extends Model
         'grade_masteraldoctorate',
         'tor_masteraldoctorate',
         'cert_employment',
+        'cert_lgoo_induction',
+        'passport_photo',
         'other_documents',
         'isApproved',
     ];
