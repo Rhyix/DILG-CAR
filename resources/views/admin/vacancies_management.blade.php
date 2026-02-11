@@ -63,7 +63,7 @@
                         stroke="currentColor" stroke-width="3">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6" />
                     </svg>
-                    Add New Vacancy
+                    New Vacancy
                     <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" stroke-width="2"
                         viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path>
@@ -223,10 +223,11 @@
                     @click="open = !open"
                     class="font-semibold flex items-center px-4 py-2 bg-white text-[#0D2B70] rounded-md hover:bg-[#0D2B70]  transition whitespace-nowrap
                             hover:text-white hover:shadow-md border border-[#0D2B70]"
-                >
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                    </svg>
+                        >
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M7 3h7l5 5v13a1 1 0 01-1 1H7a1 1 0 01-1-1V4a1 1 0 011-1z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M14 3v5h5"></path>
+                        </svg>
                         Template
                     <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" stroke-width="2"
                         viewBox="0 0 24 24">
@@ -291,7 +292,7 @@
         x-transition
         class="fixed top-5 right-5 z-50 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl shadow-lg w-full max-w-sm"
     >
-        <strong class="font-bold">Whoops!</strong>
+        <strong class="font-bold">Failed!</strong>
         <ul class="list-disc list-inside text-sm mt-1">
             @foreach ($errors->all() as $error)
                 <li>{{ $error }}</li>
@@ -308,7 +309,7 @@
             x-transition
             class="fixed top-5 right-5 z-50 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl shadow-lg w-full max-w-sm"
         >
-            <strong class="font-bold">Whoops!</strong>
+            <strong class="font-bold">Failed!</strong>
                     {{ session('error') }}
         </div>
     @endif
@@ -390,7 +391,10 @@
             .then(html => {
                 document.getElementById('vacancy-list').innerHTML = html;
                 loader_?.classList.add('hidden');
-                attachLoaderListeners(); 
+                attachLoaderListeners();
+                if (window.feather && typeof feather.replace === 'function') {
+                    feather.replace();
+                }
             })
             .catch(() => {
                 alert('Failed to load vacancies.');

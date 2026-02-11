@@ -153,6 +153,58 @@
             }
         };
     </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            function enforce(input) {
+                if (!input) return;
+                function normalize() {
+                    const v = input.value;
+                    if (!v) return;
+                    const parts = v.split('-');
+                    if (!parts.length) return;
+                    const y = parts[0];
+                    if (y && y.length > 4) {
+                        parts[0] = y.slice(0, 4);
+                        const nv = parts.filter(Boolean).join('-');
+                        if (nv !== v) input.value = nv;
+                    }
+                }
+                input.addEventListener('input', normalize);
+                input.addEventListener('change', normalize);
+                if (input._flatpickr) {
+                    const fp = input._flatpickr;
+                    const fn = function (selectedDates, dateStr, instance) {
+                        if (dateStr) {
+                            const ps = dateStr.split('-');
+                            if (ps[0] && ps[0].length > 4) {
+                                ps[0] = ps[0].slice(0, 4);
+                                instance.setDate(ps.filter(Boolean).join('-'), false);
+                            }
+                        }
+                    };
+                    const oc = fp.config.onChange;
+                    if (Array.isArray(oc)) {
+                        oc.push(fn);
+                    } else if (oc) {
+                        fp.config.onChange = [oc, fn];
+                    } else {
+                        fp.config.onChange = [fn];
+                    }
+                }
+            }
+            document.querySelectorAll('input[type="date"]').forEach(enforce);
+            const ob = new MutationObserver(function (muts) {
+                muts.forEach(function (m) {
+                    m.addedNodes.forEach(function (n) {
+                        if (n.nodeType !== 1) return;
+                        if (n.tagName === 'INPUT' && n.type === 'date') enforce(n);
+                        if (n.querySelectorAll) n.querySelectorAll('input[type="date"]').forEach(enforce);
+                    });
+                });
+            });
+            ob.observe(document.body, { childList: true, subtree: true });
+        });
+    </script>
 
     <script>
         const form = document.querySelector('form');

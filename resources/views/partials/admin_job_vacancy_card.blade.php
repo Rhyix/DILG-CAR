@@ -4,10 +4,8 @@
 <style>
   [x-cloak] { display: none !important; }
 </style>
-<tr
-  onclick="window.location.href='{{ route('applicants_profile.all', ['vacancy_id' => $vacancy->vacancy_id]) }}'"
-  class="text-[#0D2B70] select-none hover:bg-blue-50 transition-colors duration-200 cursor-pointer"
->
+<tr class="text-[#0D2B70] select-none hover:bg-blue-50 transition-colors duration-200">
+  
   <td class="py-4 px-6 ml-2">
     <div class="flex items-center gap-2">
       <div class="w-3 h-3 rounded-full {{ $vacancy->status === 'OPEN' ? 'bg-green-500' : 'bg-red-500' }}"></div>
@@ -22,15 +20,18 @@
   <td class="py-4 px-6">{{ \Carbon\Carbon::parse($vacancy->closing_date)->subMinute()->format('n/j/Y g:i A') }}</td>
   <td class="py-4 px-6">{{ $vacancy->place_of_assignment }}</td>
   <td class="py-4 px-6 text-center">
-    <div class="flex justify-center items-center gap-3 font-normal">
-        <!-- Manage Button -->
-        <button onclick="event.stopPropagation(); window.location.href='{{ route('vacancies.edit', $vacancy->vacancy_id) }}'" 
-                class="use-loader text-[#0D2B70] border border-[#0D2B70] py-1 px-4 rounded-md text-sm
-                transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
-                hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md"
-        >
-            Manage
-        </button>
-    </div>
+<div class="flex justify-center items-center gap-3 font-normal">
+    <!-- Edit Icon Button  -->
+    <button 
+        onclick="event.stopPropagation(); window.location.href='{{ route('vacancies.edit', $vacancy->vacancy_id) }}'"
+        class="use-loader py-1 px-3 rounded-md text-sm
+               transition-all duration-150 ease-[cubic-bezier(0.4,0,0.2,1)]
+               hover:scale-110"
+        aria-label="Edit Vacancy"
+        title="Edit Vacancy">
+        <i data-feather="edit" class="h-5 w-5"></i>
+    </button>
+</div>
+
   </td>
 </tr>
