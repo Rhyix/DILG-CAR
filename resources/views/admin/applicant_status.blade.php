@@ -234,13 +234,13 @@
 										<hr class="my-3">
 
 										<!-- applicant remarks -->
-										<div class="bg-white rounded-lg text-sm mb-4">
+										<div class="bg-white rounded-lg text-sm mb-2">
 											<div class="font-bold text-gray-800 mb-2">Applicant Remarks</div>
 
 											<!-- Vertical Text Area -->
 											@php
 												$confirmedCount = collect($documents)->where('status', 'confirmed')->count();
-												$isComplete = $confirmedCount === 15;
+												$isComplete = $confirmedCount === 17;
 
 												$defaultRemarks = '';
 
@@ -266,13 +266,14 @@
 
 										<!-- action buttons -->
 										<div class="flex flex-col gap-2">
-											<button class="border border-[#002C76] text-[#002C76] py-2 px-6 rounded-md">
+											<button
+												class="text-sm py-1 border border-[#002C76] text-[#002C76] px-6 rounded-md hover:scale-105 hover:shadow-md transition duration-150">
+												Save Applicant Remarks
+											</button>
+											<button
+												class="text-sm py-1 border bg-[#002C76] text-white px-6 rounded-md hover:scale-105 hover:shadow-md transition duration-150">
 												Notify Applicant
 											</button>
-											<button class="border border-green-600 text-green-600 py-2 px-6 rounded-md">
-												Save
-											</button>
-
 										</div>
 									</section>
 
@@ -281,38 +282,58 @@
 										class="flex-1 bg-white rounded-xl border border-gray-300 shadow-lg p-6 flex flex-col min-w-0">
 
 										<!-- Document Header -->
-										<div class="mb-4">
-											<!-- document name -->
-											<h2 id="document-title" class="text-2xl font-bold text-[#002C76] mb-1">Application
-												Letter</h2>
-											<!-- status (pending, approved, rejected) -->
-											<span id="document-status" class="text-sm text-gray-600">Status: Pending</span>
-											<p id="document-modified" class="text-sm text-gray-600">Last modified by: <span
-													class="font-medium">Jane
-													Doe</span></p>
+										<div class="mb-4 w-full flex flex-row justify-between py-2 border-b border-gray-400">
+											<!-- document name, status, last modified by -->
+											<div class="w-full">
+												<!-- document name -->
+												<h2 id="document-title" class="text-2xl font-bold text-[#002C76] mb-1">Application
+													Letter</h2>
+												<!-- APPROVED = #00730A -->
+												<!-- PENDING = #E47E00 -->
+												<!-- REJECTED / NEEDS REVISIONS = #BC0000 -->
+												<span id="document-status" class="text-sm text-gray-600">Status:
+													<span class="text-[#E47E00] font-bold">Pending</span>
+												</span>
+												<p id="document-modified" class="text-sm text-gray-600">Last modified by:
+													<span class="font-medium">Jane Doe</span>
+												</p>
+											</div>
+
+											<!-- buttons -->
+											<div class="flex flex-col items-end w-full gap-2">
+												<div class="w-[35%]">
+													<button
+														class="w-full border border-[#00730A] text-[#00730A] py-2 px-6 rounded-md text-sm hover:scale-105 hover:shadow-md transition duration-150">
+														Verify
+													</button>
+												</div>
+
+												<div class="w-[35%]">
+													<button
+														class="w-full border border-[#BC0000] text-[#BC0000] py-2 px-6 rounded-md text-sm hover:scale-105 hover:shadow-md transition duration-150">
+														Needs Revisions
+													</button>
+												</div>
+											</div>
 										</div>
 
 										<!-- Remarks and Buttons Row -->
-										<div class="mb-4 flex items-start gap-3">
+										<div class="mb-4 flex justify-between gap-3">
 											<!-- Remarks Textarea -->
 											<div class="flex-1">
-												<label for="remarks" class="block text-sm font-semibold text-gray-700 mb-2">Document
-													Remarks:</label>
-												<textarea id="remarks" rows="4" disabled
-													class="w-full text-sm text-gray-700 rounded-lg p-3 resize-none border border-[#002C76] focus:border-[#0066CC] focus:ring-2 focus:ring-blue-200 transition bg-gray-50"
-													placeholder="Select a document to view and add remarks...">Select a document to preview</textarea>
-											</div>
+												<div class="flex items-center justify-between mb-2">
+													<label for="remarks" class="block text-sm font-semibold text-[#002C76]">
+														Document Remarks:
+														<!-- LOADER, SAVE INDICATOR, BAHALAN NI ABLAD -->
+														<span class="text-green-300">Remarks Saved</span>
+													</label>
+												</div>
 
-											<!-- Buttons Column -->
-											<div class="flex flex-col justify-around h-full pt-7">
-												<button id="reset-btn" type="button"
-													class="px-6 py-2 bg-white border border-[#002C76] text-[#002C76] rounded-lg font-semibold hover:bg-gray-50 transition min-w-[120px]">
-													Reset
-												</button>
-												<button id="confirm-btn" type="button"
-													class="px-6 py-2 bg-white border border-[#002C76] text-[#002C76] rounded-lg font-semibold hover:bg-gray-50 transition min-w-[120px]">
-													Confirm
-												</button>
+												<div class="flex flex-row gap-2">
+													<textarea id="remarks" rows="4" disabled
+														class="w-full text-sm text-gray-700 rounded-lg p-3 resize-none border border-[#002C76] focus:border-[#0066CC] focus:ring-2 focus:ring-blue-200 transition bg-gray-50"
+														placeholder="Select a document to view and add remarks...">Select a document to preview </textarea>
+												</div>
 											</div>
 										</div>
 
@@ -573,7 +594,7 @@
 
 					// Update Progress Bar
 					function updateProgressCircle() {
-						const totalDocs = 15;
+						const totalDocs = 17;
 						// Mock calculation or use real logic depending on documents array state
 						const confirmedDocs = documents.reduce((acc, doc) => (doc.status === 'Okay/Confirmed' ? acc + 1 : acc), 0);
 						const percentage = Math.round((confirmedDocs / totalDocs) * 100);
@@ -716,7 +737,7 @@
 
 					document.addEventListener("DOMContentLoaded", () => {
 						const checkIconSelector = 'svg.text-green-600';
-						const totalDocuments = 15;
+						const totalDocuments = 17;
 
 						function updateDocumentUI() {
 							const confirmedCount = document.querySelectorAll(checkIconSelector).length;
