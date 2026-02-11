@@ -27,7 +27,7 @@
   </div>
 @endif
 
-<main class="w-full max-w-7xl mx-auto p-6 space-y-6 bg-[#F1F6FC] rounded-lg font-montserrat">
+<main class="w-full max-h-screen bg-[#F1F6FC] font-montserrat rounded-lg">
     
 <!-- Added -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -93,13 +93,13 @@
       <input type="text" name="position_title" value="{{ old('position_title', $vacancy->position_title ?? '') }}" class="w-full border-2 border-[#002C76] rounded px-2 py-1 h-10">
     </div>
 
-    <div class="flex flex-row justify-between gap-4">
-        <div class="w-[50%]">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="w-full">
             <label class="block">PCN No.</label>
             <input type="text" name="pcn_no" value="{{ old('pcn_no', $vacancy->pcn_no ?? '') }}" class="w-full border-2 border-[#002C76] rounded px-2 py-1 h-10">
         </div>
       <!-- New input date Flatpickr -->
-        <div class="w-[50%]">
+        <div class="w-full">
             <label class="block">Deadline of Application</label>
             <input 
                 id="closing_date"
@@ -131,7 +131,7 @@
     </div>
     <div>
       <label class="block">Monthly Salary</label>
-      <input type="nu`mb`er" step="0.01" min"0" name="monthly_salary" value="{{ old('monthly_salary', $vacancy->monthly_salary ?? '') }}" class="w-full border-2 border-[#002C76] rounded px-2 py-1 h-10">
+      <input type="number" step="0.01" min="0" name="monthly_salary" value="{{ old('monthly_salary', $vacancy->monthly_salary ?? '') }}" class="w-full border-2 border-[#002C76] rounded px-2 py-1 h-10">
     </div>
 
     <!-- Qualification Standards -->
@@ -183,7 +183,7 @@
 @include('partials.loader')
 
     <!-- Action buttons (galing sa vacancy_add_cos.blade.php) -->
-    <div class="flex justify-end gap-4">
+    <div class="flex flex-col sm:flex-row items-stretch sm:items-center m-2 justify-end gap-2 sm:gap-4">
         <button id="vacancy-discard-btn" type="button" onclick="history.back()" class="border-2 border-red-600 hover:bg-red-600 hover:text-white 
         text-red-600 px-4 py-2 rounded-md flex items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -191,7 +191,7 @@
             </svg>
             DISCARD
         </button>
-        <button id="vacancy-save-btn" type="submit" form="vacancy-form" class="border-2 border-[#0D2B70] hover:bg-[#0D2B70] hover:text-white 
+        <button id="vacancy-save-btn" type="submit" form="plantillaForm" class="border-2 border-[#0D2B70] hover:bg-[#0D2B70] hover:text-white 
         text-[#0D2B70] px-4 py-2 rounded-md flex items-center gap-2">
 
         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">

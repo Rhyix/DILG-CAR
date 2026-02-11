@@ -27,12 +27,12 @@
   </div>
 @endif
 
-<main class="w-full max-w-7xl mx-auto p-6 space-y-6 bg-[#F1F6FC] rounded-lg font-montserrat">
-
+<main class="w-full max-h-screen bg-[#F1F6FC] font-montserrat rounded-lg"> 
+<!-- bg-[#F1F6FC] -->
 <!-- Added -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-<!-- end added -->`
+<!-- end added -->
 
     <!-- Title Bar -->
     <header class="flex items-center gap-4">
@@ -76,9 +76,9 @@
       <input type="text" name="position_title" value="{{ old('position_title', $vacancy->position_title ?? '') }}" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10">
     </div>
 
-    <div class="flex flex-col md:flex-row w-full justify-between gap-2 mt-4">
+    <div class="grid grid-cols-1 md:grid-cols-3 w-full gap-4 mt-4">
       <!-- New input date Flatpickr -->
-        <div class="w-[50%]">
+        <div class="w-full">
             <label class="block">Deadline of Application</label>
             <input 
                 id="closing_date"
@@ -126,27 +126,22 @@
     <!-- Qualification Standards -->
     <h2 class="font-bold mt-6">QUALIFICATION STANDARDS</h2>
 
-    <div class="flex flex-col w-full justify-between">
-        <div class="flex flex-row w-full gap-2">
-            <div class="w-full">
-                <label class="block font-bold">Education</label>
-                <input type="text" name="qualification_education" value="{{ old('qualification_education', $vacancy->qualification_education ?? '') }}" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10">
-            </div>
-            <div class="w-full">
-                <label class="block font-bold">Training</label>
-                <input type="text" name="qualification_training" value="{{ old('qualification_training', $vacancy->qualification_training ?? '') }}" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10">
-            </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+        <div class="w-full">
+            <label class="block font-bold">Education</label>
+            <input type="text" name="qualification_education" value="{{ old('qualification_education', $vacancy->qualification_education ?? '') }}" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10">
         </div>
-
-        <div class="flex flex-row w-full gap-2">
-            <div class="w-full">
-                <label class="block font-bold">Experience</label>
-                <input type="text" name="qualification_experience" value="{{ old('qualification_experience', $vacancy->qualification_experience ?? '') }}" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10">
-            </div>
-            <div class="w-full">
-                <label class="block font-bold">Eligibility</label>
-                <input type="text" name="qualification_eligibility" value="{{ old('qualification_eligibility', $vacancy->qualification_eligibility ?? '') }}" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10">
-            </div>
+        <div class="w-full">
+            <label class="block font-bold">Training</label>
+            <input type="text" name="qualification_training" value="{{ old('qualification_training', $vacancy->qualification_training ?? '') }}" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10">
+        </div>
+        <div class="w-full">
+            <label class="block font-bold">Experience</label>
+            <input type="text" name="qualification_experience" value="{{ old('qualification_experience', $vacancy->qualification_experience ?? '') }}" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10">
+        </div>
+        <div class="w-full">
+            <label class="block font-bold">Eligibility</label>
+            <input type="text" name="qualification_eligibility" value="{{ old('qualification_eligibility', $vacancy->qualification_eligibility ?? '') }}" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10">
         </div>
     </div>
 
@@ -186,7 +181,7 @@
   </form>
 
     <!-- Action buttons -->
-    <div class="flex justify-end gap-4">
+    <div class="flex flex-col sm:flex-row items-stretch sm:items-center m-2 justify-end gap-2 sm:gap-4">
         <button id="vacancy-discard-btn" type="button" onclick="history.back()" class="border-2 border-red-600 hover:bg-red-600 hover:text-white 
         text-red-600 px-4 py-2 rounded-md flex items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
