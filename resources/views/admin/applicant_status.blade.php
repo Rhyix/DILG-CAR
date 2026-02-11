@@ -266,12 +266,11 @@
 
 										<!-- action buttons -->
 										<div class="flex flex-col gap-2">
+											<!-- Save Applicant Remarks button removed as per Phase 3 -->
 											<button
-												class="text-sm py-1 border border-[#002C76] text-[#002C76] px-6 rounded-md hover:scale-105 hover:shadow-md transition duration-150">
-												Save Applicant Remarks
-											</button>
-											<button
-												class="text-sm py-1 border bg-[#002C76] text-white px-6 rounded-md hover:scale-105 hover:shadow-md transition duration-150">
+												id="notify-applicant-btn"
+												onclick="notifyApplicant()"
+												class="text-sm py-1 border bg-[#002C76] text-white px-6 rounded-md hover:scale-105 hover:shadow-md transition duration-150 flex items-center justify-center">
 												Notify Applicant
 											</button>
 										</div>
@@ -291,8 +290,8 @@
 												<!-- APPROVED = #00730A -->
 												<!-- PENDING = #E47E00 -->
 												<!-- REJECTED / NEEDS REVISIONS = #BC0000 -->
-												<span id="document-status" class="text-sm text-gray-600">Status:
-													<span class="text-[#E47E00] font-bold">Pending</span>
+												<span id="document-status-text" class="text-sm text-gray-600">Status:
+													<span id="document-status-value" class="text-[#E47E00] font-bold">Pending</span>
 												</span>
 												<p id="document-modified" class="text-sm text-gray-600">Last modified by:
 													<span class="font-medium">Jane Doe</span>
@@ -303,6 +302,8 @@
 											<div class="flex flex-col items-end w-full gap-2">
 												<div class="w-[35%]">
 													<button
+														id="btn-verify"
+														onclick="updateDocumentStatus('Verified')"
 														class="w-full border border-[#00730A] text-[#00730A] py-2 px-6 rounded-md text-sm hover:scale-105 hover:shadow-md transition duration-150">
 														Verify
 													</button>
@@ -310,6 +311,8 @@
 
 												<div class="w-[35%]">
 													<button
+														id="btn-revision"
+														onclick="updateDocumentStatus('Needs Revision')"
 														class="w-full border border-[#BC0000] text-[#BC0000] py-2 px-6 rounded-md text-sm hover:scale-105 hover:shadow-md transition duration-150">
 														Needs Revisions
 													</button>
@@ -324,8 +327,7 @@
 												<div class="flex items-center justify-between mb-2">
 													<label for="remarks" class="block text-sm font-semibold text-[#002C76]">
 														Document Remarks:
-														<!-- LOADER, SAVE INDICATOR, BAHALAN NI ABLAD -->
-														<span class="text-green-300">Remarks Saved</span>
+														<span id="remarks-status" class="text-green-600 text-xs ml-2 opacity-0 transition-opacity duration-500">Saved</span>
 													</label>
 												</div>
 
@@ -358,63 +360,134 @@
 				@include('partials.loader')
 				</main>
 
-				<!-- TOGGLE CIRCLE THINGY QUALIFICATION STATUS -->
+				<!-- Consolidated Scripts -->
 				<script>
-					// Initialize all toggles on page load
-					document.addEventListener('DOMContentLoaded', function () {
-						document.querySelectorAll('.qs-toggle').forEach(btn => {
-							updateQSButton(btn, btn.dataset.state);
-						});
+					// Global variables from Blade
+					const userId = "{{ $user_id }}";
+					const vacancyId = "{{ $vacancy_id }}";
+					const vacancyType = "{{ $vacancy_type }}"; // Plantilla or COS
+					let documents = @json($documents);
 
-						document.querySelectorAll('.result-toggle').forEach(btn => {
-							updateResultButton(btn, btn.dataset.state);
-						});
+					document.addEventListener('DOMContentLoaded', function () {
+						// Initialize UI
+						renderDocuments(documents);
+						updateProgressCircle();
+						updateQualificationStatus(); // Initial check
+
+						// Initialize deadline check
+						checkDeadline();
+						
+						// Bind events
+						const dateInput = document.querySelector('input[name="deadline_date"]');
+						const timeInput = document.querySelector('input[name="deadline_time"]');
+						if (dateInput) dateInput.addEventListener('change', checkDeadline);
+						if (timeInput) timeInput.addEventListener('change', checkDeadline);
 					});
 
-					function toggleQS(button) {
-						const currentState = button.dataset.state;
-						const newState = currentState === 'yes' ? 'no' : 'yes';
-
-						button.dataset.state = newState;
-
-						// Find the hidden input sibling
-						const input = button.parentNode.querySelector('input[type="hidden"]');
-						if (input) input.value = newState;
-
-						updateQSButton(button, newState);
+					// --- QS Logic (Phase 4) ---
+					function updateQualificationStatus() {
+						// Helper to check if doc is verified
+						const isVerified = (id) => {
+							const doc = documents.find(d => d.id === id);
+							return doc && (doc.status === 'Verified' || doc.status === 'Okay/Confirmed');
+						};
+						
+						// Plantilla Rules
+						if (vacancyType === 'Plantilla') {
+							// Eligibility: Green if cert_eligibility Verified
+							updateQSToggle('qs_eligibility', isVerified('cert_eligibility'));
+							
+							// Education: Green if transcript_records AND photocopy_diploma Verified
+							updateQSToggle('qs_education', isVerified('transcript_records') && isVerified('photocopy_diploma'));
+							
+							// Training: Green if cert_training Verified
+							updateQSToggle('qs_training', isVerified('cert_training'));
+							
+							// Experience: Always Gray (Not Applicable)
+							setQSGray('qs_experience');
+						} 
+						// COS Rules
+						else if (vacancyType === 'COS') {
+							// Experience: Green if signed_work_exp_sheet Verified
+							updateQSToggle('qs_experience', isVerified('signed_work_exp_sheet'));
+							
+							// Education: Green if transcript_records AND photocopy_diploma Verified
+							updateQSToggle('qs_education', isVerified('transcript_records') && isVerified('photocopy_diploma'));
+							
+							// Training: Green if cert_training Verified
+							updateQSToggle('qs_training', isVerified('cert_training'));
+							
+							// Eligibility: Always Gray
+							setQSGray('qs_eligibility');
+						}
+						
+						// Overall Qualification Status
+						checkOverallQualification();
 					}
-
-					function updateQSButton(button, state) {
-						if (state === 'yes') {
-							button.classList.remove('bg-[#EF4444]');
-							button.classList.add('bg-[#10B981]');
+					
+					function updateQSToggle(field, isGreen) {
+						const btn = document.querySelector(`button[data-field="${field}"]`);
+						if (!btn) return;
+						
+						btn.classList.remove('bg-gray-400', 'cursor-not-allowed');
+						
+						// Only update if state matches expectation? Or force update?
+						// Force update based on docs
+						if (isGreen) {
+							btn.classList.remove('bg-[#EF4444]');
+							btn.classList.add('bg-[#10B981]'); // Green
+							btn.dataset.state = 'yes';
 						} else {
-							button.classList.remove('bg-[#10B981]');
-							button.classList.add('bg-[#EF4444]');
+							btn.classList.remove('bg-[#10B981]');
+							btn.classList.add('bg-[#EF4444]'); // Red
+							btn.dataset.state = 'no';
+						}
+						// Update hidden input
+						const input = btn.parentNode.querySelector('input[type="hidden"]');
+						if (input) input.value = btn.dataset.state;
+					}
+					
+					function setQSGray(field) {
+						const btn = document.querySelector(`button[data-field="${field}"]`);
+						if (!btn) return;
+						
+						btn.classList.remove('bg-[#EF4444]', 'bg-[#10B981]');
+						btn.classList.add('bg-gray-400'); // Gray
+						btn.dataset.state = 'na';
+						
+						const input = btn.parentNode.querySelector('input[type="hidden"]');
+						if (input) input.value = 'na';
+					}
+					
+					function checkOverallQualification() {
+						const toggles = document.querySelectorAll('.qs-toggle');
+						let allGreen = true;
+						let hasRequirements = false;
+						
+						toggles.forEach(btn => {
+							if (btn.classList.contains('bg-gray-400')) return; // Skip N/A
+							
+							hasRequirements = true;
+							if (!btn.classList.contains('bg-[#10B981]')) {
+								allGreen = false;
+							}
+						});
+						
+						const resultText = document.querySelector('.result-text');
+						if (hasRequirements && allGreen) {
+							updateResultButton(resultText, 'Qualified');
+						} else {
+							updateResultButton(resultText, 'Not Qualified');
 						}
 					}
-
-					function toggleResult(container) {
-						const textSpan = container.querySelector('.result-text');
-						const hiddenInput = container.querySelector('.result-input');
-						const currentState = textSpan.dataset.state;
-						const newState = currentState === 'Qualified' ? 'Not Qualified' : 'Qualified';
-
-						// Update data attribute
-						textSpan.dataset.state = newState;
-
-						// Update hidden input
-						if (hiddenInput) hiddenInput.value = newState;
-
-						// Update text and color
-						updateResultButton(textSpan, newState);
-					}
-
+					
 					function updateResultButton(textSpan, state) {
-						// Update text content
 						textSpan.textContent = state;
+						textSpan.dataset.state = state;
+						
+						const hiddenInput = textSpan.parentNode.querySelector('.result-input');
+						if (hiddenInput) hiddenInput.value = state;
 
-						// Update color classes
 						if (state === 'Qualified') {
 							textSpan.classList.remove('text-red-600');
 							textSpan.classList.add('text-green-600');
@@ -423,89 +496,200 @@
 							textSpan.classList.add('text-red-600');
 						}
 					}
-				</script>
 
-				<script>
-
-					const documents = @json($documents); // TODO: added
-
+					// --- Document Logic ---
+					
 					// Helper for status icon
 					function getStatusIcon(status) {
-						if (status === "Okay/Confirmed") {
+						if (status === "Okay/Confirmed" || status === "Verified") {
 							return `<svg class="w-4 h-4 inline-block text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>`;
-						} else if (status === "Disapproved With Deficiency") {
+						} else if (status === "Disapproved With Deficiency" || status === "Needs Revision") {
 							return `<svg class="w-4 h-4 inline-block text-red-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>`;
 						}
 						return "";
 					}
 
-					document.addEventListener("DOMContentLoaded", function () {
-						const dateInput = document.querySelector('input[name="deadline_date"]');
-						const timeInput = document.querySelector('input[name="deadline_time"]');
-						const warningDiv = document.getElementById("deadlineWarning");
+					let currentSelectedDoc = null;
+					const toggleContainer = document.getElementById("toggle-container"); // kept for compatibility if needed, but mostly hidden
 
-						let isShown = false;
+					function handleDocumentClick(doc) {
+						currentSelectedDoc = doc;
+						
+						// Update Title
+						document.getElementById('document-title').textContent = doc.name || doc.text;
+						
+						// Update Status UI
+						updateStatusUI(doc.status);
+						
+						// Update Remarks
+						const remarksEl = document.getElementById('remarks');
+						remarksEl.value = doc.remarks || "";
+						remarksEl.disabled = false;
+						remarksEl.placeholder = "Add remarks for this document...";
+						
+						// Update Preview
+						const previewEl = document.getElementById('doc-preview');
+						previewEl.src = doc.preview || "";
+						
+						// Highlight selected in list
+						// (Optional: add visual feedback in list)
+					}
 
-						function checkDeadline() {
-							const date = dateInput.value;
-							const time = timeInput.value || '23:59:59';
-
-							if (!date) {
-								hideWarning();
-								return;
-							}
-
-							const deadline = new Date(`${date}T${time}`);
-							const now = new Date();
-
-							if (now > deadline) {
-								showWarning();
-							} else {
-								hideWarning();
-							}
+					function updateStatusUI(status) {
+						const statusValue = document.getElementById('document-status-value');
+						statusValue.textContent = status;
+						
+						// Reset classes
+						statusValue.className = "font-bold";
+						
+						if (status === "Verified" || status === "Okay/Confirmed") {
+							statusValue.classList.add("text-[#00730A]");
+						} else if (status === "Needs Revision" || status === "Disapproved With Deficiency") {
+							statusValue.classList.add("text-[#BC0000]");
+						} else if (status === "Not Submitted") {
+							statusValue.classList.add("text-gray-500");
+						} else {
+							statusValue.classList.add("text-[#E47E00]");
 						}
+					}
 
-						function showWarning() {
-							if (!isShown) {
-								warningDiv.classList.remove('hidden', 'animate-fadeSlideUp');
-								warningDiv.classList.add('animate-fadeSlideDown');
-								isShown = true;
+					async function updateDocumentStatus(newStatus) {
+						if (!currentSelectedDoc) {
+							alert("Please select a document first.");
+							return;
+						}
+						
+						// Optimistic Update
+						updateStatusUI(newStatus);
+						currentSelectedDoc.status = newStatus;
+						
+						// Update List
+						renderDocuments(documents);
+						updateProgressCircle();
+						updateQualificationStatus();
+						
+						try {
+							const response = await fetch(`/admin/applicant_status/${userId}/${vacancyId}/update-document`, {
+								method: 'POST',
+								headers: {
+									'Content-Type': 'application/json',
+									'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+								},
+								body: JSON.stringify({
+									document_type: currentSelectedDoc.id,
+									status: newStatus
+								})
+							});
+							
+							if (!response.ok) throw new Error('Failed to update status');
+							
+						} catch (error) {
+							console.error(error);
+							alert("Failed to save status. Please check your connection.");
+						}
+					}
 
+					// Auto-save Document Remarks
+					let docRemarksTimeout;
+					document.getElementById('remarks').addEventListener('input', function(e) {
+						if (!currentSelectedDoc) return;
+						
+						const value = e.target.value;
+						currentSelectedDoc.remarks = value;
+						
+						document.getElementById('remarks-status').classList.remove('opacity-100');
+						document.getElementById('remarks-status').classList.add('opacity-0');
+						
+						clearTimeout(docRemarksTimeout);
+						docRemarksTimeout = setTimeout(async () => {
+							try {
+								await fetch(`/admin/applicant_status/${userId}/${vacancyId}/update-document`, {
+									method: 'POST',
+									headers: {
+										'Content-Type': 'application/json',
+										'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+									},
+									body: JSON.stringify({
+										document_type: currentSelectedDoc.id,
+										remarks: value
+									})
+								});
+								
+								// Show Saved
+								const statusEl = document.getElementById('remarks-status');
+								statusEl.classList.remove('opacity-0');
+								statusEl.classList.add('opacity-100');
 								setTimeout(() => {
-									warningDiv.classList.remove('animate-fadeSlideDown');
-								}, 300);
+									statusEl.classList.remove('opacity-100');
+									statusEl.classList.add('opacity-0');
+								}, 2000);
+								
+							} catch (error) {
+								console.error(error);
 							}
-						}
-
-						function hideWarning() {
-							if (isShown) {
-								warningDiv.classList.remove('animate-fadeSlideDown');
-								warningDiv.classList.add('animate-fadeSlideUp');
-
-								setTimeout(() => {
-									warningDiv.classList.add('hidden');
-									warningDiv.classList.remove('animate-fadeSlideUp');
-									isShown = false;
-								}, 300);
+						}, 1000);
+					});
+					
+					// Auto-save Application Remarks
+					let appRemarksTimeout;
+					document.getElementById('application_remarks_input').addEventListener('input', function(e) {
+						const value = e.target.value;
+						
+						clearTimeout(appRemarksTimeout);
+						appRemarksTimeout = setTimeout(async () => {
+							try {
+								await fetch(`/admin/applicant_status/${userId}/${vacancyId}/update-remarks`, {
+									method: 'POST',
+									headers: {
+										'Content-Type': 'application/json',
+										'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+									},
+									body: JSON.stringify({
+										application_remarks: value
+									})
+								});
+							} catch (error) {
+								console.error(error);
 							}
-						}
-
-						if (dateInput) dateInput.addEventListener('change', checkDeadline);
-						if (timeInput) timeInput.addEventListener('change', checkDeadline);
-
-						checkDeadline();
+						}, 1500);
 					});
 
-					// Discard button, it will reload the page to get the initial values
-					// that have been passed from session
-					function confirmDiscard() {
-						if (confirm('Are you sure you want to discard changes?')) {
-							location.reload();
+					// Notify Applicant
+					async function notifyApplicant() {
+						const btn = document.getElementById('notify-applicant-btn');
+						const originalText = btn.textContent;
+						btn.disabled = true;
+						btn.textContent = "Sending...";
+						btn.classList.add("opacity-75", "cursor-not-allowed");
+						
+						try {
+							const response = await fetch(`/admin/applicant_status/${userId}/${vacancyId}/notify`, {
+								method: 'POST',
+								headers: {
+									'Content-Type': 'application/json',
+									'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+								}
+							});
+							
+							const data = await response.json();
+							
+							if (response.ok) {
+								alert(data.message || "Email sent successfully!");
+							} else {
+								alert(data.message || "Failed to send email.");
+							}
+						} catch (error) {
+							console.error(error);
+							alert("An error occurred while sending the notification.");
+						} finally {
+							btn.disabled = false;
+							btn.textContent = originalText;
+							btn.classList.remove("opacity-75", "cursor-not-allowed");
 						}
 					}
 
 
-					// Render documents list with nested subitems if any
+					// Render documents list
 					function renderDocuments(docList) {
 						const listEl = document.getElementById('document-list');
 						if (!listEl) return;
@@ -521,8 +705,7 @@
 							if (doc.isBold) btn.classList.add('font-bold');
 							if (doc.italic) btn.classList.add('italic');
 
-							// TODO: ICON BA?
-							let icon = doc.preview && doc.status === 'Okay/Confirmed' ? getStatusIcon('Okay/Confirmed') : getStatusIcon('Disapproved With Deficiency');
+							let icon = getStatusIcon(doc.status);
 
 							const iconWrapper = document.createElement('span');
 							iconWrapper.innerHTML = icon;
@@ -539,75 +722,25 @@
 							btn.innerHTML = "";
 							btn.appendChild(wrapper);
 
-							btn.setAttribute('aria-describedby', doc.id + '-status');
-							btn.setAttribute('aria-label', doc.text + (doc.status === 'Okay/Confirmed' ? ', submitted' : ', missing'));
-
 							btn.onclick = () => handleDocumentClick(doc);
 
 							li.appendChild(btn);
-
-							if (doc.subitems && doc.subitems.length > 0) {
-								const sublist = document.createElement('ul');
-								sublist.className = "ml-5 mt-1 space-y-0.5 text-gray-600 text-[11px]";
-
-								doc.subitems.forEach((sub, idx) => {
-									const subLi = document.createElement('li');
-
-									if (doc.id === 'pds') {
-										subLi.classList.add("flex", "items-center", "gap-2");
-
-										const checkbox = document.createElement('input');
-										checkbox.type = 'checkbox';
-										checkbox.className = 'form-checkbox h-4 w-4 text-blue-600';
-										checkbox.checked = sub.checked || false;
-
-										// ✅ Toggle handling
-										checkbox.addEventListener('change', (e) => {
-											sub.checked = e.target.checked;
-											console.log(`Subitem toggled: ${sub.text} ->`, sub.checked);
-										});
-
-										const label = document.createElement('label');
-										label.className = 'text-xs text-gray-700';
-										label.textContent = sub.text;
-
-										subLi.appendChild(checkbox);
-										subLi.appendChild(label);
-									} else {
-										subLi.innerHTML = `${getStatusIcon(sub.status)} <span class="align-middle ml-1">${sub.text}</span>`;
-									}
-
-									sublist.appendChild(subLi);
-								});
-
-								li.appendChild(sublist);
-							}
-
 							listEl.appendChild(li);
 						});
 					}
 
-
-
-					// Initialize documents list
-					renderDocuments(documents);
-
 					// Update Progress Bar
 					function updateProgressCircle() {
-						const totalDocs = 17;
-						// Mock calculation or use real logic depending on documents array state
-						const confirmedDocs = documents.reduce((acc, doc) => (doc.status === 'Okay/Confirmed' ? acc + 1 : acc), 0);
+						const totalDocs = 17; // Should ideally be dynamic based on requirements
+						const confirmedDocs = documents.reduce((acc, doc) => (doc.status === 'Okay/Confirmed' || doc.status === 'Verified' ? acc + 1 : acc), 0);
 						const percentage = Math.round((confirmedDocs / totalDocs) * 100);
 
-						// Update Linear Bar
 						const bar = document.getElementById('linear-progress-bar');
 						if (bar) {
 							bar.style.width = percentage + '%';
-
-							// Update color based on progress if desired
 							if (percentage === 100) {
 								bar.classList.remove('bg-[#002C76]');
-								bar.classList.add('bg-[#10B981]'); // Green when done
+								bar.classList.add('bg-[#10B981]');
 							} else {
 								bar.classList.add('bg-[#002C76]');
 								bar.classList.remove('bg-[#10B981]');
@@ -615,168 +748,47 @@
 						}
 
 						const percentageText = document.getElementById('progress-percentage');
-						if (percentageText) {
-							percentageText.textContent = percentage + '%';
-						}
+						if (percentageText) percentageText.textContent = percentage + '%';
 
 						const countText = document.getElementById('progress-count');
-						if (countText) {
-							countText.textContent = `${confirmedDocs}/${totalDocs}`;
-						}
+						if (countText) countText.textContent = `${confirmedDocs}/${totalDocs}`;
 
-						// Update Tooltip Content logic
-						const statusText = document.getElementById('document-status');
-						const actionsBlock = document.getElementById('actions-block');
-
-						if (statusText && actionsBlock) {
-							if (percentage === 100) {
-								statusText.textContent = "DOCUMENTS SUBMITTED: COMPLETE";
-								statusText.classList.remove("text-red-600");
-								statusText.classList.add("text-green-600");
-								actionsBlock.classList.remove('hidden');
-							} else {
-								statusText.textContent = "DOCUMENTS SUBMITTED: INCOMPLETE";
-								statusText.classList.remove("text-green-600");
-								statusText.classList.add("text-red-600");
-								actionsBlock.classList.add('hidden');
-							}
-						}
+						// Tooltip updates can be kept simple or removed if not critical
 					}
 
+					// Deadline logic
+					function checkDeadline() {
+						const dateInput = document.querySelector('input[name="deadline_date"]');
+						const timeInput = document.querySelector('input[name="deadline_time"]');
+						const warningDiv = document.getElementById("deadlineWarning");
+						if(!dateInput || !warningDiv) return;
 
-					// Initial update
-					updateProgressCircle();
+						const date = dateInput.value;
+						const time = timeInput ? (timeInput.value || '23:59:59') : '23:59:59';
 
-					let currentSelectedDoc = null; // Keep track of the currently selected document
-
-					// Handle toggle behavior
-					const toggleCheckbox = document.getElementById("favorite");
-					const toggleContainer = document.getElementById("toggle-container");
-
-					const remarksTextarea = document.getElementById('remarks');
-					remarksTextarea.addEventListener('input', () => {
-						if (currentSelectedDoc) {
-							currentSelectedDoc.remarks = remarksTextarea.value;
-
-							// Update hidden remarks input
-							const inputId = `remarks-input-${currentSelectedDoc.id}`;
-							const remarksInput = document.getElementById(inputId);
-							if (remarksInput) {
-								remarksInput.value = remarksTextarea.value;
-							}
+						if (!date) {
+							warningDiv.classList.add('hidden');
+							return;
 						}
-					});
 
-					// When a document is clicked
-					function handleDocumentClick(doc) {
-						currentSelectedDoc = doc;
+						const deadline = new Date(`${date}T${time}`);
+						const now = new Date();
 
-						// Show toggle
-						toggleContainer.classList.remove("hidden");
-
-						// Reflect current status in the toggle
-						toggleCheckbox.checked = doc.status === "Okay/Confirmed";
-
-						// Update remarks and preview
-						const previewEl = document.getElementById('doc-preview');
-						const remarksEl = document.getElementById('remarks');
-
-						previewEl.src = doc.preview || "";
-						remarksEl.value = doc.remarks || "";
-					}
-
-					// When toggle is changed
-					toggleCheckbox.addEventListener("change", () => {
-						if (currentSelectedDoc) {
-							const statusValue = toggleCheckbox.checked ? "Okay/Confirmed" : "Disapproved With Deficiency";
-							currentSelectedDoc.status = statusValue
-
-							// Update corresponding hidden input
-							const inputId = `status-input-${currentSelectedDoc.id}`;  // e.g., status-input-application_letter
-							const statusInput = document.getElementById(inputId);
-							if (statusInput) {
-								statusInput.value = statusValue;
-							}
-
-							renderDocuments(documents); // Refresh the icon status
-							updateProgressCircle(); // Update progress circle
-						}
-					});
-
-					function goBack() {
-						// Avoid going back to same page (due to reload after save)
-						const currentUrl = window.location.href;
-						const referrer = document.referrer;
-						const savedReferrer = sessionStorage.getItem('lastValidReferrer');
-
-						const target = (referrer && referrer !== currentUrl)
-							? referrer
-							: (savedReferrer && savedReferrer !== currentUrl)
-								? savedReferrer
-								: null; // TODO CHANGE THE LOCATION FALLBACK
-
-						if (target) {
-							window.location.href = target;
+						if (now > deadline) {
+							warningDiv.classList.remove('hidden');
 						} else {
-							window.history.back(); // fallback
+							warningDiv.classList.add('hidden');
 						}
 					}
-
-					const getCheckedValue = (name) => {
-						const checked = document.querySelector(`input[name="${name}"]:checked`);
-						return checked ? checked.value : '';
-					};
-					document.getElementById('submit-btn').addEventListener('click', function () {
-						document.getElementById('qs_education_hidden').value = getCheckedValue('qs_education_input');
-						document.getElementById('qs_eligibility_hidden').value = getCheckedValue('qs_eligibility_input');
-						document.getElementById('qs_experience_hidden').value = getCheckedValue('qs_experience_input');
-						document.getElementById('qs_training_hidden').value = getCheckedValue('qs_training_input');
-						document.getElementById('qs_result_hidden').value = getCheckedValue('qs_result_input');
-						document.getElementById('application_remarks_hidden').value = document.getElementById('application_remarks_input').value;
-					});
-
-					document.addEventListener("DOMContentLoaded", () => {
-						const checkIconSelector = 'svg.text-green-600';
-						const totalDocuments = 17;
-
-						function updateDocumentUI() {
-							const confirmedCount = document.querySelectorAll(checkIconSelector).length;
-							const checkboxes = document.getElementById("checkboxes-container");
-							const statusText = document.getElementById("document-status");
-							const actionsHeading = document.getElementById("actions-heading");
-							const actionsHelper = document.getElementById("actions-helper");
-
-							if (confirmedCount === totalDocuments) {
-								// Show checkboxes
-								checkboxes.classList.remove("opacity-0", "pointer-events-none");
-								checkboxes.classList.add("opacity-100");
-
-								// Update status to COMPLETE
-								statusText.textContent = "DOCUMENTS SUBMITTED: COMPLETE";
-								statusText.classList.remove("text-red-600");
-								statusText.classList.add("text-green-600");
-
-								// Show actions section
-								actionsHeading.classList.remove("hidden");
-								actionsHelper.classList.add("hidden");
-							} else {
-								// Hide checkboxes
-								checkboxes.classList.add("opacity-0", "pointer-events-none");
-								checkboxes.classList.remove("opacity-100");
-
-								// Status stays as INCOMPLETE
-								statusText.textContent = "DOCUMENTS SUBMITTED: INCOMPLETE";
-								statusText.classList.remove("text-green-600");
-								statusText.classList.add("text-red-600");
-
-								// Hide actions section
-								actionsHeading.classList.add("hidden");
-								actionsHelper.classList.remove("hidden");
-							}
+					
+					function goBack() {
+						const referrer = document.referrer;
+						if (referrer && referrer !== window.location.href) {
+							window.location.href = referrer;
+						} else {
+							window.history.back();
 						}
-
-						updateDocumentUI(); // Run on page load
-					});
+					}
 				</script>
 
 				<style>

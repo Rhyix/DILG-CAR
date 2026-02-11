@@ -24,8 +24,30 @@ use App\Mail\NotifyApplicationStatus;
 
 
 
+use App\Mail\NotifyApplicantOverview;
+
 class AdminController extends Controller
 {
+    private const DOCUMENT_LABELS = [
+        'application_letter' => 'Application Letter',
+        'signed_pds' => 'Signed Personal Data Sheet',
+        'signed_work_exp_sheet' => 'Signed Work Experience Sheet',
+        'pqe_result' => 'Pre-Qualifying Exam (PQE) Result',
+        'cert_eligibility' => 'Certificate of Eligibility / Board Rating',
+        'ipcr' => 'Performance Rating/IPCR in the last period (if applicable)',
+        'non_academic' => 'Non-Academic Awards Received',
+        'cert_training' => 'Certificate/s of Training Attended/Participated relevant to the position being applied',
+        'designation_order' => 'List with Certified Photocopy of Duly Confirmed Designation Order/s',
+        'transcript_records' => 'Transcript of Records (Baccalaureate Degree)',
+        'photocopy_diploma' => 'Diploma',
+        'grade_masteraldoctorate' => 'Certified Photocopy of Certificate of Grades with Masteral/Doctorate Units Earned',
+        'tor_masteraldoctorate' => 'Certified Photocopy of TOR with Masteral/Doctorate Degree',
+        'cert_employment' => 'Certificate of Employment (If Any)',
+        'cert_lgoo_induction' => 'Certificate of Completion of LGOO Induction Training',
+        'passport_photo' => '2" x 2" or Passport Size Picture',
+        'other_documents' => 'Other Documents Submitted',
+    ];
+
     public function __construct()
     {
         $this->middleware('auth:admin');
@@ -308,6 +330,42 @@ class AdminController extends Controller
         return view('partials.admin_list', compact('admins'))->render();
     }
 
+    private function getApplicantDocuments($user_id, $application)
+    {
+        $uploadedDocuments = UploadedDocument::where('user_id', $user_id)->get()->keyBy('document_type');
+        $documents = [];
+
+        foreach (UploadedDocument::DOCUMENTS as $docType) {
+            if ($docType === 'isApproved') continue;
+
+            $doc = $uploadedDocuments->get($docType);
+
+            if ($docType === 'application_letter') {
+                $documents[] = [
+                    'id' => 'application_letter',
+                    'name' => self::DOCUMENT_LABELS['application_letter'],
+                    'text' => self::DOCUMENT_LABELS['application_letter'],
+                    'status' => $application->file_status ?? 'invalid',
+                    'preview' => url('/preview-file/' . urlencode(base64_encode($application->file_storage_path ?: 'missing'))),
+                    'remarks' => $application->file_remarks ?? 'No remarks provided.',
+                    'isBold' => true,
+                ];
+            } else {
+                $documents[] = [
+                    'id' => $docType,
+                    'name' => self::DOCUMENT_LABELS[$docType] ?? ucwords(str_replace('_', ' ', $docType)),
+                    'text' => self::DOCUMENT_LABELS[$docType] ?? ucwords(str_replace('_', ' ', $docType)),
+                    'status' => $doc ? $doc->status : 'invalid',
+                    'preview' => url('/preview-file/' . urlencode(base64_encode($doc->storage_path ?? 'missing'))),
+                    'remarks' => $doc ? ($doc->remarks ?: $doc->original_name) : 'Document missing.',
+                    'original_name' => $doc->original_name ?? '',
+                    'isBold' => true,
+                ];
+            }
+        }
+        return $documents;
+    }
+
     public function viewApplicantStatus($user_id, $vacancy_id)
     {
         $application = Applications::with(['personalInformation', 'vacancy', 'user'])
@@ -335,72 +393,7 @@ class AdminController extends Controller
         $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->first();
         $adminName = $application->updatedByAdmin?->username ?? null;
 
-        $uploadedDocuments = UploadedDocument::where('user_id', $user_id)->get()->keyBy('document_type');
-        $documents = [];
-
-        $labelMap = [
-            'application_letter' => 'Application Letter',
-            'signed_pds' => 'Signed Personal Data Sheet',
-            'signed_work_exp_sheet' => 'Signed Work Experience Sheet',
-            'pqe_result' => 'Pre-Qualifying Exam (PQE) Result',
-            'cert_eligibility' => 'Certificate of Eligibility / Board Rating',
-            'ipcr' => 'Performance Rating/IPCR in the last period (if applicable)',
-            'non_academic' => 'Non-Academic Awards Received',
-            'cert_training' => 'Certificate/s of Training Attended/Participated relevant to the position being applied',
-            'designation_order' => 'List with Certified Photocopy of Duly Confirmed Designation Order/s',
-            'transcript_records' => 'Transcript of Records (Baccalaureate Degree)',
-            'photocopy_diploma' => 'Diploma',
-            'grade_masteraldoctorate' => 'Certified Photocopy of Certificate of Grades with Masteral/Doctorate Units Earned',
-            'tor_masteraldoctorate' => 'Certified Photocopy of TOR with Masteral/Doctorate Degree',
-            'cert_employment' => 'Certificate of Employment (If Any)',
-            'cert_lgoo_induction' => 'Certificate of Completion of LGOO Induction Training',
-            'passport_photo' => '2" x 2" or Passport Size Picture',
-            'other_documents' => 'Other Documents Submitted',
-        ];
-
-        foreach (UploadedDocument::DOCUMENTS as $docType) {
-            if ($docType === 'isApproved')
-                continue;
-
-            $doc = $uploadedDocuments->get($docType);
-
-            if ($docType === 'application_letter') {
-                $documents[] = [ // Get from Applications table instead
-                    'id' => 'application_letter',
-                    'text' => $labelMap['application_letter'],
-                    'status' => $application->file_status ?? 'invalid',
-                    //'preview' => $application->file_storage_path ? asset('storage/' . $application->file_storage_path) : '',
-                    'preview' => $application->file_storage_path
-                        ? url('/preview-file/' . base64_encode($application->file_storage_path))
-                        : '',
-                    'remarks' => $application->file_remarks ?? 'No remarks provided.',
-                    'isBold' => true,
-                ];
-            } else {
-                $doc = $uploadedDocuments->get($docType);
-
-                $documents[] = [
-                    'id' => $docType,
-                    'text' => $labelMap[$docType] ?? ucwords(str_replace('_', ' ', $docType)),
-                    'status' => $doc ? $doc->status : 'invalid',
-                    //'preview' => $doc ? asset('storage/' . $doc->storage_path) : '',
-                    'preview' => $doc ? url('/preview-file/' . base64_encode($doc->storage_path)) : '',
-                    'remarks' => $doc ? ($doc->remarks ?: $doc->original_name) : 'Document missing.',
-                    'isBold' => true,
-                ];
-            }
-            /*
-            $documents[] = [
-                'id' => $docType,
-                'text' => $labelMap[$docType] ?? ucwords(str_replace('_', ' ', $docType)),
-                'status' => $doc ? $doc->status : 'invalid',
-                'preview' => $doc ? asset('storage/' . $doc->storage_path) : '',
-                'remarks' => $doc ? ($doc->remarks ?: $doc->original_name) : 'Document missing.',
-                'isBold' => true
-            ];
-            */
-        }
-        //dd($documents);
+        $documents = $this->getApplicantDocuments($user_id, $application);
 
         activity()
             ->causedBy(auth('admin')->user())
@@ -421,6 +414,7 @@ class AdminController extends Controller
             'examDetail' => $examDetail,
             'documents' => $documents,
             'admin_name' => $adminName,
+            'vacancy_type' => $vacancy->vacancy_type, // Needed for Phase 4
         ]);
     }
 
@@ -564,6 +558,111 @@ class AdminController extends Controller
         }
 
         return redirect()->back()->with('success', 'Changes updated successfully.');
+    }
+
+    public function updateDocumentStatusAjax(Request $request, $user_id, $vacancy_id)
+    {
+        $request->validate([
+            'document_type' => 'required|string',
+            'status' => 'nullable|string',
+            'remarks' => 'nullable|string',
+        ]);
+
+        $documentType = $request->input('document_type');
+        $status = $request->input('status');
+        $remarks = $request->input('remarks');
+
+        $application = Applications::where('user_id', $user_id)
+            ->where('vacancy_id', $vacancy_id)
+            ->firstOrFail();
+
+        if ($documentType === 'application_letter') {
+            if ($request->has('status')) $application->file_status = $status;
+            if ($request->has('remarks')) $application->file_remarks = $remarks;
+            $application->save();
+        } else {
+            $document = UploadedDocument::where('user_id', $user_id)
+                ->where('document_type', $documentType)
+                ->first();
+
+            if ($document) {
+                if ($request->has('status')) $document->status = $status;
+                if ($request->has('remarks')) $document->remarks = $remarks;
+                $document->save();
+            } else {
+                // If document doesn't exist, create a placeholder record so status/remarks can be saved
+                // This handles cases where admin wants to mark a missing document as "Needs Revision" or add remarks
+                UploadedDocument::create([
+                    'user_id' => $user_id,
+                    'document_type' => $documentType,
+                    'status' => $status ?? 'Pending',
+                    'remarks' => $remarks ?? '',
+                    'original_name' => '', // Placeholder
+                    'stored_name' => '',   // Placeholder
+                    'storage_path' => '',  // Placeholder
+                    'mime_type' => '',     // Placeholder
+                    'file_size_8b' => 0,   // Placeholder
+                ]);
+            }
+        }
+
+        return response()->json(['success' => true]);
+    }
+
+    public function updateApplicationRemarksAjax(Request $request, $user_id, $vacancy_id)
+    {
+        $request->validate([
+            'application_remarks' => 'nullable|string',
+        ]);
+
+        $application = Applications::where('user_id', $user_id)
+            ->where('vacancy_id', $vacancy_id)
+            ->firstOrFail();
+
+        $application->application_remarks = $request->input('application_remarks');
+        $application->updated_by_admin_id = Auth::guard('admin')->id();
+        $application->save();
+
+        return response()->json(['success' => true]);
+    }
+
+    public function notifyApplicant(Request $request, $user_id, $vacancy_id)
+    {
+        $application = Applications::where('user_id', $user_id)
+            ->where('vacancy_id', $vacancy_id)
+            ->firstOrFail();
+
+        $documents = $this->getApplicantDocuments($user_id, $application);
+        
+        // Check if at least one document is reviewed (not 'Pending' and not 'invalid')
+        // Adjust logic based on exact status strings used in DB ('Okay/Confirmed', 'Disapproved...', 'Pending')
+        $hasReviewed = false;
+        foreach ($documents as $doc) {
+            // If status is one of the "reviewed" statuses
+            if (in_array($doc['status'], ['Verified', 'Needs Revision', 'Okay/Confirmed', 'Disapproved With Deficiency'])) {
+                $hasReviewed = true;
+                break;
+            }
+        }
+        
+        if (!$hasReviewed) {
+             return response()->json(['success' => false, 'message' => 'No documents have been reviewed yet.'], 400);
+        }
+
+        $userEmail = User::where('id', $user_id)->value('email');
+        
+        if (!$userEmail) {
+            return response()->json(['success' => false, 'message' => 'User email not found.'], 404);
+        }
+
+        Mail::to($userEmail)->send(new NotifyApplicantOverview(
+            $user_id,
+            $vacancy_id,
+            $documents,
+            $application->application_remarks
+        ));
+
+        return response()->json(['success' => true, 'message' => 'Applicant notified successfully.']);
     }
 
 }
