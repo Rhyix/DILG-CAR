@@ -44,10 +44,9 @@
         <div class="flex flex-col border border-[#0D2B70] h-full rounded-2xl overflow-hidden">
             <!-- SCROLL CONTAINER -->
             <div class="flex-1 overflow-y-auto">
-                <table class="w-full text-left border-separate border-spacing-0">
-                    
+                <table class="w-full text-left border-seperate table-fixed">
                     <!-- HEADER -->
-                    <thead class="bg-[#0D2B70] text-white">
+                    <thead class="bg-[#0D2B70] text-white sticky top-0 z-10">
                         <tr>
                             <th class="py-4 px-6 font-normal sticky top-0 bg-[#0D2B70] z-20 border-b-2 border-white">
                                 Vacancy ID
