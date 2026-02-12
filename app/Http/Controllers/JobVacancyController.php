@@ -59,6 +59,7 @@ class JobVacancyController extends Controller
     public function edit($vacancy_id)
     {
         $vacancy = JobVacancy::where('vacancy_id', $vacancy_id)->firstOrFail();
+        $signatories = \App\Models\Signatory::all();
         $view = $vacancy->vacancy_type === 'Plantilla' ? 'admin.vacancy_add_plantilla' : 'admin.vacancy_add_cos';
 
         activity()
@@ -68,7 +69,7 @@ class JobVacancyController extends Controller
             ->withProperties(['vacancy_id' => $vacancy->vacancy_id, 'section' => 'Job Vacancy'])
             ->log('Editing job vacancy.');
 
-        return view($view, ['vacancy' => $vacancy]);
+        return view($view, ['vacancy' => $vacancy, 'signatories' => $signatories]);
     }
 
     public function update(Request $request, $vacancy_id)

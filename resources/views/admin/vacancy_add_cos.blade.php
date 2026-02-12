@@ -162,20 +162,33 @@
     <h2 class="font-bold mt-6">INTERESTED APPLICANTS MUST SUBMIT THEIR APPLICATION TO:</h2>
 
     <div>
-      <label class="block">Name of Head</label>
-      <input type="text" name="to_person" value="{{ old('to_person', $vacancy->to_person ?? '') }}" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10">
+        <label class="block">Name of Head</label>
+        <select id="signatory_select" name="to_person" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10">
+            <option value="">-- Select a Signatory --</option>
+            @forelse($signatories as $signatory)
+                <option value="{{ $signatory->first_name }} {{ $signatory->middle_name }} {{ $signatory->last_name }}"
+                    data-designation="{{ $signatory->designation }}"
+                    data-office="{{ $signatory->office }}"
+                    data-office_address="{{ $signatory->office_address }}"
+                    {{ old('to_person', $vacancy->to_person ?? '') === ($signatory->first_name . ' ' . $signatory->middle_name . ' ' . $signatory->last_name) ? 'selected' : '' }}>
+                    {{ $signatory->first_name }} {{ $signatory->middle_name }} {{ $signatory->last_name }}
+                </option>
+            @empty
+                <option value="">No signatories available</option>
+            @endforelse
+        </select>
     </div>
     <div>
-      <label class="block">Designation</label>
-      <input type="text" name="to_position" value="{{ old('to_position', $vacancy->to_position ?? '') }}" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10">
+        <label class="block">Designation</label>
+        <input type="text" id="to_position" name="to_position" value="{{ old('to_position', $vacancy->to_position ?? '') }}" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10" disabled>
     </div>
     <div>
-      <label class="block">Office</label>
-      <input type="text" name="to_office" value="{{ old('to_office', $vacancy->to_office ?? '') }}" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10">
+        <label class="block">Office</label>
+        <input type="text" id="to_office" name="to_office" value="{{ old('to_office', $vacancy->to_office ?? '') }}" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10" disabled>
     </div>
     <div>
-      <label class="block">Office Address</label>
-      <input type="text" name="to_office_address" value="{{ old('to_office_address', $vacancy->to_office_address ?? '') }}" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10">
+        <label class="block">Office Address</label>
+        <input type="text" id="to_office_address" name="to_office_address" value="{{ old('to_office_address', $vacancy->to_office_address ?? '') }}" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10" disabled>
     </div>
 
   </form>
@@ -232,6 +245,40 @@ document.addEventListener("DOMContentLoaded", function() {
         minDate: "today",    // cannot pick past dates
         maxDate: "2099-12-31"
     });
+});
+
+// Auto-fill signatory fields
+document.addEventListener("DOMContentLoaded", function() {
+    const signatorySelect = document.getElementById('signatory_select');
+    const positionField = document.getElementById('to_position');
+    const officeField = document.getElementById('to_office');
+    const officeAddressField = document.getElementById('to_office_address');
+
+    function handleSignatoryChange() {
+        const selectedOption = signatorySelect.options[signatorySelect.selectedIndex];
+        
+        if (selectedOption.value === '') {
+            // No selection - clear fields but keep disabled
+            positionField.value = '';
+            officeField.value = '';
+            officeAddressField.value = '';
+        } else {
+            // Selection made - populate fields (remain disabled)
+            positionField.value = selectedOption.dataset.designation;
+            officeField.value = selectedOption.dataset.office;
+            officeAddressField.value = selectedOption.dataset.office_address;
+        }
+        
+        // Always keep these fields disabled
+        positionField.disabled = true;
+        officeField.disabled = true;
+        officeAddressField.disabled = true;
+    }
+
+    signatorySelect.addEventListener('change', handleSignatoryChange);
+
+    // Initialize on page load
+    handleSignatoryChange();
 });
 </script>
 

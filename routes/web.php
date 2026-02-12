@@ -324,10 +324,12 @@ Route::middleware([RedirectIfNotAdmin::class])->group(function () {
     Route::get('/admin/search', [AdminController::class, 'search'])->name('admin.search');
 
     Route::get('/admin/vacancies_management/add/plantilla', function () {
-        return view('admin.vacancy_add_plantilla');
+        $signatories = \App\Models\Signatory::all();
+        return view('admin.vacancy_add_plantilla', compact('signatories'));
     })->name('addplantilla');
     Route::get('/admin/vacancies_management/add/cos', function () {
-        return view('admin.vacancy_add_cos');
+        $signatories = \App\Models\Signatory::all();
+        return view('admin.vacancy_add_cos', compact('signatories'));
     })->name('addcos');
 
     Route::post('/admin/vacancies_management/add/cos/store', [JobVacancyController::class, 'storeVacancy'])->name('vacancies.store');
