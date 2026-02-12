@@ -80,61 +80,99 @@ class ExamController extends Controller
 
     public function updateExam(Request $request, $vacancy_id)
     {
-        $questions = json_decode($request->questions, true);
+        // Handle both form-encoded and JSON requests
+        $raw = $request->input('questions') ?? $request->getContent();
+        
+        // If it's a JSON request, parse the JSON body
+        if ($request->isJson() && is_null($request->input('questions'))) {
+            $jsonData = json_decode($request->getContent(), true);
+            $raw = $jsonData['questions'] ?? '';
+        }
+        
+        \Log::info('updateExam called', ['vacancy_id' => $vacancy_id, 'raw_questions' => substr($raw, 0, 200), 'is_json' => $request->isJson()]);
+        $questions = json_decode($raw, true);
+
+        // Try a fallback if JSON decode failed (sometimes escaped strings arrive)
+        if (is_null($questions) && is_string($raw) && $raw !== '') {
+            $questions = json_decode(stripslashes($raw), true);
+        }
+
+        if (!is_array($questions)) {
+            \Log::error('Invalid questions payload', ['raw' => $raw]);
+            
+            if ($request->isJson()) {
+                return response()->json(['msg' => 'Invalid questions payload.'], 400);
+            }
+            return back()->withErrors(['msg' => 'Invalid questions payload.']);
+        }
 
         // Validate if needed
-        foreach ($questions as $q) {
-            // Check question text - frontend now uses 'text' field
-            $questionText = $q['text'] ?? $q['duration'] ?? '';
+        foreach ($questions as $idx => $q) {
+            // Check question text - frontend may use 'text' or 'duration'
+            // Use ternary to handle empty strings properly (not just null)
+            $questionText = trim((string) ($q['text'] ?? '')) ?: trim((string) ($q['duration'] ?? ''));
 
-            if (empty($questionText)) {
-                return back()->withErrors(['msg' => 'Each question must have text.']);
+            if ($questionText === '') {
+                $msg = "Question #".($idx+1)." must have text.";
+                
+                if ($request->isJson()) {
+                    return response()->json(['msg' => $msg], 422);
+                }
+                return back()->withErrors(['msg' => $msg]);
             }
         }
 
         $existingItemsCount = ExamItems::where('vacancy_id', $vacancy_id)->count();
 
-        // Example: if you want to delete existing and insert all new questions
+        // Delete existing questions for this vacancy
         ExamItems::where('vacancy_id', $vacancy_id)->delete();
 
-        foreach ($questions as $q) {
-            // Handle correct answer index for MCQ
-            $ans = null;
-            $choices = null; // Default to null for non-MCQ
+        try {
+            foreach ($questions as $q) {
+                $typeRaw = strtolower((string) ($q['type'] ?? ''));
+                $isMCQ = in_array($typeRaw, ['mcq', 'multiple_choice', 'multiple choice', 'multiple-choice']);
+                $isEssay = in_array($typeRaw, ['essay', 'essays']);
 
-            if ($q['type'] === 'MCQ') {
-                // For create(), we pass the array directly if casting is enabled, 
-                // but let's stick to explicit control to match the fillable logic.
-                // Actually, since we are switching to create(), we can pass array if cast is present.
-                // But let's verify casts. ExamItems has 'choices' => 'array'.
-                // So we should pass the ARRAY, and Eloquent will JSON encode it.
-                $choices = $q['choices'];
-
-                // If correctAnswer index is provided (from frontend), map it to the actual choice value
-                if (isset($q['correctAnswer']) && isset($q['choices'][$q['correctAnswer']])) {
-                    $ans = $q['choices'][$q['correctAnswer']];
-                } else {
-                    // Fallback: if 'answer' string is sent directly
-                    $ans = $q['answer'] ?? null;
-                }
-            } else {
-                // Essay logic
                 $ans = null;
                 $choices = null;
+
+                if ($isMCQ) {
+                    $choices = is_array($q['choices'] ?? null) ? array_values($q['choices']) : [];
+
+                    if (isset($q['correctAnswer']) && is_numeric($q['correctAnswer'])) {
+                        $idx = (int) $q['correctAnswer'];
+                        if (isset($choices[$idx])) $ans = $choices[$idx];
+                    }
+
+                    if ($ans === null && !empty($q['answer'])) {
+                        $ans = $q['answer'];
+                    }
+
+                    // Ensure choices is null when empty
+                    if (empty($choices)) $choices = null;
+                }
+
+                // Prefer 'text' then 'duration'
+                $questionText = trim((string) ($q['text'] ?? '')) ?: trim((string) ($q['duration'] ?? ''));
+
+                $created = ExamItems::create([
+                    'vacancy_id' => $vacancy_id,
+                    'question' => $questionText,
+                    'is_essay' => $isEssay ? 1 : 0,
+                    'ans' => $ans,
+                    'choices' => $choices,
+                ]);
+                
+                \Log::info('Question created', ['id' => $created->id, 'question' => substr($questionText, 0, 50)]);
             }
-
-            // Map question text (frontend now uses 'text' field consistently)
-            $questionText = $q['text'] ?? $q['duration'] ?? '';
-
-            // Use create() to ensure fillable protection and automatic casting
-            ExamItems::create([
-                'vacancy_id' => $vacancy_id,
-                'question' => $questionText,
-                'is_essay' => $q['type'] === 'Essay' ? 1 : 0,
-                'ans' => $ans,
-                'choices' => $choices,
-                // 'duration' is excluded as it's likely not in the DB schema
-            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error creating exam items', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            $msg = 'Error saving questions: ' . $e->getMessage();
+            
+            if ($request->isJson()) {
+                return response()->json(['msg' => $msg], 500);
+            }
+            return back()->withErrors(['msg' => $msg]);
         }
 
         $exam_items = ExamItems::where('vacancy_id', $vacancy_id)->get();
@@ -147,6 +185,13 @@ class ExamController extends Controller
             ->withProperties(['vacancy_id' => $vacancy_id, 'questions_count' => count($questions), 'section' => 'Exam Management'])
             ->log($action . 'd exam questions.');
 
+        if ($request->isJson()) {
+            return response()->json([
+                'success' => true, 
+                'message' => 'Exam updated successfully.',
+                'questions_count' => count($questions)
+            ]);
+        }
 
         return redirect()->route('admin.exam.edit', ['vacancy_id' => $vacancy_id])->with('success', 'Exam updated successfully.');
     }

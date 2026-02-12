@@ -85,6 +85,8 @@
     @if(isset($vacancy))
       @method('PUT')
     @endif
+    <h2 class="font-bold mt-6">JOB INFORMATION</h2>
+
 
     <input type="hidden" name="vacancy_type" value="Plantilla">
 
@@ -105,8 +107,7 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-
+    <div class="grid grid-cols-3 gap-4 mt-4">
       <!-- New input date Flatpickr -->
         <div class="w-full">
             <label class="block">Deadline of Application</label>
@@ -117,6 +118,16 @@
                 value="{{ old('closing_date', isset($vacancy->closing_date) ? \Carbon\Carbon::parse($vacancy->closing_date)->format('Y-m-d') : '') }}"
                 placeholder="Select deadline"
                 class="w-full border-2 border-[#002C76] rounded px-2 py-2 h-10">
+        </div>
+
+        <div>
+            <label class="block">Salary Grade/Pay Grade</label>
+            <input type="text" name="salary_grade" value="{{ old('salary_grade', $vacancy->salary_grade ?? '') }}" class="w-full border-2 border-[#002C76] rounded px-2 py-1 h-10">
+        </div>
+
+        <div>
+            <label class="block">Monthly Salary</label>
+            <input type="number" step="0.01" min="0" name="monthly_salary" value="{{ old('monthly_salary', $vacancy->monthly_salary ?? '') }}" class="w-full border-2 border-[#002C76] rounded px-2 py-1 h-10">
         </div>
     </div>
     <!-- <div class="md:w-[20%] mt-4 md:mt-0">
@@ -130,25 +141,36 @@
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-      <div>
-        <label class="block">Salary Grade/Pay Grade</label>
-        <input type="text" name="salary_grade" value="{{ old('salary_grade', $vacancy->salary_grade ?? '') }}" class="w-full border-2 border-[#002C76] rounded px-2 py-1 h-10">
-      </div>
+
     </div>
-    <div>
-      <label class="block">Monthly Salary</label>
-      <input type="number" step="0.01" min="0" name="monthly_salary" value="{{ old('monthly_salary', $vacancy->monthly_salary ?? '') }}" class="w-full border-2 border-[#002C76] rounded px-2 py-1 h-10">
-    </div>
+
 
     <!-- Qualification Standards -->
     <h2 class="font-bold mt-6">QUALIFICATION STANDARDS</h2>
-
-    @foreach (['education','training','experience','eligibility'] as $field)
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+        <div class="w-full">
+            <label class="block font-bold">Education</label>
+            <input type="text" name="qualification_education" value="{{ old('qualification_education', $vacancy->qualification_education ?? '') }}" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10">
+        </div>
+        <div class="w-full">
+            <label class="block font-bold">Training</label>
+            <input type="text" name="qualification_training" value="{{ old('qualification_training', $vacancy->qualification_training ?? '') }}" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10">
+        </div>
+        <div class="w-full">
+            <label class="block font-bold">Experience</label>
+            <input type="text" name="qualification_experience" value="{{ old('qualification_experience', $vacancy->qualification_experience ?? '') }}" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10">
+        </div>
+        <div class="w-full">
+            <label class="block font-bold">Eligibility</label>
+            <input type="text" name="qualification_eligibility" value="{{ old('qualification_eligibility', $vacancy->qualification_eligibility ?? '') }}" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10">
+        </div>
+    </div>
+    <!-- @foreach (['education','training','experience','eligibility'] as $field)
     <div>
       <label class="block">{{ ucfirst($field) }}</label>
       <input type="text" name="qualification_{{ $field }}" value="{{ old('qualification_'.$field, $vacancy->{'qualification_'.$field} ?? '') }}" class="w-full border-2 border-[#002C76] rounded px-2 py-1 h-10">
     </div>
-    @endforeach
+    @endforeach -->
 
     <!-- Competencies -->
     <h2 class="font-bold mt-6">COMPETENCIES</h2>
@@ -167,42 +189,49 @@
 
     <!-- Interested Applicants -->
     <h2 class="font-bold mt-6">INTERESTED APPLICANTS MUST SUBMIT THEIR APPLICATION TO:</h2>
+    <div class="grid grid-cols-2 gap-4 w-full">
+        <div class="flex flex-col">
+            <div>
+                <label class="block">Name of Head</label>
+                <select id="signatory_select" name="to_person" class="w-full border-2 border-[#002C76] rounded-[10px] px-2 py-1 h-10">
+                    <option value="">-- Select a Signatory --</option>
+                    @forelse($signatories as $signatory)
+                        <option value="{{ $signatory->first_name }} {{ $signatory->middle_name }} {{ $signatory->last_name }}"
+                            data-designation="{{ $signatory->designation }}"
+                            data-office="{{ $signatory->office }}"
+                            data-office_address="{{ $signatory->office_address }}"
+                            {{ old('to_person', $vacancy->to_person ?? '') === ($signatory->first_name . ' ' . $signatory->middle_name . ' ' . $signatory->last_name) ? 'selected' : '' }}>
+                            {{ $signatory->first_name }} {{ $signatory->middle_name }} {{ $signatory->last_name }}
+                        </option>
+                    @empty
+                        <option value="">No signatories available</option>
+                    @endforelse
+                </select>
+            </div>
+            <div>
+                <label class="block">Designation</label>
+                <input type="text" id="to_position" name="to_position" value="{{ old('to_position', $vacancy->to_position ?? '') }}" class="w-full border-2 border-[#002C76] rounded-[10px] px-2 py-1 h-10" disabled>
+            </div>
+        </div>
+        <div class="flex flex-col">
+            <div>
+                <label class="block">Office</label>
+                <input type="text" id="to_office" name="to_office" value="{{ old('to_office', $vacancy->to_office ?? '') }}" class="w-full border-2 border-[#002C76] rounded-[10px] px-2 py-1 h-10" disabled>
+            </div>
+            <div>
+                <label class="block">Office Address</label>
+                <input type="text" id="to_office_address" name="to_office_address" value="{{ old('to_office_address', $vacancy->to_office_address ?? '') }}" class="w-full border-2 border-[#002C76] rounded-[10px] px-2 py-1 h-10" disabled>
+            </div>
+        </div>
+    </div>
 
-    <div>
-      <label class="block">Name of Head</label>
-      <select id="signatory_select" name="to_person" class="w-full border-2 border-[#002C76] rounded-[10px] px-2 py-1 h-10">
-        <option value="">-- Select a Signatory --</option>
-        @forelse($signatories as $signatory)
-            <option value="{{ $signatory->first_name }} {{ $signatory->middle_name }} {{ $signatory->last_name }}"
-                data-designation="{{ $signatory->designation }}"
-                data-office="{{ $signatory->office }}"
-                data-office_address="{{ $signatory->office_address }}"
-                {{ old('to_person', $vacancy->to_person ?? '') === ($signatory->first_name . ' ' . $signatory->middle_name . ' ' . $signatory->last_name) ? 'selected' : '' }}>
-                {{ $signatory->first_name }} {{ $signatory->middle_name }} {{ $signatory->last_name }}
-            </option>
-        @empty
-            <option value="">No signatories available</option>
-        @endforelse
-      </select>
-    </div>
-    <div>
-      <label class="block">Designation</label>
-      <input type="text" id="to_position" name="to_position" value="{{ old('to_position', $vacancy->to_position ?? '') }}" class="w-full border-2 border-[#002C76] rounded-[10px] px-2 py-1 h-10" disabled>
-    </div>
-    <div>
-      <label class="block">Office</label>
-      <input type="text" id="to_office" name="to_office" value="{{ old('to_office', $vacancy->to_office ?? '') }}" class="w-full border-2 border-[#002C76] rounded-[10px] px-2 py-1 h-10" disabled>
-    </div>
-    <div>
-      <label class="block">Office Address</label>
-      <input type="text" id="to_office_address" name="to_office_address" value="{{ old('to_office_address', $vacancy->to_office_address ?? '') }}" class="w-full border-2 border-[#002C76] rounded-[10px] px-2 py-1 h-10" disabled>
-    </div>
+
 
   </form>
 @include('partials.loader')
 
     <!-- Action buttons (galing sa vacancy_add_cos.blade.php) -->
-    <div class="flex flex-col sm:flex-row items-stretch sm:items-center m-2 justify-end gap-2 sm:gap-4">
+    <div class="flex flex-col sm:flex-row items-stretch sm:items-center m-2 justify-end gap-2 sm:gap-4 py-8">
         <button id="vacancy-discard-btn" type="button" onclick="history.back()" class="border-2 border-red-600 hover:bg-red-600 hover:text-white 
         text-red-600 px-4 py-2 rounded-md flex items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">

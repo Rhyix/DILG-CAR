@@ -148,53 +148,63 @@
     <hr class="border-1 mt-4 border-[#002C76]">
 
     <!-- Deliverables, Scope, Duration -->
-<!-- Deliverables, Scope, Duration -->
-<h2 class="font-bold mt-6">EXPECTED OUTPUT/DELIVERABLES AND SCHEDULE OF SUBMISSION</h2>
-<textarea name="expected_output" rows="3" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1">{{ old('expected_output', $vacancy->expected_output ?? '') }}</textarea>
+    <!-- Deliverables, Scope, Duration -->
+    <h2 class="font-bold mt-6">EXPECTED OUTPUT/DELIVERABLES AND SCHEDULE OF SUBMISSION</h2>
+    <textarea name="expected_output" rows="3" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1">{{ old('expected_output', $vacancy->expected_output ?? '') }}</textarea>
 
-<h2 class="font-bold mt-6">SCOPE OF WORK</h2>
-<textarea name="scope_of_work" rows="3" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1">{{ old('scope_of_work', $vacancy->scope_of_work ?? '') }}</textarea>
+    <h2 class="font-bold mt-6">SCOPE OF WORK</h2>
+    <textarea name="scope_of_work" rows="3" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1">{{ old('scope_of_work', $vacancy->scope_of_work ?? '') }}</textarea>
 
-<h2 class="font-bold mt-6">DURATION OF WORK</h2>
-<textarea name="duration_of_work" rows="2" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1">{{ old('duration_of_work', $vacancy->duration_of_work ?? '') }}</textarea>
+    <h2 class="font-bold mt-6">DURATION OF WORK</h2>
+    <textarea name="duration_of_work" rows="2" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1">{{ old('duration_of_work', $vacancy->duration_of_work ?? '') }}</textarea>
 
     <!-- Submission Details -->
     <h2 class="font-bold mt-6">INTERESTED APPLICANTS MUST SUBMIT THEIR APPLICATION TO:</h2>
 
-    <div>
-        <label class="block">Name of Head</label>
-        <select id="signatory_select" name="to_person" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10">
-            <option value="">-- Select a Signatory --</option>
-            @forelse($signatories as $signatory)
-                <option value="{{ $signatory->first_name }} {{ $signatory->middle_name }} {{ $signatory->last_name }}"
-                    data-designation="{{ $signatory->designation }}"
-                    data-office="{{ $signatory->office }}"
-                    data-office_address="{{ $signatory->office_address }}"
-                    {{ old('to_person', $vacancy->to_person ?? '') === ($signatory->first_name . ' ' . $signatory->middle_name . ' ' . $signatory->last_name) ? 'selected' : '' }}>
-                    {{ $signatory->first_name }} {{ $signatory->middle_name }} {{ $signatory->last_name }}
-                </option>
-            @empty
-                <option value="">No signatories available</option>
-            @endforelse
-        </select>
+    <div class="grid grid-cols-2 gap-4 w-full">
+
+        <div class="flex flex-col">
+            <div>
+                <label class="block">Name of Head</label>
+                <select id="signatory_select" name="to_person" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10">
+                    <option value="">-- Select a Signatory --</option>
+                    @forelse($signatories as $signatory)
+                        <option value="{{ $signatory->first_name }} {{ $signatory->middle_name }} {{ $signatory->last_name }}"
+                            data-designation="{{ $signatory->designation }}"
+                            data-office="{{ $signatory->office }}"
+                            data-office_address="{{ $signatory->office_address }}"
+                            {{ old('to_person', $vacancy->to_person ?? '') === ($signatory->first_name . ' ' . $signatory->middle_name . ' ' . $signatory->last_name) ? 'selected' : '' }}>
+                            {{ $signatory->first_name }} {{ $signatory->middle_name }} {{ $signatory->last_name }}
+                        </option>
+                    @empty
+                        <option value="">No signatories available</option>
+                    @endforelse
+                </select>
+            </div>
+
+            <div>
+                <label class="block">Designation</label>
+                <input type="text" id="to_position" name="to_position" value="{{ old('to_position', $vacancy->to_position ?? '') }}" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10" disabled>
+            </div>
+        </div>
+        <div class="flex flex-col">
+            <div>
+                <label class="block">Office</label>
+                <input type="text" id="to_office" name="to_office" value="{{ old('to_office', $vacancy->to_office ?? '') }}" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10" disabled>
+            </div>
+            <div>
+                <label class="block">Office Address</label>
+                <input type="text" id="to_office_address" name="to_office_address" value="{{ old('to_office_address', $vacancy->to_office_address ?? '') }}" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10" disabled>
+            </div>
+        </div>
     </div>
-    <div>
-        <label class="block">Designation</label>
-        <input type="text" id="to_position" name="to_position" value="{{ old('to_position', $vacancy->to_position ?? '') }}" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10" disabled>
-    </div>
-    <div>
-        <label class="block">Office</label>
-        <input type="text" id="to_office" name="to_office" value="{{ old('to_office', $vacancy->to_office ?? '') }}" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10" disabled>
-    </div>
-    <div>
-        <label class="block">Office Address</label>
-        <input type="text" id="to_office_address" name="to_office_address" value="{{ old('to_office_address', $vacancy->to_office_address ?? '') }}" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10" disabled>
-    </div>
+
+
 
   </form>
 
     <!-- Action buttons -->
-    <div class="flex flex-col md:flex-row items-stretch sm:items-center m-2 justify-end gap-2 sm:gap-4">
+    <div class="flex flex-col md:flex-row items-stretch sm:items-center m-2 justify-end gap-2 sm:gap-4 py-8">
         <button id="vacancy-discard-btn" type="button" onclick="history.back()" class="border-2 border-red-600 hover:bg-red-600 hover:text-white 
         text-red-600 px-4 py-2 rounded-md flex items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">

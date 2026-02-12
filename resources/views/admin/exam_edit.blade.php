@@ -792,19 +792,34 @@
                         // Set processing state to true
                         this.isProcessing = true;
 
-                        // Optional: Show global loader as well if desired, but button spinner is cleaner
-                        // const loader = document.getElementById('loader');
-                        // if (loader) loader.classList.remove('hidden');
-
-                        // Submit form
-                        this.$nextTick(() => {
-                            const form = document.getElementById('examForm');
-                            if (form) {
-                                // We need to bypass the submit listener to avoid recursion
-                                // But since it is @submit.prevent, calling form.submit() usually works natively
-                                form.submit();
+                        // Use fetch to submit data with explicit questions JSON
+                        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+                        
+                        fetch(window.location.href, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': csrfToken,
+                            },
+                            body: JSON.stringify({
+                                questions: JSON.stringify(this.questions)
+                            })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success || data.message) {
+                                // Success - reload the page to see the saved questions
+                                setTimeout(() => {
+                                    window.location.reload();
+                                }, 500);
+                            } else {
+                                throw new Error(data.msg || data.message || 'Failed to save exam');
                             }
-                            // Note: isProcessing stays true until page reloads
+                        })
+                        .catch(error => {
+                            console.error('Error saving exam:', error);
+                            this.isProcessing = false;
+                            alert('Error saving exam: ' + error.message);
                         });
                     }
                 },
