@@ -88,16 +88,25 @@
 
     <input type="hidden" name="vacancy_type" value="Plantilla">
 
-    <div>
-      <label class="block">Position Title</label>
-      <input type="text" name="position_title" value="{{ old('position_title', $vacancy->position_title ?? '') }}" class="w-full border-2 border-[#002C76] rounded px-2 py-1 h-10">
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div class="grid grid-cols-3 gap-4 mt-4">
+        <div class="w-full>
+            <label class="block">Position Title</label>
+            <input type="text" name="position_title" value="{{ old('position_title', $vacancy->position_title ?? '') }}" class="w-full border-2 border-[#002C76] rounded px-2 py-1 h-10">
+        </div>
+    
         <div class="w-full">
             <label class="block">PCN No.</label>
             <input type="text" name="pcn_no" value="{{ old('pcn_no', $vacancy->pcn_no ?? '') }}" class="w-full border-2 border-[#002C76] rounded px-2 py-1 h-10">
         </div>
+
+        <div>
+            <label class="block">Plantilla Item No.</label>
+            <input type="text" name="plantilla_item_no" value="{{ old('plantilla_item_no', $vacancy->plantilla_item_no ?? '') }}" class="w-full border-2 border-[#002C76] rounded px-2 py-1 h-10">
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
       <!-- New input date Flatpickr -->
         <div class="w-full">
             <label class="block">Deadline of Application</label>
@@ -120,10 +129,7 @@
     </div>-->
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div>
-        <label class="block">Plantilla Item No.</label>
-        <input type="text" name="plantilla_item_no" value="{{ old('plantilla_item_no', $vacancy->plantilla_item_no ?? '') }}" class="w-full border-2 border-[#002C76] rounded px-2 py-1 h-10">
-      </div>
+
       <div>
         <label class="block">Salary Grade/Pay Grade</label>
         <input type="text" name="salary_grade" value="{{ old('salary_grade', $vacancy->salary_grade ?? '') }}" class="w-full border-2 border-[#002C76] rounded px-2 py-1 h-10">
