@@ -2,11 +2,9 @@
 @section('title', 'DILG - Job Vacancies Management')
 @section('content')
 @include('partials.loader')
-<!--max-w-7xl -->
-<style>
-  [x-cloak] { display: none !important; }
-</style>
-<main class="w-full h-[calc(98vh-6rem)] flex flex-col space-y-4 overflow-hidden">
+<!-- max-w-7xl -->
+
+<main class="w-full  h-[calc(98vh-6rem)] flex flex-col space-y-4 overflow-hidden">
 
     <!-- Header Section -->
     <section class="flex-none flex items-center space-x-4 max-w-full">
@@ -32,15 +30,59 @@
 
         <!-- Filters and Action Buttons -->
         <div class="flex gap-4 items-end flex-wrap">
-            <!-- Job Type Filter -->
-            <div class="flex flex-col gap-2">
-                <label for="jobFilter" class="font-semibold text-[#0D2B70] text-sm">Job Type</label>
-                <select aria-label="Filter by Job Type" id="jobFilter"
-                    class="rounded-md text-[#0D2B70] p-2 px-3 font-semibold cursor-pointer border border-[#0D2B70]">
+        <!-- Job Type Filter -->
+            <div x-data="{ jobOpen: false }" class="relative">
+                <button
+                    @click="jobOpen = !jobOpen"
+                    class="font-semibold flex items-center px-4 py-2 bg-white text-[#0D2B70] rounded-md hover:bg-[#0D2B70] transition whitespace-nowrap hover:text-white hover:shadow-md border border-[#0D2B70] min-w-[140px] justify-between"
+                >
+                    <span class="flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                        <span x-text="$el.closest('.relative').querySelector('#jobFilter option:checked')?.text || 'Job Type'"></span>
+                    </span>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </button>
+                
+                <!-- Hidden select for functionality -->
+                <select id="jobFilter" class="hidden">
                     <option value="" {{ session('vacancyFilterJob') == '' ? 'selected' : '' }}>All</option>
                     <option value="COS" {{ session('vacancyFilterJob') == 'COS' ? 'selected' : '' }}>COS</option>
                     <option value="Plantilla" {{ session('vacancyFilterJob') == 'Plantilla' ? 'selected' : '' }}>PLANTILLA</option>
                 </select>
+                
+                <div
+                    x-show="jobOpen"
+                    x-cloak
+                    @click.away="jobOpen = false"
+                    x-transition
+                    class="absolute left-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-lg z-50"
+                >
+                    <button 
+                        onclick="document.getElementById('jobFilter').value = ''; document.getElementById('jobFilter').dispatchEvent(new Event('change')); fetchVacancies();"
+                        @click="jobOpen = false; $el.closest('.relative').querySelector('button span span').innerText = 'All'"
+                        class="w-full text-left block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold {{ session('vacancyFilterJob') == '' ? 'bg-gray-100' : '' }}"
+                    >
+                        All
+                    </button>
+                    <button 
+                        onclick="document.getElementById('jobFilter').value = 'COS'; document.getElementById('jobFilter').dispatchEvent(new Event('change')); fetchVacancies();"
+                        @click="jobOpen = false; $el.closest('.relative').querySelector('button span span').innerText = 'COS'"
+                        class="w-full text-left block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold {{ session('vacancyFilterJob') == 'COS' ? 'bg-gray-100' : '' }}"
+                    >
+                        COS
+                    </button>
+                    <button 
+                        onclick="document.getElementById('jobFilter').value = 'Plantilla'; document.getElementById('jobFilter').dispatchEvent(new Event('change')); fetchVacancies();"
+                        @click="jobOpen = false; $el.closest('.relative').querySelector('button span span').innerText = 'PLANTILLA'"
+                        class="w-full text-left block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold {{ session('vacancyFilterJob') == 'Plantilla' ? 'bg-gray-100' : '' }}"
+                    >
+                        PLANTILLA
+                    </button>
+                </div>
             </div>
 
                 <!-- <div
@@ -61,15 +103,59 @@
                 </div> -->
 
             <!-- Status Filter -->
-            <div class="flex flex-col gap-2">
-                <label for="statusFilter" class="font-semibold text-[#0D2B70] text-sm">Status</label>
-                <select aria-label="Filter by Status" id="statusFilter"
-                    class="rounded-md text-[#0D2B70] p-2 px-3 font-semibold cursor-pointer border border-[#0D2B70]">
-                    <option value="" {{ session('vacancyFilterStatus') == '' ? 'selected' : '' }}>All</option>
-                    <option value="OPEN" {{ session('vacancyFilterStatus') == 'OPEN' ? 'selected' : '' }}>OPEN</option>
-                    <option value="CLOSED" {{ session('vacancyFilterStatus') == 'CLOSED' ? 'selected' : '' }}>CLOSED</option>
-                </select>
-            </div>
+                <div x-data="{ statusOpen: false }" class="relative">
+                    <button
+                        @click="statusOpen = !statusOpen"
+                        class="font-semibold flex items-center px-4 py-2 bg-white text-[#0D2B70] rounded-md hover:bg-[#0D2B70] transition whitespace-nowrap hover:text-white hover:shadow-md border border-[#0D2B70] min-w-[140px] justify-between"
+                    >
+                        <span class="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                            </svg>
+                            <span x-text="$el.closest('.relative').querySelector('#statusFilter option:checked')?.text || 'Status'"></span>
+                        </span>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </button>
+                    
+                    <!-- Hidden select for functionality -->
+                    <select id="statusFilter" class="hidden">
+                        <option value="" {{ session('vacancyFilterStatus') == '' ? 'selected' : '' }}>All</option>
+                        <option value="OPEN" {{ session('vacancyFilterStatus') == 'OPEN' ? 'selected' : '' }}>OPEN</option>
+                        <option value="CLOSED" {{ session('vacancyFilterStatus') == 'CLOSED' ? 'selected' : '' }}>CLOSED</option>
+                    </select>
+                    
+                    <div
+                        x-show="statusOpen"
+                        x-cloak
+                        @click.away="statusOpen = false"
+                        x-transition
+                        class="absolute left-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-lg z-50"
+                    >
+                        <button 
+                            onclick="document.getElementById('statusFilter').value = ''; document.getElementById('statusFilter').dispatchEvent(new Event('change')); fetchVacancies();"
+                            @click="statusOpen = false; $el.closest('.relative').querySelector('button span span').innerText = 'All'"
+                            class="w-full text-left block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold {{ session('vacancyFilterStatus') == '' ? 'bg-gray-100' : '' }}"
+                        >
+                            All
+                        </button>
+                        <button 
+                            onclick="document.getElementById('statusFilter').value = 'OPEN'; document.getElementById('statusFilter').dispatchEvent(new Event('change')); fetchVacancies();"
+                            @click="statusOpen = false; $el.closest('.relative').querySelector('button span span').innerText = 'OPEN'"
+                            class="w-full text-left block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold {{ session('vacancyFilterStatus') == 'OPEN' ? 'bg-gray-100' : '' }}"
+                        >
+                            OPEN
+                        </button>
+                        <button 
+                            onclick="document.getElementById('statusFilter').value = 'CLOSED'; document.getElementById('statusFilter').dispatchEvent(new Event('change')); fetchVacancies();"
+                            @click="statusOpen = false; $el.closest('.relative').querySelector('button span span').innerText = 'CLOSED'"
+                            class="w-full text-left block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold {{ session('vacancyFilterStatus') == 'CLOSED' ? 'bg-gray-100' : '' }}"
+                        >
+                            CLOSED
+                        </button>
+                    </div>
+                </div>
 
 
             <!-- Add New Vacancy Button -->
