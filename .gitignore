@@ -25,4 +25,6 @@ Homestead.yaml
 Thumbs.db
 
 .env
+.env.backup
+.env.production
 
