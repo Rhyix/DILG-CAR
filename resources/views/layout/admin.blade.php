@@ -118,7 +118,7 @@
     @stack('styles')
 </head>
 
-<body class="bg-[#F3F8FF] h-screen font-sans font-montserrat text-gray-900 overflow-hidden">
+<body class="bg-[#F1F6FC] h-screen font-sans font-montserrat text-gray-900 overflow-hidden">
 
     <!-- App Container: Sidebar + Content -->
     <div class="flex h-screen w-full overflow-hidden">
@@ -188,7 +188,7 @@
         <main class="flex-1 overflow-y-auto p-6 sm:p-8 md:p-10 pt-6 sm:pt-8 relative">
             <!-- Mobile Menu Button (visible only on mobile) -->
             <button id="mobileMenuButton" onclick="window.openSidebar ? window.openSidebar() : null"
-                class="lg:hidden fixed top-4 left-4 z-20 bg-[#002C76] text-white p-3 rounded-lg shadow-lg hover:bg-[#001a4d] transition-all duration-200"
+                class="lg:hidden fixed top-4 left-4 z-20 bg-[#0D2B70] text-white p-3 rounded-lg shadow-lg hover:bg-[#001a4d] transition-all duration-200"
                 aria-label="Open menu">
                 <i data-feather="menu" class="w-6 h-6"></i>
             </button>

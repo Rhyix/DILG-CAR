@@ -18,7 +18,7 @@
 
 @if ($errors->any())
   <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-    <strong class="font-bold">Whoops!</strong> There were some problems with your input.
+    <strong class="font-bold">Failed!</strong> There were some problems with your input.
     <ul class="mt-2 list-disc list-inside">
       @foreach ($errors->all() as $error)
         <li>{{ $error }}</li>
@@ -54,11 +54,11 @@
     </header>
   
 
-  <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mt-4">
+  <!-- <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mt-4">
     <p class="text-xs text-gray-500 font-light">
-      Last Modified by: {{ $vacancy->last_modified_by ?? 'System' }} {{ $vacancy->updated_at ?? now()->format('m/d/Y H:i:s') }}
+      Last Modified by: {{ $vacancy->last_modified_by ?? 'Yurts' }} {{ $vacancy->updated_at ?? now()->format('m/d/Y H:i:s') }}
     </p>
-  </div>
+  </div> -->
 
   <!-- Form -->
   <form id="vacancy-form" action="{{ isset($vacancy) ? route('vacancies.update', $vacancy->vacancy_id) : route('vacancies.store') }}" method="POST" class="space-y-4">
@@ -181,7 +181,7 @@
   </form>
 
     <!-- Action buttons -->
-    <div class="flex flex-col sm:flex-row items-stretch sm:items-center m-2 justify-end gap-2 sm:gap-4">
+    <div class="flex flex-col md:flex-row items-stretch sm:items-center m-2 justify-end gap-2 sm:gap-4">
         <button id="vacancy-discard-btn" type="button" onclick="history.back()" class="border-2 border-red-600 hover:bg-red-600 hover:text-white 
         text-red-600 px-4 py-2 rounded-md flex items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">

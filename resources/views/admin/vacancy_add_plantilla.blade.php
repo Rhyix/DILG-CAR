@@ -55,9 +55,9 @@
 
     <!-- Last Modified and Action Buttons -->
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mt-4">
-        <p class="text-xs text-gray-500 font-light">
+        <!-- <p class="text-xs text-gray-500 font-light">
         Last Modified by: admin1 {{ now()->format('m/d/Y H:i:s') }}
-        </p>
+        </p> -->
     <!--  OLD ACTION BUTTON
             <div class="flex justify-end gap-4">
             <button id="discardBtn" type="button" onclick="history.back()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-full flex items-center gap-2">

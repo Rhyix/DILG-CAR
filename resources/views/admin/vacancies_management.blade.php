@@ -43,6 +43,23 @@
                 </select>
             </div>
 
+                <!-- <div
+                    x-show="open"
+                    x-cloak
+                    @click.away="open = false"
+                    x-transition
+                    class="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-lg z-50"
+                >
+                    <a href="{{ route('addcos') }}"
+                        class="use-loader block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold">
+                        Add COS Vacancy
+                    </a>
+                    <a href="{{ route('addplantilla') }}"
+                        class="use-loader block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold">
+                        Add Plantilla Vacancy
+                    </a>
+                </div> -->
+
             <!-- Status Filter -->
             <div class="flex flex-col gap-2">
                 <label for="statusFilter" class="font-semibold text-[#0D2B70] text-sm">Status</label>
@@ -53,6 +70,8 @@
                     <option value="CLOSED" {{ session('vacancyFilterStatus') == 'CLOSED' ? 'selected' : '' }}>CLOSED</option>
                 </select>
             </div>
+
+
             <!-- Add New Vacancy Button -->
             <div x-data="{ open: false }" class="relative">
                 <button
@@ -333,7 +352,7 @@
                         @include('partials.admin_job_vacancy_card', ['vacancy' => $vacancy, 'index' => $loop->index])
                     @empty
                         <tr>
-                            <td colspan="6" class="text-center text-gray-500 text-3xl pt-10 pb-10">
+                            <td colspan="6" class="flex flex-row items-center justify-center text-center text-gray-500 text-3xl">
                                 <i data-feather="info" class="w-7 h-7 inline-block mr-2 text-gray-400 font-montserrat"></i>
                                 No Job Vacancy
                             </td>
