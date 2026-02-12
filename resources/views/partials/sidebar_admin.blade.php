@@ -99,9 +99,11 @@
                 <!-- Submenu -->
                 <div x-show="open" x-collapse id="utilitiesSubmenu" class="sidebar-text-hidden pl-4 mt-1 space-y-1 overflow-hidden">
                     <!-- Signatories -->
-                    <a href="#" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200 text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md">
+                    <a href="{{ route('signatories.index') }}" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200 {{ request()->routeIs('signatories.*')
+                            ? 'bg-[#002C76] text-white shadow-md'
+                            : 'text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md' }}">
                         <i data-feather="edit-3" class="w-5 h-5 stroke-[2.5] flex-shrink-0 ml-2"></i>
-                        <span class="ml-3">SIGNATORIES</span>
+                        <span class="ml-8">SIGNATORIES</span>
                     </a>
 
                     <!-- Activity Log -->
