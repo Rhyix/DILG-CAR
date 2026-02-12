@@ -20,18 +20,17 @@
   <td class="py-4 px-6">{{ \Carbon\Carbon::parse($vacancy->closing_date)->subMinute()->format('n/j/Y g:i A') }}</td>
   <td class="py-4 px-6">{{ $vacancy->place_of_assignment }}</td>
   <td class="py-4 px-6 text-center">
-<div class="flex justify-center items-center gap-3 font-normal">
-    <!-- Edit Icon Button  -->
-    <button 
-        onclick="event.stopPropagation(); window.location.href='{{ route('vacancies.edit', $vacancy->vacancy_id) }}'"
-        class="use-loader py-1 px-3 rounded-md text-sm
-               transition-all duration-150 ease-[cubic-bezier(0.4,0,0.2,1)]
-               hover:scale-110"
-        aria-label="Edit Vacancy"
-        title="Edit Vacancy">
-        <i data-feather="edit" class="h-5 w-5"></i>
-    </button>
-</div>
-
+    <div class="flex justify-center items-center gap-3 font-normal">
+        <!-- Edit Icon Button  -->
+        <button 
+            onclick="event.stopPropagation(); window.location.href='{{ route('vacancies.edit', $vacancy->vacancy_id) }}'"
+            class="use-loader py-1 px-3 rounded-md text-xl text-[#0D2B70] hover:text-[#0D2B70]/70
+                  transition-all duration-150 ease-[cubic-bezier(0.4,0,0.2,1)]
+                  hover:scale-110"
+            aria-label="Edit Vacancy"
+            title="Edit Vacancy">
+            <i class="fa-solid fa-pen-to-square h-10 w-10"></i>
+        </button>
+    </div>
   </td>
 </tr>

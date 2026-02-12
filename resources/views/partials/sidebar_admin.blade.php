@@ -68,9 +68,14 @@
 
             <a href="{{ route('admin_account_management') }}" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200
                     {{ request()->routeIs('admin_account_management')
-    ? 'bg-[#002C76] text-white shadow-md'
-    : 'text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md' }}">
-                <i class="fa-solid fa-wrench w-5 h-5 flex-shrink-0"></i>
+                        ? 'bg-[#002C76] text-white shadow-md'
+                        : 'text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md' }}">
+                <!-- Changed from wrench to users/cog -->
+                <i class="fa-solid fa-users-gear w-5 h-5 flex-shrink-0"></i>
+                <!-- Alternative options: -->
+                <!-- <i class="fa-solid fa-user-shield w-5 h-5 flex-shrink-0"></i> -->
+                <!-- <i class="fa-solid fa-user-cog w-5 h-5 flex-shrink-0"></i> -->
+                <!-- <i class="fa-solid fa-users-cog w-5 h-5 flex-shrink-0"></i> -->
                 <span id="textAdmins" class="sidebar-text-hidden ml-3">USER MANAGEMENT</span>
             </a>
 
@@ -78,11 +83,16 @@
             <div x-data="{ open: {{ request()->routeIs('admin_activity_log') ? 'true' : 'false' }} }" class="relative">
                 <button @click="open = !open" class="w-full group flex items-center justify-between rounded-md px-4 py-2 text-sm font-bold transition-all duration-200 text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md">
                     <div class="flex items-center">
-                        <i data-feather="tool" class="w-5 h-5 stroke-[3] flex-shrink-0"></i>
+                        <!-- Changed from tool to utility icons -->
+                        <i class="fa-solid fa-screwdriver-wrench w-5 h-5 flex-shrink-0"></i>
+                        <!-- Alternative options: -->
+                        <!-- <i class="fa-solid fa-toolbox w-5 h-5 flex-shrink-0"></i> -->
+                        <!-- <i class="fa-solid fa-slingshot w-5 h-5 flex-shrink-0"></i> -->
+                        <!-- <i class="fa-solid fa-gears w-5 h-5 flex-shrink-0"></i> -->
                         <span id="textUtilities" class="sidebar-text-hidden ml-3 uppercase">UTILITIES</span>
                     </div>
                     <div id="utilitiesChevron" class="sidebar-text-hidden ml-auto transition-transform duration-200" :class="{'rotate-180': open}">
-                        <i data-feather="chevron-down" class="w-4 h-4 stroke-[3]"></i>
+                        <i class="fa-solid fa-chevron-down w-5 h-5 stroke-[2.5] flex-shrink-0"></i>
                     </div>
                 </button>
 
@@ -90,15 +100,17 @@
                 <div x-show="open" x-collapse id="utilitiesSubmenu" class="sidebar-text-hidden pl-4 mt-1 space-y-1 overflow-hidden">
                     <!-- Signatories -->
                     <a href="#" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200 text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md">
-                        <span class="ml-8">SIGNATORIES</span>
+                        <i data-feather="edit-3" class="w-5 h-5 stroke-[2.5] flex-shrink-0 ml-2"></i>
+                        <span class="ml-3">SIGNATORIES</span>
                     </a>
 
                     <!-- Activity Log -->
                     <a href="{{ route('admin_activity_log') }}" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200
                             {{ request()->routeIs('admin_activity_log')
-            ? 'bg-[#002C76] text-white shadow-md'
-            : 'text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md' }}">
-                        <span class="ml-8">ACTIVITY LOG</span>
+                                ? 'bg-[#002C76] text-white shadow-md'
+                                : 'text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md' }}">
+                        <i data-feather="clock" class="w-5 h-5 stroke-[2.5] flex-shrink-0 ml-2"></i>
+                        <span class="ml-3">ACTIVITY LOG</span>
                     </a>
                 </div>
             </div>
