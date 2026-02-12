@@ -81,7 +81,9 @@
                         <i data-feather="tool" class="w-5 h-5 stroke-[3] flex-shrink-0"></i>
                         <span id="textUtilities" class="sidebar-text-hidden ml-3 uppercase">UTILITIES</span>
                     </div>
-                    <i id="utilitiesChevron" data-feather="chevron-down" class="sidebar-text-hidden w-4 h-4 stroke-[3] transition-transform duration-200 ml-auto" :class="{'rotate-180': open}"></i>
+                    <div id="utilitiesChevron" class="sidebar-text-hidden ml-auto transition-transform duration-200" :class="{'rotate-180': open}">
+                        <i data-feather="chevron-down" class="w-4 h-4 stroke-[3]"></i>
+                    </div>
                 </button>
 
                 <!-- Submenu -->

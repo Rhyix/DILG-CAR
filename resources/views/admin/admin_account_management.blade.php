@@ -89,42 +89,6 @@
                         </td>
                     </tr>
                     @endforeach
-
-                    <!-- Regular Users -->
-                    @foreach ($users as $user)
-                    <tr class="text-[#0D2B70] select-none hover:bg-blue-50 transition-colors duration-200">
-                        <!-- Username -->
-                        <td class="py-4 px-6 font-normal w-[20%]">
-                             {{ $user->last_name }}, {{ $user->first_name }}
-                        </td>
-                        
-                        <!-- Email -->
-                        <td class="py-4 px-6 font-normal overflow-hidden text-ellipsis whitespace-nowrap w-[30%]">
-                            {{ $user->email }}
-                        </td>
-                        
-                        <!-- Role -->
-                        <td class="py-4 px-6 text-center font-semibold w-[15%]">
-                            Applicant
-                        </td>
-                        
-                        <!-- Status -->
-                        <td class="py-4 px-6 text-center font-bold w-[15%]">
-                             @if($user->email_verified_at)
-                                <span class="text-green-600">Verified</span>
-                             @else
-                                <span class="text-red-600">Unverified</span>
-                             @endif
-                        </td>
-
-                        <!-- Actions -->
-                        <td class="py-4 px-6 text-center w-[20%]">
-                            <div class="flex justify-center items-center gap-3">
-                                <span class="text-gray-400 text-sm italic">No actions available</span>
-                            </div>
-                        </td>
-                    </tr>
-                    @endforeach
                 </tbody>
             </table>
         </div>

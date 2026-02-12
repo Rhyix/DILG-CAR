@@ -133,7 +133,7 @@
                 const logo = document.querySelector('img[alt="DILG Logo"]');
                 const textElements = [
                     "sidebarText", "textHome", "textJobVacancies", "textMyApplications",
-                    "textPersonalDataSheet", "textAboutWebsite", "textLogOut", 
+                    "textPersonalDataSheet", "textAdmins", "textLogOut", 
                     "textUtilities", "utilitiesChevron", "utilitiesSubmenu"
                 ].map(id => document.getElementById(id));
 
@@ -212,7 +212,7 @@
         "textJobVacancies",
         "textMyApplications",
         "textPersonalDataSheet",
-        "textAboutWebsite",
+        "textAdmins",
         "textLogOut",
         "textUtilities",
         "utilitiesChevron",

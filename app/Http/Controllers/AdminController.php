@@ -54,10 +54,11 @@ class AdminController extends Controller
         $this->middleware('auth:admin');
     }
 
+    // List all admin accounts
     public function manage()
     {
         $admins = Admin::all();
-        $users = User::all();
+        // $users = User::all(); // Removed to prevent fetching participants
 
         activity()
             ->causedBy(auth('admin')->user())
@@ -65,7 +66,7 @@ class AdminController extends Controller
             ->withProperties(['section' => 'System Users Management'])
             ->log('Viewed admin account management.');
 
-        return view('admin.admin_account_management', compact('admins', 'users'));
+        return view('admin.admin_account_management', compact('admins'));
     }
 
     public function store(Request $request)
