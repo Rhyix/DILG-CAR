@@ -24,9 +24,10 @@
         <!-- Edit Icon Button  -->
         <button 
             onclick="event.stopPropagation(); window.location.href='{{ route('vacancies.edit', $vacancy->vacancy_id) }}'"
-            class="use-loader py-1 px-3 rounded-md text-xl text-[#0D2B70] hover:text-[#0D2B70]/70
-                  transition-all duration-150 ease-[cubic-bezier(0.4,0,0.2,1)]
-                  hover:scale-110"
+            class="use-loader text-[#0D2B70] hover:bg-blue-600' 
+            py-1 px-3 rounded-md text-xl
+            transition-all duration-150 ease-[cubic-bezier(0.4,0,0.2,1)]
+            hover:scale-110"
             aria-label="Edit Vacancy"
             title="Edit Vacancy">
             <i class="fa-solid fa-pen-to-square h-10 w-10"></i>
