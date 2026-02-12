@@ -454,7 +454,8 @@ Route::get('/admin/all-applicants/{vacancy_id}', [ShowApplicantsProfile::class, 
 // Manage Applicants Routes (New)
 Route::get('/admin/manage_applicants/{vacancy_id}', [ShowApplicantsProfile::class, 'manageApplicants'])->name('admin.manage_applicants');
 Route::get('/admin/manage_applicants/new', [ShowApplicantsProfile::class, 'ajaxFilterNewApplicants'])->name('admin.manage_applicants.new');
-Route::get('/admin/manage_applicants/reviewed', [ShowApplicantsProfile::class, 'ajaxFilterReviewedApplicants'])->name('admin.manage_applicants.reviewed');
+Route::get('/admin/manage_applicants/compliance', [ShowApplicantsProfile::class, 'ajaxFilterComplianceApplicants'])->name('admin.manage_applicants.compliance');
+Route::get('/admin/manage_applicants/qualified', [ShowApplicantsProfile::class, 'ajaxFilterQualifiedApplicants'])->name('admin.manage_applicants.qualified');
 // ==================================================================================================
 // APPLICATION ROUTE
 // CHAT-BOT ROUTES

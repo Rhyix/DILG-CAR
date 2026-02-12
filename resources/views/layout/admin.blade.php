@@ -133,7 +133,8 @@
                 const logo = document.querySelector('img[alt="DILG Logo"]');
                 const textElements = [
                     "sidebarText", "textHome", "textJobVacancies", "textMyApplications",
-                    "textPersonalDataSheet", "textAboutWebsite", "textLogOut", "textActivityLog"
+                    "textPersonalDataSheet", "textAboutWebsite", "textLogOut", 
+                    "textUtilities", "utilitiesChevron", "utilitiesSubmenu"
                 ].map(id => document.getElementById(id));
 
                 const isMobile = window.innerWidth < 1024;
@@ -213,7 +214,9 @@
         "textPersonalDataSheet",
         "textAboutWebsite",
         "textLogOut",
-        "textActivityLog"
+        "textUtilities",
+        "utilitiesChevron",
+        "utilitiesSubmenu"
     ].map(id => document.getElementById(id));
 
     const logo = document.querySelector('img[alt="DILG Logo"]');

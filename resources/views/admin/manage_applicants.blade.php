@@ -29,9 +29,23 @@
                     </span>
                 @endif
             </button>
-            <button id="tab-reviewed" onclick="switchTab('reviewed')"
+            <button id="tab-compliance" onclick="switchTab('compliance')"
                 class="tab-button px-6 py-3 font-semibold text-[#0D2B70] border-b-4 border-transparent hover:bg-blue-50 transition-all duration-200">
-                Reviewed Applicants
+                Compliance
+                @if($complianceApplicantsCount > 0)
+                    <span class="ml-2 bg-orange-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                        {{ $complianceApplicantsCount }}
+                    </span>
+                @endif
+            </button>
+            <button id="tab-qualified" onclick="switchTab('qualified')"
+                class="tab-button px-6 py-3 font-semibold text-[#0D2B70] border-b-4 border-transparent hover:bg-blue-50 transition-all duration-200">
+                Qualified Applicants
+                @if($qualifiedApplicantsCount > 0)
+                    <span class="ml-2 bg-green-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                        {{ $qualifiedApplicantsCount }}
+                    </span>
+                @endif
             </button>
         </div>
 
@@ -108,12 +122,12 @@
             </div>
         </div>
 
-        <!-- Tab Content: Reviewed Applicants -->
-        <div id="content-reviewed" class="tab-content hidden flex-1 flex flex-col min-h-0 overflow-hidden">
+        <!-- Tab Content: Compliance -->
+        <div id="content-compliance" class="tab-content hidden flex-1 flex flex-col min-h-0 overflow-hidden">
             <div class="flex-none flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
                 <!-- Search Bar -->
                 <form onsubmit="return false;" class="relative w-full max-w-xs">
-                    <input id="searchInputReviewed" type="search" placeholder="Search applicants" aria-label="Search"
+                    <input id="searchInputCompliance" type="search" placeholder="Search applicants" aria-label="Search"
                         class="pl-10 pr-4 py-1.5 rounded-full border border-[#0D2B70] placeholder:text-[#7D93B3] placeholder:font-semibold text-[#0D2B70] focus:outline-none focus:ring-2 focus:ring-[#0D2B70] focus:ring-offset-1" />
                     <svg xmlns="http://www.w3.org/2000/svg"
                         class="w-5 h-5 text-[#7D93B3] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
@@ -123,15 +137,13 @@
                     </svg>
                 </form>
 
-                <!-- Status Filter -->
+                <!-- Sort Dropdown -->
                 <div class="flex flex-col gap-2">
-                    <label for="statusFilterReviewed" class="font-semibold text-[#0D2B70] text-sm">Filter by Status</label>
-                    <select aria-label="Filter by Status" id="statusFilterReviewed"
+                    <label for="sortOrderCompliance" class="font-semibold text-[#0D2B70] text-sm">Sort By</label>
+                    <select aria-label="Sort by date" id="sortOrderCompliance"
                         class="rounded-md text-[#0D2B70] p-2 px-3 font-semibold cursor-pointer border border-[#0D2B70]">
-                        <option value="">All</option>
-                        <option value="Incomplete">Incomplete</option>
-                        <option value="Complete">Complete</option>
-                        <option value="Closed">Closed</option>
+                        <option value="latest">Latest</option>
+                        <option value="oldest">Oldest</option>
                     </select>
                 </div>
             </div>
@@ -149,22 +161,15 @@
                                 <th class="py-4 px-6 font-normal text-center">Actions</th>
                             </tr>
                         </thead>
-                        <tbody id="reviewed-applicants-list" class="divide-y divide-[#0D2B70]">
-                            @forelse ($reviewedApplicants as $applicant)
+                        <tbody id="compliance-applicants-list" class="divide-y divide-[#0D2B70]">
+                            @forelse ($complianceApplicants as $applicant)
                                 <tr class="text-[#0D2B70] select-none hover:bg-blue-50 transition-colors duration-200">
                                     <td class="py-4 px-6">{{ $applicant['name'] }}</td>
                                     <td class="py-4 px-6">{{ $applicant['job_applied'] }}</td>
                                     <td class="py-4 px-6">{{ $applicant['place_of_assignment'] }}</td>
                                     <td class="py-4 px-6 text-center">
-                                        @php
-                                            $statusClass = match ($applicant['status']) {
-                                                'Complete' => 'bg-green-100 text-green-800',
-                                                'Incomplete' => 'bg-yellow-100 text-yellow-800',
-                                                'Closed' => 'bg-red-100 text-red-800',
-                                                default => 'bg-gray-100 text-gray-800'
-                                            };
-                                        @endphp
-                                        <span class="px-3 py-1 rounded-full text-xs font-semibold {{ $statusClass }}">
+                                        <span
+                                            class="px-3 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-800">
                                             {{ $applicant['status'] }}
                                         </span>
                                     </td>
@@ -180,7 +185,65 @@
                             @empty
                                 <tr>
                                     <td colspan="5" class="text-center py-10 text-gray-500 text-xl">
-                                        No reviewed applicants found.
+                                        No applicants in compliance.
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Content: Qualified Applicants -->
+        <div id="content-qualified" class="tab-content hidden flex-1 flex flex-col min-h-0 overflow-hidden">
+            <div class="flex-none flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+                <!-- Search Bar -->
+                <form onsubmit="return false;" class="relative w-full max-w-xs">
+                    <input id="searchInputQualified" type="search" placeholder="Search applicants" aria-label="Search"
+                        class="pl-10 pr-4 py-1.5 rounded-full border border-[#0D2B70] placeholder:text-[#7D93B3] placeholder:font-semibold text-[#0D2B70] focus:outline-none focus:ring-2 focus:ring-[#0D2B70] focus:ring-offset-1" />
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                        class="w-5 h-5 text-[#7D93B3] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                        fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
+                    </svg>
+                </form>
+            </div>
+
+            <!-- Table Container -->
+            <div class="flex-1 flex flex-col min-h-0 overflow-hidden border border-[#0D2B70] rounded-xl">
+                <div class="flex-1 overflow-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-[#0D2B70] text-white sticky top-0 z-10">
+                            <tr>
+                                <th class="py-4 px-6 font-normal">Name</th>
+                                <th class="py-4 px-6 font-normal">Job Applied</th>
+                                <th class="py-4 px-6 font-normal">Place of Assignment</th>
+                                <!-- Status Column Removed -->
+                                <th class="py-4 px-6 font-normal text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="qualified-applicants-list" class="divide-y divide-[#0D2B70]">
+                            @forelse ($qualifiedApplicants as $applicant)
+                                <tr class="text-[#0D2B70] select-none hover:bg-blue-50 transition-colors duration-200">
+                                    <td class="py-4 px-6">{{ $applicant['name'] }}</td>
+                                    <td class="py-4 px-6">{{ $applicant['job_applied'] }}</td>
+                                    <td class="py-4 px-6">{{ $applicant['place_of_assignment'] }}</td>
+                                    <!-- Status Column Removed -->
+                                    <td class="py-4 px-6 text-center">
+                                        <button
+                                            onclick="window.location.href='{{ route('admin.applicant_status', ['user_id' => $applicant['user_id'], 'vacancy_id' => $applicant['vacancy_id']]) }}'"
+                                            class="text-[#0D2B70] border border-[#0D2B70] font-bold py-1 px-4 rounded-md text-sm transition-all duration-300 hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md flex items-center gap-2 mx-auto">
+                                            <x-heroicon-o-eye class="w-4 h-4" />
+                                            <span>View</span>
+                                        </button>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="4" class="text-center py-10 text-gray-500 text-xl">
+                                        No qualified applicants found.
                                     </td>
                                 </tr>
                             @endforelse
@@ -198,7 +261,7 @@
 
         // Tab switching
         function switchTab(tab) {
-            const tabs = ['new', 'reviewed'];
+            const tabs = ['new', 'compliance', 'qualified'];
             tabs.forEach(t => {
                 const tabBtn = document.getElementById(`tab-${t}`);
                 const content = document.getElementById(`content-${t}`);
@@ -235,8 +298,8 @@
             fetchNewApplicants(search, sortOrder);
         }, 500);
 
-        searchInputNew.addEventListener('input', handleNewApplicantsFilter);
-        sortOrderNew.addEventListener('change', handleNewApplicantsFilter);
+        if(searchInputNew) searchInputNew.addEventListener('input', handleNewApplicantsFilter);
+        if(sortOrderNew) sortOrderNew.addEventListener('change', handleNewApplicantsFilter);
 
         function fetchNewApplicants(search = '', sortOrder = 'latest') {
             const params = new URLSearchParams({
@@ -255,32 +318,58 @@
                 .catch(error => console.error('Error:', error));
         }
 
-        // Reviewed Applicants - Search and Filter
-        const searchInputReviewed = document.getElementById('searchInputReviewed');
-        const statusFilterReviewed = document.getElementById('statusFilterReviewed');
+        // Compliance Applicants - Search and Sort
+        const searchInputCompliance = document.getElementById('searchInputCompliance');
+        const sortOrderCompliance = document.getElementById('sortOrderCompliance');
 
-        const handleReviewedApplicantsFilter = debounce(function () {
-            const search = searchInputReviewed.value.trim();
-            const status = statusFilterReviewed.value;
-            fetchReviewedApplicants(search, status);
+        const handleComplianceApplicantsFilter = debounce(function () {
+            const search = searchInputCompliance.value.trim();
+            const sortOrder = sortOrderCompliance.value;
+            fetchComplianceApplicants(search, sortOrder);
         }, 500);
 
-        searchInputReviewed.addEventListener('input', handleReviewedApplicantsFilter);
-        statusFilterReviewed.addEventListener('change', handleReviewedApplicantsFilter);
+        if(searchInputCompliance) searchInputCompliance.addEventListener('input', handleComplianceApplicantsFilter);
+        if(sortOrderCompliance) sortOrderCompliance.addEventListener('change', handleComplianceApplicantsFilter);
 
-        function fetchReviewedApplicants(search = '', status = '') {
+        function fetchComplianceApplicants(search = '', sortOrder = 'latest') {
             const params = new URLSearchParams({
                 vacancy_id: vacancyId,
                 search: search,
-                status: status
+                sort_order: sortOrder
             });
 
-            fetch(`/admin/manage_applicants/reviewed?${params.toString()}`, {
+            fetch(`/admin/manage_applicants/compliance?${params.toString()}`, {
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
             })
                 .then(response => response.text())
                 .then(html => {
-                    document.getElementById('reviewed-applicants-list').innerHTML = html;
+                    document.getElementById('compliance-applicants-list').innerHTML = html;
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        // Qualified Applicants - Search (Sort removed/simplified if not needed, or can be added)
+        const searchInputQualified = document.getElementById('searchInputQualified');
+
+        const handleQualifiedApplicantsFilter = debounce(function () {
+            const search = searchInputQualified.value.trim();
+            fetchQualifiedApplicants(search);
+        }, 500);
+
+        if(searchInputQualified) searchInputQualified.addEventListener('input', handleQualifiedApplicantsFilter);
+
+        function fetchQualifiedApplicants(search = '') {
+            const params = new URLSearchParams({
+                vacancy_id: vacancyId,
+                search: search
+            });
+
+            fetch(`/admin/manage_applicants/qualified?${params.toString()}`, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+                .then(response => response.text())
+                .then(html => {
+                    document.getElementById('qualified-applicants-list').innerHTML = html;
                 })
                 .catch(error => console.error('Error:', error));
         }

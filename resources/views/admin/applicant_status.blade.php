@@ -2,20 +2,17 @@
 
 @section('title', 'Application Status')
 
-<body class="bg-[#F3F8FF] min-h-screen font-sans text-gray-900 overflow-x-hidden">
-	<div class="flex min-h-screen w-full">
-		@section('content')
-					<!-- Main Content -->
-					<main class="flex-1 min-w-0 space-y-10">
-						<div class="bg-white p-6 mt-6 rounded-xl shadow-lg mx-auto font-montserrat">
-							@if (session('success'))
-								<div class="mb-6 px-4 py-3 bg-green-100 border border-green-400 text-green-800 rounded-lg shadow text-sm font-semibold flex items-center justify-between"
-									role="alert">
-									<span>{{ session('success') }}</span>
-									<button onclick="this.parentElement.remove()"
-										class="text-green-800 hover:text-red-600 font-bold text-lg">&times;</button>
-								</div>
-							@endif
+@section('content')
+<div class="space-y-6"> <!-- Main container with spacing -->
+    <div class="bg-white p-6 rounded-xl shadow-lg mx-auto font-montserrat">
+        @if (session('success'))
+            <div class="mb-6 px-4 py-3 bg-green-100 border border-green-400 text-green-800 rounded-lg shadow text-sm font-semibold flex items-center justify-between"
+                role="alert">
+                <span>{{ session('success') }}</span>
+                <button onclick="this.parentElement.remove()"
+                    class="text-green-800 hover:text-red-600 font-bold text-lg">&times;</button>
+            </div>
+        @endif
 
 							<div class="flex items-center gap-4 border-b border-[#0D2B70] pb-4 mb-6">
 								<!-- <button aria-label="Back" onclick="window.location.href='{{ route('applications_list') }}'" -->
@@ -225,39 +222,35 @@
 								@endforeach
 
 								<!-- lower part -->
-								<div class="flex flex-row gap-4">
+								<div class="flex flex-col lg:flex-row gap-4">
 									<!-- Left Side Panel - Required Documents -->
 									<section aria-label="Required Documents Panel"
-										class="w-64 bg-white rounded-lg border border-gray-300 p-3 shadow-lg flex flex-col">
-										<h2 class="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">Required
+										class="w-full lg:w-72 flex-none bg-white rounded-lg border border-gray-300 p-3 shadow-lg flex flex-col">
+										<h2 class="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide flex-none">Required
 											Documents
 										</h2>
-										<div
-											class="overflow-y-auto scrollbar-thin scrollbar-thumb-blue-400 scrollbar-track-gray-100">
-											<ul class="text-xs text-gray-700 space-y-2" id="document-list">
+										<div class="pr-1">
+											<ul class="text-xs text-gray-700 space-y-1" id="document-list">
 												<!-- Documents will be injected here by JS -->
 											</ul>
 										</div>
-
-
-
 									</section>
 
 									<!-- MIDDLE - Document Preview -->
 									<section aria-label="Document Preview"
-										class="flex-1 bg-white rounded-xl border border-gray-300 shadow-lg p-6 flex flex-col min-w-0">
+										class="flex-1 bg-white rounded-xl border border-gray-300 shadow-lg p-6 flex flex-col min-w-0 min-h-[800px]">
 
 										<!-- Document Header -->
-										<div class="mb-4 w-full flex flex-row justify-between pb-2 border-b border-gray-400">
+										<div class="mb-4 w-full flex flex-col sm:flex-row justify-between pb-2 border-b border-gray-400 gap-4 flex-none">
 											<!-- document name, status, last modified by -->
-											<div class="w-full">
+											<div class="flex-1 min-w-0">
 												<!-- document name -->
-												<h2 id="document-title" class="text-2xl font-bold text-[#002C76] mb-1">Document Here
+												<h2 id="document-title" class="text-xl md:text-2xl font-bold text-[#002C76] mb-1 truncate">Select a Document
 												</h2>
 												<!-- APPROVED = #00730A -->
 												<!-- PENDING = #E47E00 -->
 												<!-- REJECTED / NEEDS REVISIONS = #BC0000 -->
-												<span id="document-status-text" class="text-sm text-gray-600">Status:
+												<span id="document-status-text" class="text-sm text-gray-600 hidden">Status:
 													<span id="document-status-value" class="text-[#E47E00] font-bold"></span>
 												</span>
 												<p id="document-modified" class="text-sm text-gray-600 hidden">Last modified by:
@@ -266,17 +259,17 @@
 											</div>
 
 											<!-- buttons -->
-											<div class="flex flex-col items-end w-full gap-2">
-												<div class="w-[35%]">
-													<button id="btn-verify" onclick="updateDocumentStatus('Verified')"
-														class="w-full border border-[#00730A] text-[#00730A] py-2 px-6 rounded-md text-sm hover:scale-105 hover:shadow-md transition duration-150">
+											<div class="flex flex-row sm:flex-col items-end gap-2 shrink-0">
+												<div class="w-full sm:w-auto">
+													<button id="btn-verify" type="button"
+														class="w-full sm:w-40 border border-[#00730A] text-[#00730A] py-2 px-4 rounded-md text-sm hover:bg-green-50 transition duration-150 disabled:opacity-50 disabled:cursor-not-allowed">
 														Verify
 													</button>
 												</div>
 
-												<div class="w-[35%]">
-													<button id="btn-revision" onclick="updateDocumentStatus('Needs Revision')"
-														class="w-full border border-[#BC0000] text-[#BC0000] py-2 px-6 rounded-md text-sm hover:scale-105 hover:shadow-md transition duration-150">
+												<div class="w-full sm:w-auto">
+													<button id="btn-revision" type="button"
+														class="w-full sm:w-40 border border-[#BC0000] text-[#BC0000] py-2 px-4 rounded-md text-sm hover:bg-red-50 transition duration-150 disabled:opacity-50 disabled:cursor-not-allowed">
 														Needs Revisions
 													</button>
 												</div>
@@ -284,9 +277,9 @@
 										</div>
 
 										<!-- Remarks and Buttons Row -->
-										<div id="document-remarks-section" class="mb-4 flex justify-between gap-3 hidden">
+										<div id="document-remarks-section" class="mb-4 flex flex-col justify-between gap-3 hidden flex-none">
 											<!-- Remarks Textarea -->
-											<div class="flex-1">
+											<div class="w-full">
 												<div class="flex items-center justify-between mb-2">
 													<label for="remarks" class="block text-sm font-semibold text-[#002C76]">
 														Document Remarks:
@@ -295,19 +288,22 @@
 													</label>
 												</div>
 
-												<div class="flex flex-row gap-2">
-													<textarea id="remarks" rows="4" disabled
+												<div class="w-full">
+													<textarea id="remarks" rows="3"
 														class="w-full text-sm text-gray-700 rounded-lg p-3 resize-none border border-[#002C76] focus:border-[#0066CC] focus:ring-2 focus:ring-blue-200 transition bg-gray-50"
-														placeholder="Select a document to view and add remarks..."></textarea>
+														placeholder="Add remarks for this document..."></textarea>
 												</div>
 											</div>
 										</div>
 
 										<!-- Preview Frame -->
-										<div class="flex-1 bg-gray-50 rounded-xl border border-[#002C76] p-3 overflow-hidden">
-											<iframe id="doc-preview" src="" title="Document Preview"
-												class="w-full h-full rounded-lg border-0 bg-white"
-												aria-label="Document content preview"></iframe>
+										<div class="flex-1 bg-gray-50 rounded-xl border border-[#002C76] p-0 overflow-hidden relative">
+                                            <div id="preview-loader" class="absolute inset-0 flex items-center justify-center bg-gray-100 z-10 hidden">
+                                                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[#002C76]"></div>
+                                            </div>
+											<iframe id="doc-preview" src="about:blank" title="Document Preview"
+												class="w-full h-full border-0 bg-white"
+												loading="lazy"></iframe>
 										</div>
 
 										<!-- Hidden Toggle (for compatibility) -->
@@ -416,19 +412,19 @@
 								class="px-4 py-2 text-xs font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50">
 								Cancel
 							</button>
-							<button type="button" onclick="notifyApplicant()"
-								class="px-4 py-2 text-xs font-medium text-white bg-[#002C76] rounded-md hover:bg-[#003b9c]">
-								Send Email
+							<button type="button" onclick="notifyApplicant()" id="confirm-notify-btn"
+								class="px-4 py-2 text-xs font-medium text-white bg-[#002C76] rounded-md hover:bg-[#003b9c] flex items-center gap-2">
+								<span>Send Email</span>
 							</button>
 						</div>
 					</div>
 				</div>
 
 				@include('partials.loader')
-				</main>
+    </div>
+</div>
 
-				<!-- Consolidated Scripts -->
-				<script>
+<script>
 					// Global variables from Blade
 					const userId = "{{ $user_id }}";
 					const vacancyId = "{{ $vacancy_id }}";
@@ -563,6 +559,27 @@
 					}
 
 					// --- Document Logic ---
+					
+					// Document Selection State
+					let currentSelectedDoc = null;
+					const btnVerify = document.getElementById('btn-verify');
+					const btnRevision = document.getElementById('btn-revision');
+					const docPreview = document.getElementById('doc-preview');
+                    const previewLoader = document.getElementById('preview-loader');
+
+					// Setup Button Listeners once
+					if (btnVerify) {
+						btnVerify.onclick = (e) => {
+							e.preventDefault();
+							if (currentSelectedDoc) updateDocumentStatus('Verified');
+						};
+					}
+					if (btnRevision) {
+						btnRevision.onclick = (e) => {
+							e.preventDefault();
+							if (currentSelectedDoc) updateDocumentStatus('Needs Revision');
+						};
+					}
 
 					// Helper for status icon
 					function getStatusIcon(status) {
@@ -573,9 +590,6 @@
 						}
 						return "";
 					}
-
-					let currentSelectedDoc = null;
-					const toggleContainer = document.getElementById("toggle-container");
 
 					function setDocumentRemarksVisibility(show) {
 						const section = document.getElementById('document-remarks-section');
@@ -588,34 +602,61 @@
 					}
 
 					function handleDocumentClick(doc) {
+						// Prevent re-clicking same doc to avoid reload
+						if (currentSelectedDoc && currentSelectedDoc.id === doc.id) return;
+						
 						currentSelectedDoc = doc;
 
-						document.getElementById('document-title').textContent = doc.name || doc.text;
+                        // Highlight Active Item
+                        // Since we are re-rendering the whole list anyway in updateDocumentStatus,
+                        // for simple selection we can just update classes manually to avoid full re-render
+                        const allButtons = document.querySelectorAll('#document-list button');
+                        allButtons.forEach(b => {
+                            b.classList.remove("bg-blue-50", "ring-1", "ring-blue-200");
+                        });
+                        const activeLi = document.getElementById(`doc-item-${doc.id}`);
+                        if(activeLi) {
+                            const activeBtn = activeLi.querySelector('button');
+                            if(activeBtn) activeBtn.classList.add("bg-blue-50", "ring-1", "ring-blue-200");
+                        }
 
+						// Update Header
+						document.getElementById('document-title').textContent = doc.name || doc.text;
+						
 						const statusTextEl = document.getElementById('document-status-text');
-						if (statusTextEl) {
-							statusTextEl.classList.remove('hidden');
-						}
+						if (statusTextEl) statusTextEl.classList.remove('hidden');
+						
 						const modifiedEl = document.getElementById('document-modified');
-						if (modifiedEl) {
-							modifiedEl.classList.remove('hidden');
-						}
+						if (modifiedEl) modifiedEl.classList.remove('hidden');
 
 						updateStatusUI(doc.status);
 
+						// Update Remarks Area
 						const remarksEl = document.getElementById('remarks');
 						remarksEl.value = doc.remarks || "";
-						remarksEl.disabled = false;
-						remarksEl.placeholder = "Add remarks for this document...";
+						
 						if (doc.status === "Needs Revision" || doc.status === "Disapproved With Deficiency") {
 							setDocumentRemarksVisibility(true);
 						} else {
 							setDocumentRemarksVisibility(false);
 						}
 
-						const previewEl = document.getElementById('doc-preview');
-						previewEl.src = doc.preview || "";
+						// Enable Buttons
+						if (btnVerify) btnVerify.disabled = false;
+						if (btnRevision) btnRevision.disabled = false;
 
+						// Load Preview with Loader
+                        if (previewLoader) previewLoader.classList.remove('hidden');
+                        
+                        // Small timeout to allow UI to update before iframe load (prevents UI freeze)
+                        setTimeout(() => {
+						    if (docPreview) {
+                                docPreview.onload = () => {
+                                    if (previewLoader) previewLoader.classList.add('hidden');
+                                };
+                                docPreview.src = doc.preview || "about:blank";
+                            }
+                        }, 10);
 					}
 
 					function updateStatusUI(status) {
@@ -642,33 +683,50 @@
 							return;
 						}
 
+						// Optimistic UI Update
 						updateStatusUI(newStatus);
 						currentSelectedDoc.status = newStatus;
+						
+						// Update visual list item status icon immediately
+						const activeLi = document.getElementById(`doc-item-${currentSelectedDoc.id}`);
+						if(activeLi) {
+                            const btn = activeLi.querySelector('button');
+							const iconWrapper = btn.querySelector('span:first-child');
+							if(iconWrapper) iconWrapper.innerHTML = getStatusIcon(newStatus);
+                            
+                            const textWrapper = btn.querySelector('span:last-child');
+                            if(textWrapper) {
+                                textWrapper.className = "text-xs flex-1 break-words ";
+                                if (newStatus === "Verified" || newStatus === "Okay/Confirmed" || newStatus === "Needs Revision") {
+                                    textWrapper.classList.add("text-gray-900");
+                                } else if (newStatus === "Not Submitted") {
+                                    textWrapper.classList.add("text-gray-400");
+                                } else {
+                                    textWrapper.classList.add("text-orange-500", "font-medium");
+                                }
+                            }
+						}
 
 						const remarksEl = document.getElementById('remarks');
 						if (newStatus === 'Needs Revision') {
 							setDocumentRemarksVisibility(true);
 							if (remarksEl) {
-								remarksEl.disabled = false;
 								remarksEl.focus();
 								if (!remarksEl.value) {
 									remarksEl.placeholder = "Add remarks for this document...";
 								}
 							}
 						} else if (newStatus === 'Verified') {
-							if (remarksEl) {
-								remarksEl.value = "";
-							}
-							if (currentSelectedDoc) {
-								currentSelectedDoc.remarks = "";
-							}
+							if (remarksEl) remarksEl.value = "";
+							if (currentSelectedDoc) currentSelectedDoc.remarks = "";
 							setDocumentRemarksVisibility(false);
 						}
 
-						// Update List
-						renderDocuments(documents);
-						updateProgressCircle();
-						updateQualificationStatus();
+						// Defer heavy updates
+						setTimeout(() => {
+							updateProgressCircle();
+							updateQualificationStatus();
+						}, 0);
 
 						try {
 							const payload = {
@@ -678,20 +736,27 @@
 							if (newStatus === 'Verified') {
 								payload.remarks = "";
 							}
+							
 							const response = await fetch(`/admin/applicant_status/${userId}/${vacancyId}/update-document`, {
 								method: 'POST',
 								headers: {
 									'Content-Type': 'application/json',
-									'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+									'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
 								},
 								body: JSON.stringify(payload)
 							});
 
-							if (!response.ok) throw new Error('Failed to update status');
+                            if (!response.ok) {
+                                const errorText = await response.text();
+                                console.error("Server Error Details:", errorText);
+                                alert("Failed to save status. Server responded with: " + response.status + " " + response.statusText);
+                                throw new Error('Failed to update status');
+                            }
 
 						} catch (error) {
 							console.error(error);
 							alert("Failed to save status. Please check your connection.");
+							// Revert UI on error (optional, but good practice)
 						}
 					}
 
@@ -709,11 +774,11 @@
 						clearTimeout(docRemarksTimeout);
 						docRemarksTimeout = setTimeout(async () => {
 							try {
-								await fetch(`/admin/applicant_status/${userId}/${vacancyId}/update-document`, {
+								const response = await fetch(`/admin/applicant_status/${userId}/${vacancyId}/update-document`, {
 									method: 'POST',
 									headers: {
 										'Content-Type': 'application/json',
-										'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+										'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
 									},
 									body: JSON.stringify({
 										document_type: currentSelectedDoc.id,
@@ -721,14 +786,20 @@
 									})
 								});
 
-								// Show Saved
-								const statusEl = document.getElementById('remarks-status');
-								statusEl.classList.remove('opacity-0');
-								statusEl.classList.add('opacity-100');
-								setTimeout(() => {
-									statusEl.classList.remove('opacity-100');
-									statusEl.classList.add('opacity-0');
-								}, 2000);
+                                if (!response.ok) {
+                                    const errorText = await response.text();
+                                    console.error("Server Error (Remarks):", errorText);
+                                    // Don't alert for background saves unless critical
+                                } else {
+                                    // Show Saved
+                                    const statusEl = document.getElementById('remarks-status');
+                                    statusEl.classList.remove('opacity-0');
+                                    statusEl.classList.add('opacity-100');
+                                    setTimeout(() => {
+                                        statusEl.classList.remove('opacity-100');
+                                        statusEl.classList.add('opacity-0');
+                                    }, 2000);
+                                }
 
 							} catch (error) {
 								console.error(error);
@@ -756,7 +827,7 @@
 										method: 'POST',
 										headers: {
 											'Content-Type': 'application/json',
-											'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+											'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
 										},
 										body: JSON.stringify({
 											application_remarks: value
@@ -779,10 +850,16 @@
 					}
 
 					async function notifyApplicant() {
-						const btn = document.getElementById('notify-applicant-btn');
-						const originalText = btn.textContent;
+						const btn = document.getElementById('confirm-notify-btn');
+						const originalContent = btn.innerHTML;
 						btn.disabled = true;
-						btn.textContent = "Sending...";
+						btn.innerHTML = `
+                            <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Sending...
+                        `;
 						btn.classList.add("opacity-75", "cursor-not-allowed");
 
 						try {
@@ -790,25 +867,33 @@
 								method: 'POST',
 								headers: {
 									'Content-Type': 'application/json',
-									'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+									'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
 								}
 							});
 
-							const data = await response.json();
+                            // Handle non-JSON responses (like 500 errors from Laravel)
+                            const contentType = response.headers.get("content-type");
+                            let data;
+                            if (contentType && contentType.indexOf("application/json") !== -1) {
+                                data = await response.json();
+                            } else {
+                                const text = await response.text();
+                                throw new Error("Server Error: " + response.status + " " + response.statusText);
+                            }
 
 							if (response.ok) {
 								alert(data.message || "Email sent successfully!");
+                                closeNotifyModal();
 							} else {
 								alert(data.message || "Failed to send email.");
 							}
 						} catch (error) {
 							console.error(error);
-							alert("An error occurred while sending the notification.");
+							alert("An error occurred while sending the notification: " + error.message);
 						} finally {
 							btn.disabled = false;
-							btn.textContent = originalText;
+							btn.innerHTML = originalContent;
 							btn.classList.remove("opacity-75", "cursor-not-allowed");
-							closeNotifyModal();
 						}
 					}
 
@@ -928,14 +1013,21 @@
 
 						docList.forEach(doc => {
 							const li = document.createElement('li');
-							li.className = "cursor-pointer hover:bg-gray-100 p-1 rounded transition-colors";
+                            li.id = `doc-item-${doc.id}`;
+							li.className = "mb-1"; // minimal margin
 
 							const btn = document.createElement('button');
 							btn.type = "button";
-							btn.className = "w-full text-left flex items-center";
+                            // Completely standard block button to avoid stacking context issues
+							btn.className = "w-full text-left p-2 rounded-md hover:bg-gray-100 flex items-start gap-2 transition-colors duration-150 border border-transparent focus:outline-none focus:ring-2 focus:ring-blue-200";
 
 							if (doc.isBold) btn.classList.add('font-bold');
 							if (doc.italic) btn.classList.add('italic');
+                            
+                            // Active state style
+							if (currentSelectedDoc && currentSelectedDoc.id === doc.id) {
+								btn.classList.add("bg-blue-50", "ring-1", "ring-blue-200");
+							}
 
 							let icon = getStatusIcon(doc.status);
 
@@ -943,34 +1035,31 @@
 							let textColorClass = "text-gray-700";
 
 							if (doc.status === "Verified" || doc.status === "Okay/Confirmed") {
-								textColorClass = "text-gray-900"; // Black
+								textColorClass = "text-gray-900"; 
 							} else if (doc.status === "Needs Revision" || doc.status === "Disapproved With Deficiency") {
-								textColorClass = "text-gray-900"; // Black
+								textColorClass = "text-gray-900"; 
 							} else if (doc.status === "Not Submitted") {
-								textColorClass = "text-gray-400"; // Gray
+								textColorClass = "text-gray-400"; 
 							} else {
-								// Pending / Uploaded / Others
-								textColorClass = "text-orange-500 font-medium"; // Orange
-							}
-
-							if (currentSelectedDoc && currentSelectedDoc.id === doc.id) {
-								li.classList.add("bg-blue-50");
-								li.classList.add("ring-1");
-								li.classList.add("ring-blue-200");
+								textColorClass = "text-orange-500 font-medium"; 
 							}
 
 							const iconWrapper = document.createElement('span');
+                            iconWrapper.className = "mt-0.5 flex-shrink-0 w-4 h-4 flex items-center justify-center";
 							iconWrapper.innerHTML = icon;
-							iconWrapper.className = "mr-2 flex-shrink-0 w-4";
 
 							const textWrapper = document.createElement('span');
 							textWrapper.textContent = doc.text;
-							textWrapper.className = `${textColorClass} text-xs flex-1`;
+							textWrapper.className = `${textColorClass} text-xs flex-1 break-words`;
 
 							btn.appendChild(iconWrapper);
 							btn.appendChild(textWrapper);
 
-							btn.onclick = () => handleDocumentClick(doc);
+                            // Simple direct click handler on the button itself
+                            btn.onclick = function(e) {
+                                e.preventDefault();
+                                handleDocumentClick(doc);
+                            };
 
 							li.appendChild(btn);
 							listEl.appendChild(li);
@@ -1170,8 +1259,4 @@
 						animation: fadeSlideUp 0.3s ease-in;
 					}
 				</style>
-
-
-
-			</body>
-		@endsection
+@endsection

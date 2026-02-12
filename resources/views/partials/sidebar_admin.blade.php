@@ -73,13 +73,33 @@
                 <i class="fa-solid fa-wrench w-5 h-5 flex-shrink-0"></i>
                 <span id="textAboutWebsite" class="sidebar-text-hidden ml-3">USER MANAGEMENT</span>
             </a>
-            <a href="{{ route('admin_activity_log') }}" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200
-                    {{ request()->routeIs('admin_activity_log')
-    ? 'bg-[#002C76] text-white shadow-md'
-    : 'text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md' }}">
-                <i class="fa-solid fa-clipboard-list text-lg flex-shrink-0"></i>
-                <span id="textActivityLog" class="sidebar-text-hidden ml-3">ACTIVITY LOG</span>
-            </a>
+
+            <!-- Utilities Dropdown -->
+            <div x-data="{ open: {{ request()->routeIs('admin_activity_log') ? 'true' : 'false' }} }" class="relative">
+                <button @click="open = !open" class="w-full group flex items-center justify-between rounded-md px-4 py-2 text-sm font-bold transition-all duration-200 text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md">
+                    <div class="flex items-center">
+                        <i data-feather="tool" class="w-5 h-5 stroke-[3] flex-shrink-0"></i>
+                        <span id="textUtilities" class="sidebar-text-hidden ml-3 uppercase">UTILITIES</span>
+                    </div>
+                    <i id="utilitiesChevron" data-feather="chevron-down" class="sidebar-text-hidden w-4 h-4 stroke-[3] transition-transform duration-200 ml-auto" :class="{'rotate-180': open}"></i>
+                </button>
+
+                <!-- Submenu -->
+                <div x-show="open" x-collapse id="utilitiesSubmenu" class="sidebar-text-hidden pl-4 mt-1 space-y-1 overflow-hidden">
+                    <!-- Signatories -->
+                    <a href="#" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200 text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md">
+                        <span class="ml-8">SIGNATORIES</span>
+                    </a>
+
+                    <!-- Activity Log -->
+                    <a href="{{ route('admin_activity_log') }}" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200
+                            {{ request()->routeIs('admin_activity_log')
+            ? 'bg-[#002C76] text-white shadow-md'
+            : 'text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md' }}">
+                        <span class="ml-8">ACTIVITY LOG</span>
+                    </a>
+                </div>
+            </div>
 
         </nav>
     </div>

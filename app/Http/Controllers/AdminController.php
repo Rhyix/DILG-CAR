@@ -598,8 +598,16 @@ class AdminController extends Controller
             if ($document) {
                 if ($request->has('status'))
                     $document->status = $status;
-                if ($request->has('remarks'))
-                    $document->remarks = $remarks;
+                
+                // Only update remarks if explicitly provided, but force it to empty string if verified
+                // or ensure it is not null if it is being updated
+                if ($request->has('remarks')) {
+                     $document->remarks = $remarks ?? '';
+                } elseif ($status === 'Verified') {
+                    // When verifying, we often clear remarks, but we must ensure we don't save NULL
+                    $document->remarks = '';
+                }
+
                 $document->save();
             } else {
                 // If document doesn't exist, create a placeholder record so status/remarks can be saved
@@ -646,7 +654,39 @@ class AdminController extends Controller
 
         $documents = $this->getApplicantDocuments($user_id, $application);
 
-        // Removed the check for reviewed documents to allow notification at any stage
+        // --- Logic Check for Application Status Update ---
+        $hasNeedsRevision = false;
+        $allVerified = true;
+        $totalDocuments = count($documents);
+        $verifiedCount = 0;
+
+        foreach ($documents as $doc) {
+            $status = $doc['status'];
+
+            if ($status === 'Needs Revision' || $status === 'Disapproved With Deficiency') {
+                $hasNeedsRevision = true;
+            }
+
+            if ($status === 'Verified' || $status === 'Okay/Confirmed') {
+                $verifiedCount++;
+            } else {
+                $allVerified = false;
+            }
+        }
+
+        // Logic:
+        // 1. If ANY document needs revision -> Status = Compliance
+        // 2. If ALL documents are verified -> Status = Qualified
+        // 3. Otherwise -> Status stays as is (e.g. Pending)
+        
+        if ($hasNeedsRevision) {
+            $application->status = 'Compliance';
+        } elseif ($allVerified && $totalDocuments > 0) {
+            $application->status = 'Qualified';
+        }
+        
+        $application->save();
+        // -------------------------------------------------
 
         $userEmail = User::where('id', $user_id)->value('email');
 
@@ -654,12 +694,17 @@ class AdminController extends Controller
             return response()->json(['success' => false, 'message' => 'User email not found.'], 404);
         }
 
-        Mail::to($userEmail)->send(new NotifyApplicantOverview(
-            $user_id,
-            $vacancy_id,
-            $documents,
-            $application->application_remarks
-        ));
+        try {
+            Mail::to($userEmail)->send(new NotifyApplicantOverview(
+                $user_id,
+                $vacancy_id,
+                $documents,
+                $application->application_remarks
+            ));
+        } catch (\Exception $e) {
+            \Log::error('Mail sending failed: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Failed to send email: ' . $e->getMessage()], 500);
+        }
 
         return response()->json(['success' => true, 'message' => 'Applicant notified successfully.']);
     }
@@ -701,19 +746,37 @@ class AdminController extends Controller
             ', 200);
         };
 
-        if (!$path || !Storage::exists($path)) {
-            // Try public storage check just in case
-            if ($path && file_exists(storage_path('app/public/' . $path))) {
-                $fullPath = storage_path('app/public/' . $path);
-                $file = file_get_contents($fullPath);
-                $type = mime_content_type($fullPath);
+        if (!$path) {
+            return $noDocumentView();
+        }
+
+        // Check explicit paths
+        $possiblePaths = [
+            storage_path('app/' . $path),
+            storage_path('app/public/' . $path),
+            public_path('storage/' . $path)
+        ];
+
+        $fullPath = null;
+        foreach ($possiblePaths as $p) {
+            if (file_exists($p)) {
+                $fullPath = $p;
+                break;
+            }
+        }
+
+        if (!$fullPath) {
+            // Try Storage facade as fallback
+            if (Storage::exists($path)) {
+                $file = Storage::get($path);
+                $type = Storage::mimeType($path);
                 return response($file, 200)->header("Content-Type", $type);
             }
             return $noDocumentView();
         }
 
-        $file = Storage::get($path);
-        $type = Storage::mimeType($path);
+        $file = file_get_contents($fullPath);
+        $type = mime_content_type($fullPath);
 
         return response($file, 200)->header("Content-Type", $type);
     }
