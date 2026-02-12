@@ -209,6 +209,14 @@
                             d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
                     </svg>
                 </form>
+                <div class="flex flex-col gap-2">
+                    <label for="sortOrderQualified" class="font-semibold text-[#0D2B70] text-sm">Sort By</label>
+                    <select aria-label="Sort by date" id="sortOrderQualified"
+                        class="rounded-md text-[#0D2B70] p-2 px-3 font-semibold cursor-pointer border border-[#0D2B70]">
+                        <option value="latest">Latest</option>
+                        <option value="oldest">Oldest</option>
+                    </select>
+                </div>
             </div>
 
             <!-- Table Container -->
@@ -348,20 +356,24 @@
                 .catch(error => console.error('Error:', error));
         }
 
-        // Qualified Applicants - Search (Sort removed/simplified if not needed, or can be added)
+        // Qualified Applicants - Search and Sort
         const searchInputQualified = document.getElementById('searchInputQualified');
+        const sortOrderQualified = document.getElementById('sortOrderQualified');
 
         const handleQualifiedApplicantsFilter = debounce(function () {
             const search = searchInputQualified.value.trim();
-            fetchQualifiedApplicants(search);
+            const sortOrder = sortOrderQualified.value;
+            fetchQualifiedApplicants(search, sortOrder);
         }, 500);
 
         if(searchInputQualified) searchInputQualified.addEventListener('input', handleQualifiedApplicantsFilter);
+        if(sortOrderQualified) sortOrderQualified.addEventListener('change', handleQualifiedApplicantsFilter);
 
-        function fetchQualifiedApplicants(search = '') {
+        function fetchQualifiedApplicants(search = '', sortOrder = 'latest') {
             const params = new URLSearchParams({
                 vacancy_id: vacancyId,
-                search: search
+                search: search,
+                sort_order: sortOrder
             });
 
             fetch(`/admin/manage_applicants/qualified?${params.toString()}`, {
