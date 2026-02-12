@@ -485,26 +485,34 @@
 
     const fetchVacanciesDebounced = debounce(fetchVacancies, 10);
 
-    function fetchVacancies() {
+    async function fetchVacancies() {
         const status = document.getElementById('statusFilter')?.value ?? '';
         const sort = document.getElementById('sortFilter')?.value ?? '';
         const job = document.getElementById('jobFilter')?.value ?? '';
-        const search = document.getElementById('searchInput').value;
+        const search = encodeURIComponent(document.getElementById('searchInput')?.value ?? '');
 
-        fetch(`/admin/vacancies_management/filter?status=${status}&sort=${sort}&job=${job}&search=${encodeURIComponent(search)}`)
-            .then(response => response.text())
-            .then(html => {
-                document.getElementById('vacancy-list').innerHTML = html;
-                loader_?.classList.add('hidden');
-                attachLoaderListeners();
-                if (window.feather && typeof feather.replace === 'function') {
-                    feather.replace();
+        try {
+            const res = await fetch(`/admin/vacancies_management/filter?status=${status}&sort=${sort}&job=${job}&search=${search}`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
                 }
-            })
-            .catch(() => {
-                alert('Failed to load vacancies.');
-                loader_?.classList.add('hidden');
             });
+
+            if (!res.ok) {
+                const body = await res.text();
+                console.error('Vacancies load failed:', res.status, body);
+                throw new Error(`Server responded with ${res.status}`);
+            }
+
+            const html = await res.text();
+            document.getElementById('vacancy-list').innerHTML = html;
+            loader_?.classList.add('hidden');
+            attachLoaderListeners();
+        } catch (err) {
+            console.error('Fetch vacancies error:', err);
+            alert('Failed to load vacancies. See console for details.');
+            loader_?.classList.add('hidden');
+        }
     }
 
     document.getElementById('statusFilter')?.addEventListener('change', fetchVacancies);
