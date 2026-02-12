@@ -106,8 +106,7 @@
                                             <span>Manage</span>
 
                                             @if($vacancy->pending_count > 0)
-                                                <span class="absolute top-0 right-0 -mt-2 -mr-2 bg-red-600 text-white text-[10px]
-                                                    font-bold px-2 py-0.5 rounded-full leading-none z-10 shadow-sm border border-white">
+                                                <span class="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[9px] font-bold text-white shadow-sm ring-1 ring-white">
                                                     {{ $vacancy->pending_count }}
                                                 </span>
                                             @endif
@@ -211,7 +210,7 @@
                 }[vacancy.status?.toLowerCase()] ?? 'bg-gray-400';
 
                 const pendingBadge = vacancy.pending_count > 0 ?
-                    `<span class="absolute top-0 right-0 -mt-2 -mr-2 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full leading-none z-10 shadow-sm border border-white">
+                    `<span class="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[9px] font-bold text-white shadow-sm ring-1 ring-white">
                         ${vacancy.pending_count}
                     </span>` : '';
 
@@ -245,6 +244,4 @@
             });
         }
     </script>
-    </script>
-
 @endsection
