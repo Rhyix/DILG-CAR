@@ -658,31 +658,41 @@ class AdminController extends Controller
         // --- Logic Check for Application Status Update ---
         $hasNeedsRevision = false;
         $allVerified = true;
-        $totalDocuments = count($documents);
-        $verifiedCount = 0;
+        $submittedCount = 0;
 
         foreach ($documents as $doc) {
             $status = $doc['status'];
+
+            // Skip documents that are not submitted
+            if ($status === 'Not Submitted' || $status === 'Pending' && empty($doc['original_name']) && $doc['id'] !== 'application_letter') {
+                 // Note: 'Pending' might be default for placeholder docs, but if no file is attached (original_name empty), treat as not submitted?
+                 // Actually getApplicantDocuments sets status to 'Not Submitted' if $doc is null.
+                 // If $doc exists but status is 'Pending', it counts as submitted.
+            }
+            
+            if ($status === 'Not Submitted') {
+                continue;
+            }
+
+            $submittedCount++;
 
             if ($status === 'Needs Revision' || $status === 'Disapproved With Deficiency') {
                 $hasNeedsRevision = true;
             }
 
-            if ($status === 'Verified' || $status === 'Okay/Confirmed') {
-                $verifiedCount++;
-            } else {
+            if ($status !== 'Verified' && $status !== 'Okay/Confirmed') {
                 $allVerified = false;
             }
         }
 
         // Logic:
         // 1. If ANY document needs revision -> Status = Compliance
-        // 2. If ALL documents are verified -> Status = Qualified
+        // 2. If ALL submitted documents are verified -> Status = Qualified
         // 3. Otherwise -> Status stays as is (e.g. Pending)
         
         if ($hasNeedsRevision) {
             $application->status = 'Compliance';
-        } elseif ($allVerified && $totalDocuments > 0) {
+        } elseif ($allVerified && $submittedCount > 0) {
             $application->status = 'Qualified';
         }
         

@@ -105,9 +105,6 @@
                 <button id="tab-lobby" onclick="switchTab('lobby')"
                     class="tab-button pb-2 font-bold text-gray-400 border-b-2 border-transparent hover:text-[#0D2B70] transition-all duration-200 text-sm uppercase tracking-wide">
                     Exam Lobby
-                    <span class="ml-2 bg-gray-200 text-gray-600 text-[10px] font-bold px-1.5 py-0.5 rounded-full align-middle">
-                        Phase 2
-                    </span>
                 </button>
             </div>
             
@@ -225,7 +222,6 @@
                 <div class="flex-1 overflow-y-auto bg-white">
                     <div class="flex items-center justify-between p-2 bg-gray-50 border-b border-[#0D2B70]">
                         <div class="flex items-center gap-3">
-                            <span class="text-xs text-gray-500 italic">Auto-refreshes every 10 seconds</span>
                             <span id="lobbyLastUpdated" class="text-xs text-gray-400"></span>
                         </div>
                         <button id="refreshLobbyBtn" onclick="fetchLobbyData(true)" class="text-xs bg-white border border-[#0D2B70] text-[#0D2B70] hover:bg-[#0D2B70] hover:text-white px-3 py-1 rounded transition-colors duration-200 flex items-center gap-1">

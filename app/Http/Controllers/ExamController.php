@@ -310,12 +310,9 @@ class ExamController extends Controller
     public function getLobbyData(Request $request, $vacancy_id)
     {
         // Get all applications that are considered participants for this exam
-        // Assuming participants are those who have applied and been qualified/sent a link,
-        // OR simply anyone associated with this vacancy ID depending on your logic.
-        // The original code used: Applications::where('vacancy_id', $vacancy_id)->get();
-        // So I'll stick to that but add eager loading.
-
+        // Filter by those who have "read" the notification or entered the lobby (read_at is not null)
         $participants = Applications::where('vacancy_id', $vacancy_id)
+            ->whereNotNull('read_at')
             ->with('user')
             ->get();
 
@@ -348,13 +345,22 @@ class ExamController extends Controller
 
     public function examLobby(Request $request, $vacancy_id)
     {
+        // Mark the applicant as having entered the lobby
+        $user_id = auth()->id();
+        $application = Applications::where('vacancy_id', $vacancy_id)
+            ->where('user_id', $user_id)
+            ->first();
+
+        if ($application && is_null($application->read_at)) {
+            $application->update(['read_at' => now()]);
+        }
 
         activity()
             ->causedBy(auth()->user())
             ->withProperties(['vacancy_id' => $vacancy_id, 'section' => 'Exam'])
             ->log('Entered exam lobby.');
 
-        return view('exam_user.exam_lobby', $vacancy_id);
+        return view('exam_user.exam_lobby', compact('vacancy_id'));
     }
 
     public function examQuestion(Request $request, $vacancy_id)
