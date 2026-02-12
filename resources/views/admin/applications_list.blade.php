@@ -42,100 +42,97 @@
 
         <!-- Table Container -->
         <div class="flex flex-col border border-[#0D2B70] h-full rounded-2xl overflow-hidden">
-            <!-- SCROLL CONTAINER -->
-            <div class="flex-1 overflow-y-auto">
-                <table class="w-full text-left border-seperate table-fixed">
-                    <!-- HEADER -->
-                    <thead class="bg-[#0D2B70] text-white sticky top-0 z-10">
+            <!-- HEADER - Fixed outside scrollable area -->
+            <div class="bg-[#0D2B70] text-white rounded-t-xl flex-none">
+                <table class="w-full text-left border-separate table-fixed">
+                    <thead>
                         <tr>
-                            <th class="py-4 px-6 font-normal sticky top-0 bg-[#0D2B70] z-20 border-b-2 border-white">
-                                Vacancy ID
-                            </th>
-                            <th class="py-4 px-6 font-normal sticky top-0 bg-[#0D2B70] z-20 border-b-2 border-white">
-                                Job Title
-                            </th>
-                            <th class="py-4 px-6 font-normal text-center sticky top-0 bg-[#0D2B70] z-20 border-b-2 border-white">
-                                Status
-                            </th>
-                            <th class="py-4 px-6 font-normal text-center sticky top-0 bg-[#0D2B70] z-20 border-b-2 border-white">
-                                Actions
-                            </th>
+                            <th class="py-4 px-6 font-normal w-[15%]">Vacancy ID</th>
+                            <th class="py-4 px-6 font-normal w-[45%]">Job Title</th>
+                            <th class="py-4 px-6 font-normal text-center w-[15%]">Status</th>
+                            <th class="py-4 px-6 font-normal text-center w-[25%]">Actions</th>
                         </tr>
                     </thead>
-
-                    <!-- BODY -->
-                    <tbody id="vacancy-list" class="divide-y divide-[#0D2B70]">
-                        @forelse ($vacancies as $vacancy)
-                            <tr class="text-[#0D2B70] select-none hover:bg-blue-50 transition-colors duration-200 border-b-2 border-[#0D2B70]/30 last:border-b-0">
-                                <td class="py-4 px-6">{{ $vacancy->vacancy_id }}</td>
-
-                                <td class="py-4 px-6">
-                                    <p>{{ $vacancy->position_title }}</p>
-                                    <p class="text-[#0D2B70]/70 text-[0.9rem] italic">
-                                        {{ $vacancy->vacancy_type }}
-                                    </p>
-                                </td>
-
-                                <td class="py-4 px-6 text-center">
-                                    <div class="flex justify-center items-center gap-3 font-normal">
-                                        @php
-                                            $statusColor = match (strtolower($vacancy->status)) {
-                                                'open' => 'bg-green-600',
-                                                'closed' => 'bg-red-600',
-                                                default => 'bg-gray-400'
-                                            };
-                                        @endphp
-
-                                        <span class="w-5 h-5 rounded-full inline-block {{ $statusColor }}"></span>
-                                        <span class="font-semibold uppercase">
-                                            {{ $vacancy->status }}
-                                        </span>
-                                    </div>
-                                </td>
-
-                                <td class="py-4 px-6 text-center">
-                                    <div class="flex justify-center items-center">
-                                        <button
-                                            onclick="window.location.href='{{ route('admin.manage_applicants', ['vacancy_id' => $vacancy->vacancy_id]) }}'"
-                                            class="text-[#0D2B70] border border-[#0D2B70] font-bold py-1 px-4 rounded-md text-sm
-                                            transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
-                                            hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md
-                                            flex items-center gap-2 relative">
-
-                                            <x-heroicon-o-cog-6-tooth class="w-4 h-4" />
-                                            <span>Manage</span>
-
-                                            @if($vacancy->pending_count > 0)
-                                                <span class="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[9px] font-bold text-white shadow-sm ring-1 ring-white">
-                                                    {{ $vacancy->pending_count }}
-                                                </span>
-                                            @endif
-
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="4" class="text-center py-10 text-gray-500 text-xl border-t-2 border-[#0D2B70]/20">
-                                    No applications found.
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-
-                    <!-- FOOTER: Adds a nice bottom border -->
-                    <tfoot>
-                        <tr>
-                            <td colspan="4" class="border-t-2 border-[#0D2B70]/20 h-1"></td>
-                        </tr>
-                    </tfoot>
                 </table>
             </div>
-        </div>
-                                    
-        @include('partials.loader')
-    </main>
+<!-- SCROLLABLE BODY CONTAINER -->
+    <div class="flex-1 overflow-y-auto min-h-0">
+        <table class="w-full align-items-center text-left border-collapse table-fixed">
+            <tbody id="vacancy-list" class="divide-y divide-[#0D2B70]">
+                @forelse ($vacancies as $vacancy)
+                    <tr class="text-[#0D2B70] select-none hover:bg-blue-50 transition-colors duration-200">
+                        <td class="py-4 px-6 w-[15%]">{{ $vacancy->vacancy_id }}</td>
+
+                        <td class="py-4 px-6 w-[45%]">
+                            <p class="font-medium">{{ $vacancy->position_title }}</p>
+                            <p class="text-[#0D2B70]/70 text-[0.8rem] italic mt-0.5">
+                                {{ $vacancy->vacancy_type }}
+                            </p>
+                        </td>
+
+                        <td class="py-4 px-6 text-center w-[15%]">
+                            <div class="flex justify-center items-center gap-2 font-normal">
+                                @php
+                                    $statusColor = match (strtolower($vacancy->status)) {
+                                        'open' => 'bg-green-600',
+                                        'closed' => 'bg-red-600',
+                                        default => 'bg-gray-400'
+                                    };
+                                @endphp
+
+                                <span class="w-4 h-4 rounded-full inline-block {{ $statusColor }}"></span>
+                                <span class="font-semibold uppercase text-sm">
+                                    {{ $vacancy->status }}
+                                </span>
+                            </div>
+                        </td>
+
+                        <td class="py-4 px-6 text-center w-[25%]">
+                            <div class="flex justify-center items-center">
+                                <button
+                                    onclick="window.location.href='{{ route('admin.manage_applicants', ['vacancy_id' => $vacancy->vacancy_id]) }}'"
+                                    class="text-[#0D2B70] border border-[#0D2B70] font-bold py-1.5 px-4 rounded-md text-xs
+                                           transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
+                                           hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md
+                                           flex items-center gap-2 relative">
+
+                                    <x-heroicon-o-cog-6-tooth class="w-4 h-4" />
+                                    <span>MANAGE</span>
+
+                                    @if($vacancy->pending_count > 0)
+                                        <span class="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-[10px] font-bold text-white shadow-sm ring-1 ring-white">
+                                            {{ $vacancy->pending_count }}
+                                        </span>
+                                    @endif
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="4" class="text-center py-12 text-gray-500 text-lg">
+                            <div class="flex flex-col items-center justify-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                                </svg>
+                                <p>No job vacancies found.</p>
+                            </div>
+                        </td>
+                    </tr>
+                @endforelse
+            </tbody>
+            
+            <!-- Optional: Add bottom padding for better scrolling experience -->
+            <tfoot>
+                <tr>
+                    <td colspan="4" class="h-4"></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>           
+    @include('partials.loader')
+</main>
 
     <script>
         // Debounce Function to prevent traffic overload

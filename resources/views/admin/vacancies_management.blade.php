@@ -421,7 +421,8 @@
 
     <!-- Table Container -->
     <div class="flex-1 flex flex-col min-h-0 overflow-hidden border border-[#0D2B70] rounded-xl">
-        <div class="flex-1 overflow-auto">
+
+        <div class="bg-[#0D2B70] text-white rounded-t-xl">
             <table class="w-full text-left border-collapse">
                 <thead class="bg-[#0D2B70] text-white sticky top-0 z-10">
                     <tr>
@@ -433,6 +434,11 @@
                         <th class="py-4 px-6 font-normal text-center">Actions</th>
                     </tr>
                 </thead>
+            </table>
+        </div>
+
+        <div class="flex-1 overflow-auto min-h-0">
+            <table class="w-full text-left border-collapse">
                 <tbody id="vacancy-list" class="divide-y divide-[#0D2B70]">
                     @forelse ($vacancies as $vacancy)
                         @include('partials.admin_job_vacancy_card', ['vacancy' => $vacancy, 'index' => $loop->index])
@@ -448,6 +454,12 @@
             </table>
         </div>
     </div>
+<script>
+    // Re-initialize Feather icons
+    if (typeof feather !== 'undefined') {
+        feather.replace();
+    }
+</script>
 </main>
 
 @push('scripts')
