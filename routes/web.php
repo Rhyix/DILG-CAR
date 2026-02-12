@@ -20,6 +20,7 @@ use App\Http\Controllers\{
     WorkExpSheetController,
     ExportController,
     ImportController,
+    SignatoryController,
 };
 use App\Http\Middleware\RedirectIfNotAdmin;
 use App\Http\Middleware\ViewerAccess;
@@ -349,6 +350,19 @@ Route::middleware([RedirectIfNotAdmin::class])->group(function () {
 
     Route::get("/admin/activity_log", [activityLogController::class, 'view'])->name('admin_activity_log');
     Route::get('/admin/activity-log/data', [activityLogController::class, 'fetch'])->name('admin.activity_log.fetch');
+
+    // ==================================================================================================
+    // SIGNATORY ROUTES
+    // ==================================================================================================
+    Route::resource('/admin/signatories', SignatoryController::class)->names([
+        'index' => 'signatories.index',
+        'create' => 'signatories.create',
+        'store' => 'signatories.store',
+        'show' => 'signatories.show',
+        'edit' => 'signatories.edit',
+        'update' => 'signatories.update',
+        'destroy' => 'signatories.destroy',
+    ]);
 
 });
 
