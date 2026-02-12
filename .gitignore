@@ -28,3 +28,5 @@ Thumbs.db
 .env.backup
 .env.production
 
+.env
+.env
