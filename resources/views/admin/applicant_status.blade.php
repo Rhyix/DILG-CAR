@@ -37,13 +37,23 @@
 								@csrf
 								<!-- Applicant Header -->
 								<div class="mb-6">
-									<h1 class="text-2xl md:text-3xl font-bold text-[#002C76] mb-4">{{ $applicant_name }}</h1>
-
+									<!-- applicant name and notify applicant button -->
+									<div class="flex flex-row justify-between items-center mb-4">
+										<h1 class="text-2xl font-bold text-[#002C76]">{{ $applicant_name }}</h1>
+										<!-- Save Applicant Remarks button removed as per Phase 3 -->
+											<button
+												id="notify-applicant-btn"
+												type="button"
+												onclick="openNotifyModal()"
+												class="text-sm py-1 border bg-[#002C76] text-white px-6 rounded-md hover:scale-105 hover:shadow-md transition duration-150 flex items-center justify-center">
+												Notify Applicant
+											</button>
+									</div>
 									<!-- Job Details Grid -->
 									<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
 										<div>
 											<div class="text-xs font-semibold text-gray-700 uppercase mb-1">Job Applied:</div>
-											<div class="text-sm text-gray-900">{{ $job_applied }}</div>
+											<div class="text-sm text-gray-900">{{ $job_applied }}, <b>{{ $vacancy_type }}</b> position</div>
 										</div>
 										<div>
 											<div class="text-xs font-semibold text-gray-700 uppercase mb-1">Place of Assignment:
@@ -81,7 +91,7 @@
 												<div class="text-sm font-semibold text-gray-700">Qualification Standards:</div>
 
 												<!-- Result -->
-												<div class="flex items-center  cursor-pointer group" onclick="toggleResult(this)">
+												<div class="flex items-center  cursor-default group" onclick="toggleResult(this)">
 													@php
 														$resultStatus = old('qs_result', $application->qs_result ?? 'Not Qualified');
 														$textColor = $resultStatus === 'Qualified' ? 'text-green-600' : 'text-red-600';
@@ -95,7 +105,7 @@
 											</div>
 											<div class="grid grid-cols-2 md:grid-cols-4 items-center gap-x-4 gap-y-2">
 												<!-- Education -->
-												<div class="flex items-center  cursor-pointer group"
+												<div class="flex items-center  cursor-default group"
 													onclick="toggleQS(this.querySelector('.qs-toggle'))">
 													<button type="button"
 														class="qs-toggle w-2.5 h-2.5 shrink-0 rounded-full transition-all {{ old('qs_education', $application->qs_education ?? 'no') == 'yes' ? 'bg-green-500' : 'bg-red-500' }}"
@@ -108,7 +118,7 @@
 												</div>
 
 												<!-- Eligibility -->
-												<div class="flex items-center  cursor-pointer group"
+												<div class="flex items-center  cursor-default group"
 													onclick="toggleQS(this.querySelector('.qs-toggle'))">
 													<button type="button"
 														class="qs-toggle w-2.5 h-2.5 shrink-0 rounded-full transition-all {{ old('qs_eligibility', $application->qs_eligibility ?? 'no') == 'yes' ? 'bg-green-500' : 'bg-red-500' }}"
@@ -122,7 +132,7 @@
 												</div>
 
 												<!-- Experience -->
-												<div class="flex items-center  cursor-pointer group"
+												<div class="flex items-center  cursor-default group"
 													onclick="toggleQS(this.querySelector('.qs-toggle'))">
 													<button type="button"
 														class="qs-toggle w-2.5 h-2.5 shrink-0 rounded-full transition-all {{ old('qs_experience', $application->qs_experience ?? 'no') == 'yes' ? 'bg-green-500' : 'bg-red-500' }}"
@@ -135,7 +145,7 @@
 												</div>
 
 												<!-- Training -->
-												<div class="flex items-center  cursor-pointer group"
+												<div class="flex items-center  cursor-default group"
 													onclick="toggleQS(this.querySelector('.qs-toggle'))">
 													<button type="button"
 														class="qs-toggle w-2.5 h-2.5 shrink-0 rounded-full transition-all {{ old('qs_training', $application->qs_training ?? 'no') == 'yes' ? 'bg-green-500' : 'bg-red-500' }}"
@@ -233,11 +243,8 @@
 
 										<hr class="my-3">
 
-										<!-- applicant remarks -->
 										<div class="bg-white rounded-lg text-sm mb-2">
 											<div class="font-bold text-gray-800 mb-2">Applicant Remarks</div>
-
-											<!-- Vertical Text Area -->
 											@php
 												$confirmedCount = collect($documents)->where('status', 'confirmed')->count();
 												$isComplete = $confirmedCount === 17;
@@ -263,17 +270,6 @@
 												style="min-height: 200px; text-align: start;">{{ old('application_remarks', $application->application_remarks ?? $defaultRemarks) }}</textarea>
 										</div>
 
-
-										<!-- action buttons -->
-										<div class="flex flex-col gap-2">
-											<!-- Save Applicant Remarks button removed as per Phase 3 -->
-											<button
-												id="notify-applicant-btn"
-												onclick="notifyApplicant()"
-												class="text-sm py-1 border bg-[#002C76] text-white px-6 rounded-md hover:scale-105 hover:shadow-md transition duration-150 flex items-center justify-center">
-												Notify Applicant
-											</button>
-										</div>
 									</section>
 
 									<!-- MIDDLE - Document Preview -->
@@ -281,20 +277,19 @@
 										class="flex-1 bg-white rounded-xl border border-gray-300 shadow-lg p-6 flex flex-col min-w-0">
 
 										<!-- Document Header -->
-										<div class="mb-4 w-full flex flex-row justify-between py-2 border-b border-gray-400">
+										<div class="mb-4 w-full flex flex-row justify-between pb-2 border-b border-gray-400">
 											<!-- document name, status, last modified by -->
 											<div class="w-full">
 												<!-- document name -->
-												<h2 id="document-title" class="text-2xl font-bold text-[#002C76] mb-1">Application
-													Letter</h2>
+												<h2 id="document-title" class="text-2xl font-bold text-[#002C76] mb-1">Document Here</h2>
 												<!-- APPROVED = #00730A -->
 												<!-- PENDING = #E47E00 -->
 												<!-- REJECTED / NEEDS REVISIONS = #BC0000 -->
-												<span id="document-status-text" class="text-sm text-gray-600">Status:
-													<span id="document-status-value" class="text-[#E47E00] font-bold">Pending</span>
+												<span id="document-status-text" class="text-sm text-gray-600">Status: 
+													<span id="document-status-value" class="text-[#E47E00] font-bold"></span>
 												</span>
-												<p id="document-modified" class="text-sm text-gray-600">Last modified by:
-													<span class="font-medium">Jane Doe</span>
+												<p id="document-modified" class="text-sm text-gray-600 hidden">Last modified by:
+													<span class="font-medium">{{ $admin_name ?? 'N/A' }}</span>
 												</p>
 											</div>
 
@@ -321,7 +316,7 @@
 										</div>
 
 										<!-- Remarks and Buttons Row -->
-										<div class="mb-4 flex justify-between gap-3">
+										<div id="document-remarks-section" class="mb-4 flex justify-between gap-3 hidden">
 											<!-- Remarks Textarea -->
 											<div class="flex-1">
 												<div class="flex items-center justify-between mb-2">
@@ -334,7 +329,7 @@
 												<div class="flex flex-row gap-2">
 													<textarea id="remarks" rows="4" disabled
 														class="w-full text-sm text-gray-700 rounded-lg p-3 resize-none border border-[#002C76] focus:border-[#0066CC] focus:ring-2 focus:ring-blue-200 transition bg-gray-50"
-														placeholder="Select a document to view and add remarks...">Select a document to preview </textarea>
+														placeholder="Select a document to view and add remarks..."></textarea>
 												</div>
 											</div>
 										</div>
@@ -355,6 +350,81 @@
 						</div>
 
 
+				</div>
+
+				<div id="notify-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden">
+					<div class="bg-white rounded-lg shadow-xl max-w-3xl w-full mx-4">
+						<div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+							<h3 class="text-lg font-semibold text-gray-800">Notify Applicant Overview</h3>
+							<button type="button" onclick="closeNotifyModal()" class="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+						</div>
+						<div class="px-6 py-4 max-h-[75vh] overflow-y-auto space-y-4">
+							<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+								<div class="space-y-2">
+									<div class="text-xs font-semibold text-gray-500 uppercase">Job Applied</div>
+									<div id="notify-job-applied" class="text-sm font-semibold text-gray-900"></div>
+									<div class="text-xs text-gray-600">
+										<span id="notify-place-of-assignment"></span>
+									</div>
+								</div>
+								<div class="space-y-2">
+									<div class="text-xs font-semibold text-gray-500 uppercase">Compensation</div>
+									<div id="notify-compensation" class="text-sm font-semibold text-gray-900"></div>
+									<div class="text-xs text-gray-600">
+										Deadline: <span id="notify-deadline"></span>
+									</div>
+								</div>
+							</div>
+							<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+								<div class="space-y-2">
+									<div class="text-xs font-semibold text-gray-500 uppercase">Qualification Standards</div>
+									<ul id="notify-qs-list" class="text-xs text-gray-800 space-y-1"></ul>
+								</div>
+								<div class="space-y-2">
+									<div class="text-xs font-semibold text-gray-500 uppercase">Application Progress</div>
+									<div class="flex items-center gap-3">
+										<div class="flex-1 h-3 bg-gray-200 rounded-full overflow-hidden">
+											<div id="notify-progress-bar" class="h-full bg-[#002C76]" style="width:0%"></div>
+										</div>
+										<div class="text-xs text-gray-700">
+											<span id="notify-progress-percentage">0%</span>
+											<span class="text-gray-500 ml-1">
+												(<span id="notify-progress-count">0/0</span> Documents)
+											</span>
+										</div>
+									</div>
+								</div>
+							</div>
+							<div class="border border-gray-200 rounded-md">
+								<div class="px-3 py-2 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+									<h4 class="text-sm font-semibold text-gray-700">Required Documents</h4>
+									<span class="text-[10px] text-gray-500">With remarks only for items needing revision</span>
+								</div>
+								<table class="min-w-full text-xs">
+									<thead class="bg-gray-50 text-gray-600">
+										<tr>
+											<th class="px-3 py-2 text-left font-semibold">Document</th>
+											<th class="px-3 py-2 text-left font-semibold">Status</th>
+											<th class="px-3 py-2 text-left font-semibold">Remarks</th>
+										</tr>
+									</thead>
+									<tbody id="notify-documents-body" class="divide-y divide-gray-100"></tbody>
+								</table>
+							</div>
+							<div>
+								<h4 class="text-sm font-semibold text-gray-700 mb-2">Applicant Remarks</h4>
+								<p id="notify-applicant-remarks" class="text-xs text-gray-800 whitespace-pre-line border border-gray-200 rounded-md p-3 bg-gray-50"></p>
+							</div>
+						</div>
+						<div class="px-6 py-3 border-t border-gray-200 flex justify-end gap-3">
+							<button type="button" onclick="closeNotifyModal()" class="px-4 py-2 text-xs font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50">
+								Cancel
+							</button>
+							<button type="button" onclick="notifyApplicant()" class="px-4 py-2 text-xs font-medium text-white bg-[#002C76] rounded-md hover:bg-[#003b9c]">
+								Send Email
+							</button>
+						</div>
+					</div>
 				</div>
 
 				@include('partials.loader')
@@ -510,29 +580,47 @@
 					}
 
 					let currentSelectedDoc = null;
-					const toggleContainer = document.getElementById("toggle-container"); // kept for compatibility if needed, but mostly hidden
+					const toggleContainer = document.getElementById("toggle-container");
+
+					function setDocumentRemarksVisibility(show) {
+						const section = document.getElementById('document-remarks-section');
+						if (!section) return;
+						if (show) {
+							section.classList.remove('hidden');
+						} else {
+							section.classList.add('hidden');
+						}
+					}
 
 					function handleDocumentClick(doc) {
 						currentSelectedDoc = doc;
 						
-						// Update Title
 						document.getElementById('document-title').textContent = doc.name || doc.text;
 						
-						// Update Status UI
+						const statusTextEl = document.getElementById('document-status-text');
+						if (statusTextEl) {
+							statusTextEl.classList.remove('hidden');
+						}
+						const modifiedEl = document.getElementById('document-modified');
+						if (modifiedEl) {
+							modifiedEl.classList.remove('hidden');
+						}
+						
 						updateStatusUI(doc.status);
 						
-						// Update Remarks
 						const remarksEl = document.getElementById('remarks');
 						remarksEl.value = doc.remarks || "";
 						remarksEl.disabled = false;
 						remarksEl.placeholder = "Add remarks for this document...";
+						if (doc.status === "Needs Revision" || doc.status === "Disapproved With Deficiency") {
+							setDocumentRemarksVisibility(true);
+						} else {
+							setDocumentRemarksVisibility(false);
+						}
 						
-						// Update Preview
 						const previewEl = document.getElementById('doc-preview');
 						previewEl.src = doc.preview || "";
 						
-						// Highlight selected in list
-						// (Optional: add visual feedback in list)
 					}
 
 					function updateStatusUI(status) {
@@ -559,9 +647,27 @@
 							return;
 						}
 						
-						// Optimistic Update
 						updateStatusUI(newStatus);
 						currentSelectedDoc.status = newStatus;
+						
+						const remarksEl = document.getElementById('remarks');
+						if (newStatus === 'Needs Revision') {
+							setDocumentRemarksVisibility(true);
+							if (remarksEl) {
+								remarksEl.disabled = false;
+								if (!remarksEl.value) {
+									remarksEl.placeholder = "Add remarks for this document...";
+								}
+							}
+						} else if (newStatus === 'Verified') {
+							if (remarksEl) {
+								remarksEl.value = "";
+							}
+							if (currentSelectedDoc) {
+								currentSelectedDoc.remarks = "";
+							}
+							setDocumentRemarksVisibility(false);
+						}
 						
 						// Update List
 						renderDocuments(documents);
@@ -569,16 +675,20 @@
 						updateQualificationStatus();
 						
 						try {
+							const payload = {
+								document_type: currentSelectedDoc.id,
+								status: newStatus
+							};
+							if (newStatus === 'Verified') {
+								payload.remarks = "";
+							}
 							const response = await fetch(`/admin/applicant_status/${userId}/${vacancyId}/update-document`, {
 								method: 'POST',
 								headers: {
 									'Content-Type': 'application/json',
 									'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
 								},
-								body: JSON.stringify({
-									document_type: currentSelectedDoc.id,
-									status: newStatus
-								})
+								body: JSON.stringify(payload)
 							});
 							
 							if (!response.ok) throw new Error('Failed to update status');
@@ -654,7 +764,6 @@
 						}, 1500);
 					});
 
-					// Notify Applicant
 					async function notifyApplicant() {
 						const btn = document.getElementById('notify-applicant-btn');
 						const originalText = btn.textContent;
@@ -685,7 +794,113 @@
 							btn.disabled = false;
 							btn.textContent = originalText;
 							btn.classList.remove("opacity-75", "cursor-not-allowed");
+							closeNotifyModal();
 						}
+					}
+
+					function openNotifyModal() {
+						const bodyEl = document.getElementById('notify-documents-body');
+						const remarksSummaryEl = document.getElementById('notify-applicant-remarks');
+						if (!bodyEl || !remarksSummaryEl) return;
+
+						const jobEl = document.getElementById('notify-job-applied');
+						const placeEl = document.getElementById('notify-place-of-assignment');
+						const compEl = document.getElementById('notify-compensation');
+						const deadlineEl = document.getElementById('notify-deadline');
+						const qsListEl = document.getElementById('notify-qs-list');
+						const progressBarEl = document.getElementById('notify-progress-bar');
+						const progressPctEl = document.getElementById('notify-progress-percentage');
+						const progressCountEl = document.getElementById('notify-progress-count');
+
+						if (jobEl) {
+							jobEl.textContent = "{{ $job_applied }}, {{ $vacancy_type }} position";
+						}
+						if (placeEl) {
+							placeEl.textContent = "{{ $place_of_assignment }}";
+						}
+						if (compEl) {
+							compEl.textContent = "₱{{ number_format($compensation, 2) }}";
+						}
+						if (deadlineEl) {
+							const dateInput = document.querySelector('input[name=\"deadline_date\"]');
+							const timeInput = document.querySelector('input[name=\"deadline_time\"]');
+							const dateValue = dateInput ? dateInput.value : "";
+							const timeValue = timeInput ? timeInput.value : "";
+							deadlineEl.textContent = dateValue
+								? (timeValue ? `${dateValue} ${timeValue}` : dateValue)
+								: "No deadline set";
+						}
+
+						if (qsListEl) {
+							qsListEl.innerHTML = "";
+							const qsItems = [
+								{ field: 'qs_education', label: 'Education' },
+								{ field: 'qs_eligibility', label: 'Eligibility' },
+								{ field: 'qs_experience', label: 'Experience' },
+								{ field: 'qs_training', label: 'Training' }
+							];
+							qsItems.forEach(item => {
+								const input = document.querySelector(`input[name=\"${item.field}\"]`);
+								const value = input ? input.value : '';
+								let text = 'N/A';
+								let color = 'text-gray-500';
+								if (value === 'yes') {
+									text = 'Meets standard';
+									color = 'text-green-600';
+								} else if (value === 'no') {
+									text = 'Does not meet standard';
+									color = 'text-red-600';
+								}
+								const li = document.createElement('li');
+								li.innerHTML = `<span class=\"font-semibold\">${item.label}:</span> <span class=\"${color}\">${text}</span>`;
+								qsListEl.appendChild(li);
+							});
+						}
+
+						if (progressBarEl && progressPctEl && progressCountEl) {
+							const srcPct = document.getElementById('progress-percentage');
+							const srcCount = document.getElementById('progress-count');
+							const pctText = srcPct ? srcPct.textContent : '0%';
+							const countText = srcCount ? srcCount.textContent : '0/0';
+							progressPctEl.textContent = pctText;
+							progressCountEl.textContent = countText;
+							const pctNumber = parseInt(pctText.replace('%', '')) || 0;
+							progressBarEl.style.width = pctNumber + '%';
+						}
+
+						let rowsHtml = "";
+						documents.forEach(doc => {
+							const status = doc.status || "";
+							const iconHtml = getStatusIcon(status);
+							let remarksText = "";
+							if (status === "Needs Revision" || status === "Disapproved With Deficiency") {
+								remarksText = doc.remarks || "";
+							}
+							rowsHtml += `
+								<tr>
+									<td class="px-3 py-2 align-top text-gray-900">${doc.text}</td>
+									<td class="px-3 py-2 align-top text-gray-700">
+										<div class="flex items-center gap-1">
+											<span>${iconHtml}</span>
+											<span>${status}</span>
+										</div>
+									</td>
+									<td class="px-3 py-2 align-top text-gray-700">${remarksText}</td>
+								</tr>
+							`;
+						});
+						bodyEl.innerHTML = rowsHtml;
+
+						const appRemarksInput = document.getElementById('application_remarks_input');
+						remarksSummaryEl.textContent = appRemarksInput ? appRemarksInput.value : "";
+
+						const modal = document.getElementById('notify-modal');
+						if (modal) modal.classList.remove('hidden');
+					}
+
+					function closeNotifyModal() {
+						const modal = document.getElementById('notify-modal');
+						if (modal) modal.classList.add('hidden');
 					}
 
 
@@ -700,6 +915,7 @@
 							li.className = "cursor-pointer hover:text-blue-700";
 
 							const btn = document.createElement('button');
+							btn.type = "button";
 							btn.className = "w-full text-left";
 
 							if (doc.isBold) btn.classList.add('font-bold');
