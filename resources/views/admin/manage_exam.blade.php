@@ -265,7 +265,8 @@
 
                                     <!-- Action Button -->
                                     <td class="py-3 px-3 md:py-4 md:px-6 text-center w-[25%]">
-                                        <button class="text-[#0D2B70] border border-[#0D2B70] font-bold py-1.5 px-3 md:py-2 md:px-6 rounded-md text-xs md:text-sm
+                                        <button onclick="window.location.href='{{ route('admin.view_exam', ['vacancy_id' => $p->vacancy_id, 'user_id' => $p->user_id]) }}'"
+                                            class="text-[#0D2B70] border border-[#0D2B70] font-bold py-1.5 px-3 md:py-2 md:px-6 rounded-md text-xs md:text-sm
                                                 transition-all duration-150 ease-[cubic-bezier(0.4,0,0.2,1)]
                                                 hover:scale-105 hover:bg-[#002C76] hover:text-white hover:shadow-md inline-flex items-center gap-1 md:gap-2">
                                             <x-heroicon-o-eye class="w-3 h-3 md:w-4 md:h-4" />

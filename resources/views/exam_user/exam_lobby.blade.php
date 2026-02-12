@@ -104,10 +104,14 @@
     function startPolling() {
         pollInterval = setInterval(() => {
             console.log("Checking if admin started exam...");
-            const randomStart = Math.random() > 0.8;
-            if (randomStart) {
-                markExamStarted();
-            }
+            fetch("{{ route('exam.status.check', ['vacancy_id' => $vacancy_id]) }}")
+                .then(response => response.json())
+                .then(data => {
+                    if (data.started) {
+                        markExamStarted();
+                    }
+                })
+                .catch(error => console.error("Error polling exam status:", error));
         }, 5000);
     }
 

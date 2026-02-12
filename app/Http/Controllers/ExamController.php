@@ -33,6 +33,7 @@ class ExamController extends Controller
 
         // Update the answers field
         $answerRecord->answers = $validated['answers'];
+        $answerRecord->status = 'submitted'; // Ensure status is updated to 'submitted'
         $answerRecord->save();
 
         //$message = "submitted successfully";
@@ -670,6 +671,19 @@ class ExamController extends Controller
                 'message' => 'Server Error: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    public function checkExamStatus(Request $request, $vacancy_id)
+    {
+        $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->first();
+
+        if (!$examDetail) {
+            return response()->json(['started' => false]);
+        }
+
+        return response()->json([
+            'started' => (bool) $examDetail->is_started
+        ]);
     }
 
     public function confirmNotification($token)

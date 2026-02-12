@@ -49,6 +49,39 @@ Route::get('/', function () {
 })->name('dashboard');
 
 // ==================================================================================================
+// TEST PREVIEW ROUTES (Delete after use)
+// ==================================================================================================
+Route::get('/preview/exam/lobby', function () {
+    return view('exam_user.exam_lobby', ['vacancy_id' => 'PREVIEW-123']);
+})->name('preview.exam.lobby');
+
+Route::get('/preview/exam/questions', function () {
+    // Mock exam items
+    $examItems = [
+        (object) [
+            'id' => 1,
+            'question' => 'What is the capital of the Philippines?',
+            'is_essay' => 0,
+            'choices' => ['Manila', 'Cebu', 'Davao', 'Baguio']
+        ],
+        (object) [
+            'id' => 2,
+            'question' => 'Explain the importance of public service.',
+            'is_essay' => 1,
+            'choices' => null
+        ]
+    ];
+    return view('exam_user.exam_question_page', [
+        'vacancy_id' => 'PREVIEW-123', 
+        'examItems' => $examItems
+    ]);
+})->name('preview.exam.questions');
+
+Route::get('/preview/exam/thankyou', function () {
+    return view('exam_user.exam_thankyou', ['vacancy_id' => 'PREVIEW-123']);
+})->name('preview.exam.thankyou');
+
+// ==================================================================================================
 // PUBLIC ROUTES (No authentication required)
 // ==================================================================================================
 
@@ -391,6 +424,7 @@ Route::middleware([ViewerAccess::class])->group(function () {
     Route::post('/admin/exam_management/{vacancy_id}/start', [ExamController::class, 'startExam'])->name('admin.exam_start');
     Route::get('/admin/exam_management/{vacancy_id}/lobby-data', [ExamController::class, 'getLobbyData'])->name('admin.exam.lobby_data');
     Route::post('/admin/exam_management/{vacancy_id}/notify-selected', [ExamController::class, 'notifySelectedApplicants'])->name('admin.exam.notify_selected');
+    Route::get('/exam/status/{vacancy_id}', [ExamController::class, 'checkExamStatus'])->name('exam.status.check');
 
 
     // Exam Library Routes
