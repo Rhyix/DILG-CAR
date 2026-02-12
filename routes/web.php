@@ -342,6 +342,10 @@ Route::middleware([RedirectIfNotAdmin::class])->group(function () {
     Route::delete('/admin/vacancies/{vacancy_id}/delete', [JobVacancyController::class, 'delete'])->name('vacancies.delete');
     Route::get('/admin/applicant_status/{user_id}/{vacancy_id}', [AdminController::class, 'viewApplicantStatus'])->name('admin.applicant_status');
     Route::post('/admin/applicant_status/{user_id}/{vacancy_id}', [AdminController::class, 'updateApplicantStatus'])->name('admin.applicant_status.update');
+    Route::post('/admin/applicant_status/{user_id}/{vacancy_id}/update-document', [AdminController::class, 'updateDocumentStatusAjax'])->name('admin.applicant_status.update_document');
+    Route::post('/admin/applicant_status/{user_id}/{vacancy_id}/update-remarks', [AdminController::class, 'updateApplicationRemarksAjax'])->name('admin.applicant_status.update_remarks');
+    Route::post('/admin/applicant_status/{user_id}/{vacancy_id}/notify', [AdminController::class, 'notifyApplicant'])->name('admin.applicant_status.notify');
+    Route::get('/admin/preview-document/{user_id}/{vacancy_id}/{document_type}', [AdminController::class, 'previewDocument'])->name('admin.preview_document');
 
     Route::get("/admin/activity_log", [activityLogController::class, 'view'])->name('admin_activity_log');
     Route::get('/admin/activity-log/data', [activityLogController::class, 'fetch'])->name('admin.activity_log.fetch');
@@ -501,6 +505,69 @@ Route::get('/mobile-locked', function () {
 
 
 // LIVE SERVER ROUTES
+Route::get('/preview-file/{path}', function ($path) {
+    // Decode: urldecode first (in case of double encoding or + issues), then base64
+    $decodedPath = base64_decode(urldecode($path));
+
+    // Helper to return "No Document Submitted" view
+    $noDocumentView = function () {
+        return response('
+            <html>
+            <body style="display:flex;justify-content:center;align-items:center;height:100%;margin:0;font-family:sans-serif;background-color:#f9fafb;color:#6b7280;">
+                <div style="text-align:center;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:1rem;display:inline-block;"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+                    <p style="font-size:1.125rem;font-weight:500;">No Document Submitted</p>
+                </div>
+            </body>
+            </html>
+        ', 200);
+    };
+
+    if (empty($decodedPath) || $decodedPath === 'missing') {
+        return $noDocumentView();
+    }
+
+    // Check possible storage locations
+    $paths = [
+        storage_path('app/' . $decodedPath),
+        storage_path('app/public/' . $decodedPath),
+        public_path('storage/' . $decodedPath)
+    ];
+
+    $fullPath = null;
+    foreach ($paths as $p) {
+        if (file_exists($p) && is_file($p)) {
+            $fullPath = $p;
+            break;
+        }
+    }
+
+    if (!$fullPath) {
+        return $noDocumentView();
+    }
+
+    $type = mime_content_type($fullPath);
+    $file = file_get_contents($fullPath);
+
+    // If it's a viewable type, show it
+    if ($type === 'application/pdf' || str_starts_with($type, 'image/') || $type === 'text/plain') {
+        return response($file, 200)->header("Content-Type", $type);
+    }
+
+    // Otherwise show "Preview Not Available"
+    return response('
+        <html>
+        <body style="display:flex;justify-content:center;align-items:center;height:100%;margin:0;font-family:sans-serif;background-color:#f9fafb;color:#6b7280;">
+            <div style="text-align:center;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:1rem;display:inline-block;"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>
+                <p style="font-size:1.125rem;font-weight:500;">Preview Not Available</p>
+                <p style="font-size:0.875rem;margin-top:0.5rem;color:#9ca3af;">File type: ' . htmlspecialchars($type) . '</p>
+            </div>
+        </body>
+        </html>
+    ', 200);
+})->where('path', '.*');
+
 Route::get('storage/{filename}', function ($filename) {
     $path = storage_path('app/public/' . $filename);
 

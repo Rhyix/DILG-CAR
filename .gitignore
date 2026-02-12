@@ -24,7 +24,4 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 
-app/Http/Controllers/Auth/AdminAuthController.php
-app/Http/Controllers/Auth/LoginController.php
-resources/views/login_register/admin_login.blade.php
-resources/views/login_register/login.blade.php
+
