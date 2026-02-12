@@ -32,9 +32,68 @@
             <span class="text-[#0D2B70] text-2xl font-montserrat whitespace-nowrap">{{ $vacancy->position_title }},
                 {{ $vacancy->vacancy_type }} position</span>
             <button
+                onclick="window.location.href='{{ url('/admin/exam-library/select') }}?return={{ urlencode(url()->current()) }}'"
                 class="border border-[#002C76] hover:bg-blue-900 text-[#002C76] hover:text-white font-bold py-2 px-6 rounded inline-flex items-center gap-2">
                 <span>Add from Exam Library</span>
             </button>
+        </div>
+
+        <!-- Question Modal (same design as exam library questions) -->
+        <div id="questionModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
+            <div class="bg-white rounded-xl shadow-2xl p-8 max-w-4xl w-full mx-4 my-8 max-h-[90vh] overflow-y-auto">
+                <h2 id="modalTitle" class="text-2xl font-bold text-[#0D2B70] mb-6">Add Question</h2>
+
+                <form id="questionFormModal" onsubmit="saveQuestionModal(event)">
+                    <input type="hidden" id="modalQuestionIndex" value="">
+
+                    <div class="mb-4">
+                        <label for="questionTextModal" class="block text-sm font-semibold text-gray-700 mb-2">Question <span class="text-red-500">*</span></label>
+                        <input type="text" id="questionTextModal" required
+                            class="w-full px-4 py-2 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0D2B70]"
+                            placeholder="Enter your question here...">
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="questionTypeModal" class="block text-sm font-semibold text-gray-700 mb-2">Question Type
+                        <span class="text-red-500">*</span></label>
+                        <select id="questionTypeModal" required onchange="handleTypeChangeModal()"
+                            class="w-full h-10 cursor-pointer px-4 rounded-md border border-[#0D2B70] text-[#0D2B70] font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-[#0D2B70]">
+                            <option value="multiple_choice">Multiple Choice</option>
+                            <option value="essay">Essay</option>
+                        </select>
+                    </div>
+
+                    <div id="choicesContainerModal" class="mb-4">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Choices</label>
+                        <div id="choicesListModal" class="space-y-2"></div>
+                        <div class="flex items-center gap-3 mt-2" id="addChoiceContainerModal">
+                            <div class="w-5 h-5 rounded-full border-2 border-gray-300 flex-shrink-0"></div>
+                            <button type="button" onclick="addChoiceModal()" id="addChoiceBtnModal"
+                                class="text-sm text-gray-500 hover:text-[#0D2B70] font-medium hover:underline">Add option</button>
+                        </div>
+                        <p class="italic text-sm text-red-500 mt-2" id="choiceTipModal">Tick the option to declare as answer.</p>
+                        <p class="italic text-sm text-red-500 mt-2 hidden" id="choicesErrorModal"></p>
+                    </div>
+
+                    <div id="essayGuideContainerModal" class="mb-4 hidden">
+                        <label for="essayGuideModal" class="block text-sm font-semibold text-gray-700 mb-2">Answer Guide
+                            (Optional)</label>
+                        <textarea id="essayGuideModal" rows="3"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0D2B70]"
+                            placeholder="Answer here."></textarea>
+                    </div>
+
+                    <div class="flex gap-4 justify-end">
+                        <button type="button" onclick="closeQuestionModal()"
+                            class="border-2 border-gray-300 hover:bg-gray-50 text-gray-700 font-bold py-2 px-6 rounded-lg transition">Cancel</button>
+                        <button type="submit" id="saveQuestionModalBtn"
+                            class="bg-[#002C76] hover:bg-blue-900 text-white font-bold py-2 px-6 rounded-lg transition-all duration-200 hover:scale-105">
+                            <i class="fa-solid fa-floppy-disk mr-2"></i>
+                            Save Question
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
 
         <!-- Confirmation Modal -->
@@ -272,6 +331,258 @@
     <!-- Feather Icons -->
     <script src="https://unpkg.com/feather-icons"></script>
     <script>
+        // Modal choice helpers for exam editor
+        let choiceCountModal = 0;
+        let selectedCorrectAnswerModal = -1;
+
+        function createChoiceElementModal(value = '', index = choiceCountModal) {
+            return `
+                <div class="flex items-center gap-3 group">
+                    <div onclick="selectCorrectAnswerModal(${index})" 
+                        class="w-5 h-5 rounded-full border-2 flex-shrink-0 cursor-pointer transition-all flex items-center justify-center choice-radio-modal"
+                        data-index="${index}" style="border-color: ${selectedCorrectAnswerModal === index ? '#0D2B70' : '#9CA3AF'}; background-color: ${selectedCorrectAnswerModal === index ? '#0D2B70' : 'transparent'};">
+                        <div class="w-2 h-2 rounded-full bg-white" style="display: ${selectedCorrectAnswerModal === index ? 'block' : 'none'};"></div>
+                    </div>
+                    <input type="text" class="choice-input-modal flex-1 border-b border-transparent hover:border-gray-300 focus:border-[#0D2B70] focus:outline-none py-1 px-2 transition-colors" 
+                        placeholder="Option ${index + 1}" value="${value}" data-index="${index}">
+                    <button type="button" onclick="removeChoiceModal(${index})" class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-opacity p-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                </div>
+            `;
+        }
+
+        function addChoiceModal(value = '') {
+            const choicesList = document.getElementById('choicesListModal');
+            const div = document.createElement('div');
+            div.innerHTML = createChoiceElementModal(value, choiceCountModal);
+            choicesList.appendChild(div.firstElementChild);
+            choiceCountModal++;
+            attachChoiceListenersModal();
+            validateModalForm();
+        }
+
+        function removeChoiceModal(index) {
+            const choicesList = document.getElementById('choicesListModal');
+            const choices = choicesList.querySelectorAll('.group');
+            choices.forEach(choice => {
+                const input = choice.querySelector('.choice-input-modal');
+                if (input && parseInt(input.dataset.index) === index) {
+                    choice.remove();
+                }
+            });
+            refreshChoiceIndicesModal();
+            validateModalForm();
+        }
+
+        function selectCorrectAnswerModal(index) {
+            selectedCorrectAnswerModal = index;
+            document.querySelectorAll('.choice-radio-modal').forEach(radio => {
+                const radioIndex = parseInt(radio.dataset.index);
+                const isSelected = radioIndex === index;
+                radio.style.borderColor = isSelected ? '#0D2B70' : '#9CA3AF';
+                radio.style.backgroundColor = isSelected ? '#0D2B70' : 'transparent';
+                const dot = radio.querySelector('div');
+                if (dot) dot.style.display = isSelected ? 'block' : 'none';
+            });
+            validateModalForm();
+        }
+
+        function refreshChoiceIndicesModal() {
+            const choicesList = document.getElementById('choicesListModal');
+            const groups = Array.from(choicesList.querySelectorAll('.group'));
+            let foundSelected = false;
+            groups.forEach((group, i) => {
+                const radio = group.querySelector('.choice-radio-modal');
+                const input = group.querySelector('.choice-input-modal');
+                if (radio) {
+                    radio.dataset.index = i;
+                    radio.setAttribute('onclick', `selectCorrectAnswerModal(${i})`);
+                }
+                if (input) {
+                    input.dataset.index = i;
+                    input.placeholder = `Option ${i + 1}`;
+                }
+                if (radio) {
+                    const dot = radio.querySelector('div');
+                    const isSelected = dot && (dot.style.display === 'block');
+                    if (isSelected) {
+                        selectedCorrectAnswerModal = i;
+                        foundSelected = true;
+                    }
+                }
+            });
+            if (!foundSelected) selectedCorrectAnswerModal = -1;
+            choiceCountModal = groups.length;
+        }
+
+        function attachChoiceListenersModal() {
+            document.querySelectorAll('.choice-input-modal').forEach(input => {
+                if (!input._hasListener) {
+                    input.addEventListener('input', () => { refreshChoiceIndicesModal(); validateModalForm(); });
+                    input._hasListener = true;
+                }
+            });
+            document.querySelectorAll('.choice-radio-modal').forEach(radio => {
+                if (!radio._hasListener) {
+                    radio.addEventListener('click', () => selectCorrectAnswerModal(parseInt(radio.dataset.index)));
+                    radio._hasListener = true;
+                }
+            });
+        }
+
+        function getChoicesArrayModal() {
+            return Array.from(document.querySelectorAll('.choice-input-modal')).map(i => i.value.trim()).filter(v => v !== '');
+        }
+
+        function hasDuplicateChoices(arr) {
+            const seen = new Set();
+            for (const v of arr) {
+                const key = v.toLowerCase();
+                if (seen.has(key)) return true;
+                seen.add(key);
+            }
+            return false;
+        }
+
+        function validateModalForm() {
+            const type = document.getElementById('questionTypeModal').value;
+            const questionText = document.getElementById('questionTextModal').value.trim();
+            const choicesError = document.getElementById('choicesErrorModal');
+
+            let valid = true;
+            choicesError.classList.add('hidden');
+            choicesError.textContent = '';
+
+            if (!questionText) valid = false;
+
+            if (type === 'multiple_choice') {
+                const choices = getChoicesArrayModal();
+                if (choices.length < 2) {
+                    valid = false;
+                    choicesError.textContent = 'Multiple choice questions must have at least 2 choices.';
+                    choicesError.classList.remove('hidden');
+                } else if (hasDuplicateChoices(choices)) {
+                    valid = false;
+                    choicesError.textContent = 'Choices must be unique. Please remove duplicate choices.';
+                    choicesError.classList.remove('hidden');
+                }
+
+                if (selectedCorrectAnswerModal === -1) {
+                    valid = false;
+                    if (!choicesError.textContent) {
+                        choicesError.textContent = 'Please select a correct answer.';
+                        choicesError.classList.remove('hidden');
+                    }
+                } else {
+                    const allChoices = Array.from(document.querySelectorAll('.choice-input-modal')).map(i => i.value.trim());
+                    if (!allChoices[selectedCorrectAnswerModal]) {
+                        valid = false;
+                        if (!choicesError.textContent) {
+                            choicesError.textContent = 'The selected correct answer is empty. Please fill in all choices.';
+                            choicesError.classList.remove('hidden');
+                        }
+                    }
+                }
+            }
+
+            return valid;
+        }
+
+        function handleTypeChangeModal() {
+            const type = document.getElementById('questionTypeModal').value;
+            const choicesContainer = document.getElementById('choicesContainerModal');
+            const essayGuideContainer = document.getElementById('essayGuideContainerModal');
+            const addChoiceBtn = document.getElementById('addChoiceContainerModal');
+
+            if (type === 'multiple_choice') {
+                choicesContainer.classList.remove('hidden');
+                essayGuideContainer.classList.add('hidden');
+                addChoiceBtn.classList.remove('hidden');
+                if (choiceCountModal === 0) for (let i=0;i<4;i++) addChoiceModal();
+            } else {
+                choicesContainer.classList.add('hidden');
+                essayGuideContainer.classList.remove('hidden');
+            }
+        }
+
+        function openQuestionModalForEdit(index) {
+            // populate modal with question data from Alpine component
+            const alpineRoot = document.querySelector('[x-data]');
+            const comp = alpineRoot && alpineRoot.__x ? alpineRoot.__x.$data : null;
+            if (!comp) return;
+            const q = comp.questions[index];
+            document.getElementById('modalQuestionIndex').value = index;
+            document.getElementById('modalTitle').textContent = 'Edit Question';
+            document.getElementById('questionTextModal').value = q.duration || q.text || '';
+            document.getElementById('questionTypeModal').value = (q.type && q.type.toLowerCase && q.type.toLowerCase() === 'essay') ? 'essay' : 'multiple_choice';
+            document.getElementById('choicesListModal').innerHTML = '';
+            choiceCountModal = 0;
+            selectedCorrectAnswerModal = -1;
+            if (q.choices && q.choices.length) {
+                q.choices.forEach((c, idx) => { addChoiceModal(c); });
+                if (typeof q.correctAnswer === 'number' && q.correctAnswer >=0) selectCorrectAnswerModal(q.correctAnswer);
+            } else if (document.getElementById('questionTypeModal').value === 'multiple_choice') {
+                for (let i=0;i<4;i++) addChoiceModal();
+            }
+            handleTypeChangeModal();
+            document.getElementById('questionModal').classList.remove('hidden');
+        }
+
+        function openQuestionModalForCreate() {
+            document.getElementById('modalQuestionIndex').value = '';
+            document.getElementById('modalTitle').textContent = 'Add Question';
+            document.getElementById('questionFormModal').reset();
+            document.getElementById('choicesListModal').innerHTML = '';
+            choiceCountModal = 0;
+            selectedCorrectAnswerModal = -1;
+            // default MCQ with 4 choices
+            document.getElementById('questionTypeModal').value = 'multiple_choice';
+            for (let i=0;i<4;i++) addChoiceModal();
+            handleTypeChangeModal();
+            document.getElementById('questionModal').classList.remove('hidden');
+        }
+
+        function closeQuestionModal() {
+            document.getElementById('questionModal').classList.add('hidden');
+        }
+
+        function saveQuestionModal(e) {
+            e.preventDefault();
+            if (!validateModalForm()) return;
+
+            const index = document.getElementById('modalQuestionIndex').value;
+            const text = document.getElementById('questionTextModal').value.trim();
+            const type = document.getElementById('questionTypeModal').value;
+            const choices = (type === 'multiple_choice') ? getChoicesArrayModal() : [];
+            const correctAnswer = (type === 'multiple_choice' && selectedCorrectAnswerModal>=0) ? choices[selectedCorrectAnswerModal] : '';
+            const isEssay = type === 'essay';
+
+            const alpineRoot = document.querySelector('[x-data]');
+            const comp = alpineRoot && alpineRoot.__x ? alpineRoot.__x.$data : null;
+            if (!comp) return;
+
+            const mapped = {
+                text: text,
+                duration: text,
+                type: isEssay ? 'Essay' : 'MCQ',
+                answer: correctAnswer || '',
+                choices: choices.length ? choices : (isEssay ? [] : ['Option 1']),
+                correctAnswer: (selectedCorrectAnswerModal>=0 ? selectedCorrectAnswerModal : -1)
+            };
+
+            if (index === '') {
+                comp.questions.push(mapped);
+            } else {
+                comp.questions.splice(parseInt(index), 1, mapped);
+            }
+            comp.checkForChanges();
+            closeQuestionModal();
+        }
+    </script>
+    <script>
         document.addEventListener('alpine:init', () => {
             feather.replace();
         });
@@ -348,6 +659,44 @@
                     // Save original state for change detection
                     this.originalQuestionsSnapshot = JSON.stringify(this.questions);
                     this.hasChanges = false;
+
+                    // If there are imported questions from Exam Library, merge them
+                    try {
+                        const imported = localStorage.getItem('importedQuestions');
+                        if (imported) {
+                            const payload = JSON.parse(imported);
+                            if (payload && Array.isArray(payload.questions)) {
+                                // Map imported questions to editor format and append
+                                payload.questions.forEach(q => {
+                                    // q likely has {question, question_type, choices, correct_answer}
+                                    let parsedChoices = [];
+                                    if (q.choices) {
+                                        if (Array.isArray(q.choices)) parsedChoices = q.choices;
+                                        else if (typeof q.choices === 'object') parsedChoices = Object.values(q.choices).filter(v => v !== '');
+                                        else if (typeof q.choices === 'string') {
+                                            try { const p = JSON.parse(q.choices); if (Array.isArray(p)) parsedChoices = p; } catch(e){}
+                                        }
+                                    }
+
+                                    const isEssay = q.question_type === 'essay' || q.is_essay === 1 || (q.type && q.type.toLowerCase() === 'essay');
+                                    const text = q.question || q.text || '';
+                                    const correctIndex = parsedChoices.length > 0 && q.correct_answer ? parsedChoices.indexOf(q.correct_answer) : -1;
+
+                                    this.questions.push({
+                                        text: text,
+                                        type: isEssay ? 'Essay' : 'MCQ',
+                                        answer: q.correct_answer || '',
+                                        duration: text,
+                                        choices: parsedChoices.length ? parsedChoices : (isEssay ? [] : ['Option 1']),
+                                        correctAnswer: correctIndex
+                                    });
+                                });
+                                this.checkForChanges();
+                            }
+                            // remove the import payload after consuming
+                            localStorage.removeItem('importedQuestions');
+                        }
+                    } catch (e) { console.error('Error importing questions', e); }
 
                     // Ensure icons are rendered after data load
                     this.$nextTick(() => {

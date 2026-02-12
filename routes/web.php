@@ -395,6 +395,11 @@ Route::middleware([ViewerAccess::class])->group(function () {
 
     // Exam Library Routes
     Route::get('/admin/exam-library', [App\Http\Controllers\ExamLibraryController::class, 'index'])->name('admin.exam_library');
+    // Selection page (read-only) for importing series into an exam
+    Route::get('/admin/exam-library/select', function (Illuminate\Http\Request $request) {
+        $series = App\Models\QuestionSeries::withCount('questions')->orderByDesc('created_at')->get();
+        return view('admin.exam_library.select', compact('series'));
+    })->name('admin.exam_library.select');
     Route::post('/admin/exam-library/series', [App\Http\Controllers\ExamLibraryController::class, 'storeSeries'])->name('admin.exam_library.series.store');
     Route::put('/admin/exam-library/series/{id}', [App\Http\Controllers\ExamLibraryController::class, 'updateSeries'])->name('admin.exam_library.series.update');
     Route::delete('/admin/exam-library/series/{id}', [App\Http\Controllers\ExamLibraryController::class, 'deleteSeries'])->name('admin.exam_library.series.delete');

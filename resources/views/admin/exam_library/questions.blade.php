@@ -85,7 +85,7 @@
 
                     <!-- Question Text -->
                     <div class="mb-4">
-                        <label for="questionText" class="block text-sm font-semibold text-gray-700 mb-2">Question *</label>
+                        <label for="questionText" class="block text-sm font-semibold text-gray-700 mb-2">Question <span class="text-red-500">*</span></label>
                         <input type="text" id="questionText" required
                             class="w-full px-4 py-2 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0D2B70]"
                             placeholder="Enter your question here...">
@@ -94,7 +94,7 @@
                     <!-- Question Type -->
                     <div class="mb-4">
                         <label for="questionType" class="block text-sm font-semibold text-gray-700 mb-2">Question Type
-                            *</label>
+                        <span class="text-red-500">*</span></label>
                         <select id="questionType" required onchange="handleTypeChange()"
                             class="w-full h-10 cursor-pointer px-4 rounded-md border border-[#0D2B70] text-[#0D2B70] font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-[#0D2B70]">
                             <option value="multiple_choice">Multiple Choice</option>
@@ -115,9 +115,10 @@
                                 Add option
                             </button>
                         </div>
-                        <p class="italic text-sm text-[#0D2B70] mt-2" id="choiceTip">
+                        <p class="italic text-sm text-red-500 mt-2" id="choiceTip">
                             Tick the option to declare as answer.
                         </p>
+                        <p class="italic text-sm text-red-500 mt-2 hidden" id="choicesError"></p>
                     </div>
 
                     <!-- Essay Answer Guide -->
@@ -136,8 +137,8 @@
                             class="border-2 border-gray-300 hover:bg-gray-50 text-gray-700 font-bold py-2 px-6 rounded-lg transition">
                             Cancel
                         </button>
-                        <button type="submit"
-                            class="bg-[#002C76] hover:bg-blue-900 text-white font-bold py-2 px-6 rounded-lg transition-all duration-200 hover:scale-105">
+                        <button type="submit" id="saveQuestionBtn" disabled
+                            class="bg-[#002C76] hover:bg-blue-900 text-white font-bold py-2 px-6 rounded-lg transition-all duration-200 hover:scale-105 opacity-60 pointer-events-none">
                             <i class="fa-solid fa-floppy-disk mr-2"></i>
                             Save Question
                         </button>
@@ -159,6 +160,11 @@
         document.addEventListener('DOMContentLoaded', () => {
             loadQuestions();
             handleTypeChange(); // Initialize form based on default type
+            // wire question text validation
+            const qText = document.getElementById('questionText');
+            if (qText) qText.addEventListener('input', validateForm);
+            attachChoiceListeners();
+            validateForm();
         });
 
         // Search and filter
@@ -202,88 +208,88 @@
 
             if (questions.length === 0) {
                 container.innerHTML = `
-                                                        <div class="text-center py-20">
-                                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 mx-auto text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                            </svg>
-                                                            <p class="text-gray-500 text-xl font-semibold">There are no questions yet.</p>
-                                                            <button type="button" onclick="openCreateQuestionModal()"
-                                                                class="mt-4 bg-[#002C76] hover:bg-blue-900 text-white font-bold py-2 px-6 rounded-lg inline-flex items-center gap-2 transition-all duration-200 hover:scale-105">
-                                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                                                                </svg>
-                                                                Add Your First Question
-                                                            </button>
-                                                        </div>
-                                                    `;
+                    <div class="text-center py-20">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 mx-auto text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <p class="text-gray-500 text-xl font-semibold">There are no questions yet.</p>
+                        <button type="button" onclick="openCreateQuestionModal()"
+                            class="mt-4 bg-[#002C76] hover:bg-blue-900 text-white font-bold py-2 px-6 rounded-lg inline-flex items-center gap-2 transition-all duration-200 hover:scale-105">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                            </svg>
+                            Add Your First Question
+                        </button>
+                    </div>
+                `;
                 return;
             }
 
             container.innerHTML = questions.map((q, index) => `
-                                                    <div class="p-6 bg-white rounded-lg shadow border border-gray-200 w-full relative">
-                                                        <!-- Question Header -->
-                                                        <div class="flex justify-between items-start mb-4">
-                                                            <div class="flex-1">
-                                                                <p class="text-lg font-semibold text-gray-800 mb-2">${q.question}</p>
-                                                                <div class="flex gap-2 flex-wrap">
-                                                                    <span class="px-3 py-1 rounded-full text-xs font-semibold ${getTypeColor(q.question_type)}">
-                                                                        ${formatType(q.question_type)}
-                                                                    </span>
-                                                                    ${q.exam_usages_count > 0 ? `<span class="px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">Used in ${q.exam_usages_count} exam(s)</span>` : ''}
-                                                                </div>
-                                                            </div>
-                                                        </div>
+                <div class="p-6 bg-white rounded-lg shadow border border-gray-200 w-full relative">
+                    <!-- Question Header -->
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="flex-1">
+                            <p class="text-lg font-semibold text-gray-800 mb-2">${q.question}</p>
+                            <div class="flex gap-2 flex-wrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-semibold ${getTypeColor(q.question_type)}">
+                                    ${formatType(q.question_type)}
+                                </span>
+                                ${q.exam_usages_count > 0 ? `<span class="px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">Used in ${q.exam_usages_count} exam(s)</span>` : ''}
+                            </div>
+                        </div>
+                    </div>
 
-                                                        ${q.choices && q.choices.length > 0 ? `
-                                                            <div class="mt-4 space-y-2">
-                                                                ${q.choices.map((choice, idx) => `
-                                                                    <div class="flex items-center gap-3">
-                                                                        <div class="w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${q.correct_answer === choice ? 'border-[#0D2B70] bg-[#0D2B70]' : 'border-gray-400'}">
-                                                                            ${q.correct_answer === choice ? '<div class="w-2 h-2 rounded-full bg-white"></div>' : ''}
-                                                                        </div>
-                                                                        <span class="text-gray-700">${choice}</span>
-                                                                    </div>
-                                                                `).join('')}
-                                                            </div>
-                                                            <p class="italic text-sm text-[#0D2B70] mt-2">
-                                                                Correct answer: ${q.correct_answer}
-                                                            </p>
-                                                        ` : ''}
+                    ${q.choices && q.choices.length > 0 ? `
+                        <div class="mt-4 space-y-2">
+                            ${q.choices.map((choice, idx) => `
+                                <div class="flex items-center gap-3">
+                                    <div class="w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${q.correct_answer === choice ? 'border-[#0D2B70] bg-[#0D2B70]' : 'border-gray-400'}">
+                                        ${q.correct_answer === choice ? '<div class="w-2 h-2 rounded-full bg-white"></div>' : ''}
+                                    </div>
+                                    <span class="text-gray-700">${choice}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <p class="italic text-sm text-[#0D2B70] mt-2">
+                            Correct answer: ${q.correct_answer}
+                        </p>
+                    ` : ''}
 
-                                                        ${q.correct_answer && !q.choices ? `
-                                                            <div class="mt-4 pl-4 border-l-2 border-gray-200">
-                                                                <p class="text-sm text-green-600 font-semibold">✓ Answer: ${q.correct_answer}</p>
-                                                            </div>
-                                                        ` : ''}
+                    ${q.correct_answer && !q.choices ? `
+                        <div class="mt-4 pl-4 border-l-2 border-gray-200">
+                            <p class="text-sm text-green-600 font-semibold">✓ Answer: ${q.correct_answer}</p>
+                        </div>
+                    ` : ''}
 
-                                                        <!-- Action Buttons -->
-                                                        <div class="flex justify-end gap-2 mt-4">
-                                                            <button onclick="editQuestion(${q.id})" title="Edit this question"
-                                                                class="text-white font-bold p-3 rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-md relative group">
-                                                                <i class="fa-solid fa-pen-to-square text-blue-600 text-xl"></i>
-                                                                <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1 bg-gray-800 text-white text-xs rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-                                                                    Edit Question
-                                                                </span>
-                                                            </button>
+                    <!-- Action Buttons -->
+                    <div class="flex justify-end gap-2 mt-4">
+                        <button onclick="editQuestion(${q.id})" title="Edit this question"
+                            class="text-white font-bold p-3 rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-md relative group">
+                            <i class="fa-solid fa-pen-to-square text-blue-600 text-xl"></i>
+                            <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1 bg-gray-800 text-white text-xs rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                                Edit Question
+                            </span>
+                        </button>
 
-                                                            <button onclick="duplicateQuestion(${q.id})" title="Duplicate this question"
-                                                                class="text-white font-bold p-3 rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-md relative group">
-                                                                <i class="fa-solid fa-copy text-[#0D2B70] text-xl"></i>
-                                                                <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1 bg-gray-800 text-white text-xs rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-                                                                    Duplicate Question
-                                                                </span>
-                                                            </button>
+                        <button onclick="duplicateQuestion(${q.id})" title="Duplicate this question"
+                            class="text-white font-bold p-3 rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-md relative group">
+                            <i class="fa-solid fa-copy text-[#0D2B70] text-xl"></i>
+                            <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1 bg-gray-800 text-white text-xs rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                                Duplicate Question
+                            </span>
+                        </button>
 
-                                                            <button onclick="deleteQuestion(${q.id})" title="Remove this question"
-                                                                class="text-white font-bold p-3 rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-md relative group">
-                                                                <i class="fa-solid fa-trash text-red-700 text-xl"></i>
-                                                                <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1 bg-gray-800 text-white text-xs rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-                                                                    Remove Question
-                                                                </span>
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                `).join('');
+                        <button onclick="deleteQuestion(${q.id})" title="Remove this question"
+                            class="text-white font-bold p-3 rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-md relative group">
+                            <i class="fa-solid fa-trash text-red-700 text-xl"></i>
+                            <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1 bg-gray-800 text-white text-xs rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                                Remove Question
+                            </span>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
         }
 
         function getTypeColor(type) {
@@ -330,9 +336,13 @@
                 if (choiceCount === 0) {
                     for (let i = 0; i < 4; i++) addChoice();
                 }
+                // ensure listeners and validation after creating default choices
+                attachChoiceListeners();
+                validateForm();
             } else if (type === 'essay') {
                 choicesContainer.classList.add('hidden');
                 essayGuideContainer.classList.remove('hidden');
+                validateForm();
             }
         }
 
@@ -365,6 +375,9 @@
             div.innerHTML = createChoiceElement('', choiceCount);
             choicesList.appendChild(div.firstElementChild);
             choiceCount++;
+            refreshChoiceIndices();
+            attachChoiceListeners();
+            validateForm();
         }
 
         function removeChoice(index) {
@@ -374,6 +387,10 @@
                 const input = choice.querySelector('.choice-input');
                 if (input && parseInt(input.dataset.index) === index) {
                     choice.remove();
+                    // after removal, refresh indices and validate
+                    refreshChoiceIndices();
+                    attachChoiceListeners();
+                    validateForm();
                 }
             });
         }
@@ -388,6 +405,132 @@
                 radio.style.backgroundColor = isSelected ? '#0D2B70' : 'transparent';
                 const dot = radio.querySelector('div');
                 if (dot) dot.style.display = isSelected ? 'block' : 'none';
+            });
+            validateForm();
+        }
+
+        function refreshChoiceIndices() {
+            const choicesList = document.getElementById('choicesList');
+            const groups = Array.from(choicesList.querySelectorAll('.group'));
+            let foundSelected = false;
+            groups.forEach((group, i) => {
+                const radio = group.querySelector('.choice-radio');
+                const input = group.querySelector('.choice-input');
+                if (radio) {
+                    radio.dataset.index = i;
+                    radio.setAttribute('onclick', `selectCorrectAnswer(${i})`);
+                }
+                if (input) {
+                    input.dataset.index = i;
+                    input.placeholder = `Option ${i + 1}`;
+                }
+                // detect visually selected radio
+                if (radio) {
+                    const dot = radio.querySelector('div');
+                    const isSelected = dot && (dot.style.display === 'block');
+                    if (isSelected) {
+                        selectedCorrectAnswer = i;
+                        foundSelected = true;
+                    }
+                }
+            });
+            if (!foundSelected) selectedCorrectAnswer = -1;
+            // adjust choiceCount
+            choiceCount = groups.length;
+        }
+
+        function getChoicesArray() {
+            return Array.from(document.querySelectorAll('.choice-input'))
+                .map(input => input.value.trim())
+                .filter(v => v !== '');
+        }
+
+        function hasDuplicateChoices(arr) {
+            const seen = new Set();
+            for (const v of arr) {
+                const key = v.toLowerCase();
+                if (seen.has(key)) return true;
+                seen.add(key);
+            }
+            return false;
+        }
+
+        function validateForm() {
+            const type = document.getElementById('questionType').value;
+            const questionText = document.getElementById('questionText').value.trim();
+            const saveBtn = document.getElementById('saveQuestionBtn');
+            const choicesError = document.getElementById('choicesError');
+
+            let valid = true;
+            choicesError.classList.add('hidden');
+            choicesError.textContent = '';
+
+            if (!questionText) valid = false;
+
+            if (type === 'multiple_choice') {
+                const choices = getChoicesArray();
+                if (choices.length < 2) {
+                    valid = false;
+                    choicesError.textContent = 'Multiple choice questions must have at least 2 choices.';
+                    choicesError.classList.remove('hidden');
+                } else if (hasDuplicateChoices(choices)) {
+                    valid = false;
+                    choicesError.textContent = 'Choices must be unique. Please remove duplicate choices.';
+                    choicesError.classList.remove('hidden');
+                }
+
+                // ensure a correct answer is declared and exists in current choices
+                if (selectedCorrectAnswer === -1) {
+                    valid = false;
+                    if (!choicesError.textContent) {
+                        choicesError.textContent = 'Please select a correct answer.';
+                        choicesError.classList.remove('hidden');
+                    }
+                } else {
+                    const allChoices = Array.from(document.querySelectorAll('.choice-input')).map(i => i.value.trim());
+                    if (!allChoices[selectedCorrectAnswer]) {
+                        valid = false;
+                        if (!choicesError.textContent) {
+                            choicesError.textContent = 'The selected correct answer is empty. Please fill in all choices.';
+                            choicesError.classList.remove('hidden');
+                        }
+                    }
+                }
+            }
+
+            // toggle save button
+            if (valid) {
+                saveBtn.removeAttribute('disabled');
+                saveBtn.classList.remove('opacity-60', 'pointer-events-none');
+            } else {
+                saveBtn.setAttribute('disabled', 'disabled');
+                saveBtn.classList.add('opacity-60', 'pointer-events-none');
+            }
+
+            return valid;
+        }
+
+        function attachChoiceListeners() {
+            document.querySelectorAll('.choice-input').forEach(input => {
+                // avoid attaching duplicate listeners
+                if (!input._hasListener) {
+                    input.addEventListener('input', () => {
+                        // when input changes, refresh indices to keep consistency
+                        refreshChoiceIndices();
+                        validateForm();
+                    });
+                    input._hasListener = true;
+                }
+            });
+            // also ensure radios update validation when clicked (for cases where onclick updated)
+            document.querySelectorAll('.choice-radio').forEach(radio => {
+                if (!radio._hasListener) {
+                    radio.addEventListener('click', () => {
+                        const idx = parseInt(radio.dataset.index);
+                        selectCorrectAnswer(idx);
+                    });
+                    radio._hasListener = true;
+                }
             });
         }
 
@@ -412,6 +555,12 @@
 
                 if (choices.length < 2) {
                     showAlert('Multiple choice questions must have at least 2 choices.', 'error');
+                    return;
+                }
+
+                // Duplicate choices check
+                if (hasDuplicateChoices(choices)) {
+                    showAlert('Choices must be unique. Please remove duplicate choices.', 'error');
                     return;
                 }
 
@@ -511,6 +660,10 @@
                     choicesList.appendChild(div.firstElementChild);
                     choiceCount++;
                 });
+                // ensure indices/listeners/validation are updated
+                refreshChoiceIndices();
+                attachChoiceListeners();
+                validateForm();
             }
 
             if (question.essay_answer_guide) {
@@ -544,6 +697,10 @@
                     choicesList.appendChild(div.firstElementChild);
                     choiceCount++;
                 });
+                // ensure indices/listeners/validation are updated
+                refreshChoiceIndices();
+                attachChoiceListeners();
+                validateForm();
             }
 
             if (question.essay_answer_guide) {
