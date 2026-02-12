@@ -345,6 +345,7 @@ Route::middleware([RedirectIfNotAdmin::class])->group(function () {
     Route::post('/admin/applicant_status/{user_id}/{vacancy_id}/update-document', [AdminController::class, 'updateDocumentStatusAjax'])->name('admin.applicant_status.update_document');
     Route::post('/admin/applicant_status/{user_id}/{vacancy_id}/update-remarks', [AdminController::class, 'updateApplicationRemarksAjax'])->name('admin.applicant_status.update_remarks');
     Route::post('/admin/applicant_status/{user_id}/{vacancy_id}/notify', [AdminController::class, 'notifyApplicant'])->name('admin.applicant_status.notify');
+    Route::get('/admin/preview-document/{user_id}/{vacancy_id}/{document_type}', [AdminController::class, 'previewDocument'])->name('admin.preview_document');
 
     Route::get("/admin/activity_log", [activityLogController::class, 'view'])->name('admin_activity_log');
     Route::get('/admin/activity-log/data', [activityLogController::class, 'fetch'])->name('admin.activity_log.fetch');
@@ -507,9 +508,9 @@ Route::get('/mobile-locked', function () {
 Route::get('/preview-file/{path}', function ($path) {
     // Decode: urldecode first (in case of double encoding or + issues), then base64
     $decodedPath = base64_decode(urldecode($path));
-    
+
     // Helper to return "No Document Submitted" view
-    $noDocumentView = function() {
+    $noDocumentView = function () {
         return response('
             <html>
             <body style="display:flex;justify-content:center;align-items:center;height:100%;margin:0;font-family:sans-serif;background-color:#f9fafb;color:#6b7280;">
