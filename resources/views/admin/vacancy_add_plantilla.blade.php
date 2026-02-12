@@ -18,7 +18,7 @@
 
 @if ($errors->any())
   <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-    <strong class="font-bold">Whoops!</strong> There were some problems with your input.
+    <strong class="font-bold">Caution!</strong> There were some problems with your input.
     <ul class="mt-2 list-disc list-inside">
       @foreach ($errors->all() as $error)
         <li>{{ $error }}</li>
@@ -27,44 +27,53 @@
   </div>
 @endif
 
-<main class="w-full max-w-7xl mx-auto p-6 space-y-6 bg-[#F1F6FC] rounded-lg font-montserrat">
+<main class="w-full max-h-screen bg-[#F1F6FC] font-montserrat rounded-lg">
+    
+<!-- Added -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<!-- end added -->
 
-  <!-- Title Bar -->
-  <header class="flex items-center gap-4 mb-8">
-    <button onclick="history.back()" aria-label="Back" class="use-loader p-2 rounded-full bg-[#D9D9D9] hover:bg-[#002C76] h-10 w-10 transition">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-[#002c76] hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
-      </svg>
-    </button>
-    <h1 class="w-full flex items-center font-extrabold text-3xl border-4 border-[#002C76] text-[#002C76] rounded-xl px-4 py-2 gap-3">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m-6-8h6m2 12H7a2 2 0 01-2-2V6a2 2 0 012-2h7.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V18a2 2 0 01-2 2z" />
-      </svg>
-      Job Details - Plantilla Position
-    </h1>
-  </header>
+    <!-- Title Bar -->
+    <header class="flex items-center gap-4">
+        <div class="flex items-center gap-4 border-b border-[#0D2B70] pb-4 w-full">
+            <!-- <button aria-label="Back" onclick="window.location.href='{{ route('applications_list') }}'" -->
+            <button onclick="goBack()" class="use-loader group">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                    class="h-8 w-8 text-[#0D2B70] hover:opacity-80 transition" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
+            </button>
+            <h1 class="flex items-center gap-3 py-2 tracking-wide select-none">
+                <span class="text-[#0D2B70] text-2xl md:text-3xl lg:text-4xl font-montserrat">
+                    Job Details - Plantilla Position
+                </span>
+            </h1>
+        </div>
+    </header>
 
-  <!-- Last Modified and Action Buttons -->
-  <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mt-4">
-    <p class="text-xs text-gray-500 font-light">
-      Last Modified by: admin1 {{ now()->format('m/d/Y H:i:s') }}
-    </p>
-
-    <div class="flex justify-end gap-4">
-      <button id="discardBtn" type="button" onclick="history.back()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-full flex items-center gap-2">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-        </svg>
-        DISCARD
-      </button>
-      <button id="saveBtn" type="submit" form="plantillaForm" class="use-loader bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-full flex items-center gap-2">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-        </svg>
-        SAVE
-      </button>
+    <!-- Last Modified and Action Buttons -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mt-4">
+        <p class="text-xs text-gray-500 font-light">
+        Last Modified by: admin1 {{ now()->format('m/d/Y H:i:s') }}
+        </p>
+    <!--  OLD ACTION BUTTON
+            <div class="flex justify-end gap-4">
+            <button id="discardBtn" type="button" onclick="history.back()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-full flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                DISCARD
+            </button>
+            <button id="saveBtn" type="submit" form="plantillaForm" class="use-loader bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-full flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                SAVE
+            </button>
+            </div> -->
     </div>
-  </div>
 
   <!-- Form -->
   <form
@@ -79,34 +88,36 @@
 
     <input type="hidden" name="vacancy_type" value="Plantilla">
 
-    <div class="flex flex-col md:flex-row md:space-x-4">
-      <div class="md:w-[40%]">
-        <label class="block">PCN No.</label>
-        <input type="text" name="pcn_no" value="{{ old('pcn_no', $vacancy->pcn_no ?? '') }}" class="w-full border-2 border-[#002C76] rounded px-2 py-1 h-10">
-      </div>
-      <div class="md:w-[40%] mt-4 md:mt-0">
-        <label class="block">Deadline of Application</label>
-       <input type="date" name="closing_date"
-       value="{{ old('closing_date', isset($vacancy->closing_date) ? \Carbon\Carbon::parse($vacancy->closing_date)->format('Y-m-d') : '') }}"
-       class="w-full border-2 border-[#002C76] rounded px-2 py-1 h-10">
+    <div>
+      <label class="block">Position Title</label>
+      <input type="text" name="position_title" value="{{ old('position_title', $vacancy->position_title ?? '') }}" class="w-full border-2 border-[#002C76] rounded px-2 py-1 h-10">
+    </div>
 
-      </div>
-<!-- 
-      <div class="md:w-[20%] mt-4 md:mt-0">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="w-full">
+            <label class="block">PCN No.</label>
+            <input type="text" name="pcn_no" value="{{ old('pcn_no', $vacancy->pcn_no ?? '') }}" class="w-full border-2 border-[#002C76] rounded px-2 py-1 h-10">
+        </div>
+      <!-- New input date Flatpickr -->
+        <div class="w-full">
+            <label class="block">Deadline of Application</label>
+            <input 
+                id="closing_date"
+                type="date"
+                name="closing_date"
+                value="{{ old('closing_date', isset($vacancy->closing_date) ? \Carbon\Carbon::parse($vacancy->closing_date)->format('Y-m-d') : '') }}"
+                placeholder="Select deadline"
+                class="w-full border-2 border-[#002C76] rounded px-2 py-2 h-10">
+        </div>
+    </div>
+    <!-- <div class="md:w-[20%] mt-4 md:mt-0">
         <label class="block">Status</label>
           <select name="status" class="w-full border-2 border-[#002C76] rounded px-2 py-1 h-10">
             <option disabled>Status</option>
             <option value="OPEN" {{ old('status', $vacancy->status ?? '') == 'OPEN' ? 'selected' : '' }}>OPEN</option>
             <option value="CLOSED" {{ old('status', $vacancy->status ?? '') == 'CLOSED' ? 'selected' : '' }}>CLOSED</option>
           </select>
-      </div>
--->
-    </div>
-
-    <div>
-      <label class="block">Position Title</label>
-      <input type="text" name="position_title" value="{{ old('position_title', $vacancy->position_title ?? '') }}" class="w-full border-2 border-[#002C76] rounded px-2 py-1 h-10">
-    </div>
+    </div>-->
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div>
@@ -120,7 +131,7 @@
     </div>
     <div>
       <label class="block">Monthly Salary</label>
-      <input type="number" step="0.01" min"0" name="monthly_salary" value="{{ old('monthly_salary', $vacancy->monthly_salary ?? '') }}" class="w-full border-2 border-[#002C76] rounded px-2 py-1 h-10">
+      <input type="number" step="0.01" min="0" name="monthly_salary" value="{{ old('monthly_salary', $vacancy->monthly_salary ?? '') }}" class="w-full border-2 border-[#002C76] rounded px-2 py-1 h-10">
     </div>
 
     <!-- Qualification Standards -->
@@ -170,5 +181,60 @@
 
   </form>
 @include('partials.loader')
+
+    <!-- Action buttons (galing sa vacancy_add_cos.blade.php) -->
+    <div class="flex flex-col sm:flex-row items-stretch sm:items-center m-2 justify-end gap-2 sm:gap-4">
+        <button id="vacancy-discard-btn" type="button" onclick="history.back()" class="border-2 border-red-600 hover:bg-red-600 hover:text-white 
+        text-red-600 px-4 py-2 rounded-md flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            DISCARD
+        </button>
+        <button id="vacancy-save-btn" type="submit" form="plantillaForm" class="border-2 border-[#0D2B70] hover:bg-[#0D2B70] hover:text-white 
+        text-[#0D2B70] px-4 py-2 rounded-md flex items-center gap-2">
+
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+            SAVE
+        </button>
+    </div>
 </main>
+
+<script>
+    function goBack() {
+        // Avoid going back to same page (due to reload after save)
+        const currentUrl = window.location.href;
+        const referrer = document.referrer;
+        const savedReferrer = sessionStorage.getItem('lastValidReferrer');
+
+        const target = (referrer && referrer !== currentUrl)
+        ? referrer
+        : (savedReferrer && savedReferrer !== currentUrl)
+            ? savedReferrer
+            : null; // TODO CHANGE THE LOCATION FALLBACK
+
+        if (target) {
+            window.location.href = target;
+        } else {
+            window.history.back(); // fallback
+        }
+    }
+</script>
+
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    flatpickr("#closing_date", {
+        // monthSelectorType: "dropdown", //added
+        altInput: true,
+        altFormat: "F j, Y", 
+        dateFormat: "Y-m-d", 
+        minDate: "today",    
+        maxDate: "2099-12-31"
+    });
+});
+</script>
+
 @endsection
