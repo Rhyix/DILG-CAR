@@ -41,19 +41,17 @@
 									<div class="flex flex-row justify-between items-center mb-4">
 										<h1 class="text-2xl font-bold text-[#002C76]">{{ $applicant_name }}</h1>
 										<!-- Save Applicant Remarks button removed as per Phase 3 -->
-											<button
-												id="notify-applicant-btn"
-												type="button"
-												onclick="openNotifyModal()"
-												class="text-sm py-1 border bg-[#002C76] text-white px-6 rounded-md hover:scale-105 hover:shadow-md transition duration-150 flex items-center justify-center">
-												Notify Applicant
-											</button>
+										<button id="notify-applicant-btn" type="button" onclick="openNotifyModal()"
+											class="text-sm py-1 border bg-[#002C76] text-white px-6 rounded-md hover:scale-105 hover:shadow-md transition duration-150 flex items-center justify-center">
+											Notify Applicant
+										</button>
 									</div>
 									<!-- Job Details Grid -->
 									<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
 										<div>
 											<div class="text-xs font-semibold text-gray-700 uppercase mb-1">Job Applied:</div>
-											<div class="text-sm text-gray-900">{{ $job_applied }}, <b>{{ $vacancy_type }}</b> position</div>
+											<div class="text-sm text-gray-900">{{ $job_applied }}, <b>{{ $vacancy_type }}</b>
+												position</div>
 										</div>
 										<div>
 											<div class="text-xs font-semibold text-gray-700 uppercase mb-1">Place of Assignment:
@@ -241,34 +239,7 @@
 											</ul>
 										</div>
 
-										<hr class="my-3">
 
-										<div class="bg-white rounded-lg text-sm mb-2">
-											<div class="font-bold text-gray-800 mb-2">Applicant Remarks</div>
-											@php
-												$confirmedCount = collect($documents)->where('status', 'confirmed')->count();
-												$isComplete = $confirmedCount === 17;
-
-												$defaultRemarks = '';
-
-												if ($isComplete) {
-													$defaultRemarks = "No further action required. Wait for further instruction on the next assessment phase.";
-												} else {
-													$deadline = $application->deadline_date && $application->deadline_time
-														? \Carbon\Carbon::parse($application->deadline_date . ' ' . $application->deadline_time)->format('F d, Y h:i A')
-														: null;
-
-													$defaultRemarks = $deadline
-														? "Correct and/or submit the above-noted inconsistencies and/or deficiencies not later than $deadline."
-														: "No remarks yet";
-												}
-											@endphp
-
-											<textarea id="application_remarks_input"
-												class="w-full p-2 border border-gray-400 rounded mb-3 focus:outline-none resize-none"
-												rows="4" placeholder="Enter your remarks here..."
-												style="min-height: 200px; text-align: start;">{{ old('application_remarks', $application->application_remarks ?? $defaultRemarks) }}</textarea>
-										</div>
 
 									</section>
 
@@ -281,11 +252,12 @@
 											<!-- document name, status, last modified by -->
 											<div class="w-full">
 												<!-- document name -->
-												<h2 id="document-title" class="text-2xl font-bold text-[#002C76] mb-1">Document Here</h2>
+												<h2 id="document-title" class="text-2xl font-bold text-[#002C76] mb-1">Document Here
+												</h2>
 												<!-- APPROVED = #00730A -->
 												<!-- PENDING = #E47E00 -->
 												<!-- REJECTED / NEEDS REVISIONS = #BC0000 -->
-												<span id="document-status-text" class="text-sm text-gray-600">Status: 
+												<span id="document-status-text" class="text-sm text-gray-600">Status:
 													<span id="document-status-value" class="text-[#E47E00] font-bold"></span>
 												</span>
 												<p id="document-modified" class="text-sm text-gray-600 hidden">Last modified by:
@@ -296,18 +268,14 @@
 											<!-- buttons -->
 											<div class="flex flex-col items-end w-full gap-2">
 												<div class="w-[35%]">
-													<button
-														id="btn-verify"
-														onclick="updateDocumentStatus('Verified')"
+													<button id="btn-verify" onclick="updateDocumentStatus('Verified')"
 														class="w-full border border-[#00730A] text-[#00730A] py-2 px-6 rounded-md text-sm hover:scale-105 hover:shadow-md transition duration-150">
 														Verify
 													</button>
 												</div>
 
 												<div class="w-[35%]">
-													<button
-														id="btn-revision"
-														onclick="updateDocumentStatus('Needs Revision')"
+													<button id="btn-revision" onclick="updateDocumentStatus('Needs Revision')"
 														class="w-full border border-[#BC0000] text-[#BC0000] py-2 px-6 rounded-md text-sm hover:scale-105 hover:shadow-md transition duration-150">
 														Needs Revisions
 													</button>
@@ -322,7 +290,8 @@
 												<div class="flex items-center justify-between mb-2">
 													<label for="remarks" class="block text-sm font-semibold text-[#002C76]">
 														Document Remarks:
-														<span id="remarks-status" class="text-green-600 text-xs ml-2 opacity-0 transition-opacity duration-500">Saved</span>
+														<span id="remarks-status"
+															class="text-green-600 text-xs ml-2 opacity-0 transition-opacity duration-500">Saved</span>
 													</label>
 												</div>
 
@@ -356,7 +325,8 @@
 					<div class="bg-white rounded-lg shadow-xl max-w-3xl w-full mx-4">
 						<div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
 							<h3 class="text-lg font-semibold text-gray-800">Notify Applicant Overview</h3>
-							<button type="button" onclick="closeNotifyModal()" class="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+							<button type="button" onclick="closeNotifyModal()"
+								class="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
 						</div>
 						<div class="px-6 py-4 max-h-[75vh] overflow-y-auto space-y-4">
 							<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -413,14 +383,41 @@
 							</div>
 							<div>
 								<h4 class="text-sm font-semibold text-gray-700 mb-2">Applicant Remarks</h4>
-								<p id="notify-applicant-remarks" class="text-xs text-gray-800 whitespace-pre-line border border-gray-200 rounded-md p-3 bg-gray-50"></p>
+								<div class="relative">
+									@php
+										$confirmedCount = collect($documents)->where('status', 'Verified')->count(); // Updated to Verified
+										$isComplete = $confirmedCount === 17;
+
+										$defaultRemarks = '';
+
+										if ($isComplete) {
+											$defaultRemarks = "No further action required. Wait for further instruction on the next assessment phase.";
+										} else {
+											$deadline = $application->deadline_date && $application->deadline_time
+												? \Carbon\Carbon::parse($application->deadline_date . ' ' . $application->deadline_time)->format('F d, Y h:i A')
+												: null;
+
+											$defaultRemarks = $deadline
+												? "Correct and/or submit the above-noted inconsistencies and/or deficiencies not later than $deadline."
+												: "No remarks yet";
+										}
+									@endphp
+									<textarea id="notify-applicant-remarks"
+										class="w-full text-xs text-gray-800 border border-gray-200 rounded-md p-3 bg-gray-50 resize-none focus:outline-none focus:ring-2 focus:ring-[#002C76]"
+										rows="4"
+										placeholder="Enter remarks for the applicant...">{{ old('application_remarks', $application->application_remarks ?? $defaultRemarks) }}</textarea>
+									<span id="notify-remarks-status"
+										class="absolute bottom-2 right-2 text-green-600 text-[10px] opacity-0 transition-opacity duration-500">Saved</span>
+								</div>
 							</div>
 						</div>
 						<div class="px-6 py-3 border-t border-gray-200 flex justify-end gap-3">
-							<button type="button" onclick="closeNotifyModal()" class="px-4 py-2 text-xs font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50">
+							<button type="button" onclick="closeNotifyModal()"
+								class="px-4 py-2 text-xs font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50">
 								Cancel
 							</button>
-							<button type="button" onclick="notifyApplicant()" class="px-4 py-2 text-xs font-medium text-white bg-[#002C76] rounded-md hover:bg-[#003b9c]">
+							<button type="button" onclick="notifyApplicant()"
+								class="px-4 py-2 text-xs font-medium text-white bg-[#002C76] rounded-md hover:bg-[#003b9c]">
 								Send Email
 							</button>
 						</div>
@@ -446,7 +443,7 @@
 
 						// Initialize deadline check
 						checkDeadline();
-						
+
 						// Bind events
 						const dateInput = document.querySelector('input[name="deadline_date"]');
 						const timeInput = document.querySelector('input[name="deadline_time"]');
@@ -461,48 +458,46 @@
 							const doc = documents.find(d => d.id === id);
 							return doc && (doc.status === 'Verified' || doc.status === 'Okay/Confirmed');
 						};
-						
+
 						// Plantilla Rules
 						if (vacancyType === 'Plantilla') {
 							// Eligibility: Green if cert_eligibility Verified
 							updateQSToggle('qs_eligibility', isVerified('cert_eligibility'));
-							
+
 							// Education: Green if transcript_records AND photocopy_diploma Verified
 							updateQSToggle('qs_education', isVerified('transcript_records') && isVerified('photocopy_diploma'));
-							
+
 							// Training: Green if cert_training Verified
 							updateQSToggle('qs_training', isVerified('cert_training'));
-							
+
 							// Experience: Always Gray (Not Applicable)
 							setQSGray('qs_experience');
-						} 
+						}
 						// COS Rules
 						else if (vacancyType === 'COS') {
 							// Experience: Green if signed_work_exp_sheet Verified
 							updateQSToggle('qs_experience', isVerified('signed_work_exp_sheet'));
-							
+
 							// Education: Green if transcript_records AND photocopy_diploma Verified
 							updateQSToggle('qs_education', isVerified('transcript_records') && isVerified('photocopy_diploma'));
-							
+
 							// Training: Green if cert_training Verified
 							updateQSToggle('qs_training', isVerified('cert_training'));
-							
+
 							// Eligibility: Always Gray
 							setQSGray('qs_eligibility');
 						}
-						
+
 						// Overall Qualification Status
 						checkOverallQualification();
 					}
-					
+
 					function updateQSToggle(field, isGreen) {
 						const btn = document.querySelector(`button[data-field="${field}"]`);
 						if (!btn) return;
-						
+
 						btn.classList.remove('bg-gray-400', 'cursor-not-allowed');
-						
-						// Only update if state matches expectation? Or force update?
-						// Force update based on docs
+
 						if (isGreen) {
 							btn.classList.remove('bg-[#EF4444]');
 							btn.classList.add('bg-[#10B981]'); // Green
@@ -516,33 +511,33 @@
 						const input = btn.parentNode.querySelector('input[type="hidden"]');
 						if (input) input.value = btn.dataset.state;
 					}
-					
+
 					function setQSGray(field) {
 						const btn = document.querySelector(`button[data-field="${field}"]`);
 						if (!btn) return;
-						
+
 						btn.classList.remove('bg-[#EF4444]', 'bg-[#10B981]');
 						btn.classList.add('bg-gray-400'); // Gray
 						btn.dataset.state = 'na';
-						
+
 						const input = btn.parentNode.querySelector('input[type="hidden"]');
 						if (input) input.value = 'na';
 					}
-					
+
 					function checkOverallQualification() {
 						const toggles = document.querySelectorAll('.qs-toggle');
 						let allGreen = true;
 						let hasRequirements = false;
-						
+
 						toggles.forEach(btn => {
 							if (btn.classList.contains('bg-gray-400')) return; // Skip N/A
-							
+
 							hasRequirements = true;
 							if (!btn.classList.contains('bg-[#10B981]')) {
 								allGreen = false;
 							}
 						});
-						
+
 						const resultText = document.querySelector('.result-text');
 						if (hasRequirements && allGreen) {
 							updateResultButton(resultText, 'Qualified');
@@ -550,11 +545,11 @@
 							updateResultButton(resultText, 'Not Qualified');
 						}
 					}
-					
+
 					function updateResultButton(textSpan, state) {
 						textSpan.textContent = state;
 						textSpan.dataset.state = state;
-						
+
 						const hiddenInput = textSpan.parentNode.querySelector('.result-input');
 						if (hiddenInput) hiddenInput.value = state;
 
@@ -568,7 +563,7 @@
 					}
 
 					// --- Document Logic ---
-					
+
 					// Helper for status icon
 					function getStatusIcon(status) {
 						if (status === "Okay/Confirmed" || status === "Verified") {
@@ -594,9 +589,9 @@
 
 					function handleDocumentClick(doc) {
 						currentSelectedDoc = doc;
-						
+
 						document.getElementById('document-title').textContent = doc.name || doc.text;
-						
+
 						const statusTextEl = document.getElementById('document-status-text');
 						if (statusTextEl) {
 							statusTextEl.classList.remove('hidden');
@@ -605,9 +600,9 @@
 						if (modifiedEl) {
 							modifiedEl.classList.remove('hidden');
 						}
-						
+
 						updateStatusUI(doc.status);
-						
+
 						const remarksEl = document.getElementById('remarks');
 						remarksEl.value = doc.remarks || "";
 						remarksEl.disabled = false;
@@ -617,19 +612,19 @@
 						} else {
 							setDocumentRemarksVisibility(false);
 						}
-						
+
 						const previewEl = document.getElementById('doc-preview');
 						previewEl.src = doc.preview || "";
-						
+
 					}
 
 					function updateStatusUI(status) {
 						const statusValue = document.getElementById('document-status-value');
 						statusValue.textContent = status;
-						
+
 						// Reset classes
 						statusValue.className = "font-bold";
-						
+
 						if (status === "Verified" || status === "Okay/Confirmed") {
 							statusValue.classList.add("text-[#00730A]");
 						} else if (status === "Needs Revision" || status === "Disapproved With Deficiency") {
@@ -646,15 +641,16 @@
 							alert("Please select a document first.");
 							return;
 						}
-						
+
 						updateStatusUI(newStatus);
 						currentSelectedDoc.status = newStatus;
-						
+
 						const remarksEl = document.getElementById('remarks');
 						if (newStatus === 'Needs Revision') {
 							setDocumentRemarksVisibility(true);
 							if (remarksEl) {
 								remarksEl.disabled = false;
+								remarksEl.focus();
 								if (!remarksEl.value) {
 									remarksEl.placeholder = "Add remarks for this document...";
 								}
@@ -668,12 +664,12 @@
 							}
 							setDocumentRemarksVisibility(false);
 						}
-						
+
 						// Update List
 						renderDocuments(documents);
 						updateProgressCircle();
 						updateQualificationStatus();
-						
+
 						try {
 							const payload = {
 								document_type: currentSelectedDoc.id,
@@ -690,9 +686,9 @@
 								},
 								body: JSON.stringify(payload)
 							});
-							
+
 							if (!response.ok) throw new Error('Failed to update status');
-							
+
 						} catch (error) {
 							console.error(error);
 							alert("Failed to save status. Please check your connection.");
@@ -701,15 +697,15 @@
 
 					// Auto-save Document Remarks
 					let docRemarksTimeout;
-					document.getElementById('remarks').addEventListener('input', function(e) {
+					document.getElementById('remarks').addEventListener('input', function (e) {
 						if (!currentSelectedDoc) return;
-						
+
 						const value = e.target.value;
 						currentSelectedDoc.remarks = value;
-						
+
 						document.getElementById('remarks-status').classList.remove('opacity-100');
 						document.getElementById('remarks-status').classList.add('opacity-0');
-						
+
 						clearTimeout(docRemarksTimeout);
 						docRemarksTimeout = setTimeout(async () => {
 							try {
@@ -724,7 +720,7 @@
 										remarks: value
 									})
 								});
-								
+
 								// Show Saved
 								const statusEl = document.getElementById('remarks-status');
 								statusEl.classList.remove('opacity-0');
@@ -733,36 +729,54 @@
 									statusEl.classList.remove('opacity-100');
 									statusEl.classList.add('opacity-0');
 								}, 2000);
-								
+
 							} catch (error) {
 								console.error(error);
 							}
 						}, 1000);
 					});
-					
-					// Auto-save Application Remarks
+
+					// Auto-save Application Remarks (Moved to Modal)
 					let appRemarksTimeout;
-					document.getElementById('application_remarks_input').addEventListener('input', function(e) {
-						const value = e.target.value;
-						
-						clearTimeout(appRemarksTimeout);
-						appRemarksTimeout = setTimeout(async () => {
-							try {
-								await fetch(`/admin/applicant_status/${userId}/${vacancyId}/update-remarks`, {
-									method: 'POST',
-									headers: {
-										'Content-Type': 'application/json',
-										'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-									},
-									body: JSON.stringify({
-										application_remarks: value
-									})
-								});
-							} catch (error) {
-								console.error(error);
+					const notifyRemarksInput = document.getElementById('notify-applicant-remarks');
+					if (notifyRemarksInput) {
+						notifyRemarksInput.addEventListener('input', function (e) {
+							const value = e.target.value;
+
+							const statusEl = document.getElementById('notify-remarks-status');
+							if (statusEl) {
+								statusEl.classList.remove('opacity-100');
+								statusEl.classList.add('opacity-0');
 							}
-						}, 1500);
-					});
+
+							clearTimeout(appRemarksTimeout);
+							appRemarksTimeout = setTimeout(async () => {
+								try {
+									await fetch(`/admin/applicant_status/${userId}/${vacancyId}/update-remarks`, {
+										method: 'POST',
+										headers: {
+											'Content-Type': 'application/json',
+											'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+										},
+										body: JSON.stringify({
+											application_remarks: value
+										})
+									});
+
+									if (statusEl) {
+										statusEl.classList.remove('opacity-0');
+										statusEl.classList.add('opacity-100');
+										setTimeout(() => {
+											statusEl.classList.remove('opacity-100');
+											statusEl.classList.add('opacity-0');
+										}, 2000);
+									}
+								} catch (error) {
+									console.error(error);
+								}
+							}, 1500);
+						});
+					}
 
 					async function notifyApplicant() {
 						const btn = document.getElementById('notify-applicant-btn');
@@ -770,7 +784,7 @@
 						btn.disabled = true;
 						btn.textContent = "Sending...";
 						btn.classList.add("opacity-75", "cursor-not-allowed");
-						
+
 						try {
 							const response = await fetch(`/admin/applicant_status/${userId}/${vacancyId}/notify`, {
 								method: 'POST',
@@ -779,9 +793,9 @@
 									'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
 								}
 							});
-							
+
 							const data = await response.json();
-							
+
 							if (response.ok) {
 								alert(data.message || "Email sent successfully!");
 							} else {
@@ -877,22 +891,24 @@
 								remarksText = doc.remarks || "";
 							}
 							rowsHtml += `
-								<tr>
-									<td class="px-3 py-2 align-top text-gray-900">${doc.text}</td>
-									<td class="px-3 py-2 align-top text-gray-700">
-										<div class="flex items-center gap-1">
-											<span>${iconHtml}</span>
-											<span>${status}</span>
-										</div>
-									</td>
-									<td class="px-3 py-2 align-top text-gray-700">${remarksText}</td>
-								</tr>
-							`;
+														<tr>
+															<td class="px-3 py-2 align-top text-gray-900">${doc.text}</td>
+															<td class="px-3 py-2 align-top text-gray-700">
+																<div class="flex items-center gap-1">
+																	<span>${iconHtml}</span>
+																	<span>${status}</span>
+																</div>
+															</td>
+															<td class="px-3 py-2 align-top text-gray-700">${remarksText}</td>
+														</tr>
+													`;
 						});
 						bodyEl.innerHTML = rowsHtml;
 
-						const appRemarksInput = document.getElementById('application_remarks_input');
-						remarksSummaryEl.textContent = appRemarksInput ? appRemarksInput.value : "";
+						// Removed copying from deleted sidebar input
+						// const appRemarksInput = document.getElementById('application_remarks_input');
+						// remarksSummaryEl.textContent = appRemarksInput ? appRemarksInput.value : "";
+						// Remarks are now directly in the textarea via Blade rendering
 
 						const modal = document.getElementById('notify-modal');
 						if (modal) modal.classList.remove('hidden');
@@ -912,31 +928,47 @@
 
 						docList.forEach(doc => {
 							const li = document.createElement('li');
-							li.className = "cursor-pointer hover:text-blue-700";
+							li.className = "cursor-pointer hover:bg-gray-100 p-1 rounded transition-colors";
 
 							const btn = document.createElement('button');
 							btn.type = "button";
-							btn.className = "w-full text-left";
+							btn.className = "w-full text-left flex items-center";
 
 							if (doc.isBold) btn.classList.add('font-bold');
 							if (doc.italic) btn.classList.add('italic');
 
 							let icon = getStatusIcon(doc.status);
 
+							// Setup text color based on status
+							let textColorClass = "text-gray-700";
+
+							if (doc.status === "Verified" || doc.status === "Okay/Confirmed") {
+								textColorClass = "text-gray-900"; // Black
+							} else if (doc.status === "Needs Revision" || doc.status === "Disapproved With Deficiency") {
+								textColorClass = "text-gray-900"; // Black
+							} else if (doc.status === "Not Submitted") {
+								textColorClass = "text-gray-400"; // Gray
+							} else {
+								// Pending / Uploaded / Others
+								textColorClass = "text-orange-500 font-medium"; // Orange
+							}
+
+							if (currentSelectedDoc && currentSelectedDoc.id === doc.id) {
+								li.classList.add("bg-blue-50");
+								li.classList.add("ring-1");
+								li.classList.add("ring-blue-200");
+							}
+
 							const iconWrapper = document.createElement('span');
 							iconWrapper.innerHTML = icon;
-							iconWrapper.className = "mr-2 mt-[2px]";
+							iconWrapper.className = "mr-2 flex-shrink-0 w-4";
 
 							const textWrapper = document.createElement('span');
 							textWrapper.textContent = doc.text;
+							textWrapper.className = `${textColorClass} text-xs flex-1`;
 
-							const wrapper = document.createElement('div');
-							wrapper.className = "flex items-start";
-							wrapper.appendChild(iconWrapper);
-							wrapper.appendChild(textWrapper);
-
-							btn.innerHTML = "";
-							btn.appendChild(wrapper);
+							btn.appendChild(iconWrapper);
+							btn.appendChild(textWrapper);
 
 							btn.onclick = () => handleDocumentClick(doc);
 
@@ -977,7 +1009,7 @@
 						const dateInput = document.querySelector('input[name="deadline_date"]');
 						const timeInput = document.querySelector('input[name="deadline_time"]');
 						const warningDiv = document.getElementById("deadlineWarning");
-						if(!dateInput || !warningDiv) return;
+						if (!dateInput || !warningDiv) return;
 
 						const date = dateInput.value;
 						const time = timeInput ? (timeInput.value || '23:59:59') : '23:59:59';
@@ -996,7 +1028,7 @@
 							warningDiv.classList.add('hidden');
 						}
 					}
-					
+
 					function goBack() {
 						const referrer = document.referrer;
 						if (referrer && referrer !== window.location.href) {

@@ -25,6 +25,7 @@ use App\Mail\NotifyApplicationStatus;
 
 
 use App\Mail\NotifyApplicantOverview;
+use Illuminate\Support\Facades\Storage;
 
 class AdminController extends Controller
 {
@@ -336,28 +337,35 @@ class AdminController extends Controller
         $documents = [];
 
         foreach (UploadedDocument::DOCUMENTS as $docType) {
-            if ($docType === 'isApproved') continue;
+            if ($docType === 'isApproved')
+                continue;
 
             $doc = $uploadedDocuments->get($docType);
 
             if ($docType === 'application_letter') {
+                $status = $application->file_status ?? 'Not Submitted';
+                // If status is null/empty for application letter, it might mean not submitted if file is missing,
+                // but usually there's a file_storage_path.
+                // Let's rely on file existence check in previewDocument, but here we just generate the link.
+
                 $documents[] = [
                     'id' => 'application_letter',
                     'name' => self::DOCUMENT_LABELS['application_letter'],
                     'text' => self::DOCUMENT_LABELS['application_letter'],
-                    'status' => $application->file_status ?? 'invalid',
-                    'preview' => url('/preview-file/' . urlencode(base64_encode($application->file_storage_path ?: 'missing'))),
-                    'remarks' => $application->file_remarks ?? 'No remarks provided.',
+                    'status' => $status,
+                    'preview' => route('admin.preview_document', ['user_id' => $user_id, 'vacancy_id' => $application->vacancy_id, 'document_type' => 'application_letter']),
+                    'remarks' => $application->file_remarks ?? '',
                     'isBold' => true,
                 ];
             } else {
+                $status = $doc ? $doc->status : 'Not Submitted';
                 $documents[] = [
                     'id' => $docType,
                     'name' => self::DOCUMENT_LABELS[$docType] ?? ucwords(str_replace('_', ' ', $docType)),
                     'text' => self::DOCUMENT_LABELS[$docType] ?? ucwords(str_replace('_', ' ', $docType)),
-                    'status' => $doc ? $doc->status : 'invalid',
-                    'preview' => url('/preview-file/' . urlencode(base64_encode($doc->storage_path ?? 'missing'))),
-                    'remarks' => $doc ? ($doc->remarks ?: $doc->original_name) : 'Document missing.',
+                    'status' => $status,
+                    'preview' => route('admin.preview_document', ['user_id' => $user_id, 'vacancy_id' => $application->vacancy_id, 'document_type' => $docType]),
+                    'remarks' => $doc ? ($doc->remarks ?: '') : '',
                     'original_name' => $doc->original_name ?? '',
                     'isBold' => true,
                 ];
@@ -577,8 +585,10 @@ class AdminController extends Controller
             ->firstOrFail();
 
         if ($documentType === 'application_letter') {
-            if ($request->has('status')) $application->file_status = $status;
-            if ($request->has('remarks')) $application->file_remarks = $remarks;
+            if ($request->has('status'))
+                $application->file_status = $status;
+            if ($request->has('remarks'))
+                $application->file_remarks = $remarks;
             $application->save();
         } else {
             $document = UploadedDocument::where('user_id', $user_id)
@@ -586,8 +596,10 @@ class AdminController extends Controller
                 ->first();
 
             if ($document) {
-                if ($request->has('status')) $document->status = $status;
-                if ($request->has('remarks')) $document->remarks = $remarks;
+                if ($request->has('status'))
+                    $document->status = $status;
+                if ($request->has('remarks'))
+                    $document->remarks = $remarks;
                 $document->save();
             } else {
                 // If document doesn't exist, create a placeholder record so status/remarks can be saved
@@ -633,24 +645,11 @@ class AdminController extends Controller
             ->firstOrFail();
 
         $documents = $this->getApplicantDocuments($user_id, $application);
-        
-        // Check if at least one document is reviewed (not 'Pending' and not 'invalid')
-        // Adjust logic based on exact status strings used in DB ('Okay/Confirmed', 'Disapproved...', 'Pending')
-        $hasReviewed = false;
-        foreach ($documents as $doc) {
-            // If status is one of the "reviewed" statuses
-            if (in_array($doc['status'], ['Verified', 'Needs Revision', 'Okay/Confirmed', 'Disapproved With Deficiency'])) {
-                $hasReviewed = true;
-                break;
-            }
-        }
-        
-        if (!$hasReviewed) {
-             return response()->json(['success' => false, 'message' => 'No documents have been reviewed yet.'], 400);
-        }
+
+        // Removed the check for reviewed documents to allow notification at any stage
 
         $userEmail = User::where('id', $user_id)->value('email');
-        
+
         if (!$userEmail) {
             return response()->json(['success' => false, 'message' => 'User email not found.'], 404);
         }
@@ -663,6 +662,60 @@ class AdminController extends Controller
         ));
 
         return response()->json(['success' => true, 'message' => 'Applicant notified successfully.']);
+    }
+
+    public function previewDocument($user_id, $vacancy_id, $document_type)
+    {
+        $application = Applications::where('user_id', $user_id)
+            ->where('vacancy_id', $vacancy_id)
+            ->first();
+
+        if (!$application) {
+            abort(404);
+        }
+
+        $path = null;
+
+        if ($document_type === 'application_letter') {
+            $path = $application->file_storage_path;
+        } else {
+            $doc = UploadedDocument::where('user_id', $user_id)
+                ->where('document_type', $document_type)
+                ->first();
+            if ($doc) {
+                $path = $doc->storage_path;
+            }
+        }
+
+        // Helper to return "No Document Submitted" view
+        $noDocumentView = function () {
+            return response('
+                <html>
+                <body style="display:flex;justify-content:center;align-items:center;height:100%;margin:0;font-family:sans-serif;background-color:#f9fafb;color:#6b7280;">
+                    <div style="text-align:center;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:1rem;display:inline-block;"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+                        <p style="font-size:1.125rem;font-weight:500;">No Document Submitted</p>
+                    </div>
+                </body>
+                </html>
+            ', 200);
+        };
+
+        if (!$path || !Storage::exists($path)) {
+            // Try public storage check just in case
+            if ($path && file_exists(storage_path('app/public/' . $path))) {
+                $fullPath = storage_path('app/public/' . $path);
+                $file = file_get_contents($fullPath);
+                $type = mime_content_type($fullPath);
+                return response($file, 200)->header("Content-Type", $type);
+            }
+            return $noDocumentView();
+        }
+
+        $file = Storage::get($path);
+        $type = Storage::mimeType($path);
+
+        return response($file, 200)->header("Content-Type", $type);
     }
 
 }
