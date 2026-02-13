@@ -11,6 +11,7 @@
             </h1>
         </section>
 
+<<<<<<< HEAD
         <form onsubmit="return false;" class="relative w-full">
             <!-- search bar and from type dropdown -->
             <div class="flex flex-row items-center">
@@ -22,6 +23,27 @@
                         <path stroke-linecap="round" stroke-linejoin="round"
                             d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
                     </svg>
+=======
+    <form onsubmit="return false;" class="relative w-full">
+        <!-- search bar and from type dropdown -->
+        <div class="flex flex-row items-center">
+            <!-- search bar -->
+            <div class="relative flex items-center mr-4 w-full max-w-md">
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="w-5 h-5 text-[#7D93B3] absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"
+                    />
+                </svg>
+>>>>>>> parent of 37cccb8 (Vacancies Management table, Applications list table)
 
                     <input id="examIdFilter" type="text" placeholder="Search by Job Title or ID"
                         aria-label="Search by Job Title or ID" class="h-10 w-full pl-10 pr-4 rounded-md border border-[#0D2B70]
@@ -62,6 +84,7 @@
             </div>
         </form>
 
+<<<<<<< HEAD
         <!-- TABLE -->
         <div class="flex-1 flex flex-col min-h-0 overflow-hidden rounded-xl border border-[#0D2B70]">
             <div class="flex-none bg-[#0D2B70] text-white">
@@ -122,9 +145,43 @@
                         @endforeach
                     </tbody>
                 </table>
+=======
+            <!-- form type dropdown -->
+            <div class="flex flex-row items-center ml-4">
+                <span class="text-[#0D2B70] font-semibold mr-2 flex flex-row">Job Type</span>    
+                <select id="jobTypeFilter"
+                        class="h-10 cursor-pointer px-4 rounded-md border border-[#0D2B70] text-[#0D2B70] font-semibold bg-white
+                            focus:outline-none focus:ring-2 focus:ring-[#0D2B70] focus:ring-offset-1">
+                    <option value="">All</option>
+                    <option value="COS">COS</option>
+                    <option value="Plantilla">Plantilla</option>
+                </select>
+            </div>
+
+            <!-- exam status dropdown (New) -->
+            <div class="flex flex-row items-center ml-4">
+                <span class="text-[#0D2B70] font-semibold mr-2">Status</span>    
+                <select id="examStatusFilter"
+                        class="h-10 cursor-pointer px-4 rounded-md border border-[#0D2B70] text-[#0D2B70] font-semibold bg-white
+                            focus:outline-none focus:ring-2 focus:ring-[#0D2B70] focus:ring-offset-1">
+                    <option value="">All</option>
+                    <option value="Unscheduled">Unscheduled</option>
+                    <option value="Scheduled">Scheduled</option>
+                    <option value="Ongoing">Ongoing</option>
+                    <option value="Completed">Completed</option>
+                </select>
+            </div>
+            <!-- exam library button -->
+            <div class="flex justify-end ml-auto">
+                <button onclick="window.location.href='{{ route('admin.exam_library') }}'" 
+                    class="h-10 hover:scale-105 animate-ease-in-out px-6 border border-[#0D2B70] transition bg-white font-semibold rounded-md flex items-center gap-2 text-sm">
+                    <span class="text-[#0D2B70] font-bold">Exam Library</span>
+                </button>
+>>>>>>> parent of 37cccb8 (Vacancies Management table, Applications list table)
             </div>
         </div>
 
+<<<<<<< HEAD
         <script>
             const searchInput = document.getElementById('examIdFilter');
             const jobTypeFilter = document.getElementById('jobTypeFilter');
@@ -224,6 +281,54 @@
                         </td>
                         <td class="py-4 px-6 text-center w-[15%]">
                             <button onclick="window.location.href='/admin/exam_management/manage_exam/${vacancy.vacancy_id}'" 
+=======
+    <!-- TABLE -->
+    <div class="flex-1 flex flex-col min-h-0 overflow-hidden rounded-xl border border-[#0D2B70]">
+        <div class="flex-none bg-[#0D2B70] text-white">
+            <table class="w-full text-left border-collapse table-fixed">
+                <thead class="bg-[#0D2B70] text-white sticky top-0 z-10">
+                <tr>
+                    <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider w-[15%]">Vacancy ID</th>
+                    <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider w-[35%]">Job Title</th>
+                    <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider w-[20%]">Job Type</th>
+                    <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider w-[15%]">Status</th>
+                    <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider w-[15%]">Action</th>
+                </tr>
+            </thead>
+            </table>
+        </div>
+        <div class="flex-1 overflow-auto">
+            <table class="w-full text-left border-collapse table-fixed">
+                <tbody class="bg-white divide-y divide-gray-200">
+                    @foreach ($vacancies as $vacancy)
+                    <tr class="hover:bg-blue-50 transition-colors duration-200">
+                        <td class="py-4 px-6 text-center text-[#0D2B70] font-semibold w-[15%]">
+                            {{ $vacancy->vacancy_id }}
+                        </td>
+                        <td class="py-4 px-6 text-center text-[#0D2B70] font-medium w-[35%]">
+                            {{ $vacancy->position_title }}
+                        </td>
+                        <td class="py-4 px-6 text-center text-[#0D2B70] w-[20%]">
+                            {{ $vacancy->vacancy_type }}
+                        </td>
+                        <td class="py-4 px-6 text-center w-[15%]">
+                            @php
+                                $statusColor = 'bg-gray-300 text-gray-800';
+                                if ($vacancy->exam_status === 'Scheduled') {
+                                    $statusColor = 'bg-blue-100 text-blue-800';
+                                } elseif ($vacancy->exam_status === 'Ongoing') {
+                                    $statusColor = 'bg-yellow-100 text-yellow-800';
+                                } elseif ($vacancy->exam_status === 'Completed') {
+                                    $statusColor = 'bg-green-100 text-green-800';
+                                }
+                            @endphp
+                            <span class="px-2 py-1 rounded-full text-xs font-bold {{ $statusColor }}">
+                                {{ strtoupper($vacancy->exam_status) }}
+                            </span>
+                        </td>
+                        <td class="py-4 px-6 text-center w-[15%]">
+                            <button onclick="window.location.href='{{ route('admin.manage_exam', $vacancy->vacancy_id) }}'" 
+>>>>>>> parent of 37cccb8 (Vacancies Management table, Applications list table)
                                     class="text-[#0D2B70] border border-[#0D2B70] font-bold py-2 px-6 rounded-md text-sm
                                     transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
                                     hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md">
