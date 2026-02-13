@@ -1,6 +1,6 @@
 @extends('layout.exam_user')
 
-@section('title', 'Sample Exam')
+@section('title', 'Exam Lobby')
 
 @push('styles')
 <style>
@@ -32,10 +32,17 @@
     <div class="flex gap-6 w-full">
         <div class="flex-1 bg-white rounded-xl shadow-md border border-blue-300 p-8 flex flex-col justify-center items-center">
             <div class="flex flex-col items-center text-center space-y-2">
-                <h3 class="text-3xl font-extrabold text-black">ENGINEER III</h3>
+                <h3 class="text-3xl font-extrabold text-black">{{ $vacancy->position_title ?? 'Examination' }}</h3>
                 <p class="text-lg font-semibold tracking-widest uppercase text-gray-700">EXAMINATION</p>
-                <p class="text-gray-700 text-lg">July 3, 2024 | 10:00 AM</p>
-                <p class="text-gray-700 text-lg mb-4">DILG-CAR Regional Office</p>
+                @if($examDetail)
+                <p class="text-gray-700 text-lg">
+                    {{ \Carbon\Carbon::parse($examDetail->date)->format('F d, Y') }} | 
+                    {{ \Carbon\Carbon::parse($examDetail->time)->format('h:i A') }}
+                </p>
+                <p class="text-gray-700 text-lg mb-4">Duration: {{ $examDetail->duration }} minutes</p>
+                @else
+                <p class="text-gray-700 text-lg mb-4">Schedule to be announced</p>
+                @endif
 
                 <button
                     id="readyBtn"
@@ -61,10 +68,11 @@
             <h4 class="font-bold text-black mb-4 uppercase text-sm tracking-wider">
                 Examination Reminders
             </h4>
-            <ol class="list-decimal list-inside text-gray-800 space-y-1 text-lg">
-                <li>Bring a valid ID.</li>
-                <li>Be at the venue 30 minutes early.</li>
-                <li>Strictly no cheating.</li>
+            <ol class="list-decimal list-inside text-gray-800 space-y-2 text-lg">
+                <li>Ensure you have a stable internet connection.</li>
+                <li>Do not refresh the page once the exam starts.</li>
+                <li>Do not switch tabs or windows.</li>
+                <li>The exam will auto-submit when time is up.</li>
             </ol>
         </div>
     </div>
@@ -102,17 +110,21 @@
     }
 
     function startPolling() {
-        pollInterval = setInterval(() => {
-            console.log("Checking if admin started exam...");
-            fetch("{{ route('exam.status.check', ['vacancy_id' => $vacancy_id]) }}")
-                .then(response => response.json())
-                .then(data => {
-                    if (data.started) {
-                        markExamStarted();
-                    }
-                })
-                .catch(error => console.error("Error polling exam status:", error));
-        }, 5000);
+        // Poll immediately once, then interval
+        checkStatus();
+        pollInterval = setInterval(checkStatus, 3000);
+    }
+
+    function checkStatus() {
+        console.log("Checking if admin started exam...");
+        fetch("{{ route('exam.status.check', ['vacancy_id' => $vacancy_id]) }}")
+            .then(response => response.json())
+            .then(data => {
+                if (data.started) {
+                    markExamStarted();
+                }
+            })
+            .catch(error => console.error("Error polling exam status:", error));
     }
 
     function stopPolling() {
@@ -130,7 +142,7 @@
         // Automatically route to the exam.questions page after short delay
         setTimeout(() => {
             document.getElementById('redirect-form').submit();
-        }, 2000);
+        }, 1500);
     }
 </script>
 @include('partials.loader')

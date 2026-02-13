@@ -152,16 +152,47 @@
 
     renderAllQuestions();
 
-    let duration = 10 * 60; // Adjust the dura
+    let duration = {{ $remaining_seconds }};
     const timerDisplay = document.getElementById('timer');
-    setInterval(() => {
+    
+    // Initial display
+    updateTimerDisplay(duration);
+
+    const timerInterval = setInterval(() => {
+        duration--;
         if (duration >= 0) {
-            timerDisplay.textContent = `${String(Math.floor(duration / 60)).padStart(2, '0')}:${String(duration % 60).padStart(2, '0')}`;
-            duration--;
+            updateTimerDisplay(duration);
         } else {
-            collectCurrentAnswers(); window.triggerTimesUp();
+            clearInterval(timerInterval);
+            collectCurrentAnswers(); 
+            window.triggerTimesUp();
+            // Optional: Auto submit after a few seconds of "Times Up" modal
+            setTimeout(() => {
+                if(!window.isSubmitting) prepareSubmit();
+            }, 3000);
         }
     }, 1000);
+
+    function updateTimerDisplay(seconds) {
+        if (seconds < 0) seconds = 0;
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = seconds % 60;
+        
+        let timeStr = '';
+        if (h > 0) {
+            timeStr += `${String(h).padStart(2, '0')}:`;
+        }
+        timeStr += `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        
+        timerDisplay.textContent = timeStr;
+        
+        // Visual warning when low on time
+        if (seconds < 60) {
+            timerDisplay.classList.add('text-red-600');
+            timerDisplay.classList.add('animate-pulse');
+        }
+    }
 
     function showSaveNotification() {
         const notif = document.getElementById('saveNotification');

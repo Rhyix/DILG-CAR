@@ -471,7 +471,8 @@ Route::middleware([ViewerAccess::class])->group(function () {
 
 // ==================================================================================================
 Route::get('/exam/{vacancy_id}/questions', [ExamController::class, 'examQuestion'])->name('user.exam_question_page');
-Route::get('/exam/{vacancy_id}/lobby', [ExamController::class, 'submit'])->name('user.exam_lobby');
+Route::get('/exam/{vacancy_id}/lobby', [ExamController::class, 'examLobby'])->name('user.exam_lobby');
+Route::post('/exam/{vacancy_id}/start', [ExamController::class, 'startCandidateExam'])->name('user.exam_start');
 Route::post('/exam/{vacancy_id}/submit', [ExamController::class, 'submit'])->name('exam.submit');
 Route::get('/exam/{vacancy_id}/thankyou', fn() => view('exam_user.exam_thankyou'))->name('user.exam_thankyou');
 Route::post('/log-switch', [ExamController::class, 'logSwitch']);

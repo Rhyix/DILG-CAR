@@ -4,74 +4,101 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Notifications\DatabaseNotification;
-use Illuminate\Support\Carbon;
-use App\Models\User;
+use App\Models\Notification;
 
 class NotificationController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware('auth');
-    }
-
-    public function index(Request $request)
-    {
-        $user = User::query()->findOrFail(Auth::id());
-        $notifications = $user->notifications()
-            ->latest()
-            ->paginate(10);
-
-        if ($request->wantsJson()) {
-            return response()->json($notifications);
+    private function getQuery() {
+        if (Auth::guard('admin')->check()) {
+            return Notification::where('notifiable_type', 'App\Models\Admin')
+                ->where(function($q) {
+                    $q->where('notifiable_id', Auth::guard('admin')->id())
+                      ->orWhereNull('notifiable_id');
+                });
+        } elseif (Auth::check()) {
+            return Notification::where('notifiable_type', 'App\Models\User')
+                ->where('notifiable_id', Auth::id());
         }
-
-        return view('notifications.index', compact('notifications'));
+        return null;
     }
 
+    // Fetch count of unread notifications
     public function unreadCount()
     {
-        $user = User::query()->findOrFail(Auth::id());
-        $count = $user->unreadNotifications()->count();
-        return response()->json(['count' => $count]);
+        $query = $this->getQuery();
+        if (!$query) return response()->json(['count' => 0]);
+            
+        return response()->json(['count' => $query->whereNull('read_at')->count()]);
     }
 
-    public function fetch(Request $request)
+    // Index method
+    public function index()
     {
-        $page = (int) $request->get('page', 1);
-        $per = (int) $request->get('per_page', 10);
-        $user = User::query()->findOrFail(Auth::id());
-        $notifications = $user->notifications()
-            ->latest()
-            ->paginate($per, ['*'], 'page', $page);
-        return response()->json($notifications);
+        return view('notifications.index');
     }
 
-    public function markAsRead(string $id)
+    // Fetch latest notifications
+    public function fetch()
     {
-        $user = User::query()->findOrFail(Auth::id());
-        $notification = $user->notifications()->where('id', $id)->first();
-        if (!$notification) {
-            return response()->json(['message' => 'Not found'], 404);
-        }
-        if (!$notification->read_at) {
-            $notification->markAsRead();
-        }
-        return response()->json(['ok' => true]);
+        $query = $this->getQuery();
+        if (!$query) return response()->json(['notifications' => []]);
+
+        $notifications = $query->latest()
+            ->take(10)
+            ->get();
+
+        return response()->json(['notifications' => $notifications]);
     }
 
+    // Mark all as read
     public function markAll()
     {
-        $user = User::query()->findOrFail(Auth::id());
-        $user->unreadNotifications->markAsRead();
-        return response()->json(['ok' => true]);
+        $query = $this->getQuery();
+        if (!$query) return response()->json(['success' => false], 403);
+
+        $query->whereNull('read_at')->update(['read_at' => now()]);
+
+        return response()->json(['success' => true]);
     }
 
-    public function cleanup(Request $request)
+    // Mark individual notification as read
+    public function markAsRead($id)
     {
-        $days = (int) ($request->get('days') ?? config('notifications.retention_days', 90));
-        $cutoff = Carbon::now()->subDays($days);
-        DatabaseNotification::where('created_at', '<', $cutoff)->delete();
-        return response()->json(['ok' => true, 'deleted_before' => $cutoff->toISOString()]);
+        $notification = Notification::find($id);
+
+        if (!$notification) {
+            return response()->json(['success' => false, 'message' => 'Notification not found'], 404);
+        }
+
+        // Security Check
+        $authorized = false;
+        if (Auth::guard('admin')->check()) {
+            if ($notification->notifiable_type === 'App\Models\Admin' && 
+               ($notification->notifiable_id == Auth::guard('admin')->id() || $notification->notifiable_id === null)) {
+                $authorized = true;
+            }
+        } elseif (Auth::check()) {
+            if ($notification->notifiable_type === 'App\Models\User' && $notification->notifiable_id == Auth::id()) {
+                $authorized = true;
+            }
+        }
+
+        if ($authorized) {
+            $notification->update(['read_at' => now()]);
+            return response()->json(['success' => true]);
+        }
+
+        return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+    }
+
+    // Clear all notifications
+    public function cleanup()
+    {
+        $query = $this->getQuery();
+        if (!$query) return response()->json(['success' => false], 403);
+
+        $query->delete();
+
+        return response()->json(['success' => true]);
     }
 }

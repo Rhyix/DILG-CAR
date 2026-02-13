@@ -4,14 +4,16 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
+return new class extends Migration
+{
     /**
      * Run the migrations.
      */
     public function up(): void
     {
         Schema::table('applications', function (Blueprint $table) {
-            $table->timestamp('read_at')->nullable()->after('link_sent_at');
+            $table->timestamp('exam_started_at')->nullable()->after('read_at');
+            $table->timestamp('exam_end_time')->nullable()->after('exam_started_at');
         });
     }
 
@@ -21,7 +23,7 @@ return new class extends Migration {
     public function down(): void
     {
         Schema::table('applications', function (Blueprint $table) {
-            //
+            $table->dropColumn(['exam_started_at', 'exam_end_time']);
         });
     }
 };

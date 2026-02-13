@@ -110,14 +110,4 @@
         </nav>
     </div>
 
-    <div class="px-2 pb-4 flex-shrink-0">
-        <form method="POST" action="{{ route('admin.logout') }}">
-            @csrf
-            <button type="submit" class="group flex items-center w-full rounded-md px-4 py-2 text-sm font-bold transition-all duration-200
-                       bg-[#C5292F] text-white hover:bg-red-700 hover:shadow-lg">
-                <i data-feather="log-out" class="w-5 h-5 stroke-[3] flex-shrink-0"></i>
-                <span id="textLogOut" class="sidebar-text-hidden ml-3">LOGOUT</span>
-            </button>
-        </form>
-    </div>
 </aside>
