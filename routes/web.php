@@ -387,6 +387,13 @@ Route::middleware([RedirectIfNotAdmin::class])->group(function () {
     Route::get('/admin/activity-log/data', [activityLogController::class, 'fetch'])->name('admin.activity_log.fetch');
 
     // ==================================================================================================
+    // REPORT ROUTES
+    // ==================================================================================================
+    Route::get('/admin/utilities/reports', [App\Http\Controllers\ReportController::class, 'index'])->name('admin.reports.index');
+    Route::get('/admin/utilities/reports/data', [App\Http\Controllers\ReportController::class, 'getData'])->name('admin.reports.data');
+    Route::get('/admin/utilities/reports/export', [App\Http\Controllers\ReportController::class, 'export'])->name('admin.reports.export');
+
+    // ==================================================================================================
     // SIGNATORY ROUTES
     // ==================================================================================================
     Route::resource('/admin/signatories', SignatoryController::class)->names([

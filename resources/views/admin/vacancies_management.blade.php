@@ -424,15 +424,14 @@
         <!-- Table Header -->
         <div class="bg-[#0D2B70] text-white text-left rounded-t-xl">
             <table class="w-full border-collapse">
-                <thead class="bg-red-400 text-white sticky top-0 z-10"> 
-                    <!-- bg-[#0D2B70] -->
+                <thead class="bg-[#0D2B70] text-white sticky top-0 z-10"> 
                     <tr>
-                        <th class="py-4 px-6 font-normal">Plantilla Item No.</th>
-                        <th class="py-4 px-6 font-normal">Job Title</th>
-                        <th class="py-4 px-6 font-normal">Monthly Salary</th>
-                        <th class="py-4 px-6 font-normal">Closing Date</th>
-                        <th class="py-4 px-6 font-normal">Place of Assignment</th>
-                        <th class="py-4 px-6 font-normal text-center">Actions</th>
+                        <th class="py-4 px-6 font-semibold text-left w-[20%]">Plantilla Item No.</th>
+                        <th class="py-4 px-6 font-semibold text-left w-[25%]">Job Title</th>
+                        <th class="py-4 px-6 font-semibold text-left w-[15%]">Monthly Salary</th>
+                        <th class="py-4 px-6 font-semibold text-left w-[15%]">Closing Date</th>
+                        <th class="py-4 px-6 font-semibold text-left w-[15%]">Place of Assignment</th>
+                        <th class="py-4 px-6 font-semibold text-center w-[10%]">Actions</th>
                     </tr>
                 </thead>
             </table>

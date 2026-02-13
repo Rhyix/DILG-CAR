@@ -6,20 +6,20 @@
 </style>
 <tr class="text-[#0D2B70] select-none hover:bg-blue-50 transition-colors duration-200">
   
-  <td class="py-4 px-6 ml-2">
+  <td class="py-4 px-6 ml-2 w-[20%]">
     <div class="flex items-center gap-2">
       <div class="w-3 h-3 rounded-full {{ $vacancy->status === 'OPEN' ? 'bg-green-500' : 'bg-red-500' }}"></div>
       {{ $vacancy->plantilla_item_no }}
     </div>
   </td>
-  <td class="py-4 px-6">
+  <td class="py-4 px-6 w-[25%]">
     <p>{{ $vacancy->position_title }}</p>
     <p class="text-[#0D2B70]/70 text-[0.9rem] italic">{{ $vacancy->vacancy_type }}</p>
   </td>
-  <td class="py-4 px-6">₱{{ number_format($vacancy->monthly_salary, 2) }}</td>
-  <td class="py-4 px-6">{{ \Carbon\Carbon::parse($vacancy->closing_date)->subMinute()->format('n/j/Y g:i A') }}</td>
-  <td class="py-4 px-6">{{ $vacancy->place_of_assignment }}</td>
-  <td class="py-4 px-6 text-center">
+  <td class="py-4 px-6 w-[15%]">₱{{ number_format($vacancy->monthly_salary, 2) }}</td>
+  <td class="py-4 px-6 w-[15%]">{{ \Carbon\Carbon::parse($vacancy->closing_date)->subMinute()->format('n/j/Y g:i A') }}</td>
+  <td class="py-4 px-6 w-[15%]">{{ $vacancy->place_of_assignment }}</td>
+  <td class="py-4 px-6 text-center w-[10%]">
     <div class="flex justify-center items-center gap-3 font-normal">
         <!-- Edit Icon Button  -->
         <button 

@@ -104,6 +104,15 @@
                         <i data-feather="clock" class="w-5 h-5 stroke-[2.5] flex-shrink-0 ml-2"></i>
                         <span class="ml-3">ACTIVITY LOG</span>
                     </a>
+
+                    <!-- Reports -->
+                    <a href="{{ route('admin.reports.index') }}" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200
+                            {{ request()->routeIs('admin.reports.index')
+                                ? 'bg-[#002C76] text-white shadow-md'
+                                : 'text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md' }}">
+                        <i data-feather="bar-chart-2" class="w-5 h-5 stroke-[2.5] flex-shrink-0 ml-2"></i>
+                        <span class="ml-3">REPORTS</span>
+                    </a>
                 </div>
             </div>
 
