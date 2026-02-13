@@ -35,9 +35,9 @@
                     <tr>
                         <th class="py-4 px-6 font-semibold w-[20%]">Username</th>
                         <th class="py-4 px-6 font-semibold w-[30%]">Email Address</th>
-                        <th class="py-4 px-6 font-semibold text-left w-[15%]">Account Type</th>
-                        <th class="py-4 px-6 font-semibold text-left w-[15%]">Account Status</th>
-                        <th class="py-4 px-6 font-semibold text-center w-[20%]">Action</th>
+                        <th class="py-4 px-6 font-semibold text-center w-[15%]">Account Type</th>
+                        <th class="py-4 px-6 font-semibold text-center w-[15%]">Account Status</th>
+                        <th class="py-4 px-6 font-semibold text-center w-[20%]">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-[#0D2B70]">
@@ -53,12 +53,12 @@
                         </td>
                         
                         <!-- Role -->
-                        <td class="py-4 px-6 text-left font-semibold w-[15%]">
+                        <td class="py-4 px-6 text-center font-semibold w-[15%]">
                             {{ ucfirst($admin->role) }}
                         </td>
                         
                         <!-- Status -->
-                        <td class="py-4 px-6 text-left w-[15%]">
+                        <td class="py-4 px-6 text-center w-[15%]">
                             <span class="px-3 py-1 rounded-full border-2
                                 {{ $admin->is_active ? 'bg-green-200 border-green-700 text-green-700' : 'bg-red-200 border-red-700 text-red-700' }}">
                                 {{ $admin->is_active ? 'Active' : 'Inactive' }}
@@ -66,7 +66,7 @@
                         </td>
 
                         <!-- Actions -->
-                        <td class="py-4 px-6 text-left w-[20%]">
+                        <td class="py-4 px-6 text-center w-[20%]">
                             <div class="flex justify-center items-center gap-3">
                                 <form method="POST" action="{{ route($admin->is_active ? 'admin.deactivate' : 'admin.activate', $admin->id) }}">
                                     @csrf

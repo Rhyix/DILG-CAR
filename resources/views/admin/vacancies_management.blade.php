@@ -419,44 +419,42 @@
         </div>
     @endif
 
-<!-- Table Container -->
-<div class="flex-1 flex flex-col overflow-hidden border border-[#0D2B70] rounded-xl">
-    <!-- Table Header - Fixed -->
-<div class="bg-[#0D2B70] text-white rounded-t-xl flex-shrink-0">
-    <table class="w-full border-collapse table-fixed">
-        <thead>
-            <tr>
-                <th class="py-4 px-6 font-normal text-left w-[15%]">Plantilla Item No.</th>
-                <th class="py-4 px-6 font-normal text-left w-[25%]">Job Title</th>
-                <th class="py-4 px-6 font-normal text-left w-[15%]">Monthly Salary</th>
-                <th class="py-4 px-6 font-normal text-left w-[15%]">Closing Date</th>
-                <th class="py-4 px-6 font-normal text-left w-[20%]">Place of Assignment</th>
-                <th class="py-4 px-6 font-normal text-center w-[5PX]">Action</th>
-            </tr>
-        </thead>
-    </table>
-</div>
-
-    <!-- Table Body - Scrollable -->
-    <div class="flex-1 overflow-auto min-h-0">
-        <table class="w-full border-collapse">
-            <tbody id="vacancy-list" class="divide-y divide-[#0D2B70]">
-                @forelse ($vacancies as $vacancy)
-                    @include('partials.admin_job_vacancy_card', ['vacancy' => $vacancy, 'index' => $loop->index])
-                @empty
+    <!-- Table Container -->
+    <div class="flex-1 flex flex-col min-h-0 overflow-hidden border border-[#0D2B70] rounded-xl">
+        <!-- Table Header -->
+        <div class="bg-[#0D2B70] text-white text-left rounded-t-xl">
+            <table class="w-full border-collapse">
+                <thead class="bg-red-400 text-white sticky top-0 z-10"> 
+                    <!-- bg-[#0D2B70] -->
                     <tr>
-                        <td colspan="6" class="py-8 px-6 text-center text-gray-500 text-3xl">
-                            <div class="flex items-center justify-center">
-                                <i data-feather="info" class="w-7 h-7 inline-block mr-2 text-gray-400"></i>
-                                No Job Vacancy
-                            </div>
-                        </td>
+                        <th class="py-4 px-6 font-normal">Plantilla Item No.</th>
+                        <th class="py-4 px-6 font-normal">Job Title</th>
+                        <th class="py-4 px-6 font-normal">Monthly Salary</th>
+                        <th class="py-4 px-6 font-normal">Closing Date</th>
+                        <th class="py-4 px-6 font-normal">Place of Assignment</th>
+                        <th class="py-4 px-6 font-normal text-center">Actions</th>
                     </tr>
-                @endforelse
-            </tbody>
-        </table>
+                </thead>
+            </table>
+        </div>
+
+        <div class="flex-1 overflow-auto min-h-0">
+            <table class="w-full text-left border-collapse">
+                <tbody id="vacancy-list" class="divide-y divide-[#0D2B70]">
+                    @forelse ($vacancies as $vacancy)
+                        @include('partials.admin_job_vacancy_card', ['vacancy' => $vacancy, 'index' => $loop->index])
+                    @empty
+                        <tr>
+                            <td colspan="6" class="flex flex-row items-center justify-center text-center text-gray-500 text-3xl">
+                                <i data-feather="info" class="w-7 h-7 inline-block mr-2 text-gray-400 font-montserrat"></i>
+                                No Job Vacancy
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
     </div>
-</div>
 <script>
     // Re-initialize Feather icons
     if (typeof feather !== 'undefined') {
