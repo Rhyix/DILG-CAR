@@ -12,10 +12,19 @@
                     <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
                 </svg>
             </button>
-            <h1
-                class="flex items-center gap-3 w-full border-b border-[#0D2B70] text-white text-4xl font-montserrat py-2 tracking-wide select-none">
-                <span class="whitespace-nowrap text-[#0D2B70]">Manage Applicants</span>
-            </h1>
+            <div class="flex items-center justify-between w-full border-b border-[#0D2B70] py-2">
+                <h1 class="text-white text-4xl font-montserrat tracking-wide select-none">
+                    <span class="whitespace-nowrap text-[#0D2B70]">Manage Applicants</span>
+                </h1>
+                <div class="text-right">
+                    <p class="text-[#0D2B70] text-xl font-semibold">{{ $positionTitle ?? 'Vacancy ' . $vacancyId }}</p>
+                    @if(!empty($vacancyType) || !empty($placeOfAssignment))
+                        <p class="text-[#0D2B70]/70 text-sm italic">
+                            {{ $vacancyType ?? '' }}{{ !empty($vacancyType) && !empty($placeOfAssignment) ? ' • ' : '' }}{{ $placeOfAssignment ?? '' }}
+                        </p>
+                    @endif
+                </div>
+            </div>
         </section>
 
         <!-- Tab Navigation -->
@@ -81,26 +90,26 @@
                     <table class="w-full text-left border-collapse">
                         <thead class="bg-[#0D2B70] text-white sticky top-0 z-10">
                             <tr>
-                                <th class="py-4 px-6 font-normal">Name</th>
-                                <th class="py-4 px-6 font-normal">Job Applied</th>
-                                <th class="py-4 px-6 font-normal">Place of Assignment</th>
-                                <th class="py-4 px-6 font-normal text-center">Status</th>
-                                <th class="py-4 px-6 font-normal text-center">Actions</th>
+                                <th class="py-4 px-6 text-left font-bold uppercase text-sm tracking-wider w-[20%]">Name</th>
+                                <th class="py-4 px-6 text-left font-bold uppercase text-sm tracking-wider w-[25%]">Job Applied</th>
+                                <th class="py-4 px-6 text-left font-bold uppercase text-sm tracking-wider w-[25%]">Place of Assignment</th>
+                                <th class="py-4 px-6 text-left font-bold uppercase text-sm tracking-wider w-[15%]">Status</th>
+                                <th class="py-4 px-6 text-left font-bold uppercase text-sm tracking-wider w-[15%]">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="new-applicants-list" class="divide-y divide-[#0D2B70]">
                             @forelse ($newApplicants as $applicant)
                                 <tr class="text-[#0D2B70] select-none hover:bg-blue-50 transition-colors duration-200">
-                                    <td class="py-4 px-6">{{ $applicant['name'] }}</td>
-                                    <td class="py-4 px-6">{{ $applicant['job_applied'] }}</td>
-                                    <td class="py-4 px-6">{{ $applicant['place_of_assignment'] }}</td>
-                                    <td class="py-4 px-6 text-center">
+                                    <td class="py-4 px-6 text-left w-[20%]">{{ $applicant['name'] }}</td>
+                                    <td class="py-4 px-6 text-left w-[25%]">{{ $applicant['job_applied'] }}</td>
+                                    <td class="py-4 px-6 text-left w-[25%]">{{ $applicant['place_of_assignment'] }}</td>
+                                    <td class="py-4 px-6 text-left w-[15%]">
                                         <span
                                             class="px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">
                                             {{ $applicant['status'] }}
                                         </span>
                                     </td>
-                                    <td class="py-4 px-6 text-center">
+                                    <td class="py-4 px-6 text-center w-[15%]">
                                         <button
                                             onclick="window.location.href='{{ route('admin.applicant_status', ['user_id' => $applicant['user_id'], 'vacancy_id' => $applicant['vacancy_id']]) }}'"
                                             class="text-[#0D2B70] border border-[#0D2B70] font-bold py-1 px-4 rounded-md text-sm transition-all duration-300 hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md flex items-center gap-2 mx-auto">
@@ -151,29 +160,29 @@
             <!-- Table Container -->
             <div class="flex-1 flex flex-col min-h-0 overflow-hidden border border-[#0D2B70] rounded-xl">
                 <div class="flex-1 overflow-auto">
-                    <table class="w-full text-left border-collapse">
+                    <table class="w-full text-left border-collapse table-fixed">
                         <thead class="bg-[#0D2B70] text-white sticky top-0 z-10">
                             <tr>
-                                <th class="py-4 px-6 font-normal">Name</th>
-                                <th class="py-4 px-6 font-normal">Job Applied</th>
-                                <th class="py-4 px-6 font-normal">Place of Assignment</th>
-                                <th class="py-4 px-6 font-normal text-center">Status</th>
-                                <th class="py-4 px-6 font-normal text-center">Actions</th>
+                                <th class="py-4 px-6 text-left font-bold uppercase text-sm tracking-wider w-[20%]">Name</th>
+                                <th class="py-4 px-6 text-left font-bold uppercase text-sm tracking-wider w-[25%]">Job Applied</th>
+                                <th class="py-4 px-6 text-left font-bold uppercase text-sm tracking-wider w-[25%]">Place of Assignment</th>
+                                <th class="py-4 px-6 text-left font-bold uppercase text-sm tracking-wider w-[15%]">Status</th>
+                                <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider w-[15%]">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="compliance-applicants-list" class="divide-y divide-[#0D2B70]">
                             @forelse ($complianceApplicants as $applicant)
                                 <tr class="text-[#0D2B70] select-none hover:bg-blue-50 transition-colors duration-200">
-                                    <td class="py-4 px-6">{{ $applicant['name'] }}</td>
-                                    <td class="py-4 px-6">{{ $applicant['job_applied'] }}</td>
-                                    <td class="py-4 px-6">{{ $applicant['place_of_assignment'] }}</td>
-                                    <td class="py-4 px-6 text-center">
+                                    <td class="py-4 px-6 text-left w-[20%]">{{ $applicant['name'] }}</td>
+                                    <td class="py-4 px-6 text-left w-[25%]">{{ $applicant['job_applied'] }}</td>
+                                    <td class="py-4 px-6 text-left w-[25%]">{{ $applicant['place_of_assignment'] }}</td>
+                                    <td class="py-4 px-6 text-left w-[15%]">
                                         <span
                                             class="px-3 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-800">
                                             {{ $applicant['status'] }}
                                         </span>
                                     </td>
-                                    <td class="py-4 px-6 text-center">
+                                    <td class="py-4 px-6 text-center w-[15%]">
                                         <button
                                             onclick="window.location.href='{{ route('admin.applicant_status', ['user_id' => $applicant['user_id'], 'vacancy_id' => $applicant['vacancy_id']]) }}'"
                                             class="text-[#0D2B70] border border-[#0D2B70] font-bold py-1 px-4 rounded-md text-sm transition-all duration-300 hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md flex items-center gap-2 mx-auto">
@@ -222,24 +231,22 @@
             <!-- Table Container -->
             <div class="flex-1 flex flex-col min-h-0 overflow-hidden border border-[#0D2B70] rounded-xl">
                 <div class="flex-1 overflow-auto">
-                    <table class="w-full text-left border-collapse">
+                    <table class="w-full text-left border-collapse table-fixed">
                         <thead class="bg-[#0D2B70] text-white sticky top-0 z-10">
                             <tr>
-                                <th class="py-4 px-6 font-normal">Name</th>
-                                <th class="py-4 px-6 font-normal">Job Applied</th>
-                                <th class="py-4 px-6 font-normal">Place of Assignment</th>
-                                <!-- Status Column Removed -->
-                                <th class="py-4 px-6 font-normal text-center">Actions</th>
+                                <th class="py-4 px-6 text-left font-bold uppercase text-sm tracking-wider w-[30%]">Name</th>
+                                <th class="py-4 px-6 text-left font-bold uppercase text-sm tracking-wider w-[30%]">Job Applied</th>
+                                <th class="py-4 px-6 text-left font-bold uppercase text-sm tracking-wider w-[25%]">Place of Assignment</th>
+                                <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider w-[15%]">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="qualified-applicants-list" class="divide-y divide-[#0D2B70]">
                             @forelse ($qualifiedApplicants as $applicant)
                                 <tr class="text-[#0D2B70] select-none hover:bg-blue-50 transition-colors duration-200">
-                                    <td class="py-4 px-6">{{ $applicant['name'] }}</td>
-                                    <td class="py-4 px-6">{{ $applicant['job_applied'] }}</td>
-                                    <td class="py-4 px-6">{{ $applicant['place_of_assignment'] }}</td>
-                                    <!-- Status Column Removed -->
-                                    <td class="py-4 px-6 text-center">
+                                    <td class="py-4 px-6 text-left w-[30%]">{{ $applicant['name'] }}</td>
+                                    <td class="py-4 px-6 text-left w-[30%]">{{ $applicant['job_applied'] }}</td>
+                                    <td class="py-4 px-6 text-left w-[25%]">{{ $applicant['place_of_assignment'] }}</td>
+                                    <td class="py-4 px-6 text-center w-[15%]">
                                         <button
                                             onclick="window.location.href='{{ route('admin.applicant_status', ['user_id' => $applicant['user_id'], 'vacancy_id' => $applicant['vacancy_id']]) }}'"
                                             class="text-[#0D2B70] border border-[#0D2B70] font-bold py-1 px-4 rounded-md text-sm transition-all duration-300 hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md flex items-center gap-2 mx-auto">
@@ -285,6 +292,15 @@
                 }
             });
         }
+        document.addEventListener('DOMContentLoaded', function(){
+            const params = new URLSearchParams(window.location.search);
+            const initialTab = params.get('tab');
+            if (['new','compliance','qualified'].includes(initialTab)) {
+                switchTab(initialTab);
+            } else {
+                switchTab('new');
+            }
+        });
 
         // Debounce function
         function debounce(func, wait) {
