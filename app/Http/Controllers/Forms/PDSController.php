@@ -883,9 +883,7 @@ class PDSController extends Controller
                 'stored_name' => $hashed_name,
                 'storage_path' => $store_path,
                 'mime_type' => $file->getClientMimeType(),
-                'file_size_8b' => $file->getSize(),
-                'status' => 'Pending', // Reset status to Pending on new upload
-                'remarks' => null      // Clear old remarks
+                'file_size_8b' => $file->getSize()
             ]);
 
         }
@@ -1288,20 +1286,6 @@ class PDSController extends Controller
                     'file_size_8b' => $file->getSize(),
                 ]);
 
-                // *** NEW: Check if application was "Compliance" -> update to "Updated" ***
-                if ($application->status === 'Compliance') {
-                    $application->update(['status' => 'Updated']);
-                    
-                    // Trigger notification for Admin
-                    \App\Models\Notification::create([
-                        'title' => 'Applicant Updated Documents',
-                        'message' => 'Applicant ' . Auth::user()->name . ' has updated their documents for review.',
-                        'type' => 'warning',
-                        'link' => route('admin.applicant_status', ['user_id' => $user_id, 'vacancy_id' => $vacancy_id]),
-                        'is_read' => false
-                    ]);
-                }
-
             } else {
                 //For all other documents, add to $uploaded_files for c5StoreFilesToDB
                 $uploaded_files[$doc_type] = $file;
@@ -1311,28 +1295,6 @@ class PDSController extends Controller
         }
         if (!empty($uploaded_files)) {
             $this->c5StoreFilesToDB($uploaded_files);
-            
-            // *** NEW: Check if ANY uploaded file triggers "Compliance" -> "Updated"
-            // We need to find the application associated with this user/vacancy if we are in admin context?
-            // Actually c5StoreFilesToDB is generic. But here we are in uploadApplicationDocuments
-            // which has $user_id and $vacancy_id.
-            
-            $application = Applications::where('user_id', $user_id)
-                ->where('vacancy_id', $vacancy_id)
-                ->first();
-
-            if ($application && $application->status === 'Compliance') {
-                $application->update(['status' => 'Updated']);
-
-                // Trigger notification for Admin
-                \App\Models\Notification::create([
-                    'title' => 'Applicant Updated Documents',
-                    'message' => 'Applicant ' . Auth::user()->name . ' has updated their documents for review.',
-                    'type' => 'warning',
-                    'link' => route('admin.applicant_status', ['user_id' => $user_id, 'vacancy_id' => $vacancy_id]),
-                    'is_read' => false
-                ]);
-            }
         }
 
         //$this->c5StoreFilesToDB($uploaded_files);

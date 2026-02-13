@@ -35,9 +35,7 @@ class Applications extends Model
         'link_sent_at',
         'exam_token',
         'exam_token_expires_at',
-        'read_at',
-        'exam_started_at',
-        'exam_end_time'
+        'read_at'
     ];
 
     protected $casts = [

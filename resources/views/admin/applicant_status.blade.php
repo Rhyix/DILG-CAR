@@ -627,14 +627,7 @@
 						if (statusTextEl) statusTextEl.classList.remove('hidden');
 						
 						const modifiedEl = document.getElementById('document-modified');
-						if (modifiedEl) {
-                            modifiedEl.classList.remove('hidden');
-                            // Update the name dynamically
-                            const modifiedSpan = modifiedEl.querySelector('span');
-                            if(modifiedSpan) {
-                                modifiedSpan.textContent = doc.last_modified_by || 'N/A';
-                            }
-                        }
+						if (modifiedEl) modifiedEl.classList.remove('hidden');
 
 						updateStatusUI(doc.status);
 
@@ -693,21 +686,6 @@
 						// Optimistic UI Update
 						updateStatusUI(newStatus);
 						currentSelectedDoc.status = newStatus;
-
-                        // Update local object with current admin name immediately for UI responsiveness
-                        // Assuming we have access to current admin name via PHP variable or similar
-                        // For now, let's just use the previously loaded name if available, or placeholder
-                        // Ideally we should get the name from the server response, but for "Last modified by",
-                        // we can optimistically set it to "You" or the current admin's name if we had it in JS.
-                        // Let's use the static admin name passed to the view
-                        currentSelectedDoc.last_modified_by = "{{ Auth::guard('admin')->user()->name ?? 'Me' }}";
-                        
-                        // Update the "Last modified by" text immediately
-                        const modifiedEl = document.getElementById('document-modified');
-                        if (modifiedEl) {
-                            const modifiedSpan = modifiedEl.querySelector('span');
-                            if(modifiedSpan) modifiedSpan.textContent = currentSelectedDoc.last_modified_by;
-                        }
 						
 						// Update visual list item status icon immediately
 						const activeLi = document.getElementById(`doc-item-${currentSelectedDoc.id}`);
@@ -719,10 +697,8 @@
                             const textWrapper = btn.querySelector('span:last-child');
                             if(textWrapper) {
                                 textWrapper.className = "text-xs flex-1 break-words ";
-                                if (newStatus === "Verified" || newStatus === "Okay/Confirmed") {
-                                    textWrapper.classList.add("text-[#00730A]", "font-bold");
-                                } else if (newStatus === "Needs Revision" || newStatus === "Disapproved With Deficiency") {
-                                    textWrapper.classList.add("text-[#BC0000]", "font-bold");
+                                if (newStatus === "Verified" || newStatus === "Okay/Confirmed" || newStatus === "Needs Revision") {
+                                    textWrapper.classList.add("text-gray-900");
                                 } else if (newStatus === "Not Submitted") {
                                     textWrapper.classList.add("text-gray-400");
                                 } else {
@@ -792,11 +768,8 @@
 						const value = e.target.value;
 						currentSelectedDoc.remarks = value;
 
-                        // Show "Saving..." state immediately
-                        const statusEl = document.getElementById('remarks-status');
-                        statusEl.textContent = "Saving...";
-                        statusEl.classList.remove('opacity-0', 'text-green-600');
-                        statusEl.classList.add('opacity-100', 'text-orange-500');
+						document.getElementById('remarks-status').classList.remove('opacity-100');
+						document.getElementById('remarks-status').classList.add('opacity-0');
 
 						clearTimeout(docRemarksTimeout);
 						docRemarksTimeout = setTimeout(async () => {
@@ -814,14 +787,14 @@
 								});
 
                                 if (!response.ok) {
-                                    // ... error handling ...
+                                    const errorText = await response.text();
+                                    console.error("Server Error (Remarks):", errorText);
+                                    // Don't alert for background saves unless critical
                                 } else {
                                     // Show Saved
-                                    statusEl.textContent = "Saved";
-                                    statusEl.classList.remove('text-orange-500');
-                                    statusEl.classList.add('text-green-600');
-                                    
-                                    // Keep "Saved" visible for 2 seconds then fade out
+                                    const statusEl = document.getElementById('remarks-status');
+                                    statusEl.classList.remove('opacity-0');
+                                    statusEl.classList.add('opacity-100');
                                     setTimeout(() => {
                                         statusEl.classList.remove('opacity-100');
                                         statusEl.classList.add('opacity-0');
@@ -830,10 +803,8 @@
 
 							} catch (error) {
 								console.error(error);
-                                statusEl.textContent = "Error";
-                                statusEl.classList.add('text-red-600');
 							}
-						}, 500); // 500ms delay to batch keystrokes slightly but feel responsive
+						}, 1000);
 					});
 
 					// Auto-save Application Remarks (Moved to Modal)
@@ -1064,9 +1035,9 @@
 							let textColorClass = "text-gray-700";
 
 							if (doc.status === "Verified" || doc.status === "Okay/Confirmed") {
-								textColorClass = "text-[#00730A] font-bold"; 
+								textColorClass = "text-gray-900"; 
 							} else if (doc.status === "Needs Revision" || doc.status === "Disapproved With Deficiency") {
-								textColorClass = "text-[#BC0000] font-bold"; 
+								textColorClass = "text-gray-900"; 
 							} else if (doc.status === "Not Submitted") {
 								textColorClass = "text-gray-400"; 
 							} else {

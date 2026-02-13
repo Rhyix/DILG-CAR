@@ -133,7 +133,7 @@
                 const logo = document.querySelector('img[alt="DILG Logo"]');
                 const textElements = [
                     "sidebarText", "textHome", "textJobVacancies", "textMyApplications",
-                    "textPersonalDataSheet", "textAdmins", "textLogOut",
+                    "textPersonalDataSheet", "textAdmins", "textLogOut", 
                     "textUtilities", "utilitiesChevron", "utilitiesSubmenu"
                 ].map(id => document.getElementById(id));
 
@@ -185,110 +185,17 @@
             })();
         </script>
 
-        <!-- Content Wrapper -->
-        <div class="flex-1 flex flex-col h-screen overflow-hidden relative min-w-0">
-            <!-- Top Header (Notification Bell & Profile) -->
-            <header class="flex justify-end items-center gap-6 px-6 sm:px-8 md:px-10 pt-6 sm:pt-8 pb-4 shrink-0 z-10 bg-[#F1F6FC]">
-                <!-- Notification Bell -->
-                <div class="relative" x-data="{ open: false, count: 0, notifications: [] }" x-init="
-                    fetch('/notifications/count').then(r => r.json()).then(d => count = d.count);
-                    setInterval(() => fetch('/notifications/count').then(r => r.json()).then(d => count = d.count), 30000);
-                ">
-                    <button
-                        @click="open = !open; if(open) { fetch('/notifications/fetch').then(r => r.json()).then(d => { notifications = d.notifications; count = 0; fetch('/notifications/mark-all', {method: 'POST', headers: {'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content}}); }); }"
-                        class="relative p-2 text-gray-600 hover:text-[#0D2B70] transition-colors focus:outline-none">
-                        <i data-feather="bell" class="w-6 h-6"></i>
-                        <span x-show="count > 0"
-                            class="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-                            x-text="count"></span>
-                    </button>
+        {{-- Main Content Scrollable --}}
+        <main class="flex-1 overflow-y-auto p-6 sm:p-8 md:p-10 pt-6 sm:pt-8 relative">
+            <!-- Mobile Menu Button (visible only on mobile) -->
+            <button id="mobileMenuButton" onclick="window.openSidebar ? window.openSidebar() : null"
+                class="lg:hidden fixed top-4 left-4 z-20 bg-[#0D2B70] text-white p-3 rounded-lg shadow-lg hover:bg-[#001a4d] transition-all duration-200"
+                aria-label="Open menu">
+                <i data-feather="menu" class="w-6 h-6"></i>
+            </button>
 
-                    <!-- Notification Dropdown -->
-                    <div x-show="open" @click.away="open = false"
-                        class="absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-xl z-50 overflow-hidden"
-                        style="display: none;">
-                        <div class="px-4 py-3 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                            <h3 class="text-sm font-bold text-gray-700">Notifications</h3>
-                            <button
-                                @click="notifications = []; fetch('/notifications/cleanup', {method: 'POST', headers: {'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content}})"
-                                class="text-xs text-red-500 hover:text-red-700">Clear All</button>
-                        </div>
-                        <ul class="max-h-64 overflow-y-auto divide-y divide-gray-100">
-                            <template x-for="notif in notifications" :key="notif.id">
-                                <li class="px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer"
-                                    @click="if(notif.data && notif.data.link) window.location.href = notif.data.link">
-                                    <div class="flex items-start gap-3">
-                                        <div class="flex-shrink-0 mt-1">
-                                            <div class="w-2 h-2 rounded-full" 
-                                                 :class="notif.read_at ? 'bg-gray-300' : 'bg-blue-500'"></div>
-                                        </div>
-                                        <div>
-                                            <p class="text-sm text-gray-800 font-medium" x-text="notif.data?.title || notif.title"></p>
-                                            <p class="text-xs text-gray-600 mt-0.5" x-text="notif.data?.message || notif.message"></p>
-                                            <p class="text-[10px] text-gray-400 mt-1"
-                                                x-text="new Date(notif.created_at).toLocaleString()"></p>
-                                        </div>
-                                    </div>
-                                </li>
-                            </template>
-                            <li x-show="notifications.length === 0" class="px-4 py-6 text-center text-sm text-gray-500">
-                                No new notifications
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-
-                <!-- Profile Dropdown -->
-                <div class="relative" x-data="{ open: false }">
-                    <button @click="open = !open" class="flex items-center gap-3 focus:outline-none group">
-                        <div class="text-right hidden sm:block">
-                            <p class="text-sm font-bold text-gray-800 group-hover:text-[#0D2B70] transition-colors">
-                                {{ Auth::guard('admin')->user()->name ?? 'Admin User' }}
-                            </p>
-                            <p class="text-xs text-gray-500 uppercase">
-                                {{ Auth::guard('admin')->user()->role ?? 'Administrator' }}
-                            </p>
-                        </div>
-                        <div
-                            class="w-10 h-10 rounded-full bg-[#0D2B70] text-white flex items-center justify-center font-bold text-lg shadow-md group-hover:shadow-lg transition-all">
-                            {{ substr(Auth::guard('admin')->user()->name ?? 'A', 0, 1) }}
-                        </div>
-                        <i data-feather="chevron-down"
-                            class="w-4 h-4 text-gray-400 group-hover:text-[#0D2B70] transition-colors"></i>
-                    </button>
-
-                    <!-- Profile Menu -->
-                    <div x-show="open" @click.away="open = false"
-                        class="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-xl z-50 py-1"
-                        style="display: none;">
-                        <a href="{{ route('admin_account_management') }}"
-                            class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-[#0D2B70]">
-                            <i data-feather="settings" class="w-4 h-4 inline-block mr-2"></i> Account Settings
-                        </a>
-                        <div class="border-t border-gray-100 my-1"></div>
-                        <form method="POST" action="{{ route('admin.logout') }}">
-                            @csrf
-                            <button type="submit"
-                                class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 font-medium">
-                                <i data-feather="log-out" class="w-4 h-4 inline-block mr-2"></i> Logout
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            </header>
-
-            <!-- Main Content Scrollable -->
-            <main class="flex-1 overflow-y-auto px-6 sm:px-8 md:px-10 pb-6 sm:pb-8 md:pb-10 pt-0 relative scroll-smooth">
-                <!-- Mobile Menu Button (visible only on mobile) -->
-                <button id="mobileMenuButton" onclick="window.openSidebar ? window.openSidebar() : null"
-                    class="lg:hidden fixed top-4 left-4 z-20 bg-[#0D2B70] text-white p-3 rounded-lg shadow-lg hover:bg-[#001a4d] transition-all duration-200"
-                    aria-label="Open menu">
-                    <i data-feather="menu" class="w-6 h-6"></i>
-                </button>
-
-                @yield('content')
-            </main>
-        </div>
+            @yield('content')
+        </main>
 
     </div>
 </body>

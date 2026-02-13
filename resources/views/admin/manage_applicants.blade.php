@@ -306,8 +306,8 @@
             fetchNewApplicants(search, sortOrder);
         }, 500);
 
-        if (searchInputNew) searchInputNew.addEventListener('input', handleNewApplicantsFilter);
-        if (sortOrderNew) sortOrderNew.addEventListener('change', handleNewApplicantsFilter);
+        if(searchInputNew) searchInputNew.addEventListener('input', handleNewApplicantsFilter);
+        if(sortOrderNew) sortOrderNew.addEventListener('change', handleNewApplicantsFilter);
 
         function fetchNewApplicants(search = '', sortOrder = 'latest') {
             const params = new URLSearchParams({
@@ -336,8 +336,8 @@
             fetchComplianceApplicants(search, sortOrder);
         }, 500);
 
-        if (searchInputCompliance) searchInputCompliance.addEventListener('input', handleComplianceApplicantsFilter);
-        if (sortOrderCompliance) sortOrderCompliance.addEventListener('change', handleComplianceApplicantsFilter);
+        if(searchInputCompliance) searchInputCompliance.addEventListener('input', handleComplianceApplicantsFilter);
+        if(sortOrderCompliance) sortOrderCompliance.addEventListener('change', handleComplianceApplicantsFilter);
 
         function fetchComplianceApplicants(search = '', sortOrder = 'latest') {
             const params = new URLSearchParams({
@@ -366,8 +366,8 @@
             fetchQualifiedApplicants(search, sortOrder);
         }, 500);
 
-        if (searchInputQualified) searchInputQualified.addEventListener('input', handleQualifiedApplicantsFilter);
-        if (sortOrderQualified) sortOrderQualified.addEventListener('change', handleQualifiedApplicantsFilter);
+        if(searchInputQualified) searchInputQualified.addEventListener('input', handleQualifiedApplicantsFilter);
+        if(sortOrderQualified) sortOrderQualified.addEventListener('change', handleQualifiedApplicantsFilter);
 
         function fetchQualifiedApplicants(search = '', sortOrder = 'latest') {
             const params = new URLSearchParams({

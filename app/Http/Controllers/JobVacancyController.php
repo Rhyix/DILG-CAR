@@ -489,15 +489,6 @@ class JobVacancyController extends Controller
             'file_size_8b' => $file->getSize(),
         ]);
 
-        // Create notification for admin
-        \App\Models\Notification::create([
-            'title' => 'New Applicant',
-            'message' => 'Applicant ' . Auth::user()->name . ' has applied for ' . $vacancy->position_title,
-            'type' => 'info',
-            'link' => route('admin.manage_applicants', ['vacancy_id' => $vacancy->vacancy_id]),
-            'is_read' => false
-        ]);
-
         activity()
             ->event('apply job')
             ->causedBy(Auth::user())

@@ -31,21 +31,6 @@ class ExamController extends Controller
             ->where('user_id', $validated['user_id'])
             ->firstOrFail();
 
-        // Time Validation (Allow 2 minutes grace period for network latency)
-        if ($answerRecord->exam_end_time) {
-            $endTime = \Carbon\Carbon::parse($answerRecord->exam_end_time)->addMinutes(2);
-            if (now()->gt($endTime)) {
-                Log::warning('Late exam submission detected', [
-                    'user_id' => $validated['user_id'], 
-                    'vacancy_id' => $vacancy_id,
-                    'delay_seconds' => now()->diffInSeconds($endTime)
-                ]);
-                // We still accept it because the client might have auto-submitted late due to lag,
-                // but strictly speaking we could reject answers if we wanted to be harsh.
-                // For now, we allow it to ensure data isn't lost.
-            }
-        }
-
         // Update the answers field
         $answerRecord->answers = $validated['answers'];
         $answerRecord->status = 'submitted'; // Ensure status is updated to 'submitted'
@@ -275,12 +260,7 @@ class ExamController extends Controller
     public function manageExam(Request $request, $vacancy_id)
     {
         $vacancy = JobVacancy::select('vacancy_id', 'position_title', 'vacancy_type')->where('vacancy_id', $vacancy_id)->first();
-        // Only fetch participants who have entered the lobby (read_at is not null)
-        $participants = Applications::where('vacancy_id', $vacancy_id)
-            ->whereNotNull('read_at')
-            ->with('user')
-            ->get();
-            
+        $participants = Applications::where('vacancy_id', $vacancy_id)->get();
         $examDetails = ExamDetail::where('vacancy_id', $vacancy_id)->first();
 
         $user_name = [];
@@ -415,30 +395,10 @@ class ExamController extends Controller
         $user_id = auth()->id();
         $application = Applications::where('vacancy_id', $vacancy_id)
             ->where('user_id', $user_id)
-            ->firstOrFail();
-
-        // If already submitted, redirect to thank you
-        if ($application->status === 'submitted') {
-            return redirect()->route('user.exam_thankyou', ['vacancy_id' => $vacancy_id]);
-        }
-
-        // If already started, redirect to questions
-        if ($application->exam_started_at) {
-            return redirect()->route('user.exam_question_page', ['vacancy_id' => $vacancy_id]);
-        }
+            ->first();
 
         if ($application && is_null($application->read_at)) {
             $application->update(['read_at' => now()]);
-        }
-
-        $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->first();
-        $vacancy = JobVacancy::select('position_title')->where('vacancy_id', $vacancy_id)->first();
-
-        // Check if exam is already started globally
-        if ($examDetail && $examDetail->is_started) {
-             // We can optionally auto-redirect here too, but the view's JS will handle it or they click ready.
-             // But if the user refreshes, they might want to go straight in?
-             // The prompt says "waiting logic", so let's stick to the lobby view which will poll and redirect.
         }
 
         activity()
@@ -446,71 +406,26 @@ class ExamController extends Controller
             ->withProperties(['vacancy_id' => $vacancy_id, 'section' => 'Exam'])
             ->log('Entered exam lobby.');
 
-        return view('exam_user.exam_lobby', compact('vacancy_id', 'examDetail', 'vacancy'));
+        return view('exam_user.exam_lobby', compact('vacancy_id'));
     }
 
     public function examQuestion(Request $request, $vacancy_id)
     {
-        $user_id = auth()->id();
-        $application = Applications::where('vacancy_id', $vacancy_id)
-            ->where('user_id', $user_id)
-            ->firstOrFail();
-            
-        // Check if already submitted
-        if ($application->status === 'submitted') {
-            return redirect()->route('user.exam_thankyou', ['vacancy_id' => $vacancy_id]);
-        }
-
-        $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->firstOrFail();
-
-        // If admin hasn't started the exam yet, redirect back to lobby
-        if (!$examDetail->is_started) {
-            return redirect()->route('user.exam_lobby', ['vacancy_id' => $vacancy_id]);
-        }
-
-        // Initialize exam start time for the user if not set yet
-        if (!$application->exam_started_at) {
-            $now = now();
-            $duration = $examDetail->duration; // in minutes
-            
-            $application->update([
-                'exam_started_at' => $now,
-                'exam_end_time' => $now->copy()->addMinutes($duration),
-                'status' => 'in-progress'
-            ]);
-            
-            // Refresh application to get the new values
-            $application->refresh();
-        }
-
-        $now = now();
-        $endTime = \Carbon\Carbon::parse($application->exam_end_time);
-        $remaining_seconds = $now->diffInSeconds($endTime, false);
-
-        // If time is up (allow 1 minute grace period for latency)
-        if ($remaining_seconds < -60) {
-            $application->update(['status' => 'submitted']);
-            return redirect()->route('user.exam_thankyou', ['vacancy_id' => $vacancy_id]);
-        }
-        
-        if ($remaining_seconds < 0) $remaining_seconds = 0;
-
         $columns = Schema::getColumnListing('exam_items');
         $columns = array_diff($columns, ['ans']);
 
         $examItems = ExamItems::select($columns)
             ->where('vacancy_id', $vacancy_id)
             ->get();
-            
-        $vacancy = JobVacancy::select('position_title')->where('vacancy_id', $vacancy_id)->first();
 
+        //info($examItems);
         activity()
             ->causedBy(auth()->user())
             ->event('view')
             ->withProperties(['vacancy_id' => $vacancy_id, 'section' => 'Exam'])
             ->log('Viewed exam questions page.');
 
-        return view('exam_user.exam_question_page', compact('vacancy_id', 'examItems', 'remaining_seconds', 'vacancy'));
+        return view('exam_user.exam_question_page', compact('vacancy_id', 'examItems'));
     }
 
     public function viewExam(Request $request, $vacancy_id, $user_id)

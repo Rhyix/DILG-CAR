@@ -8,7 +8,6 @@ use App\Models\Vacancy;
 use App\Models\ExamDetail;
 use App\Models\JobVacancy;
 use App\Models\Applications;
-use App\Models\Notification;
 use App\Models\UploadedDocument;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -185,6 +184,7 @@ class AdminController extends Controller
             ->groupBy('month')
             ->orderBy('month')
             ->get();
+
         //info('check');
 
         // Generate month labels (Jan, Feb, Mar, etc.)
@@ -356,7 +356,6 @@ class AdminController extends Controller
                     'status' => $status,
                     'preview' => route('admin.preview_document', ['user_id' => $user_id, 'vacancy_id' => $application->vacancy_id, 'document_type' => 'application_letter']),
                     'remarks' => $application->file_remarks ?? '',
-                    'last_modified_by' => $application->file_last_modified_by ?? 'N/A',
                     'isBold' => true,
                 ];
             } else {
@@ -369,7 +368,6 @@ class AdminController extends Controller
                     'preview' => route('admin.preview_document', ['user_id' => $user_id, 'vacancy_id' => $application->vacancy_id, 'document_type' => $docType]),
                     'remarks' => $doc ? ($doc->remarks ?: '') : '',
                     'original_name' => $doc->original_name ?? '',
-                    'last_modified_by' => $doc->last_modified_by ?? 'N/A',
                     'isBold' => true,
                 ];
             }
@@ -546,43 +544,12 @@ class AdminController extends Controller
 
         $userEmail = User::where('id', $user_id)->value('email');
         Mail::to($userEmail)->send(new NotifyApplicationStatus(
-            auth('admin')->user()->name, // Send actual name instead of username
+            auth('admin')->user()->username,
             $changes,
             $application->status,
             $user_id,
             $vacancy_id
         ));
-
-        // Create notification for the User
-        Notification::create([
-            'notifiable_type' => 'App\Models\User',
-            'notifiable_id' => $user_id,
-            'type' => 'info',
-            'data' => [
-                'title' => 'Application Update',
-                'message' => 'Admin ' . Auth::guard('admin')->user()->name . ' has updated your application status.',
-                'link' => route('application_status', ['user' => $user_id, 'vacancy' => $vacancy_id]),
-            ]
-        ]);
-
-        // Notify other admins if there are changes
-        if (!empty($changes)) {
-            $admins = Admin::where('id', '!=', Auth::guard('admin')->id())->get();
-            $applicantName = User::find($user_id)->name ?? 'Applicant';
-            
-            foreach ($admins as $admin) {
-                Notification::create([
-                    'notifiable_type' => 'App\Models\Admin',
-                    'notifiable_id' => $admin->id,
-                    'type' => 'info',
-                    'data' => [
-                        'title' => 'Application Updated',
-                        'message' => 'Admin ' . Auth::guard('admin')->user()->name . ' updated application for ' . $applicantName,
-                        'link' => route('admin.applicant_status', ['user_id' => $user_id, 'vacancy_id' => $vacancy_id]),
-                    ]
-                ]);
-            }
-        }
 
         // Log only if there are changes
         if (!empty($changes)) {
@@ -618,35 +585,12 @@ class AdminController extends Controller
             ->where('vacancy_id', $vacancy_id)
             ->firstOrFail();
 
-        // Get applicant name
-        $applicantName = User::find($user_id)->name ?? 'Applicant';
-        $docName = $documentType === 'application_letter' ? 'Application Letter' : ucwords(str_replace('_', ' ', $documentType));
-
         if ($documentType === 'application_letter') {
             if ($request->has('status'))
                 $application->file_status = $status;
             if ($request->has('remarks'))
                 $application->file_remarks = $remarks;
-            
-            // Update last modified by
-            $application->file_last_modified_by = Auth::guard('admin')->user()->name;
-
             $application->save();
-
-            // Notify User about Application Letter Update
-            if ($request->has('status')) {
-                 Notification::create([
-                    'notifiable_type' => 'App\Models\User',
-                    'notifiable_id' => $user_id,
-                    'type' => 'info',
-                    'data' => [
-                        'title' => 'Document Update',
-                        'message' => 'Admin ' . Auth::guard('admin')->user()->name . ' updated your Application Letter status to ' . $status . '.',
-                        'link' => route('application_status', ['user' => $user_id, 'vacancy' => $vacancy_id]),
-                    ]
-                ]);
-            }
-
         } else {
             $document = UploadedDocument::where('user_id', $user_id)
                 ->where('document_type', $documentType)
@@ -665,9 +609,6 @@ class AdminController extends Controller
                     $document->remarks = '';
                 }
 
-                // Update last modified by
-                $document->last_modified_by = Auth::guard('admin')->user()->name;
-
                 $document->save();
             } else {
                 // If document doesn't exist, create a placeholder record so status/remarks can be saved
@@ -677,43 +618,11 @@ class AdminController extends Controller
                     'document_type' => $documentType,
                     'status' => $status ?? 'Pending',
                     'remarks' => $remarks ?? '',
-                    'last_modified_by' => Auth::guard('admin')->user()->name, // Add last modified by
                     'original_name' => '', // Placeholder
                     'stored_name' => '',   // Placeholder
                     'storage_path' => '',  // Placeholder
                     'mime_type' => '',     // Placeholder
                     'file_size_8b' => 0,   // Placeholder
-                ]);
-            }
-
-            // Notify User about Document Update
-            if ($request->has('status')) {
-                 Notification::create([
-                    'notifiable_type' => 'App\Models\User',
-                    'notifiable_id' => $user_id,
-                    'type' => 'info',
-                    'data' => [
-                        'title' => 'Document Update',
-                        'message' => 'Admin ' . Auth::guard('admin')->user()->name . ' updated your ' . $docName . ' status to ' . $status . '.',
-                        'link' => route('application_status', ['user' => $user_id, 'vacancy' => $vacancy_id]),
-                    ]
-                ]);
-            }
-        }
-
-        // Notify other admins if status changed
-        if ($request->has('status')) {
-            $admins = Admin::where('id', '!=', Auth::guard('admin')->id())->get();
-            foreach ($admins as $admin) {
-                Notification::create([
-                    'notifiable_type' => 'App\Models\Admin',
-                    'notifiable_id' => $admin->id,
-                    'type' => 'info',
-                    'data' => [
-                        'title' => 'Document Verified',
-                        'message' => 'Admin ' . Auth::guard('admin')->user()->name . ' modified ' . $docName . ' for ' . $applicantName . ' (' . $status . ')',
-                        'link' => route('admin.applicant_status', ['user_id' => $user_id, 'vacancy_id' => $vacancy_id]),
-                    ]
                 ]);
             }
         }
