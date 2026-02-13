@@ -56,7 +56,6 @@
                     </thead>
                 </table>
             </div>
-<<<<<<< HEAD
             <!-- SCROLLABLE BODY CONTAINER -->
             <div class="flex-1 overflow-y-auto min-h-0">
                 <table class="w-full align-items-center text-left border-collapse table-fixed">
@@ -64,6 +63,7 @@
                         @forelse ($vacancies as $vacancy)
                             <tr class="text-[#0D2B70] select-none hover:bg-blue-50 transition-colors duration-200">
                                 <td class="py-4 px-6 w-[15%]">{{ $vacancy->vacancy_id }}</td>
+<<<<<<< HEAD
 =======
 <!-- SCROLLABLE BODY CONTAINER -->
     <div class="flex-1 overflow-y-auto min-h-0">
@@ -89,6 +89,8 @@
                     <tr class="text-[#0D2B70] select-none hover:bg-blue-50 transition-colors duration-200">
                         <td class="py-4 px-6 w-[15%]">{{ $vacancy->vacancy_id }}</td>
 >>>>>>> parent of 37cccb8 (Vacancies Management table, Applications list table)
+=======
+>>>>>>> parent of 65e5c95 (latesst)
 
                                 <td class="py-4 px-6 w-[45%]">
                                     <p class="font-medium">{{ $vacancy->position_title }}</p>
@@ -114,7 +116,6 @@
                                     </div>
                                 </td>
 
-<<<<<<< HEAD
                                 <td class="py-4 px-6 text-center w-[25%]">
                                     <div class="flex justify-center items-center">
                                         <button
@@ -164,6 +165,7 @@
         </div>
         @include('partials.loader')
     </main>
+<<<<<<< HEAD
 =======
                         <td class="py-4 px-6 text-center w-[25%]">
                             <div class="flex justify-center items-center">
@@ -236,6 +238,8 @@
     @include('partials.loader')
 </main>
 >>>>>>> parent of 37cccb8 (Vacancies Management table, Applications list table)
+=======
+>>>>>>> parent of 65e5c95 (latesst)
 
     <script>
         // Debounce Function to prevent traffic overload
@@ -315,7 +319,6 @@
                             </span>` : '';
 
                 container.innerHTML += `
-<<<<<<< HEAD
                         <tr class="text-[#0D2B70] select-none hover:bg-blue-50 transition-colors duration-200">
                             <td class="py-4 px-6">${vacancy.vacancy_id}</td>
                             <td class="py-4 px-6">
@@ -342,34 +345,6 @@
                                 </div>
                             </td>
                         </tr>`;
-=======
-                <tr class="text-[#0D2B70] select-none hover:bg-blue-50 transition-colors duration-200">
-                    <td class="py-4 px-6">${vacancy.vacancy_id}</td>
-                    <td class="py-4 px-6">
-                        <p>${vacancy.position_title}</p>
-                        <p class="text-[#0D2B70]/70 text-[0.9rem] italic">${vacancy.vacancy_type}</p>
-                    </td>
-                    <td class="py-4 px-6 text-center">
-                        <div class="flex justify-center items-center gap-3 font-normal">
-                            <span class="w-5 h-5 rounded-full inline-block ${statusColor}"></span>
-                            <span class="text-center font-semibold uppercase">${vacancy.status}</span>
-                        </div>
-                    </td>
-                    <td class="py-4 px-6 text-center">
-                        <div class="flex justify-center items-center">
-                            <button onclick="window.location.href='/admin/manage_applicants/${vacancy.vacancy_id}'"
-                                class="text-[#0D2B70] border border-[#0D2B70] font-bold py-1 px-4 rounded-md text-sm transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md flex items-center gap-2 relative">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                                  <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
-                                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                </svg>
-                                <span>Manage</span>
-                                ${pendingBadge}
-                            </button>
-                        </div>
-                    </td>
-                </tr>`;
->>>>>>> parent of 37cccb8 (Vacancies Management table, Applications list table)
             });
         }
     </script>

@@ -409,7 +409,7 @@
         $simple = in_array(request()->input('simple'), [1, '1', true, 'true'], true);
     @endphp
     <!-- Notification Container -->
-    <!-- <div id="notificationContainer"></div> -->
+    <div id="notificationContainer"></div>
 
         @if(session('success'))
     <div
@@ -466,7 +466,7 @@
                 
                 <!-- Mobile Menu Toggle -->
                 <button class="md:hidden flex items-center px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors" onclick="toggleMobileNav()">
-                    <span class="material-icons text-lg mr-1">Menu</span>
+                    <span class="material-icons text-lg mr-1">menu</span>
                     <span class="text-sm font-medium">Menu</span>
                 </button>
                 
@@ -538,7 +538,7 @@
         const steps = [
             {
                 id: 'display_c1',
-                label: 'TITIE',
+                label: 'PERSONAL INFORMATION',
                 icon: 'person',
                 title: 'Personal Information'
             },
