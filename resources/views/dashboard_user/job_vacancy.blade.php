@@ -5,79 +5,13 @@
 @section('title', 'Job Vacancies')
 
 @section('content')
-    <!-- Add this CSS to your layout or in a <style> tag -->
-<style>
-/* Mobile-first responsive styles */
-@media (max-width: 767px) {  
-    /* Filters Section Mobile */
-    .filters-mobile {
-        display: grid !important;
-        grid-template-columns: 1fr 1fr;
-        gap: 0.75rem !important;
-        margin-bottom: 1.5rem;
-    }
-    
-    .filters-mobile select {
-        width: 100% !important;
-        padding: 0.75rem 0.5rem !important;
-        font-size: 0.875rem !important;
-        border: 2px solid #0D2B70;
-        border-radius: 0.5rem;
-        background-color: white;
-        font-family: 'Montserrat', sans-serif;
-    }
-    
-    /* Make salary and place filters full width on mobile */
-    .filters-mobile select:nth-child(4),
-    .filters-mobile select:nth-child(5) {
-        grid-column: span 2;
-    }
-    
-    /* Job Vacancies List Mobile */
-    .vacancy-list-mobile {
-        display: block !important;
-        space-y: 1rem;
-    }
-    
-    /* Empty state mobile */
-    .empty-state-mobile {
-        text-align: center;
-        color: #6b7280;
-        font-weight: 600;
-        font-size: 1.5rem !important;
-        margin-top: 2rem;
-        font-family: 'Montserrat', sans-serif;
-    }
-    
-    .empty-state-mobile i {
-        width: 1.75rem !important;
-        height: 1.75rem !important;
-        display: inline-block;
-        margin-right: 0.5rem;
-        color: #9ca3af;
-    }
-}
-
-/* Tablet adjustments */
-@media (min-width: 768px) and (max-width: 1023px) {
-    .filters-section {
-        gap: 0.75rem !important;
-    }
-    
-    .filters-section select {
-        padding: 0.5rem 0.75rem !important;
-        font-size: 0.875rem !important;
-    }
-}
-</style>
-
 <!-- Updated HTML with mobile classes -->
-<!-- Page Header -->
-<section class="flex items-center gap-2 sm:gap-4 ml-12 sm:ml-0" style="margin-top:0">
-                <h1 class="w-full max-w-full text-lg sm:text-4xl font-extrabold text-white font-montserrat flex items-center gap-3 bg-[#002C76] px-4 py-2 rounded-lg shadow-md" style="margin-top:0px;">
-                    <i data-feather="briefcase" class="w-6 h-6 text-white"></i> Browse Job Vacancies
+        <!-- Header Section -->
+            <div class="flex-none flex items-center mb-10 space-x-4 max-w-full">
+                <h1 class="flex items-center gap-3 w-full border-b border-[#0D2B70] text-white text-4xl font-montserrat py-2 tracking-wide select-none">
+                    <span class="whitespace-nowrap text-[#0D2B70]">Browse Job Vacancies</span>
                 </h1>
-</section>
+            </div>
 
 <!-- Sorting & Filtering -->
 <section class="flex flex-wrap gap-3 sm:gap-4 filters-mobile">
@@ -122,17 +56,29 @@
     </select>
 </section>
 
-<!-- Job Vacancies List -->
-<section class="space-y-6 flex flex items-center justify-center flex-wrap mt-6 vacancy-list-mobile" id="vacancy-list">
-    @forelse ($vacancies as $vacancy)
-        @include('partials.job_vacancy_card', ['vacancy' => $vacancy])
-    @empty
-        <div class="text-center text-gray-500 font-semibold text-3xl mt-10 empty-state-mobile">
-            <i data-feather="info" class="w-7 h-7 inline-block mr-2 text-gray-400 font-montserrat"></i>
-            No Job Vacancy
-        </div>
-    @endforelse
-</section>
+<!-- Job Vacancies Table -->
+<div class="rounded-xl border border-[#0D2B70] mt-6 h-[60vh] flex flex-col overflow-hidden">
+    <div class="flex-none bg-[#0D2B70] text-white">
+        <table class="w-full text-left border-collapse table-fixed">
+            <thead class="bg-[#0D2B70] text-white sticky top-0 z-10">
+                <tr>
+                    <th class="py-4 px-6 text-left font-bold uppercase text-sm tracking-wider w-[35%]">Job Title</th>
+                    <th class="py-4 px-6 text-left font-bold uppercase text-sm tracking-wider w-[15%]">Monthly Salary</th>
+                    <th class="py-4 px-6 text-left font-bold uppercase text-sm tracking-wider w-[25%]">Place of Assignment</th>
+                    <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider w-[10%]">Status</th>
+                    <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider w-[15%]">Actions</th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+    <div class="flex-1 overflow-y-auto min-h-0">
+        <table class="w-full text-left border-collapse table-fixed">
+            <tbody id="vacancy-list" class="divide-y divide-[#0D2B70]">
+                @include('partials.vacancy_list', ['vacancies' => $vacancies])
+            </tbody>
+        </table>
+    </div>
+</div>
 
 @include('partials.loader')
 

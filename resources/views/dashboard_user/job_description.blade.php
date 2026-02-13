@@ -21,19 +21,14 @@
 @extends('layout.app')
 @section('title', 'DILG - Job Description')
 @section('content')
-    <main class="flex-1 min-w-0 space-y-8 font-montserrat mt-6">
+    <main class="flex-1 min-w-0 space-y-8 font-montserrat">
 
-        <!-- Back Button -->
-        <section class="flex items-center gap-2 sm:gap-4 ml-12 sm:ml-0">
-          <button onclick="window.location.href='{{ route('job_vacancy') }}'"
-                  class="use-loader sm:w-14 sm:h-14 w-11 h-10 ml-2 rounded-full bg-[#002C76] flex items-center justify-center shadow-md hover:bg-opacity-90 transition">
-                  <i data-feather="arrow-left" class="w-4 h-4 sm:w-5 h-5 text-white"></i>
-              </button>
-          <h1
-              class="w-full max-w-full text-lg sm:text-4xl font-extrabold text-white font-montserrat flex items-center gap-3 bg-[#002C76] px-4 py-2 rounded-lg shadow-md">
-              <i data-feather="briefcase" class="w-5 h-5"></i> Job Description
-          </h1>
-        </section>
+        <!-- Header Section -->
+            <section class="flex-none flex items-center space-x-4 max-w-full">
+                <h1 class="flex items-center gap-3 w-full border-b border-[#0D2B70] text-white text-4xl font-montserrat py-2 tracking-wide select-none">
+                    <span class="whitespace-nowrap text-[#0D2B70]">Job Descriptions</span>
+                </h1>
+            </section>
 
         @php
             $isClosed = strtolower($vacancy->status) === 'closed';

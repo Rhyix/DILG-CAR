@@ -145,7 +145,7 @@
 
         <!-- Main Content -->
         <main class="flex-1 overflow-y-auto ml-2 pt-0 md:ml-20 transition-all duration-300" style="margin-left: 0; padding-left: 18px;">
-            <header class="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-gray-200 px-4 sm:px-8 py-3 flex items-center justify-end gap-6">
+            <header class="sticky top-0 z-40 bg-[#F3F8FF] backdrop-blur px-4 sm:px-8 py-3 flex items-center justify-end gap-6">
                 <div id="notifBell" class="relative">
                     <button id="notifToggle" aria-label="Notifications" class="relative p-2 rounded hover:bg-gray-100">
                         <i data-feather="bell" class="w-5 h-5"></i>

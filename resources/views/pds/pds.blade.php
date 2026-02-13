@@ -67,6 +67,7 @@
                     <div class="relative">
                         <input type="text" id="date_of_birth" name="date_of_birth" value="{{ old('date_of_birth', session('form.c1.date_of_birth')) }}" required class="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base">
                         <label for="date_of_birth" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">3. Date of Birth *</label>
+                        <label for="date_of_birth" class="absolute -top-2 left-3 bg-white px-1 text-xs text-gray-600 ml-[50%]">(dd/mm/yyyy) </label>
                     </div>
                     <div class="relative md:col-span-2">
                         <input type="text" id="place_of_birth" name="place_of_birth" value="{{ old('place_of_birth', session('form.c1.place_of_birth')) }}" placeholder=" " required class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
@@ -551,13 +552,13 @@
         form.action = `/pds/submit_c1/${location}`;
         form.requestSubmit();
     }
-    flatpickr("#date_of_birth", {dateFormat: "Y-m-d", allowInput: true});
-    flatpickr(".edu-date", {dateFormat: "Y-m-d", allowInput: true});
+    flatpickr("#date_of_birth", {dateFormat: "d-m-Y", allowInput: true});
+    flatpickr(".edu-date", {dateFormat: "d-m-Y", allowInput: true});
     document.addEventListener('DOMContentLoaded', function () {
         function initChildDates() {
             document.querySelectorAll('.edu-date').forEach(function (el) {
                 if (!el.classList.contains('flatpickr-input')) {
-                    flatpickr(el, {dateFormat: "Y-m-d", allowInput: true});
+                    flatpickr(el, {dateFormat: "d-m-Y", allowInput: true});
                 }
             });
         }

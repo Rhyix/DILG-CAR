@@ -16,20 +16,21 @@
     <div class="flex min-h-screen w-full">
         <!-- Main Content -->
         <main class="w-full space-y-6 main-content-mobile">
-            <!-- Header with Back Button and Title -->
-            <section class="flex items-center gap-2 sm:gap-4 ml-12 sm:ml-0 applications-header-mobile">
-                <h1 class="w-full max-w-full text-lg sm:text-4xl font-extrabold text-white font-montserrat flex items-center gap-3 bg-[#002C76] px-4 py-2 rounded-lg shadow-md">
-                    <i data-feather="folder" class="w-6 h-6 text-white"></i> My Applications
+
+        <!-- Header Section -->
+            <section class="flex-none flex items-center space-x-4 max-w-full">
+                <h1 class="flex items-center gap-3 w-full border-b border-[#0D2B70] text-white text-4xl font-montserrat py-2 tracking-wide select-none">
+                    <span class="whitespace-nowrap text-[#0D2B70]">My Applications</span>
                 </h1>
             </section>
             
-            <section class="flex flex-wrap gap-4 sort-section-mobile">
+            <div class="flex flex-row gap-4 sort-section-mobile justify-end">
                 <p class="text-lg font-bold font-montserrat text-black-600 ml-3 sm:ml-0">SORT</p>
                 <select id="sortMyApplications" class="border border-gray-300 rounded-lg border-2 border-red-400 px-4 py-1 sm:py-2 text-xs sm:text-sm font-montserrat">
                     <option value="latest">LATEST</option>
                     <option value="oldest">OLDEST</option>
                 </select>
-            </section>
+            </div>
             
             <!-- Application List -->
             <section id="applicationListContainer" class="space-y-6 application-list-mobile">
