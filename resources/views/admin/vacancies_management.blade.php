@@ -263,9 +263,9 @@
                     class="font-semibold flex items-center px-4 py-2 bg-white text-[#0D2B70] rounded-md hover:bg-[#0D2B70]  transition whitespace-nowrap
                             hover:text-white hover:shadow-md border border-[#0D2B70]"
                 >
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path>
-                    </svg>
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M12 12v8m-4-4l4 4 4-4"></path>
+                </svg>
                     Import
                     <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" stroke-width="2"
                         viewBox="0 0 24 24">
@@ -421,10 +421,11 @@
 
     <!-- Table Container -->
     <div class="flex-1 flex flex-col min-h-0 overflow-hidden border border-[#0D2B70] rounded-xl">
-
-        <div class="bg-[#0D2B70] text-white rounded-t-xl">
-            <table class="w-full text-left border-collapse">
-                <thead class="bg-[#0D2B70] text-white sticky top-0 z-10">
+        <!-- Table Header -->
+        <div class="bg-[#0D2B70] text-white text-left rounded-t-xl">
+            <table class="w-full border-collapse">
+                <thead class="bg-red-400 text-white sticky top-0 z-10"> 
+                    <!-- bg-[#0D2B70] -->
                     <tr>
                         <th class="py-4 px-6 font-normal">Plantilla Item No.</th>
                         <th class="py-4 px-6 font-normal">Job Title</th>

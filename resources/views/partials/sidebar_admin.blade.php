@@ -93,7 +93,7 @@
                             ? 'bg-[#002C76] text-white shadow-md'
                             : 'text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md' }}">
                         <i data-feather="edit-3" class="w-5 h-5 stroke-[2.5] justify-center items-center flex-shrink-0 ml-2"></i>
-                        <span class="ml-8">SIGNATORIES</span>
+                        <span class="ml-3">SIGNATORIES</span>
                     </a>
 
                     <!-- Activity Log -->
