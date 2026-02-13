@@ -943,7 +943,11 @@ class PDSController extends Controller
             'cert_uploads.grade_masteraldoctorate' => 'nullable|file|mimes:pdf|max:10240',
             'cert_uploads.tor_masteraldoctorate'   => 'nullable|file|mimes:pdf|max:10240',
             'cert_uploads.cert_employment'         => 'nullable|file|mimes:pdf|max:10240',
-            'cert_uploads.other_documents'         => 'nullable|file|mimes:pdf|max:10240'
+            'cert_uploads.other_documents'         => 'nullable|file|mimes:pdf|max:10240',
+            'cert_uploads.signed_pds'              => 'nullable|file|mimes:pdf|max:10240',
+            'cert_uploads.signed_work_exp_sheet'   => 'nullable|file|mimes:pdf|max:10240',
+            'cert_uploads.cert_lgoo_induction'     => 'nullable|file|mimes:pdf|max:10240',
+            'cert_uploads.passport_photo'          => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240'
         ]);
 
         $uploaded_files = [];

@@ -47,9 +47,8 @@
                     <div class="flex items-center justify-between w-full">
                         <h3 class="text-gray-700 font-medium">
                             Pre-Qualifying Exam (PQE) result <span style="color: #C9282D" >(Required for Plantilla Position)</span> 
-</h3>
-                        @if(isset($documents['pqe_result']) && $documents['pqe_result']->status === 'Okay/Confirmed
-')
+                        </h3>
+                        @if(isset($documents['pqe_result']) && $documents['pqe_result']->status === 'Okay/Confirmed')
                             <div class="text-green-600 text-sm font-semibold">
                                 ✔ This document is already approved.
                             </div>
@@ -61,6 +60,132 @@
                                 </span>
                             </label>
                             <input type="file" id="cert-upload-pqe-result" name="cert_uploads[pqe_result]" accept="application/pdf" class="hidden">
+                        @endif
+                    </div>
+                </div>
+                <!-- Transcript -->
+                <div class="w-full mb-6 border-b border-dashed border-gray-300 pb-4">
+                    <div class="flex items-center justify-between w-full">
+                        <h3 class="text-gray-700 font-medium">Transcript of Records (Baccalaureate Degree) <span style="color: #C9282D" >(required)</span> </h3>
+                         @if(isset($documents['transcript_records']) && $documents['transcript_records']->status === 'Okay/Confirmed')
+                            <div class="text-green-600 text-sm font-semibold">
+                                ✔ This document is already approved.
+                            </div>
+                        @else
+                            <label for="cert-upload-transcript-records"
+                                class="cert-upload-area inline-flex items-center justify-center border border-gray-300 p-1 rounded cursor-pointer">
+                                <span class="material-icons text-5xl {{ !empty($documents['transcript_records']) ? 'text-green-500' : 'text-blue-400' }}">
+                                    cloud_upload
+                                </span>
+                            </label>
+                            <input type="file" id="cert-upload-transcript-records" name="cert_uploads[transcript_records]" 
+                                accept="application/pdf" class="absolute opacity-0 w-px h-px"
+                                {{ empty($documents['transcript_records']) ? 'required' : '' }}>
+                        @endif
+                    </div>
+                </div>
+                <!-- Diploma -->
+                <div class="w-full mb-6 border-b border-dashed border-gray-300 pb-4">
+                    <div class="flex items-center justify-between w-full">
+                        <h3 class="text-gray-700 font-medium">Diploma <span style="color: #C9282D" >(required)</span> </h3>
+                        @if(isset($documents['photocopy_diploma']) && $documents['photocopy_diploma']->status === 'Okay/Confirmed')
+                            <div class="text-green-600 text-sm font-semibold">
+                                ✔ This document is already approved.
+                            </div>
+                        @else
+                            <label for="cert-upload-photocopy-diploma"
+                                class="cert-upload-area inline-flex items-center justify-center border border-gray-300 p-1 rounded cursor-pointer">
+                                <span class="material-icons text-5xl {{ !empty($documents['photocopy_diploma']) ? 'text-green-500' : 'text-blue-400' }}">
+                                    cloud_upload
+                                </span>
+                            </label>
+                            <input type="file" id="cert-upload-photocopy-diploma" name="cert_uploads[photocopy_diploma]" 
+                                accept="application/pdf" class="absolute opacity-0 w-px h-px"
+                                {{ empty($documents['photocopy_diploma']) ? 'required' : '' }}>
+                        @endif
+                    </div>
+                </div>
+                <!-- Signed Personal Data Sheet -->
+                <div class="w-full mb-6 border-b border-dashed border-gray-300 pb-4">
+                    <div class="flex items-center justify-between w-full">
+                        <h3 class="text-gray-700 font-medium">Signed Personal Data Sheet <span style="color: #C9282D" >(required)</span> </h3>
+                        @if(isset($documents['signed_pds']) && $documents['signed_pds']->status === 'Okay/Confirmed')
+                            <div class="text-green-600 text-sm font-semibold">
+                                ✔ This document is already approved.
+                            </div>
+                        @else
+                            <label for="cert-upload-signed-pds"
+                                class="cert-upload-area inline-flex items-center justify-center border border-gray-300 p-1 rounded cursor-pointer">
+                                <span class="material-icons text-5xl {{ !empty($documents['signed_pds']) ? 'text-green-500' : 'text-blue-400' }}">
+                                    cloud_upload
+                                </span>
+                            </label>
+                            <input type="file" id="cert-upload-signed-pds" name="cert_uploads[signed_pds]" 
+                                accept="application/pdf" class="absolute opacity-0 w-px h-px"
+                                {{ empty($documents['signed_pds']) ? 'required' : '' }}>
+                        @endif
+                    </div>
+                </div>
+                <!-- Signed Work Experience Sheet -->
+                <div class="w-full mb-6 border-b border-dashed border-gray-300 pb-4">
+                    <div class="flex items-center justify-between w-full">
+                        <h3 class="text-gray-700 font-medium">Signed Work Experience Sheet <span style="color: #C9282D" >(required)</span> </h3>
+                        @if(isset($documents['signed_work_exp_sheet']) && $documents['signed_work_exp_sheet']->status === 'Okay/Confirmed')
+                            <div class="text-green-600 text-sm font-semibold">
+                                ✔ This document is already approved.
+                            </div>
+                        @else
+                            <label for="cert-upload-signed-work-exp-sheet"
+                                class="cert-upload-area inline-flex items-center justify-center border border-gray-300 p-1 rounded cursor-pointer">
+                                <span class="material-icons text-5xl {{ !empty($documents['signed_work_exp_sheet']) ? 'text-green-500' : 'text-blue-400' }}">
+                                    cloud_upload
+                                </span>
+                            </label>
+                            <input type="file" id="cert-upload-signed-work-exp-sheet" name="cert_uploads[signed_work_exp_sheet]" 
+                                accept="application/pdf" class="absolute opacity-0 w-px h-px"
+                                {{ empty($documents['signed_work_exp_sheet']) ? 'required' : '' }}>
+                        @endif
+                    </div>
+                </div>
+                <!-- Certificate of Completion of LGOO Induction Training -->
+                <div class="w-full mb-6 border-b border-dashed border-gray-300 pb-4">
+                    <div class="flex items-center justify-between w-full">
+                        <h3 class="text-gray-700 font-medium">Certificate of Completion of LGOO Induction Training <span style="color: #C9282D" >(required)</span> </h3>
+                        @if(isset($documents['cert_lgoo_induction']) && $documents['cert_lgoo_induction']->status === 'Okay/Confirmed')
+                            <div class="text-green-600 text-sm font-semibold">
+                                ✔ This document is already approved.
+                            </div>
+                        @else
+                            <label for="cert-upload-lgoo-induction"
+                                class="cert-upload-area inline-flex items-center justify-center border border-gray-300 p-1 rounded cursor-pointer">
+                                <span class="material-icons text-5xl {{ !empty($documents['cert_lgoo_induction']) ? 'text-green-500' : 'text-blue-400' }}">
+                                    cloud_upload
+                                </span>
+                            </label>
+                            <input type="file" id="cert-upload-lgoo-induction" name="cert_uploads[cert_lgoo_induction]" 
+                                accept="application/pdf" class="absolute opacity-0 w-px h-px"
+                                {{ empty($documents['cert_lgoo_induction']) ? 'required' : '' }}>
+                        @endif
+                    </div>
+                </div>
+                <!-- 2" x 2" or Passport Size Picture -->
+                <div class="w-full mb-6 border-b border-dashed border-gray-300 pb-4">
+                    <div class="flex items-center justify-between w-full">
+                        <h3 class="text-gray-700 font-medium">2" x 2" or Passport Size Picture <span style="color: #C9282D" >(required)</span> </h3>
+                        @if(isset($documents['passport_photo']) && $documents['passport_photo']->status === 'Okay/Confirmed')
+                            <div class="text-green-600 text-sm font-semibold">
+                                ✔ This document is already approved.
+                            </div>
+                        @else
+                            <label for="cert-upload-passport-photo"
+                                class="cert-upload-area inline-flex items-center justify-center border border-gray-300 p-1 rounded cursor-pointer">
+                                <span class="material-icons text-5xl {{ !empty($documents['passport_photo']) ? 'text-green-500' : 'text-blue-400' }}">
+                                    cloud_upload
+                                </span>
+                            </label>
+                            <input type="file" id="cert-upload-passport-photo" name="cert_uploads[passport_photo]" 
+                                accept="application/pdf,image/*" class="absolute opacity-0 w-px h-px"
+                                {{ empty($documents['passport_photo']) ? 'required' : '' }}>
                         @endif
                     </div>
                 </div>
@@ -159,48 +284,6 @@
                                 </span>
                             </label>
                             <input type="file" id="cert-upload-designation-order" name="cert_uploads[designation_order]" accept="application/pdf" class="hidden">
-                        @endif
-                    </div>
-                </div>
-                <!-- Transcript -->
-                <div class="w-full mb-6 border-b border-dashed border-gray-300 pb-4">
-                    <div class="flex items-center justify-between w-full">
-                        <h3 class="text-gray-700 font-medium">Transcript of Records (Baccalaureate Degree) <span style="color: #C9282D" >(required)</span> </h3>
-                         @if(isset($documents['transcript_records']) && $documents['transcript_records']->status === 'Okay/Confirmed')
-                            <div class="text-green-600 text-sm font-semibold">
-                                ✔ This document is already approved.
-                            </div>
-                        @else
-                            <label for="cert-upload-transcript-records"
-                                class="cert-upload-area inline-flex items-center justify-center border border-gray-300 p-1 rounded cursor-pointer">
-                                <span class="material-icons text-5xl {{ !empty($documents['transcript_records']) ? 'text-green-500' : 'text-blue-400' }}">
-                                    cloud_upload
-                                </span>
-                            </label>
-                            <input type="file" id="cert-upload-transcript-records" name="cert_uploads[transcript_records]" 
-                                accept="application/pdf" class="absolute opacity-0 w-px h-px"
-                                {{ empty($documents['transcript_records']) ? 'required' : '' }}>
-                        @endif
-                    </div>
-                </div>
-                <!-- Diploma -->
-                <div class="w-full mb-6 border-b border-dashed border-gray-300 pb-4">
-                    <div class="flex items-center justify-between w-full">
-                        <h3 class="text-gray-700 font-medium">Diploma <span style="color: #C9282D" >(required)</span> </h3>
-                        @if(isset($documents['photocopy_diploma']) && $documents['photocopy_diploma']->status === 'Okay/Confirmed')
-                            <div class="text-green-600 text-sm font-semibold">
-                                ✔ This document is already approved.
-                            </div>
-                        @else
-                            <label for="cert-upload-photocopy-diploma"
-                                class="cert-upload-area inline-flex items-center justify-center border border-gray-300 p-1 rounded cursor-pointer">
-                                <span class="material-icons text-5xl {{ !empty($documents['photocopy_diploma']) ? 'text-green-500' : 'text-blue-400' }}">
-                                    cloud_upload
-                                </span>
-                            </label>
-                            <input type="file" id="cert-upload-photocopy-diploma" name="cert_uploads[photocopy_diploma]" 
-                                accept="application/pdf" class="absolute opacity-0 w-px h-px"
-                                {{ empty($documents['photocopy_diploma']) ? 'required' : '' }}>
                         @endif
                     </div>
                 </div>

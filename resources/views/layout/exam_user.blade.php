@@ -25,11 +25,11 @@
     @stack('styles')
 </head>
 
-<body class="bg-[#F3F8FF] min-h-screen flex flex-col text-gray-900">
+<body class="bg-[#F3F8FF] min-h-screen flex flex-col text-gray-900 px-6">
     <div class="flex flex-col h-screen overflow-hidden">
 
         {{-- Header --}}
-        <header class="px-10 py-4 flex items-center gap-4">
+        <header class="px-10 py-4 flex items-center gap-4 border-b border-[#002C76]">
             <img src="{{ asset('images/dilg_logo.png') }}" alt="DILG Logo"
                 class="h-14 w-14 rounded-full border border-gray-300" />
             <div>
@@ -39,23 +39,11 @@
                 <div class="text-xl text-[#002C76] font-bold uppercase tracking-tight leading-tight">
                     RHRMSPB SYSTEM
                 </div>
+                <div class="text-sm text-gray-700 font-semibold uppercase tracking-wide">
+                    Examination
+                </div>
             </div>
         </header>
-
-        {{-- Title Bar --}}
-        <div class="px-10">
-            <h1
-                class="flex items-center gap-3 bg-[#002C76] text-white text-xl font-bold font-montserrat px-6 py-4 rounded-xl w-full shadow-sm select-none">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor"
-                    class="bi bi-file-text" viewBox="0 0 16 16">
-                    <path
-                        d="M5 4a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5A.5.5 0 0 1 5 4zm0 2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5A.5.5 0 0 1 5 6zm0 2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5A.5.5 0 0 1 5 8z" />
-                    <path
-                        d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h6.5L14 4.5zM13.5 5H10a1 1 0 0 1-1-1V.5H4a1 1 0 0 0-1 1V14a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V5z" />
-                </svg>
-                <span>Examination</span>
-            </h1>
-        </div>
 
         {{-- Main content area --}}
         <div class="flex-1 overflow-auto px-10">

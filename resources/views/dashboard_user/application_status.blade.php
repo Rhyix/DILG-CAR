@@ -18,539 +18,448 @@
   <div class="flex min-h-screen w-full">
     @section('content')
           <!-- Main Content -->
-          <main class="flex-1 min-w-0 space-y-10">
-            <div class="bg-white p-6 rounded-xl shadow-lg max-w-6xl mx-auto font-montserrat">
-              <section class="flex items-center gap-2 sm:gap-4 ml-6 sm:ml-0">
-                <button onclick="window.location.href='{{ route('my_applications') }} '"
-                  class="use-loader sm:w-14 sm:h-14 w-11 h-10 rounded-full bg-[#D9D9D9] flex items-center justify-center shadow-md hover:bg-opacity-90 transition hover:bg-[#002c76]">
-                  <i data-feather="arrow-left" class="w-4 h-4 sm:w-5 h-5 text-[#09244B] hover:text-white"></i>
-                </button>
-                <h1
-                  class="w-full max-w-full text-lg sm:text-4xl font-extrabold text-white font-montserrat flex items-center gap-3 bg-[#002C76] px-4 py-2 rounded-lg shadow-md">
-                  <i data-feather="folder" class="w-6 h-6 text-white"></i> Job Application Status
-                </h1>
-              </section>
-              <div class="flex items-center justify-between mt-5 mb-1">
-                <div class="text-xs sm:text-sm text-gray-700 mt-2 mr-4 sm:mr-0">
-                  LAST MODIFIED BY:
-                  @if ($adminName && $application->updated_at)
-                    <span class="font-semibold">{{ $adminName }}</span>
-                    <span class="font-semibold">on
-                      {{ \Carbon\Carbon::parse($application->updated_at)->format('F d, Y h:i A') }}</span>
-                  @else
-                    <span class="italic text-gray-500 font-semibold">Not modified yet</span>
-                  @endif
+          <main class="flex-1 min-w-0">
+            <div class="space-y-6">
+              <div class="bg-white p-6 rounded-xl shadow-lg font-montserrat">
+                <!-- Header Section -->
+                <div class="flex items-center gap-4 border-b border-[#0D2B70] pb-4 mb-6">
+                  <button onclick="window.location.href='{{ route('my_applications') }}'" class="use-loader group">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                      class="h-8 w-8 text-[#0D2B70] hover:opacity-80 transition" fill="none" viewBox="0 0 24 24"
+                      stroke="currentColor" stroke-width="2.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+                  <h1 class="flex items-center gap-3 py-2 tracking-wide select-none">
+                    <span class="text-[#0D2B70] text-2xl md:text-3xl lg:text-4xl font-montserrat font-bold">
+                      Application Status
+                    </span>
+                  </h1>
                 </div>
 
-                @php
-                  $status = $application->status;
-                  $badgeClasses = [
-                    'Pending' => 'bg-yellow-100 text-yellow-800 border-yellow-400',
-                    'Complete' => 'bg-green-100 text-green-800 border-green-400',
-                    'Incomplete' => 'bg-orange-100 text-orange-800 border-orange-400',
-                    'Closed' => 'bg-red-100 text-red-800 border-red-400',
-                  ];
-                @endphp
+                <!-- Session Messages -->
+                @if (session('success'))
+                  <div class="mb-6 px-4 py-3 bg-green-100 border border-green-400 text-green-800 rounded-lg shadow text-sm font-semibold flex items-center justify-between"
+                    role="alert">
+                    <span>{{ session('success') }}</span>
+                    <button onclick="this.parentElement.remove()"
+                      class="text-green-800 hover:text-red-600 font-bold text-lg">&times;</button>
+                  </div>
+                @endif
 
-                <div
-                  class="px-4 py-1 rounded-full border font-semibold text-sm {{ $badgeClasses[$status] ?? 'bg-gray-100 text-gray-800 border-gray-400' }}">
-                  {{ strtoupper($status) }}
-                </div>
-
-              </div>
-              <section class="flex items-center justify-between mb-6">
-                <div class="flex flex-col al">
-                  <!-- Applicant Info -->
-                  <div class="text-base sm:text-xl font-extrabold text-black">
-                    APPLICANT: {{ $application->personalInformation->first_name ?? '' }}
-                    @if($application->personalInformation && $application->personalInformation->middle_name)
-                      {{ substr(trim($application->personalInformation->middle_name), 0, 1) . '.' }}
-                    @endif
-                    {{ $application->personalInformation->surname ?? '' }}
-                  </div>
-
-                  <div class="text-lg sm:text-2xl font-extrabold text-[#002C76] mb-2">
-                    {{ $application->vacancy->position_title }}
-                  </div>
-                  <div class="text-sm mb-1">
-                    <span class="font-bold">PLACE OF ASSIGNMENT:</span> {{ $application->vacancy->place_of_assignment }}
-                  </div>
-                  <div class="text-sm mb-6">
-                    <span class="font-bold">COMPENSATION:</span>
-                    ₱{{ number_format($application->vacancy->monthly_salary, 2) }}
-                  </div>
-                </div>
-              </section>
-              <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between -mt-10 gap-3">
-                <div class="-mb-6">
-                  <div class="text-sm sm:text-base font-extrabold text-black">
-                    DEADLINE OF SUBMISSION OF DOCUMENTS:
-                  </div>
-                  <div class="text-sm sm:text-base font-extrabold text-[#002C76] mb-2 flex items-center gap-2">
-                    @if($application->deadline_date || $application->deadline_time)
-                      {{ \Carbon\Carbon::parse($application->deadline_date . ' ' . ($application->deadline_time ?? '23:59:59'))->format('F d, Y h:i A') }}
-
-                      @if($isPastDeadline)
-                        <span class="flex items-center text-red-500 text-xs sm:text-sm font-semibold gap-1">
-                          <i data-feather="alert-triangle" class="w-4 h-4"></i> Deadline Passed. You cannot upload documents
-                          anymore.
-                        </span>
+                <!-- Applicant Header -->
+                <div class="mb-6">
+                  <!-- Applicant name and last modified info -->
+                  <div class="flex flex-row justify-between items-start mb-4">
+                    <h2 class="text-2xl font-bold text-[#002C76]">
+                      {{ $application->personalInformation->first_name ?? '' }}
+                      @if($application->personalInformation && $application->personalInformation->middle_name)
+                        {{ substr(trim($application->personalInformation->middle_name), 0, 1) . '.' }}
                       @endif
-                    @else
-                      Please wait for further instructions.
-                    @endif
+                      {{ $application->personalInformation->surname ?? '' }}
+                    </h2>
+                    <div class="text-xs sm:text-sm text-gray-700">
+                      LAST MODIFIED:
+                      @if ($adminName && $application->updated_at)
+                        <span class="font-semibold">{{ $adminName }}</span>
+                        <span class="font-semibold">{{ \Carbon\Carbon::parse($application->updated_at)->format('F d, Y h:i A') }}</span>
+                      @else
+                        <span class="italic text-gray-500 font-semibold">Not modified yet</span>
+                      @endif
+                    </div>
+                  </div>
+
+                  <!-- Job Details Grid -->
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div>
+                      <div class="text-xs font-semibold text-gray-700 uppercase mb-1">Position Applied:</div>
+                      <div class="text-sm text-gray-900">{{ $application->vacancy->position_title }}</div>
+                    </div>
+                    <div>
+                      <div class="text-xs font-semibold text-gray-700 uppercase mb-1">Place of Assignment:</div>
+                      <div class="text-sm text-gray-900">{{ $application->vacancy->place_of_assignment }}</div>
+                    </div>
+                    <div>
+                      <div class="text-xs font-semibold text-gray-700 uppercase mb-1">Compensation:</div>
+                      <div class="text-sm text-gray-900">₱{{ number_format($application->vacancy->monthly_salary, 2) }}</div>
+                    </div>
+                  </div>
+
+                  <!-- Main Info Cards -->
+                  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+                    <!-- Deadline Card -->
+                    <div class="bg-white rounded-lg border border-gray-200 p-4 shadow-lg">
+                      <div class="text-sm font-semibold text-gray-700 mb-3">Deadline for Submission:</div>
+                      @if($application->deadline_date || $application->deadline_time)
+                        <div class="text-sm font-semibold text-[#002C76]">
+                          {{ \Carbon\Carbon::parse($application->deadline_date . ' ' . ($application->deadline_time ?? '23:59:59'))->format('F d, Y h:i A') }}
+                        </div>
+                        @if($isPastDeadline)
+                          <div class="text-red-500 text-xs mt-2 flex items-center gap-1">
+                            <i data-feather="alert-triangle" class="inline w-3 h-3"></i> Deadline Passed
+                          </div>
+                        @endif
+                      @else
+                        <div class="text-sm text-gray-500 italic">Please wait for further instructions.</div>
+                      @endif
+                    </div>
+
+                    <!-- Qualification Standards Card -->
+                    <div class="bg-white rounded-lg border border-gray-200 p-4 shadow-lg">
+                      <div class="flex flex-row mb-4 gap-4">
+                        <div class="text-sm font-semibold text-gray-700">Qualification Standards:</div>
+
+                        <!-- Result -->
+                        <div class="flex items-center cursor-default">
+                          @php
+                            $resultStatus = $application->qs_result ?? 'Not Qualified';
+                            $textColor = $resultStatus === 'Qualified' ? 'text-green-600' : 'text-red-600';
+                          @endphp
+                          <span class="text-sm font-semibold {{ $textColor }}">{{ $resultStatus }}</span>
+                        </div>
+                      </div>
+                      <div class="grid grid-cols-2 md:grid-cols-4 items-center gap-x-4 gap-y-2">
+                        <!-- Education -->
+                        <div class="flex items-center gap-1.5">
+                          <span class="w-2.5 h-2.5 shrink-0 rounded-full {{ $application->qs_education == 'yes' ? 'bg-green-500' : 'bg-red-500' }}"></span>
+                          <span class="text-xs text-gray-700">Education</span>
+                        </div>
+
+                        <!-- Eligibility -->
+                        <div class="flex items-center gap-1.5">
+                          <span class="w-2.5 h-2.5 shrink-0 rounded-full {{ $application->qs_eligibility == 'yes' ? 'bg-green-500' : 'bg-red-500' }}"></span>
+                          <span class="text-xs text-gray-700">Eligibility</span>
+                        </div>
+
+                        <!-- Experience -->
+                        <div class="flex items-center gap-1.5">
+                          <span class="w-2.5 h-2.5 shrink-0 rounded-full {{ $application->qs_experience == 'yes' ? 'bg-green-500' : 'bg-red-500' }}"></span>
+                          <span class="text-xs text-gray-700">Experience</span>
+                        </div>
+
+                        <!-- Training -->
+                        <div class="flex items-center gap-1.5">
+                          <span class="w-2.5 h-2.5 shrink-0 rounded-full {{ $application->qs_training == 'yes' ? 'bg-green-500' : 'bg-red-500' }}"></span>
+                          <span class="text-xs text-gray-700">Training</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Application Status Card -->
+                    <div class="bg-white rounded-lg border border-gray-200 p-4 shadow-lg">
+                      <div class="text-sm font-semibold text-gray-700 mb-3">Application Status:</div>
+                      @php
+                        $status = $application->status;
+                        $badgeClasses = [
+                          'Pending' => 'bg-yellow-100 text-yellow-800 border-yellow-400',
+                          'Complete' => 'bg-green-100 text-green-800 border-green-400',
+                          'Incomplete' => 'bg-orange-100 text-orange-800 border-orange-400',
+                          'Closed' => 'bg-red-100 text-red-800 border-red-400',
+                        ];
+                      @endphp
+                      <div class="px-4 py-2 rounded-full border font-semibold text-sm text-center {{ $badgeClasses[$status] ?? 'bg-gray-100 text-gray-800 border-gray-400' }}">
+                        {{ strtoupper($status) }}
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <!-- Buttons for desktop -->
-                <div class=" sm:flex items-right gap-4 mt-5 sm:mt-0 flex-col">
-                  <a href="{{ route('job_description', ['id' => $application->vacancy->vacancy_id]) }}">
+
+
+                <!-- Action Buttons -->
+                <div class="flex flex-col sm:flex-row gap-4 mt-6 mb-6">
+                  <a href="{{ route('job_description', ['id' => $application->vacancy->vacancy_id]) }}" class="flex-1">
                     <button
-                      class="use-loader border-2 border-[#002C76] text-black-300 rounded-lg px-4 py-2 text-base flex items-center gap-3 font-montserrat hover:bg-[#002C76] hover:text-white transition">
+                      class="use-loader w-full border-2 border-[#002C76] text-[#002C76] rounded-lg px-4 py-2 text-sm flex items-center justify-center gap-3 font-montserrat hover:bg-[#002C76] hover:text-white transition">
                       <i data-feather="eye" class="w-5 h-5"></i> View Job Description
                     </button>
                   </a>
-                  <a href="{{ route('display_c1') }}">
+                  <a href="{{ route('display_c1') }}" class="flex-1">
                     <button
-                      class="use-loader mt-2 sm:mt-0 border-2 border-[#002C76] text-black-300 rounded-lg px-4 py-2 text-base flex items-center gap-3 font-montserrat hover:bg-[#002C76] hover:text-white transition">
+                      class="use-loader border-2 border-[#002C76] text-[#002C76] rounded-lg px-4 py-2 text-sm flex items-center justify-center gap-3 font-montserrat hover:bg-[#002C76] hover:text-white transition">
                       <i data-feather="eye" class="w-5 h-5"></i> View or Edit PDS
                     </button>
                   </a>
                 </div>
-              </div>
 
-              <div class="sm:mt-0 mt-3 flex flex-col sm:flex-row flex-grow max-w-7xl mx-auto w-full p-6 gap-6">
-                <!-- Left Side Panel -  Required Documents -->
-                <section aria-label="Required Documents Panel"
-                  class="w-80 bg-white rounded-lg border border-blue-400 p-5 shadow-sm flex flex-col scrollbar-thin overflow-y-auto max-h-auto">
-                  <h2 class="text-sm font-semibold text-gray-600 mb-3 uppercase tracking-wide">Required Documents</h2>
-                  <p class="text-sm font-semibold mb-3 text-gray-900">Reminder: If you need to upload multiple files for a
-                    single document, please combine them into one file.</p>
+                <!-- Document Section -->
+                <div class="flex flex-col lg:flex-row gap-4">
+                  <!-- Left Side Panel - Required Documents -->
+                  <section aria-label="Required Documents Panel"
+                    class="w-full lg:w-72 flex-none bg-white rounded-lg border border-gray-300 p-3 shadow-lg flex flex-col">
+                    <h2 class="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide flex-none">Required Documents</h2>
+                    <p class="text-xs font-semibold mb-3 text-gray-600">Upload your documents below. If you need to upload multiple files for a single document, please combine them into one file.</p>
+                    <div class="pr-1">
+                      <form id="document-upload-form" method="POST"
+                        action="{{ route('application_status.upload', [$application->user_id, $application->vacancy_id]) }}"
+                        enctype="multipart/form-data">
+                        @csrf
+                        <ul class="text-xs text-gray-700 space-y-1" id="document-list">
+                          <!-- Documents will be injected here by JS -->
+                        </ul>
+                      </form>
+                    </div>
+                  </section>
 
-                  <form id="document-upload-form" method="POST"
-                    action="{{ route('application_status.upload', [$application->user_id, $application->vacancy_id]) }}"
-                    enctype="multipart/form-data">
-                    @csrf
-                    <ul class="text-xs text-gray-700 space-y-1" id="document-list">
-                      <!-- Documents will be injected here by JS -->
-                    </ul>
-                  </form>
-                </section>
-                <!-- Right Side Panel - Document Preview -->
-                <section aria-label="Document Preview"
-                  class="flex-1 bg-blue-100 rounded-lg border border-blue-400 p-5 flex flex-col sm:flex">
+                  <!-- Right Side Panel - Document Preview -->
+                  <section aria-label="Document Preview"
+                    class="flex-1 bg-white rounded-xl border border-gray-300 shadow-lg p-6 flex flex-col min-w-0 min-h-[600px]">
 
-                  <!-- Document Remarks Box -->
-                  <div class="mb-4 w-full">
-                    <!-- Top row: Document Remarks label (left), Buttons (right) -->
-                    <div class="flex justify-between items-center mb-1">
-                      <label for="remarks" class="text-xs mx-1 mb-1 font-semibold text-gray-600 uppercase tracking-wide">
-                        Document Remarks
+                    <!-- Document Header -->
+                    <div class="mb-4 w-full pb-2 border-b border-gray-400 flex-none">
+                      <h2 id="document-title" class="text-xl md:text-2xl font-bold text-[#002C76] mb-2">Select a Document</h2>
+                      <p class="text-sm text-gray-600">
+                        <span class="text-xs font-semibold text-gray-500 uppercase">Status:</span>
+                        <span id="document-status-text" class="font-semibold">Pending</span>
+                      </p>
+                    </div>
+
+                    <!-- Document Remarks Box -->
+                    <div id="document-remarks-section" class="mb-4 w-full hidden flex-none">
+                      <label for="remarks" class="block text-sm font-semibold text-[#002C76] mb-2">
+                        Document Remarks:
+                        <span id="remarks-status"
+                          class="text-green-600 text-xs ml-2 opacity-0 transition-opacity duration-500">Saved</span>
                       </label>
-
-                      <!-- Action Buttons -->
-                      <div class="flex gap-2" id="action-buttons" style="display: none;">
-                        <button type="button" onclick="discardChanges()"
-                          class="bg-red-600 hover:bg-red-800 text-white text-sm font-semibold rounded-full px-4 py-2 flex items-center gap-2 shadow">
-                          <i class="fa-solid fa-xmark"></i>Discard
-                        </button>
-                        <button type="button" id="external-save-btn"
-                          class="bg-green-600 hover:bg-green-800 text-white text-sm font-semibold rounded-full px-4 py-2 flex items-center gap-2 shadow">
-                          <i class="fa-solid fa-check"></i>Save
-                        </button>
-                      </div>
+                      <textarea id="remarks" rows="3"
+                        class="w-full text-sm text-gray-700 rounded-lg p-3 resize-none border border-[#002C76] focus:border-[#0066CC] focus:ring-2 focus:ring-blue-200 transition bg-gray-50"
+                        placeholder="Remarks for this document..." readonly></textarea>
                     </div>
 
-                    <textarea id="remarks" readonly rows="2"
-                      class="w-full text-xs font-bold text-gray-700 rounded-md p-2 resize-none border border-gray-300"
-                      aria-live="polite">Select a document to preview</textarea>
-                  </div>
-
-                  <!-- Preview Frame (hidden on mobile) -->
-                  <div class="flex-grow bg-white rounded-md border border-blue-400 p-3 overflow-hidden flex flex-col sm:flex">
-                    <iframe id="doc-preview" src="" title="Document Preview" class="w-full h-full rounded-md flex-grow"
-                      frameborder="0" aria-label="Document content preview"></iframe>
-                  </div>
-                </section>
-
-              </div>
-              <!-- Exam Schedule & Result -->
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                <div class="bg-white rounded-lg p-4 border border-gray-300">
-                  <div id="document-status" class="font-bold text-red-600 mb-5 transition-opacity duration-500">
-                    DOCUMENTS SUBMITTED: INCOMPLETE
-                  </div>
-
-                  <div id="actions-heading" class="font-bold text-gray-800 mb-3 hidden">
-                    ACTIONS REQUIRED FROM THE APPLICANT
-                  </div>
-                  <p id="actions-helper" class="text-sm text-gray-600 mb-5">
-                    Please wait for the administrator to validate your application.
-                  </p>
-
-                  <div id="checkboxes-container" class="transition-opacity duration-500 opacity-0 pointer-events-none">
-                    <div class="space-y-3">
-                      <!-- Checkbox 1 -->
-                      <div class="flex items-center">
-                        <label class="flex items-center relative">
-                          <input type="checkbox" disabled checked
-                            class="peer h-6 w-6 transition-all appearance-none rounded-full bg-slate-100 shadow hover:shadow-md border border-slate-300 checked:bg-[#002C76] checked:border-[#002C76]" />
-                          <span
-                            class="absolute text-white opacity-0 peer-checked:opacity-100 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20"
-                              fill="currentColor" stroke="currentColor" stroke-width="1">
-                              <path fill-rule="evenodd"
-                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                clip-rule="evenodd" />
-                            </svg>
-                          </span>
-                        </label>
-                        <span class="ml-3 text-gray-700">Pre-Qualifying Exam (PQE)</span>
+                    <!-- Preview Frame -->
+                    <div class="flex-1 bg-gray-50 rounded-xl border border-[#002C76] p-0 overflow-hidden relative">
+                      <div id="preview-loader" class="absolute inset-0 flex items-center justify-center bg-gray-100 z-10 hidden">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[#002C76]"></div>
                       </div>
-
-                      <!-- Checkbox 2 -->
-                      <div class="flex items-center">
-                        <label class="flex items-center  relative">
-                          <input type="checkbox" disabled
-                            class="peer h-6 w-6 transition-all appearance-none rounded-full bg-slate-100 shadow hover:shadow-md border border-slate-300 checked:bg-[#002C76] checked:border-[#002C76]" />
-                          <span
-                            class="absolute text-white opacity-0 peer-checked:opacity-100 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20"
-                              fill="currentColor" stroke="currentColor" stroke-width="1">
-                              <path fill-rule="evenodd"
-                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                clip-rule="evenodd" />
-                            </svg>
-                          </span>
-                        </label>
-                        <span class="ml-3 text-gray-700">Written Exam</span>
-                      </div>
-
-                      <!-- Checkbox 3 -->
-                      <div class="flex items-center">
-                        <label class="flex items-center  relative">
-                          <input type="checkbox" disabled
-                            class="peer h-6 w-6 transition-all appearance-none rounded-full bg-slate-100 shadow hover:shadow-md border border-slate-300 checked:bg-[#002C76] checked:border-[#002C76]" />
-                          <span
-                            class="absolute text-white opacity-0 peer-checked:opacity-100 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20"
-                              fill="currentColor" stroke="currentColor" stroke-width="1">
-                              <path fill-rule="evenodd"
-                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                clip-rule="evenodd" />
-                            </svg>
-                          </span>
-                        </label>
-                        <span class="ml-3 text-gray-700">Interview</span>
-                      </div>
-
-                      <!-- Checkbox 4 -->
-                      <div class="flex items-center">
-                        <label class="flex items-center  relative">
-                          <input type="checkbox" disabled
-                            class="peer h-6 w-6 transition-all appearance-none rounded-full bg-slate-100 shadow hover:shadow-md border border-slate-300 checked:bg-[#002C76] checked:border-[#002C76]" />
-                          <span
-                            class="absolute text-white opacity-0 peer-checked:opacity-100 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20"
-                              fill="currentColor" stroke="currentColor" stroke-width="1">
-                              <path fill-rule="evenodd"
-                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                clip-rule="evenodd" />
-                            </svg>
-                          </span>
-                        </label>
-                        <span class="ml-3 text-gray-700">Group Orals</span>
-                      </div>
-
-                      <!-- Checkbox 5 -->
-                      <div class="flex items-center">
-                        <label class="flex items-center  relative">
-                          <input type="checkbox" disabled
-                            class="peer h-6 w-6 transition-all appearance-none rounded-full bg-slate-100 shadow hover:shadow-md border border-slate-300 checked:bg-[#002C76] checked:border-[#002C76]" />
-                          <span
-                            class="absolute text-white opacity-0 peer-checked:opacity-100 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20"
-                              fill="currentColor" stroke="currentColor" stroke-width="1">
-                              <path fill-rule="evenodd"
-                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                clip-rule="evenodd" />
-                            </svg>
-                          </span>
-                        </label>
-                        <span class="ml-3 text-gray-700">Competency-Based Assessment (CBA)</span>
-                      </div>
+                      <iframe id="doc-preview" src="about:blank" title="Document Preview"
+                        class="w-full h-full rounded-md flex-grow border-0 bg-white"
+                        loading="lazy"></iframe>
                     </div>
-                  </div>
+                  </section>
                 </div>
-                <div class="bg-white rounded-lg p-4 border border-gray-300">
-                  <div class="font-bold text-gray-800 mb-2">QUALIFICATION STANDARDS</div>
-                  <div class="space-y-1">
-                    <p><span class="inline-block w-32 font-semibold">EDUCATION:</span>
-                      {{ strtoupper($application->qs_education ?? 'PENDING') }}</p>
-                    <p><span class="inline-block w-32 font-semibold">ELIGIBILITY:</span>
-                      {{ strtoupper($application->qs_eligibility ?? 'PENDING') }}</p>
-                    <p><span class="inline-block w-32 font-semibold">EXPERIENCE:</span>
-                      {{ strtoupper($application->qs_experience ?? 'PENDING') }}</p>
-                    <p><span class="inline-block w-32 font-semibold">TRAINING:</span>
-                      {{ strtoupper($application->qs_training ?? 'PENDING') }}</p>
-                    <p><span class="inline-block w-32 font-bold">RESULT:</span>
-                      {{ strtoupper($application->qs_result ?? 'PENDING') }}</p>
+
+                <!-- Document Status Summary -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                  <div class="bg-white rounded-lg p-4 border border-gray-300">
+                    <div id="document-status" class="font-bold text-red-600 mb-5 transition-opacity duration-500">
+                      DOCUMENTS SUBMITTED: INCOMPLETE
+                    </div>
+                    <div id="actions-heading" class="font-bold text-gray-800 mb-3 hidden">
+                      APPLICATION PROGRESS
+                    </div>
+                    <p id="actions-helper" class="text-sm text-gray-600">
+                      Please wait for the administrator to validate your application.
+                    </p>
+                  </div>
+
+                  <div class="bg-white rounded-lg p-4 border border-gray-300">
+                    <div class="font-bold text-gray-800 mb-2">APPLICATION REMARKS</div>
+                    <p class="text-sm text-gray-700">
+                      {{ $application->application_remarks ?? 'No remarks at this time.' }}
+                    </p>
                   </div>
                 </div>
 
-                <div class="bg-white rounded-lg p-4 border border-gray-300">
-                  <div class="font-bold text-gray-800 mb-2">REMARKS</div>
-                  <p>
-                    {{ $application->application_remarks ?? '' }}
-                  </p>
-                </div>
-              </div>
-            </div>
-            @include('partials.loader')
-          </main>
-        </div>
 
         <script>
-          const documents = @json($documents); // TODO: added
-          console.log("Documents from backend:", documents);
-          const badgeClasses = {
-            'Pending': 'bg-yellow-100 text-yellow-800 border-yellow-400',
-            'Okay/Confirmed': 'bg-green-100 text-green-800 border-green-400',
-            'Disapproved With Deficiency': 'bg-red-100 text-red-800 border-red-400'
-          };
-
+          const documents = @json($documents);
           const isPastDeadline = @json($isPastDeadline);
+          let currentSelectedDoc = null;
 
-          // Helper for status icon
-          function getStatusIcon(status, statusSpan) {
+          // Status icon helper
+          function getStatusIcon(status) {
             if (status === "Okay/Confirmed") {
-              statusSpan.textContent = "✓";
-              statusSpan.classList.remove("text-red-600");
-              statusSpan.classList.add("text-green-600");
+              return `<svg class="w-4 h-4 inline-block text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>`;
             } else if (status === "Disapproved With Deficiency") {
-              statusSpan.textContent = "✗";
-              statusSpan.classList.remove("text-green-600");
-              statusSpan.classList.add("text-red-600");
+              return `<svg class="w-4 h-4 inline-block text-red-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>`;
             }
             return "";
           }
 
-          function showActionButtons() {
-            const btns = document.getElementById('action-buttons');
-            if (btns.style.display === 'none') {
-              btns.style.display = 'flex';
+          // Function to update document preview
+          function handleDocumentClick(doc) {
+            if (currentSelectedDoc && currentSelectedDoc.id === doc.id) return;
+            
+            currentSelectedDoc = doc;
+
+            // Highlight active item
+            const allButtons = document.querySelectorAll('#document-list button');
+            allButtons.forEach(b => {
+              b.classList.remove("bg-blue-50", "ring-1", "ring-blue-200");
+            });
+            const activeLi = document.getElementById(`doc-item-${doc.id}`);
+            if(activeLi) {
+              const activeBtn = activeLi.querySelector('button');
+              if(activeBtn) activeBtn.classList.add("bg-blue-50", "ring-1", "ring-blue-200");
             }
+
+            // Update header
+            document.getElementById('document-title').textContent = doc.text || doc.name;
+            
+            const statusText = document.getElementById('document-status-text');
+            if (statusText) {
+              statusText.textContent = doc.status || 'Pending';
+              statusText.className = 'font-semibold ';
+              
+                console.log("Status: " , status)
+
+              if (status === "Verified" || status === "Okay/Confirmed") {
+                statusText.classList.add("text-[#00730A]");
+              } else if (status === "Needs Revision" || status === "Disapproved With Deficiency")  {
+                statusText.classList.add("text-[#BC0000]");
+              } else if (status == "Not Submitted") {
+                statusText.classList.add("text-gray-500");
+              }else {
+                statusText.classList.add("text-orange-600");
+              }
+            }
+
+            // Update remarks
+            const remarksEl = document.getElementById('remarks');
+            const remarksSection = document.getElementById('document-remarks-section');
+            
+            if (remarksEl) {
+              remarksEl.value = doc.remarks || "";
+            }
+            
+            if (doc.status === "Disapproved With Deficiency") {
+              if (remarksSection) remarksSection.classList.remove('hidden');
+            } else {
+              if (remarksSection) remarksSection.classList.add('hidden');
+            }
+
+            // Load preview
+            const previewLoader = document.getElementById('preview-loader');
+            const docPreview = document.getElementById('doc-preview');
+            
+            if (previewLoader) previewLoader.classList.remove('hidden');
+            
+            setTimeout(() => {
+              if (docPreview) {
+                docPreview.onload = () => {
+                  if (previewLoader) previewLoader.classList.add('hidden');
+                };
+                docPreview.src = doc.preview || "about:blank";
+              }
+            }, 10);
           }
 
-          // Render documents list with nested subitems if any 
+          // Render documents list
           function renderDocuments(docList) {
             const listEl = document.getElementById('document-list');
+            if (!listEl) return;
             listEl.innerHTML = "";
 
             docList.forEach(doc => {
               const li = document.createElement('li');
-              li.className = "space-y-1";
+              li.id = `doc-item-${doc.id}`;
+              li.className = "mb-1";
 
-              const rowDiv = document.createElement('div');
-              rowDiv.className = "flex items-start gap-2";
+              const btn = document.createElement('button');
+              btn.type = "button";
+              btn.className = "w-full text-left p-2 rounded-md hover:bg-gray-100 flex items-start gap-2 transition-colors duration-150 border border-transparent focus:outline-none focus:ring-2 focus:ring-blue-200";
 
-              // ✓/✗ status icon
-              const statusSpan = document.createElement('span');
-              statusSpan.className = "text-lg font-bold";
-
-              // todo
-              let icon = doc.preview && doc.status === 'Okay/Confirmed' ? getStatusIcon('Okay/Confirmed', statusSpan) : getStatusIcon('Disapproved With Deficiency', statusSpan);
-
-              const labelWrapper = document.createElement('div');
-              labelWrapper.className = "flex-1";
-
-              // LABEL as clickable for preview
-              const label = document.createElement('button');
-              label.type = 'button';
-              label.className = "block font-semibold text-blue-800 text-sm text-left hover:underline";
-              label.id = `label-${doc.id}`;
-              label.textContent = doc.text;
-
-              label.onclick = function () {
-                const previewEl = document.getElementById('doc-preview');
-                const remarksEl = document.getElementById('remarks');
-                const statusBadge = document.getElementById('doc-status'); // badge <span>
-
-                if (doc.preview) {
-                  previewEl.src = doc.preview;
-                  remarksEl.value = doc.remarks || "No remarks provided.";
+              let icon = getStatusIcon(doc.status);
+              let textColorClass = "text-gray-700";
+                if (status === "Verified" || status === "Okay/Confirmed") {
+                    textColorClass = "text-[#00730A]";
+                } else if (status === "Needs Revision" || status === "Disapproved With Deficiency") {
+                    textColorClass = "text-[#BC0000]";
+                } else if (doc.status === "Not Submitted") {
+                    textColorClass = "text-gray-400";
                 } else {
-                  previewEl.src = "";
-                  remarksEl.value = "No preview available for this document.";
+                    textColorClass = "text-gray-600 font-medium";
                 }
+
+              const iconWrapper = document.createElement('span');
+              iconWrapper.className = "mt-0.5 flex-shrink-0 w-4 h-4 flex items-center justify-center";
+              iconWrapper.innerHTML = icon;
+
+              const textWrapper = document.createElement('span');
+              textWrapper.textContent = doc.text || doc.name;
+              textWrapper.className = `${textColorClass} text-xs flex-1 break-words`;
+
+              btn.appendChild(iconWrapper);
+              btn.appendChild(textWrapper);
+
+              btn.onclick = function(e) {
+                e.preventDefault();
+                handleDocumentClick(doc);
               };
 
-              const inputId = 'upload-' + doc.id;
-              const input = document.createElement('input');
-              input.type = "file";
-              input.accept = "application/pdf";
-              input.className = "hidden";
-              input.id = inputId;
-              input.dataset.previewTarget = doc.id;
-              input.name = `documents[${doc.id}]`; // TODO: added
-
-              /*
-              const uploadBtn = document.createElement('button');
-              uploadBtn.type = 'button';
-              uploadBtn.textContent = 'Upload PDF';
-              uploadBtn.className = "mt-2 px-3 py-1 bg-[#002C76] text-white text-xs rounded hover:bg-blue-900 transition";
-              uploadBtn.onclick = () => input.click();
-              */
-              let uploadBtn = null;
-              if (!isPastDeadline && doc.status !== 'Okay/Confirmed') {
-                uploadBtn = document.createElement('button');
-                uploadBtn.type = 'button';
-                uploadBtn.textContent = 'Upload PDF';
-                uploadBtn.className = "mt-2 px-3 py-1 bg-[#002C76] text-white text-xs rounded hover:bg-blue-900 transition";
-                uploadBtn.onclick = () => input.click();
-              }
-
-              const fileNameWrapper = document.createElement('div');
-              fileNameWrapper.className = "flex items-center mt-1 space-x-2";
-
-              const fileNameSpan = document.createElement('span');
-              fileNameSpan.className = "text-xs text-gray-600 italic";
-
-              const deleteBtn = document.createElement('button');
-              deleteBtn.type = 'button';
-              deleteBtn.innerHTML = '&times;';
-              deleteBtn.className = "text-red-600 font-bold text-lg hover:text-red-800";
-              deleteBtn.style.display = 'none';
-
-              deleteBtn.onclick = function () {
-                if (confirm("Are you sure you want to delete this uploaded file?")) {
-                  input.value = "";
-                  fileNameSpan.textContent = "";
-                  deleteBtn.style.display = 'none';
-
-                  const previewEl = document.getElementById('doc-preview');
-                  const remarksEl = document.getElementById('remarks');
-                  previewEl.src = "";
-                  remarksEl.value = "No file selected.";
-                  label.classList.remove("text-green-600");
-                  label.classList.add("text-blue-800");
-                  showActionButtons();
-                }
-              };
-
-              fileNameWrapper.appendChild(fileNameSpan);
-              fileNameWrapper.appendChild(deleteBtn);
-
-              input.onchange = function (e) {
-                const file = e.target.files[0];
-                const previewEl = document.getElementById('doc-preview');
-                const remarksEl = document.getElementById('remarks');
-
-                if (file && file.type === "application/pdf") {
-                  const url = URL.createObjectURL(file);
-                  previewEl.src = url;
-                  remarksEl.value = doc.remarks || "No remarks provided.";
-                  fileNameSpan.textContent = `Selected: ${file.name}`;
-                  deleteBtn.style.display = 'inline';
-
-                  label.classList.remove("text-blue-800");
-                  label.classList.add("text-green-600");
-                  showActionButtons();
-                } else {
-                  previewEl.src = "";
-                  remarksEl.value = "Please upload a valid PDF file.";
-                  fileNameSpan.textContent = "";
-                  deleteBtn.style.display = 'none';
-
-                  label.classList.remove("text-green-600");
-                  label.classList.add("text-blue-800");
-                }
-              };
-
-              // Append label, upload button, input, filename & delete button to wrapper
-              labelWrapper.appendChild(label);
-              //labelWrapper.appendChild(uploadBtn);
-              if (uploadBtn) {
-                labelWrapper.appendChild(uploadBtn);
-              }
-              labelWrapper.appendChild(input);
-              labelWrapper.appendChild(fileNameWrapper);
-
-              // Append status and labelWrapper into rowDiv
-              rowDiv.appendChild(statusSpan);
-              rowDiv.appendChild(labelWrapper);
-
-              // Append rowDiv into li
-              li.appendChild(rowDiv);
-
-              // Subitems rendered BELOW as nested list
-              if (doc.subitems && doc.subitems.length > 0) {
-                const sublist = document.createElement('ul');
-                sublist.className = "ml-6 mt-1 text-[11px] text-gray-600";
-                doc.subitems.forEach(sub => {
-                  const subLi = document.createElement('li');
-                  subLi.textContent = "• " + sub.text;
-                  sublist.appendChild(subLi);
-                });
-                li.appendChild(sublist);
-              }
-
+              li.appendChild(btn);
               listEl.appendChild(li);
             });
           }
-          // Initialize the document list
-          renderDocuments(documents);
 
-          // Handle external "Save" button click (outside form)
-          document.getElementById('external-save-btn').addEventListener('click', function () {
-            document.getElementById('document-upload-form').submit();
-          });
+          // Update document status display
+          function updateDocumentUI() {
+            const confirmedCount = documents.filter(d => d.status === 'Okay/Confirmed').length;
+            const totalDocuments = documents.length;
 
-          function discardChanges() {
-            // Reload the page without using cache
-            const confirmDiscard = confirm("Are you sure you want to discard your changes? Any unsaved progress will be lost.");
-            if (confirmDiscard) {
-              window.location.reload(true); // Force reload from server
+            const statusEl = document.getElementById('document-status');
+            const actionsHeading = document.getElementById('actions-heading');
+            const actionsHelper = document.getElementById('actions-helper');
+
+            if (confirmedCount === totalDocuments && totalDocuments > 0) {
+              if (statusEl) {
+                statusEl.textContent = "DOCUMENTS SUBMITTED: COMPLETE";
+                statusEl.classList.remove("text-red-600");
+                statusEl.classList.add("text-green-600");
+              }
+              if (actionsHeading) actionsHeading.classList.remove("hidden");
+              if (actionsHelper) actionsHelper.classList.add("hidden");
+            } else {
+              if (statusEl) {
+                statusEl.textContent = "DOCUMENTS SUBMITTED: INCOMPLETE";
+                statusEl.classList.remove("text-green-600");
+                statusEl.classList.add("text-red-600");
+              }
+              if (actionsHeading) actionsHeading.classList.add("hidden");
+              if (actionsHelper) actionsHelper.classList.remove("hidden");
             }
           }
 
-          document.addEventListener("DOMContentLoaded", () => {
-            const totalDocuments = 17;
-
-            function updateDocumentUI() {
-              const confirmedCount = Array.from(document.querySelectorAll('span')).filter(el =>
-                el.textContent.trim() === '✓' && el.classList.contains('text-green-600')
-              ).length;
-
-              const checkboxes = document.getElementById("checkboxes-container");
-              const statusText = document.getElementById("document-status");
-              const actionsHeading = document.getElementById("actions-heading");
-              const actionsHelper = document.getElementById("actions-helper");
-
-              if (confirmedCount === totalDocuments) {
-                checkboxes.classList.remove("opacity-0", "pointer-events-none");
-                checkboxes.classList.add("opacity-100");
-
-                statusText.textContent = "DOCUMENTS SUBMITTED: COMPLETE";
-                statusText.classList.remove("text-red-600");
-                statusText.classList.add("text-green-600");
-
-                actionsHeading.classList.remove("hidden");
-                actionsHelper.classList.add("hidden");
-              } else {
-                checkboxes.classList.add("opacity-0", "pointer-events-none");
-                checkboxes.classList.remove("opacity-100");
-
-                statusText.textContent = "DOCUMENTS SUBMITTED: INCOMPLETE";
-                statusText.classList.remove("text-green-600");
-                statusText.classList.add("text-red-600");
-
-                actionsHeading.classList.add("hidden");
-                actionsHelper.classList.remove("hidden");
-              }
-            }
-
+          // Initialize
+          document.addEventListener('DOMContentLoaded', function() {
+            console.log("Documents from backend:", documents);
+            renderDocuments(documents);
             updateDocumentUI();
+
+            // Auto-save remarks
+            let remarksTimeout;
+            const remarksEl = document.getElementById('remarks');
+            if (remarksEl) {
+              remarksEl.addEventListener('input', function() {
+                if (!currentSelectedDoc) return;
+
+                const value = this.value;
+                currentSelectedDoc.remarks = value;
+
+                const statusEl = document.getElementById('remarks-status');
+                if (statusEl) {
+                  statusEl.classList.remove('opacity-100');
+                  statusEl.classList.add('opacity-0');
+                }
+
+                clearTimeout(remarksTimeout);
+                remarksTimeout = setTimeout(() => {
+                  if (statusEl) {
+                    statusEl.classList.remove('opacity-0');
+                    statusEl.classList.add('opacity-100');
+                    setTimeout(() => {
+                      statusEl.classList.remove('opacity-100');
+                      statusEl.classList.add('opacity-0');
+                    }, 2000);
+                  }
+                }, 1000);
+              });
+            }
           });
         </script>
-      </body>
+            </div>
+          </main>
+        </div>
+        @include('partials.loader')
     @endsection
+  </body>

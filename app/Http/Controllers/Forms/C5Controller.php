@@ -28,6 +28,10 @@ class C5Controller extends Controller
             'cert_uploads.tor_masteraldoctorate' => 'nullable|file|mimes:pdf|max:10240',
             'cert_uploads.cert_employment' => 'nullable|file|mimes:pdf|max:10240',
             'cert_uploads.other_documents' => 'nullable|file|mimes:pdf|max:10240',
+            'cert_uploads.signed_pds' => 'nullable|file|mimes:pdf|max:10240',
+            'cert_uploads.signed_work_exp_sheet' => 'nullable|file|mimes:pdf|max:10240',
+            'cert_uploads.cert_lgoo_induction' => 'nullable|file|mimes:pdf|max:10240',
+            'cert_uploads.passport_photo' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
         ]);
 
         $data = [];
@@ -46,6 +50,10 @@ class C5Controller extends Controller
             'tor_masteraldoctorate',
             'cert_employment',
             'other_documents',
+            'signed_pds',
+            'signed_work_exp_sheet',
+            'cert_lgoo_induction',
+            'passport_photo',
         ];
 
         foreach ($fields as $field) {
@@ -96,6 +104,10 @@ class C5Controller extends Controller
         'cert_uploads.tor_masteraldoctorate' => 'nullable|file|mimes:pdf|max:10240',
         'cert_uploads.cert_employment' => 'nullable|file|mimes:pdf|max:10240',
         'cert_uploads.other_documents' => 'nullable|file|mimes:pdf|max:10240',
+        'cert_uploads.signed_pds' => 'nullable|file|mimes:pdf|max:10240',
+        'cert_uploads.signed_work_exp_sheet' => 'nullable|file|mimes:pdf|max:10240',
+        'cert_uploads.cert_lgoo_induction' => 'nullable|file|mimes:pdf|max:10240',
+        'cert_uploads.passport_photo' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
     ]);
 
     $fields = [
@@ -112,6 +124,10 @@ class C5Controller extends Controller
         'tor_masteraldoctorate',
         'cert_employment',
         'other_documents',
+        'signed_pds',
+        'signed_work_exp_sheet',
+        'cert_lgoo_induction',
+        'passport_photo',
     ];
 
     $document = UploadedDocument::firstOrNew(['user_id' => $user->id]);

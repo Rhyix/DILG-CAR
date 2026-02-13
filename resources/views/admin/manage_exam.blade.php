@@ -323,32 +323,37 @@
                 </div>
 
                 <!-- TIME ROW -->
-                <div class="flex flex-row gap-2">
-                    <div class="flex flex-col w-1/2">
-                        <label for="time" class="text-[#0D2B70] font-bold text-xs mb-1">Start Time <span class="text-red-500">*</span></label>
-                        <input type="time" id="time" name="time" required
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="flex flex-col">
+                        <label for="time" class="text-[#0D2B70] font-bold text-xs mb-1">Start<span class="text-red-500">*</span></label>
+                        <input class="font-sm h-full" type="time" id="time" name="time" required
                             value="{{ $examDetails->time ?? '' }}"
                             {{ ($isExamActive || $isExamCompleted || ($examDetails && $examDetails->details_saved)) ? 'disabled' : '' }}
                             class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-[#0D2B70] disabled:bg-gray-100" />
                     </div>
-                    <div class="flex flex-col w-1/2">
-                        <label for="time_end" class="text-[#0D2B70] font-bold text-xs mb-1">End Time <span class="text-red-500">*</span></label>
-                        <input type="time" id="time_end" name="time_end" required
+                    <div class="flex flex-col relative">
+                        <label for="time_end" class="text-[#0D2B70] font-bold text-xs mb-1">End<span class="text-red-500">*</span></label>
+                        <input class="font-sm h-full peer" type="time" id="time_end" name="time_end" required
                             value="{{ $endTime ?? '' }}"
                             {{ ($isExamActive || $isExamCompleted || ($examDetails && $examDetails->details_saved)) ? 'disabled' : '' }}
-                            class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-[#0D2B70] disabled:bg-gray-100" />
+                            class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-[#0D2B70] disabled:bg-gray-100 invalid:border-red-500 invalid:text-red-600" />
+                        <div id="timeTooltip" class="absolute bottom-full left-0 mb-2 px-2 py-1.5 bg-red-500 text-white text-xs rounded shadow-lg whitespace-nowrap pointer-events-none hidden 
+                                after:content-[''] after:absolute after:top-full after:left-2 after:border-4 after:border-red-500 after:border-t-red-500 after:border-r-transparent after:border-b-transparent after:border-l-transparent">
+                            End time must be after start time
+                        </div>
+                    </div>
+                    <!-- DURATION -->
+                    <div class="flex flex-col">
+                        <label for="duration_display" class="text-[#0D2B70] font-bold text-xs mb-1">Duration</label>
+                        <input disabled type="text" id="duration_display" readonly
+                            value="{{ isset($examDetails->duration) ? $examDetails->duration . ' minutes' : '' }}"
+                            class="w-full px-3 py-1.5 border border-gray-300 rounded text-sm bg-gray-50 text-gray-600"
+                            placeholder="--" />
+                        <input type="hidden" id="duration" name="duration" value="{{ $examDetails->duration ?? '' }}">
                     </div>
                 </div>
 
-                <!-- DURATION -->
-                <div class="flex flex-col">
-                    <label for="duration_display" class="text-[#0D2B70] font-bold text-xs mb-1">Duration</label>
-                    <input type="text" id="duration_display" readonly
-                        value="{{ isset($examDetails->duration) ? $examDetails->duration . ' minutes' : '' }}"
-                        class="w-full px-3 py-1.5 border border-gray-300 rounded text-sm bg-gray-50 text-gray-600"
-                        placeholder="Auto-calculated" />
-                    <input type="hidden" id="duration" name="duration" value="{{ $examDetails->duration ?? '' }}">
-                </div>
+
             </div>
 
             <!-- ACTION BUTTONS -->
@@ -501,6 +506,15 @@
     document.getElementById('examDetailsForm').addEventListener('submit', function(e) {
         e.preventDefault();
         
+        // Validate times before submission
+        const startTime = document.getElementById('time').value;
+        const endTime = document.getElementById('time_end').value;
+        
+        if (startTime && endTime && endTime <= startTime) {
+            alert('End time must be after start time. Please correct the times.');
+            return;
+        }
+        
         // Hide the loader immediately if it was triggered by the global listener
         const loader = document.getElementById('loader');
         if (loader) {
@@ -581,10 +595,16 @@
         
         const allFilled = venue && date && time && timeEnd;
         
-        // Only enable if all fields are filled AND details haven't been saved yet
+        // Check if end time is valid (not before start time)
+        let timesValid = true;
+        if (time && timeEnd) {
+            timesValid = timeEnd > time;
+        }
+        
+        // Only enable if all fields are filled AND times are valid AND details haven't been saved yet
         const detailsSaved = {{ $examDetails && $examDetails->details_saved ? 'true' : 'false' }};
         
-        if (allFilled && !detailsSaved) {
+        if (allFilled && timesValid && !detailsSaved) {
             saveButton.disabled = false;
             saveButton.classList.remove('opacity-50', 'cursor-not-allowed');
         } else {
@@ -612,12 +632,41 @@
     const endTimeInput = document.getElementById('time_end');
     const durationInput = document.getElementById('duration');
     const durationDisplay = document.getElementById('duration_display');
+    const timeTooltip = document.getElementById('timeTooltip');
+
+    function validateTimeRange() {
+        const start = startTimeInput.value;
+        const end = endTimeInput.value;
+
+        if (!start || !end) return true; // Allow empty fields for now
+
+        // Compare times as strings (HH:MM format naturally sorts correctly)
+        const isValid = end > start;
+
+        if (!isValid) {
+            timeTooltip.classList.remove('hidden');
+            endTimeInput.classList.add('border-red-500');
+        } else {
+            timeTooltip.classList.add('hidden');
+            endTimeInput.classList.remove('border-red-500');
+        }
+
+        return isValid;
+    }
 
     function calculateDuration() {
         const start = startTimeInput.value;
         const end = endTimeInput.value;
 
-        if (start && end) {
+        // Set min attribute on end time to prevent selecting earlier times
+        if (start) {
+            endTimeInput.min = start;
+        }
+
+        // Validate time range
+        const isValidRange = validateTimeRange();
+
+        if (start && end && isValidRange) {
             const startDate = new Date(`1970-01-01T${start}:00`);
             const endDate = new Date(`1970-01-01T${end}:00`);
 
@@ -637,10 +686,15 @@
             durationInput.value = '';
             durationDisplay.value = '';
         }
+
+        // Update form validation
+        validateForm();
     }
 
     startTimeInput.addEventListener('input', calculateDuration);
+    startTimeInput.addEventListener('change', calculateDuration);
     endTimeInput.addEventListener('input', calculateDuration);
+    endTimeInput.addEventListener('change', calculateDuration);
 
     // Prevent navigation if exam is active and user tries to edit
     function handleEditClick(e) {
