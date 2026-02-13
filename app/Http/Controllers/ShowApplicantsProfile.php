@@ -153,11 +153,17 @@ class ShowApplicantsProfile extends Controller
             $query->where('status', $status);
         }
 
-        // Get all vacancies with pending count
+        // Get all vacancies with counts per status
         $vacancies = $query->withCount([
             'applications as pending_count' => function ($q) {
                 $q->where('status', 'Pending');
-            }
+            },
+            'applications as compliance_count' => function ($q) {
+                $q->where('status', 'Compliance');
+            },
+            'applications as qualified_count' => function ($q) {
+                $q->where('status', 'Qualified');
+            },
         ])->get();
 
         // Sort logic: Open first, then Closed. Inside each, sort by newest created.
@@ -331,6 +337,11 @@ class ShowApplicantsProfile extends Controller
             ];
         });
 
+        // Fetch vacancy info for header
+        $vacancyInfo = JobVacancy::select('position_title', 'vacancy_type', 'place_of_assignment')
+            ->where('vacancy_id', $vacancy_id)
+            ->first();
+
         return view('admin.manage_applicants', [
             'newApplicants' => $formattedNewApplicants,
             'complianceApplicants' => $formattedComplianceApplicants,
@@ -339,6 +350,9 @@ class ShowApplicantsProfile extends Controller
             'complianceApplicantsCount' => $complianceApplications->count(),
             'qualifiedApplicantsCount' => $qualifiedApplications->count(),
             'vacancyId' => $vacancy_id,
+            'positionTitle' => $vacancyInfo?->position_title,
+            'vacancyType' => $vacancyInfo?->vacancy_type,
+            'placeOfAssignment' => $vacancyInfo?->place_of_assignment,
         ]);
     }
 
