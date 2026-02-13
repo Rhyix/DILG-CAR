@@ -68,24 +68,10 @@
 
             <a href="{{ route('admin_account_management') }}" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200
                     {{ request()->routeIs('admin_account_management')
-<<<<<<< Updated upstream
                         ? 'bg-[#002C76] text-white shadow-md'
                         : 'text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md' }}">
                 <i class="fa-solid fa-users-gear w-5 h-5 flex-shrink-0"></i>
                 <span id="textAdmins" class="sidebar-text-hidden ml-3">USER MANAGEMENT</span>
-=======
-    ? 'bg-[#002C76] text-white shadow-md'
-    : 'text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md' }}">
-                <i class="fa-solid fa-wrench w-5 h-5 flex-shrink-0"></i>
-                <span id="textAboutWebsite" class="sidebar-text-hidden ml-3">USER MANAGEMENT</span>
-            </a>
-            <a href="{{ route('admin_activity_log') }}" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200
-                    {{ request()->routeIs('admin_activity_log')
-    ? 'bg-[#002C76] text-white shadow-md'
-    : 'text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md' }}">
-                <i class="fa-solid fa-clipboard-list text-lg flex-shrink-0"></i>
-                <span id="textActivityLog" class="sidebar-text-hidden ml-3">ACTIVITY LOG</span>
->>>>>>> Stashed changes
             </a>
 
             <!-- Utilities Dropdown -->

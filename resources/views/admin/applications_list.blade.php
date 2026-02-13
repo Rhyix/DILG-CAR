@@ -40,7 +40,6 @@
             </div>
         </div>
 
-<<<<<<< Updated upstream
         <!-- Table Container -->
         <div class="flex flex-col border border-[#0D2B70] h-full rounded-2xl overflow-hidden">
             <!-- HEADER - Fixed outside scrollable area -->
@@ -70,22 +69,6 @@
         <table class="w-full align-items-center text-left border-collapse table-fixed">
             <tbody id="vacancy-list" class="divide-y divide-[#0D2B70]">
                 @forelse ($vacancies as $vacancy)
-=======
-    <!-- Table Container -->
-    <div class="flex-1 flex flex-col min-h-0 overflow-hidden border border-[#0D2B70] rounded-xl">
-        <div class="flex-1 overflow-auto">
-            <table class="w-full text-left border-collapse">
-                <thead class="bg-[#0D2B70] text-white sticky top-0 z-10">
-                    <tr>
-                        <th class="py-4 px-6 font-normal">Vacancy ID</th>
-                        <th class="py-4 px-6 font-normal">Job Title</th>
-                        <th class="py-4 px-6 font-normal text-center">Status</th>
-                        <th class="py-4 px-6 font-normal text-center">Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="vacancy-list" class="divide-y divide-[#0D2B70]">
-                    @forelse ($vacancies as $vacancy)
->>>>>>> Stashed changes
                     <tr class="text-[#0D2B70] select-none hover:bg-blue-50 transition-colors duration-200">
                         <td class="py-4 px-6 w-[15%]">{{ $vacancy->vacancy_id }}</td>
 >>>>>>> parent of 37cccb8 (Vacancies Management table, Applications list table)
@@ -169,7 +152,6 @@
 =======
                         <td class="py-4 px-6 text-center w-[25%]">
                             <div class="flex justify-center items-center">
-<<<<<<< Updated upstream
                                 <button
                                     onclick="window.location.href='{{ route('admin.manage_applicants', ['vacancy_id' => $vacancy->vacancy_id]) }}'"
                                     class="text-[#0D2B70] border border-[#0D2B70] font-bold py-1.5 px-4 rounded-md text-xs
@@ -180,29 +162,6 @@
                                     <x-heroicon-o-cog-6-tooth class="w-4 h-4" />
                                     <span>MANAGE</span>
 
-=======
-                                <button 
-                                    onclick="window.location.href='{{ route('admin.reviewed', ['vacancy_id' => $vacancy->vacancy_id]) }}'" 
-                                    class="text-[#0D2B70] border border-[#0D2B70] font-bold py-1 px-4 rounded-md text-sm
-                                        transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
-                                        hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md flex items-center gap-2">
-                                    <x-heroicon-o-eye class="w-4 h-4" />
-                                    <span>Manage</span>
-                                </button>
-                            </div>
-                        </td>
-
-
-                        <!-- New Applicants -->
-                        <!-- <td class="py-4 px-6 text-center">
-                            <div class="flex justify-center items-center relative">
-                                <button onclick="window.location.href='{{ route('admin.applicants', ['vacancy_id' => $vacancy->vacancy_id]) }}'" 
-                                    class="text-[#0D2B70] border border-[#0D2B70] font-bold py-1 px-4 rounded-md text-sm
-                                    transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
-                                    hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md flex items-center gap-2 relative">
-                                    <x-heroicon-o-user-group class="w-4 h-4" />
-                                    <span>New Applicants</span>
->>>>>>> Stashed changes
                                     @if($vacancy->pending_count > 0)
                                         <span class="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-[10px] font-bold text-white shadow-sm ring-1 ring-white">
                                             {{ $vacancy->pending_count }}
@@ -210,7 +169,7 @@
                                     @endif
                                 </button>
                             </div>
-                        </td> -->
+                        </td>
                     </tr>
                 @empty
                     <tr>

@@ -454,10 +454,6 @@ Route::middleware([ViewerAccess::class])->group(function () {
     Route::get('/export-activities-all', [ExportController::class, 'exportActivities'])->name('exportActivities');
     Route::get('/export/reviewed-applications/{vacancy_id}', [ExportController::class, 'exportReviewedApplications'])->name('exportReviewed');
     Route::get('/export/not-reviewed-applications/{vacancy_id}', [ExportController::class, 'exportNotReviewedApplications'])->name('exportNotReviewed');
-    
-    //ADDED NEW
-    // Route::get('/admin/vacancy/{vacancy_id}/applicants', [AdminController::class, 'showApplicants'])->name('admin.applicants');
-    // Route::get('/admin/vacancy/{vacancy_id}/applicants', [AdminController::class, 'showApplicants'])->name('admin.applicants'); // plural
 
 
     //Import

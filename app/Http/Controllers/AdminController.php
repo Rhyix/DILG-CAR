@@ -70,21 +70,6 @@ class AdminController extends Controller
         return view('admin.admin_account_management', compact('admins'));
     }
 
-    // public function showApplicants($vacancy_id)
-    // {
-    //     $vacancy = Vacancy::findOrFail($vacancy_id);
-
-    //     // You can separate new/reviewed if needed
-    //     $newApplicants = Applicants::where('vacancy_id', $vacancy_id)
-    //                             ->where('status', 'new')->get();
-
-    //     $reviewedApplicants = Applicant::where('vacancy_id', $vacancy_id)
-    //                                 ->where('status', 'reviewed')->get();
-
-    //     return view('admin.applicants', compact('vacancy', 'newApplicants', 'reviewedApplicants'));
-    // }
-
-
     public function store(Request $request)
     {
         $validated = $request->validate([
