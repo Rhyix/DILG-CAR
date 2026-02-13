@@ -3,7 +3,7 @@
 @section('content')
 @include('partials.loader')
 <!-- max-w-7xl -->
-
+<!-- test -->
 <main class="w-full  h-[calc(98vh-6rem)] flex flex-col space-y-4 overflow-hidden">
 
     <!-- Header Section -->
