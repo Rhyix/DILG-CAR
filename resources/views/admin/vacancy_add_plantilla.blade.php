@@ -210,17 +210,17 @@
             </div>
             <div>
                 <label class="block">Designation</label>
-                <input type="text" id="to_position" name="to_position" value="{{ old('to_position', $vacancy->to_position ?? '') }}" class="w-full border-2 border-[#002C76] rounded-[10px] px-2 py-1 h-10" disabled>
+                <input type="text" id="to_position" name="to_position" value="{{ old('to_position', $vacancy->to_position ?? '') }}" class="w-full border-2 border-[#002C76] rounded-[10px] px-2 py-1 h-10" readonly>
             </div>
         </div>
         <div class="flex flex-col">
             <div>
                 <label class="block">Office</label>
-                <input type="text" id="to_office" name="to_office" value="{{ old('to_office', $vacancy->to_office ?? '') }}" class="w-full border-2 border-[#002C76] rounded-[10px] px-2 py-1 h-10" disabled>
+                <input type="text" id="to_office" name="to_office" value="{{ old('to_office', $vacancy->to_office ?? '') }}" class="w-full border-2 border-[#002C76] rounded-[10px] px-2 py-1 h-10" readonly>
             </div>
             <div>
                 <label class="block">Office Address</label>
-                <input type="text" id="to_office_address" name="to_office_address" value="{{ old('to_office_address', $vacancy->to_office_address ?? '') }}" class="w-full border-2 border-[#002C76] rounded-[10px] px-2 py-1 h-10" disabled>
+                <input type="text" id="to_office_address" name="to_office_address" value="{{ old('to_office_address', $vacancy->to_office_address ?? '') }}" class="w-full border-2 border-[#002C76] rounded-[10px] px-2 py-1 h-10" readonly>
             </div>
         </div>
     </div>
@@ -305,9 +305,9 @@ document.addEventListener("DOMContentLoaded", function() {
         }
         
         // Always keep these fields disabled
-        positionField.disabled = true;
-        officeField.disabled = true;
-        officeAddressField.disabled = true;
+        // positionField.disabled = true;
+        // officeField.disabled = true;
+        // officeAddressField.disabled = true;
     }
 
     signatorySelect.addEventListener('change', handleSignatoryChange);
