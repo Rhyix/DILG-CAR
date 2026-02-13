@@ -322,18 +322,26 @@
                 </div>
             </div>
 
-            <!-- template Button -->
+            <!-- Download Button -->
             <div x-data="{ open: false }" class="relative">
                 <button
                     @click="open = !open"
                     class="font-semibold flex items-center px-4 py-2 bg-white text-[#0D2B70] rounded-md hover:bg-[#0D2B70]  transition whitespace-nowrap
                             hover:text-white hover:shadow-md border border-[#0D2B70]"
+<<<<<<< Updated upstream
                         >
                         <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M7 3h7l5 5v13a1 1 0 01-1 1H7a1 1 0 01-1-1V4a1 1 0 011-1z"></path>
                             <path stroke-linecap="round" stroke-linejoin="round" d="M14 3v5h5"></path>
                         </svg>
                         Template
+=======
+                >
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    </svg>
+                        Download
+>>>>>>> Stashed changes
                     <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" stroke-width="2"
                         viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path>
