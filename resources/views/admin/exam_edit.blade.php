@@ -199,11 +199,11 @@
                         <div class="">
                             <!-- <textarea required class="w-full h-40 resize-none border border-blue-300 rounded-lg p-4" placeholder="Enter your question..." x-model="q.text"></textarea> -->
                             <div class="flex flex-row justify-between items-center gap-2">
-                                <input type="text" required class="w-full border border-blue-300 rounded-lg h-10 px-4"
+                                <input type="text" required class="w-full border border-blue-300 rounded-lg h-10 px-4" @input="checkForChanges"
                                     placeholder="Untitled Question" x-model="q.duration">
                                 <div>
 
-                                    <select id="typeOfQuestion" x-model="q.type" class="h-10 cursor-pointer px-4 rounded-md border border-[#0D2B70] text-[#0D2B70] font-semibold bg-white
+                                    <select id="typeOfQuestion" x-model="q.type" @change="checkForChanges" class="h-10 cursor-pointer px-4 rounded-md border border-[#0D2B70] text-[#0D2B70] font-semibold bg-white
                                                 focus:outline-none focus:ring-2 focus:ring-[#0D2B70] focus:ring-offset-1">
                                         <option value="MCQ">MCQ</option>
                                         <option value="Essay">Essay</option>
@@ -224,7 +224,7 @@
                                         </div>
 
                                         <!-- Option Input -->
-                                        <input type="text" x-model="q.choices[optIndex]"
+                                        <input type="text" x-model="q.choices[optIndex]" @input="checkForChanges"
                                             class="w-full border-b border-transparent hover:border-gray-300 focus:border-[#0D2B70] focus:outline-none py-1 px-2 transition-colors"
                                             placeholder="Option">
 
@@ -733,11 +733,13 @@
                 moveUp(index) {
                     if (index > 0) {
                         [this.questions[index], this.questions[index - 1]] = [this.questions[index - 1], this.questions[index]];
+                        this.checkForChanges();
                     }
                 },
                 moveDown(index) {
                     if (index < this.questions.length - 1) {
                         [this.questions[index], this.questions[index + 1]] = [this.questions[index + 1], this.questions[index]];
+                        this.checkForChanges();
                     }
                 },
                 duplicateQuestion(index) {
@@ -795,7 +797,8 @@
                         // Use fetch to submit data with explicit questions JSON
                         const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
                         
-                        fetch(window.location.href, {
+                        const actionUrl = document.getElementById('examForm').getAttribute('action');
+                        fetch(actionUrl, {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',

@@ -255,6 +255,181 @@
 
     </section>
 
+    <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
+        <article class="group relative overflow-hidden bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1">
+            <div class="flex items-center gap-3 mb-2">
+                <i class="w-5 h-5 text-[#0D2B70]" data-feather="bar-chart-2"></i>
+                <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Application Status Summary</span>
+            </div>
+            <div class="grid grid-cols-2 gap-3 text-[#0D2B70]">
+                @php
+                    $summary = $statusSummary ?? collect();
+                    $primaryStatuses = ['Pending', 'Under Review', 'Interview', 'Hired', 'Rejected'];
+                @endphp
+                @foreach ($primaryStatuses as $label)
+                    <div class="flex items-center justify-between bg-blue-50 rounded-md px-3 py-2">
+                        <span class="text-xs font-semibold">{{ $label }}</span>
+                        <span class="text-base font-extrabold">{{ $summary[$label] ?? 0 }}</span>
+                    </div>
+                @endforeach
+                @foreach (($summary instanceof \Illuminate\Support\Collection ? $summary->toArray() : (array) $summary) as $label => $count)
+                    @if (!in_array($label, $primaryStatuses))
+                        <div class="flex items-center justify-between bg-blue-50 rounded-md px-3 py-2">
+                            <span class="text-xs font-semibold">{{ $label }}</span>
+                            <span class="text-base font-extrabold">{{ $count }}</span>
+                        </div>
+                    @endif
+                @endforeach
+            </div>
+        </article>
+
+        <article class="group relative overflow-hidden bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1">
+            <div class="flex items-center gap-3 mb-2">
+                <i class="w-5 h-5 text-[#0D2B70]" data-feather="calendar"></i>
+                <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Upcoming Exams</span>
+            </div>
+            <div class="space-y-2 text-sm text-[#0D2B70]">
+                @forelse($upcomingExams ?? [] as $exam)
+                    <div class="border border-blue-100 rounded-md p-3">
+                        <p class="font-bold">{{ $exam->vacancy->position_title ?? 'Exam' }}</p>
+                        <p>{{ \Carbon\Carbon::parse($exam->date)->format('F d, Y') }} | {{ $exam->time }}</p>
+                        <p class="text-xs">Venue: {{ $exam->place ?? 'TBA' }}</p>
+                    </div>
+                @empty
+                    <p class="text-gray-600">No upcoming exams scheduled.</p>
+                @endforelse
+            </div>
+        </article>
+
+        <article class="group relative overflow-hidden bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1">
+            <div class="flex items-center gap-3 mb-2">
+                <i class="w-5 h-5 text-[#0D2B70]" data-feather="file-text"></i>
+                <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Required Documents Status</span>
+            </div>
+            @php
+                $docs = collect($documentStatusSummary ?? []);
+                $completed = $docs->filter(fn($d) => in_array(strtolower($d['status']), ['completed', 'verified', 'okay/confirmed']));
+            @endphp
+            <div class="flex items-center gap-3 mb-3">
+                <div class="flex-1 bg-gray-200 h-2 rounded-full">
+                    @php $percent = $docs->count() ? round(($completed->count() / $docs->count()) * 100) : 0; @endphp
+                    <div class="bg-[#0D2B70] h-2 rounded-full transition-all duration-300" style="width: {{ $percent }}%"></div>
+                </div>
+                <span class="text-xs font-semibold text-[#0D2B70]">{{ $percent }}% Complete</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2 text-xs">
+                @foreach ($docs->take(6) as $doc)
+                    <div class="flex items-center justify-between bg-blue-50 rounded-md px-3 py-2">
+                        <span class="font-semibold">{{ ucwords(str_replace('_',' ',$doc['type'])) }}</span>
+                        <span class="{{ in_array(strtolower($doc['status']), ['completed','verified','okay/confirmed']) ? 'text-green-600' : 'text-yellow-600' }}">
+                            {{ $doc['status'] }}
+                        </span>
+                    </div>
+                @endforeach
+            </div>
+            @if ($docs->count() > 6)
+                <p class="text-xs text-gray-500 mt-2">+ {{ $docs->count() - 6 }} more</p>
+            @endif
+        </article>
+
+        <article class="group relative overflow-hidden bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1">
+            <div class="flex items-center gap-3 mb-2">
+                <i class="w-5 h-5 text-[#0D2B70]" data-feather="layers"></i>
+                <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Vacancy Types</span>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div class="flex items-center justify-between bg-blue-50 rounded-md px-3 py-2">
+                    <span class="text-xs font-semibold">COS</span>
+                    <span class="text-base font-extrabold text-[#0D2B70]">{{ $cosVacancyCount ?? 0 }}</span>
+                </div>
+                <div class="flex items-center justify-between bg-blue-50 rounded-md px-3 py-2">
+                    <span class="text-xs font-semibold">Plantilla</span>
+                    <span class="text-base font-extrabold text-[#0D2B70]">{{ $plantillaVacancyCount ?? 0 }}</span>
+                </div>
+            </div>
+        </article>
+
+        <article class="group relative overflow-hidden bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1">
+            <div class="flex items-center gap-3 mb-2">
+                <i class="w-5 h-5 text-[#0D2B70]" data-feather="x-circle"></i>
+                <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Recently Closed Positions</span>
+            </div>
+            <div class="space-y-2 text-sm text-[#0D2B70]">
+                @forelse($recentlyClosedApplications ?? [] as $app)
+                    <div class="border border-blue-100 rounded-md p-3">
+                        <p class="font-bold">{{ $app->vacancy->position_title ?? 'Position' }}</p>
+                        <p class="text-xs">Vacancy ID: {{ $app->vacancy_id }}</p>
+                    </div>
+                @empty
+                    <p class="text-gray-600">No closed positions among your applications.</p>
+                @endforelse
+            </div>
+        </article>
+
+        <article class="group relative overflow-hidden bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1">
+            <div class="flex items-center gap-3 mb-2">
+                <i class="w-5 h-5 text-[#0D2B70]" data-feather="clock"></i>
+                <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Application Deadlines</span>
+            </div>
+            <div class="space-y-2 text-sm text-[#0D2B70]">
+                @forelse($deadlineCountdown ?? [] as $item)
+                    @php
+                        $days = $item['days_remaining'];
+                        $badge = $days <= 3 ? 'text-red-700' : ($days <= 7 ? 'text-yellow-600' : 'text-green-600');
+                        $label = $days <= 3 ? 'Urgent' : ($days <= 7 ? 'Upcoming' : 'Plenty of time');
+                    @endphp
+                    <div class="border border-blue-100 rounded-md p-3">
+                        <p class="font-bold">{{ $item['position_title'] }}</p>
+                        <p class="text-xs">Due {{ \Carbon\Carbon::parse($item['deadline'])->format('F d, Y h:i A') }}</p>
+                        <p class="text-xs {{ $badge }}">{{ $label }} ({{ $days }} days)</p>
+                    </div>
+                @empty
+                    <p class="text-gray-600">No active application deadlines.</p>
+                @endforelse
+            </div>
+        </article>
+
+        <article class="group relative overflow-hidden bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1">
+            <div class="flex items-center gap-3 mb-2">
+                <i class="w-5 h-5 text-[#0D2B70]" data-feather="calendar"></i>
+                <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Interview Schedule</span>
+            </div>
+            <div class="space-y-2 text-sm text-[#0D2B70]">
+                <p class="text-gray-600">No upcoming interviews scheduled.</p>
+            </div>
+        </article>
+
+        <article class="group relative overflow-hidden bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1">
+            <div class="flex items-center gap-3 mb-2">
+                <i class="w-5 h-5 text-[#0D2B70]" data-feather="bell"></i>
+                <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Notifications / Alerts</span>
+            </div>
+            <div class="flex items-center gap-2 mb-3">
+                <span class="text-xs text-[#0D2B70] font-semibold">Unread:</span>
+                <span class="text-xs font-bold {{ ($unreadNotificationsCount ?? 0) > 0 ? 'text-red-700' : 'text-gray-500' }}">
+                    {{ $unreadNotificationsCount ?? 0 }}
+                </span>
+            </div>
+            <div class="space-y-2">
+                @forelse(($recentNotifications ?? []) as $n)
+                    @php
+                        $data = $n->data ?? [];
+                    @endphp
+                    <div class="border border-blue-100 rounded-md p-3 text-sm text-[#0D2B70]">
+                        <p class="font-bold">{{ $data['title'] ?? 'Notification' }}</p>
+                        <p class="text-xs">{{ $data['message'] ?? ($n->data['message'] ?? '') }}</p>
+                        @if (!empty($data['action_url']))
+                            <a href="{{ $data['action_url'] }}" class="text-xs text-[#0D2B70] underline">View</a>
+                        @endif
+                        <p class="text-[11px] text-gray-500 mt-1">{{ \Carbon\Carbon::parse($n->created_at)->diffForHumans() }}</p>
+                    </div>
+                @empty
+                    <p class="text-sm text-gray-600">No notifications.</p>
+                @endforelse
+            </div>
+        </article>
+    </section>
+
     @include('partials.loader')
 
     @if (session('pds_submitted'))

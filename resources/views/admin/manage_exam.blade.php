@@ -334,7 +334,7 @@
                     <div class="flex flex-col relative">
                         <label for="time_end" class="text-[#0D2B70] font-bold text-xs mb-1">End<span class="text-red-500">*</span></label>
                         <input class="font-sm h-full peer" type="time" id="time_end" name="time_end" required
-                            value="{{ $endTime ?? '' }}"
+                            value="{{ $examDetails->time_end ?? '' }}"
                             {{ ($isExamActive || $isExamCompleted || ($examDetails && $examDetails->details_saved)) ? 'disabled' : '' }}
                             class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-[#0D2B70] disabled:bg-gray-100 invalid:border-red-500 invalid:text-red-600" />
                         <div id="timeTooltip" class="absolute bottom-full left-0 mb-2 px-2 py-1.5 bg-red-500 text-white text-xs rounded shadow-lg whitespace-nowrap pointer-events-none hidden 

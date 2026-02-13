@@ -447,7 +447,79 @@ class JobVacancyController extends Controller
         $hasPDS = PersonalInformation::where('user_id', Auth::id())->exists();
         $hasWES = WorkExpSheet::where('user_id', Auth::id())->exists();
 
-        return view('dashboard_user.dashboard_user', compact('vacancies', 'applications', 'pdsProgress', 'hasPDS', 'hasWES'));
+        // Application Status Summary
+        $statusSummary = $applications->groupBy('status')->map->count();
+
+        // COS vs Plantilla counts (OPEN)
+        $cosVacancyCount = $vacancies->where('vacancy_type', 'COS')->count();
+        $plantillaVacancyCount = $vacancies->where('vacancy_type', 'Plantilla')->count();
+
+        // Upcoming exams for user's applied vacancies
+        $vacancyIds = $applications->pluck('vacancy_id')->filter()->unique()->values();
+        $now = Carbon::now()->toDateTimeString();
+        $upcomingExams = ExamDetail::whereIn('vacancy_id', $vacancyIds)
+            ->whereRaw("STR_TO_DATE(CONCAT(`date`, ' ', `time`), '%Y-%m-%d %H:%i:%s') > ?", [$now])
+            ->orderByRaw("STR_TO_DATE(CONCAT(`date`, ' ', `time`), '%Y-%m-%d %H:%i:%s')")
+            ->with('vacancy')
+            ->get();
+
+        // Required Documents Status
+        $uploadedDocuments = UploadedDocument::where('user_id', $userId)->get()->keyBy('document_type');
+        $documentStatusSummary = [];
+        foreach (UploadedDocument::DOCUMENTS as $docType) {
+            if ($docType === 'isApproved') continue;
+            $doc = $uploadedDocuments->get($docType);
+            $documentStatusSummary[] = [
+                'type' => $docType,
+                'status' => $doc ? ($doc->status ?? 'PENDING') : 'Not Submitted',
+            ];
+        }
+        // Include quick flags for PDS/WES completion
+        $documentStatusSummary[] = ['type' => 'pds', 'status' => $hasPDS ? 'Completed' : 'Incomplete'];
+        $documentStatusSummary[] = ['type' => 'wes', 'status' => $hasWES ? 'Completed' : 'Incomplete'];
+
+        // Recently closed positions among user's applications
+        $recentlyClosedApplications = $applications->filter(function ($app) {
+            return $app->vacancy && $app->vacancy->status === 'CLOSED';
+        })->values();
+
+        // Deadline countdown per active application
+        $deadlineCountdown = $applications
+            ->filter(function ($app) {
+                return $app->deadline_date && $app->deadline_time && strtolower($app->status) !== 'closed';
+            })
+            ->map(function ($app) {
+                $deadline = Carbon::parse($app->deadline_date . ' ' . $app->deadline_time);
+                return [
+                    'vacancy_id' => $app->vacancy_id,
+                    'position_title' => $app->vacancy->position_title ?? '',
+                    'deadline' => $deadline->toDateTimeString(),
+                    'days_remaining' => Carbon::now()->diffInDays($deadline, false),
+                ];
+            })
+            ->sortBy('days_remaining')
+            ->values();
+
+        // Notifications/Alerts (latest 5, and unread count)
+        $recentNotifications = Auth::user()?->notifications()->orderBy('created_at', 'desc')->take(5)->get() ?? collect();
+        $unreadNotificationsCount = Auth::user()?->unreadNotifications()->count() ?? 0;
+
+        return view('dashboard_user.dashboard_user', [
+            'vacancies' => $vacancies,
+            'applications' => $applications,
+            'pdsProgress' => $pdsProgress,
+            'hasPDS' => $hasPDS,
+            'hasWES' => $hasWES,
+            'statusSummary' => $statusSummary,
+            'cosVacancyCount' => $cosVacancyCount,
+            'plantillaVacancyCount' => $plantillaVacancyCount,
+            'upcomingExams' => $upcomingExams,
+            'documentStatusSummary' => $documentStatusSummary,
+            'recentlyClosedApplications' => $recentlyClosedApplications,
+            'deadlineCountdown' => $deadlineCountdown,
+            'recentNotifications' => $recentNotifications,
+            'unreadNotificationsCount' => $unreadNotificationsCount,
+        ]);
 
     }
 

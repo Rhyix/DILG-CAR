@@ -13,6 +13,7 @@ class ExamDetail extends Model
         'vacancy_id',
         'is_started',
         'time',
+        'time_end',
         'date',
         'place',
         'duration',
