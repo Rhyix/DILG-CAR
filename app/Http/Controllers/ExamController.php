@@ -721,6 +721,7 @@ class ExamController extends Controller
         //info($request->all());
         $validated = $request->validate([
             'time' => 'required',
+            'time_end' => 'required',
             'date' => 'required|date',
             'place' => 'required|string',
             'duration' => 'required|integer',
