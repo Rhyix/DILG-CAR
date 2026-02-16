@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\Validator;
 
 use Illuminate\Support\Facades\Mail;
 use App\Mail\NotifyApplicationStatus;
+use App\Mail\AdminEventNotification;
 
 
 
@@ -569,6 +570,8 @@ class AdminController extends Controller
         if (!empty($changes)) {
             $admins = Admin::where('id', '!=', Auth::guard('admin')->id())->get();
             $applicantName = User::find($user_id)->name ?? 'Applicant';
+            $positionTitle = JobVacancy::where('vacancy_id', $vacancy_id)->value('position_title');
+            $occurredAt = now();
 
             foreach ($admins as $admin) {
                 Notification::create([
@@ -581,6 +584,20 @@ class AdminController extends Controller
                         'link' => route('admin.applicant_status', ['user_id' => $user_id, 'vacancy_id' => $vacancy_id]),
                     ]
                 ]);
+
+                if ($admin->email) {
+                    Mail::to($admin->email)->send(new AdminEventNotification(
+                        Auth::guard('admin')->user()->name,
+                        $admin->name ?? $admin->username,
+                        $applicantName,
+                        $positionTitle,
+                        $vacancy_id,
+                        'Application Updated',
+                        'Admin ' . Auth::guard('admin')->user()->name . ' updated application for ' . $applicantName,
+                        route('admin.applicant_status', ['user_id' => $user_id, 'vacancy_id' => $vacancy_id]),
+                        $occurredAt
+                    ));
+                }
             }
         }
 
@@ -704,6 +721,7 @@ class AdminController extends Controller
         // Notify other admins if status changed
         if ($request->has('status')) {
             $admins = Admin::where('id', '!=', Auth::guard('admin')->id())->get();
+            $occurredAt = now();
             foreach ($admins as $admin) {
                 Notification::create([
                     'notifiable_type' => 'App\Models\Admin',
@@ -715,6 +733,20 @@ class AdminController extends Controller
                         'link' => route('admin.applicant_status', ['user_id' => $user_id, 'vacancy_id' => $vacancy_id]),
                     ]
                 ]);
+
+                if ($admin->email) {
+                    Mail::to($admin->email)->send(new AdminEventNotification(
+                        Auth::guard('admin')->user()->name,
+                        $admin->name ?? $admin->username,
+                        $applicantName,
+                        JobVacancy::where('vacancy_id', $vacancy_id)->value('position_title'),
+                        $vacancy_id,
+                        'Document Verified',
+                        'Admin ' . Auth::guard('admin')->user()->name . ' modified ' . $docName . ' for ' . $applicantName . ' (' . $status . ')',
+                        route('admin.applicant_status', ['user_id' => $user_id, 'vacancy_id' => $vacancy_id]),
+                        $occurredAt
+                    ));
+                }
             }
         }
 

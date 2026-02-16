@@ -62,7 +62,82 @@ class ExamController extends Controller
 
         return redirect()->route('user.exam_thankyou', compact('vacancy_id', ));
     }
+    public function getExaminationDates(Request $request)
+    {
+        try {
+            // Fetch all scheduled exams with vacancy details
+            $exams = ExamDetail::with('vacancy')
+                ->where('date', '>=', now()->toDateString()) // Only upcoming exams
+                ->whereNotNull('date')
+                ->whereNotNull('time')
+                ->orderBy('date', 'asc')
+                ->orderBy('time', 'asc')
+                ->get()
+                ->map(function ($exam) {
+                    return [
+                        'id' => $exam->id,
+                        'vacancy_id' => $exam->vacancy_id,
+                        'position_title' => $exam->vacancy->position_title ?? 'N/A',
+                        'vacancy_type' => $exam->vacancy->vacancy_type ?? 'N/A',
+                        'date' => $exam->date,
+                        'time' => $exam->time,
+                        'time_end' => $exam->time_end,
+                        'venue' => $exam->place ?? 'TBA',
+                        'formatted_date' => \Carbon\Carbon::parse($exam->date)->format('F d, Y'),
+                        'formatted_time' => \Carbon\Carbon::parse($exam->time)->format('h:i A'),
+                        'formatted_time_end' => $exam->time_end ? \Carbon\Carbon::parse($exam->time_end)->format('h:i A') : null,
+                        'status' => $this->getExamStatus($exam),
+                    ];
+                });
 
+            // Group by date for easier frontend processing
+            $groupedByDate = $exams->groupBy('date')->map(function ($items, $date) {
+                return [
+                    'date' => $date,
+                    'formatted_date' => \Carbon\Carbon::parse($date)->format('F d, Y'),
+                    'exams' => $items,
+                    'count' => $items->count()
+                ];
+            })->values();
+
+            return response()->json([
+                'success' => true,
+                'exams' => $exams,
+                'grouped_by_date' => $groupedByDate,
+                'count' => $exams->count()
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error fetching examination dates: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch examination dates',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    private function getExamStatus($exam)
+    {
+        if (!$exam->date || !$exam->time) {
+            return 'Unscheduled';
+        }
+        
+        $startDateTime = \Carbon\Carbon::parse($exam->date . ' ' . $exam->time);
+        $endDateTime = $exam->time_end 
+            ? \Carbon\Carbon::parse($exam->date . ' ' . $exam->time_end)
+            : $startDateTime->copy()->addMinutes($exam->duration ?? 0);
+        
+        $now = now();
+        
+        if ($now->between($startDateTime, $endDateTime)) {
+            return 'Ongoing';
+        } elseif ($now->gt($endDateTime)) {
+            return 'Completed';
+        } else {
+            return 'Scheduled';
+        }
+    }
 
     public function logSwitch(Request $request)
     {

@@ -197,17 +197,100 @@
                     </div>
 
                     <!-- Upcoming Examinations (Calendar) -->
-                    <div
-                        class="bg-white border border-gray-200 rounded-lg md:rounded-xl p-3 md:p-4 shadow-sm hover:shadow-md transition-shadow duration-300 flex flex-col h-full overflow-hidden">
+                    <div class="bg-white border border-gray-200 rounded-lg md:rounded-xl p-3 md:p-4 shadow-sm hover:shadow-md transition-shadow duration-300 flex flex-col h-full overflow-hidden">
                         <div class="flex items-center gap-2 mb-2 shrink-0">
                             <div class="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-blue-50 flex items-center justify-center">
                                 <i class="fas fa-calendar-alt text-[#002C76] text-xs sm:text-sm"></i>
                             </div>
-                            <h2 class="text-sm sm:text-base font-bold text-[#002C76] font-montserrat">Examination Calendar
-                            </h2>
+                            <h2 class="text-sm sm:text-base font-bold text-[#002C76] font-montserrat">Examination Calendar</h2>
                         </div>
-                        <div class="flex-1 flex justify-center items-center overflow-hidden">
-                            <input id="examCalendar" class="hidden" />
+                        
+                        <!-- Custom Calendar with Tailwind -->
+                        <div class="w-full bg-white rounded-lg">
+                            <!-- Calendar Header -->
+                            <div class="flex items-center justify-between mb-4">
+                                <button onclick="previousMonth()" class="p-1 hover:bg-gray-100 rounded-full transition-colors">
+                                    <i class="fas fa-chevron-left text-[#002C76] text-sm"></i>
+                                </button>
+                                <h3 id="calendarMonthYear" class="text-sm font-bold text-[#002C76]">February 2026</h3>
+                                <button onclick="nextMonth()" class="p-1 hover:bg-gray-100 rounded-full transition-colors">
+                                    <i class="fas fa-chevron-right text-[#002C76] text-sm"></i>
+                                </button>
+                            </div>
+                            
+                            <!-- Week Days -->
+                            <div class="grid grid-cols-7 gap-1 mb-2">
+                                <div class="text-center text-[10px] font-bold text-[#002C76]">S</div>
+                                <div class="text-center text-[10px] font-bold text-[#002C76]">M</div>
+                                <div class="text-center text-[10px] font-bold text-[#002C76]">T</div>
+                                <div class="text-center text-[10px] font-bold text-[#002C76]">W</div>
+                                <div class="text-center text-[10px] font-bold text-[#002C76]">T</div>
+                                <div class="text-center text-[10px] font-bold text-[#002C76]">F</div>
+                                <div class="text-center text-[10px] font-bold text-[#002C76]">S</div>
+                            </div>
+                            
+                            <!-- Calendar Days Grid -->
+                            <div id="calendarDays" class="grid grid-cols-7 gap-1">
+                                <!-- Days will be populated by JavaScript -->
+                            </div>
+                        </div>
+                        
+                        <!-- Legend -->
+                        <div class="flex items-center gap-3 mt-2 text-[10px] text-gray-600">
+                            <div class="flex items-center gap-1">
+                                <div class="w-3 h-3 bg-[#002C76] rounded-full"></div>
+                                <span>Exam Date</span>
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <div class="w-3 h-3 bg-yellow-100 border border-yellow-500 rounded-full"></div>
+                                <span>Today</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Upcoming Exams List -->
+                        <div class="mt-3 border-t border-gray-100 pt-2">
+                            <div class="flex items-center justify-between mb-2">
+                                <h3 class="text-xs font-semibold text-[#002C76]">Upcoming Exams</h3>
+                                <span id="examCount" class="text-[10px] bg-blue-100 text-[#002C76] px-1.5 py-0.5 rounded-full">0</span>
+                            </div>
+                            <div id="upcomingExamsList" class="space-y-2 max-h-32 overflow-y-auto scrollbar-thin scrollbar-thumb-[#002C76] scrollbar-track-gray-100">
+                                <!-- Will be populated by JavaScript -->
+                            </div>
+                        </div>
+                        
+                        <!-- Loading State -->
+                        <div id="calendarLoading" class="flex justify-center items-center py-4">
+                            <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-[#002C76]"></div>
+                        </div>
+                        
+                        <!-- Error State (hidden by default) -->
+                        <div id="calendarError" class="hidden text-center text-red-500 text-sm py-4">
+                            <i class="fas fa-exclamation-circle mr-1"></i>
+                            Failed to load examination dates.
+                        </div>
+                        
+                        <!-- No Exams State (hidden by default) -->
+                        <div id="noExams" class="hidden text-center text-gray-500 text-sm py-4">
+                            <i class="fas fa-calendar-times mr-1"></i>
+                            No scheduled examinations found.
+                        </div>
+                    </div>
+
+                    <!-- Custom Modal for Exam Details (Hidden by default) -->
+                    <div id="examModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+                        <div class="bg-white rounded-xl max-w-md w-full mx-4 p-6">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-bold text-[#002C76]">Examination Details</h3>
+                                <button onclick="closeExamModal()" class="text-gray-400 hover:text-gray-600">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div id="modalExamDetails" class="space-y-4 max-h-96 overflow-y-auto">
+                                <!-- Will be populated by JavaScript -->
+                            </div>
+                            <button onclick="closeExamModal()" class="mt-6 w-full bg-[#002C76] text-white py-2 rounded-lg font-bold hover:bg-[#001a4d] transition-colors">
+                                Close
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -555,5 +638,286 @@
 
             });
         </script>
+
+        
+<script>
+let currentDate = new Date();
+let currentMonth = currentDate.getMonth();
+let currentYear = currentDate.getFullYear();
+let examData = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+    fetchExaminationDates();
+});
+
+function fetchExaminationDates() {
+    const loadingEl = document.getElementById('calendarLoading');
+    const errorEl = document.getElementById('calendarError');
+    const noExamsEl = document.getElementById('noExams');
+    const upcomingListEl = document.getElementById('upcomingExamsList');
+    const examCountEl = document.getElementById('examCount');
+    
+    // Show loading, hide others
+    loadingEl.classList.remove('hidden');
+    errorEl.classList.add('hidden');
+    noExamsEl.classList.add('hidden');
+    
+    // Fetch examination dates from your backend
+    fetch('/api/examination-dates', {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        // Hide loading
+        loadingEl.classList.add('hidden');
+        
+        if (data.success && data.exams && data.exams.length > 0) {
+            examData = data.exams;
+            
+            // Update exam count
+            examCountEl.textContent = data.exams.length;
+            
+            // Render calendar
+            renderCalendar(currentMonth, currentYear, data.exams);
+            
+            // Populate upcoming exams list
+            populateUpcomingExams(data.exams);
+            
+            // Show calendar elements
+            document.querySelector('.grid.grid-cols-7').classList.remove('hidden');
+        } else {
+            // Show no exams message
+            noExamsEl.classList.remove('hidden');
+        }
+    })
+    .catch(error => {
+        console.error('Error fetching examination dates:', error);
+        loadingEl.classList.add('hidden');
+        errorEl.classList.remove('hidden');
+    });
+}
+
+function renderCalendar(month, year, exams) {
+    const calendarDays = document.getElementById('calendarDays');
+    const monthYearEl = document.getElementById('calendarMonthYear');
+    
+    // Set month and year display
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    monthYearEl.textContent = `${monthNames[month]} ${year}`;
+    
+    // Get first day of month and total days
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    
+    // Get exam dates for this month
+    const examDatesThisMonth = exams
+        .filter(exam => {
+            const examDate = new Date(exam.date);
+            return examDate.getMonth() === month && examDate.getFullYear() === year;
+        })
+        .map(exam => new Date(exam.date).getDate());
+    
+    // Clear previous days
+    calendarDays.innerHTML = '';
+    
+    // Add empty cells for days before month starts
+    for (let i = 0; i < firstDay; i++) {
+        const emptyDay = document.createElement('div');
+        emptyDay.className = 'text-center py-1 text-xs text-gray-300';
+        emptyDay.textContent = '';
+        calendarDays.appendChild(emptyDay);
+    }
+    
+    // Add days of month
+    const today = new Date();
+    const isCurrentMonth = today.getMonth() === month && today.getFullYear() === year;
+    const todayDate = today.getDate();
+    
+    for (let day = 1; day <= daysInMonth; day++) {
+        const dayCell = document.createElement('div');
+        
+        // Base classes
+        let cellClasses = 'text-center py-1 text-xs rounded-full cursor-pointer transition-colors ';
+        
+        // Check if this date has an exam
+        if (examDatesThisMonth.includes(day)) {
+            cellClasses += 'bg-[#002C76] text-white font-bold hover:bg-[#001a4d] ';
+        } else {
+            cellClasses += 'hover:bg-gray-100 ';
+        }
+        
+        // Check if this is today
+        if (isCurrentMonth && day === todayDate) {
+            cellClasses += 'border-2 border-yellow-500 ';
+        }
+        
+        dayCell.className = cellClasses;
+        dayCell.textContent = day;
+        dayCell.setAttribute('data-date', `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
+        
+        // Add click event to show exams on this date
+        dayCell.onclick = function() {
+            const dateStr = this.getAttribute('data-date');
+            const examsOnDate = exams.filter(exam => exam.date === dateStr);
+            if (examsOnDate.length > 0) {
+                showExamDetails(examsOnDate);
+            }
+        };
+        
+        calendarDays.appendChild(dayCell);
+    }
+}
+
+function populateUpcomingExams(exams) {
+    const upcomingListEl = document.getElementById('upcomingExamsList');
+    
+    // Sort by date and time
+    const sortedExams = [...exams].sort((a, b) => {
+        const dateA = new Date(a.date + 'T' + a.time);
+        const dateB = new Date(b.date + 'T' + b.time);
+        return dateA - dateB;
+    });
+    
+    // Take only next 5 upcoming exams
+    const nextExams = sortedExams.slice(0, 5);
+    
+    if (nextExams.length === 0) {
+        upcomingListEl.innerHTML = '<div class="text-center text-gray-500 text-xs py-2">No upcoming exams</div>';
+        return;
+    }
+    
+    upcomingListEl.innerHTML = nextExams.map(exam => `
+        <div class="flex items-start gap-2 text-xs p-2 hover:bg-blue-50 rounded-lg cursor-pointer transition-colors" onclick='showExamDetails([${JSON.stringify(exam)}])'>
+            <div class="min-w-[35px] text-center">
+                <div class="font-bold text-[#002C76] text-sm">${new Date(exam.date).getDate()}</div>
+                <div class="text-gray-500 text-[8px] uppercase">${new Date(exam.date).toLocaleString('default', { month: 'short' })}</div>
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="font-semibold text-[#002C76] text-xs truncate">${exam.position_title}</div>
+                <div class="text-gray-500 text-[9px] flex items-center gap-1">
+                    <i class="fas fa-clock"></i> ${exam.formatted_time}
+                    <i class="fas fa-map-marker-alt ml-1"></i> ${exam.venue}
+                </div>
+            </div>
+            <span class="px-1.5 py-0.5 rounded-full text-[8px] font-bold whitespace-nowrap ${getStatusClass(exam.status)}">
+                ${exam.status}
+            </span>
+        </div>
+    `).join('');
+}
+
+function getStatusClass(status) {
+    switch(status) {
+        case 'Ongoing': return 'bg-yellow-100 text-yellow-800';
+        case 'Scheduled': return 'bg-green-100 text-green-800';
+        case 'Completed': return 'bg-gray-100 text-gray-600';
+        default: return 'bg-blue-100 text-blue-800';
+    }
+}
+
+function previousMonth() {
+    currentMonth--;
+    if (currentMonth < 0) {
+        currentMonth = 11;
+        currentYear--;
+    }
+    renderCalendar(currentMonth, currentYear, examData);
+}
+
+function nextMonth() {
+    currentMonth++;
+    if (currentMonth > 11) {
+        currentMonth = 0;
+        currentYear++;
+    }
+    renderCalendar(currentMonth, currentYear, examData);
+}
+
+function showExamDetails(exams) {
+    const modal = document.getElementById('examModal');
+    const modalDetails = document.getElementById('modalExamDetails');
+    
+    modalDetails.innerHTML = exams.map(exam => `
+        <div class="border-l-4 border-[#002C76] pl-3 py-2">
+            <h4 class="font-bold text-[#002C76] text-sm">${exam.position_title}</h4>
+            <div class="text-xs text-gray-600 mt-1 space-y-1">
+                <p class="flex items-center gap-2">
+                    <i class="fas fa-calendar w-4 text-[#002C76]"></i>
+                    <span>${exam.formatted_date}</span>
+                </p>
+                <p class="flex items-center gap-2">
+                    <i class="fas fa-clock w-4 text-[#002C76]"></i>
+                    <span>${exam.formatted_time} ${exam.formatted_time_end ? '- ' + exam.formatted_time_end : ''}</span>
+                </p>
+                <p class="flex items-center gap-2">
+                    <i class="fas fa-map-marker-alt w-4 text-[#002C76]"></i>
+                    <span>${exam.venue}</span>
+                </p>
+                <p class="flex items-center gap-2 mt-2">
+                    <span class="px-2 py-0.5 rounded-full text-[9px] font-bold ${getStatusClass(exam.status)}">${exam.status}</span>
+                </p>
+            </div>
+        </div>
+    `).join('');
+    
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeExamModal() {
+    const modal = document.getElementById('examModal');
+    modal.classList.add('hidden');
+    document.body.style.overflow = 'auto';
+}
+
+// Close modal when clicking outside
+document.getElementById('examModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeExamModal();
+    }
+});
+
+// Close modal with Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeExamModal();
+    }
+});
+</script>
+
+<style>
+/* Custom scrollbar using Tailwind classes */
+.scrollbar-thin::-webkit-scrollbar {
+    width: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+    background: #f3f4f6;
+    border-radius: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+    background: #002C76;
+    border-radius: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: #001a4d;
+}
+
+/* For Firefox */
+.scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: #002C76 #f3f4f6;
+}
+</style>
     @endpush
 @endsection

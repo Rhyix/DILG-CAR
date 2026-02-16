@@ -36,6 +36,10 @@ use Illuminate\Support\Facades\Response;
 // HOME ROUTE - Smart redirect based on authentication
 // ==================================================================================================
 Route::get('/', function () {
+    $openVacancies = \App\Models\JobVacancy::where('status', 'OPEN')
+        ->orderByDesc('created_at')
+        ->take(6)
+        ->get();
     if (Auth::guard('admin')->check()) {
         $user = Auth::guard('admin')->user();
         return $user->role === 'viewer'
@@ -44,9 +48,9 @@ Route::get('/', function () {
     } elseif (Auth::check()) {
         return redirect()->route('dashboard_user');
     } else {
-        return redirect()->route('login.form');
+        return view('public.landing', ['vacancies' => $openVacancies]);
     }
-})->name('dashboard');
+})->name('home');
 
 // ==================================================================================================
 // TEST PREVIEW ROUTES (Delete after use)
@@ -54,6 +58,10 @@ Route::get('/', function () {
 Route::get('/preview/exam/lobby', function () {
     return view('exam_user.exam_lobby', ['vacancy_id' => 'PREVIEW-123']);
 })->name('preview.exam.lobby');
+
+// In routes/api.php or routes/web.php
+Route::get('/api/examination-dates', [ExamController::class, 'getExaminationDates']);
+
 
 Route::get('/preview/exam/questions', function () {
     // Mock exam items
@@ -109,7 +117,7 @@ Route::get('/forgot-password/otp/resend', [ForgotPasswordController::class, 'res
 Route::get('/forgot-password/reset/{email}', [ForgotPasswordController::class, 'showResetForm'])->name('forgot.password.reset.form');
 Route::post('/forgot-password/reset', [ForgotPasswordController::class, 'resetPassword'])->name('forgot.password.reset');
 
-Route::get('/', fn() => redirect()->route('dashboard'))->name('home');
+// removed duplicate root route
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard_user', [JobVacancyController::class, 'getOpenVacanciesForDashboard'])->name('dashboard')->middleware(\App\Http\Middleware\RunDailyTask::class);

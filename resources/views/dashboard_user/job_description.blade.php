@@ -24,11 +24,11 @@
     <main class="flex-1 min-w-0 space-y-8 font-montserrat">
 
         <!-- Header Section -->
-            <section class="flex-none flex items-center space-x-4 max-w-full">
-                <h1 class="flex items-center gap-3 w-full border-b border-[#0D2B70] text-white text-4xl font-montserrat py-2 tracking-wide select-none">
-                    <span class="whitespace-nowrap text-[#0D2B70]">Job Descriptions</span>
-                </h1>
-            </section>
+        <section class="flex-none flex items-center space-x-4 max-w-full">
+            <h1 class="flex items-center gap-3 w-full border-b border-[#0D2B70] text-white text-4xl font-montserrat py-2 tracking-wide select-none">
+                <span class="whitespace-nowrap text-[#0D2B70]">Job Descriptions</span>
+            </h1>
+        </section>
 
         @php
             $isClosed = strtolower($vacancy->status) === 'closed';
@@ -104,78 +104,142 @@
                         <i data-feather="arrow-right" class="w-4 h-4"></i> {{ !$hasPDS ? 'CREATE PDS' : 'UPDATE PDS' }}
                     </button>
 
-                    <!--Work Experience Sheet Button -->
-                    <button onclick="window.location.href='{{ route('work_experience') }}'"
-                        class="use-loader flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow transition w-full md:w-auto">
-                        <i data-feather="arrow-right" class="w-4 h-4"></i> WORK EXPERIENCE SHEET
-                    </button>
+                    <!-- Work Experience Sheet Button - REMOVED -->
                 </div>
-
             </div>
         </section>
 
-    <!-- Modal -->
-    <div id="applyModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden">
-        <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
-            <h2 class="text-lg font-semibold mb-4">Application Letter</h2>
+        <!-- Modal -->
+        <div id="applyModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden">
+            <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
+                <h2 class="text-lg font-semibold mb-4">Application Letter</h2>
 
-            <form id="applyForm" action="{{ route('application.store', $vacancy->vacancy_id) }}" method="POST" enctype="multipart/form-data">
-                @csrf
-                <input type="file" name="application_file" accept="application/pdf" required class="mb-4 border p-2 w-full">
+                <form id="applyForm" action="{{ route('application.store', $vacancy->vacancy_id) }}" method="POST" enctype="multipart/form-data">
+                    @csrf
+                    <input type="file" name="application_file" accept="application/pdf" required class="mb-4 border p-2 w-full">
 
-                <div class="flex justify-end gap-2">
-                    <button type="button" onclick="closeApplyModal()" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">Cancel</button>
-                    <button type="submit" class="use-loader px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Submit Application</button>
-                </div>
-            </form>
+                    <div class="flex justify-end gap-2">
+                        <button type="button" onclick="closeApplyModal()" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">Cancel</button>
+                        <button type="submit" class="use-loader px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Submit Application</button>
+                    </div>
+                </form>
+            </div>
         </div>
-    </div>
 
-        <!-- Qualifications -->
-        <section class="bg-white p-6 rounded-lg shadow space-y-2 border-l-4 border-[#002C76]">
-            <h3 class="text-xl font-bold text-[#002C76]">QUALIFICATION STANDARDS</h3>
-            <p><span class="font-semibold">Education:</span> <br/> {{ $vacancy->qualification_education }}</p>
-            <p><span class="font-semibold">Experience:</span> <br/> {{ $vacancy->qualification_experience }}</p>
-            <p><span class="font-semibold">Training:</span> <br/> {{ $vacancy->qualification_training }}</p>
-            <p><span class="font-semibold">Eligibility:</span> <br/> {{ $vacancy->qualification_eligibility }}</p>
-            @if(strtolower($vacancy->vacancy_type) == 'plantilla')
-                <p>
-                    <span class="font-semibold">Competencies:</span> <br/>
-                    {!! nl2br(e($vacancy->competencies)) !!}
-                </p>
-            @endif
+        <!-- QUALIFICATIONS TABLE -->
+        <section class="bg-white p-6 rounded-lg shadow border-l-4 border-[#002C76]">
+            <h3 class="text-xl font-bold text-[#002C76] mb-4 flex items-center gap-2">
+                <i data-feather="clipboard-list" class="w-6 h-6"></i>
+                QUALIFICATION STANDARDS
+            </h3>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full border-collapse">
+                    <!-- Education -->
+                    <tr class="border-b border-gray-200 hover:bg-blue-50 transition-colors">
+                        <td class="py-3 px-4 w-1/4 align-top font-bold text-[#002C76]">Education</td>
+                        <td class="py-3 px-4 text-gray-700">{{ $vacancy->qualification_education ?: 'Not specified' }}</td>
+                    </tr>
+                    
+                    <!-- Experience -->
+                    <tr class="border-b border-gray-200 hover:bg-blue-50 transition-colors">
+                        <td class="py-3 px-4 w-1/4 align-top font-bold text-[#002C76]">Experience</td>
+                        <td class="py-3 px-4 text-gray-700">{{ $vacancy->qualification_experience ?: 'Not specified' }}</td>
+                    </tr>
+                    
+                    <!-- Training -->
+                    <tr class="border-b border-gray-200 hover:bg-blue-50 transition-colors">
+                        <td class="py-3 px-4 w-1/4 align-top font-bold text-[#002C76]">Training</td>
+                        <td class="py-3 px-4 text-gray-700">{{ $vacancy->qualification_training ?: 'Not specified' }}</td>
+                    </tr>
+                    
+                    <!-- Eligibility -->
+                    <tr class="border-b border-gray-200 hover:bg-blue-50 transition-colors">
+                        <td class="py-3 px-4 w-1/4 align-top font-bold text-[#002C76]">Eligibility</td>
+                        <td class="py-3 px-4 text-gray-700">{{ $vacancy->qualification_eligibility ?: 'Not specified' }}</td>
+                    </tr>
+                    
+                    <!-- Competencies (Plantilla only) -->
+                    @if(strtolower($vacancy->vacancy_type) == 'plantilla' && !empty($vacancy->competencies))
+                    <tr class="border-b border-gray-200 hover:bg-blue-50 transition-colors">
+                        <td class="py-3 px-4 w-1/4 align-top font-bold text-[#002C76]">Competencies</td>
+                        <td class="py-3 px-4 text-gray-700">{!! nl2br(e($vacancy->competencies)) !!}</td>
+                    </tr>
+                    @endif
+                </table>
+            </div>
         </section>
 
         <!-- COS Details -->
         @if(strtolower($vacancy->vacancy_type) == 'cos')
-            <section class="bg-white p-6 rounded-lg shadow space-y-2 border-l-4 border-green-600">
-                <h3 class="text-xl font-bold text-green-700">COS DETAILS</h3>
-                <p>
-                    <span class="font-semibold">Scope of Work:</span> <br/>
-                    {!! nl2br(e($vacancy->scope_of_work)) !!}
-                </p>
-                <p>
-                    <span class="font-semibold">Expected Output / Deliverables:</span> <br/>
-                    {!! nl2br(e($vacancy->expected_output)) !!}
-                </p>
-                <p>
-                    <span class="font-semibold">Duration of Work:</span> <br/>
-                    {!! nl2br(e($vacancy->duration_of_work)) !!}
-                </p>
+            <section class="bg-white p-6 rounded-lg shadow border-l-4 border-green-600">
+                <h3 class="text-xl font-bold text-green-700 mb-4 flex items-center gap-2">
+                    <i data-feather="file-text" class="w-6 h-6"></i>
+                    COS DETAILS
+                </h3>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full border-collapse">
+                        <!-- Scope of Work -->
+                        <tr class="border-b border-gray-200 hover:bg-green-50 transition-colors">
+                            <td class="py-3 px-4 w-1/4 align-top font-bold text-green-700">Scope of Work</td>
+                            <td class="py-3 px-4 text-gray-700">{!! nl2br(e($vacancy->scope_of_work)) !!}</td>
+                        </tr>
+                        
+                        <!-- Expected Output -->
+                        <tr class="border-b border-gray-200 hover:bg-green-50 transition-colors">
+                            <td class="py-3 px-4 w-1/4 align-top font-bold text-green-700">Expected Output</td>
+                            <td class="py-3 px-4 text-gray-700">{!! nl2br(e($vacancy->expected_output)) !!}</td>
+                        </tr>
+                        
+                        <!-- Duration of Work -->
+                        <tr class="border-b border-gray-200 hover:bg-green-50 transition-colors">
+                            <td class="py-3 px-4 w-1/4 align-top font-bold text-green-700">Duration of Work</td>
+                            <td class="py-3 px-4 text-gray-700">{!! nl2br(e($vacancy->duration_of_work)) !!}</td>
+                        </tr>
+                    </table>
+                </div>
             </section>
         @endif
 
         <!-- Application Details -->
-        <section class="bg-white p-6 rounded-lg shadow space-y-2 border-l-4 border-[#002C76]">
-            <h3 class="text-xl font-bold text-[#002C76]">APPLICATION</h3>
-            <p>Qualified applicants are advised to apply online through <a href="https://car.dilg.gov.ph/dilg-car-vacancy/" class="text-blue-600 font-bold underline">this portal</a>.</p>
-            <p>Application Letter/Letter of Intent and other documents shall be addressed to: </p>
-            <p class="font-bold text-lg">{{ $vacancy->to_person }}<br>
-                <span class="font-normal">{{ $vacancy->to_position }}</span><br>
-                <span class="font-normal">{{ $vacancy->to_office }}</span><br>
-                <span class="font-normal">{{ $vacancy->to_office_address }}</span>
-            </p>
-            <p class="text-red-600 font-bold">APPLICATIONS WITH INCOMPLETE DOCUMENTS SHALL NOT BE ENTERTAINED.</p>
+        <section class="bg-white p-6 rounded-lg shadow border-l-4 border-[#002C76]">
+            <h3 class="text-xl font-bold text-[#002C76] mb-4 flex items-center gap-2">
+                <i data-feather="send" class="w-6 h-6"></i>
+                APPLICATION
+            </h3>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full border-collapse">
+                    <!-- Application Instructions -->
+                    <tr class="border-b border-gray-200 hover:bg-blue-50 transition-colors">
+                        <td class="py-3 px-4 w-1/4 align-top font-bold text-[#002C76]">How to Apply</td>
+                        <td class="py-3 px-4 text-gray-700">
+                            Qualified applicants are advised to apply online through 
+                            <a href="https://car.dilg.gov.ph/dilg-car-vacancy/" class="text-blue-600 font-bold underline">this portal</a>.
+                        </td>
+                    </tr>
+                    
+                    <!-- Address To -->
+                    <tr class="border-b border-gray-200 hover:bg-blue-50 transition-colors">
+                        <td class="py-3 px-4 w-1/4 align-top font-bold text-[#002C76]">Address To</td>
+                        <td class="py-3 px-4 text-gray-700">
+                            <p class="font-bold">{{ $vacancy->to_person }}</p>
+                            <p>{{ $vacancy->to_position }}</p>
+                            <p>{{ $vacancy->to_office }}</p>
+                            <p>{{ $vacancy->to_office_address }}</p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Important Notice -->
+                    <tr class="border-b border-gray-200 hover:bg-blue-50 transition-colors">
+                        <td class="py-3 px-4 w-1/4 align-top font-bold text-[#002C76]">Notice</td>
+                        <td class="py-3 px-4">
+                            <p class="text-red-600 font-bold">APPLICATIONS WITH INCOMPLETE DOCUMENTS SHALL NOT BE ENTERTAINED.</p>
+                        </td>
+                    </tr>
+                </table>
+            </div>
         </section>
 
         @include('partials.loader')
@@ -184,10 +248,17 @@
 
 <script>
     function openApplyModal() {
-    document.getElementById('applyModal').classList.remove('hidden');
+        document.getElementById('applyModal').classList.remove('hidden');
     }
 
     function closeApplyModal() {
-    document.getElementById('applyModal').classList.add('hidden');
+        document.getElementById('applyModal').classList.add('hidden');
     }
+
+    // Re-initialize Feather Icons
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof feather !== 'undefined') {
+            feather.replace();
+        }
+    });
 </script>
