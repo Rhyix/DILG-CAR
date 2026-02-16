@@ -65,4 +65,6 @@ class Applications extends Model
         return $this->belongsTo(\App\Models\Admin::class, 'updated_by_admin_id');
     }
 
+    
+
 }

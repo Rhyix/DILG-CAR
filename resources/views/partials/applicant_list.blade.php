@@ -28,4 +28,19 @@
                 </div>
             </div>
 
+        // In your Blade view, temporarily add this to debug
+        {{-- Debugging --}}
+        <pre style="display: none;">
+            @php
+                \Log::info('New Applicants:', $newApplicants->toArray());
+            @endphp
+        </pre>
+
+        <!-- Or display on screen temporarily -->
+        @foreach($newApplicants as $applicant)
+            <div style="display: none;">
+                Name: {{ $applicant['name'] }} 
+                User ID: {{ $applicant['user_id'] }}
+            </div>
+@endforeach
 

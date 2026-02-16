@@ -4,7 +4,7 @@
 @include('partials.loader')
 <!-- max-w-7xl -->
 <!-- test -->
-<main class="w-full  h-[calc(98vh-6rem)] flex flex-col space-y-4 overflow-hidden">
+<main class="w-full h-[calc(98vh-6rem)] flex flex-col space-y-4 overflow-hidden">
 
     <!-- Header Section -->
     <section class="flex-none flex items-center space-x-4 max-w-full">
@@ -103,59 +103,62 @@
                 </div> -->
 
             <!-- Status Filter -->
-                <div x-data="{ statusOpen: false }" class="relative">
-                    <button
-                        @click="statusOpen = !statusOpen"
-                        class="font-semibold flex items-center px-4 py-2 bg-white text-[#0D2B70] rounded-md hover:bg-[#0D2B70] transition whitespace-nowrap hover:text-white hover:shadow-md border border-[#0D2B70] min-w-[140px] justify-between"
-                    >
-                        <span class="flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                            </svg>
-                            <span x-text="$el.closest('.relative').querySelector('#statusFilter option:checked')?.text || 'Status'"></span>
-                        </span>
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path>
+            <div x-data="{ statusOpen: false, selectedStatus: '{{ session('vacancyFilterStatus') ?: 'All' }}' }" class="relative">
+                <button
+                    @click="statusOpen = !statusOpen"
+                    class="font-semibold flex items-center px-4 py-2 bg-white text-[#0D2B70] rounded-md hover:bg-[#0D2B70] transition whitespace-nowrap hover:text-white hover:shadow-md border border-[#0D2B70] min-w-[140px] justify-between"
+                >
+                    <span class="flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                         </svg>
-                    </button>
-                    
-                    <!-- Hidden select for functionality -->
-                    <select id="statusFilter" class="hidden">
-                        <option value="" {{ session('vacancyFilterStatus') == '' ? 'selected' : '' }}>All</option>
-                        <option value="OPEN" {{ session('vacancyFilterStatus') == 'OPEN' ? 'selected' : '' }}>OPEN</option>
-                        <option value="CLOSED" {{ session('vacancyFilterStatus') == 'CLOSED' ? 'selected' : '' }}>CLOSED</option>
-                    </select>
-                    
-                    <div
-                        x-show="statusOpen"
-                        x-cloak
-                        @click.away="statusOpen = false"
-                        x-transition
-                        class="absolute left-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-lg z-50"
+                        <span x-text="selectedStatus"></span>
+                    </span>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </button>
+                
+                <!-- Hidden select for functionality -->
+                <select id="statusFilter" class="hidden">
+                    <option value="" {{ session('vacancyFilterStatus') == '' ? 'selected' : '' }}>All</option>
+                    <option value="OPEN" {{ session('vacancyFilterStatus') == 'OPEN' ? 'selected' : '' }}>OPEN</option>
+                    <option value="CLOSED" {{ session('vacancyFilterStatus') == 'CLOSED' ? 'selected' : '' }}>CLOSED</option>
+                </select>
+                
+                <div
+                    x-show="statusOpen"
+                    x-cloak
+                    @click.away="statusOpen = false"
+                    x-transition
+                    class="absolute left-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-lg z-50"
+                >
+                    <button 
+                        onclick="document.getElementById('statusFilter').value = ''; document.getElementById('statusFilter').dispatchEvent(new Event('change')); fetchVacancies();"
+                        @click="statusOpen = false; selectedStatus = 'All'"
+                        class="w-full text-left block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold"
+                        :class="{ 'bg-gray-100': selectedStatus === 'All' }"
                     >
-                        <button 
-                            onclick="document.getElementById('statusFilter').value = ''; document.getElementById('statusFilter').dispatchEvent(new Event('change')); fetchVacancies();"
-                            @click="statusOpen = false; $el.closest('.relative').querySelector('button span span').innerText = 'All'"
-                            class="w-full text-left block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold {{ session('vacancyFilterStatus') == '' ? 'bg-gray-100' : '' }}"
-                        >
-                            All
-                        </button>
-                        <button 
-                            onclick="document.getElementById('statusFilter').value = 'OPEN'; document.getElementById('statusFilter').dispatchEvent(new Event('change')); fetchVacancies();"
-                            @click="statusOpen = false; $el.closest('.relative').querySelector('button span span').innerText = 'OPEN'"
-                            class="w-full text-left block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold {{ session('vacancyFilterStatus') == 'OPEN' ? 'bg-gray-100' : '' }}"
-                        >
-                            OPEN
-                        </button>
-                        <button 
-                            onclick="document.getElementById('statusFilter').value = 'CLOSED'; document.getElementById('statusFilter').dispatchEvent(new Event('change')); fetchVacancies();"
-                            @click="statusOpen = false; $el.closest('.relative').querySelector('button span span').innerText = 'CLOSED'"
-                            class="w-full text-left block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold {{ session('vacancyFilterStatus') == 'CLOSED' ? 'bg-gray-100' : '' }}"
-                        >
-                            CLOSED
-                        </button>
-                    </div>
+                        All
+                    </button>
+                    <button 
+                        onclick="document.getElementById('statusFilter').value = 'OPEN'; document.getElementById('statusFilter').dispatchEvent(new Event('change')); fetchVacancies();"
+                        @click="statusOpen = false; selectedStatus = 'OPEN'"
+                        class="w-full text-left block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold"
+                        :class="{ 'bg-gray-100': selectedStatus === 'OPEN' }"
+                    >
+                        OPEN
+                    </button>
+                    <button 
+                        onclick="document.getElementById('statusFilter').value = 'CLOSED'; document.getElementById('statusFilter').dispatchEvent(new Event('change')); fetchVacancies();"
+                        @click="statusOpen = false; selectedStatus = 'CLOSED'"
+                        class="w-full text-left block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold"
+                        :class="{ 'bg-gray-100': selectedStatus === 'CLOSED' }"
+                    >
+                        CLOSED
+                    </button>
                 </div>
+            </div>
 
 
             <!-- Add New Vacancy Button -->
@@ -420,7 +423,7 @@
     @endif
 
     <!-- Table Container -->
-    <div class="flex-1 flex flex-col min-h-0 overflow-hidden border border-[#0D2B70] rounded-xl">
+    <div class="flex-1 flex flex-col min-h-0 max-h-[calc(98vh-12rem)] overflow-hidden border border-[#0D2B70] rounded-xl">
         <!-- Table Header -->
         <div class="bg-[#0D2B70] text-white text-left rounded-t-xl">
             <table class="w-full border-collapse">

@@ -14,7 +14,8 @@
         <td class="py-4 px-6 text-center w-[15%]">
             <button
                 onclick="window.location.href='{{ route('job_description', $vacancy->vacancy_id) }}'"
-                class="use-loader text-[#0D2B70] border border-[#0D2B70] font-bold py-1 px-4 rounded-md text-sm transition-all duration-300 hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md inline-flex items-center gap-2 mx-auto">
+                class="use-loader text-[#0D2B70] border border-[#0D2B70] font-bold py-1 px-4 rounded-md text-sm transition-all 
+                duration-300 hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md inline-flex items-center gap-2 mx-auto">
                 <i data-feather="eye" class="w-4 h-4"></i>
                 <span>View</span>
             </button>
