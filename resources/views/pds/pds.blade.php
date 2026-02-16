@@ -942,7 +942,7 @@
                 <div class="warn">WARNING: Any misrepresentation made in the Personal Data Sheet and the Work Experience Sheet shall cause the filing of administrative/criminal case/s against the person concerned.</div>
                 <div class="warn">READ THE ATTACHED GUIDE TO FILLING OUT THE PERSONAL DATA SHEET (PDS) BEFORE ACCOMPLISHING THE FORM. Print legibly if accomplished through own handwriting. Tick appropriate boxes ( ) and use separate sheet if necessary. Indicate N/A if not applicable. DO NOT ABBREVIATE.</div>
                 <table class="grid">
-                    <tr><th colspan="4" class="section-title">I. PERSONAL INFORMATION</th></tr>
+                    <tr><th colspan="4" class="section-title">I. PERSONAL INFORMATIONSSS</th></tr>
                     <tr>
                         <td class="label">1. SURNAME</td>
                         <td class="value"><span id="preview_surname">{{ old('surname', session('form.c1.surname')) }}</span></td>

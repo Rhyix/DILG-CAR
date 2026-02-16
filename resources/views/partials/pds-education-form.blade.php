@@ -110,11 +110,21 @@
             color: #f59e0b;
         }
     </style>
+    <!-- add-btn w-full sm:w-auto justify-center sm:justify-start -->
+     
+     <!-- use-loader text-green-600 border border-green-400 font-bold py-1 px-4 rounded-md text-sm 
+            transition-all duration-300 hover:scale-105 hover:bg-green-400 
+            hover:text-white hover:shadow-md inline-flex items-center gap-2 mx-auto sm:w-auto w-full justify-center sm:justify-start -->
 
     <div class="mb-6">
         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-3">
             <h3 class="text-base sm:text-lg font-semibold text-gray-700">{{ strtoupper($education_type_meta['title']) }}</h3>
-            <button type="button" class="add-btn w-full sm:w-auto justify-center sm:justify-start" onclick="addEducationRow('{{ $education_type }}')">
+            <button type="button" 
+            class="use-loader text-green-600 border border-green-400 font-bold py-1 px-4 
+            rounded-md text-sm transition-all duration:300 hover:scal-105 hover:bg-green-400
+            hover:text-white hover:shadow-md inline-flex items-center gap-2
+            w-full sm:w-auto justify-center sm:justify-start " 
+            onclick="addEducationRow('{{ $education_type }}')">
                 <span class="material-icons" style="font-size: 20px;">add</span>
                 Add {{ ucfirst($education_type) }}
             </button>
