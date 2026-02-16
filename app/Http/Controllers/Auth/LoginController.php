@@ -11,20 +11,42 @@ use Illuminate\Support\Facades\Http;
 
 class LoginController extends Controller
 {
-    public function showLoginForm()
+    public function showLoginForm(Request $request)
     {
-        if(Auth::user()){
+        if (Auth::user()) {
+            // If user is already logged in and there's a redirect parameter, handle it
+            if ($request->has('redirect') && $request->redirect === 'application_status') {
+                $userId = $request->get('user');
+                $vacancyId = $request->get('vacancy');
+
+                if ($userId && $vacancyId) {
+                    return redirect()->route('application_status', [
+                        'user' => $userId,
+                        'vacancy' => $vacancyId
+                    ])->with('comply_redirect', true);
+                }
+            }
             return redirect()->route('dashboard');
         }
 
         if (Auth::guard('admin')->check()) {
-        return redirect('/admin/dashboard');
+            return redirect('/admin/dashboard');
         }
+
+        // Store redirect information in session if present
+        if ($request->has('redirect') && $request->redirect === 'application_status') {
+            $request->session()->put('redirect_after_login', [
+                'target' => 'application_status',
+                'user' => $request->get('user'),
+                'vacancy' => $request->get('vacancy'),
+            ]);
+        }
+
         return view('login_register.login');
     }
 
     public function login(Request $request)
-    {   
+    {
         $attempts = session()->get('login_attempts', 0);
 
         if (!env('APP_DEBUG')) {
@@ -43,11 +65,11 @@ class LoginController extends Controller
         }
 
         $credentials = $request->validate([
-            'email'    => 'required|email|max:255',
+            'email' => 'required|email|max:255',
             'password' => 'required|string|min:6',
         ]);
 
-        if(Auth::attempt($credentials)){
+        if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
 
             activity()->log('login');
@@ -57,7 +79,20 @@ class LoginController extends Controller
                 ->event('login')
                 ->log('User logged in successfully.');
 
-            return redirect()->route('dashboard')->with('status','welcome');
+            // Check for redirect after login
+            if ($request->session()->has('redirect_after_login')) {
+                $redirectData = $request->session()->get('redirect_after_login');
+                $request->session()->forget('redirect_after_login');
+
+                if ($redirectData['target'] === 'application_status') {
+                    return redirect()->route('application_status', [
+                        'user' => $redirectData['user'],
+                        'vacancy' => $redirectData['vacancy']
+                    ])->with('comply_redirect', true);
+                }
+            }
+
+            return redirect()->route('dashboard')->with('status', 'welcome');
         }
 
         activity()
@@ -65,17 +100,17 @@ class LoginController extends Controller
             ->withProperties(['ip' => request()->ip(), 'email' => $request->email, 'section' => 'Login'])
             ->log('Failed login attempt.');
 
-            // // Increment on failure
-            // session()->increment('login_attempts');
-            // return back()->withErrors([
-            //     'email' => 'Invalid credentials.'
-            // ])->withInput();
+        // // Increment on failure
+        // session()->increment('login_attempts');
+        // return back()->withErrors([
+        //     'email' => 'Invalid credentials.'
+        // ])->withInput();
 
         return back()->withErrors(['email' => 'Invalid credentials provided.'])
-                     ->withInput($request->only('email'));
+            ->withInput($request->only('email'));
     }
 
-    
+
     // reCAPTCHA verifier
     protected function verifyRecaptcha($token, $ip)
     {

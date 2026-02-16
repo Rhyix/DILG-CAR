@@ -135,7 +135,7 @@
       <button type="submit" onclick="document.getElementById('after_action').value = 'save';" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 flex items-center gap-1 justify-center">
         Save
       </button>
-      <button type="button" onclick="window.location.href='{{ route('display_c5') }}'" class="use-loader bg-yellow-500 text-gray-900 px-4 py-2 rounded hover:bg-yellow-600 flex items-center gap-1 justify-center">
+      <button type="submit" onclick="document.getElementById('after_action').value = 'next';" class="use-loader bg-yellow-500 text-gray-900 px-4 py-2 rounded hover:bg-yellow-600 flex items-center gap-1 justify-center">
         Next: Upload PDF →
       </button>
     </div>

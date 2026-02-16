@@ -156,7 +156,10 @@
 
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <form id="learning-form" class="space-y-8">
+        <form id="learning-form" class="space-y-8" method="POST" action="{{ route('submit_c3', ['go_to' => 'c4_update']) }}">
+            @csrf
+            <input type="hidden" name="learning_entry_count" id="learning_entry_count" value="0">
+            <input type="hidden" name="voluntary_work_count" id="voluntary_work_count" value="0">
             <!-- Learning and Development Section -->
             <section class="bg-white rounded-2xl shadow-xl p-8 animate-slide-in">
                 <div class="flex items-center justify-between mb-6">
@@ -293,7 +296,7 @@
                     Update
                     <span class="material-icons ml-3">upgrade</span>
                 </button>
-                <button type="button" onclick="window.location.href='{{ route('c4_update') }}'" class="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors duration-200 flex items-center">
+                <button type="submit" class="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors duration-200 flex items-center">
                     Next
                     <span class="material-icons ml-2">arrow_forward</span>
                 </button>
@@ -344,6 +347,7 @@
                     setTimeout(() => {
                         entry.remove();
                         checkEmptyStates();
+                        updateIndices();
                     }, 300);
                 }
                 
@@ -355,9 +359,43 @@
                     }, 300);
                 }
             });
+
+            function updateIndices() {
+                // Learning
+                const learningRows = document.querySelectorAll('#learning-container .entry-card');
+                learningRows.forEach((row, index) => {
+                    const i = index + 1;
+                    row.querySelector('h4').textContent = `Training #${i}`;
+                    
+                    const inputs = row.querySelectorAll('input, select');
+                    inputs.forEach(input => {
+                        if (input.name.includes('learning_')) {
+                            const baseName = input.name.split('_').slice(0, -1).join('_');
+                            input.name = `${baseName}_${i}`;
+                        }
+                    });
+                });
+                document.getElementById('learning_entry_count').value = learningRows.length;
+
+                // Voluntary
+                const voluntaryRows = document.querySelectorAll('#voluntary-container .entry-card');
+                voluntaryRows.forEach((row, index) => {
+                    const i = index + 1;
+                    row.querySelector('h4').textContent = `Voluntary Work #${i}`;
+                    
+                    const inputs = row.querySelectorAll('input, select');
+                    inputs.forEach(input => {
+                        if (input.name.includes('voluntary_')) {
+                            const baseName = input.name.split('_').slice(0, -1).join('_');
+                            input.name = `${baseName}_${i}`;
+                        }
+                    });
+                });
+                document.getElementById('voluntary_work_count').value = voluntaryRows.length;
+            }
             
             function addLearningEntry() {
-                const entryCount = learningContainer.children.length;
+                const entryCount = document.getElementById('learning-container').children.length;
                 const entryHtml = `
                     <div class="entry-card bg-gray-50 rounded-lg p-6 card-hover animate-fade-in">
                         <div class="flex justify-between items-start mb-4">
@@ -404,10 +442,11 @@
                 `;
                 learningContainer.insertAdjacentHTML('beforeend', entryHtml);
                 learningEmpty.style.display = 'none';
+                updateIndices();
             }
             
             function addVoluntaryEntry() {
-                const entryCount = voluntaryContainer.children.length;
+                const entryCount = document.getElementById('voluntary-container').children.length;
                 const entryHtml = `
                     <div class="entry-card bg-gray-50 rounded-lg p-6 card-hover animate-fade-in">
                         <div class="flex justify-between items-start mb-4">
@@ -444,6 +483,7 @@
                 `;
                 voluntaryContainer.insertAdjacentHTML('beforeend', entryHtml);
                 voluntaryEmpty.style.display = 'none';
+                updateIndices();
             }
             
             function addField(containerId, fieldName, placeholder) {

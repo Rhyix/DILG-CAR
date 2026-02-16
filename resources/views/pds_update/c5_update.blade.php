@@ -253,7 +253,7 @@
 
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <form method="POST" action="{{ route('c5_update') }}" enctype="multipart/form-data">
+        <form method="POST" action="{{ route('finalize_pds', ['go_to' => 'dashboard_user']) }}" enctype="multipart/form-data">
             @csrf
             <section class="bg-white rounded-2xl shadow-xl p-8 animate-slide-in">
                 <h2 class="text-2xl font-bold text-gray-900 mb-6">Required Documents</h2>
@@ -354,25 +354,14 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
         // Form submission
-        const form = document.getElementById('other-info-form');
+        const form = document.querySelector('form');
         form.addEventListener('submit', (e) => {
-            e.preventDefault();
-
-            const declaration = document.querySelector('input[name="declaration"]');
-            const consent = document.querySelector('input[name="consent"]');
-
-            if (!declaration.checked || !consent.checked) {
-                alert('Please check all declaration boxes to proceed.');
-                return;
-            }
-
             // Optional UI feedback
             const submitBtn = e.submitter;
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<span class="material-icons mr-2 animate-spin">refresh</span>Submitting...';
-
-            // ✅ Actually submit the form
-            form.submit();
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="material-icons mr-2 animate-spin">refresh</span>Submitting...';
+            }
         });
     });
             

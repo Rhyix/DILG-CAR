@@ -124,7 +124,27 @@
 
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <form class="space-y-8">
+        @if ($errors->any())
+            <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <span class="material-icons text-red-500">error</span>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm text-red-700 font-bold">
+                            Please fix the following errors:
+                        </p>
+                        <ul class="mt-2 list-disc list-inside text-sm text-red-700">
+                            @foreach ($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        @endif
+        <form class="space-y-8" method="POST" action="{{ route('submit_c1', ['go_to' => 'c2_update']) }}">
+            @csrf
             <!-- Personal Information Section -->
             <section class="bg-white rounded-2xl shadow-xl p-8 animate-slide-in">
                 <div class="flex items-center mb-6">
@@ -318,32 +338,32 @@
                 </div>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div class="relative">
-            <input type="text" id="house_number" name="house_number" value="{{ old('house_number', session('form.house_number')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
-            <label for="house_number" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">House/Block/Lot No.</label>
+            <input type="text" id="res_house_no" name="res_house_no" value="{{ old('res_house_no', session('form.res_house_no')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
+            <label for="res_house_no" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">House/Block/Lot No.</label>
         </div>
         <div class="relative">
-            <input type="text" id="street" name="street" value="{{ old('street', session('form.street')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
-            <label for="street" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Street Name</label>
+            <input type="text" id="res_street" name="res_street" value="{{ old('res_street', session('form.res_street')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
+            <label for="res_street" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Street Name</label>
         </div>
         <div class="relative">
-            <input type="text" id="subdivision" name="subdivision" value="{{ old('subdivision', session('form.subdivision')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
-            <label for="subdivision" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Subdivision/Village</label>
+            <input type="text" id="res_sub_vil" name="res_sub_vil" value="{{ old('res_sub_vil', session('form.res_sub_vil')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
+            <label for="res_sub_vil" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Subdivision/Village</label>
         </div>
         <div class="relative">
-            <input type="text" id="barangay" name="barangay" value="{{ old('barangay', session('form.barangay')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
-            <label for="barangay" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Barangay</label>
+            <input type="text" id="res_brgy" name="res_brgy" value="{{ old('res_brgy', session('form.res_brgy')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
+            <label for="res_brgy" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Barangay</label>
         </div>
         <div class="relative">
-            <input type="text" id="city" name="city" value="{{ old('city', session('form.city')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
-            <label for="city" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">City/Municipality</label>
+            <input type="text" id="res_city" name="res_city" value="{{ old('res_city', session('form.res_city')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
+            <label for="res_city" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">City/Municipality</label>
         </div>
         <div class="relative">
-            <input type="text" id="province" name="province" value="{{ old('province', session('form.province')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
-            <label for="province" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Province</label>
+            <input type="text" id="res_province" name="res_province" value="{{ old('res_province', session('form.res_province')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
+            <label for="res_province" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Province</label>
         </div>
         <div class="relative">
-            <input type="text" id="zip_code" name="zip_code" value="{{ old('zip_code', session('form.zip_code')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
-            <label for="zip_code" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Zip Code</label>
+            <input type="text" id="res_zipcode" name="res_zipcode" value="{{ old('res_zipcode', session('form.res_zipcode')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
+            <label for="res_zipcode" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Zip Code</label>
         </div>
     </div>
     </section>
@@ -356,32 +376,32 @@
                 </div>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div class="relative">
-            <input type="text" id="house_number" name="house_number" value="{{ old('house_number', session('form.house_number')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
-            <label for="house_number" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">House/Block/Lot No.</label>
+            <input type="text" id="per_house_no" name="per_house_no" value="{{ old('per_house_no', session('form.per_house_no')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
+            <label for="per_house_no" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">House/Block/Lot No.</label>
         </div>
         <div class="relative">
-            <input type="text" id="street" name="street" value="{{ old('street', session('form.street')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
-            <label for="street" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Street Name</label>
+            <input type="text" id="per_street" name="per_street" value="{{ old('per_street', session('form.per_street')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
+            <label for="per_street" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Street Name</label>
         </div>
         <div class="relative">
-            <input type="text" id="subdivision" name="subdivision" value="{{ old('subdivision', session('form.subdivision')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
-            <label for="subdivision" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Subdivision/Village</label>
+            <input type="text" id="per_sub_vil" name="per_sub_vil" value="{{ old('per_sub_vil', session('form.per_sub_vil')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
+            <label for="per_sub_vil" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Subdivision/Village</label>
         </div>
         <div class="relative">
-            <input type="text" id="barangay" name="barangay" value="{{ old('barangay', session('form.barangay')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
-            <label for="barangay" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Barangay</label>
+            <input type="text" id="per_brgy" name="per_brgy" value="{{ old('per_brgy', session('form.per_brgy')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
+            <label for="per_brgy" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Barangay</label>
         </div>
         <div class="relative">
-            <input type="text" id="city" name="city" value="{{ old('city', session('form.city')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
-            <label for="city" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">City/Municipality</label>
+            <input type="text" id="per_city" name="per_city" value="{{ old('per_city', session('form.per_city')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
+            <label for="per_city" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">City/Municipality</label>
         </div>
         <div class="relative">
-            <input type="text" id="province" name="province" value="{{ old('province', session('form.province')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
-            <label for="province" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Province</label>
+            <input type="text" id="per_province" name="per_province" value="{{ old('per_province', session('form.per_province')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
+            <label for="per_province" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Province</label>
         </div>
         <div class="relative">
-            <input type="text" id="zip_code" name="zip_code" value="{{ old('zip_code', session('form.zip_code')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
-            <label for="zip_code" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Zip Code</label>
+            <input type="text" id="per_zipcode" name="per_zipcode" value="{{ old('per_zipcode', session('form.per_zipcode')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
+            <label for="per_zipcode" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Zip Code</label>
         </div>
     </div>
 </section>
@@ -541,20 +561,20 @@
                             <label for="elem_school" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">School Name</label>
                         </div>
                         <div class="relative col-span-2">
-                            <input type="text" id="elem_school" name="elem_school" value="{{ old('elem_school', session('form.elem_school')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
-                            <label for="elem_school" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Basic Education/Degree/Course</label>
+                            <input type="text" id="elem_basic" name="elem_basic" value="{{ old('elem_basic', session('form.elem_basic')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
+                            <label for="elem_basic" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Basic Education/Degree/Course</label>
                         </div>
                         <div class="relative col-span-2">
-                            <input type="text" id="elem_school" name="elem_school" value="{{ old('elem_school', session('form.elem_school')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
-                            <label for="elem_school" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Highest Level Units Earned</label>
+                            <input type="text" id="elem_earned" name="elem_earned" value="{{ old('elem_earned', session('form.elem_earned')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
+                            <label for="elem_earned" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Highest Level Units Earned</label>
                         </div>
                         <div class="relative col-span-2">
-                            <input type="text" id="elem_school" name="elem_school" value="{{ old('elem_school', session('form.elem_school')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
-                            <label for="elem_school" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Year Graduated</label>
+                            <input type="text" id="elem_year_graduated" name="elem_year_graduated" value="{{ old('elem_year_graduated', session('form.elem_year_graduated')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
+                            <label for="elem_year_graduated" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Year Graduated</label>
                         </div>
                         <div class="relative col-span-2">
-                            <input type="text" id="elem_school" name="elem_school" value="{{ old('elem_school', session('form.elem_school')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
-                            <label for="elem_school" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Scholarship/Academic Honors Recieved</label>
+                            <input type="text" id="elem_academic_honors" name="elem_academic_honors" value="{{ old('elem_academic_honors', session('form.elem_academic_honors')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
+                            <label for="elem_academic_honors" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Scholarship/Academic Honors Recieved</label>
                         </div>
                     </div>
                 </div>
@@ -564,32 +584,32 @@
                     <h3 class="text-lg font-semibold text-gray-700 mb-4">Secondary</h3>
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                         <div class="relative">
-                            <input type="text" aria-label="From date" id="secondary_from" name="secondary_from" value="{{ old('secondary_from', session('form.secondary_from')) }}" class="edu-date w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
+                            <input type="text" aria-label="From date" id="jhs_from" name="jhs_from" value="{{ old('jhs_from', session('form.jhs_from')) }}" class="edu-date w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
                             <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">From</label>
                         </div>
                         <div class="relative">
-                            <input type="text" aria-label="To date" id="secondary_to" name="secondary_to" value="{{ old('secondary_to', session('form.secondary_to')) }}" class="edu-date w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
+                            <input type="text" aria-label="To date" id="jhs_to" name="jhs_to" value="{{ old('jhs_to', session('form.jhs_to')) }}" class="edu-date w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
                             <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">To</label>
                         </div>
                         <div class="relative col-span-2">
-                            <input type="text" id="secondary_school" name="secondary_school" value="{{ old('secondary_school', session('form.secondary_school')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
-                            <label for="secondary_school" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">School Name</label>
+                            <input type="text" id="jhs_school" name="jhs_school" value="{{ old('jhs_school', session('form.jhs_school')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
+                            <label for="jhs_school" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">School Name</label>
                         </div>
                         <div class="relative col-span-2">
-                            <input type="text" id="elem_school" name="elem_school" value="{{ old('elem_school', session('form.elem_school')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
-                            <label for="elem_school" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Basic Education/Degree/Course</label>
+                            <input type="text" id="jhs_basic" name="jhs_basic" value="{{ old('jhs_basic', session('form.jhs_basic')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
+                            <label for="jhs_basic" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Basic Education/Degree/Course</label>
                         </div>
                         <div class="relative col-span-2">
-                            <input type="text" id="elem_school" name="elem_school" value="{{ old('elem_school', session('form.elem_school')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
-                            <label for="elem_school" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Highest Level Units Earned</label>
+                            <input type="text" id="jhs_earned" name="jhs_earned" value="{{ old('jhs_earned', session('form.jhs_earned')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
+                            <label for="jhs_earned" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Highest Level Units Earned</label>
                         </div>
                         <div class="relative col-span-2">
-                            <input type="text" id="elem_school" name="elem_school" value="{{ old('elem_school', session('form.elem_school')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
-                            <label for="elem_school" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Year Graduated</label>
+                            <input type="text" id="jhs_year_graduated" name="jhs_year_graduated" value="{{ old('jhs_year_graduated', session('form.jhs_year_graduated')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
+                            <label for="jhs_year_graduated" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Year Graduated</label>
                         </div>
                         <div class="relative col-span-2">
-                            <input type="text" id="elem_school" name="elem_school" value="{{ old('elem_school', session('form.elem_school')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
-                            <label for="elem_school" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Scholarship/Academic Honors Recieved</label>
+                            <input type="text" id="jhs_academic_honors" name="jhs_academic_honors" value="{{ old('jhs_academic_honors', session('form.jhs_academic_honors')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
+                            <label for="jhs_academic_honors" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Scholarship/Academic Honors Recieved</label>
                         </div>
                     </div>
                 </div>
@@ -670,7 +690,7 @@
                 <button type="button" disabled class="px-6 py-3 bg-gray-300 text-gray-500 rounded-lg font-semibold cursor-not-allowed opacity-50">
                     Previous
                 </button>
-                <button type="button" onclick="window.location.href='{{ route('c2') }}'" class="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors duration-200 flex items-center">
+                <button type="submit" class="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors duration-200 flex items-center">
                     Next
                     <span class="material-icons ml-2">arrow_forward</span>
                 </button>

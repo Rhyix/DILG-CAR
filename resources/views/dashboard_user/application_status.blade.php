@@ -47,6 +47,19 @@
                   </div>
                 @endif
 
+                @if (session('comply_redirect'))
+                  <div class="mb-6 px-4 py-3 bg-blue-100 border border-blue-400 text-blue-800 rounded-lg shadow text-sm font-semibold flex items-start gap-3"
+                    role="alert">
+                    <i data-feather="info" class="w-5 h-5 flex-shrink-0 mt-0.5"></i>
+                    <div class="flex-1">
+                      <p class="font-bold mb-1">📋 Document Submission Required</p>
+                      <p class="font-normal">Please review the document status below and upload any required or corrected documents. Make sure all documents marked for revision are updated before the deadline.</p>
+                    </div>
+                    <button onclick="this.parentElement.remove()"
+                      class="text-blue-800 hover:text-red-600 font-bold text-lg">&times;</button>
+                  </div>
+                @endif
+
                 <!-- Applicant Header -->
                 <div class="mb-6">
                   <!-- Applicant name and last modified info -->

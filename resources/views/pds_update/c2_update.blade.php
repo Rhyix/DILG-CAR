@@ -183,6 +183,10 @@
 
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <form method="POST" action="{{ route('submit_c2', ['go_to' => 'c3_update']) }}" id="c2_form">
+            @csrf
+            <input type="hidden" name="work_exp_count" id="work_exp_count" value="0">
+            <input type="hidden" name="civil_service_count" id="civil_service_count" value="0">
         <!-- Work Experience Section -->
         <section class="bg-white rounded-2xl shadow-xl p-8 mb-8 animate-slide-in">
             <div class="flex items-center justify-between mb-6">
@@ -306,11 +310,12 @@
                     Update
                     <span class="material-icons ml-3">upgrade</span>
                 </button>
-            <button type="button" onclick="window.location.href='{{ route('c3_update') }}'" class="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors duration-200 flex items-center">
+            <button type="submit" class="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors duration-200 flex items-center">
                 Next
                 <span class="material-icons ml-2">arrow_forward</span>
             </button>
         </div>
+        </form>
     </main>
 
     <!-- Floating Action Buttons -->
@@ -381,6 +386,11 @@
                 }
             });
             
+            function updateCounts() {
+                document.getElementById('work_exp_count').value = workExpTable.querySelector('tbody').children.length;
+                document.getElementById('civil_service_count').value = civilServiceTable.querySelector('tbody').children.length;
+            }
+
             // Functions
             function addWorkExperienceRow() {
                 const tbody = workExpTable.querySelector('tbody');
@@ -391,25 +401,25 @@
                 newRow.innerHTML = `
                     <td class="font-medium text-center">${rowCount + 1}</td>
                     <td>
-                        <input type="date" name="work_exp_from_${rowCount + 1}" class="form-input" required />
+                        <input type="date" name="work_exp_from[]" class="form-input" required />
                     </td>
                     <td>
-                        <input type="date" name="work_exp_to_${rowCount + 1}" class="form-input" required />
+                        <input type="date" name="work_exp_to[]" class="form-input" required />
                     </td>
                     <td>
-                        <input type="text" name="work_exp_position_${rowCount + 1}" placeholder="Position Title" class="form-input" required />
+                        <input type="text" name="work_exp_position[]" placeholder="Position Title" class="form-input" required />
                     </td>
                     <td>
-                        <input type="text" name="work_exp_department_${rowCount + 1}" placeholder="Department/Agency" class="form-input" required />
+                        <input type="text" name="work_exp_department[]" placeholder="Department/Agency" class="form-input" required />
                     </td>
                     <td>
-                        <input type="number" name="work_exp_salary_${rowCount + 1}" placeholder="Monthly Salary" class="form-input" required />
+                        <input type="number" name="work_exp_salary[]" placeholder="Monthly Salary" class="form-input" required />
                     </td>
                     <td>
-                        <input type="text" name="work_exp_grade_${rowCount + 1}" placeholder="e.g. 12-3" class="form-input" />
+                        <input type="text" name="work_exp_grade[]" placeholder="e.g. 12-3" class="form-input" />
                     </td>
                     <td>
-                        <select name="work_exp_status_${rowCount + 1}" class="form-input" required>
+                        <select name="work_exp_status[]" class="form-input" required>
                             <option value="">Select</option>
                             <option value="Permanent">Permanent</option>
                             <option value="Temporary">Temporary</option>
@@ -418,14 +428,14 @@
                         </select>
                     </td>
                     <td>
-                        <select name="work_exp_govt_service_${rowCount + 1}" class="form-input" required>
+                        <select name="work_exp_govt_service[]" class="form-input" required>
                             <option value="">Y/N</option>
                             <option value="Y">Yes</option>
                             <option value="N">No</option>
                         </select>
                     </td>
                     <td class="text-center">
-                        <button class="remove-row text-red-500 hover:text-red-700 transition-colors duration-200">
+                        <button type="button" class="remove-row text-red-500 hover:text-red-700 transition-colors duration-200">
                             <span class="material-icons">delete</span>
                         </button>
                     </td>
@@ -433,6 +443,7 @@
                 
                 tbody.appendChild(newRow);
                 updateEmptyState();
+                updateCounts();
                 
                 // Scroll to the new row
                 setTimeout(() => {
@@ -448,25 +459,25 @@
                 
                 newRow.innerHTML = `
                     <td>
-                        <input type="text" name="cs_eligibility_career_${rowCount + 1}" placeholder="Career Service/Board/Bar" class="form-input" required />
+                        <input type="text" name="cs_eligibility_career[]" placeholder="Career Service/Board/Bar" class="form-input" required />
                     </td>
                     <td>
-                        <input type="text" name="cs_eligibility_rating_${rowCount + 1}" placeholder="Rating %" class="form-input" />
+                        <input type="text" name="cs_eligibility_rating[]" placeholder="Rating %" class="form-input" />
                     </td>
                     <td>
-                        <input type="date" name="cs_eligibility_date_${rowCount + 1}" class="form-input" />
+                        <input type="date" name="cs_eligibility_date[]" class="form-input" />
                     </td>
                     <td>
-                        <input type="text" name="cs_eligibility_place_${rowCount + 1}" placeholder="Place of Examination" class="form-input" />
+                        <input type="text" name="cs_eligibility_place[]" placeholder="Place of Examination" class="form-input" />
                     </td>
                     <td>
-                        <input type="text" name="cs_eligibility_license_${rowCount + 1}" placeholder="License No." class="form-input" />
+                        <input type="text" name="cs_eligibility_license[]" placeholder="License No." class="form-input" />
                     </td>
                     <td>
-                        <input type="date" name="cs_eligibility_validity_${rowCount + 1}" class="form-input" />
+                        <input type="date" name="cs_eligibility_validity[]" class="form-input" />
                     </td>
                     <td class="text-center">
-                        <button class="remove-row text-red-500 hover:text-red-700 transition-colors duration-200">
+                        <button type="button" class="remove-row text-red-500 hover:text-red-700 transition-colors duration-200">
                             <span class="material-icons">delete</span>
                         </button>
                     </td>
@@ -474,6 +485,7 @@
                 
                 tbody.appendChild(newRow);
                 updateEmptyState();
+                updateCounts();
                 
                 // Scroll to the new row
                 setTimeout(() => {
@@ -532,6 +544,7 @@
                     civilServiceTable.parentElement.classList.remove('hidden');
                     civilServiceEmpty.classList.add('hidden');
                 }
+                updateCounts();
             }
         });
     </script>

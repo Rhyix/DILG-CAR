@@ -300,9 +300,10 @@
 
             .flatpickr-day.event-day {
                 font-weight: bold !important;
-                color: #002C76 !important;
+                color: #ffffff !important;
                 border: 1px solid #002C76 !important;
-                background-color: #f0f9ff !important;
+                background-color: #002C76 !important;
+                box-shadow: 0 2px 4px rgba(0, 44, 118, 0.2) !important;
             }
 
             .flatpickr-current-month .flatpickr-monthDropdown-months .flatpickr-monthDropdown-month {
@@ -537,7 +538,7 @@
                 flatpickr("#examCalendar", {
                     inline: true,
                     dateFormat: "Y-m-d",
-                    enable: examDates.length > 0 ? examDates : [],
+                    // enable: examDates.length > 0 ? examDates : [], // Removed to show all dates
                     disableMobile: true,
                     static: true,
                     locale: {

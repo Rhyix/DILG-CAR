@@ -86,6 +86,10 @@ class WorkExpSheetController extends Controller
             ])
             ->log($action . 'd Work Experience Sheet');
 
+        if ($request->input('after_action') === 'next') {
+            return redirect()->route('c5_update');
+        }
+
         return redirect()->back()
             ->with('success', 'Work Experience Sheet Saved!')
             ->with('after_action', $request->input('after_action'));

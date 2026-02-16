@@ -72,7 +72,7 @@ Route::get('/preview/exam/questions', function () {
         ]
     ];
     return view('exam_user.exam_question_page', [
-        'vacancy_id' => 'PREVIEW-123', 
+        'vacancy_id' => 'PREVIEW-123',
         'examItems' => $examItems
     ]);
 })->name('preview.exam.questions');
@@ -225,23 +225,7 @@ Route::get('/pds_print', fn() => view('dashboard_user.pds_print'))
 // PDS ROUTES
 // ADMIN LOGOUT (accessible when authenticated as admin)
 // ==================================================================================================
-Route::get('/pds/c1', [Forms\PDSController::class, 'c1DisplayForm'])->name('display_c1')->middleware('auth');
-Route::post('/pds/submit_c1/{go_to}', [Forms\PDSController::class, 'c1UpdateFormSession'])->name('submit_c1')->middleware('auth');
 
-Route::get('/pds/c2', [Forms\PDSController::class, 'c2DisplayForm'])->name('display_c2')->middleware('auth');
-Route::post('/pds/submit_c2/{go_to}', [Forms\PDSController::class, 'c2UpdateFormSession'])->name('submit_c2')->middleware('auth');
-Route::delete('/c2/d/{target_row}/{id}', [Forms\PDSController::class, 'c2DeleteRow']);
-
-Route::get('/pds/c3', [Forms\PDSController::class, 'c3ShowForm'])->name('display_c3')->middleware('auth');
-Route::post('/pds/submit_c3/{go_to}', [Forms\PDSController::class, 'c3SubmitForm'])->name('submit_c3')->middleware('auth');
-
-Route::get('/pds/c4', [Forms\PDSController::class, 'c4ShowForm'])->name('display_c4')->middleware('auth');
-Route::post('/pds/submit_c4/{go_to}', [Forms\PDSController::class, 'c4SubmitForm'])->name('submit_c4')->middleware('auth');
-
-Route::get('/pds/c5', [Forms\PDSController::class, 'c5DisplayForm'])->name('display_c5')->middleware('auth');
-Route::post('/pds/finalize/{go_to}', [Forms\PDSController::class, 'finalizePDS'])->name('finalize_pds')->middleware('auth');
-
-Route::get('/pds/submit', [Forms\PDSController::class, 'showSubmittedForm'])->name('display_final_pds')->middleware('auth');
 
 //});
 Route::middleware('auth:admin')->group(function () {
@@ -284,22 +268,22 @@ Route::middleware(['auth', BlockIfAdmin::class])->group(function () {
     // PDS ROUTES
     // ==================================================================================================
     Route::get('/pds/c1', [Forms\PDSController::class, 'c1DisplayForm'])->name('display_c1');
-    Route::post('/pds/submit_c1', [Forms\PDSController::class, 'c1UpdateFormSession'])->name('submit_c1');
+    Route::post('/pds/submit_c1/{go_to}', [Forms\PDSController::class, 'c1UpdateFormSession'])->name('submit_c1');
 
     Route::get('/pds/c2', [Forms\PDSController::class, 'c2DisplayForm'])->name('display_c2');
-    Route::post('/pds/submit_c2', [Forms\PDSController::class, 'c2UpdateFormSession'])->name('submit_c2');
+    Route::post('/pds/submit_c2/{go_to}', [Forms\PDSController::class, 'c2UpdateFormSession'])->name('submit_c2');
     Route::delete('/c2/d/{target_row}/{id}', [Forms\PDSController::class, 'c2DeleteRow']);
 
     Route::get('/pds/c3', [Forms\PDSController::class, 'c3ShowForm'])->name('display_c3');
-    Route::post('/pds/submit_c3', [Forms\PDSController::class, 'c3SubmitForm'])->name('submit_c3');
+    Route::post('/pds/submit_c3/{go_to}', [Forms\PDSController::class, 'c3SubmitForm'])->name('submit_c3');
 
     Route::get('/pds/c4', [Forms\PDSController::class, 'c4ShowForm'])->name('display_c4');
-    Route::post('/pds/submit_c4', [Forms\PDSController::class, 'c4SubmitForm'])->name('submit_c4');
+    Route::post('/pds/submit_c4/{go_to}', [Forms\PDSController::class, 'c4SubmitForm'])->name('submit_c4');
 
     Route::get('/pds/wes', [WorkExpSheetController::class, 'show'])->name('display_wes');
 
     Route::get('/pds/c5', [Forms\PDSController::class, 'c5DisplayForm'])->name('display_c5');
-    Route::post('/pds/finalize', [Forms\PDSController::class, 'finalizePDS'])->name('finalize_pds');
+    Route::post('/pds/finalize/{go_to}', [Forms\PDSController::class, 'finalizePDS'])->name('finalize_pds');
     Route::post('/application-status/{user_id}/{vacancy_id}/upload', [Forms\PDSController::class, 'uploadApplicationDocuments'])->name('application_status.upload');
 
     Route::get('/pds/submit', [Forms\PDSController::class, 'showSubmittedForm'])->name('display_final_pds');
@@ -308,12 +292,13 @@ Route::middleware(['auth', BlockIfAdmin::class])->group(function () {
     // Route::get('/export-pds/{id}', [Forms\ExportPDSController::class, 'exportPDS'])->name('export.pds');
 
     // PDS Update Routes
-    Route::view('/pds_update', 'pds_update.pds_update')->name('pds_update');
-    Route::view('/c2_update', 'pds_update.c2_update')->name('c2_update');
-    Route::view('/c3_update', 'pds_update.c3_update')->name('c3_update');
+    Route::get('/pds_update', [Forms\PDSController::class, 'c1DisplayUpdateForm'])->name('pds_update')->middleware('auth');
+    Route::get('/c2_update', [Forms\PDSController::class, 'c2DisplayUpdateForm'])->name('c2_update')->middleware('auth');
+    Route::get('/c3_update', [Forms\PDSController::class, 'c3DisplayUpdateForm'])->name('c3_update')->middleware('auth');
     //Sample
     Route::view('/c4_sample', 'pds.c4-sample')->name('c4-sample');
-    Route::view('/c5_update', 'pds_update.c5_update')->name('c5_update');
+    Route::get('/c4_update', [Forms\PDSController::class, 'c4DisplayUpdateForm'])->name('c4_update')->middleware('auth');
+    Route::get('/c5_update', [Forms\PDSController::class, 'c5DisplayUpdateForm'])->name('c5_update')->middleware('auth');
     //Route::view('/submit_update', 'pds_update.submit_update')->name('submit_update');
 
     // APPLICATION ROUTE
@@ -427,7 +412,7 @@ Route::middleware([ViewerAccess::class])->group(function () {
     Route::get('/admin/exam_management/{vacancy_id}/qualified', [ExamController::class, 'getQualifiedApplicants'])->name('admin.exam.qualified');
     Route::post('/admin/exam_management/{vacancy_id}/notify', [ExamController::class, 'notifyApplicants'])->name('admin.exam_notify');
     //Route::get('/admin/exam_management/{vacancy_id}/notify', [ExamController::class, 'notifyApplicants'])->name('admin.exam_notify');
-    Route::post('/admin/exam_management/{vacancy_id}/details/save', [ExamController::class, 'saveExamDetails']);
+    Route::post('/admin/exam_management/{vacancy_id}/details/save', [ExamController::class, 'saveExamDetails'])->name('admin.exam.details.save');
     Route::post('/admin/exam_management/{vacancy_id}/start', [ExamController::class, 'startExam'])->name('admin.exam_start');
     Route::get('/admin/exam_management/{vacancy_id}/lobby-data', [ExamController::class, 'getLobbyData'])->name('admin.exam.lobby_data');
     Route::post('/admin/exam_management/{vacancy_id}/notify-selected', [ExamController::class, 'notifySelectedApplicants'])->name('admin.exam.notify_selected');

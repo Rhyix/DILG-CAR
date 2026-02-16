@@ -224,8 +224,8 @@ class AdminController extends Controller
         $systemUsersCount = $systemUsers->count();
 
         $now = Carbon::now()->toDateTimeString();
-        $upcomingExams = ExamDetail::whereRaw("STR_TO_DATE(CONCAT(`date`, ' ', `time`), '%Y-%m-%d %H:%i:%s') > ?", [$now])
-            ->orderByRaw("STR_TO_DATE(CONCAT(`date`, ' ', `time`), '%Y-%m-%d %H:%i:%s')")
+        $upcomingExams = ExamDetail::whereRaw("TIMESTAMP(`date`, `time`) > ?", [$now])
+            ->orderByRaw("TIMESTAMP(`date`, `time`)")
             ->with('vacancy')
             ->get();
 
@@ -569,7 +569,7 @@ class AdminController extends Controller
         if (!empty($changes)) {
             $admins = Admin::where('id', '!=', Auth::guard('admin')->id())->get();
             $applicantName = User::find($user_id)->name ?? 'Applicant';
-            
+
             foreach ($admins as $admin) {
                 Notification::create([
                     'notifiable_type' => 'App\Models\Admin',
@@ -627,7 +627,7 @@ class AdminController extends Controller
                 $application->file_status = $status;
             if ($request->has('remarks'))
                 $application->file_remarks = $remarks;
-            
+
             // Update last modified by
             $application->file_last_modified_by = Auth::guard('admin')->user()->name;
 
@@ -635,7 +635,7 @@ class AdminController extends Controller
 
             // Notify User about Application Letter Update
             if ($request->has('status')) {
-                 Notification::create([
+                Notification::create([
                     'notifiable_type' => 'App\Models\User',
                     'notifiable_id' => $user_id,
                     'type' => 'info',
@@ -655,11 +655,11 @@ class AdminController extends Controller
             if ($document) {
                 if ($request->has('status'))
                     $document->status = $status;
-                
+
                 // Only update remarks if explicitly provided, but force it to empty string if verified
                 // or ensure it is not null if it is being updated
                 if ($request->has('remarks')) {
-                     $document->remarks = $remarks ?? '';
+                    $document->remarks = $remarks ?? '';
                 } elseif ($status === 'Verified') {
                     // When verifying, we often clear remarks, but we must ensure we don't save NULL
                     $document->remarks = '';
@@ -688,7 +688,7 @@ class AdminController extends Controller
 
             // Notify User about Document Update
             if ($request->has('status')) {
-                 Notification::create([
+                Notification::create([
                     'notifiable_type' => 'App\Models\User',
                     'notifiable_id' => $user_id,
                     'type' => 'info',
@@ -756,11 +756,11 @@ class AdminController extends Controller
 
             // Skip documents that are not submitted
             if ($status === 'Not Submitted' || $status === 'Pending' && empty($doc['original_name']) && $doc['id'] !== 'application_letter') {
-                 // Note: 'Pending' might be default for placeholder docs, but if no file is attached (original_name empty), treat as not submitted?
-                 // Actually getApplicantDocuments sets status to 'Not Submitted' if $doc is null.
-                 // If $doc exists but status is 'Pending', it counts as submitted.
+                // Note: 'Pending' might be default for placeholder docs, but if no file is attached (original_name empty), treat as not submitted?
+                // Actually getApplicantDocuments sets status to 'Not Submitted' if $doc is null.
+                // If $doc exists but status is 'Pending', it counts as submitted.
             }
-            
+
             if ($status === 'Not Submitted') {
                 continue;
             }
@@ -780,15 +780,46 @@ class AdminController extends Controller
         // 1. If ANY document needs revision -> Status = Compliance
         // 2. If ALL submitted documents are verified -> Status = Qualified
         // 3. Otherwise -> Status stays as is (e.g. Pending)
-        
+
         if ($hasNeedsRevision) {
             $application->status = 'Compliance';
         } elseif ($allVerified && $submittedCount > 0) {
             $application->status = 'Qualified';
         }
-        
+
         $application->save();
         // -------------------------------------------------
+
+        // --- Calculate Progress ---
+        $totalDocuments = count($documents);
+        $verifiedCount = collect($documents)->whereIn('status', ['Verified', 'Okay/Confirmed'])->count();
+        $progressPercentage = $totalDocuments > 0 ? round(($verifiedCount / $totalDocuments) * 100) : 0;
+        $progressCount = "$verifiedCount/$totalDocuments";
+
+        // --- Retrieve Job Vacancy Details ---
+        $vacancy = JobVacancy::where('vacancy_id', $vacancy_id)->first();
+        $placeOfAssignment = $vacancy->place_of_assignment ?? 'N/A';
+        $compensation = $vacancy->monthly_salary ?? 0;
+        $vacancyType = $vacancy->vacancy_type ?? 'Plantilla';
+
+        // --- Format Deadline ---
+        $deadline = null;
+        if ($application->deadline_date && $application->deadline_time) {
+            try {
+                $deadline = \Carbon\Carbon::parse($application->deadline_date . ' ' . $application->deadline_time)->format('F d, Y h:i A');
+            } catch (\Exception $e) {
+                $deadline = 'No deadline set';
+            }
+        } else {
+            $deadline = 'No deadline set';
+        }
+
+        // --- Retrieve Qualification Standards ---
+        $qsEducation = $application->qs_education ?? 'no';
+        $qsEligibility = $application->qs_eligibility ?? 'no';
+        $qsExperience = $application->qs_experience ?? 'no';
+        $qsTraining = $application->qs_training ?? 'no';
+        $qsResult = $application->qs_result ?? 'Not Qualified';
 
         $userEmail = User::where('id', $user_id)->value('email');
 
@@ -801,7 +832,18 @@ class AdminController extends Controller
                 $user_id,
                 $vacancy_id,
                 $documents,
-                $application->application_remarks
+                $application->application_remarks,
+                $placeOfAssignment,
+                $compensation,
+                $deadline,
+                $qsEducation,
+                $qsEligibility,
+                $qsExperience,
+                $qsTraining,
+                $qsResult,
+                $progressPercentage,
+                $progressCount,
+                $vacancyType
             ));
         } catch (\Exception $e) {
             \Log::error('Mail sending failed: ' . $e->getMessage());

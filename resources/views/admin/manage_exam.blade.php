@@ -506,6 +506,8 @@
     document.getElementById('examDetailsForm').addEventListener('submit', function(e) {
         e.preventDefault();
         
+        console.log('Form submitted');
+        
         // Validate times before submission
         const startTime = document.getElementById('time').value;
         const endTime = document.getElementById('time_end').value;
@@ -529,6 +531,7 @@
         // Append action if submitting via the Save & Notify button
         if (e.submitter && e.submitter.name === 'action' && e.submitter.value === 'save_notify') {
             formData.append('notify', '1');
+            console.log('Notify flag set to true');
         }
 
         const saveButton = document.getElementById('saveNotifyButton');
@@ -536,21 +539,44 @@
         saveButton.disabled = true;
         saveButton.innerHTML = '<span>Saving...</span>';
 
+        console.log('Sending request to:', `/admin/exam_management/${vacancyId}/details/save`);
+
         fetch(`/admin/exam_management/${vacancyId}/details/save`, {
             method: 'POST',
             headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Accept': 'application/json'
             },
             body: formData
         })
         .then(response => {
-            if (!response.ok) {
-                return response.text().then(text => { throw new Error(text || response.statusText) });
-            }
-            return response.json();
+            console.log('Response status:', response.status);
+            console.log('Response ok:', response.ok);
+            
+            // Read response as text first to avoid "body stream already read" error
+            return response.text().then(text => {
+                console.log('Raw response:', text);
+                
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    console.error('Failed to parse JSON:', e);
+                    data = { success: false, message: text || 'Invalid server response' };
+                }
+                
+                if (!response.ok) {
+                    console.error('Error response:', data);
+                    throw new Error(data.message || `Server error: ${response.status}`);
+                }
+                
+                return data;
+            });
         })
         .then(data => {
+            console.log('Success response:', data);
             saveButton.innerHTML = originalText;
+            
             if (data.success) {
                 // Keep save button disabled permanently
                 saveButton.disabled = true;
@@ -572,16 +598,21 @@
                     msg += " Applicants have been notified.";
                 }
                 alert(msg);
+                
+                // Optionally reload the page to reflect changes
+                // window.location.reload();
             } else {
                 saveButton.disabled = false;
+                console.error('Save failed:', data.message);
                 alert("Failed to save exam details: " + (data.message || 'Unknown error'));
             }
         })
         .catch(error => {
             saveButton.innerHTML = originalText;
             saveButton.disabled = false;
-            console.error('Error:', error);
-            alert("An error occurred while saving exam details. Please check the console for more details.");
+            console.error('Error caught:', error);
+            console.error('Error message:', error.message);
+            alert("An error occurred while saving exam details.\n\nError: " + error.message + "\n\nPlease check the browser console and Laravel logs for more details.");
         });
     });
 

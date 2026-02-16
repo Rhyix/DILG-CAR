@@ -36,7 +36,7 @@ class ExamController extends Controller
             $endTime = \Carbon\Carbon::parse($answerRecord->exam_end_time)->addMinutes(2);
             if (now()->gt($endTime)) {
                 Log::warning('Late exam submission detected', [
-                    'user_id' => $validated['user_id'], 
+                    'user_id' => $validated['user_id'],
                     'vacancy_id' => $vacancy_id,
                     'delay_seconds' => now()->diffInSeconds($endTime)
                 ]);
@@ -97,13 +97,13 @@ class ExamController extends Controller
     {
         // Handle both form-encoded and JSON requests
         $raw = $request->input('questions') ?? $request->getContent();
-        
+
         // If it's a JSON request, parse the JSON body
         if ($request->isJson() && is_null($request->input('questions'))) {
             $jsonData = json_decode($request->getContent(), true);
             $raw = $jsonData['questions'] ?? '';
         }
-        
+
         \Log::info('updateExam called', ['vacancy_id' => $vacancy_id, 'raw_questions' => substr($raw, 0, 200), 'is_json' => $request->isJson()]);
         $questions = json_decode($raw, true);
 
@@ -114,7 +114,7 @@ class ExamController extends Controller
 
         if (!is_array($questions)) {
             \Log::error('Invalid questions payload', ['raw' => $raw]);
-            
+
             if ($request->isJson()) {
                 return response()->json(['msg' => 'Invalid questions payload.'], 400);
             }
@@ -128,8 +128,8 @@ class ExamController extends Controller
             $questionText = trim((string) ($q['text'] ?? '')) ?: trim((string) ($q['duration'] ?? ''));
 
             if ($questionText === '') {
-                $msg = "Question #".($idx+1)." must have text.";
-                
+                $msg = "Question #" . ($idx + 1) . " must have text.";
+
                 if ($request->isJson()) {
                     return response()->json(['msg' => $msg], 422);
                 }
@@ -156,7 +156,8 @@ class ExamController extends Controller
 
                     if (isset($q['correctAnswer']) && is_numeric($q['correctAnswer'])) {
                         $idx = (int) $q['correctAnswer'];
-                        if (isset($choices[$idx])) $ans = $choices[$idx];
+                        if (isset($choices[$idx]))
+                            $ans = $choices[$idx];
                     }
 
                     if ($ans === null && !empty($q['answer'])) {
@@ -164,7 +165,8 @@ class ExamController extends Controller
                     }
 
                     // Ensure choices is null when empty
-                    if (empty($choices)) $choices = null;
+                    if (empty($choices))
+                        $choices = null;
                 }
 
                 // Prefer 'text' then 'duration'
@@ -177,13 +179,13 @@ class ExamController extends Controller
                     'ans' => $ans,
                     'choices' => $choices,
                 ]);
-                
+
                 \Log::info('Question created', ['id' => $created->id, 'question' => substr($questionText, 0, 50)]);
             }
         } catch (\Exception $e) {
             \Log::error('Error creating exam items', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             $msg = 'Error saving questions: ' . $e->getMessage();
-            
+
             if ($request->isJson()) {
                 return response()->json(['msg' => $msg], 500);
             }
@@ -202,7 +204,7 @@ class ExamController extends Controller
 
         if ($request->isJson()) {
             return response()->json([
-                'success' => true, 
+                'success' => true,
                 'message' => 'Exam updated successfully.',
                 'questions_count' => count($questions)
             ]);
@@ -280,7 +282,7 @@ class ExamController extends Controller
             ->whereNotNull('read_at')
             ->with('user')
             ->get();
-            
+
         $examDetails = ExamDetail::where('vacancy_id', $vacancy_id)->first();
 
         $user_name = [];
@@ -436,9 +438,9 @@ class ExamController extends Controller
 
         // Check if exam is already started globally
         if ($examDetail && $examDetail->is_started) {
-             // We can optionally auto-redirect here too, but the view's JS will handle it or they click ready.
-             // But if the user refreshes, they might want to go straight in?
-             // The prompt says "waiting logic", so let's stick to the lobby view which will poll and redirect.
+            // We can optionally auto-redirect here too, but the view's JS will handle it or they click ready.
+            // But if the user refreshes, they might want to go straight in?
+            // The prompt says "waiting logic", so let's stick to the lobby view which will poll and redirect.
         }
 
         activity()
@@ -455,7 +457,7 @@ class ExamController extends Controller
         $application = Applications::where('vacancy_id', $vacancy_id)
             ->where('user_id', $user_id)
             ->firstOrFail();
-            
+
         // Check if already submitted
         if ($application->status === 'submitted') {
             return redirect()->route('user.exam_thankyou', ['vacancy_id' => $vacancy_id]);
@@ -472,13 +474,13 @@ class ExamController extends Controller
         if (!$application->exam_started_at) {
             $now = now();
             $duration = $examDetail->duration; // in minutes
-            
+
             $application->update([
                 'exam_started_at' => $now,
                 'exam_end_time' => $now->copy()->addMinutes($duration),
                 'status' => 'in-progress'
             ]);
-            
+
             // Refresh application to get the new values
             $application->refresh();
         }
@@ -492,8 +494,9 @@ class ExamController extends Controller
             $application->update(['status' => 'submitted']);
             return redirect()->route('user.exam_thankyou', ['vacancy_id' => $vacancy_id]);
         }
-        
-        if ($remaining_seconds < 0) $remaining_seconds = 0;
+
+        if ($remaining_seconds < 0)
+            $remaining_seconds = 0;
 
         $columns = Schema::getColumnListing('exam_items');
         $columns = array_diff($columns, ['ans']);
@@ -501,7 +504,7 @@ class ExamController extends Controller
         $examItems = ExamItems::select($columns)
             ->where('vacancy_id', $vacancy_id)
             ->get();
-            
+
         $vacancy = JobVacancy::select('position_title')->where('vacancy_id', $vacancy_id)->first();
 
         activity()
@@ -718,48 +721,82 @@ class ExamController extends Controller
 
     public function saveExamDetails(Request $request, $vacancy_id)
     {
-        //info($request->all());
-        $validated = $request->validate([
-            'time' => 'required',
-            'time_end' => 'required',
-            'date' => 'required|date',
-            'place' => 'required|string',
-            'duration' => 'required|integer',
-        ]);
+        try {
+            Log::info('saveExamDetails called', ['vacancy_id' => $vacancy_id, 'notify' => $request->boolean('notify')]);
 
-        // Add details_saved flag
-        $validated['details_saved'] = true;
+            $validated = $request->validate([
+                'time' => 'required',
+                'time_end' => 'required',
+                'date' => 'required|date',
+                'place' => 'required|string',
+                'duration' => 'required|integer',
+            ]);
 
-        ExamDetail::updateOrCreate(
-            ['vacancy_id' => $vacancy_id],
-            $validated
-        );
+            // Add details_saved flag
+            $validated['details_saved'] = true;
 
-        $examDetails = ExamDetail::where('vacancy_id', $vacancy_id)->first();
+            ExamDetail::updateOrCreate(
+                ['vacancy_id' => $vacancy_id],
+                $validated
+            );
 
-        $notified = false;
-        $notified_at = null;
+            $examDetails = ExamDetail::where('vacancy_id', $vacancy_id)->first();
 
-        if ($request->boolean('notify')) {
-            $this->notifyApplicants($request, $vacancy_id);
-            $examDetails->refresh();
-            $notified = true;
-            $notified_at = $examDetails->notified_at;
+            $notified = false;
+            $notified_at = null;
+
+            if ($request->boolean('notify')) {
+                Log::info('Calling notifyApplicants', ['vacancy_id' => $vacancy_id]);
+                $response = $this->notifyApplicants($request, $vacancy_id);
+
+                // Check if notification was successful
+                $responseData = $response->getData(true);
+                if (isset($responseData['success']) && $responseData['success']) {
+                    $examDetails->refresh();
+                    $notified = true;
+                    $notified_at = $examDetails->notified_at;
+                    Log::info('Notifications sent successfully', ['vacancy_id' => $vacancy_id]);
+                } else {
+                    Log::error('Notification failed', ['vacancy_id' => $vacancy_id, 'response' => $responseData]);
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Exam details saved, but notification failed: ' . ($responseData['message'] ?? 'Unknown error')
+                    ], 500);
+                }
+            }
+
+            activity()
+                ->causedBy(auth('admin')->user())
+                ->event('save')
+                ->withProperties(['vacancy_id' => $vacancy_id, 'section' => 'Exam Management'])
+                ->log('Saved exam schedule and details.');
+
+            Log::info('saveExamDetails completed successfully', ['vacancy_id' => $vacancy_id, 'notified' => $notified]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Exam details saved.',
+                'examDetails' => $examDetails,
+                'notified' => $notified,
+                'notified_at' => $notified_at
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error('Validation error in saveExamDetails', ['errors' => $e->errors()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed: ' . implode(', ', array_map(fn($err) => implode(', ', $err), $e->errors()))
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Error in saveExamDetails', [
+                'vacancy_id' => $vacancy_id,
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Server Error: ' . $e->getMessage()
+            ], 500);
         }
-
-        activity()
-            ->causedBy(auth()->user())
-            ->event('save')
-            ->withProperties(['vacancy_id' => $vacancy_id, 'section' => 'Exam Management'])
-            ->log('Saved exam schedule and details.');
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Exam details saved.',
-            'examDetails' => $examDetails,
-            'notified' => $notified,
-            'notified_at' => $notified_at
-        ]);
     }
 
     public function startExam(Request $request, $vacancy_id)

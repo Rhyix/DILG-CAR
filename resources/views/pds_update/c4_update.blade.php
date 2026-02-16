@@ -230,7 +230,8 @@
 
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <form id="other-info-form" class="space-y-8">
+        <form id="other-info-form" class="space-y-8" method="POST" action="{{ route('submit_c4', ['go_to' => 'display_wes']) }}" enctype="multipart/form-data">
+            @csrf
             <!-- Related Third Degree Section -->
             <section class="bg-white rounded-2xl shadow-xl p-8 animate-slide-in">
                 <div class="flex items-center mb-6">
@@ -570,7 +571,7 @@
                     <span class="material-icons ml-3">upgrade</span>
                 </button>
 
-                <button type="button" onclick="window.location.href='{{ route('c5_update') }}'" class="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors duration-200 flex items-center">
+                <button type="submit" class="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors duration-200 flex items-center">
                     Next
                     <span class="material-icons ml-2">arrow_forward</span>
                 </button>
@@ -666,28 +667,6 @@
                 };
                 reader.readAsDataURL(file);
             }
-            
-            // Form submission
-            const form = document.getElementById('other-info-form');
-            form.addEventListener('submit', (e) => {
-                e.preventDefault();
-                
-                // Check if required checkboxes are checked
-                const declaration = document.querySelector('input[name="declaration"]');
-                const consent = document.querySelector('input[name="consent"]');
-                
-                if (!declaration.checked || !consent.checked) {
-                    alert('Please check all declaration boxes to proceed.');
-                    return;
-                }else{
-                  window.location.href='{{ route('submit_update') }}'
-                }
-                
-                // Simulate form submission
-                const submitBtn = e.submitter;
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = '<span class="material-icons mr-2 animate-spin">refresh</span>Updating...';
-            });
         });
     </script>
     @include('partials.loader')
