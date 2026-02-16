@@ -56,7 +56,7 @@
     </div>
 @endif
 
-<form id="exam-form" action="{{ route('exam.submit', ['vacancy_id' => $vacancy_id]) }}" method="POST">
+<form id="exam-form" class="no-spinner" action="{{ route('exam.submit', ['vacancy_id' => $vacancy_id]) }}" method="POST">
     @csrf
 
     <input type="hidden" name="user_id" value="{{ Auth::id() }}">
@@ -67,7 +67,7 @@
     <div id="submitContainer" class="px-6 mt-6 max-w-3xl mx-auto hidden">
         <div x-data="{ showSubmitConfirm: false }" class="inline">
             <div class="flex justify-end">
-                <button @click="showSubmitConfirm = true" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded font-semibold transition min-w-[150px]">
+                <button id="openSubmitBtn" @click="showSubmitConfirm = true" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded font-semibold transition min-w-[150px] disabled:opacity-50 disabled:cursor-not-allowed" disabled>
                     Submit
                 </button>
         </div>
@@ -78,7 +78,7 @@
                     <p class="text-gray-700 text-sm text-center mb-6">Click <span class="font-semibold text-[#0D2B70]">Submit</span> to finalize your answers.</p>
                     <div class="flex justify-center gap-4">
                         <button @click="showSubmitConfirm = false" class="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-full font-semibold transition">Cancel</button>
-                        <button @click="window.prepareSubmit()" class="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-full font-semibold transition">Submit</button>
+                        <button id="confirmSubmitBtn" @click="window.prepareSubmit()" class="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-full font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>Submit</button>
                     </div>
                 </div>
             </div>
@@ -103,6 +103,8 @@
     const container = document.getElementById('question-container');
     const submitContainer = document.getElementById('submitContainer');
     const form = document.getElementById('exam-form');
+    const openSubmitBtn = document.getElementById('openSubmitBtn');
+    const confirmSubmitBtn = document.getElementById('confirmSubmitBtn');
 
     const answers = {};
     let switchCount = 0;
@@ -148,7 +150,13 @@
         form.submit(); // finally submit
     }*/
 
-    form.onsubmit = e => { e.preventDefault(); collectCurrentAnswers(); console.log('Final answers:', answers); };
+    // Ensure native submits are routed through prepareSubmit to avoid loader issues
+    form.addEventListener('submit', (e) => {
+        if (!window.isSubmitting) {
+            e.preventDefault();
+            prepareSubmit();
+        }
+    });
 
     renderAllQuestions();
 
@@ -279,6 +287,45 @@
         document.getElementById('exam-form').submit();
     }
 
+    function isAllAnswered() {
+        let allAnswered = true;
+        Questions.forEach((q) => {
+            if (!q.is_essay) {
+                const checked = document.querySelector(`input[name="answers[${q.id}]"]:checked`);
+                if (!checked) allAnswered = false;
+            } else {
+                const ta = document.querySelector(`textarea[name="answers[${q.id}]"]`);
+                const val = (ta?.value || '').trim();
+                if (val.length === 0) allAnswered = false;
+            }
+        });
+        return allAnswered;
+    }
+
+    function updateSubmitEnabled() {
+        const enabled = isAllAnswered();
+        if (openSubmitBtn) {
+            openSubmitBtn.disabled = !enabled;
+            openSubmitBtn.classList.toggle('opacity-50', !enabled);
+            openSubmitBtn.classList.toggle('cursor-not-allowed', !enabled);
+        }
+        if (confirmSubmitBtn) {
+            confirmSubmitBtn.disabled = !enabled;
+        }
+    }
+
+    function attachAnswerListeners() {
+        // Radio inputs
+        document.querySelectorAll('input[type="radio"][name^="answers["]').forEach(input => {
+            input.addEventListener('change', updateSubmitEnabled);
+        });
+        // Essay textareas
+        document.querySelectorAll('textarea[name^="answers["]').forEach(ta => {
+            ta.addEventListener('input', updateSubmitEnabled);
+            ta.addEventListener('change', updateSubmitEnabled);
+        });
+    }
+
     function renderAllQuestions() {
     container.innerHTML = '';
     Questions.forEach((q, idx) => {
@@ -307,6 +354,9 @@
 
     // Always show submit button at bottom now
     submitContainer.classList.remove('hidden');
+    // After rendering inputs, attach listeners and set initial state
+    attachAnswerListeners();
+    updateSubmitEnabled();
 }
 
     window.prepareSubmit = prepareSubmit;

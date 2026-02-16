@@ -26,6 +26,17 @@ class LoginController extends Controller
                     ])->with('comply_redirect', true);
                 }
             }
+            // If already logged in and redirecting to exam lobby, forward immediately
+            if ($request->has('redirect') && $request->redirect === 'exam_lobby') {
+                $vacancyId = $request->get('vacancy');
+                $token = $request->get('token');
+                if ($vacancyId) {
+                    return redirect()->route('user.exam_lobby', [
+                        'vacancy_id' => $vacancyId,
+                        'token' => $token
+                    ]);
+                }
+            }
             return redirect()->route('dashboard');
         }
 
@@ -39,6 +50,13 @@ class LoginController extends Controller
                 'target' => 'application_status',
                 'user' => $request->get('user'),
                 'vacancy' => $request->get('vacancy'),
+            ]);
+        }
+        if ($request->has('redirect') && $request->redirect === 'exam_lobby') {
+            $request->session()->put('redirect_after_login', [
+                'target' => 'exam_lobby',
+                'vacancy' => $request->get('vacancy'),
+                'token' => $request->get('token'),
             ]);
         }
 
@@ -89,6 +107,12 @@ class LoginController extends Controller
                         'user' => $redirectData['user'],
                         'vacancy' => $redirectData['vacancy']
                     ])->with('comply_redirect', true);
+                }
+                if ($redirectData['target'] === 'exam_lobby') {
+                    return redirect()->route('user.exam_lobby', [
+                        'vacancy_id' => $redirectData['vacancy'],
+                        'token' => $redirectData['token'] ?? null
+                    ]);
                 }
             }
 

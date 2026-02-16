@@ -112,6 +112,7 @@
 
             <p>Please click the button below to access the exam lobby when it's time to take your exam:</p>
 
+            <!-- lalagay lang ito kapag exam day na -->
             <div style="text-align: center;">
                 <a href="{{ $examLink }}" class="cta-button">Go to Exam Lobby</a>
             </div>

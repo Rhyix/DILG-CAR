@@ -60,20 +60,15 @@ class SendExamNotification implements ShouldQueue
             $token = $application ? $application->exam_token : null;
             $examLink = route('user.exam_lobby', ['vacancy_id' => $this->vacancyId, 'token' => $token]);
 
-            // Send email
-            Mail::send('emails.exam_notification', [
-                'userName' => $user->name,
-                'positionTitle' => $vacancy->position_title,
-                'vacancyId' => $this->vacancyId,
-                'examDate' => $examDetail->date,
-                'examTime' => $examDetail->time,
-                'examVenue' => $examDetail->place,
-                'examDuration' => $examDetail->duration,
-                'examLink' => $examLink,
-                'confirmationLink' => route('exam.confirm_notification', ['token' => $token]),
+            // Send email using the exam schedule link template
+            Mail::send('emails.exam_sched_link', [
+                'user' => $user,
+                'vacancy' => $vacancy,
+                'exam' => $examDetail,
+                'join_link' => $examLink,
             ], function ($message) use ($user, $vacancy) {
                 $message->to($user->email, $user->name)
-                    ->subject('Exam Notification - ' . $vacancy->position_title)
+                    ->subject('Examination Schedule - ' . $vacancy->position_title)
                     ->from($this->senderEmail, 'DILG-CAR Recruitment');
             });
 

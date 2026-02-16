@@ -144,6 +144,13 @@
             document.getElementById('redirect-form').submit();
         }, 1500);
     }
+
+    // Auto-start polling on load so the page transitions automatically when admin starts the exam
+    document.addEventListener('DOMContentLoaded', () => {
+        const waiting = document.getElementById('waitingMessage');
+        if (waiting) waiting.classList.remove('hidden');
+        startPolling();
+    });
 </script>
 @include('partials.loader')
 @endsection

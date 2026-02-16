@@ -62,28 +62,32 @@
     let highest_score = 0;
 
 
-    function updateScore(questionId, score) {
-        const selects = document.querySelectorAll('.scored');
-        final_score = 0;
-        highest_score = Questions.length;
-        selects.forEach((select) => {
-            if(select.value !== ''){
-                final_score += parseInt(select.value);
-                highest_score += 3;
-            }else{
-                highest_score -= 1;
+    function recomputeScore() {
+        let mcqCorrect = 0;
+        let mcqCount = 0;
+        let essaySum = 0;
+        let essayMax = 0;
+
+        Questions.forEach((q) => {
+            if (q.is_essay) {
+                essayMax += 4;
+                const sel = document.getElementById(`score-select-${q.id}`);
+                const val = sel && sel.value !== '' ? parseInt(sel.value, 10) : null;
+                if (val !== null) essaySum += val;
+            } else {
+                mcqCount++;
+                if (q.is_correct) mcqCorrect++;
             }
         });
+
+        final_score = mcqCorrect + essaySum;
+        highest_score = mcqCount + essayMax;
 
         const scoreEl = document.getElementById('score');
         scoreEl.textContent = `${final_score} / ${highest_score}`;
 
         const resultEl = document.getElementById('result');
         resultEl.value = `${final_score} / ${highest_score}`;
-
-
-        console.log(' ')
-        console.log(`Question ${questionId} scored as: ${final_score}`);
     }
 
     function updateDropdownColor(selectElement) {
@@ -142,7 +146,7 @@
                     <div>
                         <p class="text-lg font-semibold text-gray-800">QUESTION ${index + 1} of ${Questions.length}</p>
                     </div>
-                    <div class="flex items-center gap-3">
+            <div class="flex items-center gap-3">
                         ${!isEssay ? `
                             <input name="scores[${q.id}]" type="hidden" ${isCorrect ? 'value="1"' : 'value="0"'}>
                             <span class="text-sm font-semibold px-3 py-1 rounded-full ${isCorrect ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
@@ -154,7 +158,7 @@
                                     <select
                                         name="scores[${q.id}]"
                                         id="score-select-${q.id}"
-                                        onchange="updateScore(${q.id}, this.value); updateDropdownColor(this)"
+                                        onchange="recomputeScore(); updateDropdownColor(this)"
                                         class="text-sm font-semibold px-3 py-1 rounded-full transition ease-in-out duration-150 scored">
                                         <option value="" ${q.score == '' ? 'selected' : ''}>Not Scored</option>
                                         <option value=4 ${q.score == '4' ? 'selected' : ''}>4 - Excellent</option>
@@ -169,9 +173,32 @@
                     </div>
                 </div>
                 <p class="mb-3 text-gray-700">${q.question}</p>
-                <div class="bg-gray-100 text-gray-900 rounded px-4 py-3">
-                    <p class="whitespace-pre-line"><strong class="mr-1">Answer:</strong>${userAnswer}</p>
-                </div>
+                ${
+                    !isEssay
+                    ? `
+                        <div class="bg-gray-50 border border-gray-200 rounded px-4 py-3 space-y-1">
+                            <p class="text-sm">
+                                <span class="font-semibold text-gray-700 mr-1">Examinee Answer:</span>
+                                <span class="text-gray-900">
+                                    ${q.given_answer ? `${q.given_answer}${q.given_answer_text ? ' - ' + q.given_answer_text : ''}` : 'No answer'}
+                                </span>
+                            </p>
+                            <p class="text-sm">
+                                <span class="font-semibold text-gray-700 mr-1">Correct Answer:</span>
+                                <span class="text-gray-900">
+                                    ${q.correct_answer ? `${q.correct_answer}${q.correct_answer_text ? ' - ' + q.correct_answer_text : ''}` : '—'}
+                                </span>
+                            </p>
+                        </div>
+                      `
+                    : `
+                        <div class="bg-gray-50 border border-gray-200 rounded px-4 py-3">
+                            <p class="whitespace-pre-line">
+                                <span class="font-semibold text-gray-700 mr-1">Examinee Answer:</span>${userAnswer}
+                            </p>
+                        </div>
+                      `
+                }
             `;
 
 
@@ -195,7 +222,7 @@
             </button>
         `;
         container.appendChild(saveBtn);
-        updateScore();
+        recomputeScore();
     }
 
     function updateCorrect(questionId, isChecked) {

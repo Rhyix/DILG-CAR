@@ -23,11 +23,17 @@
             $isExamCompleted = false; // New flag
             $statusMessage = '';
             $statusClass = '';
+            $isExamDay = false;
+            $isBeforeStart = false;
+            $qualifiedCount = isset($qualifiedApplicants) ? $qualifiedApplicants->count() : 0;
+            $lobbyCount = isset($participants) ? $participants->count() : 0;
 
             if(isset($examDetails->date) && isset($examDetails->time) && isset($examDetails->duration)) {
                  $startDateTime = \Carbon\Carbon::parse($examDetails->date . ' ' . $examDetails->time);
                  $endDateTime = $startDateTime->copy()->addMinutes($examDetails->duration);
                  $now = now();
+                 $isExamDay = \Carbon\Carbon::parse($examDetails->date)->isSameDay($now);
+                 $isBeforeStart = $now->lt($startDateTime);
 
                  if ($now->between($startDateTime, $endDateTime)) {
                      // Current time is between start and end
@@ -359,14 +365,14 @@
             <!-- ACTION BUTTONS -->
             <div class="flex flex-col gap-2 mt-4">
                 <button type="submit" id="saveNotifyButton" name="action" value="save_notify" 
-                        {{ ($isExamActive || $isExamCompleted || ($examDetails && $examDetails->details_saved)) ? 'disabled' : '' }}
+                        {{ ($isExamActive || $isExamCompleted || ($examDetails && $examDetails->details_saved) || ($qualifiedCount < 1)) ? 'disabled' : '' }}
                         class="w-full py-2 border-2 border-[#0D2B70] rounded-lg text-[#0D2B70] font-bold text-sm hover:scale-[1.02] flex items-center justify-center gap-2 transition-transform disabled:opacity-50 disabled:hover:scale-100">
                     <x-heroicon-o-check class="w-4 h-4" />
                     Save & Notify Applicants
                 </button>
                 
                 <button type="button" id="sendLinkButton" onclick="sendExamLink('{{ $vacancy->vacancy_id }}')" 
-                        {{ (!$examDetails || !$examDetails->details_saved || $examDetails->link_sent || $isExamActive || $isExamCompleted) ? 'disabled' : '' }}
+                        {{ (!$examDetails || !$examDetails->details_saved || $examDetails->link_sent || $isExamActive || $isExamCompleted || !$isExamDay || !$isBeforeStart || ($lobbyCount < 1)) ? 'disabled' : '' }}
                         class="w-full py-2 border-2 border-[#0D2B70] rounded-lg text-[#0D2B70] font-bold text-sm hover:scale-[1.02] flex items-center justify-center gap-2 transition-transform disabled:opacity-50 disabled:hover:scale-100">
                     <x-heroicon-o-paper-airplane class="w-4 h-4" />
                     Send Link via Email
@@ -374,14 +380,14 @@
                 
                 <div class="flex flex-row gap-2 mt-2">
                     <button type="button" onclick="handleEditClick(event)"
-                            {{ $isExamActive || $isExamCompleted ? 'disabled' : '' }}
+                            {{ (($isExamActive && $isExamDay) || $isExamCompleted) ? 'disabled' : '' }}
                             class="flex-1 py-2 bg-[#0D2B70] rounded-lg text-white font-bold text-sm hover:scale-[1.02] flex items-center justify-center gap-2 transition-transform disabled:opacity-50 disabled:hover:scale-100">
                         <x-heroicon-o-pencil-square class="w-4 h-4" />
                         Edit Questions
                     </button>
                     
                     <button type="button" id="startExamButton" onclick="startExam('{{ $vacancy->vacancy_id }}')" 
-                            {{ (!$examDetails || !$examDetails->link_sent || $isExamActive || $isExamCompleted) ? 'disabled' : '' }}
+                            {{ (!$examDetails || !$examDetails->link_sent || $isExamActive || $isExamCompleted || !$isExamDay) ? '' : 'disabled' }}
                             class="flex-1 py-2 bg-[#0D2B70] rounded-lg text-white font-bold text-sm hover:scale-[1.02] flex items-center justify-center gap-2 transition-transform disabled:opacity-50 disabled:hover:scale-100">
                         <x-heroicon-o-play class="w-4 h-4" />
                         Start Exam
@@ -588,10 +594,8 @@
                 document.getElementById('time').disabled = true;
                 document.getElementById('time_end').disabled = true;
 
-                // Enable Send Link button
-                const sendLinkButton = document.getElementById('sendLinkButton');
-                sendLinkButton.disabled = false;
-                sendLinkButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                // Re-evaluate Send Link button state (uses latest lobby count)
+                updateSendLinkButtonState(currentLobbyCount);
                 
                 let msg = "Exam details saved successfully!";
                 if (data.notified) {
@@ -616,7 +620,36 @@
         });
     });
 
-    // Form validation - enable Save button only when all required fields are filled
+    // Server-provided counts and flags for gating logic
+    const qualifiedCount = @json(isset($qualifiedApplicants) ? $qualifiedApplicants->count() : 0);
+    let currentLobbyCount = @json(isset($participants) ? $participants->count() : 0);
+    const hasExamDetails = @json(!is_null($examDetails ?? null));
+    const detailsSavedConst = @json($examDetails && $examDetails->details_saved);
+    const linkSentConst = @json($examDetails && $examDetails->link_sent);
+    const isExamActiveConst = @json($isExamActive);
+    const isExamCompletedConst = @json($isExamCompleted);
+    const isExamDayConst = @json($isExamDay);
+    const isBeforeStartConst = @json($isBeforeStart);
+
+    // Helper: update Send Link button state using lobby count and flags
+    function updateSendLinkButtonState(participantsCount) {
+        currentLobbyCount = participantsCount;
+        const btn = document.getElementById('sendLinkButton');
+        if (!btn) return;
+        const shouldEnable = hasExamDetails 
+            && detailsSavedConst 
+            && !linkSentConst 
+            && !isExamActiveConst 
+            && !isExamCompletedConst 
+            && isExamDayConst 
+            && isBeforeStartConst 
+            && participantsCount > 0;
+        btn.disabled = !shouldEnable;
+        btn.classList.toggle('opacity-50', !shouldEnable);
+        btn.classList.toggle('cursor-not-allowed', !shouldEnable);
+    }
+
+    // Form validation - enable Save button only when all required fields are filled and at least one qualified applicant exists
     function validateForm() {
         const venue = document.getElementById('venue').value.trim();
         const date = document.getElementById('date').value.trim();
@@ -632,10 +665,11 @@
             timesValid = timeEnd > time;
         }
         
-        // Only enable if all fields are filled AND times are valid AND details haven't been saved yet
+        // Only enable if all fields are filled AND times are valid AND details haven't been saved yet AND qualified applicants exist
         const detailsSaved = {{ $examDetails && $examDetails->details_saved ? 'true' : 'false' }};
-        
-        if (allFilled && timesValid && !detailsSaved) {
+        const hasQualified = qualifiedCount > 0;
+
+        if (allFilled && timesValid && !detailsSaved && hasQualified) {
             saveButton.disabled = false;
             saveButton.classList.remove('opacity-50', 'cursor-not-allowed');
         } else {
@@ -655,8 +689,9 @@
     });
 
 
-    // Run validation on page load
+    // Run validation on page load and initialize Send Link button state
     validateForm();
+    updateSendLinkButtonState(currentLobbyCount);
 
     // Auto-calculate duration
     const startTimeInput = document.getElementById('time');
@@ -1011,6 +1046,8 @@
             if (data.success) {
                 updateLobbyTable(data.participants);
                 updateLastUpdatedTime();
+                const count = Array.isArray(data.participants) ? data.participants.length : 0;
+                updateSendLinkButtonState(count);
             }
         })
         .catch(error => console.error('Error fetching lobby data:', error))

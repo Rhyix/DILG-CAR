@@ -46,8 +46,51 @@ class ExamController extends Controller
             }
         }
 
-        // Update the answers field
-        $answerRecord->answers = $validated['answers'];
+        // Auto-check MCQ answers and compute per-item scores (tolerant to key/value mismatch and case)
+        $items = ExamItems::select('id', 'ans', 'is_essay', 'choices')
+            ->where('vacancy_id', $vacancy_id)
+            ->get();
+
+        $scores = [];
+        $totalMcq = 0;
+        $correctMcq = 0;
+
+        foreach ($items as $item) {
+            $given = $validated['answers'][$item->id] ?? null;
+            if ((int)$item->is_essay === 0) {
+                $totalMcq++;
+                $isCorrect = false;
+                if (!is_null($given)) {
+                    $givenStr = trim((string)$given);
+                    $ansStr = trim((string)($item->ans ?? ''));
+                    // Direct key match (e.g., "A" === "A"), case-insensitive
+                    if (strcasecmp($givenStr, $ansStr) === 0) {
+                        $isCorrect = true;
+                    } else {
+                        // Fallback: if 'ans' stores the choice text, verify mapping key->value match
+                        $choices = is_array($item->choices) ? $item->choices : [];
+                        foreach ($choices as $key => $val) {
+                            if (strcasecmp(trim((string)$val), $ansStr) === 0 && strcasecmp(trim((string)$key), $givenStr) === 0) {
+                                $isCorrect = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                $scores[$item->id] = $isCorrect ? 1 : 0;
+                if ($isCorrect) $correctMcq++;
+            } else {
+                // Essays are scored later by admin
+                $scores[$item->id] = null;
+            }
+        }
+
+        $resultStr = $totalMcq > 0 ? ($correctMcq . '/' . $totalMcq) : null;
+
+        // Update the answers and scores fields
+        $answerRecord->answers = $validated['answers'] ?? [];
+        $answerRecord->scores = $scores;
+        $answerRecord->result = $resultStr;
         $answerRecord->status = 'submitted'; // Ensure status is updated to 'submitted'
         $answerRecord->save();
 
@@ -488,6 +531,15 @@ class ExamController extends Controller
 
     public function examLobby(Request $request, $vacancy_id)
     {
+        if (!auth()->check()) {
+            $token = $request->query('token');
+            return redirect()->route('login.form', [
+                'redirect' => 'exam_lobby',
+                'vacancy' => $vacancy_id,
+                'token' => $token,
+            ]);
+        }
+
         // Mark the applicant as having entered the lobby
         $user_id = auth()->id();
         $application = Applications::where('vacancy_id', $vacancy_id)
@@ -511,11 +563,9 @@ class ExamController extends Controller
         $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->first();
         $vacancy = JobVacancy::select('position_title')->where('vacancy_id', $vacancy_id)->first();
 
-        // Check if exam is already started globally
+        // If admin has already started the exam, route user straight to questions
         if ($examDetail && $examDetail->is_started) {
-            // We can optionally auto-redirect here too, but the view's JS will handle it or they click ready.
-            // But if the user refreshes, they might want to go straight in?
-            // The prompt says "waiting logic", so let's stick to the lobby view which will poll and redirect.
+            return redirect()->route('user.exam_question_page', ['vacancy_id' => $vacancy_id]);
         }
 
         activity()
@@ -596,13 +646,14 @@ class ExamController extends Controller
         //dd($request->all());
         info($user_id);
         $application = Applications::select('user_id', 'answers', 'scores')->where('user_id', $user_id)->where('vacancy_id', $vacancy_id)->firstOrFail();
-        $examItems = ExamItems::select('id', 'question', 'ans', 'is_essay')->where('vacancy_id', $vacancy_id)->get();
+        $examItems = ExamItems::select('id', 'question', 'ans', 'is_essay', 'choices')->where('vacancy_id', $vacancy_id)->get();
         $positionTitle = JobVacancy::select('position_title')->where('vacancy_id', $vacancy_id)->firstOrFail();
         $userName = User::select('name')->find($user_id);
 
-
-        $answers = json_decode($application->answers, true);
-        $scores = $application->scores;
+        $answers = $application->answers; 
+        $scores = $application->scores;   
+        // $answers = json_decode($application->answers, true);
+        // $scores = $application->scores;
 
         //info($answers);
 
@@ -612,12 +663,33 @@ class ExamController extends Controller
             $givenAnswer = $answers[$item->id] ?? null;
             $score = $scores[$item->id] ?? null;
 
-            $is_correct = ($item->is_essay == 0) ? ($item->ans == $givenAnswer) : null;
+            $choices = is_array($item->choices) ? $item->choices : [];
+            // Normalize to strings
+            $givenKey = is_null($givenAnswer) ? null : (string)$givenAnswer;
+            $correctKey = is_null($item->ans) ? null : (string)$item->ans;
+            $givenText = $givenKey !== null && isset($choices[$givenKey]) ? (string)$choices[$givenKey] : null;
+            $correctText = $correctKey !== null && isset($choices[$correctKey]) ? (string)$choices[$correctKey] : null;
+
+            // Determine correctness:
+            // Prefer stored score if available; otherwise compute tolerant comparison
+            if ($item->is_essay == 0) {
+                if (!is_null($score)) {
+                    $is_correct = ((int)$score) === 1;
+                } else {
+                    $isKeyMatch = (!is_null($givenKey) && !is_null($correctKey) && strcasecmp(trim($givenKey), trim($correctKey)) === 0);
+                    $is_correct = $isKeyMatch;
+                }
+            } else {
+                $is_correct = null;
+            }
 
             $examResults[] = [
                 'id' => $item->id,
                 'question' => $item->question,
                 'given_answer' => $givenAnswer,
+                'given_answer_text' => $givenText,
+                'correct_answer' => $item->ans,
+                'correct_answer_text' => $correctText,
                 'score' => $score,
                 'is_correct' => $is_correct,
                 'is_essay' => $item->is_essay,
