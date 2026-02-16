@@ -14,7 +14,7 @@
             </button>
             <div class="flex items-center justify-between w-full border-b border-[#0D2B70] py-2">
                 <h1 class="text-white text-4xl font-montserrat tracking-wide select-none">
-                    <span class="whitespace-nowrap text-[#0D2B70]">Manage Applicantssss</span>
+                    <span class="whitespace-nowrap text-[#0D2B70]">Manage Applicants</span>
                 </h1>
                 <div class="text-right">
                     <p class="text-[#0D2B70] text-xl font-semibold">{{ $positionTitle ?? 'Vacancy ' . $vacancyId }}</p>
@@ -276,25 +276,34 @@
 
         // Tab switching
         function switchTab(tab) {
+            console.log('Switching to tab:', tab); // Debugging
             const tabs = ['new', 'compliance', 'qualified'];
             tabs.forEach(t => {
                 const tabBtn = document.getElementById(`tab-${t}`);
                 const content = document.getElementById(`content-${t}`);
 
+                if (!tabBtn || !content) return;
+
                 if (t === tab) {
                     tabBtn.classList.add('border-[#0D2B70]', 'bg-blue-50');
                     tabBtn.classList.remove('border-transparent');
                     content.classList.remove('hidden');
+                    content.classList.add('flex');
                 } else {
                     tabBtn.classList.remove('border-[#0D2B70]', 'bg-blue-50');
                     tabBtn.classList.add('border-transparent');
                     content.classList.add('hidden');
+                    content.classList.remove('flex');
                 }
             });
         }
         document.addEventListener('DOMContentLoaded', function(){
             const params = new URLSearchParams(window.location.search);
-            const initialTab = params.get('tab');
+            // Get tab from URL, trim whitespace, lowercase, and default to empty string if null
+            const initialTab = (params.get('tab') || '').trim().toLowerCase();
+            
+            console.log('Initial Tab from URL:', initialTab); // Debugging
+
             if (['new','compliance','qualified'].includes(initialTab)) {
                 switchTab(initialTab);
             } else {

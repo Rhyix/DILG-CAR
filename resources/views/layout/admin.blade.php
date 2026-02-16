@@ -8,15 +8,19 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'DILG Dashboard')</title>
 
-
     <!-- Tailwind CSS + Alpine + Fonts -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Alpine Plugins -->
+    <script src="https://unpkg.com/@alpinejs/collapse@3.x.x/dist/cdn.min.js" defer></script>
+    <!-- Alpine Core -->
     <script src="https://unpkg.com/alpinejs" defer></script>
     <script src="https://unpkg.com/feather-icons"></script>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
 
     <style>
+        [x-cloak] { display: none !important; }
+        
         .font-montserrat {
             font-family: 'Montserrat', sans-serif;
         }
@@ -32,34 +36,6 @@
 
         .sidebar::-webkit-scrollbar-track {
             background-color: transparent;
-        }
-
-        .sidebar-transition {
-            transition: width 0.25s ease, padding 0.25s ease;
-        }
-
-        .sidebar-text-hidden {
-            opacity: 0;
-            pointer-events: none;
-            width: 0;
-            overflow: hidden;
-            transition: none;
-        }
-
-        .sidebar-text-visible {
-            opacity: 1;
-            pointer-events: auto;
-            width: auto;
-            transition: opacity 0.15s ease;
-        }
-
-        .logo-transition {
-            transition: all 0.2s ease;
-        }
-
-        .logo-small {
-            max-width: 48px;
-            max-height: 48px;
         }
 
         .badge-notification {
@@ -107,83 +83,59 @@
             /* Firefox */
             appearance: textfield;
         }
-
-        /* Disable transitions on page load */
-        .sidebar-preload,
-        .sidebar-preload * {
-            transition: none !important;
-        }
     </style>
 
     @stack('styles')
+    
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('sidebar', () => ({
+                open: localStorage.getItem('sidebarOpen') === 'true',
+                isMobile: window.innerWidth < 1024,
+                
+                init() {
+                    // Initialize state
+                    if (this.isMobile && this.open) {
+                        document.body.style.overflow = 'hidden';
+                    }
+                    
+                    this.$watch('open', value => {
+                        localStorage.setItem('sidebarOpen', value);
+                        if (this.isMobile) {
+                            if (value) document.body.style.overflow = 'hidden';
+                            else document.body.style.overflow = '';
+                        }
+                    });
+                    
+                    window.addEventListener('resize', () => {
+                        const wasMobile = this.isMobile;
+                        this.isMobile = window.innerWidth < 1024;
+                        
+                        if (wasMobile && !this.isMobile) {
+                             document.body.style.overflow = '';
+                        }
+                    });
+                },
+                
+                toggle() {
+                    this.open = !this.open;
+                },
+                
+                close() {
+                    this.open = false;
+                }
+            }))
+        })
+    </script>
 </head>
 
-<body class="bg-[#F1F6FC] h-screen font-sans font-montserrat text-gray-900 overflow-hidden">
+<body class="bg-[#F1F6FC] h-screen font-sans font-montserrat text-gray-900 overflow-hidden" x-data="sidebar">
 
     <!-- App Container: Sidebar + Content -->
     <div class="flex h-screen w-full overflow-hidden">
 
         {{-- Sidebar --}}
         @include('partials.sidebar_admin')
-
-        {{-- Immediate sidebar initialization to prevent glitch --}}
-        <script>
-            (function () {
-                const sidebar = document.getElementById('sidebar');
-                const logo = document.querySelector('img[alt="DILG Logo"]');
-                const textElements = [
-                    "sidebarText", "textHome", "textJobVacancies", "textMyApplications",
-                    "textPersonalDataSheet", "textAdmins", "textLogOut",
-                    "textUtilities", "utilitiesChevron", "utilitiesSubmenu"
-                ].map(id => document.getElementById(id));
-
-                const isMobile = window.innerWidth < 1024;
-                const isOpen = localStorage.getItem('sidebarOpen') === 'true';
-
-                // Apply state immediately
-                if (isMobile) {
-                    sidebar.classList.add('w-16', '-translate-x-full');
-                    sidebar.classList.remove('w-72', 'translate-x-0');
-                    if (logo) logo.classList.add('logo-small');
-                    textElements.forEach(el => {
-                        if (el) {
-                            el.classList.add('sidebar-text-hidden');
-                            el.classList.remove('sidebar-text-visible');
-                        }
-                    });
-                } else {
-                    if (isOpen) {
-                        sidebar.classList.remove('w-16', '-translate-x-full');
-                        sidebar.classList.add('w-72', 'translate-x-0');
-                        if (logo) logo.classList.remove('logo-small');
-                        textElements.forEach(el => {
-                            if (el) {
-                                el.classList.remove('sidebar-text-hidden');
-                                el.classList.add('sidebar-text-visible');
-                            }
-                        });
-                    } else {
-                        sidebar.classList.add('w-16');
-                        sidebar.classList.remove('w-72', 'translate-x-0', '-translate-x-full');
-                        if (logo) logo.classList.add('logo-small');
-                        textElements.forEach(el => {
-                            if (el) {
-                                el.classList.add('sidebar-text-hidden');
-                                el.classList.remove('sidebar-text-visible');
-                            }
-                        });
-                    }
-                }
-
-                // Make visible immediately
-                sidebar.style.visibility = 'visible';
-
-                // Remove preload class after a tiny delay
-                setTimeout(() => {
-                    sidebar.classList.remove('sidebar-preload');
-                }, 50);
-            })();
-        </script>
 
         <!-- Content Wrapper -->
         <div class="flex-1 flex flex-col h-screen overflow-hidden relative min-w-0">
@@ -206,7 +158,7 @@
                     <!-- Notification Dropdown -->
                     <div x-show="open" @click.away="open = false"
                         class="absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-xl z-50 overflow-hidden"
-                        style="display: none;">
+                        style="display: none;" x-cloak>
                         <div class="px-4 py-3 border-b border-gray-100 flex justify-between items-center bg-gray-50">
                             <h3 class="text-sm font-bold text-gray-700">Notifications</h3>
                             <button
@@ -260,7 +212,7 @@
                     <!-- Profile Menu -->
                     <div x-show="open" @click.away="open = false"
                         class="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-xl z-50 py-1"
-                        style="display: none;">
+                        style="display: none;" x-cloak>
                         <a href="{{ route('admin_account_management') }}"
                             class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-[#0D2B70]">
                             <i data-feather="settings" class="w-4 h-4 inline-block mr-2"></i> Account Settings
@@ -280,9 +232,10 @@
             <!-- Main Content Scrollable -->
             <main class="flex-1 overflow-y-auto px-6 sm:px-8 md:px-10 pb-6 sm:pb-8 md:pb-10 pt-0 relative scroll-smooth">
                 <!-- Mobile Menu Button (visible only on mobile) -->
-                <button id="mobileMenuButton" onclick="window.openSidebar ? window.openSidebar() : null"
+                <button id="mobileMenuButton" @click="toggle"
+                    x-show="isMobile && !open"
                     class="lg:hidden fixed top-4 left-4 z-20 bg-[#0D2B70] text-white p-3 rounded-lg shadow-lg hover:bg-[#001a4d] transition-all duration-200"
-                    aria-label="Open menu">
+                    aria-label="Open menu" x-cloak>
                     <i data-feather="menu" class="w-6 h-6"></i>
                 </button>
 
@@ -297,138 +250,6 @@
 <script>
     feather.replace();
 
-    const sidebar = document.getElementById('sidebar');
-    const sidebarOverlay = document.getElementById('sidebarOverlay');
-    const textElements = [
-        "sidebarText",
-        "textHome",
-        "textJobVacancies",
-        "textMyApplications",
-        "textPersonalDataSheet",
-        "textAdmins",
-        "textLogOut",
-        "textUtilities",
-        "utilitiesChevron",
-        "utilitiesSubmenu"
-    ].map(id => document.getElementById(id));
-
-    const logo = document.querySelector('img[alt="DILG Logo"]');
-    const toggleButton = document.getElementById('toggleSidebar');
-
-    // Check if we're on mobile
-    const isMobile = () => window.innerWidth < 1024;
-
-    // Retrieve sidebar state from localStorage (default to false/closed)
-    let isOpen = localStorage.getItem('sidebarOpen') === 'true';
-
-    function openSidebar() {
-        sidebar.classList.remove('w-16', '-translate-x-full');
-        sidebar.classList.add('w-72', 'translate-x-0');
-        logo.classList.remove('logo-small');
-        textElements.forEach(el => {
-            if (el) {
-                el.classList.remove('sidebar-text-hidden');
-                el.classList.add('sidebar-text-visible');
-            }
-        });
-
-        // Show overlay on mobile
-        if (isMobile() && sidebarOverlay) {
-            sidebarOverlay.classList.remove('hidden');
-            // Prevent body scroll on mobile when sidebar is open
-            document.body.style.overflow = 'hidden';
-        }
-
-        // Hide mobile menu button when sidebar is open
-        const mobileMenuButton = document.getElementById('mobileMenuButton');
-        if (mobileMenuButton && isMobile()) {
-            mobileMenuButton.style.display = 'none';
-        }
-
-        isOpen = true;
-        localStorage.setItem('sidebarOpen', 'true');
-    }
-
-    function closeSidebar() {
-        sidebar.classList.remove('w-72', 'translate-x-0');
-        sidebar.classList.add('w-16');
-
-        // On mobile, slide it off-screen
-        if (isMobile()) {
-            sidebar.classList.add('-translate-x-full');
-        }
-
-        logo.classList.add('logo-small');
-        textElements.forEach(el => {
-            if (el) {
-                el.classList.remove('sidebar-text-visible');
-                el.classList.add('sidebar-text-hidden');
-            }
-        });
-
-        // Hide overlay
-        if (sidebarOverlay) {
-            sidebarOverlay.classList.add('hidden');
-            // Re-enable body scroll
-            document.body.style.overflow = '';
-        }
-
-        // Show mobile menu button when sidebar is closed
-        const mobileMenuButton = document.getElementById('mobileMenuButton');
-        if (mobileMenuButton && isMobile()) {
-            mobileMenuButton.style.display = 'block';
-        }
-
-        isOpen = false;
-        localStorage.setItem('sidebarOpen', 'false');
-    }
-
-    // Make functions globally accessible
-    window.closeSidebar = closeSidebar;
-    window.openSidebar = openSidebar;
-
-    toggleButton?.addEventListener('click', () => {
-        if (isOpen) {
-            closeSidebar();
-        } else {
-            openSidebar();
-        }
-    });
-
-    // Handle window resize - close sidebar on mobile when resizing
-    let resizeTimer;
-    window.addEventListener('resize', () => {
-        clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(() => {
-            if (isMobile() && isOpen) {
-                // On mobile, if sidebar is open, keep it open but ensure overlay is visible
-                if (sidebarOverlay) {
-                    sidebarOverlay.classList.remove('hidden');
-                }
-            } else if (!isMobile()) {
-                // On desktop, remove mobile-specific classes
-                sidebar.classList.remove('-translate-x-full');
-                if (sidebarOverlay) {
-                    sidebarOverlay.classList.add('hidden');
-                }
-                document.body.style.overflow = '';
-            }
-        }, 250);
-    });
-
-    // Initialize feather icons only (state already applied inline)
-    function initializeSidebarState() {
-        // Just initialize feather icons
-        feather.replace();
-    }
-
-    // Call initialization for feather icons
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initializeSidebarState);
-    } else {
-        initializeSidebarState();
-    }
-
     const form = document.querySelector('form');
     const loader = document.getElementById('loader');
 
@@ -441,11 +262,14 @@
     document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('a.use-loader').forEach(link => {
             link.addEventListener('click', function (e) {
-                e.preventDefault();
-                loader?.classList.remove('hidden');
-                setTimeout(() => {
-                    window.location.href = this.href;
-                }, 100);
+                // Check if target is not blank
+                if (this.target !== '_blank') {
+                    e.preventDefault();
+                    loader?.classList.remove('hidden');
+                    setTimeout(() => {
+                        window.location.href = this.href;
+                    }, 100);
+                }
             });
         });
     });
@@ -469,8 +293,6 @@
 
 </script>
 
-<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-
 <script>
     function debounce(func, delay) {
         let debounceTimer;
@@ -483,12 +305,14 @@
     }
 
     const fetchAdmins = () => {
-        const search = document.getElementById('adminSearchInput').value;
+        const search = document.getElementById('adminSearchInput');
+        if(!search) return;
 
-        fetch(`/admin/search?query=${encodeURIComponent(search)}`)
+        fetch(`/admin/search?query=${encodeURIComponent(search.value)}`)
             .then(response => response.text())
             .then(html => {
-                document.querySelector('section.space-y-4').innerHTML = html;
+                const container = document.querySelector('section.space-y-4');
+                if(container) container.innerHTML = html;
             });
     };
 

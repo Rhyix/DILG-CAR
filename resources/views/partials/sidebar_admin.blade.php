@@ -2,26 +2,49 @@
 
 <!-- Mobile Overlay Backdrop -->
 <div id="sidebarOverlay"
-    class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden transition-opacity duration-300 lg:hidden"
-    onclick="closeSidebar()">
-</div>
+    x-show="isMobile && open"
+    x-transition.opacity.duration.300ms
+    class="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
+    @click="close"
+    style="display: none;"
+    x-cloak
+></div>
 
 <!-- Sidebar -->
-<aside id="sidebar" style="visibility: hidden;"
-    class="sidebar sidebar-preload sidebar-transition fixed lg:relative lg:ml-5 lg:mt-5 lg:mb-5 flex flex-col justify-between bg-white text-[#002C76] lg:rounded-xl shadow-2xl overflow-y-auto overflow-x-hidden w-16 z-40 h-full lg:h-[calc(100vh-2.5rem)] top-0 left-0 lg:top-auto lg:left-auto -translate-x-full lg:translate-x-0 flex-shrink-0">
+<aside
+    class="sidebar fixed lg:relative lg:ml-5 lg:mt-5 lg:mb-5 flex flex-col justify-between bg-white text-[#002C76] lg:rounded-xl shadow-2xl overflow-y-auto overflow-x-hidden z-40 h-full lg:h-[calc(100vh-2.5rem)] top-0 left-0 transition-all duration-300 ease-in-out flex-shrink-0"
+    :class="{
+        'w-72 translate-x-0': open,
+        'w-16 translate-x-0': !open && !isMobile,
+        '-translate-x-full w-72': !open && isMobile,
+        'lg:translate-x-0': true
+    }"
+    x-cloak
+>
 
     <!-- Upper -->
-    <div class="flex-1 overflow-y-auto">
-        <button id="toggleSidebar"
+    <div class="flex-1 overflow-y-auto scrollbar-thin">
+        <button
+            @click="toggle"
             class="p-2 focus:outline-none absolute top-3 left-3 z-20 hover:bg-gray-100 rounded-lg transition-colors"
             aria-label="Toggle sidebar">
             <i data-feather="menu" class="w-5 h-5 stroke-[3]"></i>
         </button>
 
-        <a href="#" class="flex items-center gap-2 pt-14 px-2 cursor-pointer">
+        <a href="#" class="flex items-center gap-2 pt-14 px-2 cursor-pointer overflow-hidden">
             <img src="{{ asset('images/dilg_logo.png') }}" alt="DILG Logo"
-                class="h-12 w-12 rounded-full border border-white flex-shrink-0 logo-transition" />
-            <div id="sidebarText" class="sidebar-text-hidden whitespace-nowrap overflow-hidden">
+                class="rounded-full border border-white flex-shrink-0 transition-all duration-300"
+                :class="open ? 'h-12 w-12' : 'h-8 w-8 ml-1'"
+            />
+            <div class="whitespace-nowrap overflow-hidden transition-all duration-300"
+                 x-show="open"
+                 x-transition:enter="transition ease-out duration-300"
+                 x-transition:enter-start="opacity-0 transform -translate-x-4"
+                 x-transition:enter-end="opacity-100 transform translate-x-0"
+                 x-transition:leave="transition ease-in duration-100"
+                 x-transition:leave-start="opacity-100 transform translate-x-0"
+                 x-transition:leave-end="opacity-0 transform -translate-x-4"
+            >
                 <div class="font-bold font-montserrat text-[#002C76] text-[20px] uppercase leading-tight tracking-wide">
                     DILG - CAR
                 </div>
@@ -40,14 +63,14 @@
     ? 'bg-[#002C76] text-white shadow-md'
     : 'text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md' }}">
                 <i data-feather="home" class="w-5 h-5 stroke-[3] flex-shrink-0"></i>
-                <span id="textHome" class="sidebar-text-hidden ml-3">HOME</span>
+                <span class="ml-3 transition-opacity duration-200" x-show="open" x-transition.opacity.duration.200ms>HOME</span>
             </a>
             <a href="{{ route('vacancies_management') }}" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200
                     {{ request()->routeIs('vacancies_management')
     ? 'bg-[#002C76] text-white shadow-md'
     : 'text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md' }}">
                 <i data-feather="archive" class="w-5 h-5 stroke-[3] flex-shrink-0"></i>
-                <span id="textJobVacancies" class="sidebar-text-hidden ml-3">VACANCIES MANAGEMENT</span>
+                <span class="ml-3 transition-opacity duration-200" x-show="open" x-transition.opacity.duration.200ms>VACANCIES MANAGEMENT</span>
             </a>
 
             <a href="{{ route('applications_list') }}" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200
@@ -55,7 +78,7 @@
     ? 'bg-[#002C76] text-white shadow-md'
     : 'text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md' }}">
                 <i data-feather="user" class="w-5 h-5 stroke-[3] flex-shrink-0"></i>
-                <span id="textMyApplications" class="sidebar-text-hidden ml-3">APPLICATIONS LIST</span>
+                <span class="ml-3 transition-opacity duration-200" x-show="open" x-transition.opacity.duration.200ms>APPLICATIONS LIST</span>
             </a>
 
             <a href="{{ route('admin_exam_management') }}" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200
@@ -63,7 +86,7 @@
     ? 'bg-[#002C76] text-white shadow-md'
     : 'text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md' }}">
                 <i data-feather="file-text" class="w-5 h-5 stroke-[3] flex-shrink-0"></i>
-                <span id="textPersonalDataSheet" class="sidebar-text-hidden ml-3">EXAM MANAGEMENT</span>
+                <span class="ml-3 transition-opacity duration-200" x-show="open" x-transition.opacity.duration.200ms>EXAM MANAGEMENT</span>
             </a>
 
             <a href="{{ route('admin_account_management') }}" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200
@@ -71,29 +94,29 @@
                         ? 'bg-[#002C76] text-white shadow-md'
                         : 'text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md' }}">
                 <i class="fa-solid fa-users-gear w-5 h-5 flex-shrink-0"></i>
-                <span id="textAdmins" class="sidebar-text-hidden ml-3">USER MANAGEMENT</span>
+                <span class="ml-3 transition-opacity duration-200" x-show="open" x-transition.opacity.duration.200ms>USER MANAGEMENT</span>
             </a>
 
             <!-- Utilities Dropdown -->
-            <div x-data="{ open: {{ request()->routeIs('admin_activity_log') ? 'true' : 'false' }} }" class="relative">
-                <button @click="open = !open" class="w-full group flex items-center justify-between rounded-md px-4 py-2 text-sm font-bold transition-all duration-200 text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md">
+            <div x-data="{ submenuOpen: {{ (request()->routeIs('admin_activity_log') || request()->routeIs('signatories.*') || request()->routeIs('admin.reports.index')) ? 'true' : 'false' }} }" class="relative">
+                <button @click="submenuOpen = !submenuOpen" class="w-full group flex items-center justify-between rounded-md px-4 py-2 text-sm font-bold transition-all duration-200 text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md">
                     <div class="flex items-center">
                         <i class="fa-solid fa-screwdriver-wrench w-5 h-5 flex-shrink-0"></i>
-                        <span id="textUtilities" class="sidebar-text-hidden ml-3 uppercase">UTILITIES</span>
+                        <span class="ml-3 transition-opacity duration-200 uppercase" x-show="open" x-transition.opacity.duration.200ms>UTILITIES</span>
                     </div>
-                    <div id="utilitiesChevron" class="sidebar-text-hidden ml-auto transition-transform duration-200" :class="{'rotate-180': open}">
+                    <div class="transition-transform duration-200" :class="{'rotate-180': submenuOpen}" x-show="open" x-transition.opacity.duration.200ms>
                         <i class="fa-solid fa-chevron-down w-5 h-5 stroke-[2.5] flex-shrink-0"></i>
                     </div>
                 </button>
 
                 <!-- Submenu -->
-                <div x-show="open" x-collapse id="utilitiesSubmenu" class="sidebar-text-hidden pl-4 mt-1 space-y-1 overflow-hidden">
+                <div x-show="submenuOpen && open" x-collapse class="pl-4 mt-1 space-y-1 overflow-hidden">
                     <!-- Signatories -->
                     <a href="{{ route('signatories.index') }}" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200 {{ request()->routeIs('signatories.*')
                             ? 'bg-[#002C76] text-white shadow-md'
                             : 'text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md' }}">
                         <i data-feather="edit-3" class="w-5 h-5 stroke-[2.5] justify-center items-center flex-shrink-0 ml-2"></i>
-                        <span class="ml-3">SIGNATORIES</span>
+                        <span class="ml-3 transition-opacity duration-200">SIGNATORIES</span>
                     </a>
 
                     <!-- Activity Log -->
@@ -102,7 +125,7 @@
                                 ? 'bg-[#002C76] text-white shadow-md'
                                 : 'text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md' }}">
                         <i data-feather="clock" class="w-5 h-5 stroke-[2.5] flex-shrink-0 ml-2"></i>
-                        <span class="ml-3">ACTIVITY LOG</span>
+                        <span class="ml-3 transition-opacity duration-200">ACTIVITY LOG</span>
                     </a>
 
                     <!-- Reports -->
@@ -111,7 +134,7 @@
                                 ? 'bg-[#002C76] text-white shadow-md'
                                 : 'text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md' }}">
                         <i data-feather="bar-chart-2" class="w-5 h-5 stroke-[2.5] flex-shrink-0 ml-2"></i>
-                        <span class="ml-3">REPORTS</span>
+                        <span class="ml-3 transition-opacity duration-200">REPORTS</span>
                     </a>
                 </div>
             </div>

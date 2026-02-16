@@ -48,9 +48,9 @@
                     <thead>
                         <tr>
                             <th class="py-4 px-6 font-normal w-[15%]">Vacancy ID</th>
-                            <th class="py-4 px-6 font-normal w-[45%]">Job Title</th>
-                            <th class="py-4 px-6 font-normal text-center w-[15%]">Status</th>
-                            <th class="py-4 px-6 font-normal text-center w-[25%]">Manage Applicants</th>
+                            <th class="py-4 px-6 font-normal w-[30%]">Job Title</th>
+                            <th class="py-4 px-6 font-normal text-left w-[15%]">Status</th>
+                            <th class="py-4 px-6 font-normal text-center w-[40%]">Manage Applicants</th>
                         </tr>
                     </thead>
                 </table>
@@ -63,15 +63,15 @@
                     <tr class="text-[#0D2B70] select-none hover:bg-blue-50 transition-colors duration-200">
                         <td class="py-4 px-6 w-[15%]">{{ $vacancy->vacancy_id }}</td>
 
-                        <td class="py-4 px-6 w-[45%]">
+                        <td class="py-4 px-6 w-[30%]">
                             <p class="font-medium">{{ $vacancy->position_title }}</p>
                             <p class="text-[#0D2B70]/70 text-[0.8rem] italic mt-0.5">
                                 {{ $vacancy->vacancy_type }}
                             </p>
                         </td>
 
-                        <td class="py-4 px-6 text-center w-[15%]">
-                            <div class="flex justify-center items-center gap-2 font-normal">
+                        <td class="py-4 px-6 text-left w-[15%]">
+                            <div class="flex justify-start items-center gap-2 font-normal">
                                 @php
                                     $statusColor = match (strtolower($vacancy->status)) {
                                         'open' => 'bg-green-600',
@@ -87,37 +87,31 @@
                             </div>
                         </td>
 
-                        <td class="py-4 px-6 text-center w-[25%]">
-                            <div class="flex justify-center items-center gap-2">
+                        <td class="py-4 px-6 text-center w-[40%]">
+                            <div class="flex justify-center items-center gap-3">
                                 <a href="{{ route('admin.manage_applicants', ['vacancy_id' => $vacancy->vacancy_id]) }}?tab=new"
-                                   class="use-loader py-1 px-3 rounded-md text-sm
-                                        transition-all duration-150 ease-[cubic-bezier(0.4,0,0.2,1)]
-                                        hover:scale-110">
-                                   <span class="font-semi-bold">New</span>
+                                   class="relative group use-loader flex items-center justify-center w-28 h-10 text-[#0D2B70] border border-[#0D2B70] font-bold rounded-md text-sm transition-all duration-300 hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md">
+                                   <span>New</span>
                                    @if(isset($vacancy->pending_count) && $vacancy->pending_count > 0)
-                                       <span class="inline-flex items-center justify-center h-5 min-w-[1.25rem] px-1 rounded-full bg-red-600 text-white text-[10px] font-bold">
+                                       <span class="absolute -top-2 -right-2 flex items-center justify-center w-5 h-5 rounded-full bg-red-600 text-white text-[10px] font-bold shadow-sm border border-white z-10">
                                            {{ $vacancy->pending_count }}
                                        </span>
                                    @endif
                                 </a>
                                 <a href="{{ route('admin.manage_applicants', ['vacancy_id' => $vacancy->vacancy_id]) }}?tab=compliance"
-                                   class="use-loader py-1 px-3 rounded-md text-sm
-                                        transition-all duration-150 ease-[cubic-bezier(0.4,0,0.2,1)]
-                                        hover:scale-110">
-                                   <span class="font-semi-bold">Compliance</span>
+                                   class="relative group use-loader flex items-center justify-center w-28 h-10 text-[#0D2B70] border border-[#0D2B70] font-bold rounded-md text-sm transition-all duration-300 hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md">
+                                   <span>Compliance</span>
                                    @if(isset($vacancy->compliance_count) && $vacancy->compliance_count > 0)
-                                       <span class="inline-flex items-center justify-center h-5 min-w-[1.25rem] px-1 rounded-full bg-orange-500 text-white text-[10px] font-bold">
+                                       <span class="absolute -top-2 -right-2 flex items-center justify-center w-5 h-5 rounded-full bg-orange-500 text-white text-[10px] font-bold shadow-sm border border-white z-10">
                                            {{ $vacancy->compliance_count }}
                                        </span>
                                    @endif
                                 </a>
                                 <a href="{{ route('admin.manage_applicants', ['vacancy_id' => $vacancy->vacancy_id]) }}?tab=qualified"
-                                   class="use-loader py-1 px-3 rounded-md text-sm
-                                        transition-all duration-150 ease-[cubic-bezier(0.4,0,0.2,1)]
-                                        hover:scale-110">
-                                   <span class="font-semi-bold">Qualified</span>
+                                   class="relative group use-loader flex items-center justify-center w-28 h-10 text-[#0D2B70] border border-[#0D2B70] font-bold rounded-md text-sm transition-all duration-300 hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md">
+                                   <span>Qualified</span>
                                    @if(isset($vacancy->qualified_count) && $vacancy->qualified_count > 0)
-                                       <span class="inline-flex items-center justify-center h-5 min-w-[1.25rem] px-1 rounded-full bg-green-600 text-white text-[10px] font-bold">
+                                       <span class="absolute -top-2 -right-2 flex items-center justify-center w-5 h-5 rounded-full bg-green-600 text-white text-[10px] font-bold shadow-sm border border-white z-10">
                                            {{ $vacancy->qualified_count }}
                                        </span>
                                    @endif
@@ -226,29 +220,29 @@
                 container.innerHTML += `
                 <tr class="text-[#0D2B70] select-none hover:bg-blue-50 transition-colors duration-200">
                     <td class="py-4 px-6 w-[15%] text-left">${vacancy.vacancy_id}</td>
-                    <td class="py-4 px-6 w-[45%] text-left">
+                    <td class="py-4 px-6 w-[30%] text-left">
                         <p>${vacancy.position_title}</p>
                         <p class="text-[#0D2B70]/70 text-[0.9rem] italic">${vacancy.vacancy_type}</p>
                     </td>
-                    <td class="py-4 px-6 text-center w-[15%]">
-                        <div class="flex justify-center items-center gap-3 font-normal">
+                    <td class="py-4 px-6 text-left w-[15%]">
+                        <div class="flex justify-start items-center gap-3 font-normal">
                             <span class="w-5 h-5 rounded-full inline-block ${statusColor}"></span>
                             <span class="text-center font-semibold uppercase">${vacancy.status}</span>
                         </div>
                     </td>
-                    <td class="py-4 px-6 text-center w-[25%]">
-                        <div class="flex justify-center items-center gap-2">
-                            <a href="/admin/manage_applicants/${vacancy.vacancy_id}?tab=new" class="use-loader inline-flex items-center gap-2 text-[#0D2B70] border border-[#0D2B70] font-bold py-1 px-3 rounded-full text-xs hover:bg-[#0D2B70] hover:text-white transition">
+                    <td class="py-4 px-6 text-center w-[40%]">
+                        <div class="flex justify-center items-center gap-3">
+                            <a href="/admin/manage_applicants/${vacancy.vacancy_id}?tab=new" class="relative group use-loader flex items-center justify-center w-28 h-10 text-[#0D2B70] border border-[#0D2B70] font-bold rounded-md text-sm transition-all duration-300 hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md">
                                 <span>New</span>
-                                ${vacancy.pending_count > 0 ? `<span class="inline-flex items-center justify-center h-5 min-w-[1.25rem] px-1 rounded-full bg-red-600 text-white text-[10px] font-bold">${vacancy.pending_count}</span>` : ''}
+                                ${vacancy.pending_count > 0 ? `<span class="absolute -top-2 -right-2 flex items-center justify-center w-5 h-5 rounded-full bg-red-600 text-white text-[10px] font-bold shadow-sm border border-white z-10">${vacancy.pending_count}</span>` : ''}
                             </a>
-                            <a href="/admin/manage_applicants/${vacancy.vacancy_id}?tab=compliance" class="use-loader inline-flex items-center gap-2 text-[#0D2B70] border border-[#0D2B70] font-bold py-1 px-3 rounded-full text-xs hover:bg-[#0D2B70] hover:text-white transition">
+                            <a href="/admin/manage_applicants/${vacancy.vacancy_id}?tab=compliance" class="relative group use-loader flex items-center justify-center w-28 h-10 text-[#0D2B70] border border-[#0D2B70] font-bold rounded-md text-sm transition-all duration-300 hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md">
                                 <span>Compliance</span>
-                                ${vacancy.compliance_count > 0 ? `<span class="inline-flex items-center justify-center h-5 min-w-[1.25rem] px-1 rounded-full bg-orange-500 text-white text-[10px] font-bold">${vacancy.compliance_count}</span>` : ''}
+                                ${vacancy.compliance_count > 0 ? `<span class="absolute -top-2 -right-2 flex items-center justify-center w-5 h-5 rounded-full bg-orange-500 text-white text-[10px] font-bold shadow-sm border border-white z-10">${vacancy.compliance_count}</span>` : ''}
                             </a>
-                            <a href="/admin/manage_applicants/${vacancy.vacancy_id}?tab=qualified" class="use-loader inline-flex items-center gap-2 text-[#0D2B70] border border-[#0D2B70] font-bold py-1 px-3 rounded-full text-xs hover:bg-[#0D2B70] hover:text-white transition">
+                            <a href="/admin/manage_applicants/${vacancy.vacancy_id}?tab=qualified" class="relative group use-loader flex items-center justify-center w-28 h-10 text-[#0D2B70] border border-[#0D2B70] font-bold rounded-md text-sm transition-all duration-300 hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md">
                                 <span>Qualified</span>
-                                ${vacancy.qualified_count > 0 ? `<span class="inline-flex items-center justify-center h-5 min-w-[1.25rem] px-1 rounded-full bg-green-600 text-white text-[10px] font-bold">${vacancy.qualified_count}</span>` : ''}
+                                ${vacancy.qualified_count > 0 ? `<span class="absolute -top-2 -right-2 flex items-center justify-center w-5 h-5 rounded-full bg-green-600 text-white text-[10px] font-bold shadow-sm border border-white z-10">${vacancy.qualified_count}</span>` : ''}
                             </a>
                         </div>
                     </td>
