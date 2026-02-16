@@ -19,17 +19,9 @@
     </section>
         <div class="grid grid-cols-2 items-center w-full justify-between h-full">
             <div>
-                <form action="{{ route('signatories.index') }}" method="GET" class="flex gap-2">
-                    <input type="text" name="search" value="{{ $search ?? '' }}" placeholder="Search by name, designation, or office..." 
-                        class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#002C76] focus:border-transparent">
-                    <button type="submit" class="border border-[#002C76] text-[#002C76] px-6 py-2 rounded-lg hover:bg-blue-900 transition">
-                        Search
-                    </button>
-                    @if ($search)
-                        <a href="{{ route('signatories.index') }}" class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition">
-                            Clear
-                        </a>
-                    @endif
+                <form id="signatorySearchForm" action="{{ route('signatories.index') }}" method="GET" class="flex gap-2">
+                    <input id="signatorySearchInput" type="text" name="search" value="{{ $search ?? '' }}" placeholder="Search by name..." 
+                        class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#002C76] focus:border-transparent" autocomplete="off">
                 </form>
             </div>
 
@@ -70,7 +62,13 @@
                             <form action="{{ route('signatories.destroy', $signatory->id) }}" method="POST" style="display:inline;">
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit" class="text-red-600 hover:underline" onclick="return confirm('Are you sure?')">Remove</button>
+                                <button
+                                    type="button"
+                                    class="text-red-600 hover:underline"
+                                    onclick="openDeleteModal(this)"
+                                >
+                                    Remove
+                                </button>
                             </form>
                         </td>
                     </tr>
@@ -88,4 +86,43 @@
         </table>
     </div>
 </div>
+
+
+<x-confirm-modal
+    title="Remove Signatory"
+    message="Are you sure you want to remove this signatory?"
+    event="open-confirm-modal"
+    confirm="confirm-remove-signatory"
+/>
+
+<script>
+    let deleteForm = null;
+
+    function openDeleteModal(button) {
+        deleteForm = button.closest('form');
+        window.dispatchEvent(new CustomEvent('open-confirm-modal'));
+    }
+
+    document.addEventListener('confirm-remove-signatory', function () {
+        if (deleteForm) {
+            deleteForm.submit();
+        }
+    });
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const input = document.getElementById('signatorySearchInput');
+        const form = document.getElementById('signatorySearchForm');
+        if (!input || !form) return;
+        const submitDebounced = (typeof debounce === 'function')
+            ? debounce(() => form.requestSubmit(), 300)
+            : (() => {
+                let t; 
+                return () => { clearTimeout(t); t = setTimeout(() => form.requestSubmit(), 300); };
+            })();
+        input.addEventListener('input', submitDebounced);
+    });
+</script>
+
 @endsection

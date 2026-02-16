@@ -1,7 +1,7 @@
 @extends('layout.admin')
 
 @section('content')
-<div class="w-full space-y-6 font-montserrat" x-data="logTable()">
+<div class="w-full space-y-6 font-montserrat" x-data="signatoryForm()">
     <div class="">
         <h1 class="flex items-center gap-3 w-full border-b border-[#0D2B70] text-white text-4xl font-montserrat py-2 tracking-wide select-none">
             <span class="whitespace-nowrap text-[#0D2B70]">Edit Signatory</span>
@@ -17,7 +17,7 @@
             </div>
         @endif
 
-        <form action="{{ route('signatories.update', $signatory->id ?? '#') }}" method="POST" class="bg-white rounded-lg shadow px-6 py-4 mt-4 space-y-6">
+        <form id="signatory-form" action="{{ route('signatories.update', $signatory->id ?? '#') }}" method="POST" class="bg-white rounded-lg shadow px-6 py-4 mt-4 space-y-6">
             @csrf
             @method('PUT')
 
@@ -83,11 +83,66 @@
                 <a href="{{ route('signatories.index') }}" class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
                     Cancel
                 </a>
-                <button type="submit" class="px-6 py-2 bg-[#002C76] text-white rounded-lg hover:bg-blue-900 transition-colors">
+                <button
+                    type="button"
+                    :disabled="!hasChanges()"
+                    @click="$dispatch('open-confirm-modal')"
+                    class="px-6 py-2 rounded-lg transition-colors"
+                    :class="hasChanges() 
+                        ? 'bg-[#002C76] text-white hover:bg-blue-900'
+                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'">
                     Update Signatory
                 </button>
             </div>
         </form>
     </div>
 </div>
+
+<!-- CONFIRMATION MODAL -->
+<x-confirm-modal
+    title="Update Signatory"
+    message="Are you sure you want to update this signatory?"
+    event="open-confirm-modal"
+    confirm="confirm-update-signatory"
+/>
+<!-- SCRIPT FOR UPDATE BUTTON -->
+<script>
+    document.addEventListener('confirm-update-signatory', (e) => {
+        e.preventDefault();
+        document.getElementById('signatory-form').submit();
+    })
+</script>
+
+<!-- SCRIPT FOR UPDATE BUTTON LOGIC -->
+<script>
+function signatoryForm() {
+    return {
+        originalData: {},
+        currentData: {},
+
+        init() {
+            const form = document.getElementById('signatory-form');
+            const formData = new FormData(form);
+
+            formData.forEach((value, key) => {
+                this.originalData[key] = value;
+                this.currentData[key] = value;
+            });
+
+            form.addEventListener('input', () => {
+                const updatedData = new FormData(form);
+                updatedData.forEach((value, key) => {
+                    this.currentData[key] = value;
+                });
+            });
+        },
+
+        hasChanges() {
+            return JSON.stringify(this.originalData) !== JSON.stringify(this.currentData);
+        }
+    }
+}
+</script>
+
+
 @endsection

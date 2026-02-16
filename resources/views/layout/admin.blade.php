@@ -140,7 +140,7 @@
         <!-- Content Wrapper -->
         <div class="flex-1 flex flex-col h-screen overflow-hidden relative min-w-0">
             <!-- Top Header (Notification Bell & Profile) -->
-            <header class="flex justify-end items-center gap-6 px-6 sm:px-8 md:px-10 pt-6 sm:pt-8 pb-4 shrink-0 z-10 bg-[#F1F6FC]">
+            <header class="flex justify-end items-center gap-6 px-6 sm:px-8 md:px-10 pt-6 sm:pt-8 pb-4 shrink-0 z-50 bg-[#F1F6FC]">
                 <!-- Notification Bell -->
                 <div class="relative" x-data="{ open: false, count: 0, notifications: [] }" x-init="
                     fetch('/notifications/count').then(r => r.json()).then(d => count = d.count);
@@ -218,9 +218,10 @@
                             <i data-feather="settings" class="w-4 h-4 inline-block mr-2"></i> Account Settings
                         </a>
                         <div class="border-t border-gray-100 my-1"></div>
-                        <form method="POST" action="{{ route('admin.logout') }}">
+                        <form id="adminLogoutForm" method="POST" action="{{ route('admin.logout') }}">
                             @csrf
-                            <button type="submit"
+                            <button type="button"
+                                @click.prevent="$dispatch('open-logout-confirm')"
                                 class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 font-medium">
                                 <i data-feather="log-out" class="w-4 h-4 inline-block mr-2"></i> Logout
                             </button>
@@ -245,6 +246,15 @@
 
     </div>
 </body>
+
+<!-- REUSABLE CONFIRMATION MODAL -->
+<x-confirm-modal 
+    title="Confirm Logout"
+    message="Are you sure you want to log out?"
+    event="open-logout-confirm"
+    confirm="confirm-logout"
+/>
+
 
 <!-- JS Scripts -->
 <script>
@@ -290,6 +300,12 @@
                 </div>
             `;
     }
+
+    // Submit admin logout only after confirmation
+    window.addEventListener('confirm-logout', () => {
+        const logoutForm = document.getElementById('adminLogoutForm');
+        if (logoutForm) logoutForm.submit();
+    });
 
 </script>
 

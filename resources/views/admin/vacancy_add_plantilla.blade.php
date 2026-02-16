@@ -93,7 +93,8 @@
     <div class="grid grid-cols-3 gap-4 mt-4">
         <div class="w-full>
             <label class="block">Position Title</label>
-            <input type="text" name="position_title" value="{{ old('position_title', $vacancy->position_title ?? '') }}" class="w-full border-2 border-[#002C76] rounded px-2 py-1 h-10">
+            <input id="position_title" required type="text" name="position_title" value="{{ old('position_title', $vacancy->position_title ?? '') }}" class="w-full border-2 border-[#002C76] rounded px-2 py-1 h-10">
+            <p id="position_title_error" class="text-red-600 text-sm mt-1 hidden">Position title is required.</p>
         </div>
     
         <div class="w-full">
@@ -118,6 +119,7 @@
                 value="{{ old('closing_date', isset($vacancy->closing_date) ? \Carbon\Carbon::parse($vacancy->closing_date)->format('Y-m-d') : '') }}"
                 placeholder="Select deadline"
                 class="w-full border-2 border-[#002C76] rounded px-2 py-2 h-10">
+            <p id="closing_date_error" class="text-red-600 text-sm mt-1 hidden">Deadline of application is required.</p>
         </div>
 
         <div>
@@ -127,7 +129,8 @@
 
         <div>
             <label class="block">Monthly Salary</label>
-            <input type="number" step="0.01" min="0" name="monthly_salary" value="{{ old('monthly_salary', $vacancy->monthly_salary ?? '') }}" class="w-full border-2 border-[#002C76] rounded px-2 py-1 h-10">
+            <input id="monthly_salary" required type="number" step="0.01" min="0" max="1000000" inputmode="decimal" name="monthly_salary" value="{{ old('monthly_salary', $vacancy->monthly_salary ?? '') }}" class="w-full border-2 border-[#002C76] rounded px-2 py-1 h-10">
+            <p id="monthly_salary_error" class="text-red-600 text-sm mt-1 hidden"></p>
         </div>
     </div>
     <!-- <div class="md:w-[20%] mt-4 md:mt-0">
@@ -179,12 +182,13 @@
     <!-- Place of Assignment -->
     <div>
       <label class="block">Place of Assignment</label>
-      <select name="place_of_assignment" class="w-full border-2 border-[#002C76] rounded px-2 py-1 h-10">
-        <option disabled>Place of Assignment</option>
+      <select id="place_of_assignment" name="place_of_assignment" required class="w-full border-2 border-[#002C76] rounded px-2 py-1 h-10">
+        <option disabled {{ old('place_of_assignment', $vacancy->place_of_assignment ?? '') == '' ? 'selected' : '' }}>Place of Assignment</option>
         @foreach (['DILG-CAR Regional Office','Apayao Provincial Office','Abra Provincial Office','Mountain Province Provincial Office','Ifugao Provincial Office','Kalinga Provincial Office','Benguet Provincial Office','Baguio City Office'] as $office)
           <option value="{{ $office }}" {{ old('place_of_assignment', $vacancy->place_of_assignment ?? '') == $office ? 'selected' : '' }}>{{ $office }}</option>
         @endforeach
       </select>
+      <p id="place_of_assignment_error" class="text-red-600 text-sm mt-1 hidden">Place of assignment is required.</p>
     </div>
 
     <!-- Interested Applicants -->
@@ -239,7 +243,7 @@
             </svg>
             DISCARD
         </button>
-        <button id="vacancy-save-btn" type="submit" form="plantillaForm" class="border-2 border-[#0D2B70] hover:bg-[#0D2B70] hover:text-white 
+        <button id="vacancy-save-btn" type="button" @click.prevent="$dispatch('open-plantilla-save-confirm')" class="border-2 border-[#0D2B70] hover:bg-[#0D2B70] hover:text-white 
         text-[#0D2B70] px-4 py-2 rounded-md flex items-center gap-2">
 
         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -249,6 +253,14 @@
         </button>
     </div>
 </main>
+
+<!-- Confirmation Modal -->
+<x-confirm-modal 
+    title="Add Job Vacancy"
+    message="Are you sure you want to add this job vacancy?"
+    event="open-plantilla-save-confirm"
+    confirm="confirm-plantilla-save"
+/>
 
 <script>
     function goBack() {
@@ -314,6 +326,52 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // Initialize on page load
     handleSignatoryChange();
+});
+
+// Validate and submit on confirm
+window.addEventListener('confirm-plantilla-save', () => {
+    const form = document.getElementById('plantillaForm');
+    const errors = [];
+    const show = (el, msg) => { if(el){ el.textContent = msg; el.classList.remove('hidden'); } };
+    const hide = (el) => { if(el){ el.textContent = ''; el.classList.add('hidden'); } };
+    // Fields
+    const positionTitle = document.getElementById('position_title');
+    const closingDate = document.getElementById('closing_date');
+    const place = document.getElementById('place_of_assignment');
+    const monthlySalary = document.getElementById('monthly_salary');
+    // Errors
+    const eTitle = document.getElementById('position_title_error');
+    const eClosing = document.getElementById('closing_date_error');
+    const ePlace = document.getElementById('place_of_assignment_error');
+    const eSalary = document.getElementById('monthly_salary_error');
+    // Reset
+    [eTitle,eClosing,ePlace,eSalary].forEach(hide);
+    // Validate basics
+    if (!positionTitle.value.trim()) { errors.push('Position title is required.'); show(eTitle, 'Position title is required.'); }
+    if (!closingDate.value) { errors.push('Deadline is required.'); show(eClosing, 'Deadline of application is required.'); }
+    if (!place.value) { errors.push('Place of assignment is required.'); show(ePlace, 'Place of assignment is required.'); }
+    // Salary checks
+    const MAX = 1000000;
+    const MIN = 0;
+    const sal = parseFloat(monthlySalary.value);
+    if (isNaN(sal)) { errors.push('Monthly salary is required.'); show(eSalary, 'Monthly salary is required.'); }
+    else if (sal < MIN) { errors.push('Monthly salary cannot be negative.'); show(eSalary, 'Monthly salary cannot be negative.'); }
+    else if (sal > MAX) { errors.push('Monthly salary exceeds allowed maximum (1,000,000).'); show(eSalary, 'Monthly salary exceeds allowed maximum (1,000,000).'); }
+    if (errors.length === 0) {
+        form.submit();
+    }
+});
+
+// Live salary validation
+document.addEventListener('input', (e) => {
+    if (e.target && e.target.id === 'monthly_salary') {
+        const eSalary = document.getElementById('monthly_salary_error');
+        const sal = parseFloat(e.target.value);
+        if (isNaN(sal)) { eSalary.textContent = 'Monthly salary is required.'; eSalary.classList.remove('hidden'); }
+        else if (sal < 0) { eSalary.textContent = 'Monthly salary cannot be negative.'; eSalary.classList.remove('hidden'); }
+        else if (sal > 1000000) { eSalary.textContent = 'Monthly salary exceeds allowed maximum (1,000,000).'; eSalary.classList.remove('hidden'); }
+        else { eSalary.textContent = ''; eSalary.classList.add('hidden'); }
+    }
 });
 </script>
 

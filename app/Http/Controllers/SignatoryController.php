@@ -13,18 +13,20 @@ class SignatoryController extends Controller
     public function index(Request $request)
     {
         $search = $request->query('search');
-        
+
+        $query = Signatory::query();
         if ($search) {
-            $signatories = Signatory::where('first_name', 'like', "%{$search}%")
-                ->orWhere('middle_name', 'like', "%{$search}%")
-                ->orWhere('last_name', 'like', "%{$search}%")
-                ->orWhere('designation', 'like', "%{$search}%")
-                ->orWhere('office', 'like', "%{$search}%")
-                ->orWhere('office_address', 'like', "%{$search}%")
-                ->get();
-        } else {
-            $signatories = Signatory::all();
+            $term = trim($search);
+            $query->where(function ($q) use ($term) {
+                $q->where('first_name', 'like', "%{$term}%")
+                    ->orWhere('middle_name', 'like', "%{$term}%")
+                    ->orWhere('last_name', 'like', "%{$term}%")
+                    ->orWhere('designation', 'like', "%{$term}%")
+                    ->orWhere('office', 'like', "%{$term}%")
+                    ->orWhere('office_address', 'like', "%{$term}%");
+            });
         }
+        $signatories = $query->latest()->get();
         
         return view('admin.signatories.index', compact('signatories', 'search'));
     }

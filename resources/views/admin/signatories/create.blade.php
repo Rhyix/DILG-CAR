@@ -17,7 +17,7 @@
             </div>
         @endif
 
-        <form action="{{ route('signatories.store') }}" method="POST" class="bg-white rounded-lg shadow px-6 py-4 mt-4 space-y-6">
+        <form id="signatory-form" action="{{ route('signatories.store') }}" method="POST" class="bg-white rounded-lg shadow px-6 py-4 mt-4 space-y-6">
             @csrf
 
             <div class="grid grid-cols-3 gap-4">
@@ -82,11 +82,31 @@
                 <a href="{{ route('signatories.index') }}" class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
                     Cancel
                 </a>
-                <button type="submit" class="px-6 py-2 bg-[#002C76] text-white rounded-lg hover:bg-blue-900 transition-colors">
+                <button 
+                    @click.prevent="$dispatch('open-confirm-modal')"
+                    type="submit"
+                    class="px-6 py-2 bg-[#002C76] text-white rounded-lg hover:bg-blue-900 transition-colors">
                     Create Signatory
                 </button>
             </div>
         </form>
     </div>
 </div>
+
+<!-- CONFIRMATION MODAL -->
+<x-confirm-modal
+    title="Create Signatory"
+    message="Are you sure you want to create this signatory?"
+    event="open-confirm-modal"
+    confirm="confirm-create-signatory"
+/>
+
+<script>
+    document.addEventListener('confirm-create-signatory', (e) => {
+        e.preventDefault();
+        document.getElementById('signatory-form').submit();
+    })
+
+</script>
+
 @endsection
