@@ -136,7 +136,8 @@
             </div>
             <h2 class="text-2xl font-bold text-gray-900 mb-2">Submission Successful!</h2>
             <p class="text-gray-600 mb-6">Your Personal Data Sheet has been submitted successfully.</p>
-            <button onclick="closeSuccessModal()" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+            <button onclick="closeSuccessModal()" 
+            class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
                 View Submission
             </button>
         </div>

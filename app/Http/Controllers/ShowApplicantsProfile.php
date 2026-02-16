@@ -13,7 +13,7 @@ class ShowApplicantsProfile extends Controller
     {
         logger()->info("Filtering applicants for vacancy: " . $vacancy_id);
 
-        $applications = Applications::with(['vacancy', 'personalInformation'])
+        $applications = Applications::with(['vacancy', 'personalInformation', 'user'])
             ->where('vacancy_id', $vacancy_id)
             ->where('status', 'Pending')
             ->orderByDesc('created_at') // Sort from newest to oldest
@@ -30,7 +30,7 @@ class ShowApplicantsProfile extends Controller
                     ? trim("{$pi->first_name} " .
                         ($pi->middle_name ? strtoupper(substr($pi->middle_name, 0, 1)) . '. ' : '') .
                         "{$pi->surname} {$pi->name_extension}")
-                    : 'N/A',
+                    : ($application->user?->name ?? 'N/A'),
                 'job_applied' => $vacancy->position_title ?? 'N/A',
                 'place_of_assignment' => $vacancy->place_of_assignment ?? 'N/A',
                 'status' => $application->status ?? 'N/A',
@@ -48,7 +48,7 @@ class ShowApplicantsProfile extends Controller
     {
         $sortStatus = $request->input('sort_status');
 
-        $query = Applications::with(['vacancy', 'personalInformation'])
+        $query = Applications::with(['vacancy', 'personalInformation', 'user'])
             ->where('status', '!=', 'Pending')
             ->where('vacancy_id', $vacancy_id); // filter by vacancy_id
 
@@ -75,7 +75,7 @@ class ShowApplicantsProfile extends Controller
                     ? trim("{$pi->first_name} " .
                         ($pi->middle_name ? strtoupper(substr($pi->middle_name, 0, 1)) . '. ' : '') .
                         "{$pi->surname} {$pi->name_extension}")
-                    : 'N/A',
+                    : ($application->user?->name ?? 'N/A'),
                 'job_applied' => $vacancy->position_title ?? 'N/A',
                 'place_of_assignment' => $vacancy->place_of_assignment ?? 'N/A',
                 'status' => $application->status ?? 'N/A',
@@ -94,7 +94,7 @@ class ShowApplicantsProfile extends Controller
         $status = $request->input('sort_status');
         $vacancyId = $request->input('vacancy_id'); // ✅ Add this line
 
-        $query = Applications::with(['vacancy', 'personalInformation'])
+        $query = Applications::with(['vacancy', 'personalInformation', 'user'])
             ->where('status', '!=', 'Pending');
 
         if ($vacancyId) {
@@ -124,7 +124,7 @@ class ShowApplicantsProfile extends Controller
                     ? trim("{$pi->first_name} " .
                         ($pi->middle_name ? strtoupper(substr($pi->middle_name, 0, 1)) . '. ' : '') .
                         "{$pi->surname} {$pi->name_extension}")
-                    : 'N/A',
+                    : ($application->user?->name ?? 'N/A'),
                 'job_applied' => $vacancy->position_title ?? 'N/A',
                 'place_of_assignment' => $vacancy->place_of_assignment ?? 'N/A',
                 'status' => $application->status ?? 'N/A',
@@ -193,7 +193,7 @@ class ShowApplicantsProfile extends Controller
         $sortOrder = $request->input('sort_order', 'latest');
         $vacancyId = $request->input('vacancy_id');
 
-        $query = Applications::with(['vacancy', 'personalInformation'])
+        $query = Applications::with(['vacancy', 'personalInformation', 'user'])
             ->where('vacancy_id', $vacancyId)
             ->where('status', 'Pending');
 
@@ -216,7 +216,7 @@ class ShowApplicantsProfile extends Controller
                     ? trim("{$pi->first_name} " .
                         ($pi->middle_name ? strtoupper(substr($pi->middle_name, 0, 1)) . '. ' : '') .
                         "{$pi->surname} {$pi->name_extension}")
-                    : 'N/A',
+                    : ($application->user?->name ?? 'N/A'),
                 'job_applied' => $vacancy->position_title ?? 'N/A',
                 'place_of_assignment' => $vacancy->place_of_assignment ?? 'N/A',
                 'status' => $application->status ?? 'N/A',
@@ -228,7 +228,7 @@ class ShowApplicantsProfile extends Controller
 
     public function allApplicants($vacancy_id)
     {
-        $applications = Applications::with(['vacancy', 'personalInformation'])
+        $applications = Applications::with(['vacancy', 'personalInformation', 'user'])
             ->where('vacancy_id', $vacancy_id)
             ->orderByDesc('created_at') // Newest first
             ->get();
@@ -244,7 +244,7 @@ class ShowApplicantsProfile extends Controller
                     ? trim("{$pi->first_name} " .
                         ($pi->middle_name ? strtoupper(substr($pi->middle_name, 0, 1)) . '. ' : '') .
                         "{$pi->surname} {$pi->name_extension}")
-                    : 'N/A',
+                    : ($application->user?->name ?? 'N/A'),
                 'job_applied' => $vacancy->position_title ?? 'N/A',
                 'place_of_assignment' => $vacancy->place_of_assignment ?? 'N/A',
                 'status' => $application->status ?? 'N/A',
@@ -260,21 +260,21 @@ class ShowApplicantsProfile extends Controller
     public function manageApplicants(Request $request, $vacancy_id)
     {
         // Get new applicants (Pending status)
-        $newApplications = Applications::with(['vacancy', 'personalInformation'])
+        $newApplications = Applications::with(['vacancy', 'personalInformation', 'user'])
             ->where('vacancy_id', $vacancy_id)
             ->where('status', 'Pending')
             ->orderByDesc('created_at')
             ->get();
 
         // Get compliance applicants
-        $complianceApplications = Applications::with(['vacancy', 'personalInformation'])
+        $complianceApplications = Applications::with(['vacancy', 'personalInformation', 'user'])
             ->where('vacancy_id', $vacancy_id)
             ->where('status', 'Compliance')
             ->orderByDesc('created_at')
             ->get();
 
         // Get qualified applicants
-        $qualifiedApplications = Applications::with(['vacancy', 'personalInformation'])
+        $qualifiedApplications = Applications::with(['vacancy', 'personalInformation', 'user'])
             ->where('vacancy_id', $vacancy_id)
             ->where('status', 'Qualified')
             ->orderByDesc('created_at')
@@ -292,7 +292,7 @@ class ShowApplicantsProfile extends Controller
                     ? trim("{$pi->first_name} " .
                         ($pi->middle_name ? strtoupper(substr($pi->middle_name, 0, 1)) . '. ' : '') .
                         "{$pi->surname} {$pi->name_extension}")
-                    : 'N/A',
+                    : ($application->user?->name ?? 'N/A'),
                 'job_applied' => $vacancy->position_title ?? 'N/A',
                 'place_of_assignment' => $vacancy->place_of_assignment ?? 'N/A',
                 'status' => $application->status ?? 'N/A',
@@ -311,7 +311,7 @@ class ShowApplicantsProfile extends Controller
                     ? trim("{$pi->first_name} " .
                         ($pi->middle_name ? strtoupper(substr($pi->middle_name, 0, 1)) . '. ' : '') .
                         "{$pi->surname} {$pi->name_extension}")
-                    : 'N/A',
+                    : ($application->user?->name ?? 'N/A'),
                 'job_applied' => $vacancy->position_title ?? 'N/A',
                 'place_of_assignment' => $vacancy->place_of_assignment ?? 'N/A',
                 'status' => $application->status ?? 'N/A',
@@ -330,7 +330,7 @@ class ShowApplicantsProfile extends Controller
                     ? trim("{$pi->first_name} " .
                         ($pi->middle_name ? strtoupper(substr($pi->middle_name, 0, 1)) . '. ' : '') .
                         "{$pi->surname} {$pi->name_extension}")
-                    : 'N/A',
+                    : ($application->user?->name ?? 'N/A'),
                 'job_applied' => $vacancy->position_title ?? 'N/A',
                 'place_of_assignment' => $vacancy->place_of_assignment ?? 'N/A',
                 'status' => $application->status ?? 'N/A',
@@ -362,7 +362,7 @@ class ShowApplicantsProfile extends Controller
         $search = $request->input('search');
         $sortOrder = $request->input('sort_order', 'latest');
 
-        $query = Applications::with(['vacancy', 'personalInformation'])
+        $query = Applications::with(['vacancy', 'personalInformation', 'user'])
             ->where('vacancy_id', $vacancyId)
             ->where('status', 'Pending');
 
@@ -395,7 +395,7 @@ class ShowApplicantsProfile extends Controller
                     ? trim("{$pi->first_name} " .
                         ($pi->middle_name ? strtoupper(substr($pi->middle_name, 0, 1)) . '. ' : '') .
                         "{$pi->surname} {$pi->name_extension}")
-                    : 'N/A',
+                    : ($application->user?->name ?? 'N/A'),
                 'job_applied' => $vacancy->position_title ?? 'N/A',
                 'place_of_assignment' => $vacancy->place_of_assignment ?? 'N/A',
                 'status' => $application->status ?? 'N/A',
@@ -411,7 +411,7 @@ class ShowApplicantsProfile extends Controller
         $search = $request->input('search');
         $sortOrder = $request->input('sort_order', 'latest');
 
-        $query = Applications::with(['vacancy', 'personalInformation'])
+        $query = Applications::with(['vacancy', 'personalInformation', 'user'])
             ->where('vacancy_id', $vacancyId)
             ->where('status', 'Compliance');
 
@@ -444,7 +444,7 @@ class ShowApplicantsProfile extends Controller
                     ? trim("{$pi->first_name} " .
                         ($pi->middle_name ? strtoupper(substr($pi->middle_name, 0, 1)) . '. ' : '') .
                         "{$pi->surname} {$pi->name_extension}")
-                    : 'N/A',
+                    : ($application->user?->name ?? 'N/A'),
                 'job_applied' => $vacancy->position_title ?? 'N/A',
                 'place_of_assignment' => $vacancy->place_of_assignment ?? 'N/A',
                 'status' => $application->status ?? 'N/A',
@@ -461,7 +461,7 @@ class ShowApplicantsProfile extends Controller
         $search = $request->input('search');
         // $status filter removed as we only show Qualified here
 
-        $query = Applications::with(['vacancy', 'personalInformation'])
+        $query = Applications::with(['vacancy', 'personalInformation', 'user'])
             ->where('vacancy_id', $vacancyId)
             ->where('status', 'Qualified');
 
@@ -487,7 +487,7 @@ class ShowApplicantsProfile extends Controller
                     ? trim("{$pi->first_name} " .
                         ($pi->middle_name ? strtoupper(substr($pi->middle_name, 0, 1)) . '. ' : '') .
                         "{$pi->surname} {$pi->name_extension}")
-                    : 'N/A',
+                    : ($application->user?->name ?? 'N/A'),
                 'job_applied' => $vacancy->position_title ?? 'N/A',
                 'place_of_assignment' => $vacancy->place_of_assignment ?? 'N/A',
                 'status' => $application->status ?? 'N/A',

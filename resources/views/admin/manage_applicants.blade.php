@@ -16,17 +16,23 @@
                 <h1 class="text-white text-4xl font-montserrat tracking-wide select-none">
                     <span class="whitespace-nowrap text-[#0D2B70]">Manage Applicants</span>
                 </h1>
-                <div class="text-right">
-                    <p class="text-[#0D2B70] text-xl font-semibold">{{ $positionTitle ?? 'Vacancy ' . $vacancyId }}</p>
-                    @if(!empty($vacancyType) || !empty($placeOfAssignment))
-                        <p class="text-[#0D2B70]/70 text-sm italic">
-                            {{ $vacancyType ?? '' }}{{ !empty($vacancyType) && !empty($placeOfAssignment) ? ' • ' : '' }}{{ $placeOfAssignment ?? '' }}
-                        </p>
-                    @endif
-                </div>
             </div>
         </section>
 
+       <!-- Position Title -->
+        <div class="flex-none flex gap-2 px-5">
+            <div class="text-left">
+                <p class="text-[#0D2B70] text-xl font-semibold">
+                    {{ $positionTitle ?? 'Vacancy ' . $vacancyId }}
+                    @if(!empty($vacancyType) || !empty($placeOfAssignment))
+                        <span class="text-[#0D2B70]/70 text-sm italic font-normal">
+                            • {{ $vacancyType ?? '' }}{{ !empty($vacancyType) && !empty($placeOfAssignment) ? ' • ' : '' }}{{ $placeOfAssignment ?? '' }}
+                        </span>
+                    @endif
+                </p>
+            </div>
+        </div>
+        
         <!-- Tab Navigation -->
         <div class="flex-none flex gap-2 border-b border-[#0D2B70]">
             <button id="tab-new" onclick="switchTab('new')"
@@ -60,11 +66,12 @@
 
         <!-- Tab Content: New Applicants -->
         <div id="content-new" class="tab-content flex-1 flex flex-col min-h-0 overflow-hidden">
-            <div class="flex-none flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+            <!-- Search and Sort - Both Aligned Left -->
+            <div class="flex-none flex flex-wrap items-end gap-6 mb-4">
                 <!-- Search Bar -->
-                <form onsubmit="return false;" class="relative w-full max-w-xs">
+                <form onsubmit="return false;" class="relative">
                     <input id="searchInputNew" type="search" placeholder="Search applicants" aria-label="Search"
-                        class="pl-10 pr-4 py-1.5 rounded-full border border-[#0D2B70] placeholder:text-[#7D93B3] placeholder:font-semibold text-[#0D2B70] focus:outline-none focus:ring-2 focus:ring-[#0D2B70] focus:ring-offset-1" />
+                        class="pl-10 pr-4 py-1.5 rounded-full border border-[#0D2B70] placeholder:text-[#7D93B3] placeholder:font-semibold text-[#0D2B70] focus:outline-none focus:ring-2 focus:ring-[#0D2B70] focus:ring-offset-1 w-[300px]" />
                     <svg xmlns="http://www.w3.org/2000/svg"
                         class="w-5 h-5 text-[#7D93B3] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
                         fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -74,10 +81,10 @@
                 </form>
 
                 <!-- Sort Dropdown -->
-                <div class="flex flex-col gap-2">
+                <div class="flex flex-col gap-1">
                     <label for="sortOrderNew" class="font-semibold text-[#0D2B70] text-sm">Sort By</label>
                     <select aria-label="Sort by date" id="sortOrderNew"
-                        class="rounded-md text-[#0D2B70] p-2 px-3 font-semibold cursor-pointer border border-[#0D2B70]">
+                        class="rounded-md text-[#0D2B70] py-1.5 px-3 font-semibold cursor-pointer border border-[#0D2B70] w-[150px]">
                         <option value="latest">Latest</option>
                         <option value="oldest">Oldest</option>
                     </select>
@@ -91,14 +98,10 @@
                         <thead class="bg-[#0D2B70] text-white sticky top-0 z-10">
                             <tr>
                                 <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-left w-[20%]">Name</th>
-                                <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-left w-[25%]">Job
-                                    Applied</th>
-                                <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-left w-[25%]">Place of
-                                    Assignment</th>
-                                <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-left w-[15%]">Status
-                                </th>
-                                <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-center w-[15%]">Actions
-                                </th>
+                                <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-left w-[25%]">Job Applied</th>
+                                <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-left w-[25%]">Place of Assignment</th>
+                                <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-left w-[15%]">Status</th>
+                                <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-center w-[15%]">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="new-applicants-list" class="divide-y divide-[#0D2B70]">
@@ -108,8 +111,7 @@
                                     <td class="py-4 px-6 text-left w-[25%]">{{ $applicant['job_applied'] }}</td>
                                     <td class="py-4 px-6 text-left w-[25%]">{{ $applicant['place_of_assignment'] }}</td>
                                     <td class="py-4 px-6 text-left w-[15%]">
-                                        <span
-                                            class="px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">
+                                        <span class="px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">
                                             {{ $applicant['status'] }}
                                         </span>
                                     </td>
@@ -137,11 +139,12 @@
 
         <!-- Tab Content: Compliance -->
         <div id="content-compliance" class="tab-content hidden flex-1 flex flex-col min-h-0 overflow-hidden">
-            <div class="flex-none flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+            <!-- Search and Sort - Both Aligned Left -->
+            <div class="flex-none flex flex-wrap items-end gap-6 mb-4">
                 <!-- Search Bar -->
-                <form onsubmit="return false;" class="relative w-full max-w-xs">
+                <form onsubmit="return false;" class="relative">
                     <input id="searchInputCompliance" type="search" placeholder="Search applicants" aria-label="Search"
-                        class="pl-10 pr-4 py-1.5 rounded-full border border-[#0D2B70] placeholder:text-[#7D93B3] placeholder:font-semibold text-[#0D2B70] focus:outline-none focus:ring-2 focus:ring-[#0D2B70] focus:ring-offset-1" />
+                        class="pl-10 pr-4 py-1.5 rounded-full border border-[#0D2B70] placeholder:text-[#7D93B3] placeholder:font-semibold text-[#0D2B70] focus:outline-none focus:ring-2 focus:ring-[#0D2B70] focus:ring-offset-1 w-[300px]" />
                     <svg xmlns="http://www.w3.org/2000/svg"
                         class="w-5 h-5 text-[#7D93B3] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
                         fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -151,10 +154,10 @@
                 </form>
 
                 <!-- Sort Dropdown -->
-                <div class="flex flex-col gap-2">
+                <div class="flex flex-col gap-1">
                     <label for="sortOrderCompliance" class="font-semibold text-[#0D2B70] text-sm">Sort By</label>
                     <select aria-label="Sort by date" id="sortOrderCompliance"
-                        class="rounded-md text-[#0D2B70] p-2 px-3 font-semibold cursor-pointer border border-[#0D2B70]">
+                        class="rounded-md text-[#0D2B70] py-1.5 px-3 font-semibold cursor-pointer border border-[#0D2B70] w-[150px]">
                         <option value="latest">Latest</option>
                         <option value="oldest">Oldest</option>
                     </select>
@@ -168,14 +171,10 @@
                         <thead class="bg-[#0D2B70] text-white sticky top-0 z-10">
                             <tr>
                                 <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-left w-[20%]">Name</th>
-                                <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-left w-[25%]">Job
-                                    Applied</th>
-                                <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-left w-[25%]">Place of
-                                    Assignment</th>
-                                <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-left w-[15%]">Status
-                                </th>
-                                <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-center w-[15%]">Actions
-                                </th>
+                                <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-left w-[25%]">Job Applied</th>
+                                <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-left w-[25%]">Place of Assignment</th>
+                                <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-left w-[15%]">Status</th>
+                                <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-center w-[15%]">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="compliance-applicants-list" class="divide-y divide-[#0D2B70]">
@@ -185,8 +184,7 @@
                                     <td class="py-4 px-6 text-left w-[25%]">{{ $applicant['job_applied'] }}</td>
                                     <td class="py-4 px-6 text-left w-[25%]">{{ $applicant['place_of_assignment'] }}</td>
                                     <td class="py-4 px-6 text-left w-[15%]">
-                                        <span
-                                            class="px-3 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-800">
+                                        <span class="px-3 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-800">
                                             {{ $applicant['status'] }}
                                         </span>
                                     </td>
@@ -214,11 +212,12 @@
 
         <!-- Tab Content: Qualified Applicants -->
         <div id="content-qualified" class="tab-content hidden flex-1 flex flex-col min-h-0 overflow-hidden">
-            <div class="flex-none flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+            <!-- Search and Sort - Both Aligned Left -->
+            <div class="flex-none flex flex-wrap items-end gap-6 mb-4">
                 <!-- Search Bar -->
-                <form onsubmit="return false;" class="relative w-full max-w-xs">
+                <form onsubmit="return false;" class="relative">
                     <input id="searchInputQualified" type="search" placeholder="Search applicants" aria-label="Search"
-                        class="pl-10 pr-4 py-1.5 rounded-full border border-[#0D2B70] placeholder:text-[#7D93B3] placeholder:font-semibold text-[#0D2B70] focus:outline-none focus:ring-2 focus:ring-[#0D2B70] focus:ring-offset-1" />
+                        class="pl-10 pr-4 py-1.5 rounded-full border border-[#0D2B70] placeholder:text-[#7D93B3] placeholder:font-semibold text-[#0D2B70] focus:outline-none focus:ring-2 focus:ring-[#0D2B70] focus:ring-offset-1 w-[300px]" />
                     <svg xmlns="http://www.w3.org/2000/svg"
                         class="w-5 h-5 text-[#7D93B3] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
                         fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -226,10 +225,12 @@
                             d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
                     </svg>
                 </form>
-                <div class="flex flex-col gap-2">
+
+                <!-- Sort Dropdown -->
+                <div class="flex flex-col gap-1">
                     <label for="sortOrderQualified" class="font-semibold text-[#0D2B70] text-sm">Sort By</label>
                     <select aria-label="Sort by date" id="sortOrderQualified"
-                        class="rounded-md text-[#0D2B70] p-2 px-3 font-semibold cursor-pointer border border-[#0D2B70]">
+                        class="rounded-md text-[#0D2B70] py-1.5 px-3 font-semibold cursor-pointer border border-[#0D2B70] w-[150px]">
                         <option value="latest">Latest</option>
                         <option value="oldest">Oldest</option>
                     </select>
@@ -243,12 +244,9 @@
                         <thead class="bg-[#0D2B70] text-white sticky top-0 z-10">
                             <tr>
                                 <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-left w-[30%]">Name</th>
-                                <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-left w-[30%]">Job
-                                    Applied</th>
-                                <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-left w-[25%]">Place of
-                                    Assignment</th>
-                                <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-center w-[15%]">Actions
-                                </th>
+                                <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-left w-[30%]">Job Applied</th>
+                                <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-left w-[25%]">Place of Assignment</th>
+                                <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-center w-[15%]">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="qualified-applicants-list" class="divide-y divide-[#0D2B70]">
