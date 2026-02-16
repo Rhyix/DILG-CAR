@@ -370,7 +370,7 @@
                     const targets = scopeEl.querySelectorAll('input.edu-date');
                     targets.forEach(el => {
                         if (el.dataset.fpApplied === '1') return;
-                        flatpickr(el, { dateFormat: "Y-m-d", allowInput: true });
+                        flatpickr(el, { dateFormat: "d-m-Y", allowInput: true });
                         el.dataset.fpApplied = '1';
                     });
                 } catch (e) {}

@@ -710,10 +710,10 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
-    flatpickr("#date_of_birth", {dateFormat: "Y-m-d", allowInput: true});
+    flatpickr("#date_of_birth", {dateFormat: "d-m-Y", allowInput: true});
     document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.edu-date').forEach(function(el) {
-            flatpickr(el, {dateFormat: "Y-m-d", allowInput: true});
+            flatpickr(el, {dateFormat: "d-m-Y", allowInput: true});
         });
     });
 </script>

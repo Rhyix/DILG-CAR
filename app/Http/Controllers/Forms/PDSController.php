@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Forms;
 
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Storage;
 use App\Models;
 use App\Models\MiscInfos;
@@ -24,6 +25,52 @@ class PDSController extends Controller
 {
     private const SEPARATOR = '/|/';
 
+    private function normalizeDateForForm(?string $value): ?string
+    {
+        if (empty($value)) {
+            return $value;
+        }
+
+        if (preg_match('/^\d{2}-\d{2}-\d{4}$/', $value)) {
+            return $value;
+        }
+
+        try {
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+                return Carbon::createFromFormat('Y-m-d', $value)->format('d-m-Y');
+            }
+
+            if (preg_match('/^\d{4}-\d{2}$/', $value)) {
+                return Carbon::createFromFormat('Y-m', $value)->format('01-m-Y');
+            }
+        } catch (\Throwable $e) {
+            return $value;
+        }
+
+        return $value;
+    }
+
+    private function normalizeDateForDatabase(?string $value): ?string
+    {
+        if (empty($value)) {
+            return $value;
+        }
+
+        try {
+            if (preg_match('/^\d{2}-\d{2}-\d{4}$/', $value)) {
+                return Carbon::createFromFormat('d-m-Y', $value)->format('Y-m-d');
+            }
+
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+                return Carbon::createFromFormat('Y-m-d', $value)->format('Y-m-d');
+            }
+        } catch (\Throwable $e) {
+            return $value;
+        }
+
+        return $value;
+    }
+
     /**
      * Updates the C1 session data based on the database .If there is no data on the database,
      * the function should return an empty array.
@@ -36,6 +83,7 @@ class PDSController extends Controller
         $current_user = Auth::user();
         $user_personal_info = $current_user->personalInformation?->attributesToArray();
         if ($user_personal_info != null) {
+            $user_personal_info['date_of_birth'] = $this->normalizeDateForForm($user_personal_info['date_of_birth'] ?? null);
 
             [
                 $user_personal_info['res_house_no'],
@@ -85,6 +133,9 @@ class PDSController extends Controller
 
         $user_educational_bg = $current_user->educationalBackground?->attributesToArray();
         if ($user_educational_bg != null) {
+            foreach (['elem_from', 'elem_to', 'jhs_from', 'jhs_to'] as $dateField) {
+                $user_educational_bg[$dateField] = $this->normalizeDateForForm($user_educational_bg[$dateField] ?? null);
+            }
 
             foreach (['vocational', 'college', 'grad'] as $_key) {
                 $c1_full_info[$_key] = $user_educational_bg[$_key];
@@ -146,7 +197,7 @@ class PDSController extends Controller
             'middle_name' => 'nullable|max:255|string',
             'name_extension' => 'nullable|max:255|string',
             'civil_status' => 'required|string|in:single,married,widowed,separated,other',
-            'date_of_birth' => 'required|date_format:Y-m-d',
+            'date_of_birth' => 'required|date_format:d-m-Y',
             'place_of_birth' => 'required|max:255|string',
             'citizenship' => 'required|max:255|in:Filipino,Dual Citizenship',
             'sex' => 'required|in:male,female',
@@ -156,12 +207,22 @@ class PDSController extends Controller
             'email_address' => 'required|email:rfc',
             'height' => 'required|integer|max:999',
             'weight' => 'required|integer|max:999',
-            'elem_from' => 'required|date_format:Y-m-d',
-            'elem_to' => 'required|date_format:Y-m-d',
-            'jhs_from' => 'required|date_format:Y-m-d',
-            'jhs_to' => 'required|date_format:Y-m-d',
+            'elem_from' => 'required|date_format:d-m-Y',
+            'elem_to' => 'required|date_format:d-m-Y',
+            'jhs_from' => 'required|date_format:d-m-Y',
+            'jhs_to' => 'required|date_format:d-m-Y',
 
+        ], [
+            'date_of_birth.date_format' => 'The date of birth field must match the format dd-mm-yyyy.',
+            'elem_from.date_format' => 'The elem from field must match the format dd-mm-yyyy.',
+            'elem_to.date_format' => 'The elem to field must match the format dd-mm-yyyy.',
+            'jhs_from.date_format' => 'The jhs from field must match the format dd-mm-yyyy.',
+            'jhs_to.date_format' => 'The jhs to field must match the format dd-mm-yyyy.',
         ]);
+
+        foreach (['date_of_birth', 'elem_from', 'elem_to', 'jhs_from', 'jhs_to'] as $dateField) {
+            $c1_form_data_valid[$dateField] = $this->normalizeDateForForm($c1_form_data_valid[$dateField] ?? null);
+        }
 
         // get all key-value pairs for non validated fields.
         $c1_form_data = $request->except([
@@ -1057,7 +1118,7 @@ class PDSController extends Controller
             'middle_name' => $c1_form_data['middle_name'],
             'sex' => $c1_form_data['sex'],
             'civil_status' => $c1_form_data['civil_status'],
-            'date_of_birth' => $c1_form_data['date_of_birth'],
+            'date_of_birth' => $this->normalizeDateForDatabase($c1_form_data['date_of_birth']),
             'place_of_birth' => $c1_form_data['place_of_birth'],
             'height' => $c1_form_data['height'],
             'weight' => $c1_form_data['weight'],
