@@ -5,14 +5,28 @@
     <div class="flex flex-col h-full gap-3 md:gap-4 overflow-hidden">
 
         <!-- Welcome Section -->
-        <section class="shrink-0">
-            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-1 sm:gap-2">
-                <p class="text-sm sm:text-base md:text-lg font-normal text-gray-800 font-montserrat">Welcome!</p>
-                <h1
-                    class="text-sm sm:text-base md:text-lg font-bold text-[#002C76] uppercase font-montserrat tracking-wide">
-                    {{ auth('admin')->user()->name ?? 'Admin' }}
-                </h1>
+        <!-- dynamic message eyyy💅 -->
+        <section class="text-center sm:text-left">
+            <div class="text-xl font-normal mb-1 font-montserrat text-[#002C76]">
+                @php
+                    $hour = now()->format('H');
+                    
+                    if ($hour >= 5 && $hour < 12) {
+                        $greeting = 'Good morning';
+                    } elseif ($hour >= 12 && $hour < 17) {
+                        $greeting = 'Good afternoon';
+                    } elseif ($hour >= 17 && $hour < 21) {
+                        $greeting = 'Good evening';
+                    } else {
+                        $greeting = 'Good night';
+                    }
+                @endphp
+                
+                {{ $greeting }},
             </div>
+            <h1 class="font-extrabold text-2xl sm:text-3xl tracking-tight font-montserrat text-[#002C76]">
+                    {{ auth('admin')->user()->name ?? 'Admin' }}
+            </h1>
         </section>
 
         <!-- Key Metrics Grid -->

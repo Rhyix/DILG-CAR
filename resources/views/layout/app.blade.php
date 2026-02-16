@@ -186,7 +186,8 @@
                     </div>
                 </div>
             </header>
-            <div class="p-3 sm:p-10 pt-8 mt-0 sm:mt-1 space-y-10">
+            <!-- <div class="p-3 sm:p-10 pt-8 mt-0 sm:mt-1 space-y-10"> -->
+            <div class="mt-0 sm:mt-1 space-y-10">
             @yield('content')
             </div>
         </main>

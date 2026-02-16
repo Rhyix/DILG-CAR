@@ -61,209 +61,180 @@
     }
 </style>
 
-<main class="mt-7 sm:mt-0 flex-1 min-w-0 space-y-10 bg-[#F3F8FF] font-sans text-gray-900 overflow-x-hidden p-6" style="margin-top: 0">
-    <!-- Welcome Section -->
+<main class="mt-7 sm:mt-0 flex-1 min-w-0 bg-[#F3F8FF] font-sans text-gray-900 overflow-hidden h-screen px-4 lg:px-6 py-4" style="margin-top: 0">
+    
+    <!-- dynamic message eyyy💅 -->
     <section class="text-center sm:text-left">
-        <div class="text-xl font-normal mb-1 font-montserrat">Welcome,</div>
-        <h1 class="font-extrabold text-2xl sm:text-3xl tracking-tight font-montserrat">{{ Auth::user()->name }}</h1>
+        <div class="text-xl font-normal mb-1 font-montserrat text-[#002C76]">
+            @php
+                $hour = now()->format('H');
+                
+                if ($hour >= 5 && $hour < 12) {
+                    $greeting = 'Good morning';
+                } elseif ($hour >= 12 && $hour < 17) {
+                    $greeting = 'Good afternoon';
+                } elseif ($hour >= 17 && $hour < 21) {
+                    $greeting = 'Good evening';
+                } else {
+                    $greeting = 'Good night';
+                }
+            @endphp
+            
+            {{ $greeting }},
+        </div>
+        <h1 class="font-extrabold text-2xl sm:text-3xl tracking-tight font-montserrat text-[#002C76]">{{ Auth::user()->name }}</h1>
     </section>
 
-    <section class="grid grid-cols-12 gap-6 w-full">
-
-        <!-- My Job Applications -->
-        <article class="col-span-12 sm:col-span-7 rounded-xl bg-white text-[#002C76] border-4 border-[#002C76] p-8 flex flex-col gap-4">
-            <h2 class="text-base sm:text-2xl font-extrabold flex items-center gap-3 font-montserrat">
-                <i class="w-5 h-5" data-feather="clipboard"></i> MY JOB APPLICATIONS
-            </h2>
-            <div class="text-sm sm:text-base font-normal leading-relaxed font-montserrat space-y-1">
-                @forelse($applications->filter(fn($app) => strtolower($app->status) !== 'closed') as $application)
-                    <p>{{ $application->vacancy->position_title ?? 'N/A' }}</p>
-                @empty
-                    <p>You have not applied to any vacancies yet.</p>
-                @endforelse
-            </div>
-            <button onclick="window.location.href='{{ route('my_applications') }}'"
-                class="use-loader mt-3 inline-flex items-center font-montserrat gap-2 rounded-full bg-green-600 text-white px-5 py-2 text-sm font-medium shadow-sm hover:bg-opacity-90 transition w-fit">
-                <i data-feather="eye" class="w-4 h-4"></i> View Your Job Applications
-            </button>
-        </article>
-
-        <!-- Deadline of Applications -->
+    <section class="space-y-3">
         @php
-            use Carbon\Carbon;
-
-            $applicationsWithDeadlines = $applications
-                ->filter(fn($app) => $app->deadline_date && $app->deadline_time && strtolower($app->status) !== 'closed')
-                ->sortBy(fn($app) => Carbon::parse($app->deadline_date . ' ' . $app->deadline_time))
-                ->take(3);
+            $activeApplicationsCount = $applications->filter(fn($a) => strtolower($a->status) !== 'closed')->count();
+            $deadlinesSoonCount = collect($deadlineCountdown ?? [])->filter(fn($d) => ($d['days_remaining'] ?? 999) >= 0 && ($d['days_remaining'] ?? 999) <= 7)->count();
+            $upcomingExamsCount = ($upcomingExams ?? collect())->count();
+            $pdsPercent = (int) ($pdsProgress ?? 0);
         @endphp
-
-        <article class="col-span-12 sm:col-span-5 bg-white border-4 border-[#002C76] rounded-xl p-6 flex flex-col gap-4">
-            <h2 class="text-base sm:text-xl font-extrabold flex items-center gap-3 font-montserrat text-[#C9282D]">
-                <i class="w-5 h-5" data-feather="check-square"></i> DEADLINE OF APPLICATIONS
-            </h2>
-
-            @if ($applicationsWithDeadlines->isNotEmpty())
-                @foreach ($applicationsWithDeadlines as $app)
-                    @php
-                        $deadline = Carbon::parse($app->deadline_date . ' ' . $app->deadline_time);
-                        $isPastDeadline = now()->greaterThan($deadline);
-                    @endphp
-                    <div>
-                        <p class="text-sm sm:text-base font-bold font-montserrat">
-                            {{ $deadline->format('F d, Y') }} | {{ $deadline->format('h:i A') }}
-                        </p>
-                        <p class="uppercase text-xs sm:text-sm tracking-wide font-montserrat">
-                            {{ $app->vacancy->position_title }}
-                            @if ($isPastDeadline)
-                                — <span class="text-red-700 font-semibold">Past Deadline</span>
-                            @endif
-                        </p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div class="bg-white border border-gray-200 rounded-xl p-3 flex items-center justify-between">
+                <div>
+                    <p class="text-xs text-gray-500 uppercase font-bold">Active Applications</p>
+                    <p class="text-2xl font-extrabold text-[#0D2B70]">{{ $activeApplicationsCount }}</p>
+                </div>
+                <i data-feather="clipboard" class="w-6 h-6 text-[#0D2B70]"></i>
+            </div>
+            <div class="bg-white border border-gray-200 rounded-xl p-3 flex items-center justify-between">
+                <div>
+                    <p class="text-xs text-gray-500 uppercase font-bold">Deadlines (≤7d)</p>
+                    <p class="text-2xl font-extrabold text-[#0D2B70]">{{ $deadlinesSoonCount }}</p>
+                </div>
+                <i data-feather="clock" class="w-6 h-6 text-[#0D2B70]"></i>
+            </div>
+            <div class="bg-white border border-gray-200 rounded-xl p-3 flex items-center justify-between">
+                <div>
+                    <p class="text-xs text-gray-500 uppercase font-bold">Upcoming Exams</p>
+                    <p class="text-2xl font-extrabold text-[#0D2B70]">{{ $upcomingExamsCount }}</p>
+                </div>
+                <i data-feather="calendar" class="w-6 h-6 text-[#0D2B70]"></i>
+            </div>
+            <div class="bg-white border border-gray-200 rounded-xl p-3">
+                <p class="text-xs text-gray-500 uppercase font-bold">PDS Completion</p>
+                <div class="mt-2 flex items-center gap-3">
+                    <div class="flex-1 bg-gray-200 h-2 rounded-full">
+                        <div class="bg-[#0D2B70] h-2 rounded-full" style="width: {{ $pdsPercent }}%"></div>
                     </div>
-                @endforeach
-            @else
-                <p class="text-sm text-gray-700 font-montserrat">You haven't applied to any vacancies with deadlines yet.</p>
-            @endif
-        </article>
-
-        <!-- Job Vacancies -->
-        <article class="col-span-12 sm:col-span-7 rounded-xl bg-white border-4 border-[#002C76] p-8 flex flex-col text-[#002C76] min-h-[360px]">
-            <h2 class="text-base sm:text-2xl font-extrabold flex items-center gap-3 font-montserrat mb-2">
-                <i class="w-5 h-5" data-feather="box"></i> JOB VACANCIES
-            </h2>
-            <div class="flex-1 text-sm sm:text-base font-normal leading-relaxed space-y-1 font-montserrat">
-                @forelse ($vacancies as $vacancy)
-                    <p>{{ $vacancy->position_title }}</p>
-                @empty
-                    <p>No open vacancies available at the moment.</p>
-                @endforelse
-            </div>
-            <div class="mt-5">
-                <button onclick="window.location.href='{{ route('job_vacancy') }}'"
-                    class="use-loader inline-flex items-center gap-2 rounded-full font-montserrat bg-blue-600 text-white px-5 py-2 text-sm font-medium shadow-sm hover:bg-opacity-90 transition w-fit">
-                    <i data-feather="search" class="w-4 h-4"></i> Browse All Job Vacancies
-                </button>
-            </div>
-        </article>
-
-        <!-- Personal Data Sheet -->
-        <article class="col-span-12 sm:col-span-5 rounded-xl bg-white border-4 border-[#002C76] p-8 flex flex-col gap-4">
-            <button type="button" id="pdsDropdownToggle" class="text-left text-base sm:text-3xl font-extrabold flex items-center justify-between gap-3 font-montserrat text-[#002C76]">
-                <span class="flex items-center gap-3">
-                    <i class="w-5 h-5" data-feather="file"></i> PERSONAL DATA SHEET
-                </span>
-                <i class="w-5 h-5" data-feather="chevron-down"></i>
-            </button>
-            <div id="pdsDropdown" class="hidden mt-2 bg-blue-50 rounded-lg p-2">
-                <div class="space-y-1">
-                    <a href="{{ route('display_c1', ['simple' => 1]) }}" class="flex items-center rounded-md px-3 py-2 text-sm font-semibold transition text-[#002C76] hover:text-white hover:bg-[#002C76]">
-                        <i data-feather="user" class="w-4 h-4 stroke-[3] flex-shrink-0"></i>
-                        <span class="ml-3">Personal Information</span>
-                    </a>
-                    <a href="{{ route('display_c2', ['simple' => 1]) }}" class="flex items-center rounded-md px-3 py-2 text-sm font-semibold transition text-[#002C76] hover:text-white hover:bg-[#002C76]">
-                        <i data-feather="briefcase" class="w-4 h-4 stroke-[3] flex-shrink-0"></i>
-                        <span class="ml-3">Work Experience</span>
-                    </a>
-                    <a href="{{ route('display_c3', ['simple' => 1]) }}" class="flex items-center rounded-md px-3 py-2 text-sm font-semibold transition text-[#002C76] hover:text-white hover:bg-[#002C76]">
-                        <i data-feather="book-open" class="w-4 h-4 stroke-[3] flex-shrink-0"></i>
-                        <span class="ml-3">Learning & Development</span>
-                    </a>
-                    <a href="{{ route('display_c4', ['simple' => 1]) }}" class="flex items-center rounded-md px-3 py-2 text-sm font-semibold transition text-[#002C76] hover:text-white hover:bg-[#002C76]">
-                        <i data-feather="info" class="w-4 h-4 stroke-[3] flex-shrink-0"></i>
-                        <span class="ml-3">Other Information</span>
-                    </a>
-                    <a href="{{ route('display_wes', ['simple' => 1]) }}" class="flex items-center rounded-md px-3 py-2 text-sm font-semibold transition text-[#002C76] hover:text-white hover:bg-[#002C76]">
-                        <i data-feather="briefcase" class="w-4 h-4 stroke-[3] flex-shrink-0"></i>
-                        <span class="ml-3">Work Experience Sheet</span>
-                    </a>
-                    <a href="{{ route('display_c5', ['simple' => 1]) }}" class="flex items-center rounded-md px-3 py-2 text-sm font-semibold transition text-[#002C76] hover:text-white hover:bg-[#002C76]">
-                        <i data-feather="upload" class="w-4 h-4 stroke-[3] flex-shrink-0"></i>
-                        <span class="ml-3">Upload PDF</span>
-                    </a>
+                    <span class="text-sm font-bold text-[#0D2B70]">{{ $pdsPercent }}%</span>
                 </div>
             </div>
-
-            <!-- Progress Bar -->
-            <div class="w-full bg-gray-200 h-2 rounded-full">
-                <div class="bg-green-500 h-2 rounded-full transition-all duration-300" style="width: {{ $pdsProgress }}%"></div>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-3">
+            <div class="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-3">
+                <article class="bg-white border border-gray-200 rounded-xl p-4">
+                    <div class="flex items-center gap-3 mb-3">
+                        <i class="w-5 h-5 text-[#0D2B70]" data-feather="briefcase"></i>
+                        <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">My Applications</span>
+                    </div>
+                    <div class="space-y-2 text-sm text-[#0D2B70] max-h-36 overflow-hidden">
+                        @php $apps = $applications->filter(fn($a)=> strtolower($a->status) !== 'closed')->take(3); @endphp
+                        @forelse($apps as $a)
+                            <div class="flex items-center justify-between border border-blue-100 rounded-md px-3 py-2">
+                                <span class="font-semibold">{{ $a->vacancy->position_title ?? 'N/A' }}</span>
+                                <span class="text-xs px-2 py-0.5 rounded-full {{ strtolower($a->status) === 'pending' ? 'bg-yellow-50 text-yellow-700' : (strtolower($a->status)==='hired' ? 'bg-green-50 text-green-700' : 'bg-blue-50 text-[#0D2B70]') }}">{{ $a->status }}</span>
+                            </div>
+                        @empty
+                            <p class="text-gray-600">You have no active applications.</p>
+                        @endforelse
+                    </div>
+                    <button onclick="window.location.href='{{ route('my_applications') }}'"
+                        class="use-loader mt-4 inline-flex items-center gap-2 rounded-md border border-[#0D2B70] text-[#0D2B70] px-4 py-2 text-sm font-bold hover:bg-[#0D2B70] hover:text-white transition">
+                        <i data-feather="eye" class="w-4 h-4"></i>
+                        <span>View Applications</span>
+                    </button>
+                </article>
+                <article class="bg-white border border-gray-200 rounded-xl p-4">
+                    <div class="flex items-center gap-3 mb-3">
+                        <i class="w-5 h-5 text-[#0D2B70]" data-feather="clock"></i>
+                        <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Application Deadlines</span>
+                    </div>
+                    <div class="space-y-2 text-sm text-[#0D2B70] max-h-36 overflow-hidden">
+                        @forelse(collect($deadlineCountdown ?? [])->take(3) as $item)
+                            @php
+                                $days = $item['days_remaining'];
+                                $badge = $days <= 3 ? 'text-red-700' : ($days <= 7 ? 'text-yellow-600' : 'text-green-600');
+                                $label = $days <= 3 ? 'Urgent' : ($days <= 7 ? 'Upcoming' : 'Plenty of time');
+                            @endphp
+                            <div class="border border-blue-100 rounded-md p-3">
+                                <p class="font-bold">{{ $item['position_title'] }}</p>
+                                <p class="text-xs">Due {{ \Carbon\Carbon::parse($item['deadline'])->format('F d, Y h:i A') }}</p>
+                                <p class="text-xs {{ $badge }}">{{ $label }} ({{ $days }} days)</p>
+                            </div>
+                        @empty
+                            <p class="text-gray-600">No active application deadlines.</p>
+                        @endforelse
+                    </div>
+                </article>
             </div>
-            <p class="text-sm text-gray-600 font-montserrat">{{ $pdsProgress }}% PDS Completed</p>
-
-            <!-- Status Info + Checklist -->
-            <div class="text-sm font-montserrat space-y-3 bg-blue-50 p-4 rounded-lg text-[#002C76]">
-                <p>
-                    <strong>Status:</strong>
-                    @if ((int) $pdsProgress == 100)
-                        <span class="text-green-600">Completed</span>
-                    @elseif ((int) $pdsProgress >= 50)
-                        <span class="text-yellow-600">In Progress</span>
-                    @else
-                        <span class="text-red-600">Incomplete</span>
-                    @endif
-                </p>
-                <p><strong>Last Updated:</strong> 
-                    {{ Auth::user()->updated_at ? \Carbon\Carbon::parse(Auth::user()->updated_at)->format('F j, Y') : 'N/A' }}
-                </p>
-
-
-                <!-- Checklist -->
-                <div class="pt-3 border-t border-blue-200 mt-3">
-                    <p class="font-bold text-sm mb-2">Required Forms:</p>
-                    <ul class="space-y-2 text-sm">
-                        <li class="flex items-center gap-2">
-                            <label class="flex items-center gap-2 cursor-not-allowed">
-                                <input type="checkbox" disabled {{ $hasPDS ? 'checked' : '' }} class="peer hidden">
-                                <div class="w-4 h-4 rounded border border-gray-400 flex items-center justify-center peer-checked:bg-green-500">
-                                    <svg class="hidden peer-checked:block w-3 h-3 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                        <path d="M5 13l4 4L19 7" />
-                                    </svg>
-                                </div>
-                                <span>Personal Data Sheet</span>
-                            </label>
-                        </li>
-                        <li class="flex items-center gap-2">
-                            <label class="flex items-center gap-2 cursor-not-allowed">
-                                <input type="checkbox" disabled {{ $hasWES ? 'checked' : '' }} class="peer hidden">
-                                <div class="w-4 h-4 rounded border border-gray-400 flex items-center justify-center peer-checked:bg-green-500">
-                                    <svg class="hidden peer-checked:block w-3 h-3 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                        <path d="M5 13l4 4L19 7" />
-                                    </svg>
-                                </div>
-                                <span>Work Experience Sheet</span>
-                            </label>
-                        </li>
-                    </ul>
-                </div>
+            <div class="grid grid-cols-1 gap-3">
+                <article class="bg-white border border-gray-200 rounded-xl p-4">
+                    <div class="flex items-center gap-3 mb-2">
+                        <i class="w-5 h-5 text-[#0D2B70]" data-feather="file-text"></i>
+                        <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Required Documents</span>
+                    </div>
+                    @php
+                        $docs = collect($documentStatusSummary ?? []);
+                        $completed = $docs->filter(fn($d) => in_array(strtolower($d['status']), ['completed', 'verified', 'okay/confirmed']));
+                        $percent = $docs->count() ? round(($completed->count() / $docs->count()) * 100) : 0;
+                    @endphp
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="flex-1 bg-gray-200 h-2 rounded-full">
+                            <div class="bg-[#0D2B70] h-2 rounded-full" style="width: {{ $percent }}%"></div>
+                        </div>
+                        <span class="text-xs font-semibold text-[#0D2B70]">{{ $percent }}%</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 text-xs max-h-24 overflow-hidden">
+                        @foreach ($docs->take(6) as $doc)
+                            <div class="flex items-center justify-between bg-blue-50 rounded-md px-3 py-2">
+                                <span class="font-semibold">{{ ucwords(str_replace('_',' ',$doc['type'])) }}</span>
+                                <span class="{{ in_array(strtolower($doc['status']), ['completed','verified','okay/confirmed']) ? 'text-green-600' : 'text-yellow-600' }}">{{ $doc['status'] }}</span>
+                            </div>
+                        @endforeach
+                    </div>
+                </article>
+                <article class="bg-white border border-gray-200 rounded-xl p-4">
+                    <div class="flex items-center gap-3 mb-3">
+                        <i class="w-5 h-5 text-[#0D2B70]" data-feather="bell"></i>
+                        <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Notifications</span>
+                    </div>
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="text-xs text-[#0D2B70] font-semibold">Unread:</span>
+                        <span class="text-xs font-bold {{ ($unreadNotificationsCount ?? 0) > 0 ? 'text-red-700' : 'text-gray-500' }}">{{ $unreadNotificationsCount ?? 0 }}</span>
+                    </div>
+                    <div class="space-y-2 max-h-36 overflow-hidden">
+                        @forelse(collect($recentNotifications ?? [])->take(3) as $n)
+                            @php $data = $n->data ?? []; @endphp
+                            <div class="border border-blue-100 rounded-md p-3 text-sm text-[#0D2B70]">
+                                <p class="font-bold">{{ $data['title'] ?? 'Notification' }}</p>
+                                <p class="text-xs">{{ $data['message'] ?? ($n->data['message'] ?? '') }}</p>
+                                @if (!empty($data['action_url']))
+                                    <a href="{{ $data['action_url'] }}" class="text-xs text-[#0D2B70] underline">View</a>
+                                @endif
+                                <p class="text-[11px] text-gray-500 mt-1">{{ \Carbon\Carbon::parse($n->created_at)->diffForHumans() }}</p>
+                            </div>
+                        @empty
+                            <p class="text-sm text-gray-600">No notifications.</p>
+                        @endforelse
+                    </div>
+                </article>
             </div>
-
-            <!-- Action Buttons -->
-            <div class="flex flex-wrap gap-3 mt-2">
-                <button type="button" onclick="window.location.href='{{ route('display_c1') }}'"
-                    class="use-loader inline-flex font-montserrat items-center gap-2 rounded-full bg-green-600 text-white px-5 py-2 text-sm font-medium shadow-sm hover:bg-opacity-90 transition w-fit">
-                    <i data-feather="edit-2" class="w-4 h-4"></i> Edit My Personal Data Sheet
-                </button>
-                <a href="{{ route('export.pds') }}" target="_blank"
-                    class="use-loader inline-flex font-montserrat items-center gap-2 rounded-full bg-blue-600 text-white px-5 py-2 text-sm font-medium shadow-sm hover:bg-opacity-90 transition w-fit">
-                    <i data-feather="download" class="w-4 h-4"></i> Export PDS
-                </a>
-            </div>
-            <div id="pdsRightPane" class="mt-4 h-[700px] rounded-xl border border-blue-200 overflow-hidden bg-white shadow-sm">
-                <iframe id="pdsFrame" src="about:blank"></iframe>
-                <div id="pdsPaneLoader"><div class="pane-spinner"></div></div>
-            </div>
-        </article>
-
+        </div>
     </section>
 
-    <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
-        <article class="group relative overflow-hidden bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1">
+    <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 w-full">
+        <article class="group relative overflow-hidden bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1">
             <div class="flex items-center gap-3 mb-2">
                 <i class="w-5 h-5 text-[#0D2B70]" data-feather="bar-chart-2"></i>
                 <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Application Status Summary</span>
             </div>
             <div class="grid grid-cols-2 gap-3 text-[#0D2B70]">
                 @php
-                    $summary = $statusSummary ?? collect();
+                    $summary = $statusSummary ?? ($applicationStatusSummary ?? collect());
                     $primaryStatuses = ['Pending', 'Under Review', 'Interview', 'Hired', 'Rejected'];
                 @endphp
                 @foreach ($primaryStatuses as $label)
@@ -283,13 +254,13 @@
             </div>
         </article>
 
-        <article class="group relative overflow-hidden bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1">
+        <article class="group relative overflow-hidden bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1">
             <div class="flex items-center gap-3 mb-2">
                 <i class="w-5 h-5 text-[#0D2B70]" data-feather="calendar"></i>
                 <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Upcoming Exams</span>
             </div>
-            <div class="space-y-2 text-sm text-[#0D2B70]">
-                @forelse($upcomingExams ?? [] as $exam)
+            <div class="space-y-2 text-sm text-[#0D2B70] max-h-36 overflow-hidden">
+                @forelse(collect($upcomingExams ?? [])->take(3) as $exam)
                     <div class="border border-blue-100 rounded-md p-3">
                         <p class="font-bold">{{ $exam->vacancy->position_title ?? 'Exam' }}</p>
                         <p>{{ \Carbon\Carbon::parse($exam->date)->format('F d, Y') }} | {{ $exam->time }}</p>
@@ -301,38 +272,9 @@
             </div>
         </article>
 
-        <article class="group relative overflow-hidden bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1">
-            <div class="flex items-center gap-3 mb-2">
-                <i class="w-5 h-5 text-[#0D2B70]" data-feather="file-text"></i>
-                <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Required Documents Status</span>
-            </div>
-            @php
-                $docs = collect($documentStatusSummary ?? []);
-                $completed = $docs->filter(fn($d) => in_array(strtolower($d['status']), ['completed', 'verified', 'okay/confirmed']));
-            @endphp
-            <div class="flex items-center gap-3 mb-3">
-                <div class="flex-1 bg-gray-200 h-2 rounded-full">
-                    @php $percent = $docs->count() ? round(($completed->count() / $docs->count()) * 100) : 0; @endphp
-                    <div class="bg-[#0D2B70] h-2 rounded-full transition-all duration-300" style="width: {{ $percent }}%"></div>
-                </div>
-                <span class="text-xs font-semibold text-[#0D2B70]">{{ $percent }}% Complete</span>
-            </div>
-            <div class="grid grid-cols-2 gap-2 text-xs">
-                @foreach ($docs->take(6) as $doc)
-                    <div class="flex items-center justify-between bg-blue-50 rounded-md px-3 py-2">
-                        <span class="font-semibold">{{ ucwords(str_replace('_',' ',$doc['type'])) }}</span>
-                        <span class="{{ in_array(strtolower($doc['status']), ['completed','verified','okay/confirmed']) ? 'text-green-600' : 'text-yellow-600' }}">
-                            {{ $doc['status'] }}
-                        </span>
-                    </div>
-                @endforeach
-            </div>
-            @if ($docs->count() > 6)
-                <p class="text-xs text-gray-500 mt-2">+ {{ $docs->count() - 6 }} more</p>
-            @endif
-        </article>
+        
 
-        <article class="group relative overflow-hidden bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1">
+        <article class="group relative overflow-hidden bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1">
             <div class="flex items-center gap-3 mb-2">
                 <i class="w-5 h-5 text-[#0D2B70]" data-feather="layers"></i>
                 <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Vacancy Types</span>
@@ -349,85 +291,7 @@
             </div>
         </article>
 
-        <article class="group relative overflow-hidden bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1">
-            <div class="flex items-center gap-3 mb-2">
-                <i class="w-5 h-5 text-[#0D2B70]" data-feather="x-circle"></i>
-                <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Recently Closed Positions</span>
-            </div>
-            <div class="space-y-2 text-sm text-[#0D2B70]">
-                @forelse($recentlyClosedApplications ?? [] as $app)
-                    <div class="border border-blue-100 rounded-md p-3">
-                        <p class="font-bold">{{ $app->vacancy->position_title ?? 'Position' }}</p>
-                        <p class="text-xs">Vacancy ID: {{ $app->vacancy_id }}</p>
-                    </div>
-                @empty
-                    <p class="text-gray-600">No closed positions among your applications.</p>
-                @endforelse
-            </div>
-        </article>
-
-        <article class="group relative overflow-hidden bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1">
-            <div class="flex items-center gap-3 mb-2">
-                <i class="w-5 h-5 text-[#0D2B70]" data-feather="clock"></i>
-                <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Application Deadlines</span>
-            </div>
-            <div class="space-y-2 text-sm text-[#0D2B70]">
-                @forelse($deadlineCountdown ?? [] as $item)
-                    @php
-                        $days = $item['days_remaining'];
-                        $badge = $days <= 3 ? 'text-red-700' : ($days <= 7 ? 'text-yellow-600' : 'text-green-600');
-                        $label = $days <= 3 ? 'Urgent' : ($days <= 7 ? 'Upcoming' : 'Plenty of time');
-                    @endphp
-                    <div class="border border-blue-100 rounded-md p-3">
-                        <p class="font-bold">{{ $item['position_title'] }}</p>
-                        <p class="text-xs">Due {{ \Carbon\Carbon::parse($item['deadline'])->format('F d, Y h:i A') }}</p>
-                        <p class="text-xs {{ $badge }}">{{ $label }} ({{ $days }} days)</p>
-                    </div>
-                @empty
-                    <p class="text-gray-600">No active application deadlines.</p>
-                @endforelse
-            </div>
-        </article>
-
-        <article class="group relative overflow-hidden bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1">
-            <div class="flex items-center gap-3 mb-2">
-                <i class="w-5 h-5 text-[#0D2B70]" data-feather="calendar"></i>
-                <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Interview Schedule</span>
-            </div>
-            <div class="space-y-2 text-sm text-[#0D2B70]">
-                <p class="text-gray-600">No upcoming interviews scheduled.</p>
-            </div>
-        </article>
-
-        <article class="group relative overflow-hidden bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1">
-            <div class="flex items-center gap-3 mb-2">
-                <i class="w-5 h-5 text-[#0D2B70]" data-feather="bell"></i>
-                <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Notifications / Alerts</span>
-            </div>
-            <div class="flex items-center gap-2 mb-3">
-                <span class="text-xs text-[#0D2B70] font-semibold">Unread:</span>
-                <span class="text-xs font-bold {{ ($unreadNotificationsCount ?? 0) > 0 ? 'text-red-700' : 'text-gray-500' }}">
-                    {{ $unreadNotificationsCount ?? 0 }}
-                </span>
-            </div>
-            <div class="space-y-2">
-                @forelse(($recentNotifications ?? []) as $n)
-                    @php
-                        $data = $n->data ?? [];
-                    @endphp
-                    <div class="border border-blue-100 rounded-md p-3 text-sm text-[#0D2B70]">
-                        <p class="font-bold">{{ $data['title'] ?? 'Notification' }}</p>
-                        <p class="text-xs">{{ $data['message'] ?? ($n->data['message'] ?? '') }}</p>
-                        @if (!empty($data['action_url']))
-                            <a href="{{ $data['action_url'] }}" class="text-xs text-[#0D2B70] underline">View</a>
-                        @endif
-                        <p class="text-[11px] text-gray-500 mt-1">{{ \Carbon\Carbon::parse($n->created_at)->diffForHumans() }}</p>
-                    </div>
-                @empty
-                    <p class="text-sm text-gray-600">No notifications.</p>
-                @endforelse
-            </div>
-        </article>
+        
     </section>
 
     @include('partials.loader')
@@ -497,8 +361,8 @@
     const pdsLinks = document.querySelectorAll('#pdsDropdown a');
     const pdsRightPane = document.getElementById('pdsRightPane');
     const pdsFrame = document.getElementById('pdsFrame');
-    function showPaneLoader(){ pdsRightPane.classList.add('loading'); }
-    function hidePaneLoader(){ pdsRightPane.classList.remove('loading'); }
+    function showPaneLoader(){ if (pdsRightPane) pdsRightPane.classList.add('loading'); }
+    function hidePaneLoader(){ if (pdsRightPane) pdsRightPane.classList.remove('loading'); }
     pdsLinks.forEach(a => {
         a.addEventListener('click', (e) => {
             e.preventDefault();
@@ -547,22 +411,24 @@
             link.addEventListener('click', ()=> { if (parent.showPaneLoader) parent.showPaneLoader(); });
         });
     }
-    pdsFrame.addEventListener('load', () => {
-        const doc = pdsFrame.contentWindow.document;
-        rewriteNextOrder(doc);
-        const loc = pdsFrame.contentWindow.location;
-        const pathname = loc.pathname || '';
-        const needsSimple = !new URL(loc.href).searchParams.has('simple') && /(display_c1|display_c2|display_c3|display_c4|display_wes|display_c5)/.test(pathname);
-        if (needsSimple) {
-            showPaneLoader();
-            pdsFrame.src = ensureSimple(loc.href);
-            return;
-        }
-        const style = doc.createElement('style');
-        style.textContent = '#loader{display:none!important}';
-        doc.head.appendChild(style);
-        doc.querySelectorAll('.use-loader').forEach(el => el.classList.remove('use-loader'));
-        hidePaneLoader();
-    });
+    if (pdsFrame) {
+        pdsFrame.addEventListener('load', () => {
+            const doc = pdsFrame.contentWindow.document;
+            rewriteNextOrder(doc);
+            const loc = pdsFrame.contentWindow.location;
+            const pathname = loc.pathname || '';
+            const needsSimple = !new URL(loc.href).searchParams.has('simple') && /(display_c1|display_c2|display_c3|display_c4|display_wes|display_c5)/.test(pathname);
+            if (needsSimple) {
+                showPaneLoader();
+                pdsFrame.src = ensureSimple(loc.href);
+                return;
+            }
+            const style = doc.createElement('style');
+            style.textContent = '#loader{display:none!important}';
+            doc.head.appendChild(style);
+            doc.querySelectorAll('.use-loader').forEach(el => el.classList.remove('use-loader'));
+            hidePaneLoader();
+        });
+    }
 </script>
 @endsection

@@ -1,5 +1,5 @@
 <!-- Chat Bubble Button -->
-<div id="chat-bubble" class="fixed bottom-10 right-12 z-40">
+<!-- <div id="chat-bubble" class="fixed bottom-10 right-12 z-40">
     <button onclick="toggleChat()"
             class="aspect-square w-15 bg-blue-900 hover:bg-blue-800 text-white p-4 text-2xl rounded-full border-none shadow-lg hover:shadow-xl cursor-pointer transition-all duration-300 ease-out relative overflow-hidden transform hover:-translate-y-0.5 hover:scale-105 active:translate-y-0 group"
             style="background-color: #002c76;">
@@ -7,7 +7,7 @@
         <span id="close-icon" class="hidden p-1.5 rounded-full">✕</span>
         <div class="absolute inset-0 bg-white bg-opacity-10 transform -translate-x-full transition-transform duration-300 ease-in-out group-hover:translate-x-0"></div>
     </button>
-</div>
+</div> -->
 <!-- Chat Window -->
 <div id="chat-window"
      class="chat-window fixed bottom-32 right-12 w-96 h-[500px] bg-white border border-gray-200 rounded-2xl shadow-2xl flex flex-col opacity-0 transform translate-y-8 scale-95 pointer-events-none transition-all duration-400 ease-out z-40 backdrop-blur-sm">
