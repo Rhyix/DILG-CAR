@@ -91,10 +91,14 @@
                         <thead class="bg-[#0D2B70] text-white sticky top-0 z-10">
                             <tr>
                                 <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-left w-[20%]">Name</th>
-                                <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-left w-[25%]">Job Applied</th>
-                                <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-left w-[25%]">Place of Assignment</th>
-                                <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-left w-[15%]">Status</th>
-                                <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-center w-[15%]">Actions</th>
+                                <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-left w-[25%]">Job
+                                    Applied</th>
+                                <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-left w-[25%]">Place of
+                                    Assignment</th>
+                                <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-left w-[15%]">Status
+                                </th>
+                                <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-center w-[15%]">Actions
+                                </th>
                             </tr>
                         </thead>
                         <tbody id="new-applicants-list" class="divide-y divide-[#0D2B70]">
@@ -164,10 +168,14 @@
                         <thead class="bg-[#0D2B70] text-white sticky top-0 z-10">
                             <tr>
                                 <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-left w-[20%]">Name</th>
-                                <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-left w-[25%]">Job Applied</th>
-                                <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-left w-[25%]">Place of Assignment</th>
-                                <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-left w-[15%]">Status</th>
-                                <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-center w-[15%]">Actions</th>
+                                <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-left w-[25%]">Job
+                                    Applied</th>
+                                <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-left w-[25%]">Place of
+                                    Assignment</th>
+                                <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-left w-[15%]">Status
+                                </th>
+                                <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-center w-[15%]">Actions
+                                </th>
                             </tr>
                         </thead>
                         <tbody id="compliance-applicants-list" class="divide-y divide-[#0D2B70]">
@@ -235,9 +243,12 @@
                         <thead class="bg-[#0D2B70] text-white sticky top-0 z-10">
                             <tr>
                                 <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-left w-[30%]">Name</th>
-                                <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-left w-[30%]">Job Applied</th>
-                                <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-left w-[25%]">Place of Assignment</th>
-                                <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-center w-[15%]">Actions</th>
+                                <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-left w-[30%]">Job
+                                    Applied</th>
+                                <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-left w-[25%]">Place of
+                                    Assignment</th>
+                                <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-center w-[15%]">Actions
+                                </th>
                             </tr>
                         </thead>
                         <tbody id="qualified-applicants-list" class="divide-y divide-[#0D2B70]">
@@ -272,11 +283,21 @@
     </main>
 
     <script>
-        const vacancyId = {{ $vacancyId }};
+        const vacancyId = "{{ $vacancyId }}";
 
         // Tab switching
-        function switchTab(tab) {
+        function switchTab(tab, updateHistory = true) {
             console.log('Switching to tab:', tab); // Debugging
+
+            // Update URL query param without full reload
+            if (updateHistory) {
+                const url = new URL(window.location);
+                if (url.searchParams.get('tab') !== tab) {
+                    url.searchParams.set('tab', tab);
+                    window.history.pushState({}, '', url);
+                }
+            }
+
             const tabs = ['new', 'compliance', 'qualified'];
             tabs.forEach(t => {
                 const tabBtn = document.getElementById(`tab-${t}`);
@@ -297,14 +318,27 @@
                 }
             });
         }
-        document.addEventListener('DOMContentLoaded', function(){
+
+        // Handle Back/Forward Browser Buttons
+        window.addEventListener('popstate', function (event) {
+            const params = new URLSearchParams(window.location.search);
+            // Default to 'new' if no tab param exists
+            const tab = (params.get('tab') || 'new').trim().toLowerCase();
+            if (['new', 'compliance', 'qualified'].includes(tab)) {
+                switchTab(tab, false); // false = don't push state again
+            } else {
+                switchTab('new', false);
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', function () {
             const params = new URLSearchParams(window.location.search);
             // Get tab from URL, trim whitespace, lowercase, and default to empty string if null
             const initialTab = (params.get('tab') || '').trim().toLowerCase();
-            
+
             console.log('Initial Tab from URL:', initialTab); // Debugging
 
-            if (['new','compliance','qualified'].includes(initialTab)) {
+            if (['new', 'compliance', 'qualified'].includes(initialTab)) {
                 switchTab(initialTab);
             } else {
                 switchTab('new');
