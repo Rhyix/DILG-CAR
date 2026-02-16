@@ -67,7 +67,7 @@
                     <div class="relative">
                         <input type="text" id="date_of_birth" name="date_of_birth" value="{{ old('date_of_birth', session('form.c1.date_of_birth')) }}" required class="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base">
                         <label for="date_of_birth" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">3. Date of Birth *</label>
-                        <label for="date_of_birth" class="absolute -top-2 left-3 bg-white px-1 text-xs text-gray-600 ml-[50%]">(dd/mm/yyyy) </label>
+                        <label for="date_of_birth" class="absolute -top-2 left-3 bg-white px-1 text-xs text-gray-600 ml-[50%]">(dd-mm-yyyy) </label>
                     </div>
                     <div class="relative md:col-span-2">
                         <input type="text" id="place_of_birth" name="place_of_birth" value="{{ old('place_of_birth', session('form.c1.place_of_birth')) }}" placeholder=" " required class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
@@ -956,7 +956,7 @@
                         <td class="value"><span id="preview_middle_name">{{ old('middle_name', session('form.c1.middle_name')) }}</span></td>
                     </tr>
                     <tr>
-                        <td class="label">3. DATE OF BIRTH (dd/mm/yyyy)</td>
+                        <td class="label">3. DATE OF BIRTH (dd-mm-yyyy)</td>
                         <td class="value"><span id="preview_date_of_birth">{{ old('date_of_birth', session('form.c1.date_of_birth')) }}</span></td>
                         <td class="label" rowspan="2">16. CITIZENSHIP</td>
                         <td class="value" rowspan="2">

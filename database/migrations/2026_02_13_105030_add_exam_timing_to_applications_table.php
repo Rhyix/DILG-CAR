@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('applications', function (Blueprint $table) {
-            $table->timestamp('exam_started_at')->nullable()->after('read_at');
+            $table->timestamp('exam_started_at')->nullable()->after('exam_token_expires_at');
             $table->timestamp('exam_end_time')->nullable()->after('exam_started_at');
         });
     }
