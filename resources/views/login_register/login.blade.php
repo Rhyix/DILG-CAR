@@ -97,20 +97,20 @@
               <span class="absolute inset-y-0 left-4 flex items-center">
                 <i class="fas fa-lock text-yellow-400"></i>
               </span>
-              <input 
-                id="password" 
-                type="password" 
-                name="password" 
-                required 
+              <input
+                id="admin_password"
+                type="password"
+                name="password"
                 placeholder="Password"
                 class="w-full bg-white border border-blue-400 rounded-full pl-12 pr-12 py-3 outline-none text-blue-900 placeholder:text-blue-800/60 focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
+                required
               />
-              <button type="button" id="togglePassword" class="absolute inset-y-0 right-3 px-3 flex items-center text-blue-800/70 hover:text-blue-900">
+              <button type="button" id="toggleAdminPassword" class="absolute inset-y-0 right-3 px-3 flex items-center text-blue-800/70 hover:text-blue-900">
                 <i class="fas fa-eye"></i>
               </button>
             </div>
             @error('password')
-              <p class="text-red-600 text-sm ml-3 -mt-4">{{ $message }}</p>
+              <p class="text-red-600 text-sm ml-3 -mt-2">{{ $message }}</p>
             @enderror
 
             <!-- Remember me & Forgot password -->
@@ -174,9 +174,9 @@
     </div>
   </div>
 
-  @include('partials.loader')
+  <!-- @include('partials.loader') -->
   
-  <script>
+  <!-- <script>
     const toggle = document.getElementById('togglePassword');
     if (toggle) {
       toggle.addEventListener('click', function () {
@@ -187,6 +187,6 @@
         this.querySelector('i').classList.toggle('fa-eye-slash');
       });
     }
-  </script>
+  </script> -->
 </body>
 </html>

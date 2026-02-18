@@ -14,7 +14,7 @@
             </div>
 
 <!-- Sorting & Filtering -->
-<section class="flex flex-wrap gap-3 sm:gap-4 filters-mobile">
+<section class="flex flex-wrap gap-3 mr-5 sm:gap-4 filters-mobile">
     <form class="relative flex-1 min-w-[240px]" onsubmit="return false;">
         <input id="searchInput" type="search" placeholder="Search job title, place, type" aria-label="Search"
             class="pl-10 pr-4 py-2 rounded-md w-full border border-[#0D2B70] placeholder:text-[#7D93B3] placeholder:font-semibold text-[#0D2B70] focus:outline-none focus:ring-2 focus:ring-[#0D2B70] focus:ring-offset-1" />
@@ -268,7 +268,7 @@
 </section>
 
 <!-- Job Vacancies Table -->
-<div class="rounded-xl border border-[#0D2B70] mt-6 h-[60vh] flex flex-col overflow-hidden">
+<div class="rounded-xl border border-[#0D2B70] mt-6 h-[60vh] flex flex-col overflow-hidden mr-5">
     <div class="flex-none bg-[#0D2B70] text-white">
         <table class="w-full text-left border-collapse table-fixed">
             <thead class="bg-[#0D2B70] text-white sticky top-0 z-10">
