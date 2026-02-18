@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Notification;
+use Spatie\Activitylog\Models\Activity;
 
 class NotificationController extends Controller
 {
@@ -27,8 +28,11 @@ class NotificationController extends Controller
     {
         $query = $this->getQuery();
         if (!$query) return response()->json(['count' => 0]);
-            
-        return response()->json(['count' => $query->whereNull('read_at')->count()]);
+        $count = $query->whereNull('read_at')->count();
+        if ($count === 0 && Auth::guard('admin')->check()) {
+            $count = Activity::latest()->take(10)->count();
+        }
+        return response()->json(['count' => $count]);
     }
 
     // Index method
@@ -43,9 +47,42 @@ class NotificationController extends Controller
         $query = $this->getQuery();
         if (!$query) return response()->json(['notifications' => []]);
 
-        $notifications = $query->latest()
-            ->take(10)
-            ->get();
+        $notifications = $query->latest()->take(10)->get();
+        if (Auth::guard('admin')->check()) {
+            $activities = Activity::latest()->take(10)->get();
+            $mapped = $activities->map(function ($a) {
+                $props = $a->properties ?? collect();
+                $section = $props['section'] ?? ucfirst((string) ($a->event ?? 'Activity'));
+                $actor = optional($a->causer)->name ?? optional($a->causer)->username ?? 'Unknown';
+                $msg = trim((string) ($a->description ?? 'performed an action'));
+                $msg = rtrim($msg, ". \t\n\r\0\x0B");
+                $message = $actor . ' ' . $msg . '.';
+                $link = null;
+                $userId = $props['user_id'] ?? null;
+                $vacancyId = $props['vacancy_id'] ?? null;
+                if ($userId && $vacancyId) {
+                    $link = route('admin.applicant_status', ['user_id' => $userId, 'vacancy_id' => $vacancyId]);
+                } elseif ($vacancyId && in_array($section, ['Exam Management', 'Application List', 'Job Vacancy'])) {
+                    $link = route('admin.manage_exam', ['vacancy_id' => $vacancyId]);
+                } elseif ($section === 'System Users Management') {
+                    $link = route('admin_account_management');
+                }
+                return [
+                    'id' => 'activity_' . $a->id,
+                    'type' => 'info',
+                    'data' => [
+                        'title' => $section,
+                        'message' => $message,
+                        'link' => $link,
+                    ],
+                    'read_at' => null,
+                    'created_at' => $a->created_at,
+                ];
+            });
+            // Merge stored notifications with activity-derived ones
+            $combined = collect($notifications)->concat($mapped)->take(10);
+            return response()->json(['notifications' => $combined]);
+        }
 
         return response()->json(['notifications' => $notifications]);
     }

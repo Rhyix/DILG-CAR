@@ -143,8 +143,14 @@
             <header class="flex justify-end items-center gap-6 px-6 sm:px-8 md:px-10 pt-6 sm:pt-8 pb-4 shrink-0 z-50 bg-[#F1F6FC]">
                 <!-- Notification Bell -->
                 <div class="relative" x-data="{ open: false, count: 0, notifications: [] }" x-init="
-                    fetch('/notifications/count').then(r => r.json()).then(d => count = d.count);
-                    setInterval(() => fetch('/notifications/count').then(r => r.json()).then(d => count = d.count), 30000);
+                    const refresh = () => {
+                        fetch('/notifications/count').then(r => r.json()).then(d => count = d.count);
+                        if (open) {
+                            fetch('/notifications/fetch').then(r => r.json()).then(d => notifications = d.notifications);
+                        }
+                    };
+                    refresh();
+                    setInterval(refresh, 5000);
                 ">
                     <button
                         @click="open = !open; if(open) { fetch('/notifications/fetch').then(r => r.json()).then(d => { notifications = d.notifications; count = 0; fetch('/notifications/mark-all', {method: 'POST', headers: {'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content}}); }); }"

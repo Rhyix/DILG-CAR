@@ -14,10 +14,12 @@
 <body>
     <div class="container">
         <p class="muted">Timestamp: {{ \Carbon\Carbon::parse($occurredAt)->format('M d, Y h:i A') }}</p>
+        <img class="logo" src="{{ asset('images/dilg_logo.png') }}" alt="DILG-CAR">
         <p class="title">{{ $title }}</p>
-        <p>{{ $message }}</p>
+        <p>{{ $body }}</p>
         @if($positionTitle)
         <p><strong>Position:</strong> {{ $positionTitle }} ({{ $vacancyId }})</p>
+        @endif
         @endif
         @if($applicantName)
         <p><strong>Applicant:</strong> {{ $applicantName }}</p>
