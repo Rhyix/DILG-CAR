@@ -10,6 +10,9 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (DB::getDriverName() === 'sqlite') {
+            return;
+        }
         DB::statement('ALTER TABLE educational_backgrounds MODIFY elem_from VARCHAR(10) NULL');
         DB::statement('ALTER TABLE educational_backgrounds MODIFY elem_to VARCHAR(10) NULL');
         DB::statement('ALTER TABLE educational_backgrounds MODIFY jhs_from VARCHAR(10) NULL');
@@ -21,6 +24,9 @@ return new class extends Migration
      */
     public function down(): void
     {
+        if (DB::getDriverName() === 'sqlite') {
+            return;
+        }
         DB::statement('ALTER TABLE educational_backgrounds MODIFY elem_from VARCHAR(7) NULL');
         DB::statement('ALTER TABLE educational_backgrounds MODIFY elem_to VARCHAR(7) NULL');
         DB::statement('ALTER TABLE educational_backgrounds MODIFY jhs_from VARCHAR(7) NULL');

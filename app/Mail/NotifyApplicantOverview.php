@@ -6,6 +6,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
+use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 use App\Models\JobVacancy;
@@ -78,6 +79,10 @@ class NotifyApplicantOverview extends Mailable
     {
         return new Envelope(
             subject: 'DILG-CAR Application Document Status Overview',
+            from: new Address(
+                config('mail.from.address') ?: 'noreply@dilgcar.local',
+                config('mail.from.name') ?: 'DILG-CAR'
+            )
         );
     }
 

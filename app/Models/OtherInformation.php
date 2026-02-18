@@ -16,6 +16,12 @@ class OtherInformation extends Model
         'distinction',
         'organization',
     ];
+    
+    protected $casts = [
+        'skill' => 'array',
+        'distinction' => 'array',
+        'organization' => 'array',
+    ];
 
     /**
      * Defines a one-to-many relationship with a User and a Other Information record.

@@ -47,7 +47,7 @@ class NotificationController extends Controller
         $query = $this->getQuery();
         if (!$query) return response()->json(['notifications' => []]);
 
-        $notifications = $query->latest()->take(10)->get();
+        $notifications = $query->latest()->paginate(10);
         if (Auth::guard('admin')->check()) {
             $activities = Activity::latest()->take(10)->get();
             $mapped = $activities->map(function ($a) {
@@ -80,11 +80,18 @@ class NotificationController extends Controller
                 ];
             });
             // Merge stored notifications with activity-derived ones
-            $combined = collect($notifications)->concat($mapped)->take(10);
-            return response()->json(['notifications' => $combined]);
+            $combined = collect($notifications->items())->concat($mapped)->take(10)->values();
+            return response()->json([
+                'notifications' => $combined,
+                'data' => $combined,
+                'current_page' => 1,
+                'next_page_url' => null
+            ]);
         }
 
-        return response()->json(['notifications' => $notifications]);
+        $payload = $notifications->toArray();
+        $payload['notifications'] = $payload['data'] ?? [];
+        return response()->json($payload);
     }
 
     // Mark all as read

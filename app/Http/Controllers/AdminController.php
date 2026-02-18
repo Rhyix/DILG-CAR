@@ -21,7 +21,6 @@ use Illuminate\Support\Facades\Validator;
 
 
 use Illuminate\Support\Facades\Mail;
-use App\Mail\NotifyApplicationStatus;
 use App\Mail\AdminEventNotification;
 
 
@@ -49,6 +48,12 @@ class AdminController extends Controller
         'cert_lgoo_induction' => 'Certificate of Completion of LGOO Induction Training',
         'passport_photo' => '2" x 2" or Passport Size Picture',
         'other_documents' => 'Other Documents Submitted',
+    ];
+    private const DOCUMENT_TYPE_ALIASES = [
+        'cert_eligibility' => ['cert_elegibility'],
+        'cert_employment' => ['certificate_employment'],
+        'grade_masteraldoctorate' => ['certificate_grades'],
+        'tor_masteraldoctorate' => ['certified_tor'],
     ];
 
     public function __construct()
@@ -361,6 +366,7 @@ class AdminController extends Controller
                     'isBold' => true,
                 ];
             } else {
+                $doc = $this->resolveUploadedDocument($uploadedDocuments, $docType);
                 $status = $doc ? $doc->status : 'Not Submitted';
                 $documents[] = [
                     'id' => $docType,
@@ -376,6 +382,21 @@ class AdminController extends Controller
             }
         }
         return $documents;
+    }
+
+    private function resolveUploadedDocument($uploadedDocuments, string $docType): ?UploadedDocument
+    {
+        $doc = $uploadedDocuments->get($docType);
+        if ($doc && $doc->storage_path !== 'NOINPUT') {
+            return $doc;
+        }
+        foreach (self::DOCUMENT_TYPE_ALIASES[$docType] ?? [] as $alias) {
+            $aliasDoc = $uploadedDocuments->get($alias);
+            if ($aliasDoc && $aliasDoc->storage_path !== 'NOINPUT') {
+                return $aliasDoc;
+            }
+        }
+        return $doc ?: null;
     }
 
     public function viewApplicantStatus($user_id, $vacancy_id)
@@ -545,27 +566,6 @@ class AdminController extends Controller
 
         //dd($changes);
 
-        $userEmail = User::where('id', $user_id)->value('email');
-        Mail::to($userEmail)->send(new NotifyApplicationStatus(
-            auth('admin')->user()->name, // Send actual name instead of username
-            $changes,
-            $application->status,
-            $user_id,
-            $vacancy_id
-        ));
-
-        // Create notification for the User
-        Notification::create([
-            'notifiable_type' => 'App\Models\User',
-            'notifiable_id' => $user_id,
-            'type' => 'info',
-            'data' => [
-                'title' => 'Application Update',
-                'message' => 'Admin ' . Auth::guard('admin')->user()->name . ' has updated your application status.',
-                'link' => route('application_status', ['user' => $user_id, 'vacancy' => $vacancy_id]),
-            ]
-        ]);
-
         // Notify other admins if there are changes
         if (!empty($changes)) {
             $admins = Admin::where('id', '!=', Auth::guard('admin')->id())->get();
@@ -650,20 +650,6 @@ class AdminController extends Controller
 
             $application->save();
 
-            // Notify User about Application Letter Update
-            if ($request->has('status')) {
-                Notification::create([
-                    'notifiable_type' => 'App\Models\User',
-                    'notifiable_id' => $user_id,
-                    'type' => 'info',
-                    'data' => [
-                        'title' => 'Document Update',
-                        'message' => 'Admin ' . Auth::guard('admin')->user()->name . ' updated your Application Letter status to ' . $status . '.',
-                        'link' => route('application_status', ['user' => $user_id, 'vacancy' => $vacancy_id]),
-                    ]
-                ]);
-            }
-
         } else {
             $document = UploadedDocument::where('user_id', $user_id)
                 ->where('document_type', $documentType)
@@ -703,19 +689,6 @@ class AdminController extends Controller
                 ]);
             }
 
-            // Notify User about Document Update
-            if ($request->has('status')) {
-                Notification::create([
-                    'notifiable_type' => 'App\Models\User',
-                    'notifiable_id' => $user_id,
-                    'type' => 'info',
-                    'data' => [
-                        'title' => 'Document Update',
-                        'message' => 'Admin ' . Auth::guard('admin')->user()->name . ' updated your ' . $docName . ' status to ' . $status . '.',
-                        'link' => route('application_status', ['user' => $user_id, 'vacancy' => $vacancy_id]),
-                    ]
-                ]);
-            }
         }
 
         // Notify other admins if status changed
@@ -787,6 +760,7 @@ class AdminController extends Controller
             ->firstOrFail();
 
         $documents = $this->getApplicantDocuments($user_id, $application);
+        $userDocumentsSnapshot = $this->buildUserDocumentsSnapshot($user_id, $application);
 
         // --- Logic Check for Application Status Update ---
         $hasNeedsRevision = false;
@@ -869,11 +843,50 @@ class AdminController extends Controller
             return response()->json(['success' => false, 'message' => 'User email not found.'], 404);
         }
 
+        $messageTitle = 'Application Status Update';
+        $messageBody = 'Your application has been reviewed. Please see the updated status.';
+        $messageLevel = 'info';
+        if ($hasNeedsRevision) {
+            $messageTitle = 'Documents Need Revision';
+            $messageBody = 'Some documents require revision. Please review the updates.';
+            $messageLevel = 'warning';
+        } elseif ($allVerified && $submittedCount > 0) {
+            $messageTitle = 'Documents Verified';
+            $messageBody = 'Your documents have been verified.';
+            $messageLevel = 'success';
+        }
+
+        Notification::create([
+            'notifiable_type' => 'App\Models\User',
+            'notifiable_id' => $user_id,
+            'type' => 'info',
+            'data' => [
+                'type' => 'application_overview',
+                'vacancy_id' => $vacancy_id,
+                'title' => $messageTitle,
+                'message' => $messageBody,
+                'level' => $messageLevel,
+                'action_url' => route('application_status', ['user' => $user_id, 'vacancy' => $vacancy_id]),
+                'documents' => $userDocumentsSnapshot,
+                'application_status' => $application->status,
+                'application_remarks' => $application->application_remarks,
+                'qs_education' => $qsEducation,
+                'qs_eligibility' => $qsEligibility,
+                'qs_experience' => $qsExperience,
+                'qs_training' => $qsTraining,
+                'qs_result' => $qsResult,
+                'deadline_date' => $application->deadline_date,
+                'deadline_time' => $application->deadline_time,
+                'last_modified_by' => Auth::guard('admin')->user()->name,
+                'notified_at' => now()->toDateTimeString()
+            ]
+        ]);
+
         try {
             Mail::to($userEmail)->send(new NotifyApplicantOverview(
                 $user_id,
                 $vacancy_id,
-                $documents,
+                $userDocumentsSnapshot,
                 $application->application_remarks,
                 $placeOfAssignment,
                 $compensation,
@@ -889,7 +902,7 @@ class AdminController extends Controller
             ));
         } catch (\Exception $e) {
             \Log::error('Mail sending failed: ' . $e->getMessage());
-            return response()->json(['success' => false, 'message' => 'Failed to send email: ' . $e->getMessage()], 500);
+            return response()->json(['success' => false, 'message' => 'Failed to send email: ' . $e->getMessage()]);
         }
 
         // Notify all admins (except actor) about the notification sent to applicant
@@ -911,23 +924,69 @@ class AdminController extends Controller
             ]);
 
             if ($admin->email) {
-                Mail::send('emails.admin_event_notification', [
-                    'actorName' => $actorName,
-                    'recipientName' => $admin->name ?? $admin->username,
-                    'applicantName' => $applicantName,
-                    'positionTitle' => $positionTitle,
-                    'vacancyId' => $vacancy_id,
-                    'title' => 'Applicant Notified',
-                    'body' => $actorName . ' notified ' . ($applicantName ?: 'Applicant'),
-                    'link' => route('admin.applicant_status', ['user_id' => $user_id, 'vacancy_id' => $vacancy_id]),
-                    'occurredAt' => $occurredAt,
-                ], function ($m) use ($admin) {
-                    $m->to($admin->email)->subject('DILG-CAR Admin Notification');
-                });
+                try {
+                    Mail::send('emails.admin_event_notification', [
+                        'actorName' => $actorName,
+                        'recipientName' => $admin->name ?? $admin->username,
+                        'applicantName' => $applicantName,
+                        'positionTitle' => $positionTitle,
+                        'vacancyId' => $vacancy_id,
+                        'title' => 'Applicant Notified',
+                        'body' => $actorName . ' notified ' . ($applicantName ?: 'Applicant'),
+                        'link' => route('admin.applicant_status', ['user_id' => $user_id, 'vacancy_id' => $vacancy_id]),
+                        'occurredAt' => $occurredAt,
+                    ], function ($m) use ($admin) {
+                        $m->to($admin->email)->subject('DILG-CAR Admin Notification');
+                    });
+                } catch (\Throwable $e) {
+                    \Log::error('Admin notify email failed', ['error' => $e->getMessage()]);
+                }
             }
         }
 
         return response()->json(['success' => true, 'message' => 'Applicant notified successfully.']);
+    }
+
+    private function buildUserDocumentsSnapshot($user_id, $application): array
+    {
+        $uploadedDocuments = UploadedDocument::where('user_id', $user_id)->get()->keyBy('document_type');
+        $documents = [];
+
+        foreach (UploadedDocument::DOCUMENTS as $docType) {
+            if ($docType === 'isApproved')
+                continue;
+
+            if ($docType === 'application_letter') {
+                $documents[] = [
+                    'id' => 'application_letter',
+                    'name' => self::DOCUMENT_LABELS['application_letter'],
+                    'text' => self::DOCUMENT_LABELS['application_letter'],
+                    'status' => $application->file_status ?? 'Not Submitted',
+                    'preview' => $application->file_storage_path
+                        ? url('/preview-file/' . base64_encode($application->file_storage_path))
+                        : '',
+                    'remarks' => $application->file_remarks ?? '',
+                    'last_modified_by' => $application->file_last_modified_by ?? null,
+                    'isBold' => true,
+                ];
+                continue;
+            }
+
+            $doc = $this->resolveUploadedDocument($uploadedDocuments, $docType);
+            $hasFile = $doc && !empty($doc->storage_path) && $doc->storage_path !== 'NOINPUT';
+            $documents[] = [
+                'id' => $docType,
+                'name' => self::DOCUMENT_LABELS[$docType] ?? ucwords(str_replace('_', ' ', $docType)),
+                'text' => self::DOCUMENT_LABELS[$docType] ?? ucwords(str_replace('_', ' ', $docType)),
+                'status' => $hasFile ? ($doc->status ?? 'Pending') : 'Not Submitted',
+                'preview' => $hasFile ? url('/preview-file/' . base64_encode($doc->storage_path)) : '',
+                'remarks' => $doc ? ($doc->remarks ?: '') : '',
+                'last_modified_by' => $doc->last_modified_by ?? null,
+                'isBold' => true,
+            ];
+        }
+
+        return $documents;
     }
 
     public function previewDocument($user_id, $vacancy_id, $document_type)
@@ -948,6 +1007,16 @@ class AdminController extends Controller
             $doc = UploadedDocument::where('user_id', $user_id)
                 ->where('document_type', $document_type)
                 ->first();
+            if (!$doc) {
+                foreach (self::DOCUMENT_TYPE_ALIASES[$document_type] ?? [] as $alias) {
+                    $doc = UploadedDocument::where('user_id', $user_id)
+                        ->where('document_type', $alias)
+                        ->first();
+                    if ($doc) {
+                        break;
+                    }
+                }
+            }
             if ($doc) {
                 $path = $doc->storage_path;
             }
@@ -967,7 +1036,7 @@ class AdminController extends Controller
             ', 200);
         };
 
-        if (!$path) {
+        if (!$path || $path === 'NOINPUT') {
             return $noDocumentView();
         }
 
