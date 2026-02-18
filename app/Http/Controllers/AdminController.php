@@ -737,25 +737,21 @@ class AdminController extends Controller
                 ]);
 
                 if ($admin->email) {
-                    try {
-                        Mail::send('emails.admin_event_notification', [
-                            'actorName' => Auth::guard('admin')->user()->name,
-                            'recipientName' => $admin->name ?? $admin->username,
-                            'applicantName' => $applicantName,
-                            'positionTitle' => JobVacancy::where('vacancy_id', $vacancy_id)->value('position_title'),
-                            'vacancyId' => $vacancy_id,
-                            'title' => ($status === 'Verified') ? 'Document Verified' : 'Document Updated',
-                            'body' => ($status === 'Verified')
-                                ? Auth::guard('admin')->user()->name . ' verified ' . $docName . ' for ' . $applicantName
-                                : Auth::guard('admin')->user()->name . ' updated ' . $docName . ' for ' . $applicantName,
-                            'link' => route('admin.applicant_status', ['user_id' => $user_id, 'vacancy_id' => $vacancy_id]),
-                            'occurredAt' => $occurredAt,
-                        ], function ($m) use ($admin) {
-                            $m->to($admin->email)->subject('DILG-CAR Admin Notification');
-                        });
-                    } catch (\Throwable $e) {
-                        \Log::error('Admin verification email failed', ['error' => $e->getMessage()]);
-                    }
+                    Mail::send('emails.admin_event_notification', [
+                        'actorName' => Auth::guard('admin')->user()->name,
+                        'recipientName' => $admin->name ?? $admin->username,
+                        'applicantName' => $applicantName,
+                        'positionTitle' => JobVacancy::where('vacancy_id', $vacancy_id)->value('position_title'),
+                        'vacancyId' => $vacancy_id,
+                        'title' => ($status === 'Verified') ? 'Document Verified' : 'Document Updated',
+                        'body' => ($status === 'Verified')
+                            ? Auth::guard('admin')->user()->name . ' verified ' . $docName . ' for ' . $applicantName
+                            : Auth::guard('admin')->user()->name . ' updated ' . $docName . ' for ' . $applicantName,
+                        'link' => route('admin.applicant_status', ['user_id' => $user_id, 'vacancy_id' => $vacancy_id]),
+                        'occurredAt' => $occurredAt,
+                    ], function ($m) use ($admin) {
+                        $m->to($admin->email)->subject('DILG-CAR Admin Notification');
+                    });
                 }
             }
         }
@@ -890,41 +886,6 @@ class AdminController extends Controller
         } catch (\Exception $e) {
             \Log::error('Mail sending failed: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Failed to send email: ' . $e->getMessage()], 500);
-        }
-
-        // Notify all admins (except actor) about the notification sent to applicant
-        $admins = Admin::where('id', '!=', Auth::guard('admin')->id())->get();
-        $actorName = Auth::guard('admin')->user()->name;
-        $applicantName = User::where('id', $user_id)->value('name');
-        $positionTitle = JobVacancy::where('vacancy_id', $vacancy_id)->value('position_title');
-        $occurredAt = now();
-        foreach ($admins as $admin) {
-            Notification::create([
-                'notifiable_type' => 'App\Models\Admin',
-                'notifiable_id' => $admin->id,
-                'type' => 'info',
-                'data' => [
-                    'title' => 'Applicant Notified',
-                    'message' => $actorName . ' notified ' . ($applicantName ?: 'Applicant'),
-                    'link' => route('admin.applicant_status', ['user_id' => $user_id, 'vacancy_id' => $vacancy_id]),
-                ]
-            ]);
-
-            if ($admin->email) {
-                Mail::send('emails.admin_event_notification', [
-                    'actorName' => $actorName,
-                    'recipientName' => $admin->name ?? $admin->username,
-                    'applicantName' => $applicantName,
-                    'positionTitle' => $positionTitle,
-                    'vacancyId' => $vacancy_id,
-                    'title' => 'Applicant Notified',
-                    'body' => $actorName . ' notified ' . ($applicantName ?: 'Applicant'),
-                    'link' => route('admin.applicant_status', ['user_id' => $user_id, 'vacancy_id' => $vacancy_id]),
-                    'occurredAt' => $occurredAt,
-                ], function ($m) use ($admin) {
-                    $m->to($admin->email)->subject('DILG-CAR Admin Notification');
-                });
-            }
         }
 
         return response()->json(['success' => true, 'message' => 'Applicant notified successfully.']);

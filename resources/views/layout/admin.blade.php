@@ -143,14 +143,16 @@
             <header class="flex justify-end items-center gap-6 px-6 sm:px-8 md:px-10 pt-6 sm:pt-8 pb-4 shrink-0 z-50 bg-[#F1F6FC]">
                 <!-- Notification Bell -->
                 <div class="relative" x-data="{ open: false, count: 0, notifications: [] }" x-init="
-                    const refresh = () => {
-                        fetch('/notifications/count').then(r => r.json()).then(d => count = d.count);
-                        if (open) {
-                            fetch('/notifications/fetch').then(r => r.json()).then(d => notifications = d.notifications);
-                        }
-                    };
-                    refresh();
-                    setInterval(refresh, 5000);
+                    const refreshCount = () => fetch('/notifications/count').then(r => r.json()).then(d => count = d.count);
+                    const refreshList = () => fetch('/notifications/fetch').then(r => r.json()).then(d => notifications = d.notifications);
+                    refreshCount();
+                    // Faster auto-refresh every 5s
+                    setInterval(() => {
+                        refreshCount();
+                        if (open) { refreshList(); }
+                    }, 5000);
+                    // Also refresh on window focus
+                    window.addEventListener('focus', () => { refreshCount(); if (open) { refreshList(); } });
                 ">
                     <button
                         @click="open = !open; if(open) { fetch('/notifications/fetch').then(r => r.json()).then(d => { notifications = d.notifications; count = 0; fetch('/notifications/mark-all', {method: 'POST', headers: {'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content}}); }); }"

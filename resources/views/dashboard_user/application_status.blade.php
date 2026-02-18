@@ -52,7 +52,7 @@
                     role="alert">
                     <i data-feather="info" class="w-5 h-5 flex-shrink-0 mt-0.5"></i>
                     <div class="flex-1">
-                      <p class="font-bold mb-1">📋 Document Submission Required</p>
+                      <p class="font-bold mb-1">Document Submission Required</p>
                       <p class="font-normal">Please review the document status below and upload any required or corrected documents. Make sure all documents marked for revision are updated before the deadline.</p>
                     </div>
                     <button onclick="this.parentElement.remove()"
@@ -180,20 +180,6 @@
 
 
                 <!-- Action Buttons -->
-                <div class="flex flex-col sm:flex-row gap-4 mt-6 mb-6">
-                  <a href="{{ route('job_description', ['id' => $application->vacancy->vacancy_id]) }}" class="flex-1">
-                    <button
-                      class="use-loader w-full border-2 border-[#002C76] text-[#002C76] rounded-lg px-4 py-2 text-sm flex items-center justify-center gap-3 font-montserrat hover:bg-[#002C76] hover:text-white transition">
-                      <i data-feather="eye" class="w-5 h-5"></i> View Job Description
-                    </button>
-                  </a>
-                  <a href="{{ route('display_c1') }}" class="flex-1">
-                    <button
-                      class="use-loader border-2 border-[#002C76] text-[#002C76] rounded-lg px-4 py-2 text-sm flex items-center justify-center gap-3 font-montserrat hover:bg-[#002C76] hover:text-white transition">
-                      <i data-feather="eye" class="w-5 h-5"></i> View or Edit PDS
-                    </button>
-                  </a>
-                </div>
 
                 <!-- Document Section -->
                 <div class="flex flex-col lg:flex-row gap-4">

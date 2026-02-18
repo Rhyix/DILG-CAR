@@ -48,7 +48,7 @@ class NotificationController extends Controller
         if (!$query) return response()->json(['notifications' => []]);
 
         $notifications = $query->latest()->take(10)->get();
-        if (Auth::guard('admin')->check()) {
+        if ($notifications->isEmpty() && Auth::guard('admin')->check()) {
             $activities = Activity::latest()->take(10)->get();
             $mapped = $activities->map(function ($a) {
                 $props = $a->properties ?? collect();
@@ -79,9 +79,7 @@ class NotificationController extends Controller
                     'created_at' => $a->created_at,
                 ];
             });
-            // Merge stored notifications with activity-derived ones
-            $combined = collect($notifications)->concat($mapped)->take(10);
-            return response()->json(['notifications' => $combined]);
+            return response()->json(['notifications' => $mapped]);
         }
 
         return response()->json(['notifications' => $notifications]);

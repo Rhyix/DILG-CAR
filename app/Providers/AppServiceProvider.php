@@ -94,23 +94,19 @@ class AppServiceProvider extends ServiceProvider
                 ]);
 
                 if ($admin->email) {
-                    try {
-                        Mail::send('emails.admin_event_notification', [
-                            'actorName' => $actorName,
-                            'recipientName' => $admin->name ?? $admin->username,
-                            'applicantName' => $applicantName,
-                            'positionTitle' => $positionTitle,
-                            'vacancyId' => $vacancyId,
-                            'title' => $section,
-                            'body' => $message,
-                            'link' => $link,
-                            'occurredAt' => $activity->created_at,
-                        ], function ($m) use ($admin) {
-                            $m->to($admin->email)->subject('DILG-CAR Admin Notification');
-                        });
-                    } catch (\Throwable $e) {
-                        \Log::error('Admin verification email failed', ['error' => $e->getMessage()]);
-                    }
+                    Mail::send('emails.admin_event_notification', [
+                        'actorName' => $actorName,
+                        'recipientName' => $admin->name ?? $admin->username,
+                        'applicantName' => $applicantName,
+                        'positionTitle' => $positionTitle,
+                        'vacancyId' => $vacancyId,
+                        'title' => $section,
+                        'body' => $message,
+                        'link' => $link,
+                        'occurredAt' => $activity->created_at,
+                    ], function ($m) use ($admin) {
+                        $m->to($admin->email)->subject('DILG-CAR Admin Notification');
+                    });
                 }
             }
         });

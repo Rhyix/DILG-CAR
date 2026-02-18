@@ -375,8 +375,6 @@
                     ])
                 </div>
             </div>
-
-            
     </section>
 
     @if(session('success'))
