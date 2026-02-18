@@ -9,22 +9,17 @@ use Spatie\Activitylog\Models\Activity;
 
 class NotificationController extends Controller
 {
-    private function getQuery()
-    {
+    private function getQuery() {
         if (Auth::guard('admin')->check()) {
             return Notification::where('notifiable_type', 'App\Models\Admin')
-                ->where(function ($q) {
+                ->where(function($q) {
                     $q->where('notifiable_id', Auth::guard('admin')->id())
-<<<<<<< HEAD
                       ->orWhereNull('notifiable_id');
                 })
                 ->where(function($q) {
                     $q->where('data->category', 'document_verification')
                       ->orWhere('data->category', 'exam_lifecycle')
                       ->orWhere('data->category', 'exam_questions');
-=======
-                        ->orWhereNull('notifiable_id');
->>>>>>> 03b880c39b1f7006723895b34a1419dafb724c9e
                 });
         } elseif (Auth::check()) {
             return Notification::where('notifiable_type', 'App\Models\User')
@@ -37,10 +32,11 @@ class NotificationController extends Controller
     public function unreadCount()
     {
         $query = $this->getQuery();
-        if (!$query)
-            return response()->json(['count' => 0]);
+        if (!$query) return response()->json(['count' => 0]);
         $count = $query->whereNull('read_at')->count();
-
+        if ($count === 0 && Auth::guard('admin')->check()) {
+            $count = Activity::latest()->take(10)->count();
+        }
         return response()->json(['count' => $count]);
     }
 
@@ -54,12 +50,50 @@ class NotificationController extends Controller
     public function fetch()
     {
         $query = $this->getQuery();
-        if (!$query)
-            return response()->json(['notifications' => []]);
+        if (!$query) return response()->json(['notifications' => []]);
 
         $notifications = $query->latest()->paginate(10);
+        if (Auth::guard('admin')->check()) {
+            $activities = Activity::latest()->take(10)->get();
+            $mapped = $activities->map(function ($a) {
+                $props = $a->properties ?? collect();
+                $section = $props['section'] ?? ucfirst((string) ($a->event ?? 'Activity'));
+                $actor = optional($a->causer)->name ?? optional($a->causer)->username ?? 'Unknown';
+                $msg = trim((string) ($a->description ?? 'performed an action'));
+                $msg = rtrim($msg, ". \t\n\r\0\x0B");
+                $message = $actor . ' ' . $msg . '.';
+                $link = null;
+                $userId = $props['user_id'] ?? null;
+                $vacancyId = $props['vacancy_id'] ?? null;
+                if ($userId && $vacancyId) {
+                    $link = route('admin.applicant_status', ['user_id' => $userId, 'vacancy_id' => $vacancyId]);
+                } elseif ($vacancyId && in_array($section, ['Exam Management', 'Application List', 'Job Vacancy'])) {
+                    $link = route('admin.manage_exam', ['vacancy_id' => $vacancyId]);
+                } elseif ($section === 'System Users Management') {
+                    $link = route('admin_account_management');
+                }
+                return [
+                    'id' => 'activity_' . $a->id,
+                    'type' => 'info',
+                    'data' => [
+                        'title' => $section,
+                        'message' => $message,
+                        'link' => $link,
+                    ],
+                    'read_at' => null,
+                    'created_at' => $a->created_at,
+                ];
+            });
+            // Merge stored notifications with activity-derived ones
+            $combined = collect($notifications->items())->concat($mapped)->take(10)->values();
+            return response()->json([
+                'notifications' => $combined,
+                'data' => $combined,
+                'current_page' => 1,
+                'next_page_url' => null
+            ]);
+        }
 
-        // Return standard notifications collection
         $payload = $notifications->toArray();
         $payload['notifications'] = $payload['data'] ?? [];
         return response()->json($payload);
@@ -69,8 +103,7 @@ class NotificationController extends Controller
     public function markAll()
     {
         $query = $this->getQuery();
-        if (!$query)
-            return response()->json(['success' => false], 403);
+        if (!$query) return response()->json(['success' => false], 403);
 
         $query->whereNull('read_at')->update(['read_at' => now()]);
 
@@ -89,10 +122,8 @@ class NotificationController extends Controller
         // Security Check
         $authorized = false;
         if (Auth::guard('admin')->check()) {
-            if (
-                $notification->notifiable_type === 'App\Models\Admin' &&
-                ($notification->notifiable_id == Auth::guard('admin')->id() || $notification->notifiable_id === null)
-            ) {
+            if ($notification->notifiable_type === 'App\Models\Admin' && 
+               ($notification->notifiable_id == Auth::guard('admin')->id() || $notification->notifiable_id === null)) {
                 $authorized = true;
             }
         } elseif (Auth::check()) {
@@ -113,8 +144,7 @@ class NotificationController extends Controller
     public function cleanup()
     {
         $query = $this->getQuery();
-        if (!$query)
-            return response()->json(['success' => false], 403);
+        if (!$query) return response()->json(['success' => false], 403);
 
         $query->delete();
 
