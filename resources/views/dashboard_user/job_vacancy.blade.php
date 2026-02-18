@@ -15,6 +15,54 @@
 
 <!-- Sorting & Filtering -->
 <section class="flex flex-wrap gap-3 sm:gap-4 filters-mobile">
+    <form class="relative flex-1 min-w-[240px]" onsubmit="return false;">
+        <input id="searchInput" type="search" placeholder="Search job title, place, type" aria-label="Search"
+            class="pl-10 pr-4 py-2 rounded-md w-full border border-[#0D2B70] placeholder:text-[#7D93B3] placeholder:font-semibold text-[#0D2B70] focus:outline-none focus:ring-2 focus:ring-[#0D2B70] focus:ring-offset-1" />
+        <svg xmlns="http://www.w3.org/2000/svg"
+            class="w-5 h-5 text-[#7D93B3] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+            fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round"
+                d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
+        </svg>
+    </form>
+    <select id="sortFilter" class="hidden">
+        <option value="latest" selected>Latest</option>
+        <option value="oldest">Oldest</option>
+    </select>
+    <select id="statusFilter" class="hidden">
+        <option value="">ALL</option>
+        <option value="OPEN" selected>OPEN</option>
+        <option value="CLOSED">CLOSED</option>
+    </select>
+    <select id="typeFilter" class="hidden">
+        <option value="">All Types</option>
+        <option value="COS">COS</option>
+        <option value="Plantilla">Plantilla</option>
+    </select>
+    <select id="salaryFilter" class="hidden">
+        <option value="">All Salaries</option>
+        <option value="10-20">10-20</option>
+        <option value="20-30">20-30</option>
+        <option value="30-40">30-40</option>
+        <option value="40-50">40-50</option>
+        <option value="50-60">50-60</option>
+        <option value="60-70">60-70</option>
+        <option value="70-80">70-80</option>
+        <option value="80-90">80-90</option>
+        <option value="90-100">90-100</option>
+        <option value="100-1000">100-1000</option>
+    </select>
+    <select id="placeFilter" class="hidden">
+        <option value="">All Places</option>
+        <option value="DILG-CAR Regional Office">DILG-CAR Regional Office</option>
+        <option value="Apayao Provincial Office">Apayao Provincial Office</option>
+        <option value="Abra Provincial Office">Abra Provincial Office</option>
+        <option value="Mountain Province Provincial Office">Mountain Province Provincial Office</option>
+        <option value="Ifugao Provincial Office">Ifugao Provincial Office</option>
+        <option value="Kalinga Provincial Office">Kalinga Provincial Office</option>
+        <option value="Benguet Provincial Office">Benguet Provincial Office</option>
+        <option value="Baguio City Office">Baguio City Office</option>
+    </select>
     <!-- Sorting Latest to Oldest -->
     <div x-data="{ open: false }" class="relative">
         <button
@@ -24,7 +72,7 @@
             <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"></path>
             </svg>
-            Sort By: Latest
+            Sort By:
             <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path>
             </svg>
@@ -36,8 +84,12 @@
             x-transition
             class="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-lg z-50"
         >
-            <a href="#" class="block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold" @click="open = false">Latest</a>
-            <a href="#" class="block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold" @click="open = false">Oldest</a>
+            <button class="block w-full text-left px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold"
+                onclick="document.getElementById('sortFilter').value='latest'; document.getElementById('sortFilter').dispatchEvent(new Event('change'));"
+                @click="open=false">Latest</button>
+            <button class="block w-full text-left px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold"
+                onclick="document.getElementById('sortFilter').value='oldest'; document.getElementById('sortFilter').dispatchEvent(new Event('change'));"
+                @click="open=false">Oldest</button>
         </div>
     </div>
     <!-- Filtering by Status -->
@@ -50,7 +102,7 @@
                 <circle cx="12" cy="12" r="10" stroke="currentColor" fill="none"/>
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2"/>
             </svg>
-            Status: OPEN
+            Status:
             <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path>
             </svg>
@@ -62,9 +114,15 @@
             x-transition
             class="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-lg z-50"
         >
-            <a href="#" class="block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold" @click="open = false">ALL</a>
-            <a href="#" class="block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold" @click="open = false">OPEN</a>
-            <a href="#" class="block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold" @click="open = false">CLOSED</a>
+            <button class="block w-full text-left px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold"
+                onclick="document.getElementById('statusFilter').value=''; document.getElementById('statusFilter').dispatchEvent(new Event('change'));"
+                @click="open=false">ALL</button>
+            <button class="block w-full text-left px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold"
+                onclick="document.getElementById('statusFilter').value='OPEN'; document.getElementById('statusFilter').dispatchEvent(new Event('change'));"
+                @click="open=false">OPEN</button>
+            <button class="block w-full text-left px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold"
+                onclick="document.getElementById('statusFilter').value='CLOSED'; document.getElementById('statusFilter').dispatchEvent(new Event('change'));"
+                @click="open=false">CLOSED</button>
         </div>
     </div>
     <!-- Filtering by Vacancy Type -->
@@ -89,9 +147,15 @@
             x-transition
             class="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-xl shadow-lg z-50"
         >
-            <a href="#" class="block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold" @click="open = false">All Types</a>
-            <a href="#" class="block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold" @click="open = false">Job Order/Contract of Service</a>
-            <a href="#" class="block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold" @click="open = false">Plantilla Item</a>
+            <button class="block w-full text-left px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold"
+                onclick="document.getElementById('typeFilter').value=''; document.getElementById('typeFilter').dispatchEvent(new Event('change'));"
+                @click="open=false">All Types</button>
+            <button class="block w-full text-left px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold"
+                onclick="document.getElementById('typeFilter').value='COS'; document.getElementById('typeFilter').dispatchEvent(new Event('change'));"
+                @click="open=false">Job Order/Contract of Service</button>
+            <button class="block w-full text-left px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold"
+                onclick="document.getElementById('typeFilter').value='Plantilla'; document.getElementById('typeFilter').dispatchEvent(new Event('change'));"
+                @click="open=false">Plantilla Item</button>
         </div>
     </div>
     <!-- Filtering by Monthly Salary -->
@@ -115,18 +179,39 @@
             x-transition
             class="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-80 overflow-y-auto"
         >
-            <a href="#" class="block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold" @click="open = false">All Salaries</a>
-            <a href="#" class="block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100" @click="open = false">₱10,000 - ₱20,000</a>
-            <a href="#" class="block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100" @click="open = false">₱20,001 - ₱30,000</a>
-            <a href="#" class="block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100" @click="open = false">₱30,001 - ₱40,000</a>
-            <a href="#" class="block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100" @click="open = false">₱40,001 - ₱50,000</a>
-            <a href="#" class="block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100" @click="open = false">₱50,001 - ₱60,000</a>
-            <a href="#" class="block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100" @click="open = false">₱60,001 - ₱70,000</a>
-            <a href="#" class="block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100" @click="open = false">₱70,001 - ₱80,000</a>
-            <a href="#" class="block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100" @click="open = false">₱80,001 - ₱90,000</a>
-            <a href="#" class="block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100" @click="open = false">₱90,001 - ₱100,000</a>
-            <a href="#" class="block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100" @click="open = false">₱100,000+</a>
-            <a href="#" class="block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100" @click="open = false">Not Specified</a>
+            <button class="block w-full text-left px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold"
+                onclick="document.getElementById('salaryFilter').value=''; document.getElementById('salaryFilter').dispatchEvent(new Event('change'));"
+                @click="open=false">All Salaries</button>
+            <button class="block w-full text-left px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100"
+                onclick="document.getElementById('salaryFilter').value='10-20'; document.getElementById('salaryFilter').dispatchEvent(new Event('change'));"
+                @click="open=false">₱10,000 - ₱20,000</button>
+            <button class="block w-full text-left px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100"
+                onclick="document.getElementById('salaryFilter').value='20-30'; document.getElementById('salaryFilter').dispatchEvent(new Event('change'));"
+                @click="open=false">₱20,001 - ₱30,000</button>
+            <button class="block w-full text-left px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100"
+                onclick="document.getElementById('salaryFilter').value='30-40'; document.getElementById('salaryFilter').dispatchEvent(new Event('change'));"
+                @click="open=false">₱30,001 - ₱40,000</button>
+            <button class="block w-full text-left px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100"
+                onclick="document.getElementById('salaryFilter').value='40-50'; document.getElementById('salaryFilter').dispatchEvent(new Event('change'));"
+                @click="open=false">₱40,001 - ₱50,000</button>
+            <button class="block w-full text-left px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100"
+                onclick="document.getElementById('salaryFilter').value='50-60'; document.getElementById('salaryFilter').dispatchEvent(new Event('change'));"
+                @click="open=false">₱50,001 - ₱60,000</button>
+            <button class="block w-full text-left px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100"
+                onclick="document.getElementById('salaryFilter').value='60-70'; document.getElementById('salaryFilter').dispatchEvent(new Event('change'));"
+                @click="open=false">₱60,001 - ₱70,000</button>
+            <button class="block w-full text-left px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100"
+                onclick="document.getElementById('salaryFilter').value='70-80'; document.getElementById('salaryFilter').dispatchEvent(new Event('change'));"
+                @click="open=false">₱70,001 - ₱80,000</button>
+            <button class="block w-full text-left px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100"
+                onclick="document.getElementById('salaryFilter').value='80-90'; document.getElementById('salaryFilter').dispatchEvent(new Event('change'));"
+                @click="open=false">₱80,001 - ₱90,000</button>
+            <button class="block w-full text-left px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100"
+                onclick="document.getElementById('salaryFilter').value='90-100'; document.getElementById('salaryFilter').dispatchEvent(new Event('change'));"
+                @click="open=false">₱90,001 - ₱100,000</button>
+            <button class="block w-full text-left px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100"
+                onclick="document.getElementById('salaryFilter').value='100-1000'; document.getElementById('salaryFilter').dispatchEvent(new Event('change'));"
+                @click="open=false">₱100,000+</button>
         </div>
     </div>
     <!-- Filtering by Place of Assignment -->
@@ -151,15 +236,33 @@
             x-transition
             class="absolute right-0 mt-2 w-72 bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-80 overflow-y-auto"
         >
-            <a href="#" class="block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold" @click="open = false">All Places</a>
-            <a href="#" class="block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100" @click="open = false">DILG-CAR Regional Office</a>
-            <a href="#" class="block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100" @click="open = false">Apayao Provincial Office</a>
-            <a href="#" class="block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100" @click="open = false">Abra Provincial Office</a>
-            <a href="#" class="block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100" @click="open = false">Mountain Province Provincial Office</a>
-            <a href="#" class="block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100" @click="open = false">Ifugao Provincial Office</a>
-            <a href="#" class="block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100" @click="open = false">Kalinga Provincial Office</a>
-            <a href="#" class="block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100" @click="open = false">Benguet Provincial Office</a>
-            <a href="#" class="block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100" @click="open = false">Baguio City Office</a>
+            <button class="block w-full text-left px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold"
+                onclick="document.getElementById('placeFilter').value=''; document.getElementById('placeFilter').dispatchEvent(new Event('change'));"
+                @click="open=false">All Places</button>
+            <button class="block w-full text-left px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100"
+                onclick="document.getElementById('placeFilter').value='DILG-CAR Regional Office'; document.getElementById('placeFilter').dispatchEvent(new Event('change'));"
+                @click="open=false">DILG-CAR Regional Office</button>
+            <button class="block w-full text-left px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100"
+                onclick="document.getElementById('placeFilter').value='Apayao Provincial Office'; document.getElementById('placeFilter').dispatchEvent(new Event('change'));"
+                @click="open=false">Apayao Provincial Office</button>
+            <button class="block w-full text-left px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100"
+                onclick="document.getElementById('placeFilter').value='Abra Provincial Office'; document.getElementById('placeFilter').dispatchEvent(new Event('change'));"
+                @click="open=false">Abra Provincial Office</button>
+            <button class="block w-full text-left px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100"
+                onclick="document.getElementById('placeFilter').value='Mountain Province Provincial Office'; document.getElementById('placeFilter').dispatchEvent(new Event('change'));"
+                @click="open=false">Mountain Province Provincial Office</button>
+            <button class="block w-full text-left px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100"
+                onclick="document.getElementById('placeFilter').value='Ifugao Provincial Office'; document.getElementById('placeFilter').dispatchEvent(new Event('change'));"
+                @click="open=false">Ifugao Provincial Office</button>
+            <button class="block w-full text-left px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100"
+                onclick="document.getElementById('placeFilter').value='Kalinga Provincial Office'; document.getElementById('placeFilter').dispatchEvent(new Event('change'));"
+                @click="open=false">Kalinga Provincial Office</button>
+            <button class="block w-full text-left px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100"
+                onclick="document.getElementById('placeFilter').value='Benguet Provincial Office'; document.getElementById('placeFilter').dispatchEvent(new Event('change'));"
+                @click="open=false">Benguet Provincial Office</button>
+            <button class="block w-full text-left px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100"
+                onclick="document.getElementById('placeFilter').value='Baguio City Office'; document.getElementById('placeFilter').dispatchEvent(new Event('change'));"
+                @click="open=false">Baguio City Office</button>
         </div>
     </div>
 </section>
@@ -191,12 +294,14 @@
 @include('partials.loader')
 
         <script>
+            function debounce(fn, ms) { let t; return function(){ clearTimeout(t); const a=arguments, self=this; t=setTimeout(function(){ fn.apply(self,a); }, ms); }; }
             function fetchVacancies() {
                 const status = document.getElementById('statusFilter').value;
                 const sort = document.getElementById('sortFilter').value;
                 const type = document.getElementById('typeFilter').value;
                 const salary = document.getElementById('salaryFilter').value;
                 const place = document.getElementById('placeFilter').value;
+                const search = document.getElementById('searchInput').value.trim();
                 const loader = document.getElementById('loader');
                 loader?.classList.remove('hidden');
 
@@ -206,7 +311,8 @@
                     sort: sort,
                     type: type,
                     salary: salary,
-                    place: place
+                    place: place,
+                    search: search
                 });
 
                 fetch(`/job-vacancies/filter?${params.toString()}`)
@@ -221,6 +327,7 @@
                         loader?.classList.add('hidden');
                     });
             }
+            const fetchVacanciesDebounced = debounce(fetchVacancies, 300);
 
             // Attach change event listeners to all filters
             document.getElementById('statusFilter').addEventListener('change', fetchVacancies);
@@ -228,6 +335,7 @@
             document.getElementById('typeFilter').addEventListener('change', fetchVacancies);
             document.getElementById('salaryFilter').addEventListener('change', fetchVacancies);
             document.getElementById('placeFilter').addEventListener('change', fetchVacancies);
+            document.getElementById('searchInput').addEventListener('input', fetchVacanciesDebounced);
 
             window.addEventListener('DOMContentLoaded', () => {
                 fetchVacancies();

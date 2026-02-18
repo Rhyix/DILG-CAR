@@ -18,7 +18,7 @@
     [x-cloak] { display: none !important; }
   </style>
 </head>
-<body class="min-h-screen bg-white flex items-center justify-center">
+<body class="min-h-screen bg-gradient-to-br from-blue-800 via-blue-700 to-blue-900 flex items-center justify-center p-4">
 
 <!-- Flash Messages -->
 @if(session('success'))
@@ -50,104 +50,175 @@
   </div>
 </template>
 
-<!-- Main Content -->
-<div class="w-full min-h-screen flex flex-col lg:flex-row">
+<!-- Main Container (exactly like login page) -->
+<div class="w-full max-w-6xl bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl overflow-hidden">
+  <div class="flex flex-col lg:flex-row">
 
-  <!-- Left: Branding -->
-  <div class="flex-1 bg-blue-800 text-white flex flex-col items-center justify-center p-8 text-center">
-    <img src="{{ asset('images/dilg_logo.png') }}" alt="DILG Logo" class="w-28 sm:w-36 md:w-40 mb-6" />
-    <h1 class="text-xl sm:text-2xl md:text-3xl font-extrabold leading-tight">
-      DEPARTMENT OF THE INTERIOR<br/>AND LOCAL GOVERNMENT
-    </h1>
-    <p class="text-sm sm:text-base md:text-lg mt-1 font-semibold">CORDILLERA ADMINISTRATIVE REGION</p>
-    <p class="text-sm sm:text-base md:text-lg mt-1 text-blue-200">MATINO. MAHUSAY. MAAASAHAN.</p>
-    <p class="text-yellow-400 font-bold mt-4 text-base sm:text-lg">RECRUITMENT SELECTION AND PLACEMENT PORTAL</p>
-  </div>
+    <!-- Left: Registration Form (exactly like login page styling) -->
+    <div class="flex-1 p-8 lg:p-12">
+      <div class="max-w-md mx-auto">
+        <div class="flex items-center justify-center gap-3 mb-6">
+          <img src="{{ asset('images/dilg_logo.png') }}" alt="DILG Logo" class="w-12 h-12">
+          <div class="text-center">
+            <h2 class="text-3xl font-extrabold text-blue-900 tracking-tight">SIGN UP</h2>
+            <p class="text-blue-800 font-semibold">Create an account to proceed</p>
+          </div>
+        </div>
 
-  <!-- Right: Registration Form -->
-  <div class="flex-1 flex items-center justify-center p-6 bg-white">
-    <form method="POST" action="{{ route('register') }}" autocomplete="off"
-      class="no-spinner w-full max-w-md bg-white rounded-xl border border-blue-400 p-8 shadow-xl"
-      x-on:submit.prevent="if (agreed && checkboxChecked) { isSubmitting = true; $el.submit(); }">
-      @csrf
+        <form method="POST" action="{{ route('register') }}" autocomplete="off"
+          class="space-y-5"
+          x-on:submit.prevent="if (agreed && checkboxChecked) { isSubmitting = true; $el.submit(); }">
+          @csrf
 
-      <h2 class="text-3xl font-bold text-center text-blue-900 mb-2">SIGN UP</h2>
-      <p class="text-center text-blue-800 font-semibold mb-6">Create an account to proceed</p>
+          <!-- Name (styled exactly like login email field) -->
+          <div class="relative">
+            <span class="absolute inset-y-0 left-4 flex items-center">
+              <i class="fas fa-user text-yellow-400"></i>
+            </span>
+            <input type="text" name="name" placeholder="Enter Name" value="{{ old('name') }}" required
+              class="w-full bg-white border border-blue-400 rounded-full pl-12 pr-4 py-3 outline-none text-blue-900 placeholder:text-blue-800/60 focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
+              pattern="^[A-Za-z\s\-\.]{2,50}$"
+              title="Name should contain only letters, spaces, hyphens, or periods (2-50 characters).">
+          </div>
+          @error('name') <p class="text-red-600 text-sm ml-3 -mt-2">{{ $message }}</p> @enderror
 
-      <!-- Name -->
-      <div class="flex items-center border border-blue-400 rounded-full px-4 py-2 mb-2">
-        <i class="fas fa-user text-yellow-400 mr-3"></i>
-        <input type="text" name="name" placeholder="Enter Name" value="{{ old('name') }}" required
-          class="w-full bg-transparent outline-none"
-          pattern="^[A-Za-z\s\-\.]{2,50}$"
-          title="Name should contain only letters, spaces, hyphens, or periods (2-50 characters).">
+          <!-- Email (styled exactly like login email field) -->
+          <div class="relative">
+            <span class="absolute inset-y-0 left-4 flex items-center">
+              <i class="fas fa-envelope text-yellow-400"></i>
+            </span>
+            <input type="email" name="email" placeholder="Email Address" value="{{ old('email') }}" required
+              class="w-full bg-white border border-blue-400 rounded-full pl-12 pr-4 py-3 outline-none text-blue-900 placeholder:text-blue-800/60 focus:ring-2 focus:ring-blue-600 focus:border-blue-600">
+          </div>
+          @error('email') <p class="text-red-600 text-sm ml-3 -mt-2">{{ $message }}</p> @enderror
+
+          <!-- Password (styled exactly like login password field WITH toggle button) -->
+          <div class="relative">
+            <span class="absolute inset-y-0 left-4 flex items-center">
+              <i class="fas fa-lock text-yellow-400"></i>
+            </span>
+            <input 
+              id="password" 
+              type="password" 
+              name="password" 
+              placeholder="Password" 
+              required 
+              minlength="8"
+              class="w-full bg-white border border-blue-400 rounded-full pl-12 pr-12 py-3 outline-none text-blue-900 placeholder:text-blue-800/60 focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
+              title="Password must be at least 8 characters long.">
+            <button type="button" id="togglePassword" class="absolute inset-y-0 right-3 px-3 flex items-center text-blue-800/70 hover:text-blue-900">
+              <i class="fas fa-eye"></i>
+            </button>
+          </div>
+          @error('password') <p class="text-red-600 text-sm ml-3 -mt-2">{{ $message }}</p> @enderror
+
+          <!-- Confirm Password (styled exactly like login password field WITH toggle button) -->
+          <div class="relative">
+            <span class="absolute inset-y-0 left-4 flex items-center">
+              <i class="fas fa-lock text-yellow-400"></i>
+            </span>
+            <input 
+              id="password_confirmation" 
+              type="password" 
+              name="password_confirmation" 
+              placeholder="Confirm Password" 
+              required 
+              minlength="8"
+              class="w-full bg-white border border-blue-400 rounded-full pl-12 pr-12 py-3 outline-none text-blue-900 placeholder:text-blue-800/60 focus:ring-2 focus:ring-blue-600 focus:border-blue-600">
+            <button type="button" id="togglePasswordConfirm" class="absolute inset-y-0 right-3 px-3 flex items-center text-blue-800/70 hover:text-blue-900">
+              <i class="fas fa-eye"></i>
+            </button>
+          </div>
+          @error('password_confirmation') <p class="text-red-600 text-sm ml-3 -mt-2">{{ $message }}</p> @enderror
+
+          <!-- Data Privacy (styled like remember me checkbox) -->
+          <div class="flex items-start mt-2">
+            <input type="checkbox" id="agree" @click.prevent="showModal = true" :checked="checkboxChecked"
+              class="mr-2 mt-1 cursor-pointer rounded border-blue-400 text-blue-800 focus:ring-blue-600">
+            <label for="agree" class="text-sm text-blue-800">
+              I have read and agree to the
+              <span @click="showModal = true" class="font-bold underline cursor-pointer hover:text-blue-900">Data Privacy Notice</span>
+            </label>
+          </div>
+
+          <!-- Register Button (styled exactly like login button) -->
+          <button type="submit"
+            :disabled="!(agreed && checkboxChecked) || isSubmitting"
+            :class="{ 'opacity-50 cursor-not-allowed': !(agreed && checkboxChecked), 'cursor-wait': isSubmitting }"
+            class="w-full bg-yellow-400 hover:bg-yellow-500 text-blue-900 font-bold py-3 rounded-full shadow-md transition transform hover:scale-[1.02] active:scale-[0.98]">
+            <span x-text="isSubmitting ? 'Processing…' : 'REGISTER'"></span>
+          </button>
+
+          <!-- Google Login (styled exactly like login google button) -->
+          <div class="flex items-center justify-center my-4">
+            <a :class="{
+                'opacity-50 cursor-not-allowed': !(agreed && checkboxChecked),
+                'use-loader flex items-center justify-center gap-3 w-full bg-white border-2 border-yellow-400 text-blue-900 font-bold py-3 rounded-full hover:bg-yellow-100 shadow-md transition transform hover:scale-[1.02] active:scale-[0.98]': true
+              }"
+              :href="(agreed && checkboxChecked) ? '{{ route('google.login') }}' : '#'">
+              <img src="{{ asset('images/google-icon.png') }}" alt="Google Icon" class="w-5 h-5">
+              Continue with Google
+            </a>
+          </div>
+
+          <!-- Login Link (styled exactly like register link in login page) -->
+          <p class="text-center text-sm text-blue-800">
+            Already have an account?
+            <a href="{{ route('login') }}" class="use-loader font-bold hover:underline">LOG-IN</a>
+          </p>
+        </form>
       </div>
-      @error('name') <p class="text-red-600 text-sm ml-3 -mt-2">{{ $message }}</p> @enderror
+    </div>
 
-      <!-- Email -->
-      <div class="flex items-center border border-blue-400 rounded-full px-4 py-2  mb-2 mt-3">
-        <i class="fas fa-envelope text-yellow-400 mr-3"></i>
-        <input type="email" name="email" placeholder="Email Address" value="{{ old('email') }}" required
-          class="w-full bg-transparent outline-none">
-      </div>
-      @error('email') <p class="text-red-600 text-sm ml-3 -mt-2">{{ $message }}</p> @enderror
-
-      <!-- Password -->
-      <div class="flex items-center border border-blue-400 rounded-full px-4 py-2 mb-2 mt-3">
-        <i class="fas fa-lock text-yellow-400 mr-3"></i>
-        <input type="password" name="password" placeholder="Password" required minlength="8"
-          class="w-full bg-transparent outline-none"
-          title="Password must be at least 8 characters long.">
-      </div>
-      @error('password') <p class="text-red-600 text-sm ml-3 -mt-2">{{ $message }}</p> @enderror
-
-      <!-- Confirm Password -->
-      <div class="flex items-center border border-blue-400 rounded-full px-4 py-2 mb-2 mt-3">
-        <i class="fas fa-lock text-yellow-400 mr-3"></i>
-        <input type="password" name="password_confirmation" placeholder="Confirm Password" required minlength="8"
-          class="w-full bg-transparent outline-none">
-      </div>
-      @error('password_confirmation') <p class="text-red-600 text-sm ml-3 -mt-2">{{ $message }}</p> @enderror
-
-      <!-- Data Privacy -->
-      <div class="flex items-start mb-4 mt-4">
-        <input type="checkbox" id="agree" @click.prevent="showModal = true" :checked="checkboxChecked"
-          class="mr-2 mt-1 cursor-pointer">
-        <label for="agree" class="text-xs text-blue-700">
-          I have read and agree to the
-          <span @click="showModal = true" class="font-bold underline cursor-pointer">Data Privacy Notice</span>
-        </label>
-      </div>
-
-      <!-- Register Button -->
-      <button type="submit"
-        :disabled="!(agreed && checkboxChecked) || isSubmitting"
-        :class="{ 'opacity-50 cursor-not-allowed': !(agreed && checkboxChecked), 'cursor-wait': isSubmitting }"
-        class="w-full bg-yellow-400 hover:bg-yellow-500 text-blue-900 font-bold py-3 rounded-full shadow-md transition ease-in-out duration-200">
-        <span x-text="isSubmitting ? 'Processing…' : 'REGISTER'"></span>
-      </button>
-
-      <!-- Google Login -->
-      <div class="flex items-center justify-center my-4">
-        <a :class="{
-            'opacity-50 cursor-not-allowed': !(agreed && checkboxChecked),
-            'use-loader flex items-center justify-center gap-3 w-full bg-white border-2 border-yellow-400 text-blue-900 font-bold py-2 rounded-full hover:bg-yellow-100 shadow-md transition ease-in-out duration-200': true
-          }"
-          :href="(agreed && checkboxChecked) ? '{{ route('google.login') }}' : '#'">
-          <img src="{{ asset('images/google-icon.png') }}" alt="Google Icon" class="w-5 h-5">
-          Continue with Google
-        </a>
-      </div>
-
-      <p class="text-xs text-blue-700 text-center">
-        Already have an account?
-        <a href="{{ route('login') }}" class="use-loader font-bold hover:underline">LOG-IN</a>
+    <!-- Right: Logo and Agency Info (exactly like login page) -->
+    <div class="flex-1 bg-gradient-to-br from-blue-800 to-blue-900 text-white flex flex-col items-center justify-center p-8 lg:p-12 text-center relative overflow-hidden">
+      <div class="absolute inset-0 opacity-10 pointer-events-none" style="background-image: radial-gradient(circle at 20% 20%, #fff 0, transparent 20%), radial-gradient(circle at 80% 30%, #fff 0, transparent 20%), radial-gradient(circle at 30% 80%, #fff 0, transparent 20%);"></div>
+      <img 
+        src="{{ asset('images/dilg_logo.png') }}" 
+        alt="DILG Logo" 
+        class="w-28 sm:w-36 md:w-40 mb-6 drop-shadow-lg"
+      />
+      <h1 class="text-xl sm:text-2xl md:text-3xl font-extrabold leading-tight">
+        DEPARTMENT OF THE INTERIOR <br/>
+        AND LOCAL GOVERNMENT
+      </h1>
+      <p class="text-sm sm:text-base md:text-lg mt-1 font-semibold">CORDILLERA ADMINISTRATIVE REGION</p>
+      <p class="text-sm sm:text-base md:text-lg mt-1 text-blue-200">MATINO. MAHUSAY. MAAASAHAN.</p>
+      <p class="text-yellow-400 font-bold mt-4 text-base sm:text-lg">
+        RECRUITMENT SELECTION AND PLACEMENT PORTAL
       </p>
-    </form>
+    </div>
   </div>
 </div>
 
 @include('partials.loader')
+
+<!-- Password Toggle Scripts (exactly like login page) -->
+<script>
+  // Toggle for password field
+  const toggle = document.getElementById('togglePassword');
+  if (toggle) {
+    toggle.addEventListener('click', function () {
+      const input = document.getElementById('password');
+      if (!input) return;
+      const is = input.getAttribute('type') === 'password';
+      input.setAttribute('type', is ? 'text' : 'password');
+      this.querySelector('i').classList.toggle('fa-eye-slash');
+    });
+  }
+
+  // Toggle for confirm password field
+  const toggleConfirm = document.getElementById('togglePasswordConfirm');
+  if (toggleConfirm) {
+    toggleConfirm.addEventListener('click', function () {
+      const input = document.getElementById('password_confirmation');
+      if (!input) return;
+      const is = input.getAttribute('type') === 'password';
+      input.setAttribute('type', is ? 'text' : 'password');
+      this.querySelector('i').classList.toggle('fa-eye-slash');
+    });
+  }
+</script>
 
 <!-- AlpineJS Logic -->
 <script>
@@ -157,7 +228,7 @@
       agreed: false,
       checkboxChecked: false,
       hasErrors: hasErrors === 'true',
-        isSubmitting: false,
+      isSubmitting: false,
       initModal() {
         if (!this.hasErrors && !localStorage.getItem('modalShown')) {
           this.showModal = true;

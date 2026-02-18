@@ -11,8 +11,6 @@
     </div>
 @endif
 
-
-
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
@@ -38,139 +36,157 @@
     }
   </style>
   
-        <!--$metaTitle = 'DILG - CAR Recruitment and Selection Portal';-->
-        <!--$metaDescription = 'This is the official Recruitment and Selection Portal of the Department of the Interior and Local Government - Cordillera Administrative Region.';-->
-        <!--$metaImage = asset('images/dilg_rsp_thumbnail.png');-->
-        <!--$metaUrl = url()->current();-->
+  <!-- Dynamic Open Graph Meta Tags -->
+  <meta property="og:title" content="DILG - CAR Recruitment Selection and Placement Portal" />
+  <meta property="og:description" content="Isa ka bang MATINO, MAHUSAY, at MAAASAHAN na manggagawang Pilipino?" />
+  <meta property="og:image" content="{{ asset('images/dilg_rsp_thumbnail.png') }}" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:url" content="url()->current();-->" />
+  <meta property="og:type" content="website" />
 
-        <!--if (request()->is('login')) {-->
-        <!--    $metaTitle = 'Login - DILG Recruitment Portal';-->
-        <!--    $metaDescription = 'Access your account to view job vacancies and submit your application.';-->
-        <!--    $metaImage = asset('images/dilg_login_thumbnail.png'); // fallback if you want a separate image-->
-        <!--} elseif (request()->is('jobs/*')) {-->
-        <!--    $metaTitle = 'View Job Vacancy - DILG CAR';-->
-        <!--    $metaDescription = 'Explore available job opportunities and join our team at DILG CAR.';-->
-        <!--}    -->
-
-    <!-- Dynamic Open Graph Meta Tags -->
-    <meta property="og:title" content="DILG - CAR Recruitment Selection and Placement Portal" />
-    <meta property="og:description" content="Isa ka bang MATINO, MAHUSAY, at MAAASAHAN na manggagawang Pilipino?" />
-    <meta property="og:image" content="{{ asset('images/dilg_rsp_thumbnail.png') }}" />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
-    <meta property="og:image:type" content="image/png" />
-    <meta property="og:url" content="url()->current();-->" />
-    <meta property="og:type" content="website" />
-
-    <!-- Dynamic Twitter Card Meta Tags -->
-    <meta name="twitter:card" content="DILG - CAR Recruitment Selection and Placement Portal" />
-    <meta name="twitter:title" content="DILG - CAR Recruitment Selection and Placement Portal" />
-    <meta name="twitter:description" content="Isa ka bang MATINO, MAHUSAY, at MAAASAHAN na manggagawang Pilipino?" />
-    <meta name="twitter:image" content="{{ asset('images/dilg_rsp_thumbnail.png') }}" />
-    
+  <!-- Dynamic Twitter Card Meta Tags -->
+  <meta name="twitter:card" content="DILG - CAR Recruitment Selection and Placement Portal" />
+  <meta name="twitter:title" content="DILG - CAR Recruitment Selection and Placement Portal" />
+  <meta name="twitter:description" content="Isa ka bang MATINO, MAHUSAY, at MAAASAHAN na manggagawang Pilipino?" />
+  <meta name="twitter:image" content="{{ asset('images/dilg_rsp_thumbnail.png') }}" />
+  
 </head>
-<body class="min-h-screen bg-white flex items-center justify-center">
+<body class="min-h-screen bg-gradient-to-br from-blue-800 via-blue-700 to-blue-900 flex items-center justify-center p-4">
 
-  <div class="w-full min-h-screen flex flex-col-reverse lg:flex-row">
-    
-    <!-- Left: Login Form -->
-    <div class="flex-1 flex items-center justify-center p-6 bg-white">
-      <div class="w-full max-w-md bg-white rounded-xl border border-blue-400 p-8 shadow-xl">
-        <h2 class="text-3xl font-bold text-center text-blue-900 mb-2">WELCOME</h2>
-        <p class="text-center text-blue-800 font-semibold mb-6">Please log-in to continue</p>
-
-        <form method="POST" action="{{ route('login') }}" class="space-y-5">
-          @csrf
-
-          <!-- Email -->
-          <div class="flex items-center border border-blue-400 rounded-full px-4 py-2">
-            <i class="fas fa-user text-yellow-400 mr-3"></i>
-            <input 
-              id="email" 
-              type="email" 
-              name="email" 
-              value="{{ old('email') }}" 
-              required 
-              autofocus 
-              placeholder="Email"
-              class="w-full bg-transparent outline-none"
-            />
-          </div>
-          @error('email')
-            <p class="text-red-600 text-sm ml-3 -mt-4">{{ $message }}</p>
-          @enderror
-
-          <!-- Password -->
-          <div class="flex items-center border border-blue-400 rounded-full px-4 py-2">
-            <i class="fas fa-lock text-yellow-400 mr-3"></i>
-            <input 
-              id="password" 
-              type="password" 
-              name="password" 
-              required 
-              placeholder="Password"
-              class="w-full bg-transparent outline-none"
-            />
-          </div>
-          @error('password')
-            <p class="text-red-600 text-sm ml-3 -mt-4">{{ $message }}</p>
-          @enderror
-
-          <!-- Forgot password -->
-            <div class="text-right text-sm">
-              <a href="{{ route('forgot.password.form') }}" class="text-blue-800 hover:underline">Forgot Password?</a>
-           </div>
-           
-          @if(!env('APP_DEBUG'))
-            <div class="mb-4">
-                <div class="g-recaptcha" data-sitekey="6LfpjpErAAAAADcMjUqP3AZmsMae7WvrjcA5OSvs" data-action="LOGIN"></div>
+  <div class="w-full max-w-6xl bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl overflow-hidden">
+    <div class="flex flex-col lg:flex-row">
+      
+      <!-- Left: Login Form -->
+      <div class="flex-1 p-8 lg:p-12">
+        <div class="max-w-md mx-auto">
+          <div class="flex items-center justify-center gap-3 mb-6">
+            <img src="{{ asset('images/dilg_logo.png') }}" alt="DILG Logo" class="w-12 h-12">
+            <div class="text-center">
+              <h2 class="text-3xl font-extrabold text-blue-900 tracking-tight">WELCOME</h2>
+              <p class="text-blue-800 font-semibold">Please log-in to continue</p>
             </div>
-          @endif
-          
-          <!-- Submit -->
-          <button type="submit" class="w-full bg-yellow-400 hover:bg-yellow-500 text-blue-900 font-bold py-3 rounded-full shadow-md transition">
-            LOG-IN
-          </button>
+          </div>
 
-          <!-- Google Login -->
-          <!-- Google Login -->
-                <div class="flex items-center justify-center my-4">
-                  <a class="use-loader flex items-center justify-center gap-3 w-full bg-white border-2 border-yellow-400 text-blue-900 font-bold py-2 rounded-full hover:bg-yellow-100 shadow-md transition ease-in-out duration-200"
-                    href='{{ route('google.login') }}'>
-                    <img src="{{ asset('images/google-icon.png') }}" alt="Google Icon" class="w-5 h-5">
-                    Continue with Google
-                  </a>
-                </div>
+          <form method="POST" action="{{ route('login') }}" class="space-y-5">
+            @csrf
 
-          <!-- Register -->
-          @if (Route::has('register'))
-            <p class="text-center text-sm text-blue-800">
-              Don’t have an account?
-              <a href="{{ route('register') }}" class="use-loader font-bold hover:underline">SIGN-UP</a>
-            </p>
-          @endif
-        </form>
+            <!-- Email -->
+            <div class="relative">
+              <span class="absolute inset-y-0 left-4 flex items-center">
+                <i class="fas fa-user text-yellow-400"></i>
+              </span>
+              <input 
+                id="email" 
+                type="email" 
+                name="email" 
+                value="{{ old('email') }}" 
+                required 
+                autofocus 
+                placeholder="Email"
+                class="w-full bg-white border border-blue-400 rounded-full pl-12 pr-4 py-3 outline-none text-blue-900 placeholder:text-blue-800/60 focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
+              />
+            </div>
+            @error('email')
+              <p class="text-red-600 text-sm ml-3 -mt-4">{{ $message }}</p>
+            @enderror
+
+            <!-- Password -->
+            <div class="relative">
+              <span class="absolute inset-y-0 left-4 flex items-center">
+                <i class="fas fa-lock text-yellow-400"></i>
+              </span>
+              <input 
+                id="password" 
+                type="password" 
+                name="password" 
+                required 
+                placeholder="Password"
+                class="w-full bg-white border border-blue-400 rounded-full pl-12 pr-12 py-3 outline-none text-blue-900 placeholder:text-blue-800/60 focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
+              />
+              <button type="button" id="togglePassword" class="absolute inset-y-0 right-3 px-3 flex items-center text-blue-800/70 hover:text-blue-900">
+                <i class="fas fa-eye"></i>
+              </button>
+            </div>
+            @error('password')
+              <p class="text-red-600 text-sm ml-3 -mt-4">{{ $message }}</p>
+            @enderror
+
+            <!-- Remember me & Forgot password -->
+            <div class="flex items-center justify-between text-sm">
+              <label class="inline-flex items-center gap-2 text-blue-900">
+                <input type="checkbox" name="remember" class="rounded border-blue-400 text-blue-800 focus:ring-blue-600">
+                <span class="font-semibold">Remember me</span>
+              </label>
+              <a href="{{ route('forgot.password.form') }}" class="text-blue-800 font-semibold hover:underline">Forgot Password?</a>
+            </div>
+             
+            @if(!env('APP_DEBUG'))
+              <div class="mb-4">
+                  <div class="g-recaptcha" data-sitekey="6LfpjpErAAAAADcMjUqP3AZmsMae7WvrjcA5OSvs" data-action="LOGIN"></div>
+              </div>
+            @endif
+            
+            <!-- LOG-IN Button - Visible -->
+            <button type="submit" class="w-full bg-yellow-400 hover:bg-yellow-500 text-blue-900 font-bold py-3 rounded-full shadow-md transition transform hover:scale-[1.02] active:scale-[0.98]">
+              LOG-IN
+            </button>
+
+            <!-- Continue with Google Button - Visible -->
+            <div class="flex items-center justify-center my-4">
+              <a class="use-loader flex items-center justify-center gap-3 w-full bg-white border-2 border-yellow-400 text-blue-900 font-bold py-3 rounded-full hover:bg-yellow-100 shadow-md transition transform hover:scale-[1.02] active:scale-[0.98]"
+                href='{{ route('google.login') }}'>
+                <img src="{{ asset('images/google-icon.png') }}" alt="Google Icon" class="w-5 h-5">
+                Continue with Google
+              </a>
+            </div>
+
+            <!-- Register Link -->
+            @if (Route::has('register'))
+              <p class="text-center text-sm text-blue-800">
+                Don't have an account?
+                <a href="{{ route('register') }}" class="use-loader font-bold hover:underline">SIGN-UP</a>
+              </p>
+            @endif
+          </form>
+        </div>
+      </div>
+
+      <!-- Right: Logo and Agency Info -->
+      <div class="flex-1 bg-gradient-to-br from-blue-800 to-blue-900 text-white flex flex-col items-center justify-center p-8 lg:p-12 text-center relative overflow-hidden">
+        <div class="absolute inset-0 opacity-10 pointer-events-none" style="background-image: radial-gradient(circle at 20% 20%, #fff 0, transparent 20%), radial-gradient(circle at 80% 30%, #fff 0, transparent 20%), radial-gradient(circle at 30% 80%, #fff 0, transparent 20%);"></div>
+        <img 
+          src="{{ asset('images/dilg_logo.png') }}" 
+          alt="DILG Logo" 
+          class="w-28 sm:w-36 md:w-40 mb-6 drop-shadow-lg"
+        />
+        <h1 class="text-xl sm:text-2xl md:text-3xl font-extrabold leading-tight">
+          DEPARTMENT OF THE INTERIOR <br/>
+          AND LOCAL GOVERNMENT
+        </h1>
+        <p class="text-sm sm:text-base md:text-lg mt-1 font-semibold">CORDILLERA ADMINISTRATIVE REGION</p>
+        <p class="text-sm sm:text-base md:text-lg mt-1 text-blue-200">MATINO. MAHUSAY. MAAASAHAN.</p>
+        <p class="text-yellow-400 font-bold mt-4 text-base sm:text-lg">
+          RECRUITMENT SELECTION AND PLACEMENT PORTAL
+        </p>
       </div>
     </div>
-
-    <!-- Right: Logo and Agency Info -->
-    <div class="flex-1 bg-blue-800 text-white flex flex-col items-center justify-center p-8 text-center">
-      <img 
-        src="{{ asset('images/dilg_logo.png') }}" 
-        alt="DILG Logo" 
-        class="w-28 sm:w-36 md:w-40 mb-6"
-      />
-      <h1 class="text-xl sm:text-2xl md:text-3xl font-extrabold leading-tight">
-        DEPARTMENT OF THE INTERIOR  <br/>
-        AND LOCAL GOVERNMENT
-      </h1>
-      <p class="text-sm sm:text-base md:text-lg mt-1 font-semibold">CORDILLERA ADMINISTRATIVE REGION</p>
-      <p class="text-sm sm:text-base md:text-lg mt-1 text-blue-200">MATINO. MAHUSAY. MAAASAHAN.</p>
-      <p class="text-yellow-400 font-bold mt-4 text-base sm:text-lg">
-        RECRUITMENT SELECTION AND PLACEMENT PORTAL
-      </p>
-    </div>
   </div>
+
+  @include('partials.loader')
+  
+  <script>
+    const toggle = document.getElementById('togglePassword');
+    if (toggle) {
+      toggle.addEventListener('click', function () {
+        const input = document.getElementById('password');
+        if (!input) return;
+        const is = input.getAttribute('type') === 'password';
+        input.setAttribute('type', is ? 'text' : 'password');
+        this.querySelector('i').classList.toggle('fa-eye-slash');
+      });
+    }
+  </script>
 </body>
-@include('partials.loader')
 </html>
