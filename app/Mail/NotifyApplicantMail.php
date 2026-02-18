@@ -60,7 +60,7 @@ class NotifyApplicantMail extends Mailable implements ShouldQueue
     {
 
         return new Content(
-            view: 'emails.exam_sched_link',
+            view: 'emails.exam_notification',
             with: [
                 'vacancy' => $this->vacancy,
                 'user' => $this->user,

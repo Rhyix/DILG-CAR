@@ -371,7 +371,7 @@
                     Save & Notify Applicants
                 </button>
                 
-                <button type="button" id="sendLinkButton" onclick="sendExamLink('{{ $vacancy->vacancy_id }}')" 
+                <button type="button" id="sendLinkButton" onclick="triggerSendLinkConfirm('{{ $vacancy->vacancy_id }}')" 
                         {{ (!$examDetails || !$examDetails->details_saved || $examDetails->link_sent || $isExamActive || $isExamCompleted || !$isExamDay || !$isBeforeStart || ($lobbyCount < 1)) ? 'disabled' : '' }}
                         class="w-full py-2 border-2 border-[#0D2B70] rounded-lg text-[#0D2B70] font-bold text-sm hover:scale-[1.02] flex items-center justify-center gap-2 transition-transform disabled:opacity-50 disabled:hover:scale-100">
                     <x-heroicon-o-paper-airplane class="w-4 h-4" />
@@ -386,7 +386,7 @@
                         Edit Questions
                     </button>
                     
-                    <button type="button" id="startExamButton" onclick="startExam('{{ $vacancy->vacancy_id }}')" 
+                    <button type="button" id="startExamButton" onclick="triggerStartExamConfirm('{{ $vacancy->vacancy_id }}')" 
                             {{ (!$examDetails || !$examDetails->link_sent || $isExamActive || $isExamCompleted || !$isExamDay) ? '' : 'disabled' }}
                             class="flex-1 py-2 bg-[#0D2B70] rounded-lg text-white font-bold text-sm hover:scale-[1.02] flex items-center justify-center gap-2 transition-transform disabled:opacity-50 disabled:hover:scale-100">
                         <x-heroicon-o-play class="w-4 h-4" />
@@ -413,13 +413,48 @@
 
 
     @include('partials.loader')
+    <!-- Confirmation Modals -->
+    <x-confirm-modal 
+        title="Save & Notify Applicants"
+        message="Save exam details and notify qualified applicants?"
+        event="open-save-notify-confirm"
+        confirm="confirm-save-notify"
+    />
+    <x-confirm-modal 
+        title="Send Exam Links"
+        message="Send exam lobby links to all eligible participants?"
+        event="open-send-link-confirm"
+        confirm="confirm-send-link"
+    />
+    <x-confirm-modal 
+        title="Start Exam"
+        message="Start the exam now? All ready participants will enter the exam."
+        event="open-start-exam-confirm"
+        confirm="confirm-start-exam"
+    />
 </main>
 <script>
-    // Send exam link via email
+    // Confirmation wrappers
+    function triggerSendLinkConfirm(vacancyId) {
+        window._pendingVacancyId = vacancyId;
+        window.dispatchEvent(new CustomEvent('open-send-link-confirm'));
+    }
+    function triggerStartExamConfirm(vacancyId) {
+        window._pendingVacancyId = vacancyId;
+        window.dispatchEvent(new CustomEvent('open-start-exam-confirm'));
+    }
+    // Confirm handlers
+    window.addEventListener('confirm-send-link', () => {
+        const id = window._pendingVacancyId;
+        if (id) sendExamLink(id);
+    });
+    window.addEventListener('confirm-start-exam', () => {
+        const id = window._pendingVacancyId;
+        if (id) startExam(id);
+    });
+
+    // Send exam link via email (executes after confirmation)
     function sendExamLink(vacancyId) {
-        if (!confirm("Are you sure you want to send exam links to all applicants?")) {
-            return;
-        }
 
         const sendLinkButton = document.getElementById('sendLinkButton');
         const originalText = sendLinkButton.innerHTML;
@@ -464,11 +499,8 @@
         });
     }
 
-    // Start exam function
+    // Start exam function (executes after confirmation)
     function startExam(vacancyId) {
-        if (!confirm("Are you sure you want to start the exam? This action cannot be undone.")) {
-            return;
-        }
 
         const startButton = document.getElementById('startExamButton');
         const originalText = startButton.innerHTML;
@@ -508,6 +540,32 @@
         });
     }
 
+
+    const saveNotifyBtnEl = document.getElementById('saveNotifyButton');
+    if (saveNotifyBtnEl) {
+        saveNotifyBtnEl.addEventListener('click', function(e) {
+            // Only intercept when this button would submit
+            if (!this.disabled) {
+                e.preventDefault();
+                window.dispatchEvent(new CustomEvent('open-save-notify-confirm'));
+            }
+        });
+    }
+
+    // After confirmation, submit form via existing handler
+    window.addEventListener('confirm-save-notify', () => {
+        const formEl = document.getElementById('examDetailsForm');
+        const btn = document.getElementById('saveNotifyButton');
+        if (formEl && btn && !btn.disabled) {
+            if (formEl.requestSubmit) {
+                formEl.requestSubmit(btn);
+            } else {
+                // Fallback
+                btn.disabled = true;
+                formEl.submit();
+            }
+        }
+    });
 
     document.getElementById('examDetailsForm').addEventListener('submit', function(e) {
         e.preventDefault();
