@@ -281,7 +281,7 @@
                   <div class="bg-white rounded-lg p-4 border border-gray-300">
                     <div class="font-bold text-gray-800 mb-2">APPLICATION REMARKS</div>
                     <p class="text-sm text-gray-700">
-                      {{ $application->application_remarks ?? 'No remarks at this time.' }}
+                      {{ $displayApplicationRemarks ?: 'No remarks at this time.' }}
                     </p>
                   </div>
                 </div>

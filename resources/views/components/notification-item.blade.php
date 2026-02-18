@@ -1,25 +1,41 @@
 @php
     $levels = [
-        'info' => 'bg-blue-50 text-blue-700',
-        'success' => 'bg-green-50 text-green-700',
-        'warning' => 'bg-yellow-50 text-yellow-700',
-        'error' => 'bg-red-50 text-red-700',
+        'info' => 'bg-blue-50 text-blue-600',
+        'success' => 'bg-green-50 text-green-600',
+        'warning' => 'bg-yellow-50 text-yellow-600',
+        'error' => 'bg-red-50 text-red-600',
     ];
-    $cls = $levels[$notification->data['level'] ?? 'info'] ?? $levels['info'];
+    $level = $notification->data['level'] ?? 'info';
+    $iconBg = $levels[$level] ?? $levels['info'];
+
+    // Unread styling: subtle blue background
+    $containerClass = $notification->read_at ? 'bg-white hover:bg-gray-50' : 'bg-blue-50/30 hover:bg-blue-50/60';
 @endphp
-<li class="p-3 rounded-lg mb-2 {{ $cls }} flex items-start gap-3" data-id="{{ $notification->id }}">
-    <div class="mt-0.5">
-        <i data-feather="{{ ($notification->data['level'] ?? 'info') === 'success' ? 'check-circle' : (($notification->data['level'] ?? 'info') === 'warning' ? 'alert-triangle' : (($notification->data['level'] ?? 'info') === 'error' ? 'x-circle' : 'info')) }}"></i>
+
+<div class="p-4 transition-colors cursor-pointer border-l-4 {{ $notification->read_at ? 'border-transparent' : 'border-blue-600' }} {{ $containerClass }} w-full relative group"
+    data-id="{{ $notification->id }}">
+
+    <div class="flex gap-3">
+        <!-- Icon -->
+        <div class="mt-0.5 w-8 h-8 rounded-full flex items-center justify-center shrink-0 {{ $iconBg }}">
+            <i class="w-4 h-4"
+                data-feather="{{ $level === 'success' ? 'check' : ($level === 'warning' ? 'alert-triangle' : ($level === 'error' ? 'x' : 'info')) }}"></i>
+        </div>
+
+        <!-- Content -->
+        <div class="flex-1 min-w-0">
+            <div class="flex justify-between items-start gap-2">
+                <p class="notif-title text-sm font-bold text-[#0D2B70] truncate pr-2">
+                    {{ $notification->data['title'] ?? 'Notification' }}
+                </p>
+                <span class="notif-time text-[10px] text-gray-400 whitespace-nowrap shrink-0">
+                    {{ $notification->created_at->diffForHumans(null, true, true) }}
+                </span>
+            </div>
+
+            <p class="notif-message text-xs text-slate-600 mt-0.5 line-clamp-2 leading-relaxed">
+                {{ $notification->data['message'] ?? '' }}
+            </p>
+        </div>
     </div>
-    <div class="flex-1">
-        <div class="font-semibold">{{ $notification->data['title'] ?? 'Notification' }}</div>
-        <div class="text-sm">{{ $notification->data['message'] ?? '' }}</div>
-        @if(($notification->data['action_url'] ?? null))
-            <a href="{{ $notification->data['action_url'] }}" class="text-blue-600 underline text-xs">Open</a>
-        @endif
-        <div class="text-xs opacity-70 mt-1">{{ $notification->created_at->diffForHumans() }}</div>
-    </div>
-    @if(!$notification->read_at)
-        <span class="ml-2 inline-block px-2 py-1 text-xs bg-white rounded">New</span>
-    @endif
-</li>
+</div>

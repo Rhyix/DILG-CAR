@@ -1,0 +1,83 @@
+openapi: 3.0.3
+info:
+  title: DILG-CAR API
+  version: 1.0.0
+paths:
+  /admin/applicant_status/{user_id}/{vacancy_id}/notify:
+    post:
+      summary: Notify applicant with application overview snapshot
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: vacancy_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Notification sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+        "404":
+          description: User email not found
+  /application_status/{user_id}/{vacancy_id}:
+    get:
+      summary: Get applicant status view data
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: vacancy_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: HTML application status page
+          content:
+            text/html:
+              schema:
+                type: string
+  /application-status/{user_id}/{vacancy_id}/upload:
+    post:
+      summary: Upload application documents from applicant status
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: vacancy_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                documents:
+                  type: object
+                  additionalProperties:
+                    type: string
+                    format: binary
+      responses:
+        "302":
+          description: Redirect after upload

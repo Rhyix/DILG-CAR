@@ -11,6 +11,10 @@ use App\Models\Applications;
 use App\Models\Notification;
 use App\Models\UploadedDocument;
 use App\Models\User;
+use App\Models\EducationalBackground;
+use App\Models\WorkExperience;
+use App\Models\LearningAndDevelopment;
+use App\Models\CivilServiceEligibility;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
@@ -508,6 +512,17 @@ class AdminController extends Controller
             }
         }
 
+        $qs = $this->recalculateQualificationStatus($user_id, $vacancy_id);
+        foreach (['qs_education', 'qs_eligibility', 'qs_experience', 'qs_training', 'qs_result'] as $field) {
+            if ($application->$field !== $qs[$field]) {
+                $changes[$field] = [
+                    'old' => $application->$field,
+                    'new' => $qs[$field],
+                ];
+                $application->$field = $qs[$field];
+            }
+        }
+
         // Application letter status and remarks
         $file_status = $documentStatuses['application_letter'] ?? null;
         $file_remarks = $documentRemarks['application_letter'] ?? null;
@@ -567,37 +582,21 @@ class AdminController extends Controller
         //dd($changes);
 
         // Notify other admins if there are changes
+        // Notify other admins if there are changes
         if (!empty($changes)) {
             $admins = Admin::where('id', '!=', Auth::guard('admin')->id())->get();
             $applicantName = User::find($user_id)->name ?? 'Applicant';
             $positionTitle = JobVacancy::where('vacancy_id', $vacancy_id)->value('position_title');
-            $occurredAt = now();
 
             foreach ($admins as $admin) {
-                Notification::create([
-                    'notifiable_type' => 'App\Models\Admin',
-                    'notifiable_id' => $admin->id,
-                    'type' => 'info',
-                    'data' => [
-                        'title' => 'Application Updated',
-                        'message' => 'Admin ' . Auth::guard('admin')->user()->name . ' updated application for ' . $applicantName,
-                        'link' => route('admin.applicant_status', ['user_id' => $user_id, 'vacancy_id' => $vacancy_id]),
-                    ]
-                ]);
-
-                if ($admin->email) {
-                    Mail::to($admin->email)->send(new AdminEventNotification(
-                        Auth::guard('admin')->user()->name,
-                        $admin->name ?? $admin->username,
-                        $applicantName,
-                        $positionTitle,
-                        $vacancy_id,
-                        'Application Updated',
-                        'Admin ' . Auth::guard('admin')->user()->name . ' updated application for ' . $applicantName,
-                        route('admin.applicant_status', ['user_id' => $user_id, 'vacancy_id' => $vacancy_id]),
-                        $occurredAt
-                    ));
-                }
+                $admin->notify(new \App\Notifications\ApplicantRecordModifiedNotification(
+                    Auth::guard('admin')->user()->name,
+                    $applicantName,
+                    $changes,
+                    $positionTitle,
+                    $user_id,
+                    $vacancy_id
+                ));
             }
         }
 
@@ -692,44 +691,29 @@ class AdminController extends Controller
         }
 
         // Notify other admins if status changed
+        // Notify other admins if status changed
         if ($request->has('status')) {
             $admins = Admin::where('id', '!=', Auth::guard('admin')->id())->get();
-            $occurredAt = now();
-            foreach ($admins as $admin) {
-                Notification::create([
-                    'notifiable_type' => 'App\Models\Admin',
-                    'notifiable_id' => $admin->id,
-                    'type' => 'info',
-                    'data' => [
-                        'title' => ($status === 'Verified') ? 'Document Verified' : 'Document Updated',
-                        'message' => ($status === 'Verified')
-                            ? Auth::guard('admin')->user()->name . ' verified ' . $docName . ' for ' . $applicantName
-                            : Auth::guard('admin')->user()->name . ' updated ' . $docName . ' for ' . $applicantName,
-                        'link' => route('admin.applicant_status', ['user_id' => $user_id, 'vacancy_id' => $vacancy_id]),
-                    ]
-                ]);
+            $positionTitle = JobVacancy::where('vacancy_id', $vacancy_id)->value('position_title');
 
-                if ($admin->email) {
-                    try {
-                        Mail::send('emails.admin_event_notification', [
-                            'actorName' => Auth::guard('admin')->user()->name,
-                            'recipientName' => $admin->name ?? $admin->username,
-                            'applicantName' => $applicantName,
-                            'positionTitle' => JobVacancy::where('vacancy_id', $vacancy_id)->value('position_title'),
-                            'vacancyId' => $vacancy_id,
-                            'title' => ($status === 'Verified') ? 'Document Verified' : 'Document Updated',
-                            'body' => ($status === 'Verified')
-                                ? Auth::guard('admin')->user()->name . ' verified ' . $docName . ' for ' . $applicantName
-                                : Auth::guard('admin')->user()->name . ' updated ' . $docName . ' for ' . $applicantName,
-                            'link' => route('admin.applicant_status', ['user_id' => $user_id, 'vacancy_id' => $vacancy_id]),
-                            'occurredAt' => $occurredAt,
-                        ], function ($m) use ($admin) {
-                            $m->to($admin->email)->subject('DILG-CAR Admin Notification');
-                        });
-                    } catch (\Throwable $e) {
-                        \Log::error('Admin verification email failed', ['error' => $e->getMessage()]);
-                    }
-                }
+            $changesOrMessage = [
+                "$docName Status" => $status
+            ];
+
+            // Should potentially include remarks if changed
+            if ($request->has('remarks') && !empty($remarks)) {
+                $changesOrMessage["$docName Remarks"] = $remarks;
+            }
+
+            foreach ($admins as $admin) {
+                $admin->notify(new \App\Notifications\ApplicantRecordModifiedNotification(
+                    Auth::guard('admin')->user()->name,
+                    $applicantName,
+                    $changesOrMessage,
+                    $positionTitle,
+                    $user_id,
+                    $vacancy_id
+                ));
             }
         }
 
@@ -750,6 +734,22 @@ class AdminController extends Controller
         $application->updated_by_admin_id = Auth::guard('admin')->id();
         $application->save();
 
+        // Notify other admins
+        $admins = Admin::where('id', '!=', Auth::guard('admin')->id())->get();
+        $applicantName = User::find($user_id)->name ?? 'Applicant';
+        $positionTitle = JobVacancy::where('vacancy_id', $vacancy_id)->value('position_title');
+
+        foreach ($admins as $admin) {
+            $admin->notify(new \App\Notifications\ApplicantRecordModifiedNotification(
+                Auth::guard('admin')->user()->name,
+                $applicantName,
+                ['Application Remarks' => $request->input('application_remarks')],
+                $positionTitle,
+                $user_id,
+                $vacancy_id
+            ));
+        }
+
         return response()->json(['success' => true]);
     }
 
@@ -758,6 +758,34 @@ class AdminController extends Controller
         $application = Applications::where('user_id', $user_id)
             ->where('vacancy_id', $vacancy_id)
             ->firstOrFail();
+
+        // Update Deadline and QS data if provided in request
+        $validatedData = $request->validate([
+            'deadline_date' => 'nullable|date',
+            'deadline_time' => 'nullable',
+            'qs_education' => 'nullable|string',
+            'qs_eligibility' => 'nullable|string',
+            'qs_experience' => 'nullable|string',
+            'qs_training' => 'nullable|string',
+            'qs_result' => 'nullable|string',
+        ]);
+
+        if ($request->has('deadline_date')) {
+            $application->deadline_date = $validatedData['deadline_date'];
+        }
+        if ($request->has('deadline_time')) {
+            $application->deadline_time = $validatedData['deadline_time'] ? date('H:i', strtotime($validatedData['deadline_time'])) : null;
+        }
+
+        foreach (['qs_education', 'qs_eligibility', 'qs_experience', 'qs_training', 'qs_result'] as $field) {
+            if ($request->has($field)) {
+                $application->$field = $validatedData[$field];
+            }
+        }
+        $application->save();
+
+        $qs = $this->recalculateQualificationStatus($user_id, $vacancy_id);
+        $application->fill($qs)->save();
 
         $documents = $this->getApplicantDocuments($user_id, $application);
         $userDocumentsSnapshot = $this->buildUserDocumentsSnapshot($user_id, $application);
@@ -831,11 +859,11 @@ class AdminController extends Controller
         }
 
         // --- Retrieve Qualification Standards ---
-        $qsEducation = $application->qs_education ?? 'no';
-        $qsEligibility = $application->qs_eligibility ?? 'no';
-        $qsExperience = $application->qs_experience ?? 'no';
-        $qsTraining = $application->qs_training ?? 'no';
-        $qsResult = $application->qs_result ?? 'Not Qualified';
+        $qsEducation = $qs['qs_education'] ?? 'no';
+        $qsEligibility = $qs['qs_eligibility'] ?? 'no';
+        $qsExperience = $qs['qs_experience'] ?? 'no';
+        $qsTraining = $qs['qs_training'] ?? 'no';
+        $qsResult = $qs['qs_result'] ?? 'Not Qualified';
 
         $userEmail = User::where('id', $user_id)->value('email');
 
@@ -987,6 +1015,153 @@ class AdminController extends Controller
         }
 
         return $documents;
+    }
+
+    private function recalculateQualificationStatus(int $userId, string $vacancyId): array
+    {
+        $vacancy = JobVacancy::where('vacancy_id', $vacancyId)->first();
+        $educationReq = $this->normalizeRequirement($vacancy?->qualification_education ?? null);
+        $eligibilityReq = $this->normalizeRequirement($vacancy?->qualification_eligibility ?? null);
+        $experienceReq = $this->normalizeRequirement($vacancy?->qualification_experience ?? null);
+        $trainingReq = $this->normalizeRequirement($vacancy?->qualification_training ?? null);
+
+        $education = EducationalBackground::where('user_id', $userId)->first();
+        $hasCollege = $this->arrayHasValue($education?->college);
+        $hasGrad = $this->arrayHasValue($education?->grad);
+        $hasVoc = $this->arrayHasValue($education?->vocational);
+        $hasAnyEducation = $hasCollege || $hasGrad || $hasVoc || !empty($education?->elem_school) || !empty($education?->jhs_school);
+
+        $educationMet = 'no';
+        if (!$educationReq) {
+            $educationMet = 'na';
+        } else {
+            $reqLower = strtolower($educationReq);
+            if (str_contains($reqLower, 'master') || str_contains($reqLower, 'doctor')) {
+                $educationMet = $hasGrad ? 'yes' : 'no';
+            } elseif (str_contains($reqLower, 'bachelor') || str_contains($reqLower, 'college')) {
+                $educationMet = ($hasCollege || $hasGrad) ? 'yes' : 'no';
+            } elseif (str_contains($reqLower, 'vocational')) {
+                $educationMet = $hasVoc ? 'yes' : 'no';
+            } else {
+                $educationMet = $hasAnyEducation ? 'yes' : 'no';
+            }
+        }
+
+        $experienceMet = 'no';
+        if (!$experienceReq) {
+            $experienceMet = 'na';
+        } else {
+            $requiredMonths = $this->parseRequirementMonths($experienceReq);
+            $workExperiences = WorkExperience::where('user_id', $userId)->get();
+            $hasExperience = $workExperiences->isNotEmpty();
+            $totalMonths = 0;
+            foreach ($workExperiences as $work) {
+                if (!$work->work_exp_from) {
+                    continue;
+                }
+                $from = Carbon::parse($work->work_exp_from);
+                $to = $work->work_exp_to ? Carbon::parse($work->work_exp_to) : Carbon::now();
+                if ($to->lessThan($from)) {
+                    continue;
+                }
+                $totalMonths += $from->diffInMonths($to) + 1;
+            }
+            if ($requiredMonths === null) {
+                $experienceMet = $hasExperience ? 'yes' : 'no';
+            } else {
+                $experienceMet = $totalMonths >= $requiredMonths ? 'yes' : 'no';
+            }
+        }
+
+        $trainingMet = 'no';
+        if (!$trainingReq) {
+            $trainingMet = 'na';
+        } else {
+            $requiredHours = $this->parseRequirementHours($trainingReq);
+            $trainingHours = LearningAndDevelopment::where('user_id', $userId)->sum('learning_hours');
+            $hasTraining = LearningAndDevelopment::where('user_id', $userId)->exists();
+            if ($requiredHours === null) {
+                $trainingMet = $hasTraining ? 'yes' : 'no';
+            } else {
+                $trainingMet = $trainingHours >= $requiredHours ? 'yes' : 'no';
+            }
+        }
+
+        $eligibilityMet = 'no';
+        if (!$eligibilityReq) {
+            $eligibilityMet = 'na';
+        } else {
+            $eligibilityMet = CivilServiceEligibility::where('user_id', $userId)->exists() ? 'yes' : 'no';
+        }
+
+        $requiredStatuses = collect([$educationMet, $eligibilityMet, $experienceMet, $trainingMet])
+            ->filter(fn($value) => $value !== 'na');
+        $qsResult = $requiredStatuses->isEmpty() || $requiredStatuses->every(fn($value) => $value === 'yes')
+            ? 'Qualified'
+            : 'Not Qualified';
+
+        return [
+            'qs_education' => $educationMet,
+            'qs_eligibility' => $eligibilityMet,
+            'qs_experience' => $experienceMet,
+            'qs_training' => $trainingMet,
+            'qs_result' => $qsResult,
+        ];
+    }
+
+    private function normalizeRequirement(?string $value): ?string
+    {
+        $value = trim((string) $value);
+        if ($value === '') {
+            return null;
+        }
+        $lower = strtolower($value);
+        if (in_array($lower, ['na', 'n/a', 'none', 'not applicable', '-'], true)) {
+            return null;
+        }
+        return $value;
+    }
+
+    private function parseRequirementMonths(string $value): ?int
+    {
+        $lower = strtolower($value);
+        if (preg_match('/(\d+(?:\.\d+)?)/', $lower, $matches)) {
+            $amount = (float) $matches[1];
+            if (str_contains($lower, 'month')) {
+                return (int) round($amount);
+            }
+            if (str_contains($lower, 'year')) {
+                return (int) round($amount * 12);
+            }
+        }
+        return null;
+    }
+
+    private function parseRequirementHours(string $value): ?int
+    {
+        $lower = strtolower($value);
+        if (preg_match('/(\d+(?:\.\d+)?)/', $lower, $matches)) {
+            $amount = (float) $matches[1];
+            return (int) round($amount);
+        }
+        return null;
+    }
+
+    private function arrayHasValue($array): bool
+    {
+        if (!is_array($array)) {
+            return false;
+        }
+        foreach ($array as $value) {
+            if (is_array($value)) {
+                if ($this->arrayHasValue($value)) {
+                    return true;
+                }
+            } elseif (is_scalar($value) && trim((string) $value) !== '') {
+                return true;
+            }
+        }
+        return false;
     }
 
     public function previewDocument($user_id, $vacancy_id, $document_type)

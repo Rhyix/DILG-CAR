@@ -2,42 +2,90 @@
   .pds-loading-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(255, 255, 255, 0.7);
+    background: rgba(255, 255, 255, 0.1);
+    /* Low opacity for glass effect foundation */
+    backdrop-filter: blur(8px);
+    /* Glassmorphism blur */
+    -webkit-backdrop-filter: blur(8px);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 9999;
     pointer-events: auto;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
   }
+
+  /* Show state */
+  .pds-loading-overlay:not(.hidden) {
+    opacity: 1;
+    visibility: visible;
+  }
+
   .pds-loading-overlay.hidden {
-    display: none !important;
-  }
-  .pds-loading-overlay.pds-loading-nonblocking {
+    display: flex !important;
+    /* Override display: none to allow transition */
+    opacity: 0;
+    visibility: hidden;
     pointer-events: none;
   }
+
+  .pds-loading-overlay.pds-loading-nonblocking {
+    pointer-events: none;
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  /* Container for spinner and text */
   .pds-loading-panel {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 12px;
-    padding: 18px 24px;
-    background: rgba(255, 255, 255, 0.95);
-    border-radius: 14px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    gap: 16px;
+    padding: 32px 48px;
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 24px;
+    box-shadow:
+      0 4px 6px -1px rgba(0, 0, 0, 0.1),
+      0 2px 4px -1px rgba(0, 0, 0, 0.06),
+      0 20px 25px -5px rgba(0, 0, 0, 0.1),
+      0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    transform: scale(0.95);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
+
+  .pds-loading-overlay:not(.hidden) .pds-loading-panel {
+    transform: scale(1);
+  }
+
+  /* Modern Spinner */
   .pds-loading-spinner {
     width: 48px;
     height: 48px;
     border-radius: 50%;
-    border: 4px solid #d1d5db;
-    border-top-color: #1d4ed8;
+    position: relative;
+    background: conic-gradient(from 0deg, rgba(59, 130, 246, 0) 0%, #3b82f6 100%);
+    /* Tailwind blue-500 */
     animation: pds-spin 1s linear infinite;
+    /* Create the hole in the middle */
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 0);
+    mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 0);
   }
+
+  /* Loading text */
   .pds-loading-text {
-    font-size: 14px;
-    font-weight: 600;
-    color: #111827;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+    color: #1f2937;
+    /* Gray 800 */
+    letter-spacing: 0.01em;
+    animation: pds-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
+
   .pds-sr-only {
     position: absolute;
     width: 1px;
@@ -49,15 +97,30 @@
     white-space: nowrap;
     border: 0;
   }
+
   @keyframes pds-spin {
-    to { transform: rotate(360deg); }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes pds-pulse {
+
+    0%,
+    100% {
+      opacity: 1;
+    }
+
+    50% {
+      opacity: 0.7;
+    }
   }
 </style>
 
 <div class="pds-loading-overlay hidden" id="loader" role="status" aria-live="polite" aria-busy="false">
   <div class="pds-loading-panel">
     <div class="pds-loading-spinner" aria-hidden="true"></div>
-    <div class="pds-loading-text" id="loader-text">Loading next step...</div>
+    <div class="pds-loading-text" id="loader-text">Loading...</div>
   </div>
 </div>
 <div class="pds-sr-only" id="loader-live" aria-live="polite">Ready</div>
@@ -84,14 +147,14 @@
       overlay.classList.remove('hidden');
       overlay.classList.remove('pds-loading-nonblocking');
       overlay.setAttribute('aria-busy', 'true');
-      setLive('Loading next step...');
+      setLive('Loading...');
       if (unblockTimer) {
         clearTimeout(unblockTimer);
       }
       unblockTimer = setTimeout(() => {
         overlay.classList.add('pds-loading-nonblocking');
         overlay.setAttribute('aria-busy', 'false');
-        setLive('Loading is taking longer than expected');
+        setLive('Still working...');
       }, nonBlockingDelay);
     }
 
@@ -112,6 +175,9 @@
         button.dataset.loadingDisabled = '1';
         button.disabled = true;
         button.setAttribute('aria-disabled', 'true');
+        // Add visual indication if needed, for now reliance on overlay is enough
+        button.style.opacity = '0.7';
+        button.style.cursor = 'not-allowed';
       });
     }
 
@@ -121,14 +187,19 @@
           button.disabled = false;
           button.dataset.loadingDisabled = '0';
           button.removeAttribute('aria-disabled');
+          button.style.opacity = '';
+          button.style.cursor = '';
         }
       });
     }
 
     function hideWhenInteractive() {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => hideOverlay());
-      });
+      // Small delay to ensure smooth transition out
+      setTimeout(() => {
+        requestAnimationFrame(() => {
+          hideOverlay();
+        });
+      }, 300);
     }
 
     document.addEventListener('submit', function (event) {
@@ -136,9 +207,13 @@
       if (!form || form.dataset.loadingHandled === '1') return;
       if (form.classList.contains('no-spinner')) return;
       if (form.checkValidity && !form.checkValidity()) return;
-      form.dataset.loadingHandled = '1';
+      // Don't mark handled yet for retries, but do show overlay
+      // form.dataset.loadingHandled = '1'; 
       disableSubmitButtons(form);
       showOverlay();
+
+      // Auto-hide if navigation doesn't happen quickly (fallback)
+      // or if it's a non-navigating submit (handled elsewhere usually)
       setTimeout(() => {
         if (overlay && overlay.classList.contains('pds-loading-nonblocking')) {
           enableSubmitButtons(form);
@@ -146,15 +221,22 @@
       }, nonBlockingDelay + 50);
     }, true);
 
+    // Specific handling for standard submit events that might loop (retry logic from original)
     document.addEventListener('submit', function (event) {
       const form = event.target;
       if (!form || form.dataset.uploadRetry !== '1') return;
+      // ... (Original retry logic kept simple here, assuming it's correctly handled by the framework or other scripts)
+      // If we need the complex fetch retry logic, we should keep it. 
+      // Re-injecting the original retry logic for safety as it was quite specific.
+
       if (!window.fetch || !window.FormData) return;
       if (form.dataset.retrySubmitting === '1') return;
+
       if (form.checkValidity && !form.checkValidity()) {
         if (form.reportValidity) form.reportValidity();
         return;
       }
+
       event.preventDefault();
       form.dataset.retrySubmitting = '1';
       const action = form.action;
@@ -164,18 +246,27 @@
 
       const submitAttempt = async () => {
         const formData = new FormData(form);
+        const csrfToken = form.querySelector('input[name="_token"]')?.value
+          || document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
         try {
           const response = await fetch(action, {
             method,
             body: formData,
             credentials: 'same-origin',
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            headers: {
+              'X-Requested-With': 'XMLHttpRequest',
+              ...(csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : {})
+            }
           });
+
           const contentType = response.headers.get('content-type') || '';
+
           if (response.redirected) {
             window.location.href = response.url;
             return;
           }
+
           if (response.ok) {
             if (contentType.includes('text/html')) {
               const html = await response.text();
@@ -187,16 +278,20 @@
             window.location.reload();
             return;
           }
+
+          // If error, show it
           const html = await response.text();
           document.open();
           document.write(html);
           document.close();
+
         } catch (e) {
           attempt += 1;
           if (attempt < maxAttempts) {
             setTimeout(submitAttempt, 800 * attempt);
             return;
           }
+          // Fallback to normal submit
           form.dataset.retrySubmitting = '0';
           form.submit();
         }
@@ -204,8 +299,11 @@
       submitAttempt();
     }, true);
 
+
     document.querySelectorAll('a.use-loader').forEach((link) => {
-      link.addEventListener('click', function () {
+      link.addEventListener('click', function (e) {
+        // checks if ctrl/meta/shift key is pressed (opening in new tab)
+        if (e.ctrlKey || e.metaKey || e.shiftKey) return;
         showOverlay();
       });
     });

@@ -321,12 +321,7 @@ Route::middleware(['auth', BlockIfAdmin::class])->group(function () {
     // =========================
     // Notifications
     // =========================
-    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
-    Route::get('/notifications/fetch', [NotificationController::class, 'fetch'])->name('notifications.fetch');
-    Route::get('/notifications/count', [NotificationController::class, 'unreadCount'])->name('notifications.count');
-    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
-    Route::post('/notifications/mark-all', [NotificationController::class, 'markAll'])->name('notifications.mark_all');
-    Route::post('/notifications/cleanup', [NotificationController::class, 'cleanup'])->name('notifications.cleanup');
+
 
     // =========================
     // Profile
@@ -469,6 +464,18 @@ Route::middleware([ViewerAccess::class])->group(function () {
     Route::get('/download-plantilla-template', [ImportController::class, 'downloadPlantillaTemplate'])->name('downloadPlantillaTemplate');
 
 
+});
+
+// =========================
+// Shared Notification Routes (User & Admin)
+// =========================
+Route::middleware(['auth:web,admin'])->group(function () {
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notifications/fetch', [NotificationController::class, 'fetch'])->name('notifications.fetch');
+    Route::get('/notifications/count', [NotificationController::class, 'unreadCount'])->name('notifications.count');
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
+    Route::post('/notifications/mark-all', [NotificationController::class, 'markAll'])->name('notifications.mark_all');
+    Route::post('/notifications/cleanup', [NotificationController::class, 'cleanup'])->name('notifications.cleanup');
 });
 
 // ==================================================================================================

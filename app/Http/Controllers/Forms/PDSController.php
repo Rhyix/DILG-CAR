@@ -18,6 +18,7 @@ use Illuminate\Http\UploadedFile;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use App\Models\LearningAndDevelopment;
+use Illuminate\Support\Facades\DB;
 use App\Models\CivilServiceEligibility;
 use Illuminate\Support\Facades\Validator;
 
@@ -1174,9 +1175,10 @@ class PDSController extends Controller
      * @param UploadedFile[] $files
      * @return void
      */
-    private function c5StoreFilesToDB(array $files)
+    private function c5StoreFilesToDB(array $files): array
     {
 
+        $storedPaths = [];
         foreach ($files as $doc_type => $file) {
 
             $hashed_name = $file->hashName();
@@ -1205,12 +1207,14 @@ class PDSController extends Controller
                 'status' => 'Pending', // Reset status to Pending on new upload
                 'remarks' => ''      // Clear old remarks
             ]);
+            $storedPaths[] = $store_path;
 
         }
         activity()
             ->causedBy(Auth::user())
             ->log('Store C5 form.');
 
+        return $storedPaths;
     }
 
 
@@ -1323,264 +1327,379 @@ class PDSController extends Controller
             return back()->withErrors($upload_errors);
         }
 
-        $this->c5StoreFilesToDB($uploaded_files);
+        $storedPaths = [];
+        try {
+            return DB::transaction(function () use ($request, $uploaded_files, &$storedPaths, $go_to) {
+                $storedPaths = $this->c5StoreFilesToDB($uploaded_files);
+                if (app()->environment('testing') && $request->boolean('simulate_failure')) {
+                    throw new \RuntimeException('Simulated failure');
+                }
 
-        //********************************
-        //* +++++ Personal Information
-        //*******************************
-        $c1_form_data = session('form.c1');
+                //********************************
+                //* +++++ Personal Information
+                //*******************************
+                $c1_form_data = array_merge([
+                    'surname' => '',
+                    'first_name' => '',
+                    'middle_name' => '',
+                    'name_extension' => '',
+                    'civil_status' => '',
+                    'date_of_birth' => '',
+                    'place_of_birth' => '',
+                    'citizenship' => '',
+                    'dual_type' => '',
+                    'sex' => '',
+                    'blood_type' => '',
+                    'philhealth_no' => '',
+                    'tin_no' => '',
+                    'agency_employee_no' => '',
+                    'gsis_id_no' => '',
+                    'pagibig_id_no' => '',
+                    'sss_id_no' => '',
+                    'mobile_no' => '',
+                    'email_address' => '',
+                    'height' => '',
+                    'weight' => '',
+                    'telephone_no' => '',
+                    'dual_country' => '',
+                    'spouse_surname' => '',
+                    'spouse_first_name' => '',
+                    'spouse_middle_name' => '',
+                    'spouse_name_extension' => '',
+                    'spouse_occupation' => '',
+                    'spouse_employer' => '',
+                    'spouse_business_address' => '',
+                    'spouse_telephone' => '',
+                    'father_surname' => '',
+                    'father_first_name' => '',
+                    'father_middle_name' => '',
+                    'father_name_extension' => '',
+                    'mother_maiden_surname' => '',
+                    'mother_maiden_first_name' => '',
+                    'mother_maiden_middle_name' => '',
+                    'res_house_no' => '',
+                    'res_street' => '',
+                    'res_sub_vil' => '',
+                    'res_brgy' => '',
+                    'res_city' => '',
+                    'res_province' => '',
+                    'res_zipcode' => '',
+                    'per_house_no' => '',
+                    'per_street' => '',
+                    'per_sub_vil' => '',
+                    'per_brgy' => '',
+                    'per_city' => '',
+                    'per_province' => '',
+                    'per_zipcode' => '',
+                    'elem_from' => '',
+                    'elem_to' => '',
+                    'elem_school' => '',
+                    'elem_academic_honors' => '',
+                    'elem_basic' => '',
+                    'elem_year_graduated' => '',
+                    'jhs_from' => '',
+                    'jhs_to' => '',
+                    'jhs_school' => '',
+                    'jhs_academic_honors' => '',
+                    'jhs_basic' => '',
+                    'jhs_year_graduated' => '',
+                    'children' => [],
+                    'vocational' => [],
+                    'college' => [],
+                    'grad' => [],
+                ], session('form.c1', []));
 
-        $dual_type_t = '';
-        if ($c1_form_data['citizenship'] === 'Dual Citizen') {
-            $dual_type_t = $c1_form_data['dual_type'];
-        }
+                $dual_type_t = '';
+                if ($c1_form_data['citizenship'] === 'Dual Citizen') {
+                    $dual_type_t = $c1_form_data['dual_type'];
+                }
 
-        $_haystack = ['children', 'vocational', 'college', 'grad'];
-        foreach ($c1_form_data as $_key => $_val) {
+                $_haystack = ['children', 'vocational', 'college', 'grad'];
+                foreach ($c1_form_data as $_key => $_val) {
 
-            // Skips the haystack data to be handled later.
-            if (in_array($_key, $_haystack)) {
-                continue;
-            }
-
-            if (is_array($_val)) {
-                $flattened = [];
-
-                array_walk_recursive($_val, function ($v) use (&$flattened) {
-                    // Only push if it's a string or something castable to string
-                    if (is_scalar($v)) {
-                        $flattened[] = strip_tags($v);
+                    // Skips the haystack data to be handled later.
+                    if (in_array($_key, $_haystack)) {
+                        continue;
                     }
-                });
 
-                $_val = trim(implode(', ', $flattened));
-            } else {
-                $_val = trim(strip_tags($_val));
+                    if (is_array($_val)) {
+                        $flattened = [];
+
+                        array_walk_recursive($_val, function ($v) use (&$flattened) {
+                            // Only push if it's a string or something castable to string
+                            if (is_scalar($v)) {
+                                $flattened[] = strip_tags($v);
+                            }
+                        });
+
+                        $_val = trim(implode(', ', $flattened));
+                    } else {
+                        $_val = trim(strip_tags($_val));
+                    }
+
+                }
+
+                // format residential address for compact database insertion
+                $house_no_t = ($c1_form_data['res_house_no'] != '') ? $c1_form_data['res_house_no'] : '{*}';
+                $street_t = ($c1_form_data['res_street'] != '') ? $c1_form_data['res_street'] : '{*}';
+                $sub_vil_t = ($c1_form_data['res_sub_vil'] != '') ? $c1_form_data['res_sub_vil'] : '{*}';
+                $brgy_t = ($c1_form_data['res_brgy'] != '') ? $c1_form_data['res_brgy'] : '{*}';
+                $city_t = ($c1_form_data['res_city'] != '') ? $c1_form_data['res_city'] : '{*}';
+                $province_t = ($c1_form_data['res_province'] != '') ? $c1_form_data['res_province'] : '{*}';
+                $zipcode_t = ($c1_form_data['res_zipcode'] != '') ? $c1_form_data['res_zipcode'] : '{*}';
+
+                $formatted_residential_address = "$house_no_t/|/$street_t/|/$sub_vil_t/|/$brgy_t/|/$city_t/|/$province_t/|/$zipcode_t";
+
+                // format permanent address
+                $house_no_t = ($c1_form_data['per_house_no'] != '') ? $c1_form_data['per_house_no'] : '{*}';
+                $street_t = ($c1_form_data['per_street'] != '') ? $c1_form_data['per_street'] : '{*}';
+                $sub_vil_t = ($c1_form_data['per_sub_vil'] != '') ? $c1_form_data['per_sub_vil'] : '{*}';
+                $brgy_t = ($c1_form_data['per_brgy'] != '') ? $c1_form_data['per_brgy'] : '{*}';
+                $city_t = ($c1_form_data['per_city'] != '') ? $c1_form_data['per_city'] : '{*}';
+                $province_t = ($c1_form_data['per_province'] != '') ? $c1_form_data['per_province'] : '{*}';
+                $zipcode_t = ($c1_form_data['per_zipcode'] != '') ? $c1_form_data['per_zipcode'] : '{*}';
+
+                $formatted_permanent_address = "$house_no_t/|/$street_t/|/$sub_vil_t/|/$brgy_t/|/$city_t/|/$province_t/|/$zipcode_t";
+
+                // create a personal information record compact database insertion
+                // IF the record does not exist for the current user.
+                $user_personal_info = Models\PersonalInformation::firstOrCreate([
+                    'user_id' => Auth::id()
+                ]);
+
+                $user_personal_info->update([
+                    //'cs_id_no'                  => $c1_form_data['cs_id_no'],
+                    'surname' => $c1_form_data['surname'],
+                    'name_extension' => $c1_form_data['name_extension'],
+                    'first_name' => $c1_form_data['first_name'],
+                    'middle_name' => $c1_form_data['middle_name'],
+                    'sex' => $c1_form_data['sex'],
+                    'civil_status' => $c1_form_data['civil_status'],
+                    'date_of_birth' => $this->normalizeDateForDatabase($c1_form_data['date_of_birth']),
+                    'place_of_birth' => $c1_form_data['place_of_birth'],
+                    'height' => $c1_form_data['height'],
+                    'weight' => $c1_form_data['weight'],
+                    'blood_type' => $c1_form_data['blood_type'],
+                    'philhealth_no' => $c1_form_data['philhealth_no'],
+                    'tin_no' => $c1_form_data['tin_no'],
+                    'agency_employee_no' => $c1_form_data['agency_employee_no'],
+                    'gsis_id_no' => $c1_form_data['gsis_id_no'],
+                    'pagibig_id_no' => $c1_form_data['pagibig_id_no'],
+                    'sss_id_no' => $c1_form_data['sss_id_no'],
+                    'citizenship' => $c1_form_data['citizenship'],
+                    'dual_type' => $dual_type_t,
+                    'dual_country' => $c1_form_data['dual_country'],
+                    'residential_address' => $formatted_residential_address,
+                    'permanent_address' => $formatted_permanent_address,
+                    'telephone_no' => $c1_form_data['telephone_no'],
+                    'mobile_no' => $c1_form_data['mobile_no'],
+                    'email_address' => $c1_form_data['email_address']
+                ]);
+
+                unset($user_personal_info);
+
+                //********************************
+                //* +++++ Family Background
+                //*******************************
+
+                $user_family_bg = Models\FamilyBackground::firstOrCreate([
+                    'user_id' => Auth::id()
+                ]);
+
+                $user_family_bg->update([
+                    'spouse_surname' => $c1_form_data['spouse_surname'],
+                    'spouse_first_name' => $c1_form_data['spouse_first_name'],
+                    'spouse_middle_name' => $c1_form_data['spouse_middle_name'],
+                    'spouse_name_extension' => $c1_form_data['spouse_name_extension'],
+                    'spouse_occupation' => $c1_form_data['spouse_occupation'],
+                    'spouse_employer' => $c1_form_data['spouse_employer'],
+                    'spouse_business_address' => $c1_form_data['spouse_business_address'],
+                    'spouse_telephone' => $c1_form_data['spouse_telephone'],
+                    'father_surname' => $c1_form_data['father_surname'],
+                    'father_first_name' => $c1_form_data['father_first_name'],
+                    'father_middle_name' => $c1_form_data['father_middle_name'],
+                    'father_name_extension' => $c1_form_data['father_name_extension'],
+                    'mother_maiden_surname' => $c1_form_data['mother_maiden_surname'],
+                    'mother_maiden_first_name' => $c1_form_data['mother_maiden_first_name'],
+                    'mother_maiden_middle_name' => $c1_form_data['mother_maiden_middle_name'],
+                    'children_info' => $c1_form_data['children']
+                ]);
+
+                unset($user_family_bg);
+
+                //********************************
+                //* +++++ Educational Background
+                //********************************
+
+                $user_educational_bg = Models\EducationalBackground::firstOrCreate([
+                    'user_id' => Auth::id()
+                ]);
+
+                $user_educational_bg->update([
+                    'elem_from' => $c1_form_data['elem_from'],
+                    'elem_to' => $c1_form_data['elem_to'],
+                    'elem_school' => $c1_form_data['elem_school'],
+                    'elem_academic_honors' => $c1_form_data['elem_academic_honors'],
+                    'elem_basic' => $c1_form_data['elem_basic'],
+                    //'elem_earned'               => $c1_form_data['elem_earned'],
+                    'elem_year_graduated' => $c1_form_data['elem_year_graduated'],
+
+                    'jhs_from' => $c1_form_data['jhs_from'],
+                    'jhs_to' => $c1_form_data['jhs_to'],
+                    'jhs_school' => $c1_form_data['jhs_school'],
+                    'jhs_academic_honors' => $c1_form_data['jhs_academic_honors'],
+                    'jhs_basic' => $c1_form_data['jhs_basic'],
+                    //'jhs_earned'                => $c1_form_data['jhs_earned'],
+                    'jhs_year_graduated' => $c1_form_data['jhs_year_graduated'],
+
+                    /*
+                    'shs_from'                  => $c1_form_data['shs_from'],
+                    'shs_to'                    => $c1_form_data['shs_to'],
+                    'shs_school'                => $c1_form_data['shs_school'],
+                    'shs_academic_honors'       => $c1_form_data['shs_academic_honors'],
+                    'shs_basic'                 => $c1_form_data['shs_basic'],
+                    'shs_earned'                => $c1_form_data['shs_earned'],
+                    'shs_year_graduated'        => $c1_form_data['shs_year_graduated'],
+                    */
+
+                    'vocational' => $c1_form_data['vocational'] ?? null,
+                    'college' => $c1_form_data['college'],
+                    'grad' => $c1_form_data['grad'] ?? null,
+                ]);
+
+                unset($user_educational_bg);
+                // TODO: Fix null new user null required values. Create a middleware so that they cant skip ahead to c5
+
+                // -------------
+                // C2 INSERT TO DATABASE
+                // ------------
+                //********************************
+                //* +++++ Work Experience
+                //*******************************
+                $c2_form_data = session('form.c2');
+                if (isset($c2_form_data['all_user_work_exps'])) {
+                    $user_all_wex_data = $c2_form_data['all_user_work_exps'];
+
+                    WorkExperience::where('user_id', Auth::id())->delete();
+
+                    for ($i = 0; $i < count($user_all_wex_data); $i++) {
+                        // if(array_key_exists('id'))
+                        //$user_all_wex_data[$i]['id'] = ($user_all_wex_data[$i]['id'] == "null") ? null : $user_all_wex_data[$i]['id'];
+                        //$user_all_wex_data[$i]['id'] = $user_all_wex_data[$i]['id'] ?? null;
+                        //dd($user_all_wex_data['id']);
+                        unset($user_all_wex_data[$i]['id']); // Remove 'id' key
+                        WorkExperience::upsert($user_all_wex_data[$i], 'id');
+                    }
+                }
+
+                //********************************
+                //* +++++ Civil Service Eligibility
+                //*******************************
+                if (isset($c2_form_data['all_user_civil_service_eligibility'])) {
+                    $user_all_cs_data = $c2_form_data['all_user_civil_service_eligibility'];
+
+                    CivilServiceEligibility::where('user_id', Auth::id())->delete();
+                    for ($i = 0; $i < sizeof($user_all_cs_data); $i++) {
+                        unset($user_all_cs_data[$i]['id']); // Remove 'id' key
+                        CivilServiceEligibility::upsert($user_all_cs_data[$i], 'id');
+                    }
+                }
+
+                // C3 INSERT TO DATABASE
+                //LEARNING AND DEVELOPMENT
+                $c3_learning_and_development_data = session('data_learning');
+                //dd(session('data_learning'));
+
+                if (!empty($c3_learning_and_development_data)) {
+                    LearningAndDevelopment::where('user_id', Auth::id())->delete();
+                    LearningAndDevelopment::upsert(
+                        $c3_learning_and_development_data,
+                        ['learning_title', 'learning_from', 'user_id'], // Unique constraint
+                        ['learning_type', 'learning_hours', 'learning_to', 'learning_conducted'] // Fields to update
+                    );
+                }
+
+                //VOLUNTARY WORK
+                $c3_voluntary_data = session('data_voluntary');
+                if (!empty($c3_voluntary_data)) {
+                    VoluntaryWork::where('user_id', Auth::id())->delete();
+                    VoluntaryWork::upsert(
+                        $c3_voluntary_data,
+                        ['voluntary_org', 'voluntary_from', 'user_id'], // Unique constraint
+                        ['voluntary_to', 'voluntary_hours', 'voluntary_position'] // Fields to update
+                    );
+                }
+                //OTHER INFORMATION
+
+                $c3_other_information_data = session('data_otherInfo');
+                if (!empty($c3_other_information_data)) {
+                    $user_other_info = OtherInformation::firstOrCreate([
+                        'user_id' => Auth::id()
+                    ]);
+                    $user_other_info->update([
+                        'user_id' => Auth::id(),
+                        'skill' => $c3_other_information_data['skill'],
+                        'distinction' => $c3_other_information_data['distinction'],
+                        'organization' => $c3_other_information_data['organization'],
+                    ]);
+                }
+
+                //C4 INSERT TO DATABASE
+                $c4_misc_info_data = session('form.c4');
+                if (!empty($c4_misc_info_data)) {
+                    unset($c4_misc_info_data['criminal_35_b_array']); // criminal_35_b_array is not part of the database
+                    $misc_info_data = MiscInfos::firstOrCreate([
+                        'user_id' => Auth::id()
+                    ]);
+                    $misc_info_data->update($c4_misc_info_data);
+                }
+
+
+
+                // --- NOTIFICATION TRIGGER ---
+                // Collect uploaded document types
+                $uploadedDocTypes = array_keys($uploaded_files);
+
+                if (!empty($uploadedDocTypes)) {
+                    try {
+                        $user = Auth::user();
+                        // Find latest active application to get context (Vacancy Title)
+                        $latestApplication = \App\Models\Applications::where('user_id', $user->id)
+                            ->latest()
+                            ->with('vacancy')
+                            ->first();
+
+                        $vacancyTitle = $latestApplication ? $latestApplication->vacancy->position_title : 'General Update';
+                        $vacancyId = $latestApplication ? $latestApplication->vacancy_id : null;
+
+                        $admins = \App\Models\Admin::all();
+                        foreach ($admins as $admin) {
+                            $admin->notify(new \App\Notifications\DocumentUploadedNotification(
+                                $user->name,
+                                $uploadedDocTypes,
+                                $vacancyTitle,
+                                $user->id,
+                                $vacancyId
+                            ));
+                        }
+                    } catch (\Exception $e) {
+                        \Illuminate\Support\Facades\Log::error('Failed to send document upload notification: ' . $e->getMessage());
+                    }
+                }
+
+                activity()
+                    ->causedBy(Auth::user())
+                    ->event('save')
+                    ->log('Finalized PDS submission.');
+
+                return redirect()->route($go_to);
+            });
+        } catch (\Throwable $e) {
+            foreach ($storedPaths as $path) {
+                Storage::disk('public')->delete($path);
             }
-
+            return back()->withErrors(['cert_uploads' => 'Upload failed. Please try again.']);
         }
-
-        // format residential address for compact database insertion
-        $house_no_t = ($c1_form_data['res_house_no'] != '') ? $c1_form_data['res_house_no'] : '{*}';
-        $street_t = ($c1_form_data['res_street'] != '') ? $c1_form_data['res_street'] : '{*}';
-        $sub_vil_t = ($c1_form_data['res_sub_vil'] != '') ? $c1_form_data['res_sub_vil'] : '{*}';
-        $brgy_t = ($c1_form_data['res_brgy'] != '') ? $c1_form_data['res_brgy'] : '{*}';
-        $city_t = ($c1_form_data['res_city'] != '') ? $c1_form_data['res_city'] : '{*}';
-        $province_t = ($c1_form_data['res_province'] != '') ? $c1_form_data['res_province'] : '{*}';
-        $zipcode_t = ($c1_form_data['res_zipcode'] != '') ? $c1_form_data['res_zipcode'] : '{*}';
-
-        $formatted_residential_address = "$house_no_t/|/$street_t/|/$sub_vil_t/|/$brgy_t/|/$city_t/|/$province_t/|/$zipcode_t";
-
-        // format permanent address
-        $house_no_t = ($c1_form_data['per_house_no'] != '') ? $c1_form_data['per_house_no'] : '{*}';
-        $street_t = ($c1_form_data['per_street'] != '') ? $c1_form_data['per_street'] : '{*}';
-        $sub_vil_t = ($c1_form_data['per_sub_vil'] != '') ? $c1_form_data['per_sub_vil'] : '{*}';
-        $brgy_t = ($c1_form_data['per_brgy'] != '') ? $c1_form_data['per_brgy'] : '{*}';
-        $city_t = ($c1_form_data['per_city'] != '') ? $c1_form_data['per_city'] : '{*}';
-        $province_t = ($c1_form_data['per_province'] != '') ? $c1_form_data['per_province'] : '{*}';
-        $zipcode_t = ($c1_form_data['per_zipcode'] != '') ? $c1_form_data['per_zipcode'] : '{*}';
-
-        $formatted_permanent_address = "$house_no_t/|/$street_t/|/$sub_vil_t/|/$brgy_t/|/$city_t/|/$province_t/|/$zipcode_t";
-
-        // create a personal information record compact database insertion
-        // IF the record does not exist for the current user.
-        $user_personal_info = Models\PersonalInformation::firstOrCreate([
-            'user_id' => Auth::id()
-        ]);
-
-        $user_personal_info->update([
-            //'cs_id_no'                  => $c1_form_data['cs_id_no'],
-            'surname' => $c1_form_data['surname'],
-            'name_extension' => $c1_form_data['name_extension'],
-            'first_name' => $c1_form_data['first_name'],
-            'middle_name' => $c1_form_data['middle_name'],
-            'sex' => $c1_form_data['sex'],
-            'civil_status' => $c1_form_data['civil_status'],
-            'date_of_birth' => $this->normalizeDateForDatabase($c1_form_data['date_of_birth']),
-            'place_of_birth' => $c1_form_data['place_of_birth'],
-            'height' => $c1_form_data['height'],
-            'weight' => $c1_form_data['weight'],
-            'blood_type' => $c1_form_data['blood_type'],
-            'philhealth_no' => $c1_form_data['philhealth_no'],
-            'tin_no' => $c1_form_data['tin_no'],
-            'agency_employee_no' => $c1_form_data['agency_employee_no'],
-            'gsis_id_no' => $c1_form_data['gsis_id_no'],
-            'pagibig_id_no' => $c1_form_data['pagibig_id_no'],
-            'sss_id_no' => $c1_form_data['sss_id_no'],
-            'citizenship' => $c1_form_data['citizenship'],
-            'dual_type' => $dual_type_t,
-            'dual_country' => $c1_form_data['dual_country'],
-            'residential_address' => $formatted_residential_address,
-            'permanent_address' => $formatted_permanent_address,
-            'telephone_no' => $c1_form_data['telephone_no'],
-            'mobile_no' => $c1_form_data['mobile_no'],
-            'email_address' => $c1_form_data['email_address']
-        ]);
-
-        unset($user_personal_info);
-
-        //********************************
-        //* +++++ Family Background
-        //*******************************
-
-        $user_family_bg = Models\FamilyBackground::firstOrCreate([
-            'user_id' => Auth::id()
-        ]);
-
-        $user_family_bg->update([
-            'spouse_surname' => $c1_form_data['spouse_surname'],
-            'spouse_first_name' => $c1_form_data['spouse_first_name'],
-            'spouse_middle_name' => $c1_form_data['spouse_middle_name'],
-            'spouse_name_extension' => $c1_form_data['spouse_name_extension'],
-            'spouse_occupation' => $c1_form_data['spouse_occupation'],
-            'spouse_employer' => $c1_form_data['spouse_employer'],
-            'spouse_business_address' => $c1_form_data['spouse_business_address'],
-            'spouse_telephone' => $c1_form_data['spouse_telephone'],
-            'father_surname' => $c1_form_data['father_surname'],
-            'father_first_name' => $c1_form_data['father_first_name'],
-            'father_middle_name' => $c1_form_data['father_middle_name'],
-            'father_name_extension' => $c1_form_data['father_name_extension'],
-            'mother_maiden_surname' => $c1_form_data['mother_maiden_surname'],
-            'mother_maiden_first_name' => $c1_form_data['mother_maiden_first_name'],
-            'mother_maiden_middle_name' => $c1_form_data['mother_maiden_middle_name'],
-            'children_info' => $c1_form_data['children']
-        ]);
-
-        unset($user_family_bg);
-
-        //********************************
-        //* +++++ Educational Background
-        //********************************
-
-        $user_educational_bg = Models\EducationalBackground::firstOrCreate([
-            'user_id' => Auth::id()
-        ]);
-
-        $user_educational_bg->update([
-            'elem_from' => $c1_form_data['elem_from'],
-            'elem_to' => $c1_form_data['elem_to'],
-            'elem_school' => $c1_form_data['elem_school'],
-            'elem_academic_honors' => $c1_form_data['elem_academic_honors'],
-            'elem_basic' => $c1_form_data['elem_basic'],
-            //'elem_earned'               => $c1_form_data['elem_earned'],
-            'elem_year_graduated' => $c1_form_data['elem_year_graduated'],
-
-            'jhs_from' => $c1_form_data['jhs_from'],
-            'jhs_to' => $c1_form_data['jhs_to'],
-            'jhs_school' => $c1_form_data['jhs_school'],
-            'jhs_academic_honors' => $c1_form_data['jhs_academic_honors'],
-            'jhs_basic' => $c1_form_data['jhs_basic'],
-            //'jhs_earned'                => $c1_form_data['jhs_earned'],
-            'jhs_year_graduated' => $c1_form_data['jhs_year_graduated'],
-
-            /*
-            'shs_from'                  => $c1_form_data['shs_from'],
-            'shs_to'                    => $c1_form_data['shs_to'],
-            'shs_school'                => $c1_form_data['shs_school'],
-            'shs_academic_honors'       => $c1_form_data['shs_academic_honors'],
-            'shs_basic'                 => $c1_form_data['shs_basic'],
-            'shs_earned'                => $c1_form_data['shs_earned'],
-            'shs_year_graduated'        => $c1_form_data['shs_year_graduated'],
-            */
-
-            'vocational' => $c1_form_data['vocational'] ?? null,
-            'college' => $c1_form_data['college'],
-            'grad' => $c1_form_data['grad'] ?? null,
-        ]);
-
-        unset($user_educational_bg);
-        // TODO: Fix null new user null required values. Create a middleware so that they cant skip ahead to c5
-
-        // -------------
-        // C2 INSERT TO DATABASE
-        // ------------
-        //********************************
-        //* +++++ Work Experience
-        //*******************************
-        $c2_form_data = session('form.c2');
-        if (isset($c2_form_data['all_user_work_exps'])) {
-            $user_all_wex_data = $c2_form_data['all_user_work_exps'];
-
-            WorkExperience::where('user_id', Auth::id())->delete();
-
-            for ($i = 0; $i < count($user_all_wex_data); $i++) {
-                // if(array_key_exists('id'))
-                //$user_all_wex_data[$i]['id'] = ($user_all_wex_data[$i]['id'] == "null") ? null : $user_all_wex_data[$i]['id'];
-                //$user_all_wex_data[$i]['id'] = $user_all_wex_data[$i]['id'] ?? null;
-                //dd($user_all_wex_data['id']);
-                unset($user_all_wex_data[$i]['id']); // Remove 'id' key
-                WorkExperience::upsert($user_all_wex_data[$i], 'id');
-            }
-        }
-
-        //********************************
-        //* +++++ Civil Service Eligibility
-        //*******************************
-        if (isset($c2_form_data['all_user_civil_service_eligibility'])) {
-            $user_all_cs_data = $c2_form_data['all_user_civil_service_eligibility'];
-
-            CivilServiceEligibility::where('user_id', Auth::id())->delete();
-            for ($i = 0; $i < sizeof($user_all_cs_data); $i++) {
-                unset($user_all_cs_data[$i]['id']); // Remove 'id' key
-                CivilServiceEligibility::upsert($user_all_cs_data[$i], 'id');
-            }
-        }
-
-        // C3 INSERT TO DATABASE
-        //LEARNING AND DEVELOPMENT
-        $c3_learning_and_development_data = session('data_learning');
-        //dd(session('data_learning'));
-
-        if (!empty($c3_learning_and_development_data)) {
-            LearningAndDevelopment::where('user_id', Auth::id())->delete();
-            LearningAndDevelopment::upsert(
-                $c3_learning_and_development_data,
-                ['learning_title', 'learning_from', 'user_id'], // Unique constraint
-                ['learning_type', 'learning_hours', 'learning_to', 'learning_conducted'] // Fields to update
-            );
-        }
-
-        //VOLUNTARY WORK
-        $c3_voluntary_data = session('data_voluntary');
-        if (!empty($c3_voluntary_data)) {
-            VoluntaryWork::where('user_id', Auth::id())->delete();
-            VoluntaryWork::upsert(
-                $c3_voluntary_data,
-                ['voluntary_org', 'voluntary_from', 'user_id'], // Unique constraint
-                ['voluntary_to', 'voluntary_hours', 'voluntary_position'] // Fields to update
-            );
-        }
-        //OTHER INFORMATION
-
-        $c3_other_information_data = session('data_otherInfo');
-        if (!empty($c3_other_information_data)) {
-            $user_other_info = OtherInformation::firstOrCreate([
-                'user_id' => Auth::id()
-            ]);
-            $user_other_info->update([
-                'user_id' => Auth::id(),
-                'skill' => $c3_other_information_data['skill'],
-                'distinction' => $c3_other_information_data['distinction'],
-                'organization' => $c3_other_information_data['organization'],
-            ]);
-        }
-
-        //C4 INSERT TO DATABASE
-        $c4_misc_info_data = session('form.c4');
-        if (!empty($c4_misc_info_data)) {
-            unset($c4_misc_info_data['criminal_35_b_array']); // criminal_35_b_array is not part of the database
-            $misc_info_data = MiscInfos::firstOrCreate([
-                'user_id' => Auth::id()
-            ]);
-            $misc_info_data->update($c4_misc_info_data);
-        }
-
-        activity()
-            ->causedBy(Auth::user())
-            ->event('save')
-            ->log('Finalized PDS submission.');
-
-        return redirect()->route($go_to);
     } // END finalize PDS
 
     private function validateUploadedFile(UploadedFile $file, bool $allowImage): array

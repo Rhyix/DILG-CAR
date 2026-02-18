@@ -575,18 +575,16 @@ class JobVacancyController extends Controller
         ]);
 
         // Create notification for all admins
+        // Create notification for all admins
         $admins = \App\Models\Admin::all();
         foreach ($admins as $admin) {
-            \App\Models\Notification::create([
-                'notifiable_type' => 'App\Models\Admin',
-                'notifiable_id' => $admin->id,
-                'type' => 'info',
-                'data' => [
-                    'title' => 'New Applicant',
-                    'message' => 'Applicant ' . Auth::user()->name . ' has applied for ' . $vacancy->position_title,
-                    'link' => route('admin.manage_applicants', ['vacancy_id' => $vacancy->vacancy_id]),
-                ]
-            ]);
+            $admin->notify(new \App\Notifications\DocumentUploadedNotification(
+                Auth::user()->name,
+                ['Application Letter'], // Application involves uploading this
+                $vacancy->position_title,
+                Auth::user()->id,
+                $vacancy->vacancy_id
+            ));
         }
 
         activity()
@@ -711,14 +709,15 @@ class JobVacancyController extends Controller
             }
         }
 
-        $displayApplicationStatus = $snapshotData['application_status'] ?? 'Pending';
-        $displayQsEducation = $snapshotData['qs_education'] ?? 'no';
-        $displayQsEligibility = $snapshotData['qs_eligibility'] ?? 'no';
-        $displayQsExperience = $snapshotData['qs_experience'] ?? 'no';
-        $displayQsTraining = $snapshotData['qs_training'] ?? 'no';
-        $displayQsResult = $snapshotData['qs_result'] ?? 'Not Qualified';
-        $displayDeadlineDate = $snapshotData['deadline_date'] ?? null;
-        $displayDeadlineTime = $snapshotData['deadline_time'] ?? null;
+        $displayApplicationStatus = $application->status ?? 'Pending';
+        $displayQsEducation = $application->qs_education ?? 'no';
+        $displayQsEligibility = $application->qs_eligibility ?? 'no';
+        $displayQsExperience = $application->qs_experience ?? 'no';
+        $displayQsTraining = $application->qs_training ?? 'no';
+        $displayQsResult = $application->qs_result ?? 'Not Qualified';
+        $displayDeadlineDate = $application->deadline_date ?? null;
+        $displayDeadlineTime = $application->deadline_time ?? null;
+        $displayApplicationRemarks = $application->application_remarks ?? '';
 
         /*
         activity()
@@ -741,7 +740,8 @@ class JobVacancyController extends Controller
             'displayQsTraining',
             'displayQsResult',
             'displayDeadlineDate',
-            'displayDeadlineTime'
+            'displayDeadlineTime',
+            'displayApplicationRemarks'
         ));
     }
 
