@@ -17,8 +17,6 @@ class NotificationController extends Controller
                     $q->where('notifiable_id', Auth::guard('admin')->id())
 <<<<<<< HEAD
                       ->orWhereNull('notifiable_id');
-<<<<<<< HEAD
-<<<<<<< HEAD
                 })
                 ->where(function($q) {
                     $q->where('data->category', 'document_verification')
@@ -27,10 +25,6 @@ class NotificationController extends Controller
 =======
                         ->orWhereNull('notifiable_id');
 >>>>>>> 03b880c39b1f7006723895b34a1419dafb724c9e
-=======
->>>>>>> parent of 74526e5 (email notification, applications list,)
-=======
->>>>>>> parent of 74526e5 (email notification, applications list,)
                 });
         } elseif (Auth::check()) {
             return Notification::where('notifiable_type', 'App\Models\User')
