@@ -166,7 +166,7 @@
                         <i data-feather="bell" class="w-6 h-6"></i>
                         <span x-show="count > 0"
                             class="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-                            x-text="count"></span>
+                            x-text="count >= 100 ? '99+' : count"></span>
                     </button>
 
                     <!-- Notification Dropdown -->
