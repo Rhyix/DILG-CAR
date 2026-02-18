@@ -129,6 +129,7 @@ class AppServiceProvider extends ServiceProvider
                 ]);
 
                 if ($admin->email) {
+<<<<<<< HEAD
                     Mail::send('emails.admin_event_notification', [
                         'actorName' => $actorName,
                         'recipientName' => $admin->name ?? $admin->username,
@@ -143,6 +144,21 @@ class AppServiceProvider extends ServiceProvider
                         $m->to($admin->email)->subject('DILG-CAR Admin Notification');
                     });
                     $sentCount++;
+=======
+                    // Mail::send('emails.admin_event_notification', [
+                    //     'actorName' => $actorName,
+                    //     'recipientName' => $admin->name ?? $admin->username,
+                    //     'applicantName' => $applicantName,
+                    //     'positionTitle' => $positionTitle,
+                    //     'vacancyId' => $vacancy_id,
+                    //     'title' => $section,
+                    //     'body' => $message,
+                    //     'link' => $link,
+                    //     'occurredAt' => $activity->created_at,
+                    // ], function ($m) use ($admin) {
+                    //     $m->to($admin->email)->subject('DILG-CAR Admin Notification');
+                    // });
+>>>>>>> 03b880c39b1f7006723895b34a1419dafb724c9e
                 }
             }
             Log::info('Sent admin notifications', ['category' => $category, 'count' => $sentCount, 'section' => $section, 'event' => $eventName]);
