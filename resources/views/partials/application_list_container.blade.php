@@ -1,8 +1,8 @@
 @if ($applications->count() > 0)
-<div id="applicationListContainer" class="rounded-xl border border-[#0D2B70] mt-2 h-full flex flex-col overflow-hidden">
-    <div class="flex-none bg-[#0D2B70] text-white">
+<div class="rounded-xl border border-[#0D2B70] mt-2 overflow-hidden">
+    <div class="bg-[#0D2B70] text-white">
         <table class="w-full text-left border-collapse table-fixed">
-            <thead class="bg-[#0D2B70] text-white sticky top-0 z-10">
+            <thead class="bg-[#0D2B70] text-white">
                 <tr>
                     <th class="py-4 px-6 text-left font-bold uppercase text-sm tracking-wider w-[20%]">Application No.</th>
                     <th class="py-4 px-6 text-left font-bold uppercase text-sm tracking-wider w-[30%]">Position Title</th>
@@ -13,7 +13,7 @@
             </thead>
         </table>
     </div>
-    <div class="flex-1 overflow-y-auto min-h-0">
+    <div>
         <table class="w-full text-left border-collapse table-fixed">
             <tbody class="divide-y divide-[#0D2B70]">
             @foreach ($applications as $application)

@@ -12,7 +12,6 @@ use App\Models\Notification;
 use App\Models\User;
 use App\Models\JobVacancy;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Log;
 class AppServiceProvider extends ServiceProvider
 {
     /**
@@ -81,40 +80,7 @@ class AppServiceProvider extends ServiceProvider
                 $link = route('admin_account_management');
             }
 
-            $eventName = (string) ($activity->event ?? '');
-            $category = null;
-            $changes = $activity->properties['changes'] ?? null;
-            if (in_array(strtolower($eventName), ['login', 'logout'])) {
-                Log::info('Filtered admin notification', ['event' => $eventName, 'section' => $section]);
-                return;
-            }
-            if ($section === 'Application List' && is_array($changes)) {
-                foreach ($changes as $key => $chg) {
-                    if (str_starts_with((string) $key, 'document_') && is_array($chg)) {
-                        if (isset($chg['status']['new'])) {
-                            $newStatus = (string) $chg['status']['new'];
-                            if (in_array($newStatus, ['Verified', 'Okay/Confirmed', 'Needs Revision', 'Disapproved With Deficiency'])) {
-                                $category = 'document_verification';
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-            if (!$category && $section === 'Exam Management') {
-                if (in_array($eventName, ['start', 'save'])) {
-                    $category = 'exam_lifecycle';
-                } elseif (in_array($eventName, ['create', 'update'])) {
-                    $category = 'exam_questions';
-                }
-            }
-            if (!$category) {
-                Log::info('Filtered admin notification', ['event' => $eventName, 'section' => $section]);
-                return;
-            }
-
             $admins = Admin::all();
-            $sentCount = 0;
             foreach ($admins as $admin) {
                 Notification::create([
                     'notifiable_type' => 'App\Models\Admin',
@@ -124,7 +90,6 @@ class AppServiceProvider extends ServiceProvider
                         'title' => $section,
                         'message' => $message,
                         'link' => $link,
-                        'category' => $category,
                     ]
                 ]);
 
@@ -143,6 +108,7 @@ class AppServiceProvider extends ServiceProvider
                     ], function ($m) use ($admin) {
                         $m->to($admin->email)->subject('DILG-CAR Admin Notification');
                     });
+<<<<<<< HEAD
                     $sentCount++;
 =======
                     // Mail::send('emails.admin_event_notification', [
@@ -159,9 +125,10 @@ class AppServiceProvider extends ServiceProvider
                     //     $m->to($admin->email)->subject('DILG-CAR Admin Notification');
                     // });
 >>>>>>> 03b880c39b1f7006723895b34a1419dafb724c9e
+=======
+>>>>>>> parent of 74526e5 (email notification, applications list,)
                 }
             }
-            Log::info('Sent admin notifications', ['category' => $category, 'count' => $sentCount, 'section' => $section, 'event' => $eventName]);
         });
     }
 }
