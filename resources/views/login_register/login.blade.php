@@ -177,18 +177,18 @@
   </div>
 
   <!-- @include('partials.loader') -->
-  
-  <!-- <script>
-    const toggle = document.getElementById('togglePassword');
+
+  <script>
+    const toggle = document.getElementById('toggleAdminPassword');
     if (toggle) {
       toggle.addEventListener('click', function () {
-        const input = document.getElementById('password');
+        const input = document.getElementById('admin_password');
         if (!input) return;
         const is = input.getAttribute('type') === 'password';
         input.setAttribute('type', is ? 'text' : 'password');
         this.querySelector('i').classList.toggle('fa-eye-slash');
       });
     }
-  </script> -->
+  </script>
 </body>
 </html>
