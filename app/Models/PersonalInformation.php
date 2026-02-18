@@ -30,12 +30,11 @@ class PersonalInformation extends Model
         'gsis_id_no',
         'pagibig_id_no',
         'sss_id_no',
-        'citizenship', 
-        'dual_country', 
-        'dual_type ',
+        'citizenship',
         'dual_country',
-        'residential_address', 
-        'permanent_address', 
+        'dual_type',
+        'residential_address',
+        'permanent_address',
         'telephone_no',
         'mobile_no',
         'email_address',
@@ -46,7 +45,8 @@ class PersonalInformation extends Model
      * 
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, PersonalInformation>
      */
-    public function user() {
+    public function user()
+    {
         return $this->belongsTo(User::class, 'user_id');
     }
 }

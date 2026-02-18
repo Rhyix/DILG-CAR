@@ -105,6 +105,12 @@ Route::get('/exam/confirm/{token}', [ExamController::class, 'confirmNotification
 Route::post('/otp/resend', [RegisterController::class, 'resendOTP'])->name('otp_resend');
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login.form');
 Route::post('/login', [LoginController::class, 'login'])->name('login')->middleware('throttle:5,1');
+Route::get('/csrf-token', function () {
+    return response()
+        ->json(['token' => csrf_token()])
+        ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+        ->header('Pragma', 'no-cache');
+})->name('csrf.token');
 
 // ==================================================================================================
 // Reset Password

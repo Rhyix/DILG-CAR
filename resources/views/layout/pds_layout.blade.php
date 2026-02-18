@@ -28,6 +28,75 @@
             }
         });
     </script>
+    <script>
+        (function(){
+            async function refreshCsrfToken() {
+                try {
+                    const response = await fetch('/csrf-token', {
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                        credentials: 'same-origin'
+                    });
+                    if (!response.ok) {
+                        return null;
+                    }
+                    const data = await response.json();
+                    if (data && data.token) {
+                        const meta = document.querySelector('meta[name="csrf-token"]');
+                        if (meta) {
+                            meta.setAttribute('content', data.token);
+                        }
+                        document.querySelectorAll('input[name="_token"]').forEach((input) => {
+                            input.value = data.token;
+                        });
+                        return data.token;
+                    }
+                } catch (e) {
+                    return null;
+                }
+                return null;
+            }
+            async function ensureFreshToken() {
+                await refreshCsrfToken();
+            }
+            function wireSubmitRefresh() {
+                document.addEventListener('submit', async function(event){
+                    const form = event.target;
+                    if (!form || form.dataset.csrfRefreshing === '1') {
+                        return;
+                    }
+                    event.preventDefault();
+                    form.dataset.csrfRefreshing = '1';
+                    await ensureFreshToken();
+                    if (form.requestSubmit) {
+                        form.requestSubmit();
+                    } else {
+                        form.submit();
+                    }
+                    setTimeout(function() {
+                        delete form.dataset.csrfRefreshing;
+                    }, 0);
+                }, true);
+            }
+            function isBackForward() {
+                const navEntries = performance.getEntriesByType('navigation');
+                if (navEntries && navEntries.length > 0) {
+                    return navEntries[0].type === 'back_forward';
+                }
+                return false;
+            }
+            document.addEventListener('DOMContentLoaded', function(){
+                wireSubmitRefresh();
+                if (isBackForward()) {
+                    ensureFreshToken();
+                }
+            });
+            window.addEventListener('pageshow', function(event){
+                if (event.persisted) {
+                    ensureFreshToken();
+                }
+            });
+        })();
+    </script>
     <style>
         body {
             font-family: 'Inter', sans-serif;

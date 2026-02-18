@@ -257,9 +257,117 @@ class PDSController extends Controller
 
         session(['form.c1' => $c1_form_data]);
 
+        // START DB SAVING LOGIC
+        $c1_form_data_db = $c1_form_data;
+        foreach (['elem_from', 'elem_to', 'jhs_from', 'jhs_to'] as $dateField) {
+            $c1_form_data_db[$dateField] = $this->normalizeDateForDatabase($c1_form_data_db[$dateField] ?? null);
+        }
+
+        // Format residential address
+        $house_no_t = ($c1_form_data_db['res_house_no'] != '') ? $c1_form_data_db['res_house_no'] : '{*}';
+        $street_t = ($c1_form_data_db['res_street'] != '') ? $c1_form_data_db['res_street'] : '{*}';
+        $sub_vil_t = ($c1_form_data_db['res_sub_vil'] != '') ? $c1_form_data_db['res_sub_vil'] : '{*}';
+        $brgy_t = ($c1_form_data_db['res_brgy'] != '') ? $c1_form_data_db['res_brgy'] : '{*}';
+        $city_t = ($c1_form_data_db['res_city'] != '') ? $c1_form_data_db['res_city'] : '{*}';
+        $province_t = ($c1_form_data_db['res_province'] != '') ? $c1_form_data_db['res_province'] : '{*}';
+        $zipcode_t = ($c1_form_data_db['res_zipcode'] != '') ? $c1_form_data_db['res_zipcode'] : '{*}';
+        $formatted_residential_address = "$house_no_t/|/$street_t/|/$sub_vil_t/|/$brgy_t/|/$city_t/|/$province_t/|/$zipcode_t";
+
+        // Format permanent address
+        $house_no_t = ($c1_form_data_db['per_house_no'] != '') ? $c1_form_data_db['per_house_no'] : '{*}';
+        $street_t = ($c1_form_data_db['per_street'] != '') ? $c1_form_data_db['per_street'] : '{*}';
+        $sub_vil_t = ($c1_form_data_db['per_sub_vil'] != '') ? $c1_form_data_db['per_sub_vil'] : '{*}';
+        $brgy_t = ($c1_form_data_db['per_brgy'] != '') ? $c1_form_data_db['per_brgy'] : '{*}';
+        $city_t = ($c1_form_data_db['per_city'] != '') ? $c1_form_data_db['per_city'] : '{*}';
+        $province_t = ($c1_form_data_db['per_province'] != '') ? $c1_form_data_db['per_province'] : '{*}';
+        $zipcode_t = ($c1_form_data_db['per_zipcode'] != '') ? $c1_form_data_db['per_zipcode'] : '{*}';
+        $formatted_permanent_address = "$house_no_t/|/$street_t/|/$sub_vil_t/|/$brgy_t/|/$city_t/|/$province_t/|/$zipcode_t";
+
+        $dual_type_t = '';
+        if ($c1_form_data_db['citizenship'] === 'Dual Citizenship' || $c1_form_data_db['citizenship'] === 'Dual Citizen') {
+            $dual_type_t = $c1_form_data_db['dual_type'] ?? '';
+        }
+
+        // Save PersonalInformation
+        Models\PersonalInformation::updateOrCreate(
+            ['user_id' => Auth::id()],
+            [
+                'surname' => $c1_form_data_db['surname'],
+                'first_name' => $c1_form_data_db['first_name'],
+                'middle_name' => $c1_form_data_db['middle_name'],
+                'name_extension' => $c1_form_data_db['name_extension'],
+                'sex' => $c1_form_data_db['sex'],
+                'civil_status' => $c1_form_data_db['civil_status'],
+                'date_of_birth' => $this->normalizeDateForDatabase($c1_form_data_db['date_of_birth']),
+                'place_of_birth' => $c1_form_data_db['place_of_birth'],
+                'height' => $c1_form_data_db['height'],
+                'weight' => $c1_form_data_db['weight'],
+                'blood_type' => $c1_form_data_db['blood_type'],
+                'philhealth_no' => $c1_form_data_db['philhealth_no'],
+                'tin_no' => $c1_form_data_db['tin_no'],
+                'agency_employee_no' => $c1_form_data_db['agency_employee_no'],
+                'gsis_id_no' => $c1_form_data_db['gsis_id_no'],
+                'pagibig_id_no' => $c1_form_data_db['pagibig_id_no'],
+                'sss_id_no' => $c1_form_data_db['sss_id_no'],
+                'citizenship' => $c1_form_data_db['citizenship'],
+                'dual_type' => $dual_type_t,
+                'dual_country' => $c1_form_data_db['dual_country'] ?? null,
+                'residential_address' => $formatted_residential_address,
+                'permanent_address' => $formatted_permanent_address,
+                'telephone_no' => $c1_form_data_db['telephone_no'],
+                'mobile_no' => $c1_form_data_db['mobile_no'],
+                'email_address' => $c1_form_data_db['email_address']
+            ]
+        );
+
+        // Save FamilyBackground
+        Models\FamilyBackground::updateOrCreate(
+            ['user_id' => Auth::id()],
+            [
+                'spouse_surname' => $c1_form_data_db['spouse_surname'] ?? null,
+                'spouse_first_name' => $c1_form_data_db['spouse_first_name'] ?? null,
+                'spouse_middle_name' => $c1_form_data_db['spouse_middle_name'] ?? null,
+                'spouse_name_extension' => $c1_form_data_db['spouse_name_extension'] ?? null,
+                'spouse_occupation' => $c1_form_data_db['spouse_occupation'] ?? null,
+                'spouse_employer' => $c1_form_data_db['spouse_employer'] ?? null,
+                'spouse_business_address' => $c1_form_data_db['spouse_business_address'] ?? null,
+                'spouse_telephone' => $c1_form_data_db['spouse_telephone'] ?? null,
+                'father_surname' => $c1_form_data_db['father_surname'] ?? null,
+                'father_first_name' => $c1_form_data_db['father_first_name'] ?? null,
+                'father_middle_name' => $c1_form_data_db['father_middle_name'] ?? null,
+                'father_name_extension' => $c1_form_data_db['father_name_extension'] ?? null,
+                'mother_maiden_surname' => $c1_form_data_db['mother_maiden_surname'] ?? null,
+                'mother_maiden_first_name' => $c1_form_data_db['mother_maiden_first_name'] ?? null,
+                'mother_maiden_middle_name' => $c1_form_data_db['mother_maiden_middle_name'] ?? null,
+                'children_info' => $c1_form_data_db['children'] ?? null
+            ]
+        );
+
+        // Save EducationalBackground
+        Models\EducationalBackground::updateOrCreate(
+            ['user_id' => Auth::id()],
+            [
+                'elem_from' => $c1_form_data_db['elem_from'],
+                'elem_to' => $c1_form_data_db['elem_to'],
+                'elem_school' => $c1_form_data_db['elem_school'],
+                'elem_academic_honors' => $c1_form_data_db['elem_academic_honors'],
+                'elem_basic' => $c1_form_data_db['elem_basic'],
+                'elem_year_graduated' => $c1_form_data_db['elem_year_graduated'],
+                'jhs_from' => $c1_form_data_db['jhs_from'],
+                'jhs_to' => $c1_form_data_db['jhs_to'],
+                'jhs_school' => $c1_form_data_db['jhs_school'],
+                'jhs_academic_honors' => $c1_form_data_db['jhs_academic_honors'],
+                'jhs_basic' => $c1_form_data_db['jhs_basic'],
+                'jhs_year_graduated' => $c1_form_data_db['jhs_year_graduated'],
+                'vocational' => $c1_form_data_db['vocational'] ?? null,
+                'college' => $c1_form_data_db['college'] ?? null,
+                'grad' => $c1_form_data_db['grad'] ?? null,
+            ]
+        );
+
         activity()
             ->causedBy(Auth::user())
-            ->log('Updated C1 form session.');
+            ->log('Updated C1 form session and database.');
 
         \App\Models\User::query()->whereKey(Auth::id())->update(['updated_at' => now()]);
         //dd(session('form.c1'));
@@ -382,6 +490,13 @@ class PDSController extends Controller
             }
             $data_work_exp['updated_at'] = now();
 
+            if (!empty($data_work_exp['id'])) {
+                WorkExperience::where('id', $data_work_exp['id'])->update($data_work_exp);
+            } else {
+                $newRecord = WorkExperience::create($data_work_exp);
+                $data_work_exp['id'] = $newRecord->id;
+            }
+
             $all_wex_data[] = $data_work_exp;
             // WorkExperience::upsert($data_work_exp, 'id');
         }
@@ -412,6 +527,13 @@ class PDSController extends Controller
                 $data_cs['created_at'] = now();
             }
             $data_cs['updated_at'] = now();
+            if (!empty($data_cs['id'])) {
+                CivilServiceEligibility::where('id', $data_cs['id'])->update($data_cs);
+            } else {
+                $newRecord = CivilServiceEligibility::create($data_cs);
+                $data_cs['id'] = $newRecord->id;
+            }
+
             $all_cs_data[] = $data_cs;
             // CivilServiceEligibility::upsert($data_cs, 'id');
         }
@@ -599,6 +721,42 @@ class PDSController extends Controller
             ->log('Submitted C3 form data.');
 */
         \App\Models\User::query()->whereKey(Auth::id())->update(['updated_at' => now()]);
+
+        // SAVE C3 to DB
+        //LEARNING AND DEVELOPMENT
+        $c3_learning_and_development_data = session('data_learning');
+        if (!empty($c3_learning_and_development_data)) {
+            LearningAndDevelopment::where('user_id', Auth::id())->delete();
+            LearningAndDevelopment::upsert(
+                $c3_learning_and_development_data,
+                ['learning_title', 'learning_from', 'user_id'], // Unique constraint
+                ['learning_type', 'learning_hours', 'learning_to', 'learning_conducted'] // Fields to update
+            );
+        }
+
+        //VOLUNTARY WORK
+        $c3_voluntary_data = session('data_voluntary');
+        if (!empty($c3_voluntary_data)) {
+            VoluntaryWork::where('user_id', Auth::id())->delete();
+            VoluntaryWork::upsert(
+                $c3_voluntary_data,
+                ['voluntary_org', 'voluntary_from', 'user_id'], // Unique constraint
+                ['voluntary_to', 'voluntary_hours', 'voluntary_position'] // Fields to update
+            );
+        }
+
+        //OTHER INFORMATION
+        $c3_other_information_data = session('data_otherInfo');
+        if (!empty($c3_other_information_data)) {
+            Models\OtherInformation::updateOrCreate(
+                ['user_id' => Auth::id()],
+                [
+                    'skill' => $c3_other_information_data['skill'],
+                    'distinction' => $c3_other_information_data['distinction'],
+                    'organization' => $c3_other_information_data['organization'],
+                ]
+            );
+        }
         $routeParams = [];
         if ($request->query('simple')) {
             $routeParams['simple'] = 1;
@@ -825,6 +983,19 @@ class PDSController extends Controller
                     ->log('Submitted C4 form data.');
         */
         \App\Models\User::query()->whereKey(Auth::id())->update(['updated_at' => now()]);
+
+        // SAVE C4 to DB
+        $c4_misc_info_data = session('form.c4');
+        if (!empty($c4_misc_info_data)) {
+            $dataToSave = $c4_misc_info_data;
+            unset($dataToSave['criminal_35_b_array']);
+
+            MiscInfos::updateOrCreate(
+                ['user_id' => Auth::id()],
+                $dataToSave
+            );
+        }
+
         return redirect()->route($go_to);
     }
 
