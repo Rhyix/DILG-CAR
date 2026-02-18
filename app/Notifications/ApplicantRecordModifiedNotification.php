@@ -47,7 +47,7 @@ class ApplicantRecordModifiedNotification extends Notification implements Should
             return [];
         }
 
-        return ['mail', 'database'];
+        return ['database'];
     }
 
     /**
