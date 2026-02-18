@@ -394,7 +394,15 @@ class JobVacancyController extends Controller
     public function filterVacancy(Request $request)
     {
         $vacancies = JobVacancy::query();
-
+        if ($request->search) {
+            $s = trim($request->search);
+            $vacancies->where(function ($q) use ($s) {
+                $q->where('position_title', 'like', "%{$s}%")
+                    ->orWhere('place_of_assignment', 'like', "%{$s}%")
+                    ->orWhere('vacancy_id', 'like', "%{$s}%")
+                    ->orWhere('vacancy_type', 'like', "%{$s}%");
+            });
+        }
         if ($request->status) {
             $vacancies->where('status', $request->status);
         }
