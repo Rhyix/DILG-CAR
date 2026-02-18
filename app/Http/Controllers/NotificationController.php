@@ -15,6 +15,11 @@ class NotificationController extends Controller
                 ->where(function($q) {
                     $q->where('notifiable_id', Auth::guard('admin')->id())
                       ->orWhereNull('notifiable_id');
+                })
+                ->where(function($q) {
+                    $q->where('data->category', 'document_verification')
+                      ->orWhere('data->category', 'exam_lifecycle')
+                      ->orWhere('data->category', 'exam_questions');
                 });
         } elseif (Auth::check()) {
             return Notification::where('notifiable_type', 'App\Models\User')
