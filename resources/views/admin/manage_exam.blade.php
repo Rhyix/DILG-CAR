@@ -25,6 +25,7 @@
             $statusClass = '';
             $isExamDay = false;
             $isBeforeStart = false;
+            $isWithinOneHourBeforeStart = false;
             $qualifiedCount = isset($qualifiedApplicants) ? $qualifiedApplicants->count() : 0;
             $lobbyCount = isset($participants) ? $participants->count() : 0;
 
@@ -34,6 +35,8 @@
                  $now = now();
                  $isExamDay = \Carbon\Carbon::parse($examDetails->date)->isSameDay($now);
                  $isBeforeStart = $now->lt($startDateTime);
+                 $oneHourBefore = $startDateTime->copy()->subHour();
+                 $isWithinOneHourBeforeStart = $now->between($oneHourBefore, $startDateTime);
 
                  if ($now->between($startDateTime, $endDateTime)) {
                      // Current time is between start and end
@@ -364,15 +367,28 @@
 
             <!-- ACTION BUTTONS -->
             <div class="flex flex-col gap-2 mt-4">
-                <button type="submit" id="saveNotifyButton" name="action" value="save_notify" 
-                        {{ ($isExamActive || $isExamCompleted || ($examDetails && $examDetails->details_saved) || ($qualifiedCount < 1)) ? 'disabled' : '' }}
-                        class="w-full py-2 border-2 border-[#0D2B70] rounded-lg text-[#0D2B70] font-bold text-sm hover:scale-[1.02] flex items-center justify-center gap-2 transition-transform disabled:opacity-50 disabled:hover:scale-100">
-                    <x-heroicon-o-check class="w-4 h-4" />
-                    Save & Notify Applicants
-                </button>
+                <div class="flex flex-col">
+                    <div>
+                        <button type="submit" id="saveNotifyButton" name="action" value="save_notify" 
+                                {{ ($isExamActive || $isExamCompleted || ($examDetails && $examDetails->details_saved) || ($qualifiedCount < 1)) ? 'disabled' : '' }}
+                                class="w-full py-2 border-2 border-[#0D2B70] rounded-lg text-[#0D2B70] font-bold text-sm hover:scale-[1.02] flex items-center justify-center gap-2 transition-transform disabled:opacity-50 disabled:hover:scale-100">
+                            <x-heroicon-o-check class="w-4 h-4" />
+                            Save & Notify Applicants
+                        </button>
+                    </div>
+                    <div>
+                        @if($examDetails && $examDetails->notified_at)
+                            <p class="text-xs text-gray-600 italic text-left">
+                                <b>{{ $notifiedByName ?? 'An admin' }} </b> notified the applicants on 
+                                <b>{{ \Carbon\Carbon::parse($examDetails->notified_at)->format('F d, Y \\a\\t h:i:s A') }}</b>
+                            </p>
+                        @endif
+                    </div>
+                </div>
+
                 
                 <button type="button" id="sendLinkButton" onclick="triggerSendLinkConfirm('{{ $vacancy->vacancy_id }}')" 
-                        {{ (!$examDetails || !$examDetails->details_saved || $examDetails->link_sent || $isExamActive || $isExamCompleted || !$isExamDay || !$isBeforeStart || ($lobbyCount < 1)) ? 'disabled' : '' }}
+                        {{ (!$examDetails || !$examDetails->details_saved || $examDetails->link_sent || $isExamActive || $isExamCompleted || !$isExamDay || ($qualifiedCount < 1)) ? 'disabled' : '' }}
                         class="w-full py-2 border-2 border-[#0D2B70] rounded-lg text-[#0D2B70] font-bold text-sm hover:scale-[1.02] flex items-center justify-center gap-2 transition-transform disabled:opacity-50 disabled:hover:scale-100">
                     <x-heroicon-o-paper-airplane class="w-4 h-4" />
                     Send Link via Email
@@ -386,8 +402,8 @@
                         Edit Questions
                     </button>
                     
-                    <button type="button" id="startExamButton" onclick="triggerStartExamConfirm('{{ $vacancy->vacancy_id }}')" 
-                            {{ (!$examDetails || !$examDetails->link_sent || $isExamActive || $isExamCompleted || !$isExamDay) ? '' : 'disabled' }}
+                <button type="button" id="startExamButton" onclick="triggerStartExamConfirm('{{ $vacancy->vacancy_id }}')" 
+                        {{ (!$examDetails || !$examDetails->link_sent || $isExamActive || $isExamCompleted || !$isExamDay) ? 'disabled' : '' }}
                             class="flex-1 py-2 bg-[#0D2B70] rounded-lg text-white font-bold text-sm hover:scale-[1.02] flex items-center justify-center gap-2 transition-transform disabled:opacity-50 disabled:hover:scale-100">
                         <x-heroicon-o-play class="w-4 h-4" />
                         Start Exam
@@ -688,6 +704,7 @@
     const isExamCompletedConst = @json($isExamCompleted);
     const isExamDayConst = @json($isExamDay);
     const isBeforeStartConst = @json($isBeforeStart);
+    const isWithinOneHourConst = @json($isWithinOneHourBeforeStart);
 
     // Helper: update Send Link button state using lobby count and flags
     function updateSendLinkButtonState(participantsCount) {
@@ -700,8 +717,7 @@
             && !isExamActiveConst 
             && !isExamCompletedConst 
             && isExamDayConst 
-            && isBeforeStartConst 
-            && participantsCount > 0;
+            && qualifiedCount > 0;
         btn.disabled = !shouldEnable;
         btn.classList.toggle('opacity-50', !shouldEnable);
         btn.classList.toggle('cursor-not-allowed', !shouldEnable);

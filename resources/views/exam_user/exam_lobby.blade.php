@@ -58,8 +58,8 @@
                     <p class="text-lg text-gray-600">Waiting for the Admin to start the exam.</p>
                 </div>
 
-                <div id="examStartedMessage" class="hidden mt-6 text-green-600 font-semibold text-lg">
-                    The exam has started! Please check your instructions.
+                <div id="examStartedMessage" class="hidden mt-6 text-green-600 font-semibold text-lg text-center">
+                    The exam has started! Redirecting in <span id="startCountdown">5</span> seconds...
                 </div>
             </div>
         </div>
@@ -83,6 +83,7 @@
 <script>
     let isReady = false;
     let pollInterval = null;
+    let countdownInterval = null;
 
     function toggleReady() {
         const btn = document.getElementById('readyBtn');
@@ -110,21 +111,34 @@
     }
 
     function startPolling() {
-        // Poll immediately once, then interval
         checkStatus();
-        pollInterval = setInterval(checkStatus, 3000);
+        pollInterval = setInterval(checkStatus, 1000);
     }
 
     function checkStatus() {
         console.log("Checking if admin started exam...");
-        fetch("{{ route('exam.status.check', ['vacancy_id' => $vacancy_id]) }}")
-            .then(response => response.json())
-            .then(data => {
-                if (data.started) {
-                    markExamStarted();
-                }
-            })
-            .catch(error => console.error("Error polling exam status:", error));
+        fetch("{{ route('exam.status.check', ['vacancy_id' => $vacancy_id]) }}", {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            },
+            cache: 'no-store',
+            credentials: 'same-origin'
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.text().then(t => { throw new Error(`Status check failed: ${response.status} ${t}`) });
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data && data.started === true) {
+                markExamStarted();
+            }
+        })
+        .catch(error => {
+            console.warn("Exam status polling error:", error.message);
+        });
     }
 
     function stopPolling() {
@@ -139,13 +153,19 @@
         document.getElementById('examStartedMessage').classList.remove('hidden');
         stopPolling();
 
-        // Automatically route to the exam.questions page after short delay
-        setTimeout(() => {
-            document.getElementById('redirect-form').submit();
-        }, 1500);
+        const countdownEl = document.getElementById('startCountdown');
+        let remaining = 5;
+        countdownEl.textContent = remaining;
+        countdownInterval = setInterval(() => {
+            remaining -= 1;
+            countdownEl.textContent = remaining;
+            if (remaining <= 0) {
+                clearInterval(countdownInterval);
+                document.getElementById('redirect-form').submit();
+            }
+        }, 1000);
     }
 
-    // Auto-start polling on load so the page transitions automatically when admin starts the exam
     document.addEventListener('DOMContentLoaded', () => {
         const waiting = document.getElementById('waitingMessage');
         if (waiting) waiting.classList.remove('hidden');

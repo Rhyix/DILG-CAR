@@ -98,31 +98,39 @@
         </div>
 
         <div class="email-body">
-            <h2>Dear {{ $userName }},</h2>
+            <h2>Dear {{ $user->name ?? 'Applicant' }},</h2>
 
-            <p>We are pleased to inform you that the exam for the position of <strong>{{ $positionTitle }}</strong>
-                (Vacancy ID: {{ $vacancyId }}) has been scheduled.</p>
+            <p>We are pleased to inform you that the exam for the position of <strong>{{ $vacancy->position_title ?? 'Position' }}</strong>
+                (Vacancy ID: {{ $vacancy->vacancy_id ?? 'N/A' }}) has been scheduled.</p>
 
             <div class="exam-details">
-                <p><strong>📅 Date:</strong> {{ \Carbon\Carbon::parse($examDate)->format('F d, Y') }}</p>
-                <p><strong>🕐 Time:</strong> {{ \Carbon\Carbon::parse($examTime)->format('h:i A') }}</p>
-                <p><strong>📍 Venue:</strong> {{ $examVenue }}</p>
-                <p><strong>⏱️ Duration:</strong> {{ $examDuration }} minutes</p>
+                <p><strong>📅 Date:</strong>
+                    {{ isset($exam->date) && $exam->date ? \Carbon\Carbon::parse($exam->date)->format('F d, Y') : 'TBD' }}
+                </p>
+                <p><strong>🕐 Time:</strong>
+                    {{ isset($exam->time) && $exam->time ? \Carbon\Carbon::parse($exam->time)->format('h:i A') : 'TBD' }}
+                </p>
+                <p><strong>📍 Venue:</strong> {{ $exam->place ?? 'TBD' }}</p>
+                <!-- <p><strong>⏱️ Duration:</strong> {{ $exam->duration ?? 'TBD' }} minutes</p> -->
             </div>
 
+            @isset($examLink)
             <p>Please click the button below to access the exam lobby when it's time to take your exam:</p>
 
             <!-- lalagay lang ito kapag exam day na -->
             <div style="text-align: center;">
                 <a href="{{ $examLink }}" class="cta-button">Go to Exam Lobby</a>
             </div>
+            @endisset
 
-            <p style="text-align: center; margin-top: 20px;">Please confirm your attendance by clicking the button
-                below:</p>
-            <div style="text-align: center;">
-                <a href="{{ $confirmationLink }}" class="cta-button" style="background-color: #28a745;">Confirm
-                    Attendance</a>
-            </div>
+            @isset($confirmationLink)
+                <p style="text-align: center; margin-top: 20px;">Please confirm your attendance by clicking the button
+                    below:</p>
+                <div style="text-align: center;">
+                    <a href="{{ $confirmationLink }}" class="cta-button" style="background-color: #28a745;">Confirm
+                        Attendance</a>
+                </div>
+            @endisset
 
             <div class="divider"></div>
 

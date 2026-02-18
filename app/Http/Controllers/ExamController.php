@@ -15,6 +15,8 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use App\Jobs\SendExamNotification;
+use App\Mail\NotifyApplicantMail;
+use Spatie\Activitylog\Models\Activity;
 
 class ExamController extends Controller
 {
@@ -437,12 +439,25 @@ class ExamController extends Controller
             ->withProperties(['vacancy_id' => $vacancy_id, 'section' => 'Exam Management'])
             ->log('Managed exam participants and details.');
 
+        // Resolve last notifier for schedule notifications, if any
+        $notifiedByName = null;
+        if ($examDetails && $examDetails->notified_at) {
+            $lastSchedule = Activity::where('event', 'notify_schedule')
+                ->where('properties->vacancy_id', $vacancy_id)
+                ->orderBy('created_at', 'desc')
+                ->first();
+            if ($lastSchedule && $lastSchedule->causer) {
+                $notifiedByName = $lastSchedule->causer->name ?? $lastSchedule->causer->email ?? null;
+            }
+        }
+
         return view('admin.manage_exam', [
             'vacancy' => $vacancy,
             'participants' => $participants,
             'user_name' => $user_name,
             'examDetails' => $examDetails,
-            'qualifiedApplicants' => $qualifiedApplicants
+            'qualifiedApplicants' => $qualifiedApplicants,
+            'notifiedByName' => $notifiedByName
         ]);
     }
 
@@ -793,6 +808,57 @@ class ExamController extends Controller
         }
     }
 
+    /**
+     * Send exam schedule notification (no join link) to all applicants.
+     * Used by "Save & Notify Applicants".
+     */
+    public function notifyApplicantsSchedule(Request $request, $vacancy_id)
+    {
+        try {
+            $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->first();
+            if (!$examDetail || !$examDetail->details_saved) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Please save exam details first before notifying applicants.'
+                ], 400);
+            }
+
+            $participants = Applications::where('vacancy_id', $vacancy_id)->get();
+            if ($participants->isEmpty()) {
+                return response()->json(['success' => false, 'message' => 'No participants found for this vacancy.']);
+            }
+
+            foreach ($participants as $app) {
+                $user = User::find($app->user_id);
+                if ($user) {
+                    \Mail::to($user->email)->queue(new NotifyApplicantMail($vacancy_id, $user->id, $examDetail->id));
+                }
+            }
+
+            $examDetail->update([
+                'notified_at' => now(),
+            ]);
+
+            activity()
+                ->causedBy(auth('admin')->user())
+                ->event('notify_schedule')
+                ->withProperties(['vacancy_id' => $vacancy_id, 'section' => 'Exam Management'])
+                ->log('Queued exam schedule notifications for all applicants.');
+
+            return response()->json([
+                'success' => true,
+                'notified_at' => now()->format('Y-m-d H:i:s'),
+                'message' => 'Exam schedule notifications sent successfully.'
+            ]);
+        } catch (\Exception $e) {
+            Log::error("Error notifying applicants (schedule): " . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Server Error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function notifySelectedApplicants(Request $request, $vacancy_id)
     {
         try {
@@ -893,8 +959,8 @@ class ExamController extends Controller
             $notified_at = null;
 
             if ($request->boolean('notify')) {
-                Log::info('Calling notifyApplicants', ['vacancy_id' => $vacancy_id]);
-                $response = $this->notifyApplicants($request, $vacancy_id);
+                Log::info('Calling notifyApplicantsSchedule', ['vacancy_id' => $vacancy_id]);
+                $response = $this->notifyApplicantsSchedule($request, $vacancy_id);
 
                 // Check if notification was successful
                 $responseData = $response->getData(true);
@@ -902,12 +968,12 @@ class ExamController extends Controller
                     $examDetails->refresh();
                     $notified = true;
                     $notified_at = $examDetails->notified_at;
-                    Log::info('Notifications sent successfully', ['vacancy_id' => $vacancy_id]);
+                    Log::info('Schedule notifications sent successfully', ['vacancy_id' => $vacancy_id]);
                 } else {
-                    Log::error('Notification failed', ['vacancy_id' => $vacancy_id, 'response' => $responseData]);
+                    Log::error('Schedule notification failed', ['vacancy_id' => $vacancy_id, 'response' => $responseData]);
                     return response()->json([
                         'success' => false,
-                        'message' => 'Exam details saved, but notification failed: ' . ($responseData['message'] ?? 'Unknown error')
+                        'message' => 'Exam details saved, but schedule notification failed: ' . ($responseData['message'] ?? 'Unknown error')
                     ], 500);
                 }
             }
