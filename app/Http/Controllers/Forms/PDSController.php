@@ -871,9 +871,9 @@ class PDSController extends Controller
             ->first(); // Assuming only one record per user
         if ($all_user_other_info_data) {
             $processed_data = [
-                'skill' => $all_user_other_info_data->skill ?? [],
-                'distinction' => $all_user_other_info_data->distinction ?? [],
-                'organization' => $all_user_other_info_data->organization ?? [],
+                'skill' => json_decode($all_user_other_info_data->skill, true) ?? [],
+                'distinction' => json_decode($all_user_other_info_data->distinction, true) ?? [],
+                'organization' => json_decode($all_user_other_info_data->organization, true) ?? [],
                 'user_id' => $all_user_other_info_data->user_id,
             ];
             session(['data_otherInfo' => $processed_data]);

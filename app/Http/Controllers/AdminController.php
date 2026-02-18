@@ -953,19 +953,19 @@ class AdminController extends Controller
 
             if ($admin->email) {
                 try {
-                    // Mail::send('emails.admin_event_notification', [
-                    //     'actorName' => $actorName,
-                    //     'recipientName' => $admin->name ?? $admin->username,
-                    //     'applicantName' => $applicantName,
-                    //     'positionTitle' => $positionTitle,
-                    //     'vacancyId' => $vacancy_id,
-                    //     'title' => 'Applicant Notified',
-                    //     'body' => $actorName . ' notified ' . ($applicantName ?: 'Applicant'),
-                    //     'link' => route('admin.applicant_status', ['user_id' => $user_id, 'vacancy_id' => $vacancy_id]),
-                    //     'occurredAt' => $occurredAt,
-                    // ], function ($m) use ($admin) {
-                    //     $m->to($admin->email)->subject('DILG-CAR Admin Notification');
-                    // });
+                    Mail::send('emails.admin_event_notification', [
+                        'actorName' => $actorName,
+                        'recipientName' => $admin->name ?? $admin->username,
+                        'applicantName' => $applicantName,
+                        'positionTitle' => $positionTitle,
+                        'vacancyId' => $vacancy_id,
+                        'title' => 'Applicant Notified',
+                        'body' => $actorName . ' notified ' . ($applicantName ?: 'Applicant'),
+                        'link' => route('admin.applicant_status', ['user_id' => $user_id, 'vacancy_id' => $vacancy_id]),
+                        'occurredAt' => $occurredAt,
+                    ], function ($m) use ($admin) {
+                        $m->to($admin->email)->subject('DILG-CAR Admin Notification');
+                    });
                 } catch (\Throwable $e) {
                     \Log::error('Admin notify email failed', ['error' => $e->getMessage()]);
                 }

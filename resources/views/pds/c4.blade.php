@@ -11,7 +11,7 @@
         </div>
     @endif
 <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <form id="other-info-form" class="space-y-8" action='/pds/submit_c4/display_wes' method="POST" enctype="multipart/form-data">
+        <form id="other-info-form" class="space-y-8" action='/pds/submit_c4/display_c5' method="POST" enctype="multipart/form-data">
             @csrf
             <!-- IX: Related Third Degree Section -->
             <section class="bg-white rounded-2xl shadow-xl p-8 animate-slide-in">
