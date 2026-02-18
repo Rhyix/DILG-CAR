@@ -28,6 +28,8 @@
             $isWithinOneHourBeforeStart = false;
             $qualifiedCount = isset($qualifiedApplicants) ? $qualifiedApplicants->count() : 0;
             $lobbyCount = isset($participants) ? $participants->count() : 0;
+            $questionsCount = \App\Models\ExamItems::where('vacancy_id', $vacancy->vacancy_id)->count();
+            $hasQuestions = $questionsCount > 0;
 
             if(isset($examDetails->date) && isset($examDetails->time) && isset($examDetails->duration)) {
                  $startDateTime = \Carbon\Carbon::parse($examDetails->date . ' ' . $examDetails->time);
@@ -403,7 +405,7 @@
                     </button>
                     
                 <button type="button" id="startExamButton" onclick="triggerStartExamConfirm('{{ $vacancy->vacancy_id }}')" 
-                        {{ (!$examDetails || !$examDetails->link_sent || $isExamActive || $isExamCompleted || !$isExamDay) ? 'disabled' : '' }}
+                        {{ (!$examDetails || !$examDetails->link_sent || $isExamActive || $isExamCompleted || !$isExamDay || !$hasQuestions) ? 'disabled' : '' }}
                             class="flex-1 py-2 bg-[#0D2B70] rounded-lg text-white font-bold text-sm hover:scale-[1.02] flex items-center justify-center gap-2 transition-transform disabled:opacity-50 disabled:hover:scale-100">
                         <x-heroicon-o-play class="w-4 h-4" />
                         Start Exam
@@ -496,9 +498,12 @@
         .then(data => {
             if(data.success) {
                 alert("Exam links sent successfully to all applicants!");
-                // Enable Start Exam button
-                document.getElementById('startExamButton').disabled = false;
-                document.getElementById('startExamButton').classList.remove('opacity-50', 'cursor-not-allowed');
+                // Enable Start Exam button only if questions exist
+                const startBtn = document.getElementById('startExamButton');
+                if (startBtn && hasQuestionsConst === true) {
+                    startBtn.disabled = false;
+                    startBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
                 // Keep Send Link button disabled
                 sendLinkButton.innerHTML = originalText;
             } else {
@@ -705,6 +710,7 @@
     const isExamDayConst = @json($isExamDay);
     const isBeforeStartConst = @json($isBeforeStart);
     const isWithinOneHourConst = @json($isWithinOneHourBeforeStart);
+    const hasQuestionsConst = @json($hasQuestions ?? false);
 
     // Helper: update Send Link button state using lobby count and flags
     function updateSendLinkButtonState(participantsCount) {
