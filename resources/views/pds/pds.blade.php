@@ -582,7 +582,7 @@
     const resProvinceName = savedState.res_province ?? "{{ old('res_province', session('form.c1.res_province')) }}";
     const resCityName = savedState.res_city ?? "{{ old('res_city', session('form.c1.res_city')) }}";
     const resBrgyName = savedState.res_brgy ?? "{{ old('res_brgy', session('form.c1.res_brgy')) }}";
-    ['per_house_no','per_street','per_sub_vil','res_house_no','res_street','res_sub_vil'].forEach(id=>{
+    ['per_house_no','per_street','per_sub_vil','per_zipcode','res_house_no','res_street','res_sub_vil','res_zipcode'].forEach(id=>{
         const el = document.getElementById(id);
         if (!el) return;
         if (savedState[id] !== undefined && savedState[id] !== null) {
@@ -684,13 +684,46 @@
         });
     });
     perProvince.addEventListener('change', e => {
-        loadCities(getSelectedCode(perProvince), perCity, null, (cityCode) => loadBarangays(cityCode, perBrgy, null));
+        writeState('per_province', perProvince.value);
+        // Clear dependent fields from state
+        writeState('per_city', '');
+        writeState('per_brgy', '');
+        loadCities(getSelectedCode(perProvince), perCity, null, (cityCode) => {
+            loadBarangays(cityCode, perBrgy, null);
+        });
     });
-    perCity.addEventListener('change', e => { const code = getSelectedCode(perCity); loadBarangays(code, perBrgy, null); setZipByCityCode(code, 'per_zipcode'); });
+    perCity.addEventListener('change', e => { 
+        const code = getSelectedCode(perCity); 
+        writeState('per_city', perCity.value);
+        // Clear dependent field from state
+        writeState('per_brgy', '');
+        loadBarangays(code, perBrgy, null); 
+        setZipByCityCode(code, 'per_zipcode'); 
+    });
+    perBrgy.addEventListener('change', e => {
+        writeState('per_brgy', perBrgy.value);
+    });
+
     resProvince.addEventListener('change', e => {
-        loadCities(getSelectedCode(resProvince), resCity, null, (cityCode) => loadBarangays(cityCode, resBrgy, null));
+        writeState('res_province', resProvince.value);
+        // Clear dependent fields from state
+        writeState('res_city', '');
+        writeState('res_brgy', '');
+        loadCities(getSelectedCode(resProvince), resCity, null, (cityCode) => {
+            loadBarangays(cityCode, resBrgy, null);
+        });
     });
-    resCity.addEventListener('change', e => { const code = getSelectedCode(resCity); loadBarangays(code, resBrgy, null); setZipByCityCode(code, 'res_zipcode'); });
+    resCity.addEventListener('change', e => { 
+        const code = getSelectedCode(resCity); 
+        writeState('res_city', resCity.value);
+        // Clear dependent field from state
+        writeState('res_brgy', '');
+        loadBarangays(code, resBrgy, null); 
+        setZipByCityCode(code, 'res_zipcode'); 
+    });
+    resBrgy.addEventListener('change', e => {
+        writeState('res_brgy', resBrgy.value);
+    });
     function setZipByCityCode(cityCode, zipInputId) {
         if (!cityCode) return;
         fetch(api + '/cities-municipalities/' + cityCode)
@@ -713,6 +746,7 @@
                 if (el) {
                     el.value = zip || '';
                     el.readOnly = !!zip;
+                    el.dispatchEvent(new Event('change'));
                 }
             })
             .catch(() => {});

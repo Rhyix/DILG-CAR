@@ -59,7 +59,7 @@ class WorkExpSheetController extends Controller
             'entries.*.isDisplayed' => 'boolean',
         ]);
 
-        foreach($validated['entries'] as $work){
+        foreach ($validated['entries'] as $work) {
             WorkExpSheet::create([
                 'user_id' => $user_id,
                 'start_date' => $work['start_date'],
@@ -93,7 +93,7 @@ class WorkExpSheetController extends Controller
         return redirect()->back()
             ->with('success', 'Work Experience Sheet Saved!')
             ->with('after_action', $request->input('after_action'));
-        }
+    }
 
     /**
      * Display the specified resource.
