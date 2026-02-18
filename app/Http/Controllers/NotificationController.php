@@ -18,6 +18,7 @@ class NotificationController extends Controller
 <<<<<<< HEAD
                       ->orWhereNull('notifiable_id');
 <<<<<<< HEAD
+<<<<<<< HEAD
                 })
                 ->where(function($q) {
                     $q->where('data->category', 'document_verification')
@@ -26,6 +27,8 @@ class NotificationController extends Controller
 =======
                         ->orWhereNull('notifiable_id');
 >>>>>>> 03b880c39b1f7006723895b34a1419dafb724c9e
+=======
+>>>>>>> parent of 74526e5 (email notification, applications list,)
 =======
 >>>>>>> parent of 74526e5 (email notification, applications list,)
                 });

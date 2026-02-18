@@ -94,7 +94,6 @@ class AppServiceProvider extends ServiceProvider
                 ]);
 
                 if ($admin->email) {
-<<<<<<< HEAD
                     Mail::send('emails.admin_event_notification', [
                         'actorName' => $actorName,
                         'recipientName' => $admin->name ?? $admin->username,
@@ -108,9 +107,7 @@ class AppServiceProvider extends ServiceProvider
                     ], function ($m) use ($admin) {
                         $m->to($admin->email)->subject('DILG-CAR Admin Notification');
                     });
-<<<<<<< HEAD
                     $sentCount++;
-=======
                     // Mail::send('emails.admin_event_notification', [
                     //     'actorName' => $actorName,
                     //     'recipientName' => $admin->name ?? $admin->username,
@@ -124,9 +121,7 @@ class AppServiceProvider extends ServiceProvider
                     // ], function ($m) use ($admin) {
                     //     $m->to($admin->email)->subject('DILG-CAR Admin Notification');
                     // });
->>>>>>> 03b880c39b1f7006723895b34a1419dafb724c9e
-=======
->>>>>>> parent of 74526e5 (email notification, applications list,)
+
                 }
             }
         });
