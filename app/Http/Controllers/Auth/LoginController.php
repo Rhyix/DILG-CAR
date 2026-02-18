@@ -67,8 +67,7 @@ class LoginController extends Controller
     {
         $attempts = session()->get('login_attempts', 0);
 
-        // Enforce reCAPTCHA only in production environment
-        if (app()->environment('production')) {
+        if (!env('APP_DEBUG')) {
             $captcha = $request->input('g-recaptcha-response');
 
             if (!$captcha || !$this->verifyRecaptcha($captcha, $request->ip())) {

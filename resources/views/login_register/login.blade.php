@@ -17,9 +17,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Login - DILG CAR Recruitment and Selection Portal</title>
-  @if(app()->environment('production'))
-    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
-  @endif
+  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
   <!-- Tailwind CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
 
@@ -124,7 +122,7 @@
               <a href="{{ route('forgot.password.form') }}" class="text-blue-800 font-semibold hover:underline">Forgot Password?</a>
             </div>
              
-            @if(app()->environment('production'))
+            @if(!env('APP_DEBUG'))
               <div class="mb-4">
                   <div class="g-recaptcha" data-sitekey="6LfpjpErAAAAADcMjUqP3AZmsMae7WvrjcA5OSvs" data-action="LOGIN"></div>
               </div>

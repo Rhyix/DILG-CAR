@@ -87,7 +87,7 @@
               </a>
             </div>
 
-            @if(app()->environment('production'))
+            @if(!env('APP_DEBUG'))
               <div class="mb-4">
                 <div class="g-recaptcha" data-sitekey="6LfpjpErAAAAADcMjUqP3AZmsMae7WvrjcA5OSvs" data-action="LOGIN"></div>
               </div>
@@ -177,9 +177,7 @@
     </div>
   </div>
 
-  @if(app()->environment('production'))
-    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
-  @endif
+  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 
   <!-- Password Toggle Script (exactly like login page) -->
   <script>
