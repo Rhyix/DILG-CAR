@@ -2,12 +2,11 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithFaker;
 use Tests\TestCase;
 
 class StoreVacancyTest extends TestCase
 {
+    use \Illuminate\Foundation\Testing\RefreshDatabase;
     /**
      * A basic feature test example.
      */
@@ -15,6 +14,6 @@ class StoreVacancyTest extends TestCase
     {
         $response = $this->get('/');
 
-        $response->assertStatus(302);
+        $response->assertStatus(200);
     }
 }

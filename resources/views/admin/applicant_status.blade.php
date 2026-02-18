@@ -910,11 +910,11 @@
                                 throw new Error("Server Error: " + response.status + " " + response.statusText);
                             }
 
-							if (response.ok) {
+							if (response.ok && data && data.success !== false) {
 								alert(data.message || "Email sent successfully!");
-                                closeNotifyModal();
+								closeNotifyModal();
 							} else {
-								alert(data.message || "Failed to send email.");
+								alert(data?.message || "Failed to send email.");
 							}
 						} catch (error) {
 							console.error(error);

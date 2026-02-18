@@ -3,21 +3,18 @@
 namespace Tests\Feature;
 
 use Tests\TestCase;
+use App\Models\Admin;
 use App\Models\User;
 use App\Models\JobVacancy;
-use App\Models\ExamDetail;
 use App\Models\Applications;
-use App\Models\EmailLog;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Mail;
 use App\Jobs\SendExamNotification;
-use App\Mail\NotifyApplicantMail;
 
 class ExamNotificationTest extends TestCase
 {
-    // Use RefreshDatabase to reset DB state between tests if using SQLite/testing DB
-    // use RefreshDatabase; 
+    use RefreshDatabase;
 
     public function test_save_and_notify_triggers_job()
     {
@@ -26,14 +23,34 @@ class ExamNotificationTest extends TestCase
         Mail::fake();
 
         // Create Admin User for auth
-        $admin = User::factory()->create(['email' => 'admin@dilg.gov.ph']); // or Admin model if separate
+        $admin = Admin::create([
+            'username' => 'test_admin',
+            'name' => 'Test Admin',
+            'office' => 'IT',
+            'designation' => 'Developer',
+            'email' => 'admin@dilg.gov.ph',
+            'password' => bcrypt('password123'),
+            'role' => 'admin',
+            'is_active' => true,
+        ]);
         
         // Create Vacancy
         $vacancy = JobVacancy::create([
             'vacancy_id' => 'TEST-001',
             'position_title' => 'Test Position',
-            'vacancy_type' => 'Contractual',
-            // ... other required fields
+            'vacancy_type' => 'COS',
+            'monthly_salary' => 35000,
+            'status' => 'OPEN',
+            'closing_date' => now()->addWeek(),
+            'qualification_education' => 'Bachelor',
+            'qualification_training' => 'None',
+            'qualification_experience' => '1 year',
+            'qualification_eligibility' => 'None',
+            'to_person' => 'HR Officer',
+            'to_position' => 'HR',
+            'to_office' => 'DILG',
+            'to_office_address' => 'Baguio',
+            'place_of_assignment' => 'Baguio',
         ]);
 
         // Create Applicant
@@ -41,7 +58,7 @@ class ExamNotificationTest extends TestCase
         Applications::create([
             'vacancy_id' => $vacancy->vacancy_id,
             'user_id' => $user->id,
-            // ... other fields
+            'status' => 'Pending',
         ]);
 
         // 2. Simulate Request
@@ -50,6 +67,7 @@ class ExamNotificationTest extends TestCase
                 'place' => 'Test Venue',
                 'date' => '2025-12-31',
                 'time' => '09:00',
+                'time_end' => '10:00',
                 'duration' => 60,
                 'notify' => 1 // Critical flag
             ]);
@@ -60,7 +78,12 @@ class ExamNotificationTest extends TestCase
 
         // Check Job Pushed
         Queue::assertPushed(SendExamNotification::class, function ($job) use ($user, $vacancy) {
-            return $job->user_id === $user->id && $job->vacancy_id === $vacancy->vacancy_id;
+            $ref = new \ReflectionClass($job);
+            $vacancyProp = $ref->getProperty('vacancyId');
+            $vacancyProp->setAccessible(true);
+            $userProp = $ref->getProperty('userId');
+            $userProp->setAccessible(true);
+            return $userProp->getValue($job) === $user->id && $vacancyProp->getValue($job) === $vacancy->vacancy_id;
         });
 
         // Check Exam Detail Updated

@@ -21,7 +21,7 @@ class PDSUpdateFlowTest extends TestCase
             'first_name' => 'John',
             'middle_name' => 'M',
             'civil_status' => 'single',
-            'date_of_birth' => '1990-01-01',
+            'date_of_birth' => '01-01-1990',
             'place_of_birth' => 'Test City',
             'citizenship' => 'Filipino',
             'sex' => 'male',
@@ -30,10 +30,10 @@ class PDSUpdateFlowTest extends TestCase
             'email_address' => 'john@example.com',
             'height' => 170,
             'weight' => 70,
-            'elem_from' => '2000-01-01',
-            'elem_to' => '2006-01-01',
-            'jhs_from' => '2006-01-01',
-            'jhs_to' => '2010-01-01',
+            'elem_from' => '01-01-2000',
+            'elem_to' => '01-01-2006',
+            'jhs_from' => '01-01-2006',
+            'jhs_to' => '01-01-2010',
             // Add other required fields if any
         ];
 

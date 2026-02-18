@@ -234,7 +234,7 @@
                             li.addEventListener('click', () => {
                                 fetch("{{ url('/notifications') }}/"+n.id+"/read", { method:'POST', headers:{'X-CSRF-TOKEN':'{{ csrf_token() }}' } })
                                     .then(()=>{ li.querySelector('span')?.remove(); fetchCount(); });
-                                if (n.data.action_url) { window.location.href = n.data.action_url; }
+                                if (n.data.action_url || n.data.link) { window.location.href = n.data.action_url || n.data.link; }
                             });
                             notifList.appendChild(li);
                         });

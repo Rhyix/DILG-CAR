@@ -24,6 +24,14 @@ use Illuminate\Support\Facades\Validator;
 class PDSController extends Controller
 {
     private const SEPARATOR = '/|/';
+    private const PDF_MIME_TYPES = [
+        'application/pdf',
+        'application/x-pdf',
+    ];
+    private const IMAGE_MIME_TYPES = [
+        'image/jpeg',
+        'image/png',
+    ];
 
     private function normalizeDateForForm(?string $value): ?string
     {
@@ -262,6 +270,55 @@ class PDSController extends Controller
         foreach (['elem_from', 'elem_to', 'jhs_from', 'jhs_to'] as $dateField) {
             $c1_form_data_db[$dateField] = $this->normalizeDateForDatabase($c1_form_data_db[$dateField] ?? null);
         }
+        $c1_form_data_db = array_merge([
+            'surname' => '',
+            'first_name' => '',
+            'middle_name' => '',
+            'name_extension' => '',
+            'sex' => '',
+            'civil_status' => '',
+            'date_of_birth' => '',
+            'place_of_birth' => '',
+            'height' => '',
+            'weight' => '',
+            'blood_type' => '',
+            'philhealth_no' => '',
+            'tin_no' => '',
+            'agency_employee_no' => '',
+            'gsis_id_no' => '',
+            'pagibig_id_no' => '',
+            'sss_id_no' => '',
+            'citizenship' => '',
+            'telephone_no' => '',
+            'mobile_no' => '',
+            'email_address' => '',
+            'res_house_no' => '',
+            'res_street' => '',
+            'res_sub_vil' => '',
+            'res_brgy' => '',
+            'res_city' => '',
+            'res_province' => '',
+            'res_zipcode' => '',
+            'per_house_no' => '',
+            'per_street' => '',
+            'per_sub_vil' => '',
+            'per_brgy' => '',
+            'per_city' => '',
+            'per_province' => '',
+            'per_zipcode' => '',
+            'elem_from' => '',
+            'elem_to' => '',
+            'elem_school' => '',
+            'elem_academic_honors' => '',
+            'elem_basic' => '',
+            'elem_year_graduated' => '',
+            'jhs_from' => '',
+            'jhs_to' => '',
+            'jhs_school' => '',
+            'jhs_academic_honors' => '',
+            'jhs_basic' => '',
+            'jhs_year_graduated' => '',
+        ], $c1_form_data_db);
 
         // Format residential address
         $house_no_t = ($c1_form_data_db['res_house_no'] != '') ? $c1_form_data_db['res_house_no'] : '{*}';
@@ -630,11 +687,25 @@ class PDSController extends Controller
         // ---------------------------------------------------------------------------
         // OTHER INFORMATION
         // ---------------------------------------------------------------------------
-        $data_other = $request->all();
+        $skills = $request->input('skills', []);
+        $distinctions = $request->input('distinctions', []);
+        $organizations = $request->input('organizations', []);
+        if (!is_array($skills)) {
+            $skills = [$skills];
+        }
+        if (!is_array($distinctions)) {
+            $distinctions = [$distinctions];
+        }
+        if (!is_array($organizations)) {
+            $organizations = [$organizations];
+        }
+        $skills = array_values(array_filter($skills, fn($value) => $value !== null && $value !== ''));
+        $distinctions = array_values(array_filter($distinctions, fn($value) => $value !== null && $value !== ''));
+        $organizations = array_values(array_filter($organizations, fn($value) => $value !== null && $value !== ''));
         $data_other_arrays = [
-            'skill' => $data_other['skills'],
-            'distinction' => $data_other['distinctions'],
-            'organization' => $data_other['organizations'],
+            'skill' => $skills,
+            'distinction' => $distinctions,
+            'organization' => $organizations,
             'user_id' => Auth::id(),
         ];
         session(['data_otherInfo' => $data_other_arrays]);
@@ -1129,10 +1200,10 @@ class PDSController extends Controller
                 'original_name' => $file->getClientOriginalName(),
                 'stored_name' => $hashed_name,
                 'storage_path' => $store_path,
-                'mime_type' => $file->getClientMimeType(),
+                'mime_type' => $file->getMimeType(),
                 'file_size_8b' => $file->getSize(),
                 'status' => 'Pending', // Reset status to Pending on new upload
-                'remarks' => null      // Clear old remarks
+                'remarks' => ''      // Clear old remarks
             ]);
 
         }
@@ -1181,6 +1252,7 @@ class PDSController extends Controller
         $request->validate([
             'cert_uploads.application_letter' => 'nullable|file|mimes:pdf|max:10240',
             'cert_uploads.pqe_result' => 'nullable|file|mimes:pdf|max:10240',
+            'cert_uploads.cert_eligibility' => 'nullable|file|mimes:pdf|max:10240',
             'cert_uploads.cert_elegibility' => 'nullable|file|mimes:pdf|max:10240',
             'cert_uploads.ipcr' => 'nullable|file|mimes:pdf|max:10240',
             'cert_uploads.non_academic' => 'nullable|file|mimes:pdf|max:10240',
@@ -1196,10 +1268,21 @@ class PDSController extends Controller
             'cert_uploads.signed_work_exp_sheet' => 'nullable|file|mimes:pdf|max:10240',
             'cert_uploads.cert_lgoo_induction' => 'nullable|file|mimes:pdf|max:10240',
             'cert_uploads.passport_photo' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240'
+        ], [
+            'cert_uploads.*.mimes' => 'Only PDF files are allowed.',
+            'cert_uploads.*.max' => 'Each file must be 10MB or smaller.',
         ]);
+
+        $normalizedUploads = $request->file('cert_uploads', []);
+        if (isset($normalizedUploads['cert_elegibility']) && !isset($normalizedUploads['cert_eligibility'])) {
+            $normalizedUploads['cert_eligibility'] = $normalizedUploads['cert_elegibility'];
+            unset($normalizedUploads['cert_elegibility']);
+        }
+        $request->files->set('cert_uploads', $normalizedUploads);
 
         $uploaded_files = [];
         $files_with_upload_errors = [];
+        $upload_errors = [];
         foreach (UploadedDocument::DOCUMENTS as $_access) {
 
             // Files not present in the request should not be processed.
@@ -1214,8 +1297,32 @@ class PDSController extends Controller
                 continue;
             }
 
+            $allowImage = $_access === 'passport_photo';
+            [$is_valid, $message] = $this->validateUploadedFile($_file, $allowImage);
+            if (!$is_valid) {
+                $upload_errors["cert_uploads.$_access"] = $message;
+                continue;
+            }
+
+            [$scan_ok, $scan_message] = $this->scanUploadedFile($_file);
+            if (!$scan_ok) {
+                $upload_errors["cert_uploads.$_access"] = $scan_message;
+                continue;
+            }
+
             $uploaded_files[$_access] = $_file;
         }
+
+        if (!empty($files_with_upload_errors)) {
+            foreach ($files_with_upload_errors as $field) {
+                $upload_errors["cert_uploads.$field"] = 'Upload failed. Please try again.';
+            }
+        }
+
+        if (!empty($upload_errors)) {
+            return back()->withErrors($upload_errors);
+        }
+
         $this->c5StoreFilesToDB($uploaded_files);
 
         //********************************
@@ -1476,6 +1583,106 @@ class PDSController extends Controller
         return redirect()->route($go_to);
     } // END finalize PDS
 
+    private function validateUploadedFile(UploadedFile $file, bool $allowImage): array
+    {
+        $path = $file->getRealPath();
+        if (!$path || !is_file($path)) {
+            return [false, 'Unable to read uploaded file.'];
+        }
+
+        if ($file->getSize() === 0) {
+            return [false, 'The file appears to be empty.'];
+        }
+
+        $mimeType = $this->resolveMimeType($path) ?: $file->getClientMimeType();
+
+        if ($allowImage && $this->isAllowedImageMime($mimeType)) {
+            return [true, null];
+        }
+
+        if (!$this->isAllowedPdfMime($mimeType)) {
+            return [false, 'Only PDF files are allowed.'];
+        }
+
+        if (!$this->hasPdfHeader($path)) {
+            return [false, 'Invalid PDF file content.'];
+        }
+
+        return [true, null];
+    }
+
+    private function resolveMimeType(string $path): ?string
+    {
+        if (!class_exists(\finfo::class)) {
+            return null;
+        }
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $type = $finfo->file($path);
+        return $type ?: null;
+    }
+
+    private function hasPdfHeader(string $path): bool
+    {
+        $handle = @fopen($path, 'rb');
+        if (!$handle) {
+            return false;
+        }
+        $header = fread($handle, 8);
+        fclose($handle);
+        if (!$header) {
+            return false;
+        }
+        return str_starts_with($header, '%PDF-');
+    }
+
+    private function isAllowedPdfMime(?string $mimeType): bool
+    {
+        if (!$mimeType) {
+            return false;
+        }
+        return in_array(strtolower($mimeType), self::PDF_MIME_TYPES, true);
+    }
+
+    private function isAllowedImageMime(?string $mimeType): bool
+    {
+        if (!$mimeType) {
+            return false;
+        }
+        return in_array(strtolower($mimeType), self::IMAGE_MIME_TYPES, true);
+    }
+
+    private function scanUploadedFile(UploadedFile $file): array
+    {
+        $enabled = filter_var(env('CLAMAV_ENABLED', false), FILTER_VALIDATE_BOOL);
+        if (!$enabled) {
+            return [true, null];
+        }
+
+        $path = $file->getRealPath();
+        if (!$path || !is_file($path)) {
+            return [false, 'Virus scan failed.'];
+        }
+
+        if (!class_exists(\Symfony\Component\Process\Process::class)) {
+            return [false, 'Virus scanner is not available.'];
+        }
+
+        $command = env('CLAMAV_PATH', 'clamscan');
+        $process = new \Symfony\Component\Process\Process([$command, '--no-summary', $path]);
+        $process->run();
+
+        if ($process->isSuccessful()) {
+            return [true, null];
+        }
+
+        $output = $process->getOutput() . $process->getErrorOutput();
+        if (str_contains($output, 'FOUND')) {
+            return [false, 'File failed virus scan.'];
+        }
+
+        return [false, 'Virus scan could not be completed.'];
+    }
+
 
     public function showSubmittedForm()
     {
@@ -1503,9 +1710,13 @@ class PDSController extends Controller
         //dd($request->all());
         $request->validate([
             'documents.*' => 'nullable|file|mimes:pdf|max:10240'
+        ], [
+            'documents.*.mimes' => 'Only PDF files are allowed.',
+            'documents.*.max' => 'Each file must be 10MB or smaller.',
         ]);
 
         $uploaded_files = [];
+        $upload_errors = [];
         foreach (UploadedDocument::DOCUMENTS as $doc_type) {
             if (!$request->hasFile("documents.$doc_type")) {
                 continue;
@@ -1513,6 +1724,19 @@ class PDSController extends Controller
 
             $file = $request->file("documents.$doc_type");
             if (!$file->isValid()) {
+                $upload_errors["documents.$doc_type"] = 'Upload failed. Please try again.';
+                continue;
+            }
+
+            [$is_valid, $message] = $this->validateUploadedFile($file, false);
+            if (!$is_valid) {
+                $upload_errors["documents.$doc_type"] = $message;
+                continue;
+            }
+
+            [$scan_ok, $scan_message] = $this->scanUploadedFile($file);
+            if (!$scan_ok) {
+                $upload_errors["documents.$doc_type"] = $scan_message;
                 continue;
             }
 
@@ -1562,6 +1786,9 @@ class PDSController extends Controller
             }
 
             //$uploaded_files[$doc_type] = $file;
+        }
+        if (!empty($upload_errors)) {
+            return redirect()->back()->withErrors($upload_errors);
         }
         if (!empty($uploaded_files)) {
             $this->c5StoreFilesToDB($uploaded_files);

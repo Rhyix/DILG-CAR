@@ -7,9 +7,9 @@
 
   $isPastDeadline = false;
 
-  if (!empty($application->deadline_date)) {
-    $deadlineTime = $application->deadline_time ?? '23:59:59';
-    $deadline = Carbon::parse($application->deadline_date . ' ' . $deadlineTime);
+  if (!empty($displayDeadlineDate)) {
+    $deadlineTime = $displayDeadlineTime ?? '23:59:59';
+    $deadline = Carbon::parse($displayDeadlineDate . ' ' . $deadlineTime);
     $isPastDeadline = Carbon::now()->greaterThan($deadline);
   }
 @endphp
@@ -46,13 +46,23 @@
                       class="text-green-800 hover:text-red-600 font-bold text-lg">&times;</button>
                   </div>
                 @endif
+                @if ($errors->any())
+                  <div class="mb-6 px-4 py-3 bg-red-100 border border-red-400 text-red-700 rounded-lg shadow text-sm font-semibold"
+                    role="alert">
+                    <ul class="list-disc list-inside">
+                      @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                      @endforeach
+                    </ul>
+                  </div>
+                @endif
 
                 @if (session('comply_redirect'))
                   <div class="mb-6 px-4 py-3 bg-blue-100 border border-blue-400 text-blue-800 rounded-lg shadow text-sm font-semibold flex items-start gap-3"
                     role="alert">
                     <i data-feather="info" class="w-5 h-5 flex-shrink-0 mt-0.5"></i>
                     <div class="flex-1">
-                      <p class="font-bold mb-1">Document Submission Required</p>
+                      <p class="font-bold mb-1">📋 Document Submission Required</p>
                       <p class="font-normal">Please review the document status below and upload any required or corrected documents. Make sure all documents marked for revision are updated before the deadline.</p>
                     </div>
                     <button onclick="this.parentElement.remove()"
@@ -73,9 +83,9 @@
                     </h2>
                     <div class="text-xs sm:text-sm text-gray-700">
                       LAST MODIFIED:
-                      @if ($adminName && $application->updated_at)
+                      @if ($adminName && $lastModifiedAt)
                         <span class="font-semibold">{{ $adminName }}</span>
-                        <span class="font-semibold">{{ \Carbon\Carbon::parse($application->updated_at)->format('F d, Y h:i A') }}</span>
+                        <span class="font-semibold">{{ \Carbon\Carbon::parse($lastModifiedAt)->format('F d, Y h:i A') }}</span>
                       @else
                         <span class="italic text-gray-500 font-semibold">Not modified yet</span>
                       @endif
@@ -104,9 +114,9 @@
                     <!-- Deadline Card -->
                     <div class="bg-white rounded-lg border border-gray-200 p-4 shadow-lg">
                       <div class="text-sm font-semibold text-gray-700 mb-3">Deadline for Submission:</div>
-                      @if($application->deadline_date || $application->deadline_time)
+                      @if($displayDeadlineDate || $displayDeadlineTime)
                         <div class="text-sm font-semibold text-[#002C76]">
-                          {{ \Carbon\Carbon::parse($application->deadline_date . ' ' . ($application->deadline_time ?? '23:59:59'))->format('F d, Y h:i A') }}
+                          {{ \Carbon\Carbon::parse($displayDeadlineDate . ' ' . ($displayDeadlineTime ?? '23:59:59'))->format('F d, Y h:i A') }}
                         </div>
                         @if($isPastDeadline)
                           <div class="text-red-500 text-xs mt-2 flex items-center gap-1">
@@ -126,7 +136,7 @@
                         <!-- Result -->
                         <div class="flex items-center cursor-default">
                           @php
-                            $resultStatus = $application->qs_result ?? 'Not Qualified';
+                            $resultStatus = $displayQsResult ?? 'Not Qualified';
                             $textColor = $resultStatus === 'Qualified' ? 'text-green-600' : 'text-red-600';
                           @endphp
                           <span class="text-sm font-semibold {{ $textColor }}">{{ $resultStatus }}</span>
@@ -135,25 +145,25 @@
                       <div class="grid grid-cols-2 md:grid-cols-4 items-center gap-x-4 gap-y-2">
                         <!-- Education -->
                         <div class="flex items-center gap-1.5">
-                          <span class="w-2.5 h-2.5 shrink-0 rounded-full {{ $application->qs_education == 'yes' ? 'bg-green-500' : 'bg-red-500' }}"></span>
+                          <span class="w-2.5 h-2.5 shrink-0 rounded-full {{ $displayQsEducation == 'yes' ? 'bg-green-500' : 'bg-red-500' }}"></span>
                           <span class="text-xs text-gray-700">Education</span>
                         </div>
 
                         <!-- Eligibility -->
                         <div class="flex items-center gap-1.5">
-                          <span class="w-2.5 h-2.5 shrink-0 rounded-full {{ $application->qs_eligibility == 'yes' ? 'bg-green-500' : 'bg-red-500' }}"></span>
+                          <span class="w-2.5 h-2.5 shrink-0 rounded-full {{ $displayQsEligibility == 'yes' ? 'bg-green-500' : ($displayQsEligibility == 'na' ? 'bg-gray-400' : 'bg-red-500') }}"></span>
                           <span class="text-xs text-gray-700">Eligibility</span>
                         </div>
 
                         <!-- Experience -->
                         <div class="flex items-center gap-1.5">
-                          <span class="w-2.5 h-2.5 shrink-0 rounded-full {{ $application->qs_experience == 'yes' ? 'bg-green-500' : 'bg-red-500' }}"></span>
+                          <span class="w-2.5 h-2.5 shrink-0 rounded-full {{ $displayQsExperience == 'yes' ? 'bg-green-500' : 'bg-red-500' }}"></span>
                           <span class="text-xs text-gray-700">Experience</span>
                         </div>
 
                         <!-- Training -->
                         <div class="flex items-center gap-1.5">
-                          <span class="w-2.5 h-2.5 shrink-0 rounded-full {{ $application->qs_training == 'yes' ? 'bg-green-500' : 'bg-red-500' }}"></span>
+                          <span class="w-2.5 h-2.5 shrink-0 rounded-full {{ $displayQsTraining == 'yes' ? 'bg-green-500' : 'bg-red-500' }}"></span>
                           <span class="text-xs text-gray-700">Training</span>
                         </div>
                       </div>
@@ -163,7 +173,7 @@
                     <div class="bg-white rounded-lg border border-gray-200 p-4 shadow-lg">
                       <div class="text-sm font-semibold text-gray-700 mb-3">Application Status:</div>
                       @php
-                        $status = $application->status;
+                        $status = $displayApplicationStatus;
                         $badgeClasses = [
                           'Pending' => 'bg-yellow-100 text-yellow-800 border-yellow-400',
                           'Complete' => 'bg-green-100 text-green-800 border-green-400',
@@ -180,6 +190,20 @@
 
 
                 <!-- Action Buttons -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-6 mb-6">
+                  <a href="{{ route('job_description', ['id' => $application->vacancy->vacancy_id]) }}" class="w-full">
+                    <button
+                      class="use-loader w-full border-2 border-[#002C76] text-[#002C76] rounded-lg px-4 py-2 text-sm flex items-center justify-center gap-3 font-montserrat hover:bg-[#002C76] hover:text-white transition">
+                      <i data-feather="eye" class="w-5 h-5"></i> View Job Description
+                    </button>
+                  </a>
+                  <a href="{{ route('display_c1') }}" class="w-full">
+                    <button
+                      class="use-loader w-full border-2 border-[#002C76] text-[#002C76] rounded-lg px-4 py-2 text-sm flex items-center justify-center gap-3 font-montserrat hover:bg-[#002C76] hover:text-white transition">
+                      <i data-feather="eye" class="w-5 h-5"></i> View or Edit PDS
+                    </button>
+                  </a>
+                </div>
 
                 <!-- Document Section -->
                 <div class="flex flex-col lg:flex-row gap-4">
@@ -189,7 +213,7 @@
                     <h2 class="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide flex-none">Required Documents</h2>
                     <p class="text-xs font-semibold mb-3 text-gray-600">Upload your documents below. If you need to upload multiple files for a single document, please combine them into one file.</p>
                     <div class="pr-1">
-                      <form id="document-upload-form" method="POST"
+                      <form id="document-upload-form" method="POST" data-upload-retry="1"
                         action="{{ route('application_status.upload', [$application->user_id, $application->vacancy_id]) }}"
                         enctype="multipart/form-data">
                         @csrf
@@ -210,6 +234,9 @@
                       <p class="text-sm text-gray-600">
                         <span class="text-xs font-semibold text-gray-500 uppercase">Status:</span>
                         <span id="document-status-text" class="font-semibold">Pending</span>
+                      </p>
+                      <p id="document-modified" class="text-xs text-gray-500 hidden">
+                        Last modified by <span class="font-semibold text-gray-700"></span>
                       </p>
                     </div>
 
@@ -267,12 +294,14 @@
 
           // Status icon helper
           function getStatusIcon(status) {
-            if (status === "Okay/Confirmed") {
+            if (status === "Verified" || status === "Okay/Confirmed") {
               return `<svg class="w-4 h-4 inline-block text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>`;
-            } else if (status === "Disapproved With Deficiency") {
+            } else if (status === "Needs Revision" || status === "Disapproved With Deficiency") {
               return `<svg class="w-4 h-4 inline-block text-red-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>`;
+            } else if (status === "Not Submitted") {
+              return `<span class="w-2 h-2 rounded-full bg-gray-400 inline-block"></span>`;
             }
-            return "";
+            return `<span class="w-2 h-2 rounded-full bg-orange-400 inline-block"></span>`;
           }
 
           // Function to update document preview
@@ -297,19 +326,29 @@
             
             const statusText = document.getElementById('document-status-text');
             if (statusText) {
-              statusText.textContent = doc.status || 'Pending';
+              const status = doc.status || 'Pending';
+              statusText.textContent = status;
               statusText.className = 'font-semibold ';
-              
-                console.log("Status: " , status)
-
               if (status === "Verified" || status === "Okay/Confirmed") {
                 statusText.classList.add("text-[#00730A]");
               } else if (status === "Needs Revision" || status === "Disapproved With Deficiency")  {
                 statusText.classList.add("text-[#BC0000]");
-              } else if (status == "Not Submitted") {
+              } else if (status === "Not Submitted") {
                 statusText.classList.add("text-gray-500");
-              }else {
+              } else {
                 statusText.classList.add("text-orange-600");
+              }
+            }
+
+            const modifiedEl = document.getElementById('document-modified');
+            if (modifiedEl) {
+              const modifiedSpan = modifiedEl.querySelector('span');
+              if (doc.last_modified_by) {
+                modifiedEl.classList.remove('hidden');
+                if (modifiedSpan) modifiedSpan.textContent = doc.last_modified_by;
+              } else {
+                modifiedEl.classList.add('hidden');
+                if (modifiedSpan) modifiedSpan.textContent = '';
               }
             }
 
@@ -321,7 +360,7 @@
               remarksEl.value = doc.remarks || "";
             }
             
-            if (doc.status === "Disapproved With Deficiency") {
+            if (doc.status === "Needs Revision" || doc.status === "Disapproved With Deficiency") {
               if (remarksSection) remarksSection.classList.remove('hidden');
             } else {
               if (remarksSection) remarksSection.classList.add('hidden');
@@ -358,17 +397,18 @@
               btn.type = "button";
               btn.className = "w-full text-left p-2 rounded-md hover:bg-gray-100 flex items-start gap-2 transition-colors duration-150 border border-transparent focus:outline-none focus:ring-2 focus:ring-blue-200";
 
-              let icon = getStatusIcon(doc.status);
+              const status = doc.status || 'Pending';
+              let icon = getStatusIcon(status);
               let textColorClass = "text-gray-700";
-                if (status === "Verified" || status === "Okay/Confirmed") {
-                    textColorClass = "text-[#00730A]";
-                } else if (status === "Needs Revision" || status === "Disapproved With Deficiency") {
-                    textColorClass = "text-[#BC0000]";
-                } else if (doc.status === "Not Submitted") {
-                    textColorClass = "text-gray-400";
-                } else {
-                    textColorClass = "text-gray-600 font-medium";
-                }
+              if (status === "Verified" || status === "Okay/Confirmed") {
+                textColorClass = "text-[#00730A] font-bold";
+              } else if (status === "Needs Revision" || status === "Disapproved With Deficiency") {
+                textColorClass = "text-[#BC0000] font-bold";
+              } else if (status === "Not Submitted") {
+                textColorClass = "text-gray-400";
+              } else {
+                textColorClass = "text-orange-500 font-medium";
+              }
 
               const iconWrapper = document.createElement('span');
               iconWrapper.className = "mt-0.5 flex-shrink-0 w-4 h-4 flex items-center justify-center";
@@ -393,7 +433,7 @@
 
           // Update document status display
           function updateDocumentUI() {
-            const confirmedCount = documents.filter(d => d.status === 'Okay/Confirmed').length;
+            const confirmedCount = documents.filter(d => d.status === 'Okay/Confirmed' || d.status === 'Verified').length;
             const totalDocuments = documents.length;
 
             const statusEl = document.getElementById('document-status');

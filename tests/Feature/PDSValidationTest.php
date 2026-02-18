@@ -20,7 +20,7 @@ class PDSValidationTest extends TestCase
             'middle_name' => null,
             'name_extension' => null,
             'civil_status' => 'single',
-            'date_of_birth' => '1990-01-01',
+            'date_of_birth' => '01-01-1990',
             'place_of_birth' => 'Manila',
             'citizenship' => 'Filipino',
             'sex' => 'male',
@@ -30,10 +30,10 @@ class PDSValidationTest extends TestCase
             'email_address' => 'john@example.com',
             'height' => 170,
             'weight' => 65,
-            'elem_from' => '2000-06-01',
-            'elem_to' => '2006-03-01',
-            'jhs_from' => '2006-06-01',
-            'jhs_to' => '2010-03-01',
+            'elem_from' => '01-06-2000',
+            'elem_to' => '01-03-2006',
+            'jhs_from' => '01-06-2006',
+            'jhs_to' => '01-03-2010',
         ];
 
         $res = $this->post('/pds/submit_c1/display_c2', $payload);
@@ -51,7 +51,7 @@ class PDSValidationTest extends TestCase
             'middle_name' => null,
             'name_extension' => null,
             'civil_status' => 'single',
-            'date_of_birth' => '1992-05-12',
+            'date_of_birth' => '12-05-1992',
             'place_of_birth' => 'Quezon City',
             'citizenship' => 'Filipino',
             'sex' => 'female',
@@ -61,10 +61,10 @@ class PDSValidationTest extends TestCase
             'email_address' => 'jane@example.com',
             'height' => 165,
             'weight' => 55,
-            'elem_from' => '2000-06-01',
-            'elem_to' => '2006-03-01',
-            'jhs_from' => '2006-06-01',
-            'jhs_to' => '2010-03-01',
+            'elem_from' => '01-06-2000',
+            'elem_to' => '01-03-2006',
+            'jhs_from' => '01-06-2006',
+            'jhs_to' => '01-03-2010',
         ];
 
         $res = $this->post('/pds/submit_c1/display_c2', $payload);
@@ -83,7 +83,7 @@ class PDSValidationTest extends TestCase
             'middle_name' => null,
             'name_extension' => null,
             'civil_status' => 'single',
-            'date_of_birth' => '12/31/1990', // invalid for Y-m-d
+            'date_of_birth' => '1990/12/31',
             'place_of_birth' => 'Pasig',
             'citizenship' => 'Filipino',
             'sex' => 'male',
@@ -93,10 +93,10 @@ class PDSValidationTest extends TestCase
             'email_address' => 'alan@example.com',
             'height' => 175,
             'weight' => 70,
-            'elem_from' => '2000-06-01',
-            'elem_to' => '2006-03-01',
-            'jhs_from' => '2006-06-01',
-            'jhs_to' => '2010-03-01',
+            'elem_from' => '01-06-2000',
+            'elem_to' => '01-03-2006',
+            'jhs_from' => '01-06-2006',
+            'jhs_to' => '01-03-2010',
         ];
 
         $res = $this->post('/pds/submit_c1/display_c2', $payload);

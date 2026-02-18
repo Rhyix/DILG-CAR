@@ -1256,6 +1256,7 @@
             });
         })();
     </script>
+    @include('partials.loader')
     @livewireScripts
 
 </body>

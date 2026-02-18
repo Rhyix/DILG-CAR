@@ -285,7 +285,7 @@
                 
                 @php $fields = [
                     'pqe_result' => 'Pre-Qualifying Exam (PQE) result',
-                    'cert_elegibility' => 'Photocopy of Certificate of Eligibility/Board Rating',
+                    'cert_eligibility' => 'Photocopy of Certificate of Eligibility/Board Rating',
                     'ipcr' => 'Certification of Numerical Rating/Performance Rating/IPCR',
                     'non_academic' => 'Non-Academic awards received',
                     'cert_training' => 'Certified/authenticated copy of Certificates of Training/Participation',
@@ -399,4 +399,3 @@
         @include('partials.loader')
 </body>
 </html>
-

@@ -26,6 +26,12 @@ use function Symfony\Component\String\s;
 
 class JobVacancyController extends Controller
 {
+    private const DOCUMENT_TYPE_ALIASES = [
+        'cert_eligibility' => ['cert_elegibility'],
+        'cert_employment' => ['certificate_employment'],
+        'grade_masteraldoctorate' => ['certificate_grades'],
+        'tor_masteraldoctorate' => ['certified_tor'],
+    ];
     public function jobVacancy()
     {
         $jobVacancies = JobVacancy::orderByRaw("CASE WHEN status = 'OPEN' THEN 1 ELSE 2 END")
@@ -325,15 +331,7 @@ class JobVacancyController extends Controller
             'hasApplied' => $hasApplied,
         ]);
 
-        /*
-        activity()
-            ->causedBy(auth()->user())
-            ->performedOn($vacancy)
-            ->withProperties(['vacancy_id' => $vacancy->vacancy_id])
-            ->log('Viewed job description.');
-        */
 
-        return view('dashboard_user.job_description', ['vacancy' => $vacancy, 'hasPDS' => $hasPDS]);
     }
 
     public function adminFilterVacancy(Request $request)
@@ -475,7 +473,8 @@ class JobVacancyController extends Controller
         $uploadedDocuments = UploadedDocument::where('user_id', $userId)->get()->keyBy('document_type');
         $documentStatusSummary = [];
         foreach (UploadedDocument::DOCUMENTS as $docType) {
-            if ($docType === 'isApproved') continue;
+            if ($docType === 'isApproved')
+                continue;
             $doc = $uploadedDocuments->get($docType);
             $documentStatusSummary[] = [
                 'type' => $docType,
@@ -569,14 +568,20 @@ class JobVacancyController extends Controller
             'file_size_8b' => $file->getSize(),
         ]);
 
-        // Create notification for admin
-        \App\Models\Notification::create([
-            'title' => 'New Applicant',
-            'message' => 'Applicant ' . Auth::user()->name . ' has applied for ' . $vacancy->position_title,
-            'type' => 'info',
-            'link' => route('admin.manage_applicants', ['vacancy_id' => $vacancy->vacancy_id]),
-            'is_read' => false
-        ]);
+        // Create notification for all admins
+        $admins = \App\Models\Admin::all();
+        foreach ($admins as $admin) {
+            \App\Models\Notification::create([
+                'notifiable_type' => 'App\Models\Admin',
+                'notifiable_id' => $admin->id,
+                'type' => 'info',
+                'data' => [
+                    'title' => 'New Applicant',
+                    'message' => 'Applicant ' . Auth::user()->name . ' has applied for ' . $vacancy->position_title,
+                    'link' => route('admin.manage_applicants', ['vacancy_id' => $vacancy->vacancy_id]),
+                ]
+            ]);
+        }
 
         activity()
             ->event('apply job')
@@ -611,20 +616,21 @@ class JobVacancyController extends Controller
             ->with(['personalInformation', 'vacancy'])
             ->firstOrFail();
 
-        $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->first(); // 🟢 Get exam for this vacancy
+        $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->first();
 
-        // Get who last updated the application
-        $adminName = null;
-        if ($application->updated_at && $application->updated_at != $application->created_at) {
-            $adminUser = $application->updatedByAdmin;
-            if ($adminUser) {
-                $adminName = $adminUser->username;
-            }
-        }
+        $snapshotNotification = \App\Models\Notification::where('notifiable_type', 'App\Models\User')
+            ->where('notifiable_id', $user_id)
+            ->where('data->type', 'application_overview')
+            ->where('data->vacancy_id', $vacancy_id)
+            ->latest()
+            ->first();
+        $snapshotData = $snapshotNotification?->data ?? null;
+        $snapshotDocumentsById = collect($snapshotData['documents'] ?? [])->keyBy('id');
 
-        // TODO create controller here for Application Status
-        $userId = Auth::id();
-        $uploadedDocuments = UploadedDocument::where('user_id', $userId)->get()->keyBy('document_type');
+        $adminName = $snapshotData['last_modified_by'] ?? null;
+        $lastModifiedAt = $snapshotData['notified_at'] ?? null;
+
+        $uploadedDocuments = UploadedDocument::where('user_id', $user_id)->get()->keyBy('document_type');
         $documents = [];
 
         $labelMap = [
@@ -652,34 +658,61 @@ class JobVacancyController extends Controller
             if ($docType === 'isApproved')
                 continue;
 
-            $doc = $uploadedDocuments->get($docType);
-
             if ($docType === 'application_letter') {
+                if ($snapshotData) {
+                    $snapshotDoc = $snapshotDocumentsById->get('application_letter');
+                    if ($snapshotDoc) {
+                        $documents[] = $snapshotDoc;
+                        continue;
+                    }
+                }
                 $documents[] = [ // Get from Applications table instead
                     'id' => 'application_letter',
+                    'name' => $labelMap['application_letter'],
                     'text' => $labelMap['application_letter'],
-                    'status' => $application->file_status ?? 'invalid',
+                    'status' => $application->file_storage_path ? 'Pending' : 'Not Submitted',
                     //'preview' => $application->file_storage_path ? asset('storage/' . $application->file_storage_path) : '',
                     'preview' => $application->file_storage_path
                         ? url('/preview-file/' . base64_encode($application->file_storage_path))
                         : '',
-                    'remarks' => $application->file_remarks ?? 'No remarks provided.',
+                    'remarks' => '',
+                    'last_modified_by' => null,
                     'isBold' => true,
                 ];
             } else {
-                $doc = $uploadedDocuments->get($docType);
+                if ($snapshotData) {
+                    $snapshotDoc = $snapshotDocumentsById->get($docType);
+                    if ($snapshotDoc) {
+                        $documents[] = $snapshotDoc;
+                        continue;
+                    }
+                }
+                $doc = $this->resolveUploadedDocument($uploadedDocuments, $docType);
+                $hasFile = $doc && !empty($doc->storage_path) && $doc->storage_path !== 'NOINPUT';
+                $status = $hasFile ? 'Pending' : 'Not Submitted';
 
                 $documents[] = [
                     'id' => $docType,
+                    'name' => $labelMap[$docType] ?? ucwords(str_replace('_', ' ', $docType)),
                     'text' => $labelMap[$docType] ?? ucwords(str_replace('_', ' ', $docType)),
-                    'status' => $doc ? $doc->status : 'invalid',
+                    'status' => $status,
                     //'preview' => $doc ? asset('storage/' . $doc->storage_path) : '',
-                    'preview' => $doc ? url('/preview-file/' . base64_encode($doc->storage_path)) : '',
-                    'remarks' => $doc ? ($doc->remarks ?: $doc->original_name) : 'Document missing.',
+                    'preview' => $hasFile ? url('/preview-file/' . base64_encode($doc->storage_path)) : '',
+                    'remarks' => '',
+                    'last_modified_by' => null,
                     'isBold' => true,
                 ];
             }
         }
+
+        $displayApplicationStatus = $snapshotData['application_status'] ?? 'Pending';
+        $displayQsEducation = $snapshotData['qs_education'] ?? 'no';
+        $displayQsEligibility = $snapshotData['qs_eligibility'] ?? 'no';
+        $displayQsExperience = $snapshotData['qs_experience'] ?? 'no';
+        $displayQsTraining = $snapshotData['qs_training'] ?? 'no';
+        $displayQsResult = $snapshotData['qs_result'] ?? 'Not Qualified';
+        $displayDeadlineDate = $snapshotData['deadline_date'] ?? null;
+        $displayDeadlineTime = $snapshotData['deadline_time'] ?? null;
 
         /*
         activity()
@@ -689,7 +722,36 @@ class JobVacancyController extends Controller
             ->log('Viewed application status.');
         */
 
-        return view('dashboard_user.application_status', compact('application', 'examDetail', 'documents', 'adminName'));
+        return view('dashboard_user.application_status', compact(
+            'application',
+            'examDetail',
+            'documents',
+            'adminName',
+            'lastModifiedAt',
+            'displayApplicationStatus',
+            'displayQsEducation',
+            'displayQsEligibility',
+            'displayQsExperience',
+            'displayQsTraining',
+            'displayQsResult',
+            'displayDeadlineDate',
+            'displayDeadlineTime'
+        ));
+    }
+
+    private function resolveUploadedDocument($uploadedDocuments, string $docType): ?UploadedDocument
+    {
+        $doc = $uploadedDocuments->get($docType);
+        if ($doc && !empty($doc->storage_path) && $doc->storage_path !== 'NOINPUT') {
+            return $doc;
+        }
+        foreach (self::DOCUMENT_TYPE_ALIASES[$docType] ?? [] as $alias) {
+            $aliasDoc = $uploadedDocuments->get($alias);
+            if ($aliasDoc && !empty($aliasDoc->storage_path) && $aliasDoc->storage_path !== 'NOINPUT') {
+                return $aliasDoc;
+            }
+        }
+        return $doc ?: null;
     }
 
     public function calculatePdsProgress($userId)
