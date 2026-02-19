@@ -40,8 +40,15 @@ class JobVacancyController extends Controller
     ];
     public function jobVacancy()
     {
-        $jobVacancies = JobVacancy::orderByRaw("CASE WHEN status = 'OPEN' THEN 1 ELSE 2 END")
-            ->orderBy('closing_date', 'asc')
+        $jobVacancies = JobVacancy::select('job_vacancies.*')
+            ->leftJoin('exam_details', 'job_vacancies.vacancy_id', '=', 'exam_details.vacancy_id')
+            ->with('examDetail')
+            ->orderByRaw("CASE 
+                WHEN job_vacancies.status = 'OPEN' AND (exam_details.date IS NULL OR exam_details.date = '') THEN 1 
+                WHEN job_vacancies.status = 'OPEN' THEN 2 
+                ELSE 3 
+            END")
+            ->orderBy('job_vacancies.closing_date', 'asc')
             ->get();
 
         /*
@@ -405,18 +412,21 @@ class JobVacancyController extends Controller
 
     public function filterVacancy(Request $request)
     {
-        $vacancies = JobVacancy::query();
+        $vacancies = JobVacancy::select('job_vacancies.*')
+            ->leftJoin('exam_details', 'job_vacancies.vacancy_id', '=', 'exam_details.vacancy_id')
+            ->with('examDetail');
+
         if ($request->search) {
             $s = trim($request->search);
             $vacancies->where(function ($q) use ($s) {
                 $q->where('position_title', 'like', "%{$s}%")
                     ->orWhere('place_of_assignment', 'like', "%{$s}%")
-                    ->orWhere('vacancy_id', 'like', "%{$s}%")
+                    ->orWhere('job_vacancies.vacancy_id', 'like', "%{$s}%")
                     ->orWhere('vacancy_type', 'like', "%{$s}%");
             });
         }
         if ($request->status) {
-            $vacancies->where('status', $request->status);
+            $vacancies->where('job_vacancies.status', $request->status);
         }
 
         if ($request->type) {
@@ -432,10 +442,17 @@ class JobVacancyController extends Controller
             $vacancies->whereBetween('monthly_salary', [$min * 1000, $max * 1000]);
         }
 
+        // Priority sorting: Unscheduled & Open first
+        $vacancies->orderByRaw("CASE 
+            WHEN job_vacancies.status = 'OPEN' AND (exam_details.date IS NULL OR exam_details.date = '') THEN 1 
+            WHEN job_vacancies.status = 'OPEN' THEN 2 
+            ELSE 3 
+        END");
+
         if ($request->sort == 'latest') {
-            $vacancies->orderBy('created_at', 'desc');
+            $vacancies->orderBy('job_vacancies.created_at', 'desc');
         } elseif ($request->sort == 'oldest') {
-            $vacancies->orderBy('created_at', 'asc');
+            $vacancies->orderBy('job_vacancies.created_at', 'asc');
         }
 
         $vacancies = $vacancies->get();

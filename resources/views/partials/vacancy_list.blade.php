@@ -6,6 +6,43 @@
         </td>
         <td class="py-4 px-6 w-[15%]">₱{{ number_format($vacancy->monthly_salary, 2) }}</td>
         <td class="py-4 px-6 w-[25%]">{{ $vacancy->place_of_assignment }}</td>
+        <td class="py-4 px-6 text-center w-[15%]">
+            @php
+                $examStatus = 'Unscheduled';
+                $examBadge = 'bg-gray-100 text-gray-800';
+                
+                if ($vacancy->examDetail && $vacancy->examDetail->date) {
+                    try {
+                        $date = $vacancy->examDetail->date;
+                        $time = $vacancy->examDetail->time;
+                        $timeEnd = $vacancy->examDetail->time_end;
+                        
+                        $startDateTime = \Carbon\Carbon::parse($date . ' ' . $time);
+                        $endDateTime = $timeEnd 
+                            ? \Carbon\Carbon::parse($date . ' ' . $timeEnd)
+                            : $startDateTime->copy()->addHours(2); // Default 2 hours if no end time
+                        
+                        $now = \Carbon\Carbon::now();
+                        
+                        if ($now->lt($startDateTime)) {
+                            $examStatus = 'Scheduled';
+                            $examBadge = 'bg-blue-100 text-blue-800';
+                        } elseif ($now->between($startDateTime, $endDateTime)) {
+                            $examStatus = 'Ongoing';
+                            $examBadge = 'bg-yellow-100 text-yellow-800'; // Or animate pulse
+                        } else {
+                            $examStatus = 'Completed';
+                            $examBadge = 'bg-purple-100 text-purple-800';
+                        }
+                    } catch (\Exception $e) {
+                        // Keep unscheduled on error
+                    }
+                }
+            @endphp
+            <span class="px-3 py-1 rounded-full text-xs font-semibold {{ $examBadge }}">
+                {{ $examStatus }}
+            </span>
+        </td>
         <td class="py-4 px-6 text-center w-[10%]">
             <span class="px-3 py-1 rounded-full text-xs font-semibold {{ $vacancy->status === 'OPEN' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
                 {{ $vacancy->status }}

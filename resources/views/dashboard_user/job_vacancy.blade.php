@@ -276,6 +276,7 @@
                     <th class="py-4 px-6 text-left font-bold uppercase text-sm tracking-wider w-[35%]">Job Title</th>
                     <th class="py-4 px-6 text-left font-bold uppercase text-sm tracking-wider w-[15%]">Monthly Salary</th>
                     <th class="py-4 px-6 text-left font-bold uppercase text-sm tracking-wider w-[25%]">Place of Assignment</th>
+                    <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider w-[15%]">Exam Status</th>
                     <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider w-[10%]">Status</th>
                     <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider w-[15%]">Actions</th>
                 </tr>
