@@ -710,11 +710,49 @@ class JobVacancyController extends Controller
         }
 
         $displayApplicationStatus = $application->status ?? 'Pending';
-        $displayQsEducation = $application->qs_education ?? 'no';
-        $displayQsEligibility = $application->qs_eligibility ?? 'no';
-        $displayQsExperience = $application->qs_experience ?? 'no';
-        $displayQsTraining = $application->qs_training ?? 'no';
-        $displayQsResult = $application->qs_result ?? 'Not Qualified';
+        // Derive QS display from latest snapshot (preferred) or live document statuses to match admin view
+        $vacancyType = $application->vacancy?->vacancy_type ?? null;
+        $isVerified = function ($docId) use ($snapshotDocumentsById, $uploadedDocuments) {
+            if ($snapshotDocumentsById && $snapshotDocumentsById->has($docId)) {
+                $st = $snapshotDocumentsById->get($docId)['status'] ?? null;
+                return in_array($st, ['Verified', 'Okay/Confirmed'], true);
+            }
+            $doc = $uploadedDocuments->get($docId);
+            $st = $doc?->status;
+            return in_array($st, ['Verified', 'Okay/Confirmed'], true);
+        };
+
+        $displayQsEducation = 'no';
+        $displayQsEligibility = 'no';
+        $displayQsExperience = 'no';
+        $displayQsTraining = 'no';
+
+        if ($vacancyType === 'Plantilla') {
+            $displayQsEligibility = $isVerified('cert_eligibility') ? 'yes' : 'no';
+            $displayQsEducation = ($isVerified('transcript_records') && $isVerified('photocopy_diploma')) ? 'yes' : 'no';
+            $displayQsTraining = $isVerified('cert_training') ? 'yes' : 'no';
+            $displayQsExperience = 'na';
+        } elseif ($vacancyType === 'COS') {
+            $displayQsExperience = $isVerified('signed_work_exp_sheet') ? 'yes' : 'no';
+            $displayQsEducation = ($isVerified('transcript_records') && $isVerified('photocopy_diploma')) ? 'yes' : 'no';
+            $displayQsTraining = $isVerified('cert_training') ? 'yes' : 'no';
+            $displayQsEligibility = 'na';
+        } else {
+            // Fallback to stored values if vacancy type is unknown
+            $displayQsEducation = $application->qs_education ?? 'no';
+            $displayQsEligibility = $application->qs_eligibility ?? 'no';
+            $displayQsExperience = $application->qs_experience ?? 'no';
+            $displayQsTraining = $application->qs_training ?? 'no';
+        }
+
+        $relevant = [];
+        if ($vacancyType === 'Plantilla') {
+            $relevant = [$displayQsEducation, $displayQsEligibility, $displayQsTraining];
+        } elseif ($vacancyType === 'COS') {
+            $relevant = [$displayQsEducation, $displayQsExperience, $displayQsTraining];
+        }
+        $allOk = empty($relevant) ? false : collect($relevant)->every(fn($v) => $v === 'yes');
+        $displayQsResult = $allOk ? 'Qualified' : 'Not Qualified';
         $displayDeadlineDate = $application->deadline_date ?? null;
         $displayDeadlineTime = $application->deadline_time ?? null;
         $displayApplicationRemarks = $application->application_remarks ?? '';

@@ -157,7 +157,7 @@
 
                         <!-- Experience -->
                         <div class="flex items-center gap-1.5">
-                          <span class="w-2.5 h-2.5 shrink-0 rounded-full {{ $displayQsExperience == 'yes' ? 'bg-green-500' : 'bg-red-500' }}"></span>
+                          <span class="w-2.5 h-2.5 shrink-0 rounded-full {{ $displayQsExperience == 'yes' ? 'bg-green-500' : ($displayQsExperience == 'na' ? 'bg-gray-400' : 'bg-red-500') }}"></span>
                           <span class="text-xs text-gray-700">Experience</span>
                         </div>
 

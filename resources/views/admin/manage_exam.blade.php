@@ -405,7 +405,7 @@
                     </button>
                     
                 <button type="button" id="startExamButton" onclick="triggerStartExamConfirm('{{ $vacancy->vacancy_id }}')" 
-                        {{ (!$examDetails || !$examDetails->link_sent || $isExamActive || $isExamCompleted || !$isExamDay || !$hasQuestions) ? 'disabled' : '' }}
+                        {{ (!$examDetails || !$examDetails->link_sent || $isExamActive || $isExamCompleted || !$isExamDay || !$hasQuestions || ($lobbyCount < 1)) ? 'disabled' : '' }}
                             class="flex-1 py-2 bg-[#0D2B70] rounded-lg text-white font-bold text-sm hover:scale-[1.02] flex items-center justify-center gap-2 transition-transform disabled:opacity-50 disabled:hover:scale-100">
                         <x-heroicon-o-play class="w-4 h-4" />
                         Start Exam
@@ -498,12 +498,9 @@
         .then(data => {
             if(data.success) {
                 alert("Exam links sent successfully to all applicants!");
-                // Enable Start Exam button only if questions exist
-                const startBtn = document.getElementById('startExamButton');
-                if (startBtn && hasQuestionsConst === true) {
-                    startBtn.disabled = false;
-                    startBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-                }
+                // Mark links as sent on client and update Start Exam state
+                linkSentClient = true;
+                updateStartButtonState();
                 // Keep Send Link button disabled
                 sendLinkButton.innerHTML = originalText;
             } else {
@@ -705,6 +702,7 @@
     const hasExamDetails = @json(!is_null($examDetails ?? null));
     const detailsSavedConst = @json($examDetails && $examDetails->details_saved);
     const linkSentConst = @json($examDetails && $examDetails->link_sent);
+    let linkSentClient = linkSentConst;
     const isExamActiveConst = @json($isExamActive);
     const isExamCompletedConst = @json($isExamCompleted);
     const isExamDayConst = @json($isExamDay);
@@ -719,11 +717,27 @@
         if (!btn) return;
         const shouldEnable = hasExamDetails 
             && detailsSavedConst 
-            && !linkSentConst 
+            && !linkSentClient 
             && !isExamActiveConst 
             && !isExamCompletedConst 
             && isExamDayConst 
             && qualifiedCount > 0;
+        btn.disabled = !shouldEnable;
+        btn.classList.toggle('opacity-50', !shouldEnable);
+        btn.classList.toggle('cursor-not-allowed', !shouldEnable);
+    }
+
+    // Helper: update Start Exam button state using flags and lobby count
+    function updateStartButtonState() {
+        const btn = document.getElementById('startExamButton');
+        if (!btn) return;
+        const shouldEnable = hasExamDetails
+            && linkSentClient
+            && !isExamActiveConst
+            && !isExamCompletedConst
+            && isExamDayConst
+            && hasQuestionsConst
+            && currentLobbyCount > 0;
         btn.disabled = !shouldEnable;
         btn.classList.toggle('opacity-50', !shouldEnable);
         btn.classList.toggle('cursor-not-allowed', !shouldEnable);
@@ -772,6 +786,7 @@
     // Run validation on page load and initialize Send Link button state
     validateForm();
     updateSendLinkButtonState(currentLobbyCount);
+    updateStartButtonState();
 
     // Auto-calculate duration
     const startTimeInput = document.getElementById('time');
@@ -1128,6 +1143,7 @@
                 updateLastUpdatedTime();
                 const count = Array.isArray(data.participants) ? data.participants.length : 0;
                 updateSendLinkButtonState(count);
+                updateStartButtonState();
             }
         })
         .catch(error => console.error('Error fetching lobby data:', error))
