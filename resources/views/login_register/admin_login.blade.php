@@ -66,8 +66,8 @@
                 </span>
                 <input
                     type="password"
-                    name="user_password"
-                    id="user_password"
+                    name="password"
+                    id="password"
                     placeholder="Password"
                     class="w-full bg-white border border-blue-400 rounded-full pl-12 pr-4 py-3 outline-none text-blue-900 placeholder:text-blue-800/60 focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
                     required
@@ -177,6 +177,20 @@
   @if(app()->environment('production'))
     <script src="https://www.google.com/recaptcha/api.js" async defer></script>
   @endif
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const form = document.querySelector('form');
+    const emailInput = document.querySelector('input[name="email"]');
+    const passwordInput = document.querySelector('input[name="password"]');
+
+    form.addEventListener('submit', function () {
+      console.log("Email entered:", emailInput.value);
+      console.log("Password entered:", passwordInput.value);
+    });
+  });
+</script>
+
 
   <!-- Password Toggle Script (exactly like login page) -->
   <script>
