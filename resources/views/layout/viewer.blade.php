@@ -91,6 +91,11 @@
         {{-- Sidebar --}}
         @include('partials.sidebar_viewer')
 
+        {{-- Global Logout --}}
+        <form id="viewerAdminLogoutForm" method="POST" action="{{ route('admin.logout') }}" class="hidden">
+            @csrf
+        </form>
+
         {{-- Main Content Scrollable --}}
         <main class="flex-1 overflow-y-auto p-10 pt-14 space-y-10">
             @yield('content')
@@ -232,6 +237,16 @@
             if (event.persisted) {
                 document.querySelector('.background')?.classList.add('hidden');
             }
+        });
+    </script>
+    <script>
+        window.addEventListener('confirm-logout', () => {
+            try {
+                localStorage.clear();
+                sessionStorage.clear();
+            } catch (e) {}
+            const f = document.getElementById('viewerAdminLogoutForm');
+            if (f) f.submit();
         });
     </script>
     <script>

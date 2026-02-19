@@ -953,19 +953,32 @@ class AdminController extends Controller
 
             if ($admin->email) {
                 try {
-                    // Mail::send('emails.admin_event_notification', [
-                    //     'actorName' => $actorName,
-                    //     'recipientName' => $admin->name ?? $admin->username,
-                    //     'applicantName' => $applicantName,
-                    //     'positionTitle' => $positionTitle,
-                    //     'vacancyId' => $vacancy_id,
-                    //     'title' => 'Applicant Notified',
-                    //     'body' => $actorName . ' notified ' . ($applicantName ?: 'Applicant'),
-                    //     'link' => route('admin.applicant_status', ['user_id' => $user_id, 'vacancy_id' => $vacancy_id]),
-                    //     'occurredAt' => $occurredAt,
-                    // ], function ($m) use ($admin) {
-                    //     $m->to($admin->email)->subject('DILG-CAR Admin Notification');
-                    // });
+                    \Log::info('Attempting admin notify email', [
+                        'recipient' => $admin->email,
+                        'actor' => $actorName,
+                        'applicant' => $applicantName,
+                        'vacancy_id' => $vacancy_id,
+                        'time' => now()->timezone(config('app.timezone'))->format('Y-m-d H:i:s T')
+                    ]);
+
+                    $timezone = config('app.timezone') ?: 'UTC';
+                    $timestamp = now()->timezone($timezone)->format('Y-m-d H:i:s T');
+
+                    $verifiedDocs = array_values(array_filter($userDocumentsSnapshot, function ($d) {
+                        $status = strtoupper((string)($d['status'] ?? ''));
+                        return in_array($status, ['VERIFIED', 'NEEDS REVISION']);
+                    }));
+
+                    Mail::to($admin->email)->send(new \App\Mail\AdminNotifyApplicant(
+                        $actorName,
+                        $applicantName,
+                        $vacancy_id,
+                        $positionTitle,
+                        $verifiedDocs,
+                        $timestamp,
+                        $timezone
+                    ));
+                    \Log::info('Admin notify email sent', ['recipient' => $admin->email]);
                 } catch (\Throwable $e) {
                     \Log::error('Admin notify email failed', ['error' => $e->getMessage()]);
                 }
@@ -987,6 +1000,7 @@ class AdminController extends Controller
             if ($docType === 'application_letter') {
                 $documents[] = [
                     'id' => 'application_letter',
+                    'doc_id' => null,
                     'name' => self::DOCUMENT_LABELS['application_letter'],
                     'text' => self::DOCUMENT_LABELS['application_letter'],
                     'status' => $application->file_status ?? 'Not Submitted',
@@ -1004,6 +1018,7 @@ class AdminController extends Controller
             $hasFile = $doc && !empty($doc->storage_path) && $doc->storage_path !== 'NOINPUT';
             $documents[] = [
                 'id' => $docType,
+                'doc_id' => $doc->id ?? null,
                 'name' => self::DOCUMENT_LABELS[$docType] ?? ucwords(str_replace('_', ' ', $docType)),
                 'text' => self::DOCUMENT_LABELS[$docType] ?? ucwords(str_replace('_', ' ', $docType)),
                 'status' => $hasFile ? ($doc->status ?? 'Pending') : 'Not Submitted',
