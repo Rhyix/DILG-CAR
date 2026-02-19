@@ -339,6 +339,10 @@
 
     // Submit admin logout only after confirmation
     window.addEventListener('confirm-logout', () => {
+        try {
+            localStorage.clear();
+            sessionStorage.clear();
+        } catch (e) {}
         const logoutForm = document.getElementById('adminLogoutForm');
         if (logoutForm) logoutForm.submit();
     });
