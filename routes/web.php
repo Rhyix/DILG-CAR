@@ -425,7 +425,6 @@ Route::middleware([ViewerAccess::class])->group(function () {
     Route::post('/admin/exam_management/{vacancy_id}/start', [ExamController::class, 'startExam'])->name('admin.exam_start');
     Route::get('/admin/exam_management/{vacancy_id}/lobby-data', [ExamController::class, 'getLobbyData'])->name('admin.exam.lobby_data');
     Route::post('/admin/exam_management/{vacancy_id}/notify-selected', [ExamController::class, 'notifySelectedApplicants'])->name('admin.exam.notify_selected');
-    Route::get('/exam/status/{vacancy_id}', [ExamController::class, 'checkExamStatus'])->name('exam.status.check');
 
 
     // Exam Library Routes
@@ -485,8 +484,9 @@ Route::middleware(['auth:web,admin'])->group(function () {
 // ==================================================================================================
 Route::get('/exam/{vacancy_id}/questions', [ExamController::class, 'examQuestion'])->name('user.exam_question_page');
 Route::get('/exam/{vacancy_id}/lobby', [ExamController::class, 'examLobby'])->name('user.exam_lobby');
-Route::post('/exam/{vacancy_id}/start', [ExamController::class, 'startCandidateExam'])->name('user.exam_start');
+// Route::post('/exam/{vacancy_id}/start', [ExamController::class, 'startCandidateExam'])->name('user.exam_start');
 Route::post('/exam/{vacancy_id}/submit', [ExamController::class, 'submit'])->name('exam.submit');
+Route::get('/exam/status/{vacancy_id}', [ExamController::class, 'checkExamStatus'])->name('exam.status.check');
 Route::get('/exam/{vacancy_id}/thankyou', fn() => view('exam_user.exam_thankyou'))->name('user.exam_thankyou');
 Route::post('/log-switch', [ExamController::class, 'logSwitch']);
 

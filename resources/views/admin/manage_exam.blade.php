@@ -2,7 +2,7 @@
 @section('title', 'DILG - Manage Exam')
 @section('content')
 
-<main class="w-full mx-auto h-[calc(100vh-6rem)] flex flex-col space-y-4 overflow-hidden px-4 lg:px-0">
+<main class="w-full mx-auto flex flex-col space-y-4 overflow-hidden px-4 lg:px-0">
     <!-- header -->
     <section class="flex-none flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 max-w-full border-b border-[#0D2B70] pb-4">
         <div class="flex items-center gap-4">
@@ -87,8 +87,31 @@
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
             <!-- Left Info -->
             <div class="text-sm text-[#002C76] font-montserrat">
-                <span class="text-xl md:text-2xl lg:text-3xl block">{{ $vacancy->position_title }}</span>
+                <span class="text-xl md:text-2xl lg:text-3xl font-semibold">
+                    {{ $vacancy->position_title }},
+
+                    @if($questionsCount > 0)
+                        <span class="text-xl md:text-2xl lg:text-3xl font-normal">
+                            {{ $questionsCount }}-question examination
+                        </span>
+                    @else
+                        <span class="text-xl md:text-2xl lg:text-3xl font-normal">
+                            No questions yet
+                        </span>
+                    @endif
+                </span>
                 <p class="text-xs md:text-sm"><span class="font-bold">VACANCY ID:</span> {{ $vacancy->vacancy_id }}, {{ $vacancy->vacancy_type }} Position</p>
+                <!-- <div class="mt-1">
+                    @if($questionsCount > 0)
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] md:text-xs font-bold bg-blue-100 text-blue-800 border border-blue-300">
+                            {{ $questionsCount }}-question examination
+                        </span>
+                    @else
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] md:text-xs font-bold bg-red-100 text-red-700 border border-red-300">
+                            No questions yet
+                        </span>
+                    @endif
+                </div> -->
             </div>
 
         </div>
@@ -195,12 +218,19 @@
                                             @endif
                                         </td>
                                         <td class="py-4 px-6 text-center">
-                                            <button
+                                            <a
+                                                href="{{ route('admin.applicant_status', ['user_id' => $applicant['user_id'], 'vacancy_id' => $applicant['vacancy_id']]) }}"
+                                                target="_blank"
+                                                class="text-[#0D2B70] border border-[#0D2B70] font-bold py-1 px-4 rounded-md text-sm transition-all duration-300 hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md flex items-center gap-2 mx-auto">
+                                                <x-heroicon-o-eye class="w-4 h-4" />
+                                                <span>View</span>
+                                            </a>
+                                            <!-- <button
                                                 onclick="window.location.href='{{ route('admin.applicant_status', ['user_id' => $applicant['user_id'], 'vacancy_id' => $applicant['vacancy_id']]) }}'"
                                                 class="text-[#0D2B70] border border-[#0D2B70] font-bold py-1 px-4 rounded-md text-sm transition-all duration-300 hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md flex items-center gap-2 mx-auto">
                                                 <x-heroicon-o-eye class="w-4 h-4" />
                                                 <span>View</span>
-                                            </button>
+                                            </button> -->
                                         </td>
                                     </tr>
                                 @empty

@@ -136,7 +136,7 @@
 
             <p><strong>Important Reminders:</strong></p>
             <ul>
-                <li>Please arrive at the exam venue at least 15 minutes before the scheduled time.</li>
+                <li>Please arrive at the exam venue at least 30 minutes before the scheduled time.</li>
                 <li>Bring a valid ID for verification purposes.</li>
                 <li>Make sure you have a stable internet connection if taking the exam online.</li>
                 <li>The exam will be available only during the scheduled time.</li>

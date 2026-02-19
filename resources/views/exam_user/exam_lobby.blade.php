@@ -111,6 +111,7 @@
     }
 
     function startPolling() {
+        if (pollInterval) return; // Prevent multiple pollers
         checkStatus();
         pollInterval = setInterval(checkStatus, 1000);
     }
@@ -133,7 +134,7 @@
         })
         .then(data => {
             if (data && data.started === true) {
-                markExamStarted();
+                 markExamStarted();
             }
         })
         .catch(error => {
@@ -149,6 +150,10 @@
     }
 
     function markExamStarted() {
+        if (countdownInterval) return; // Prevent multiple intervals
+
+        const btn = document.getElementById('readyBtn');
+        if (btn) btn.classList.add('hidden'); // Hide the ready button
         document.getElementById('waitingMessage').classList.add('hidden');
         document.getElementById('examStartedMessage').classList.remove('hidden');
         stopPolling();
@@ -156,20 +161,30 @@
         const countdownEl = document.getElementById('startCountdown');
         let remaining = 5;
         countdownEl.textContent = remaining;
+        
         countdownInterval = setInterval(() => {
             remaining -= 1;
-            countdownEl.textContent = remaining;
             if (remaining <= 0) {
                 clearInterval(countdownInterval);
                 document.getElementById('redirect-form').submit();
+            } else {
+                countdownEl.textContent = remaining;
             }
         }, 1000);
     }
 
     document.addEventListener('DOMContentLoaded', () => {
         const waiting = document.getElementById('waitingMessage');
-        if (waiting) waiting.classList.remove('hidden');
-        startPolling();
+        const examStarted = document.getElementById('examStartedMessage');
+
+        // Check if we are in "ready" state or if exam is already started UI state
+        // By default, PHP renders waitingMessage as hidden. 
+        // We only want to auto-start if we persist state, but here we don't.
+        // So we just ensure clean slate or auto-ready if user reload?
+        // Actually, let's keep it manual. User must click Ready.
+        // But if they were already redirected and came back, or if exam is started, check status once.
+        
+        checkStatus(); // One-time check on load
     });
 </script>
 @include('partials.loader')
