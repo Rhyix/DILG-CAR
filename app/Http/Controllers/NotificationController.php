@@ -5,19 +5,21 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Notification;
-use Spatie\Activitylog\Models\Activity;
-use Illuminate\Pagination\LengthAwarePaginator;
 
 class NotificationController extends Controller
 {
-    protected function getQuery()
+    private function getQuery()
     {
         if (Auth::guard('admin')->check()) {
-            $adminId = Auth::guard('admin')->id();
             return Notification::where('notifiable_type', 'App\Models\Admin')
-                ->where(function ($q) use ($adminId) {
-                    $q->whereNull('notifiable_id')
-                      ->orWhere('notifiable_id', $adminId);
+                ->where(function ($q) {
+                    $q->where('notifiable_id', Auth::guard('admin')->id())
+                        ->orWhereNull('notifiable_id');
+                })
+                ->where(function ($q) {
+                    $q->where('data->category', 'document_verification')
+                        ->orWhere('data->category', 'exam_lifecycle')
+                        ->orWhere('data->category', 'exam_questions');
                 });
         } elseif (Auth::check()) {
             return Notification::where('notifiable_type', 'App\Models\User')
@@ -40,19 +42,7 @@ class NotificationController extends Controller
     // Index method
     public function index()
     {
-        $query = $this->getQuery();
-        if ($query) {
-            $notifications = $query->latest()->paginate(10);
-        } else {
-            $notifications = new LengthAwarePaginator(
-                [],
-                0,
-                10,
-                1,
-                ['path' => request()->url(), 'query' => request()->query()]
-            );
-        }
-        return view('notifications.index', compact('notifications'));
+        return view('notifications.index');
     }
 
     // Fetch latest notifications
