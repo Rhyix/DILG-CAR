@@ -107,17 +107,30 @@
                         </td>
                         <td class="py-4 px-6 text-center w-[15%]">
                             @php
-                                $statusColor = 'bg-gray-300 text-gray-800';
+                                $statusClass = 'bg-gray-100 text-gray-800 border border-gray-400';
+                                $statusText  = 'Not Scheduled';
+                                $isOngoing   = false;
+
                                 if ($vacancy->exam_status === 'Scheduled') {
-                                    $statusColor = 'bg-blue-100 text-blue-800';
+                                    $statusClass = 'bg-blue-100 text-blue-800 border border-blue-400';
+                                    $statusText  = 'Exam Scheduled';
                                 } elseif ($vacancy->exam_status === 'Ongoing') {
-                                    $statusColor = 'bg-yellow-100 text-yellow-800';
+                                    $statusClass = 'bg-yellow-100 text-yellow-800 border border-yellow-400';
+                                    $statusText  = 'Exam in Progress';
+                                    $isOngoing   = true;
                                 } elseif ($vacancy->exam_status === 'Completed') {
-                                    $statusColor = 'bg-green-100 text-green-800';
+                                    $statusClass = 'bg-green-100 text-green-800 border border-green-400';
+                                    $statusText  = 'Exam Completed';
                                 }
                             @endphp
-                            <span class="px-2 py-1 rounded-full text-xs font-bold {{ $statusColor }}">
-                                {{ strtoupper($vacancy->exam_status) }}
+                            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold {{ $statusClass }}">
+                                @if($isOngoing)
+                                    <span class="relative flex h-2 w-2">
+                                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
+                                        <span class="relative inline-flex rounded-full h-2 w-2 bg-yellow-500"></span>
+                                    </span>
+                                @endif
+                                <span>{{ $statusText }}</span>
                             </span>
                         </td>
                         <td class="py-4 px-6 text-center w-[15%]">
@@ -208,13 +221,24 @@
             }
 
             vacancies.forEach(vacancy => {
-                let statusColor = 'bg-gray-100 text-gray-800';
+                let statusClass = 'bg-gray-100 text-gray-800 border border-gray-400';
+                let statusText  = 'Not Scheduled';
+                let pingHtml    = '';
+
                 if (vacancy.exam_status === 'Scheduled') {
-                    statusColor = 'bg-blue-100 text-blue-800';
+                    statusClass = 'bg-blue-100 text-blue-800 border border-blue-400';
+                    statusText  = 'Exam Scheduled';
                 } else if (vacancy.exam_status === 'Ongoing') {
-                    statusColor = 'bg-yellow-100 text-yellow-800';
+                    statusClass = 'bg-yellow-100 text-yellow-800 border border-yellow-400';
+                    statusText  = 'Exam in Progress';
+                    pingHtml = `
+                        <span class="relative flex h-2 w-2">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-2 w-2 bg-yellow-500"></span>
+                        </span>`;
                 } else if (vacancy.exam_status === 'Completed') {
-                    statusColor = 'bg-green-100 text-green-800';
+                    statusClass = 'bg-green-100 text-green-800 border border-green-400';
+                    statusText  = 'Exam Completed';
                 }
 
                 container.innerHTML += `
@@ -229,8 +253,8 @@
                         ${vacancy.vacancy_type}
                     </td>
                     <td class="py-4 px-6 text-center w-[15%]">
-                        <span class="px-2 py-1 rounded-full text-xs font-bold ${statusColor}">
-                            ${vacancy.exam_status.toUpperCase()}
+                        <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold ${statusClass}">
+                            ${pingHtml}${statusText}
                         </span>
                     </td>
                     <td class="py-4 px-6 text-center w-[15%]">

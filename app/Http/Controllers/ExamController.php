@@ -357,20 +357,7 @@ class ExamController extends Controller
         $jobVacancies->transform(function ($vacancy) {
             $status = 'Unscheduled';
             if ($vacancy->examDetail) {
-                $detail = $vacancy->examDetail;
-                if ($detail->date && $detail->time && $detail->duration) {
-                    $startDateTime = \Carbon\Carbon::parse($detail->date . ' ' . $detail->time);
-                    $endDateTime = $startDateTime->copy()->addMinutes($detail->duration);
-                    $now = now();
-
-                    if ($now->between($startDateTime, $endDateTime)) {
-                        $status = 'Ongoing';
-                    } elseif ($now->gt($endDateTime)) {
-                        $status = 'Completed';
-                    } else {
-                        $status = 'Scheduled';
-                    }
-                }
+                $status = $this->getExamStatus($vacancy->examDetail);
             }
             $vacancy->exam_status = $status;
             return $vacancy;
