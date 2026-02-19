@@ -213,10 +213,11 @@ Route::view('/about', 'dashboard_user.about')
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/my_applications', [JobVacancyController::class, 'myApplications'])->name('my_applications');
+    Route::get('/my-applications/sort', [JobVacancyController::class, 'sortMyApplications'])->name('my_applications.sort');
+    // User application status get route
+    Route::get('/application_status/{user}/{vacancy}', [JobVacancyController::class, 'applicationStatus'])->name('application_status');
+    Route::get('/application_status/{user}/{vacancy}/documents', [JobVacancyController::class, 'getUpdatedDocumentsUser'])->name('application_status.get_documents');
 });
-Route::get('/my-applications/sort', [JobVacancyController::class, 'sortMyApplications'])->name('my_applications.sort');
-// User application status get route
-Route::get('/application_status/{user}/{vacancy}', [JobVacancyController::class, 'applicationStatus'])->name('application_status');
 
 Route::get('/job-vacancies', [JobVacancyController::class, 'jobVacancy'])
     ->name('job_vacancy');
@@ -373,6 +374,7 @@ Route::middleware([RedirectIfNotAdmin::class])->group(function () {
     Route::get('/admin/applicant_status/{user_id}/{vacancy_id}', [AdminController::class, 'viewApplicantStatus'])->name('admin.applicant_status');
     Route::post('/admin/applicant_status/{user_id}/{vacancy_id}', [AdminController::class, 'updateApplicantStatus'])->name('admin.applicant_status.update');
     Route::post('/admin/applicant_status/{user_id}/{vacancy_id}/update-document', [AdminController::class, 'updateDocumentStatusAjax'])->name('admin.applicant_status.update_document');
+    Route::get('/admin/applicant_status/{user_id}/{vacancy_id}/documents', [AdminController::class, 'getUpdatedDocuments'])->name('admin.applicant_status.get_documents');
     Route::post('/admin/applicant_status/{user_id}/{vacancy_id}/update-remarks', [AdminController::class, 'updateApplicationRemarksAjax'])->name('admin.applicant_status.update_remarks');
     Route::post('/admin/applicant_status/{user_id}/{vacancy_id}/notify', [AdminController::class, 'notifyApplicant'])->name('admin.applicant_status.notify');
     Route::get('/admin/preview-document/{user_id}/{vacancy_id}/{document_type}', [AdminController::class, 'previewDocument'])->name('admin.preview_document');
@@ -576,8 +578,9 @@ Route::get('/mobile-locked', function () {
 
 // LIVE SERVER ROUTES
 Route::get('/preview-file/{path}', function ($path) {
-    // Decode: urldecode first (in case of double encoding or + issues), then base64
-    $decodedPath = base64_decode(urldecode($path));
+    // Decode: just base64 decode. urldecode is destructive to + symbols which are valid in base64.
+    // We assume the path parameter captures the raw segment.
+    $decodedPath = base64_decode($path);
 
     // Helper to return "No Document Submitted" view
     $noDocumentView = function () {

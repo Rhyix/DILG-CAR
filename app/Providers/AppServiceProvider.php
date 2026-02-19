@@ -118,6 +118,8 @@ class AppServiceProvider extends ServiceProvider
                     'notifiable_type' => 'App\Models\Admin',
                     'notifiable_id' => $admin->id,
                     'type' => 'info',
+                    'created_at' => now(),
+                    'updated_at' => now(),
                     'data' => [
                         'title' => $section,
                         'message' => $message,

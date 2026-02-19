@@ -246,8 +246,35 @@
 
       const submitAttempt = async () => {
         const formData = new FormData(form);
-        const csrfToken = form.querySelector('input[name="_token"]')?.value
+        let csrfToken = form.querySelector('input[name="_token"]')?.value
           || document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+        // If no CSRF token, try to fetch one
+        if (!csrfToken) {
+          try {
+            const tokenResponse = await fetch('/csrf-token', {
+              method: 'GET',
+              credentials: 'same-origin'
+            });
+            const tokenData = await tokenResponse.json();
+            csrfToken = tokenData.token;
+            if (csrfToken) {
+              formData.set('_token', csrfToken);
+              // Update meta tag
+              const metaTag = document.querySelector('meta[name="csrf-token"]');
+              if (metaTag) {
+                metaTag.setAttribute('content', csrfToken);
+              }
+            }
+          } catch (e) {
+            console.warn('Could not fetch fresh CSRF token:', e);
+          }
+        }
+
+        // Ensure CSRF token is included
+        if (csrfToken) {
+          formData.set('_token', csrfToken);
+        }
 
         try {
           const response = await fetch(action, {
@@ -256,6 +283,7 @@
             credentials: 'same-origin',
             headers: {
               'X-Requested-With': 'XMLHttpRequest',
+              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
               ...(csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : {})
             }
           });
@@ -281,6 +309,40 @@
 
           // If error, show it
           const html = await response.text();
+          
+          // Check for CSRF mismatch error
+          if (html.includes('CSRF token mismatch') || response.status === 419) {
+            // Try to refresh CSRF token and retry once
+            if (attempt === 0) {
+              try {
+                const tokenResponse = await fetch('/csrf-token', {
+                  method: 'GET',
+                  credentials: 'same-origin'
+                });
+                const tokenData = await tokenResponse.json();
+                const newToken = tokenData.token;
+                
+                if (newToken) {
+                  // Update all CSRF tokens on page
+                  document.querySelectorAll('input[name="_token"]').forEach(input => {
+                    input.value = newToken;
+                  });
+                  const metaTag = document.querySelector('meta[name="csrf-token"]');
+                  if (metaTag) {
+                    metaTag.setAttribute('content', newToken);
+                  }
+                  
+                  // Retry with new token
+                  attempt += 1;
+                  setTimeout(submitAttempt, 1000);
+                  return;
+                }
+              } catch (e) {
+                console.warn('Could not refresh CSRF token:', e);
+              }
+            }
+          }
+          
           document.open();
           document.write(html);
           document.close();

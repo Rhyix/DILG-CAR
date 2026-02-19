@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Forms;
 
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 use App\Models;
 use App\Models\MiscInfos;
 
@@ -216,6 +217,8 @@ class PDSController extends Controller
             'email_address' => 'required|email:rfc',
             'height' => 'required|integer|max:999',
             'weight' => 'required|integer|max:999',
+            'res_zipcode' => 'nullable|string|max:4',
+            'per_zipcode' => 'nullable|string|max:4',
             'elem_from' => 'required|date_format:d-m-Y',
             'elem_to' => 'required|date_format:d-m-Y',
             'jhs_from' => 'required|date_format:d-m-Y',
@@ -249,6 +252,8 @@ class PDSController extends Controller
             'height',
             'weight',
             'blood_type',
+            'res_zipcode',
+            'per_zipcode',
             'elem_from',
             'elem_to',
             'jhs_from',
@@ -1331,6 +1336,36 @@ class PDSController extends Controller
         try {
             return DB::transaction(function () use ($request, $uploaded_files, &$storedPaths, $go_to) {
                 $storedPaths = $this->c5StoreFilesToDB($uploaded_files);
+                
+                // Save declaration checkboxes to database - only if submitted from C5 form
+                if ($request->hasFile('cert_uploads')) {
+                    $declaration_data = [
+                        'user_id' => Auth::id(),
+                        'declaration' => $request->input('declaration', '0'),
+                        'consent' => $request->input('consent', '0'),
+                        'confirmation' => $request->input('confirmation', '0'),
+                    ];
+                    
+                    // Add validation for declaration fields
+                    $declaration_rules = [
+                        'declaration' => 'required|boolean',
+                        'consent' => 'required|boolean', 
+                        'confirmation' => 'required|boolean',
+                    ];
+                    
+                    // Validate declaration data
+                    $declaration_validator = validator($request->only(['declaration', 'consent', 'confirmation']), $declaration_rules);
+                    
+                    if ($declaration_validator->fails()) {
+                        Log::error('Declaration validation failed: ' . $declaration_validator->errors()->toJson());
+                        return back()->withErrors(['declaration' => 'Please check: declaration checkboxes to continue.']);
+                    }
+                    
+                    // Update or create misc info record
+                    $misc_info = MiscInfos::firstOrCreate(['user_id' => Auth::id()]);
+                    $misc_info->update($declaration_data);
+                }
+                
                 if (app()->environment('testing') && $request->boolean('simulate_failure')) {
                     throw new \RuntimeException('Simulated failure');
                 }
@@ -1407,6 +1442,9 @@ class PDSController extends Controller
                     'vocational' => [],
                     'college' => [],
                     'grad' => [],
+                    'declaration' => $request->input('declaration', '0'),
+                    'consent' => $request->input('consent', '0'),
+                    'confirmation' => $request->input('confirmation', '0'),
                 ], session('form.c1', []));
 
                 $dual_type_t = '';
@@ -1828,34 +1866,34 @@ class PDSController extends Controller
     {
         //dd($request->all());
         $request->validate([
-            'documents.*' => 'nullable|file|mimes:pdf|max:10240'
+            'cert_uploads.*' => 'nullable|file|mimes:pdf|max:10240'
         ], [
-            'documents.*.mimes' => 'Only PDF files are allowed.',
-            'documents.*.max' => 'Each file must be 10MB or smaller.',
+            'cert_uploads.*.mimes' => 'Only PDF files are allowed.',
+            'cert_uploads.*.max' => 'Each file must be 10MB or smaller.',
         ]);
 
         $uploaded_files = [];
         $upload_errors = [];
         foreach (UploadedDocument::DOCUMENTS as $doc_type) {
-            if (!$request->hasFile("documents.$doc_type")) {
+            if (!$request->hasFile("cert_uploads.$doc_type")) {
                 continue;
             }
 
-            $file = $request->file("documents.$doc_type");
+            $file = $request->file("cert_uploads.$doc_type");
             if (!$file->isValid()) {
-                $upload_errors["documents.$doc_type"] = 'Upload failed. Please try again.';
+                $upload_errors["cert_uploads.$doc_type"] = 'Upload failed. Please try again.';
                 continue;
             }
 
             [$is_valid, $message] = $this->validateUploadedFile($file, false);
             if (!$is_valid) {
-                $upload_errors["documents.$doc_type"] = $message;
+                $upload_errors["cert_uploads.$doc_type"] = $message;
                 continue;
             }
 
             [$scan_ok, $scan_message] = $this->scanUploadedFile($file);
             if (!$scan_ok) {
-                $upload_errors["documents.$doc_type"] = $scan_message;
+                $upload_errors["cert_uploads.$doc_type"] = $scan_message;
                 continue;
             }
 
@@ -1895,7 +1933,9 @@ class PDSController extends Controller
                         'message' => 'Applicant ' . Auth::user()->name . ' has updated their documents for review.',
                         'type' => 'warning',
                         'link' => route('admin.applicant_status', ['user_id' => $user_id, 'vacancy_id' => $vacancy_id]),
-                        'is_read' => false
+                        'is_read' => false,
+                        'created_at' => now(),
+                        'updated_at' => now()
                     ]);
                 }
 
@@ -1968,6 +2008,8 @@ class PDSController extends Controller
         $all_user_civil_service_eligibility = session('form.c2.all_user_civil_service_eligibility', []);
         return view('pds_update.c2_update', compact('all_user_work_exps', 'all_user_civil_service_eligibility'));
     }
+
+    
 
     public function c3DisplayUpdateForm()
     {

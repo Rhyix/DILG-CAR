@@ -464,6 +464,81 @@
             console.log("Documents from backend:", documents);
             renderDocuments(documents);
             updateDocumentUI();
+            
+            // Force immediate refresh on page load
+            setTimeout(async function() {
+                console.log('Forcing immediate refresh...');
+                try {
+                    const response = await fetch(`/application_status/{{ $user_id }}/{{ $vacancy_id }}/documents`, {
+                        method: 'GET',
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content'),
+                            'Accept': 'application/json'
+                        }
+                    });
+                    
+                    console.log('Immediate refresh - Response status:', response.status);
+                    console.log('Immediate refresh - Response ok:', response.ok);
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        console.log('Immediate refresh - Updated documents:', data);
+                        console.log('Document details:');
+                        data.documents?.forEach((doc, index) => {
+                            console.log(`Doc ${index}: ${doc.name} - Status: "${doc.status}" - ID: ${doc.id}`);
+                        });
+                        
+                        // Update documents array
+                        documents = data.documents || documents;
+                        
+                        // Re-render documents with new data
+                        renderDocuments(documents);
+                        updateDocumentUI();
+                    }
+                } catch (error) {
+                    console.error('Error in immediate refresh:', error);
+                }
+            }, 1000); // Force refresh after 1 second
+            
+            // Auto-refresh documents every 5 seconds
+            let refreshCount = 0;
+            setInterval(async function() {
+                refreshCount++;
+                console.log(`Auto-refresh attempt #${refreshCount}`);
+                try {
+                    console.log('Fetching documents from:', `/application_status/{{ $user_id }}/{{ $vacancy_id }}/documents`);
+                    const response = await fetch(`/application_status/{{ $user_id }}/{{ $vacancy_id }}/documents`, {
+                        method: 'GET',
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content'),
+                            'Accept': 'application/json'
+                        }
+                    });
+                    
+                    console.log('Response status:', response.status);
+                    console.log('Response ok:', response.ok);
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        console.log('Updated documents:', data);
+                        console.log('Document details:');
+                        data.documents?.forEach((doc, index) => {
+                            console.log(`Doc ${index}: ${doc.name} - Status: "${doc.status}" - ID: ${doc.id}`);
+                        });
+                        
+                        // Update documents array
+                        documents = data.documents || documents;
+                        
+                        // Re-render documents with new data
+                        renderDocuments(documents);
+                        updateDocumentUI();
+                    } else {
+                        console.error('Response not ok:', response.statusText);
+                    }
+                } catch (error) {
+                    console.error('Error fetching documents:', error);
+                }
+            }, 5000); // Check every 5 seconds
 
             // Auto-save remarks
             let remarksTimeout;

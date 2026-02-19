@@ -58,6 +58,12 @@ class AdminController extends Controller
         'cert_employment' => ['certificate_employment'],
         'grade_masteraldoctorate' => ['certificate_grades'],
         'tor_masteraldoctorate' => ['certified_tor'],
+        'ipcr' => ['performance_rating'],
+        'non_academic' => ['non_academic_awards'],
+        'cert_training' => ['certificates_participation'],
+        'designation_order' => ['designation_orders'],
+        'transcript_records' => ['transcript'],
+        'photocopy_diploma' => ['diploma'],
     ];
 
     public function __construct()
@@ -720,6 +726,28 @@ class AdminController extends Controller
         return response()->json(['success' => true]);
     }
 
+    /**
+     * Get updated documents for AJAX refresh
+     */
+    public function getUpdatedDocuments(Request $request, $user_id, $vacancy_id)
+    {
+        $application = Applications::where('user_id', $user_id)
+            ->where('vacancy_id', $vacancy_id)
+            ->first();
+            
+        $documents = $this->getApplicantDocuments($user_id, $application);
+        
+        return response()->json([
+            'documents' => $documents,
+            'application' => [
+                'status' => $application->status ?? 'Pending',
+                'file_last_modified_by' => $application->file_last_modified_by ?? null,
+                'deadline_date' => $application->deadline_date ?? null,
+                'deadline_time' => $application->deadline_time ?? null,
+            ]
+        ]);
+    }
+
     public function updateApplicationRemarksAjax(Request $request, $user_id, $vacancy_id)
     {
         $request->validate([
@@ -888,6 +916,8 @@ class AdminController extends Controller
             'notifiable_type' => 'App\Models\User',
             'notifiable_id' => $user_id,
             'type' => 'info',
+            'created_at' => now(),
+            'updated_at' => now(),
             'data' => [
                 'type' => 'application_overview',
                 'vacancy_id' => $vacancy_id,
@@ -944,6 +974,8 @@ class AdminController extends Controller
                 'notifiable_type' => 'App\Models\Admin',
                 'notifiable_id' => $admin->id,
                 'type' => 'info',
+                'created_at' => now(),
+                'updated_at' => now(),
                 'data' => [
                     'title' => 'Applicant Notified',
                     'message' => $actorName . ' notified ' . ($applicantName ?: 'Applicant'),

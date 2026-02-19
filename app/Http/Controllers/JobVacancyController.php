@@ -31,6 +31,12 @@ class JobVacancyController extends Controller
         'cert_employment' => ['certificate_employment'],
         'grade_masteraldoctorate' => ['certificate_grades'],
         'tor_masteraldoctorate' => ['certified_tor'],
+        'ipcr' => ['performance_rating'],
+        'non_academic' => ['non_academic_awards'],
+        'cert_training' => ['certificates_participation'],
+        'designation_order' => ['designation_orders'],
+        'transcript_records' => ['transcript'],
+        'photocopy_diploma' => ['diploma'],
     ];
     public function jobVacancy()
     {
@@ -663,47 +669,41 @@ class JobVacancyController extends Controller
                 continue;
 
             if ($docType === 'application_letter') {
-                if ($snapshotData) {
-                    $snapshotDoc = $snapshotDocumentsById->get('application_letter');
-                    if ($snapshotDoc) {
-                        $documents[] = $snapshotDoc;
-                        continue;
-                    }
-                }
+                // Always get from Applications table for live data
                 $documents[] = [ // Get from Applications table instead
                     'id' => 'application_letter',
                     'name' => $labelMap['application_letter'],
                     'text' => $labelMap['application_letter'],
-                    'status' => $application->file_storage_path ? 'Pending' : 'Not Submitted',
-                    //'preview' => $application->file_storage_path ? asset('storage/' . $application->file_storage_path) : '',
+                    'status' => $application->file_status ?? ($application->file_storage_path ? 'Pending' : 'Not Submitted'),
                     'preview' => $application->file_storage_path
                         ? url('/preview-file/' . base64_encode($application->file_storage_path))
                         : '',
-                    'remarks' => '',
-                    'last_modified_by' => null,
+                    'remarks' => $application->file_remarks ?? '',
+                    'last_modified_by' => $application->file_last_modified_by ?? null,
                     'isBold' => true,
                 ];
             } else {
-                if ($snapshotData) {
-                    $snapshotDoc = $snapshotDocumentsById->get($docType);
-                    if ($snapshotDoc) {
-                        $documents[] = $snapshotDoc;
-                        continue;
-                    }
-                }
+                // Always prioritize live data over snapshot
                 $doc = $this->resolveUploadedDocument($uploadedDocuments, $docType);
                 $hasFile = $doc && !empty($doc->storage_path) && $doc->storage_path !== 'NOINPUT';
-                $status = $hasFile ? 'Pending' : 'Not Submitted';
+                
+                $status = 'Not Submitted';
+                if ($doc) {
+                    if (!empty($doc->status)) {
+                        $status = $doc->status;
+                    } elseif ($hasFile) {
+                        $status = 'Pending';
+                    }
+                }
 
                 $documents[] = [
                     'id' => $docType,
                     'name' => $labelMap[$docType] ?? ucwords(str_replace('_', ' ', $docType)),
                     'text' => $labelMap[$docType] ?? ucwords(str_replace('_', ' ', $docType)),
                     'status' => $status,
-                    //'preview' => $doc ? asset('storage/' . $doc->storage_path) : '',
-                    'preview' => $hasFile ? url('/preview-file/' . base64_encode($doc->storage_path)) : '',
-                    'remarks' => '',
-                    'last_modified_by' => null,
+                    'preview' => ($doc && !empty($doc->storage_path)) ? url('/preview-file/' . base64_encode($doc->storage_path)) : '',
+                    'remarks' => $doc?->remarks ?? '',
+                    'last_modified_by' => $doc?->last_modified_by,
                     'isBold' => true,
                 ];
             }
@@ -779,8 +779,138 @@ class JobVacancyController extends Controller
             'displayQsResult',
             'displayDeadlineDate',
             'displayDeadlineTime',
-            'displayApplicationRemarks'
+            'displayApplicationRemarks',
+            'user_id',
+            'vacancy_id'
         ));
+    }
+
+    /**
+     * Get updated documents for AJAX refresh (user endpoint)
+     */
+    public function getUpdatedDocumentsUser(Request $request, $user_id, $vacancy_id)
+    {
+        // Debug logging
+        \Log::info("getUpdatedDocumentsUser called", [
+            'user_id' => $user_id,
+            'vacancy_id' => $vacancy_id,
+            'auth_user_id' => Auth::id(),
+            'method' => $request->method()
+        ]);
+        
+        $application = Applications::where('user_id', $user_id)
+            ->where('vacancy_id', $vacancy_id)
+            ->with(['personalInformation', 'vacancy'])
+            ->first();
+            
+        if (!$application) {
+            \Log::error("Application not found", ['user_id' => $user_id, 'vacancy_id' => $vacancy_id]);
+            return response()->json(['error' => 'Application not found'], 404);
+        }
+        
+        // Use the same logic as applicationStatus method
+        $snapshotNotification = \App\Models\Notification::where('notifiable_type', 'App\Models\User')
+            ->where('notifiable_id', $user_id)
+            ->where('data->type', 'application_overview')
+            ->where('data->vacancy_id', $vacancy_id)
+            ->latest()
+            ->first();
+        $snapshotData = $snapshotNotification?->data ?? null;
+        $snapshotDocumentsById = collect($snapshotData['documents'] ?? [])->keyBy('id');
+
+        $uploadedDocuments = UploadedDocument::where('user_id', $user_id)->get()->keyBy('document_type');
+        $documents = [];
+
+        // Debug: Log uploaded documents count
+        \Log::info("Uploaded documents found", ['count' => $uploadedDocuments->count()]);
+
+        $labelMap = [
+            'application_letter' => 'Application Letter',
+            'signed_pds' => 'Signed Personal Data Sheet',
+            'signed_work_exp_sheet' => 'Signed Work Experience Sheet',
+            'pqe_result' => 'Pre-Qualifying Exam (PQE) Result',
+            'cert_eligibility' => 'Certificate of Eligibility / Board Rating',
+            'ipcr' => 'Performance Rating/IPCR in the last period (if applicable)',
+            'non_academic' => 'Non-Academic Awards Received',
+            'cert_training' => 'Certificate/s of Training Attended/Participated relevant to the position being applied',
+            'designation_order' => 'List with Certified Photocopy of Duly Confirmed Designation Order/s',
+            'transcript_records' => 'Transcript of Records (Baccalaureate Degree)',
+            'photocopy_diploma' => 'Diploma',
+            'grade_masteraldoctorate' => 'Certified Photocopy of Certificate of Grades with Masteral/Doctorate Units Earned',
+            'tor_masteraldoctorate' => 'Certified Photocopy of TOR with Masteral/Doctorate Degree',
+            'cert_employment' => 'Certificate of Employment (If Any)',
+            'cert_lgoo_induction' => 'Certificate of Completion of LGOO Induction Training',
+            'passport_photo' => '2" x 2" or Passport Size Picture',
+            'other_documents' => 'Other Documents Submitted',
+        ];
+
+        foreach (UploadedDocument::DOCUMENTS as $docType) {
+            // Skip "isApproved" since it's not a document
+            if ($docType === 'isApproved')
+                continue;
+
+            if ($docType === 'application_letter') {
+                // Always get from Applications table for live data
+                $documents[] = [ // Get from Applications table instead
+                    'id' => 'application_letter',
+                    'name' => $labelMap['application_letter'],
+                    'text' => $labelMap['application_letter'],
+                    'status' => $application->file_status ?? ($application->file_storage_path ? 'Pending' : 'Not Submitted'),
+                    'preview' => $application->file_storage_path
+                        ? url('/preview-file/' . base64_encode($application->file_storage_path))
+                        : '',
+                    'remarks' => $application->file_remarks ?? '',
+                    'last_modified_by' => $application->file_last_modified_by ?? null,
+                    'isBold' => true,
+                ];
+            } else {
+                // Always prioritize live data over snapshot
+                $doc = $this->resolveUploadedDocument($uploadedDocuments, $docType);
+                $hasFile = $doc && !empty($doc->storage_path) && $doc->storage_path !== 'NOINPUT';
+                
+                // Debug: Log document details
+                \Log::info("Document check for {$docType} in getUpdatedDocumentsUser", [
+                    'doc_found' => $doc ? true : false,
+                    'has_file' => $hasFile,
+                    'storage_path' => $doc?->storage_path,
+                    'status' => $doc?->status,
+                    'last_modified_by' => $doc?->last_modified_by
+                ]);
+                
+                // Use actual status from database if document exists
+                $status = 'Not Submitted';
+                if ($doc) {
+                    if (!empty($doc->status)) {
+                        $status = $doc->status;
+                    } elseif ($hasFile) {
+                        $status = 'Pending';
+                    }
+                }
+
+                $documents[] = [
+                    'id' => $docType,
+                    'name' => $labelMap[$docType] ?? ucwords(str_replace('_', ' ', $docType)),
+                    'text' => $labelMap[$docType] ?? ucwords(str_replace('_', ' ', $docType)),
+                    'status' => $status,
+                    'preview' => ($doc && !empty($doc->storage_path)) ? url('/preview-file/' . base64_encode($doc->storage_path)) : '',
+                    'remarks' => $doc?->remarks ?? '',
+                    'last_modified_by' => $doc?->last_modified_by,
+                    'isBold' => true,
+                ];
+            }
+        }
+        
+        \Log::info("Final documents array in getUpdatedDocumentsUser", ['count' => count($documents)]);
+        
+        return response()->json([
+            'documents' => $documents,
+            'application' => [
+                'status' => $application->status ?? 'Pending',
+                'file_last_modified_by' => $application->file_last_modified_by ?? null,
+                'deadline_date' => $application->deadline_date ?? null,
+                'deadline_time' => $application->deadline_time ?? null,
+            ]
+        ]);
     }
 
     private function resolveUploadedDocument($uploadedDocuments, string $docType): ?UploadedDocument

@@ -698,7 +698,11 @@
         // Clear dependent field from state
         writeState('per_brgy', '');
         loadBarangays(code, perBrgy, null); 
-        setZipByCityCode(code, 'per_zipcode'); 
+        // Only set zip if field is empty
+        const perZipInput = document.querySelector('#per_zipcode');
+        if (perZipInput && (!perZipInput.value || perZipInput.value.trim() === '')) {
+            setZipByCityCode(code, 'per_zipcode'); 
+        }
     });
     perBrgy.addEventListener('change', e => {
         writeState('per_brgy', perBrgy.value);
@@ -719,13 +723,24 @@
         // Clear dependent field from state
         writeState('res_brgy', '');
         loadBarangays(code, resBrgy, null); 
-        setZipByCityCode(code, 'res_zipcode'); 
+        const resZipInput = document.querySelector('#res_zipcode');
+        if (resZipInput && (!resZipInput.value || resZipInput.value.trim() === '')) {
+            setZipByCityCode(code, 'res_zipcode'); 
+        }
     });
     resBrgy.addEventListener('change', e => {
         writeState('res_brgy', resBrgy.value);
     });
     function setZipByCityCode(cityCode, zipInputId) {
         if (!cityCode) return;
+        const zipInput = document.querySelector('#' + zipInputId);
+        if (!zipInput) return;
+        
+        // Don't overwrite if user has already entered a value
+        if (zipInput.value && zipInput.value.trim() !== '') {
+            return;
+        }
+        
         fetch(api + '/cities-municipalities/' + cityCode)
             .then(r => r.ok ? r.json() : Promise.reject())
             .then(obj => {
@@ -742,11 +757,10 @@
                 return zip;
             })
             .then(zip => {
-                const el = document.querySelector('#' + zipInputId);
-                if (el) {
-                    el.value = zip || '';
-                    el.readOnly = !!zip;
-                    el.dispatchEvent(new Event('change'));
+                if (zip && zip.trim() !== '') {
+                    zipInput.value = zip;
+                    zipInput.readOnly = true;
+                    zipInput.dispatchEvent(new Event('change'));
                 }
             })
             .catch(() => {});
@@ -764,8 +778,12 @@
                 perBrgy.value = resBrgy.value;
                 const resZip = document.querySelector('#res_zipcode');
                 const perZip = document.querySelector('#per_zipcode');
-                perZip.value = resZip.value;
-                perZip.readOnly = resZip.readOnly;
+                if (resZip && perZip) {
+                    perZip.value = resZip.value;
+                    perZip.readOnly = resZip.readOnly;
+                    // Trigger change event to save to localStorage
+                    perZip.dispatchEvent(new Event('change'));
+                }
             }, 400);
         }, 400);
     });
@@ -790,6 +808,32 @@
                 if(!radioVal('dual_type')) ok=false;
                 const dc=document.getElementById('dual_country'); if(!dc || !dc.value.trim()) ok=false;
             }
+            
+            // Check if we're in simple mode (preview should be available with basic info)
+            const urlParams = new URLSearchParams(window.location.search);
+            const isSimpleMode = urlParams.get('simple') === '1';
+            
+            // In simple mode, only require basic personal info fields
+            if (isSimpleMode) {
+                const basicFields = ['surname', 'first_name', 'date_of_birth', 'sex', 'civil_status'];
+                let basicOk = true;
+                
+                basicFields.forEach(fieldName => {
+                    const field = document.querySelector(`[name="${fieldName}"]`);
+                    if (field) {
+                        if (field.type === 'radio') {
+                            if (!document.querySelector(`input[name="${fieldName}"]:checked`)) {
+                                basicOk = false;
+                            }
+                        } else if (!field.value || !field.value.trim()) {
+                            basicOk = false;
+                        }
+                    }
+                });
+                
+                return basicOk;
+            }
+            
             return ok;
         }
         function updatePreviewBtn(){

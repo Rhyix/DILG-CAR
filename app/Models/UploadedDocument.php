@@ -40,6 +40,7 @@ class UploadedDocument extends Model
         'file_size_8b',
         'status',
         'remarks',
+        'last_modified_by',
     ];
 
     public function user()
