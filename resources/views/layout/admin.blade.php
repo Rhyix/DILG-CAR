@@ -152,11 +152,11 @@
                         setTimeout(() => feather.replace(), 100); 
                     });
                     refreshCount();
-                    // Faster auto-refresh every 5s
+                    // Refresh every 15s to reduce constant background load.
                     setInterval(() => {
                         refreshCount();
                         if (open) { refreshList(); }
-                    }, 5000);
+                    }, 15000);
                     // Also refresh on window focus
                     window.addEventListener('focus', () => { refreshCount(); if (open) { refreshList(); } });
                 ">
