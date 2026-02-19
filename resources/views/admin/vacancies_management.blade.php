@@ -326,55 +326,6 @@
             </div>
 
             <!-- template Button -->
-            <div x-data="{ open: false }" class="relative">
-                <button
-                    @click="open = !open"
-                    class="font-semibold flex items-center px-4 py-2 bg-white text-[#0D2B70] rounded-md hover:bg-[#0D2B70]  transition whitespace-nowrap
-                            hover:text-white hover:shadow-md border border-[#0D2B70]"
-                        >
-                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M7 3h7l5 5v13a1 1 0 01-1 1H7a1 1 0 01-1-1V4a1 1 0 011-1z"></path>
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M14 3v5h5"></path>
-                        </svg>
-                        Template
-                    <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" stroke-width="2"
-                        viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path>
-                    </svg>
-                </button>
-                <div
-                    x-show="open"
-                    x-cloak
-                    @click.away="open = false"
-                    x-transition
-                    class="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-lg z-50"
-                >
-                    @include('partials.alerts_template', [
-                        'id' => 'downloadCOS',
-                        'showTrigger' => true,
-                        'triggerText' => 'Download COS template',
-                        'triggerClass' => 'block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold text-left',
-                        'title' => 'Download Confirmation',
-                        'message' => 'Download the COS vacancy template?',
-                        'showCancel' => true,
-                        'cancelText' => 'Cancel',
-                        'okText' => 'Download',
-                        'okAction' => "window.location.href='" . route('downloadCOSTemplate') . "'",
-                    ])
-                    @include('partials.alerts_template', [
-                        'id' => 'downloadPlantilla',
-                        'showTrigger' => true,
-                        'triggerText' => 'Download Plantilla template',
-                        'triggerClass' => 'block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold text-left',
-                        'title' => 'Download Confirmation',
-                        'message' => 'Download the Plantilla vacancy template?',
-                        'showCancel' => true,
-                        'cancelText' => 'Cancel',
-                        'okText' => 'Download',
-                        'okAction' => "window.location.href='" . route('downloadPlantillaTemplate') . "'",
-                    ])
-                </div>
-            </div>
     </section>
 
     @if(session('success'))

@@ -93,7 +93,7 @@ class AppServiceProvider extends ServiceProvider
                     if (str_starts_with((string) $key, 'document_') && is_array($chg)) {
                         if (isset($chg['status']['new'])) {
                             $newStatus = (string) $chg['status']['new'];
-                            if (in_array($newStatus, ['Verified', 'Okay/Confirmed', 'Needs Revision', 'Disapproved With Deficiency'])) {
+                            if (in_array($newStatus, ['Verified', 'Needs Revision'])) {
                                 $category = 'document_verification';
                                 break;
                             }
@@ -102,10 +102,8 @@ class AppServiceProvider extends ServiceProvider
                 }
             }
             if (!$category && $section === 'Exam Management') {
-                if (in_array($eventName, ['start', 'save'])) {
+                if (in_array($eventName, ['start', 'notify_schedule'])) {
                     $category = 'exam_lifecycle';
-                } elseif (in_array($eventName, ['create', 'update'])) {
-                    $category = 'exam_questions';
                 }
             }
             if (!$category) {
