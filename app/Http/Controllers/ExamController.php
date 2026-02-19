@@ -175,10 +175,10 @@ class ExamController extends Controller
         
         $now = now();
         
-        if ($now->between($startDateTime, $endDateTime)) {
-            return 'Ongoing';
-        } elseif ($now->gt($endDateTime)) {
+        if ($now->gt($endDateTime)) {
             return 'Completed';
+        } elseif ($exam->is_started || $now->between($startDateTime, $endDateTime)) {
+            return 'Ongoing';
         } else {
             return 'Scheduled';
         }

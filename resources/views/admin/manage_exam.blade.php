@@ -31,25 +31,32 @@
             $questionsCount = \App\Models\ExamItems::where('vacancy_id', $vacancy->vacancy_id)->count();
             $hasQuestions = $questionsCount > 0;
 
-            if(isset($examDetails->date) && isset($examDetails->time) && isset($examDetails->duration)) {
+            if(isset($examDetails->date) && isset($examDetails->time)) {
                  $startDateTime = \Carbon\Carbon::parse($examDetails->date . ' ' . $examDetails->time);
-                 $endDateTime = $startDateTime->copy()->addMinutes($examDetails->duration);
+                 
+                 // Use time_end if available, otherwise fallback to duration
+                 if (isset($examDetails->time_end)) {
+                     $endDateTime = \Carbon\Carbon::parse($examDetails->date . ' ' . $examDetails->time_end);
+                 } else {
+                     $endDateTime = $startDateTime->copy()->addMinutes($examDetails->duration ?? 0);
+                 }
+                 
                  $now = now();
                  $isExamDay = \Carbon\Carbon::parse($examDetails->date)->isSameDay($now);
                  $isBeforeStart = $now->lt($startDateTime);
                  $oneHourBefore = $startDateTime->copy()->subHour();
                  $isWithinOneHourBeforeStart = $now->between($oneHourBefore, $startDateTime);
 
-                 if ($now->between($startDateTime, $endDateTime)) {
-                     // Current time is between start and end
-                     $isExamActive = true;
-                     $statusMessage = 'Exam in Progress';
-                     $statusClass = 'bg-yellow-100 text-yellow-800 border-yellow-400';
-                 } elseif ($now->gt($endDateTime)) {
+                 if ($now->gt($endDateTime)) {
                      // Current time is after end time
                      $isExamCompleted = true; // Set completed flag
                      $statusMessage = 'Exam Completed';
                      $statusClass = 'bg-green-100 text-green-800 border-green-400';
+                 } elseif (($examDetails->is_started ?? false) || $now->between($startDateTime, $endDateTime)) {
+                     // Exam is explicitly started OR current time is within window
+                     $isExamActive = true;
+                     $statusMessage = 'Exam in Progress';
+                     $statusClass = 'bg-yellow-100 text-yellow-800 border-yellow-400';
                  } elseif ($now->lt($startDateTime)) {
                      // Current time is before start time (Future)
                      $statusMessage = 'Exam Scheduled';
