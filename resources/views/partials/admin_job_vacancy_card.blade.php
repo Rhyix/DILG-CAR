@@ -17,7 +17,7 @@
     <p class="text-[#0D2B70]/70 text-[0.9rem] italic">{{ $vacancy->vacancy_type }}</p>
   </td>
   <td class="py-4 px-6 w-[15%]">₱{{ number_format($vacancy->monthly_salary, 2) }}</td>
-  <td class="py-4 px-6 w-[15%]">{{ \Carbon\Carbon::parse($vacancy->closing_date)->subMinute()->format('n/j/Y g:i A') }}</td>
+  <td class="py-4 px-6 w-[15%]">{{ \Carbon\Carbon::parse($vacancy->closing_date)->format('F j, Y') }}</td>
   <td class="py-4 px-6 w-[15%]">{{ $vacancy->place_of_assignment }}</td>
   <td class="py-4 px-6 text-center w-[10%]">
     <div class="flex justify-center items-center gap-3 font-normal">

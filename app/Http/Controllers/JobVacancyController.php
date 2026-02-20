@@ -201,7 +201,7 @@ class JobVacancyController extends Controller
             'vacancy_type' => 'required|in:COS,Plantilla',
             'pcn_no' => 'nullable|string',
             'plantilla_item_no' => 'nullable|string',
-            'closing_date' => 'required|date',
+            'closing_date' => 'required|date|after_or_equal:today',
             'status' => 'nullable|in:OPEN,CLOSED',
             'monthly_salary' => 'required|numeric',
             'salary_grade' => 'nullable|string',

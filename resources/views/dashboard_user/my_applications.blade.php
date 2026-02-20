@@ -24,13 +24,44 @@
                 </h1>
             </section>
             
-            <div class="flex flex-row gap-4 sort-section-mobile justify-end">
-                <p class="text-lg font-bold font-montserrat text-black-600 ml-3 sm:ml-0">SORT</p>
-                <select id="sortMyApplications" class="border border-gray-300 rounded-lg border-2 border-red-400 px-4 py-1 sm:py-2 text-xs sm:text-sm font-montserrat">
-                    <option value="latest">LATEST</option>
-                    <option value="oldest">OLDEST</option>
-                </select>
+        <div class="flex-none flex flex-row gap-4 sort-section-mobile justify-end mb-4 mr-5">
+            <div x-data="{ open: false }" class="relative">
+                <button
+                    @click="open = !open"
+                    class="font-semibold flex items-center px-4 py-2 bg-white text-[#0D2B70] rounded-md hover:bg-[#0D2B70] transition whitespace-nowrap hover:text-white hover:shadow-md border border-[#0D2B70]"
+                >
+                    <span>SORT: </span>
+                    <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </button>
+                
+                <div
+                    x-show="open"
+                    x-cloak
+                    @click.away="open = false"
+                    x-transition
+                    class="absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded-xl shadow-lg z-50"
+                >
+                    <a href="#" 
+                    @click.prevent="document.getElementById('sortMyApplications').value = 'latest'; open = false;"
+                    class="block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold">
+                        LATEST
+                    </a>
+                    <a href="#"
+                    @click.prevent="document.getElementById('sortMyApplications').value = 'oldest'; open = false;"
+                    class="block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold">
+                        OLDEST
+                    </a>
+                </div>
             </div>
+            
+            <!-- Keep your original select (now visually hidden but functional) -->
+            <select id="sortMyApplications" class="sr-only">
+                <option value="latest">LATEST</option>
+                <option value="oldest">OLDEST</option>
+            </select>
+        </div>
             
             <!-- Application List -->
             <section id="applicationListContainer" class="space-y-6 application-list-mobile">

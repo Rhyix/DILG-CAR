@@ -15,7 +15,7 @@
         }
     </style>
 </head>
-<body class="bg-[#F3F8FF] text-gray-900">
+<body class="bg-[#F3F8FF] text-gray-900 h-screen overflow-hidden flex flex-col">
     <!-- Modal Overlay - Hidden by default -->
     <div id="documentsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden modal-transition">
         <div class="bg-white rounded-2xl max-w-2xl w-full mx-4 shadow-2xl transform transition-all">
@@ -32,6 +32,35 @@
             
             <!-- Modal Body -->
             <div class="p-6">
+                <div class="mb-6">
+                    <h4 class="font-bold text-[#0D2B70] mb-3 flex items-center gap-2">
+                        <i data-feather="check-circle" class="w-5 h-5"></i>
+                        Qualification Standards
+                    </h4>
+                    <div class="bg-gray-50 rounded-xl p-4 space-y-3 text-sm">
+                        <div class="grid grid-cols-[120px_1fr] gap-2">
+                            <span class="font-semibold text-gray-700">Education:</span>
+                            <span class="text-gray-600" id="modalEducation"></span>
+                        </div>
+                        <div class="grid grid-cols-[120px_1fr] gap-2">
+                            <span class="font-semibold text-gray-700">Training:</span>
+                            <span class="text-gray-600" id="modalTraining"></span>
+                        </div>
+                        <div class="grid grid-cols-[120px_1fr] gap-2">
+                            <span class="font-semibold text-gray-700">Experience:</span>
+                            <span class="text-gray-600" id="modalExperience"></span>
+                        </div>
+                        <div class="grid grid-cols-[120px_1fr] gap-2">
+                            <span class="font-semibold text-gray-700">Eligibility:</span>
+                            <span class="text-gray-600" id="modalEligibility"></span>
+                        </div>
+                        <div class="grid grid-cols-[120px_1fr] gap-2" id="modalCompetencyContainer">
+                            <span class="font-semibold text-gray-700">Competency:</span>
+                            <span class="text-gray-600" id="modalCompetency"></span>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="mb-4">
                     <h4 class="font-bold text-[#0D2B70] mb-3 flex items-center gap-2">
                         <i data-feather="file-text" class="w-5 h-5"></i>
@@ -78,13 +107,13 @@
         </div>
     </div>
 
-    <header class="relative overflow-hidden">
+    <header class="relative overflow-hidden flex-1">
         <div class="absolute inset-0 bg-gradient-to-br from-[#0D2B70] via-[#17439e] to-[#002C76] opacity-95"></div>
-        <div class="relative max-w-7xl mx-auto px-6 py-10">
-            <nav class="flex items-center justify-between">
+        <div class="relative max-w-7xl mx-auto px-6 py-6 h-full flex flex-col">
+            <nav class="flex items-center justify-between flex-none">
                 <div class="flex items-center gap-3">
-                    <img src="{{ asset('images/dilg_logo.png') }}" alt="DILG" class="h-10 w-10 rounded-full border border-white/30">
-                    <span class="text-white font-bold tracking-wide">DILG - CAR</span>
+                    <img src="{{ asset('images/dilg_logo.png') }}" alt="DILG" class="h-12 w-12 rounded-full border border-white/30">
+                    <span class="text-white text-2xl font-bold tracking-wide">DILG - CAR</span>
                 </div>
                 <div class="flex items-center gap-3">
                     <a href="{{ route('login.form') }}" class="text-white/90 hover:text-white font-semibold">Sign In</a>
@@ -94,39 +123,38 @@
                     </a>
                 </div>
             </nav>
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 mt-12 items-center">
-                <div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 flex-1 content-center items-center">
+                <div class="space-y-6">
                     <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white leading-tight">
                         Build Your Career in Public Service
                     </h1>
-                    <p class="mt-5 text-white/90 text-sm sm:text-base">
+                    <p class="text-white/90 text-sm sm:text-base">
                         Explore openings, track your application, and take examinations online. Join us in strengthening local governance across the Cordillera.
                     </p>
-                    <div class="mt-8 flex flex-wrap gap-3">
-                        <a href="{{ route('job_vacancy') }}" class="inline-flex items-center gap-2 bg-white text-[#0D2B70] px-5 py-2.5 rounded-full font-bold shadow hover:shadow-md">
-                            <i data-feather="briefcase" class="w-5 h-5"></i>
-                            Browse Vacancies
-                        </a>
-                        <a href="{{ route('about') }}" class="inline-flex items-center gap-2 bg-transparent border border-white/50 text-white px-5 py-2.5 rounded-full font-bold hover:bg-white/10">
-                            <i data-feather="info" class="w-5 h-5"></i>
-                            Learn More
-                        </a>
-                    </div>
-                    <div class="mt-6 flex items-center gap-6 text-white/80">
-                        <div class="flex items-center gap-2">
-                            <i data-feather="check-circle" class="w-5 h-5"></i>
-                            Secure Online Application
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <i data-feather="clock" class="w-5 h-5"></i>
-                            Real-time Status Tracking
+                    <div class="bg-gradient-to-br w-[100%] from-white to-blue-50 border border-[#0D2B70]/20 rounded-2xl p-6 sm:p-8">
+                        <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+                            <div>
+                                <div class="text-xl md:text-2xl font-bold text-[#0D2B70]">Start your application today</div>
+                                <div class="text-gray-600 mt-1 text-sm">Sign in or create an account to begin.</div>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <a href="{{ route('login.form') }}" class="inline-flex items-center gap-2 bg-[#0D2B70] text-white px-5 py-2.5 rounded-full w-[100%] font-bold shadow hover:shadow-md">
+                                    <i data-feather="log-in" class="w-5 h-5"></i>
+                                    Sign In
+                                </a>
+                                <a href="{{ route('register.form') }}" class="inline-flex items-center gap-2 bg-white border border-[#0D2B70] text-[#0D2B70] px-5 py-2.5 rounded-full font-bold hover:bg-blue-50">
+                                    <i data-feather="user-plus" class="w-5 h-5"></i>
+                                    Create Account
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>
+
                 <div class="hidden lg:block">
                     <div class="relative">
                         <div class="absolute -inset-6 bg-white/10 blur-2xl rounded-3xl"></div>
-                        <div class="relative bg-white rounded-3xl shadow-2xl p-6">
+                        <div class="relative bg-white w-[125%] rounded-3xl shadow-2xl p-6">
                             <div class="flex items-center justify-between">
                                 <div class="font-bold text-[#0D2B70]">Featured Openings</div>
                                 <a href="{{ route('job_vacancy') }}" class="text-sm text-[#0D2B70] font-semibold hover:underline">View all</a>
@@ -160,55 +188,8 @@
         </div>
     </header>
     
-    <section class="max-w-7xl mx-auto px-6 py-14">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div class="bg-white rounded-xl border border-[#0D2B70]/20 shadow-sm p-6">
-                <div class="w-12 h-12 rounded-lg bg-[#0D2B70]/10 text-[#0D2B70] flex items-center justify-center">
-                    <i data-feather="edit-3" class="w-6 h-6"></i>
-                </div>
-                <div class="mt-4 font-bold text-[#0D2B70]">Create Your Account</div>
-                <div class="mt-1 text-sm text-gray-600">Register to manage your application, upload PDS, and receive exam notifications.</div>
-            </div>
-            <div class="bg-white rounded-xl border border-[#0D2B70]/20 shadow-sm p-6">
-                <div class="w-12 h-12 rounded-lg bg-[#0D2B70]/10 text-[#0D2B70] flex items-center justify-center">
-                    <i data-feather="briefcase" class="w-6 h-6"></i>
-                </div>
-                <div class="mt-4 font-bold text-[#0D2B70]">Apply to Vacancies</div>
-                <div class="mt-1 text-sm text-gray-600">Browse openings and submit applications tailored to your qualifications.</div>
-            </div>
-            <div class="bg-white rounded-xl border border-[#0D2B70]/20 shadow-sm p-6">
-                <div class="w-12 h-12 rounded-lg bg-[#0D2B70]/10 text-[#0D2B70] flex items-center justify-center">
-                    <i data-feather="monitor" class="w-6 h-6"></i>
-                </div>
-                <div class="mt-4 font-bold text-[#0D2B70]">Take Online Exams</div>
-                <div class="mt-1 text-sm text-gray-600">Receive links, take exams within scheduled windows, and track results.</div>
-            </div>
-        </div>
-    </section>
-    
-    <section class="max-w-7xl mx-auto px-6 pb-16">
-        <div class="bg-gradient-to-br from-white to-blue-50 border border-[#0D2B70]/20 rounded-2xl p-8">
-            <div class="flex flex-col md:flex-row items-center justify-between gap-6">
-                <div>
-                    <div class="text-xl md:text-2xl font-bold text-[#0D2B70]">Start your application today</div>
-                    <div class="text-gray-600 mt-1 text-sm">Sign in or create an account to begin.</div>
-                </div>
-                <div class="flex items-center gap-3">
-                    <a href="{{ route('login.form') }}" class="inline-flex items-center gap-2 bg-[#0D2B70] text-white px-5 py-2.5 rounded-full font-bold shadow hover:shadow-md">
-                        <i data-feather="log-in" class="w-5 h-5"></i>
-                        Sign In
-                    </a>
-                    <a href="{{ route('register.form') }}" class="inline-flex items-center gap-2 bg-white border border-[#0D2B70] text-[#0D2B70] px-5 py-2.5 rounded-full font-bold hover:bg-blue-50">
-                        <i data-feather="user-plus" class="w-5 h-5"></i>
-                        Create Account
-                    </a>
-                </div>
-            </div>
-        </div>
-    </section>
-    
-    <footer class="border-t border-gray-200">
-        <div class="max-w-7xl mx-auto px-6 py-8 text-sm text-gray-600 flex flex-col sm:flex-row items-center justify-between gap-3">
+    <footer class="border-t border-gray-200 flex-none bg-[#F3F8FF] relative z-10">
+        <div class="max-w-7xl mx-auto px-6 py-6 text-sm text-gray-600 flex flex-col sm:flex-row items-center justify-between gap-3">
             <div>© {{ date('Y') }} DILG - CAR</div>
             <div class="flex items-center gap-4">
                 <a href="{{ route('job_vacancy') }}" class="text-[#0D2B70] font-semibold hover:underline">Vacancies</a>
@@ -226,6 +207,20 @@
             // Set modal title
             document.getElementById('modalJobTitle').textContent = job.position_title;
             document.getElementById('modalVacancyType').textContent = job.vacancy_type + ' Position';
+            
+            // Set qualification standards
+            document.getElementById('modalEducation').textContent = job.qualification_education || 'N/A';
+            document.getElementById('modalTraining').textContent = job.qualification_training || 'N/A';
+            document.getElementById('modalExperience').textContent = job.qualification_experience || 'N/A';
+            document.getElementById('modalEligibility').textContent = job.qualification_eligibility || 'N/A';
+            
+            const competencyContainer = document.getElementById('modalCompetencyContainer');
+            if (job.competencies) {
+                document.getElementById('modalCompetency').textContent = job.competencies;
+                competencyContainer.style.display = 'grid';
+            } else {
+                competencyContainer.style.display = 'none';
+            }
             
             // Set required documents based on vacancy type
             const documentsList = document.getElementById('requiredDocumentsList');
@@ -278,7 +273,7 @@
             modal.classList.add('hidden');
             
             // Restore body scrolling
-            document.body.style.overflow = 'auto';
+            document.body.style.overflow = '';
         }
         
         // Close modal when clicking outside

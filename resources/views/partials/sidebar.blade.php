@@ -23,7 +23,7 @@
     </style>
 
     <!-- Toggle Button -->
-    <button id="toggleSidebar" class="p-2 focus:outline-none absolute top-3 left-3 z-20" aria-label="Toggle sidebar">
+    <button id="toggleSidebar" class="p-2 focus:outline-none absolute top-3 right-3 z-20" aria-label="Toggle sidebar">
         <i data-feather="menu" class="w-5 h-5 stroke-[3]"></i>
     </button>
 
@@ -190,7 +190,7 @@
         });
 
         // Ensure sidebar stays open and allow scroll when PDS submenu is open
-        const sidebarEl = document.getElementById('sidebar');
+        const sidebar = document.getElementById('sidebar');
         const toggleButton = document.getElementById('toggleSidebar');
         const logo = document.querySelector('img[alt="DILG Logo"]');
         const textElements = [
@@ -199,20 +199,24 @@
         ].map(id => document.getElementById(id));
 
         const isSimple = {{ $simple ? 'true' : 'false' }};
+        let storedState = localStorage.getItem('userSidebarOpen');
+        let isOpen = storedState === null ? true : storedState === 'true';
 
-        function openSidebarLocal() {
-            sidebarEl?.classList.remove('w-16');
-            sidebarEl?.classList.add('w-72');
+        function openSidebar() {
+            sidebar?.classList.remove('w-16');
+            sidebar?.classList.add('w-72');
             logo?.classList.remove('logo-small');
             textElements.forEach(el => {
                 el?.classList.remove('sidebar-text-hidden');
                 el?.classList.add('sidebar-text-visible');
             });
+            isOpen = true;
+            localStorage.setItem('userSidebarOpen', 'true');
         }
 
-        function closeSidebarLocal() {
-            sidebarEl?.classList.remove('w-72');
-            sidebarEl?.classList.add('w-16');
+        function closeSidebar() {
+            sidebar?.classList.remove('w-72');
+            sidebar?.classList.add('w-16');
             logo?.classList.add('logo-small');
             if (!isSimple) {
                 textElements.forEach(el => {
@@ -220,19 +224,24 @@
                     el?.classList.add('sidebar-text-hidden');
                 });
             }
+            isOpen = false;
+            localStorage.setItem('userSidebarOpen', 'false');
         }
 
         if (isSimple) {
-            openSidebarLocal();
-            sidebarEl?.classList.add('overflow-y-auto');
+            sidebar?.classList.add('overflow-y-auto');
         }
 
         toggleButton?.addEventListener('click', () => {
-            if (sidebarEl?.classList.contains('w-72')) {
-                closeSidebarLocal();
-            } else {
-                openSidebarLocal();
-            }
+            isOpen ? closeSidebar() : openSidebar();
         });
+
+        if (window.innerWidth >= 1024) {
+            if (isOpen) {
+                openSidebar();
+            } else {
+                closeSidebar();
+            }
+        }
     });
 </script>
