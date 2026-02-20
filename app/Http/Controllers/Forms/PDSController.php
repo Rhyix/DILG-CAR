@@ -1238,7 +1238,26 @@ class PDSController extends Controller
         $documents = $documentCollection->keyBy('document_type');
 
         // ✅ Fix the quote in the view name
-        return view('pds.c5', compact('documents'));
+        $latestApplication = Applications::where('user_id', $user->id)
+            ->with('vacancy')
+            ->latest()
+            ->first();
+        $hasExistingApplicationLetter = Applications::where('user_id', $user->id)
+            ->whereNotNull('file_storage_path')
+            ->exists();
+
+        $defaultDocTrack = request('doc_track');
+        if (!in_array($defaultDocTrack, ['COS', 'Plantilla'], true)) {
+            $defaultDocTrack = $latestApplication?->vacancy?->vacancy_type;
+        }
+        if (!in_array($defaultDocTrack, ['COS', 'Plantilla'], true)) {
+            $defaultDocTrack = 'Plantilla';
+        }
+
+        $requiredDocsByTrack = $this->getRequiredDocsByTrack();
+        $documentLabels = $this->getDocumentLabelMap();
+
+        return view('pds.c5', compact('documents', 'defaultDocTrack', 'requiredDocsByTrack', 'documentLabels', 'hasExistingApplicationLetter'));
     }
 
 
@@ -1253,6 +1272,45 @@ class PDSController extends Controller
      */
     public function finalizePDS(Request $request, $go_to)
     {
+        $docTrack = $request->input('doc_track', 'Plantilla');
+        if (!in_array($docTrack, ['COS', 'Plantilla'], true)) {
+            $docTrack = 'Plantilla';
+        }
+        $requiredDocsByTrack = $this->getRequiredDocsByTrack();
+        $requiredDocs = $requiredDocsByTrack[$docTrack];
+        $documentLabels = $this->getDocumentLabelMap();
+
+        $existingDocs = UploadedDocument::where('user_id', Auth::id())
+            ->whereIn('document_type', $requiredDocs)
+            ->whereNotNull('storage_path')
+            ->pluck('document_type')
+            ->all();
+        $existingDocLookup = array_fill_keys($existingDocs, true);
+
+        // Count previously uploaded application letter from Applications records as existing.
+        if (in_array('application_letter', $requiredDocs, true) && !isset($existingDocLookup['application_letter'])) {
+            $hasApplicationLetter = Applications::where('user_id', Auth::id())
+                ->whereNotNull('file_storage_path')
+                ->exists();
+            if ($hasApplicationLetter) {
+                $existingDocLookup['application_letter'] = true;
+            }
+        }
+
+        $missingRequiredDocs = [];
+        foreach ($requiredDocs as $docType) {
+            if (!$request->hasFile("cert_uploads.$docType") && !isset($existingDocLookup[$docType])) {
+                $missingRequiredDocs[] = $docType;
+            }
+        }
+        if (!empty($missingRequiredDocs)) {
+            $errors = [];
+            foreach ($missingRequiredDocs as $docType) {
+                $label = $documentLabels[$docType] ?? str_replace('_', ' ', $docType);
+                $errors["cert_uploads.$docType"] = "{$label} is required for {$docTrack} applications.";
+            }
+            return back()->withErrors($errors)->withInput();
+        }
 
         /********************************
          * +++++ Required Documents
@@ -1806,6 +1864,54 @@ class PDSController extends Controller
             return false;
         }
         return in_array(strtolower($mimeType), self::IMAGE_MIME_TYPES, true);
+    }
+
+    private function getRequiredDocsByTrack(): array
+    {
+        $allDocumentTypes = array_values(array_filter(
+            UploadedDocument::DOCUMENTS,
+            fn($doc) => $doc !== 'isApproved'
+        ));
+
+        return [
+            'COS' => [
+                'passport_photo',
+                'signed_pds',
+                'signed_work_exp_sheet',
+                'photocopy_diploma',
+                'tor_masteraldoctorate',
+                'application_letter',
+                'cert_training',
+            ],
+            // Requirement requested by user: all required except these 3.
+            'Plantilla' => array_values(array_diff(
+                $allDocumentTypes,
+                ['tor_masteraldoctorate', 'grade_masteraldoctorate', 'cert_lgoo_induction']
+            )),
+        ];
+    }
+
+    private function getDocumentLabelMap(): array
+    {
+        return [
+            'application_letter' => 'Application Letter',
+            'pqe_result' => 'Pre-Qualifying Exam (PQE) Result',
+            'transcript_records' => 'Transcript of Records (Baccalaureate Degree)',
+            'photocopy_diploma' => 'Diploma',
+            'signed_pds' => 'Signed Personal Data Sheet',
+            'signed_work_exp_sheet' => 'Signed Work Experience Sheet',
+            'cert_lgoo_induction' => 'Certificate of Completion of LGOO Induction Training',
+            'passport_photo' => '2\" x 2\" or Passport Size Picture',
+            'cert_eligibility' => 'Certificate of Eligibility/Board Rating',
+            'ipcr' => 'Certification of Numerical Rating/Performance Rating/IPCR',
+            'non_academic' => 'Non-Academic Awards Received',
+            'cert_training' => 'Certificates of Training/Participation',
+            'designation_order' => 'Confirmed Designation Order/s',
+            'grade_masteraldoctorate' => 'Certificate of Grades with Masteral/Doctorate Units Earned',
+            'tor_masteraldoctorate' => 'TOR with Masteral/Doctorate Degree',
+            'cert_employment' => 'Certificate of Employment',
+            'other_documents' => 'Other Documents Submitted',
+        ];
     }
 
     private function scanUploadedFile(UploadedFile $file): array
