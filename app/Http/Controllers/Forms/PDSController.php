@@ -1927,16 +1927,25 @@ class PDSController extends Controller
                 if ($application->status === 'Compliance') {
                     $application->update(['status' => 'Updated']);
 
-                    // Trigger notification for Admin
-                    \App\Models\Notification::create([
-                        'title' => 'Applicant Updated Documents',
-                        'message' => 'Applicant ' . Auth::user()->name . ' has updated their documents for review.',
-                        'type' => 'warning',
-                        'link' => route('admin.applicant_status', ['user_id' => $user_id, 'vacancy_id' => $vacancy_id]),
-                        'is_read' => false,
-                        'created_at' => now(),
-                        'updated_at' => now()
-                    ]);
+                    $admins = \App\Models\Admin::all();
+                    foreach ($admins as $admin) {
+                        \App\Models\Notification::create([
+                            'notifiable_type' => 'App\Models\Admin',
+                            'notifiable_id' => $admin->id,
+                            'type' => 'warning',
+                            'data' => [
+                                'title' => 'Applicant Updated Documents',
+                                'message' => 'Applicant ' . Auth::user()->name . ' has updated their documents for review.',
+                                'link' => route('admin.applicant_status', ['user_id' => $user_id, 'vacancy_id' => $vacancy_id]),
+                                'section' => 'Application List',
+                                'user_id' => $user_id,
+                                'vacancy_id' => $vacancy_id,
+                            ],
+                            'read_at' => null,
+                            'created_at' => now(),
+                            'updated_at' => now()
+                        ]);
+                    }
                 }
 
             } else {
@@ -1964,14 +1973,23 @@ class PDSController extends Controller
             if ($application && $application->status === 'Compliance') {
                 $application->update(['status' => 'Updated']);
 
-                // Trigger notification for Admin
-                \App\Models\Notification::create([
-                    'title' => 'Applicant Updated Documents',
-                    'message' => 'Applicant ' . Auth::user()->name . ' has updated their documents for review.',
-                    'type' => 'warning',
-                    'link' => route('admin.applicant_status', ['user_id' => $user_id, 'vacancy_id' => $vacancy_id]),
-                    'is_read' => false
-                ]);
+                $admins = \App\Models\Admin::all();
+                foreach ($admins as $admin) {
+                    \App\Models\Notification::create([
+                        'notifiable_type' => 'App\Models\Admin',
+                        'notifiable_id' => $admin->id,
+                        'type' => 'warning',
+                        'data' => [
+                            'title' => 'Applicant Updated Documents',
+                            'message' => 'Applicant ' . Auth::user()->name . ' has updated their documents for review.',
+                            'link' => route('admin.applicant_status', ['user_id' => $user_id, 'vacancy_id' => $vacancy_id]),
+                            'section' => 'Application List',
+                            'user_id' => $user_id,
+                            'vacancy_id' => $vacancy_id,
+                        ],
+                        'read_at' => null
+                    ]);
+                }
             }
         }
 

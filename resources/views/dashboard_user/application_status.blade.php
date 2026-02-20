@@ -215,6 +215,7 @@
                         action="{{ route('application_status.upload', [$application->user_id, $application->vacancy_id]) }}"
                         enctype="multipart/form-data">
                         @csrf
+                        <input id="single-doc-upload-input" type="file" class="hidden" accept="application/pdf">
                         <ul class="text-xs text-gray-700 space-y-1" id="document-list">
                           <!-- Documents will be injected here by JS -->
                         </ul>
@@ -240,11 +241,18 @@
 
                     <!-- Document Remarks Box -->
                     <div id="document-remarks-section" class="mb-4 w-full hidden flex-none">
-                      <label for="remarks" class="block text-sm font-semibold text-[#002C76] mb-2">
-                        Document Remarks:
-                        <span id="remarks-status"
-                          class="text-green-600 text-xs ml-2 opacity-0 transition-opacity duration-500">Saved</span>
-                      </label>
+                      <div class="flex items-center justify-between mb-2">
+                        <label for="remarks" class="block text-sm font-semibold text-[#002C76]">
+                          Document Remarks:
+                          <span id="remarks-status"
+                            class="text-green-600 text-xs ml-2 opacity-0 transition-opacity duration-500">Saved</span>
+                        </label>
+                        <button id="upload-new-document-btn" type="button"
+                          class="hidden use-loader inline-flex items-center gap-2 rounded-lg bg-[#002C76] px-4 py-2 text-xs font-semibold text-white hover:bg-[#0D2B70] transition">
+                          <i data-feather="upload" class="w-4 h-4"></i>
+                          Upload New Document
+                        </button>
+                      </div>
                       <textarea id="remarks" rows="3"
                         class="w-full text-sm text-gray-700 rounded-lg p-3 resize-none border border-[#002C76] focus:border-[#0066CC] focus:ring-2 focus:ring-blue-200 transition bg-gray-50"
                         placeholder="Remarks for this document..." readonly></textarea>
@@ -297,6 +305,19 @@
           }
 
           // Function to update document preview
+          function isRevisionStatus(status) {
+            return status === "Needs Revision" || status === "Disapproved With Deficiency";
+          }
+
+          function updateUploadNewButton(doc) {
+            const btn = document.getElementById('upload-new-document-btn');
+            if (!btn) return;
+
+            const shouldShow = !!doc && isRevisionStatus(doc.status);
+            btn.classList.toggle('hidden', !shouldShow);
+            btn.disabled = !shouldShow;
+          }
+
           function handleDocumentClick(doc) {
             if (currentSelectedDoc && currentSelectedDoc.id === doc.id) return;
             
@@ -357,6 +378,8 @@
             } else {
               if (remarksSection) remarksSection.classList.add('hidden');
             }
+
+            updateUploadNewButton(doc);
 
             // Load preview
             const previewLoader = document.getElementById('preview-loader');
@@ -432,6 +455,29 @@
           document.addEventListener('DOMContentLoaded', function() {
             console.log("Documents from backend:", documents);
             renderDocuments(documents);
+            updateUploadNewButton(null);
+
+            const uploadButton = document.getElementById('upload-new-document-btn');
+            const uploadInput = document.getElementById('single-doc-upload-input');
+            const uploadForm = document.getElementById('document-upload-form');
+
+            uploadButton?.addEventListener('click', function () {
+              if (!currentSelectedDoc || !isRevisionStatus(currentSelectedDoc.status)) return;
+              if (!uploadInput) return;
+
+              uploadInput.name = `cert_uploads[${currentSelectedDoc.id}]`;
+              uploadInput.value = '';
+              uploadInput.click();
+            });
+
+            uploadInput?.addEventListener('change', function () {
+              if (!uploadInput.files || uploadInput.files.length === 0) return;
+              if (!currentSelectedDoc || !isRevisionStatus(currentSelectedDoc.status)) return;
+              if (!uploadForm) return;
+
+              uploadInput.name = `cert_uploads[${currentSelectedDoc.id}]`;
+              uploadForm.submit();
+            });
             
             // Force immediate refresh on page load
             setTimeout(async function() {
