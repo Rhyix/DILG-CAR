@@ -231,22 +231,22 @@
 								</p>
 							</div>
 
-							<!-- buttons -->
-							<div class="flex flex-row sm:flex-col items-end gap-2 shrink-0">
-								<div class="w-full sm:w-auto">
-									<button id="btn-verify" type="button"
-										class="w-full sm:w-40 border border-[#00730A] text-[#00730A] py-2 px-4 rounded-md text-sm hover:bg-green-50 transition duration-150 disabled:opacity-50 disabled:cursor-not-allowed">
-										Verify
-									</button>
-								</div>
+              <!-- buttons -->
+              <div class="flex flex-row sm:flex-col items-end gap-2 shrink-0">
+                <div class="w-full sm:w-auto">
+                  <button id="btn-revision" type="button"
+                    class="w-full sm:w-40 border border-[#BC0000] text-[#BC0000] py-2 px-4 rounded-md text-sm hover:bg-red-50 transition duration-150 disabled:opacity-50 disabled:cursor-not-allowed">
+                    Needs Revisions
+                  </button>
+                </div>
 
-								<div class="w-full sm:w-auto">
-									<button id="btn-revision" type="button"
-										class="w-full sm:w-40 border border-[#BC0000] text-[#BC0000] py-2 px-4 rounded-md text-sm hover:bg-red-50 transition duration-150 disabled:opacity-50 disabled:cursor-not-allowed">
-										Needs Revisions
-									</button>
-								</div>
-							</div>
+                <div class="w-full sm:w-auto">
+                  <button id="btn-verify" type="button"
+                    class="w-full sm:w-40 border border-[#00730A] text-[#00730A] py-2 px-4 rounded-md text-sm hover:bg-green-50 transition duration-150 disabled:opacity-50 disabled:cursor-not-allowed">
+                    Verify
+                  </button>
+                </div>
+              </div>
 						</div>
 
 						<!-- Remarks and Buttons Row -->
