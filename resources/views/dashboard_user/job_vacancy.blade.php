@@ -5,16 +5,17 @@
 @section('title', 'Job Vacancies')
 
 @section('content')
+    <div class="px-4 pb-8 sm:px-8">
 <!-- Updated HTML with mobile classes -->
         <!-- Header Section -->
-            <div class="flex-none flex items-center mb-10 pace-x-4 max-w-full">
-                <h1 class="flex items-center gap-3 w-full border-b border-[#0D2B70] text-white text-4xl font-montserrat py-2 tracking-wide select-none">
+            <div class="flex-none flex items-center mb-6 sm:mb-10 pace-x-4 max-w-full">
+                <h1 class="flex items-center gap-3 w-full border-b border-[#0D2B70] text-white text-2xl sm:text-4xl font-montserrat py-2 tracking-wide select-none">
                     <span class="whitespace-nowrap text-[#0D2B70]">Browse Job Vacancies</span>
                 </h1>
             </div>
 
 <!-- Sorting & Filtering -->
-<section class="flex flex-wrap gap-3 mr-5 sm:gap-4 filters-mobile">
+<section class="flex flex-col lg:flex-row flex-wrap gap-3 sm:gap-4 filters-mobile mb-6">
     <form class="relative flex-1 min-w-[240px]" onsubmit="return false;">
         <input id="searchInput" type="search" placeholder="Search job title, place, type" aria-label="Search"
             class="pl-10 pr-4 py-2 rounded-md w-full border border-[#0D2B70] placeholder:text-[#7D93B3] placeholder:font-semibold text-[#0D2B70] focus:outline-none focus:ring-2 focus:ring-[#0D2B70] focus:ring-offset-1" />
@@ -64,10 +65,10 @@
         <option value="Baguio City Office">Baguio City Office</option>
     </select>
     <!-- Sorting Latest to Oldest -->
-    <div x-data="{ open: false }" class="relative">
+    <div x-data="{ open: false }" class="relative w-full sm:w-auto">
         <button
             @click="open = !open"
-            class="font-semibold flex items-center px-4 py-2 bg-white text-[#0D2B70] rounded-md hover:bg-[#0D2B70] transition whitespace-nowrap hover:text-white hover:shadow-md border border-[#0D2B70]"
+            class="font-semibold flex items-center justify-between sm:justify-start w-full sm:w-auto px-4 py-2 bg-white text-[#0D2B70] rounded-md hover:bg-[#0D2B70] transition whitespace-nowrap hover:text-white hover:shadow-md border border-[#0D2B70]"
         >
             <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"></path>
@@ -93,10 +94,10 @@
         </div>
     </div>
     <!-- Filtering by Status -->
-    <div x-data="{ open: false }" class="relative">
+    <div x-data="{ open: false }" class="relative w-full sm:w-auto">
         <button
             @click="open = !open"
-            class="font-semibold flex items-center px-4 py-2 bg-white text-[#0D2B70] rounded-md hover:bg-[#0D2B70] transition whitespace-nowrap hover:text-white hover:shadow-md border border-[#0D2B70]"
+            class="font-semibold flex items-center justify-between sm:justify-start w-full sm:w-auto px-4 py-2 bg-white text-[#0D2B70] rounded-md hover:bg-[#0D2B70] transition whitespace-nowrap hover:text-white hover:shadow-md border border-[#0D2B70]"
         >
             <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <circle cx="12" cy="12" r="10" stroke="currentColor" fill="none"/>
@@ -126,10 +127,10 @@
         </div>
     </div>
     <!-- Filtering by Vacancy Type -->
-    <div x-data="{ open: false }" class="relative">
+    <div x-data="{ open: false }" class="relative w-full sm:w-auto">
         <button
             @click="open = !open"
-            class="font-semibold flex items-center px-4 py-2 bg-white text-[#0D2B70] rounded-md hover:bg-[#0D2B70] transition whitespace-nowrap hover:text-white hover:shadow-md border border-[#0D2B70]"
+            class="font-semibold flex items-center justify-between sm:justify-start w-full sm:w-auto px-4 py-2 bg-white text-[#0D2B70] rounded-md hover:bg-[#0D2B70] transition whitespace-nowrap hover:text-white hover:shadow-md border border-[#0D2B70]"
         >
             <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <rect x="2" y="7" width="20" height="14" rx="2" stroke="currentColor" fill="none"/>
@@ -159,10 +160,10 @@
         </div>
     </div>
     <!-- Filtering by Monthly Salary -->
-    <div x-data="{ open: false }" class="relative">
+    <div x-data="{ open: false }" class="relative w-full sm:w-auto">
         <button
             @click="open = !open"
-            class="font-semibold flex items-center px-4 py-2 bg-white text-[#0D2B70] rounded-md hover:bg-[#0D2B70] transition whitespace-nowrap hover:text-white hover:shadow-md border border-[#0D2B70]"
+            class="font-semibold flex items-center justify-between sm:justify-start w-full sm:w-auto px-4 py-2 bg-white text-[#0D2B70] rounded-md hover:bg-[#0D2B70] transition whitespace-nowrap hover:text-white hover:shadow-md border border-[#0D2B70]"
         >
             <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -215,10 +216,10 @@
         </div>
     </div>
     <!-- Filtering by Place of Assignment -->
-    <div x-data="{ open: false }" class="relative">
+    <div x-data="{ open: false }" class="relative w-full sm:w-auto">
         <button
             @click="open = !open"
-            class="font-semibold flex items-center px-4 py-2 bg-white text-[#0D2B70] rounded-md hover:bg-[#0D2B70] transition whitespace-nowrap hover:text-white hover:shadow-md border border-[#0D2B70]"
+            class="font-semibold flex items-center justify-between sm:justify-start w-full sm:w-auto px-4 py-2 bg-white text-[#0D2B70] rounded-md hover:bg-[#0D2B70] transition whitespace-nowrap hover:text-white hover:shadow-md border border-[#0D2B70]"
         >
             <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
@@ -267,30 +268,24 @@
     </div>
 </section>
 
-<!-- Job Vacancies Table -->
-<div class="rounded-xl border border-[#0D2B70] mt-6 h-[60vh] flex flex-col overflow-hidden mr-5">
-    <div class="flex-none bg-[#0D2B70] text-white">
-        <table class="w-full text-left border-collapse table-fixed">
-            <thead class="bg-[#0D2B70] text-white sticky top-0 z-10">
-                <tr>
-                    <th class="py-4 px-6 text-left font-bold uppercase text-sm tracking-wider w-[25%]">Job Title</th>
-                    <th class="py-4 px-6 text-left font-bold uppercase text-sm tracking-wider w-[12%]">Monthly Salary</th>
-                    <th class="py-4 px-6 text-left font-bold uppercase text-sm tracking-wider w-[18%]">Place of Assignment</th>
-                    <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider w-[15%]">Deadline</th>
-                    <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider w-[10%]">Vacancies Status</th>
-                    <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider w-[10%]">Exam Status</th>
-                    <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider w-[10%]">Actions</th>
-                </tr>
-            </thead>
-        </table>
+<!-- Job Vacancies List -->
+<div class="bg-white rounded-xl border border-[#0D2B70] shadow-sm overflow-hidden flex flex-col h-[75vh] lg:h-[65vh]">
+    <!-- Desktop Header -->
+    <div class="hidden lg:flex flex-none bg-[#0D2B70] text-white text-sm font-bold uppercase tracking-wider sticky top-0 z-10">
+        <div class="py-4 px-6 w-[25%]">Job Title</div>
+        <div class="py-4 px-6 w-[12%]">Monthly Salary</div>
+        <div class="py-4 px-6 w-[18%]">Place of Assignment</div>
+        <div class="py-4 px-6 w-[15%] text-center">Deadline</div>
+        <div class="py-4 px-6 w-[10%] text-center">Status</div>
+        <div class="py-4 px-6 w-[10%] text-center">Exam</div>
+        <div class="py-4 px-6 w-[10%] text-center">Actions</div>
     </div>
-    <div class="flex-1 overflow-y-auto min-h-0">
-        <table class="w-full text-left border-collapse table-fixed">
-            <tbody id="vacancy-list" class="divide-y divide-[#0D2B70]">
-                @include('partials.vacancy_list', ['vacancies' => $vacancies])
-            </tbody>
-        </table>
+
+    <!-- List Container -->
+    <div id="vacancy-list" class="flex-1 overflow-y-auto divide-y divide-gray-200 lg:divide-blue-100">
+        @include('partials.vacancy_list', ['vacancies' => $vacancies])
     </div>
+</div>
 </div>
 
 @include('partials.loader')

@@ -1,34 +1,55 @@
 @forelse ($vacancies as $vacancy)
-    <tr class="text-[#0D2B70] select-none hover:bg-blue-50 transition-colors duration-200">
-        <td class="py-4 px-6 w-[25%]">
-            <p class="font-medium">{{ $vacancy->position_title }}</p>
-            <p class="text-[#0D2B70]/70 text-[0.9rem] italic">{{ $vacancy->vacancy_type }}</p>
-        </td>
-        <td class="py-4 px-6 w-[12%]">₱{{ number_format($vacancy->monthly_salary, 2) }}</td>
-        <td class="py-4 px-6 w-[18%]">{{ $vacancy->place_of_assignment }}</td>
-        <td class="py-4 px-6 text-center w-[15%]">
-            @php
-                $closing = \Carbon\Carbon::parse($vacancy->closing_date);
-                $daysLeft = now()->diffInDays($closing, false);
-                $isUrgent = $vacancy->status === 'OPEN' && $daysLeft >= 0 && $daysLeft <= 7;
-            @endphp
-            <div class="flex flex-col items-center">
-                <span class="font-semibold">{{ $closing->format('F j, Y') }}</span>
+    <div class="flex flex-col lg:flex-row lg:items-center text-[#0D2B70] hover:bg-blue-50 transition-colors duration-200 p-5 lg:p-0 border-b border-gray-100 lg:border-none relative group">
+        
+        <!-- Job Title -->
+        <div class="lg:py-4 lg:px-6 lg:w-[25%] mb-3 lg:mb-0">
+            <p class="font-bold text-lg lg:text-base lg:font-medium leading-tight">{{ $vacancy->position_title }}</p>
+            <p class="text-[#0D2B70]/70 text-sm italic mt-0.5">{{ $vacancy->vacancy_type }}</p>
+        </div>
+
+        <!-- Salary -->
+        <div class="lg:py-4 lg:px-6 lg:w-[12%] mb-2 lg:mb-0 flex items-center lg:block">
+            <span class="lg:hidden text-xs font-bold text-slate-400 uppercase tracking-wide w-24 shrink-0">Salary</span>
+            <span class="font-medium">₱{{ number_format($vacancy->monthly_salary, 2) }}</span>
+        </div>
+
+        <!-- Place -->
+        <div class="lg:py-4 lg:px-6 lg:w-[18%] mb-2 lg:mb-0 flex items-center lg:block">
+            <span class="lg:hidden text-xs font-bold text-slate-400 uppercase tracking-wide w-24 shrink-0">Assignment</span>
+            <span class="text-sm sm:text-base">{{ $vacancy->place_of_assignment }}</span>
+        </div>
+
+        <!-- Deadline -->
+        <div class="lg:py-4 lg:px-6 lg:w-[15%] mb-2 lg:mb-0 flex items-center lg:justify-center lg:block">
+             <span class="lg:hidden text-xs font-bold text-slate-400 uppercase tracking-wide w-24 shrink-0">Deadline</span>
+             <div class="flex lg:flex-col lg:items-center gap-2 lg:gap-0">
+                @php
+                    $closing = \Carbon\Carbon::parse($vacancy->closing_date);
+                    $daysLeft = now()->diffInDays($closing, false);
+                    $isUrgent = $vacancy->status === 'OPEN' && $daysLeft >= 0 && $daysLeft <= 7;
+                @endphp
+                <span class="font-semibold text-sm">{{ $closing->format('M d, Y') }}</span>
                 @if($isUrgent)
-                    <span class="text-xs text-red-600 font-bold flex items-center gap-1 mt-1 animate-pulse">
+                    <span class="text-[10px] sm:text-xs text-red-600 font-bold flex items-center gap-1 lg:mt-1 animate-pulse bg-red-50 px-2 py-0.5 rounded-full lg:bg-transparent lg:px-0">
                         <i data-feather="alert-circle" class="w-3 h-3"></i>
-                        Expiring Soon
+                        <span>Expiring Soon</span>
                     </span>
                 @endif
-            </div>
-        </td>
-        <td class="py-4 px-6 text-center w-[10%]">
-            <span class="px-3 py-1 rounded-full text-xs font-semibold {{ $vacancy->status === 'OPEN' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
+             </div>
+        </div>
+
+        <!-- Status -->
+        <div class="lg:py-4 lg:px-6 lg:w-[10%] mb-2 lg:mb-0 flex items-center lg:justify-center">
+             <span class="lg:hidden text-xs font-bold text-slate-400 uppercase tracking-wide w-24 shrink-0">Status</span>
+             <span class="px-3 py-1 rounded-full text-xs font-semibold {{ $vacancy->status === 'OPEN' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
                 {{ $vacancy->status }}
             </span>
-        </td>
-        <td class="py-4 px-6 text-center w-[10%]">
-            @php
+        </div>
+
+        <!-- Exam -->
+        <div class="lg:py-4 lg:px-6 lg:w-[10%] mb-4 lg:mb-0 flex items-center lg:justify-center">
+             <span class="lg:hidden text-xs font-bold text-slate-400 uppercase tracking-wide w-24 shrink-0">Exam</span>
+             @php
                 $examStatus = 'Unscheduled';
                 $examBadge = 'bg-gray-100 text-gray-800';
                 
@@ -63,21 +84,25 @@
             <span class="px-3 py-1 rounded-full text-xs font-semibold {{ $examBadge }}">
                 {{ $examStatus }}
             </span>
-        </td>
-        <td class="py-4 px-6 text-center w-[10%]">
+        </div>
+
+        <!-- Actions -->
+        <div class="lg:py-4 lg:px-6 lg:w-[10%] mt-2 lg:mt-0 flex lg:justify-center w-full lg:w-auto">
             <button
                 onclick="window.location.href='{{ route('job_description', $vacancy->vacancy_id) }}'"
-                class="use-loader text-[#0D2B70] border border-[#0D2B70] font-bold py-1 px-4 rounded-md text-sm transition-all 
-                duration-300 hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md inline-flex items-center gap-2 mx-auto">
+                class="use-loader w-full lg:w-auto justify-center text-[#0D2B70] border border-[#0D2B70] font-bold py-2.5 lg:py-1.5 px-4 rounded-lg text-sm transition-all 
+                duration-300 hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md inline-flex items-center gap-2 group-hover:bg-[#0D2B70] group-hover:text-white lg:group-hover:bg-transparent lg:group-hover:text-[#0D2B70] lg:hover:!bg-[#0D2B70] lg:hover:!text-white">
                 <i data-feather="eye" class="w-4 h-4"></i>
                 <span>View</span>
             </button>
-        </td>
-    </tr>
+        </div>
+    </div>
 @empty
-    <tr>
-        <td colspan="7" class="text-center py-10 text-gray-500 text-xl">
-            No Job Vacancy
-        </td>
-    </tr>
+    <div class="text-center py-10 text-gray-500 text-xl flex flex-col items-center justify-center h-full min-h-[200px]">
+        <div class="bg-gray-100 p-4 rounded-full mb-3">
+            <i data-feather="inbox" class="w-8 h-8 text-gray-400"></i>
+        </div>
+        <span class="font-semibold">No Job Vacancy Found</span>
+        <p class="text-sm text-gray-400 mt-1">Try adjusting your search or filters.</p>
+    </div>
 @endforelse

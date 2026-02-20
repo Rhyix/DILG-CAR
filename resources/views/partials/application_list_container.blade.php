@@ -1,32 +1,41 @@
 @if ($applications->count() > 0)
-<div class="rounded-xl border border-[#0D2B70] mt-2 overflow-hidden flex flex-col min-h-0">
-    <div class="bg-[#0D2B70] text-white flex-none">
-        <table class="w-full text-left border-collapse table-fixed">
-            <thead class="bg-[#0D2B70] text-white">
-                <tr>
-                    <th class="py-4 px-6 text-left font-bold uppercase text-sm tracking-wider w-[20%]">Application No.</th>
-                    <th class="py-4 px-6 text-left font-bold uppercase text-sm tracking-wider w-[30%]">Position Title</th>
-                    <th class="py-4 px-6 text-left font-bold uppercase text-sm tracking-wider w-[25%]">Place of Assignment</th>
-                    <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider w-[10%]">Status</th>
-                    <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider w-[15%]">Actions</th>
-                </tr>
-            </thead>
-        </table>
+<div class="rounded-xl border border-[#0D2B70] mt-2 overflow-hidden flex flex-col min-h-0 bg-white shadow-sm">
+    <div class="bg-[#0D2B70] text-white flex-none hidden lg:block">
+        <div class="flex items-center text-sm font-bold uppercase tracking-wider">
+            <div class="py-4 px-6 w-[20%]">Application No.</div>
+            <div class="py-4 px-6 w-[30%]">Position Title</div>
+            <div class="py-4 px-6 w-[25%]">Place of Assignment</div>
+            <div class="py-4 px-6 w-[10%] text-center">Status</div>
+            <div class="py-4 px-6 w-[15%] text-center">Actions</div>
+        </div>
     </div>
-    <div class="flex-1 overflow-auto max-h-[60vh]">
-        <table class="w-full text-left border-collapse table-fixed">
-            <tbody class="divide-y divide-[#0D2B70]">
+    
+    <div class="flex-1 overflow-auto max-h-[70vh] lg:max-h-[60vh]">
+        <div class="divide-y divide-gray-200 lg:divide-[#0D2B70]">
             @foreach ($applications as $application)
-                <tr class="text-[#0D2B70] select-none hover:bg-blue-50 transition-colors duration-200">
-                    <td class="py-4 px-6 w-[20%]">
+                <div class="flex flex-col lg:flex-row lg:items-center text-[#0D2B70] hover:bg-blue-50 transition-colors duration-200 p-5 lg:p-0">
+                    <!-- App No -->
+                    <div class="lg:py-4 lg:px-6 lg:w-[20%] mb-2 lg:mb-0 flex items-center lg:block">
+                        <span class="lg:hidden text-xs font-bold text-slate-400 uppercase tracking-wide w-32 shrink-0">Application No.</span>
                         <span class="font-semibold">{{ $application->id ?? $application->application_no ?? 'N/A' }}</span>
-                    </td>
-                    <td class="py-4 px-6 w-[30%]">
-                        <p class="font-medium">{{ $application->vacancy->position_title ?? 'Position Title Unavailable' }}</p>
-                        <p class="text-[#0D2B70]/70 text-[0.9rem] italic">{{ $application->vacancy->vacancy_type ?? '' }}</p>
-                    </td>
-                    <td class="py-4 px-6 w-[25%]">{{ $application->vacancy->place_of_assignment ?? 'N/A' }}</td>
-                    <td class="py-4 px-6 text-center w-[10%]">
+                    </div>
+
+                    <!-- Position -->
+                    <div class="lg:py-4 lg:px-6 lg:w-[30%] mb-2 lg:mb-0">
+                        <span class="lg:hidden text-xs font-bold text-slate-400 uppercase tracking-wide block mb-1">Position</span>
+                        <p class="font-bold lg:font-medium">{{ $application->vacancy->position_title ?? 'Position Title Unavailable' }}</p>
+                        <p class="text-[#0D2B70]/70 text-sm lg:text-[0.9rem] italic">{{ $application->vacancy->vacancy_type ?? '' }}</p>
+                    </div>
+
+                    <!-- Place -->
+                    <div class="lg:py-4 lg:px-6 lg:w-[25%] mb-2 lg:mb-0 flex items-center lg:block">
+                        <span class="lg:hidden text-xs font-bold text-slate-400 uppercase tracking-wide w-32 shrink-0">Assignment</span>
+                        <span class="text-sm lg:text-base">{{ $application->vacancy->place_of_assignment ?? 'N/A' }}</span>
+                    </div>
+
+                    <!-- Status -->
+                    <div class="lg:py-4 lg:px-6 lg:w-[10%] mb-4 lg:mb-0 flex items-center lg:justify-center">
+                        <span class="lg:hidden text-xs font-bold text-slate-400 uppercase tracking-wide w-32 shrink-0">Status</span>
                         @php
                             $status = $application->status;
                             $badge = 'bg-gray-100 text-gray-800';
@@ -38,20 +47,21 @@
                         <span class="px-3 py-1 rounded-full text-xs font-semibold {{ $badge }}">
                             {{ $status }}
                         </span>
-                    </td>
-                    <td class="py-4 px-6 text-center w-[15%]">
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="lg:py-4 lg:px-6 lg:w-[15%] flex lg:justify-center">
                         <button
                             onclick="window.location.href='{{ route('application_status', [$application->user_id, $application->vacancy_id]) }}'"
-                            class="use-loader text-[#0D2B70] border border-[#0D2B70] font-bold py-1 px-4 rounded-md text-sm transition-all 
-                            duration-300 hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md inline-flex items-center gap-2 mx-auto">
+                            class="use-loader w-full lg:w-auto justify-center text-[#0D2B70] border border-[#0D2B70] font-bold py-2.5 lg:py-1 px-4 rounded-md text-sm transition-all 
+                            duration-300 hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md inline-flex items-center gap-2">
                             <i data-feather="eye" class="w-4 h-4"></i>
                             <span>View</span>
                         </button>
-                    </td>
-                </tr>
+                    </div>
+                </div>
             @endforeach
-            </tbody>
-        </table>
+        </div>
     </div>
 </div>
 @else

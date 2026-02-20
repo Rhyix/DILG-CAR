@@ -1,20 +1,34 @@
 <!-- resources/views/partials/mobile-sidebar.blade.php -->
-<div 
-    x-show="mobileSidebarOpen"
-    x-transition:enter="transition ease-out duration-300"
-    x-transition:enter-start="-translate-x-full"
-    x-transition:enter-end="translate-x-0"
-    x-transition:leave="transition ease-in duration-200"
-    x-transition:leave-start="translate-x-0"
-    x-transition:leave-end="-translate-x-full"
-    class="fixed inset-0 z-50 flex lg:hidden"
-    style="display: none;"
->
+<div class="lg:hidden">
     <!-- Overlay -->
-    <div class="fixed inset-0 bg-black bg-opacity-50" @click="mobileSidebarOpen = false"></div>
+    <div 
+        x-show="mobileSidebarOpen"
+        x-transition:enter="transition-opacity ease-linear duration-300"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition-opacity ease-linear duration-300"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="fixed inset-0 bg-gray-900/80 z-40" 
+        @click="mobileSidebarOpen = false"
+        style="display: none;"
+        aria-hidden="true"
+    ></div>
 
     <!-- Sidebar -->
-    <aside class="relative w-72 bg-white h-full shadow-xl flex flex-col justify-between z-50">
+    <div 
+        x-show="mobileSidebarOpen"
+        x-transition:enter="transition ease-in-out duration-300 transform"
+        x-transition:enter-start="-translate-x-full"
+        x-transition:enter-end="translate-x-0"
+        x-transition:leave="transition ease-in-out duration-300 transform"
+        x-transition:leave-start="translate-x-0"
+        x-transition:leave-end="-translate-x-full"
+        class="fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-xl flex flex-col h-full"
+        style="display: none;"
+        role="dialog"
+        aria-modal="true"
+    >
         <!-- Header -->
         <div class="flex items-center gap-3 p-4 border-b border-gray-200">
             <img src="{{ asset('images/dilg_logo.png') }}" alt="DILG Logo" class="h-10 w-10 rounded-full" />
@@ -22,7 +36,7 @@
                 DILG - CAR <br>
                 <span class="text-xs font-medium tracking-tight">RECRUITMENT SELECTION AND PLACEMENT PORTAL</span>
             </div>
-            <button @click="mobileSidebarOpen = false" class="ml-auto text-gray-600 hover:text-gray-800">
+            <button @click="mobileSidebarOpen = false" class="ml-auto text-gray-600 hover:text-gray-800 p-1">
                 <i data-feather="x" class="w-5 h-5"></i>
             </button>
         </div>
@@ -35,8 +49,5 @@
             <x-mobile-nav-link icon="file-text" label="Personal Data Sheet" :active="request()->routeIs('display_c1')" href="{{ route('display_c1') }}" />
             <x-mobile-nav-link icon="info" label="About This Website" :active="request()->routeIs('about')" href="{{ route('about') }}" />
         </nav>
-        
-    </aside>
+    </div>
 </div>
-
-<!-- No mobile logout; manage from profile menu -->

@@ -6,9 +6,9 @@
 
         <!-- Hero / Welcome Section -->
         <div
-            class="relative bg-gradient-to-r from-[#0D2B70] to-[#1e40af] rounded-2xl p-6 sm:p-10 text-white shadow-lg mb-8 overflow-hidden">
+            class="relative bg-gradient-to-r from-[#0D2B70] to-[#1e40af] rounded-2xl p-5 sm:p-8 lg:p-10 text-white shadow-lg mb-6 sm:mb-8 overflow-hidden">
             <div class="relative z-10">
-                <h1 class="font-montserrat font-extrabold text-2xl sm:text-4xl mb-2">
+                <h1 class="font-montserrat font-extrabold text-2xl sm:text-3xl lg:text-4xl mb-2">
                     @php
                         $hour = now()->format('H');
                         $greeting = $hour < 12 ? 'Good morning' : ($hour < 17 ? 'Good afternoon' : 'Good evening');
@@ -36,10 +36,10 @@
         </div>
 
         <!-- Quick Stats Grid -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
             <!-- Active Applications -->
             <div
-                class="bg-white p-5 rounded-xl border border-blue-50 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+                class="bg-white p-4 sm:p-5 rounded-xl border border-blue-50 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
                 <div class="flex justify-between items-start mb-4">
                     <div
                         class="p-2 bg-blue-50 text-[#0D2B70] rounded-lg group-hover:bg-[#0D2B70] group-hover:text-white transition-colors">
@@ -55,7 +55,7 @@
 
             <!-- Upcoming Deadlines -->
             <div
-                class="bg-white p-5 rounded-xl border border-blue-50 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+                class="bg-white p-4 sm:p-5 rounded-xl border border-blue-50 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
                 <div class="flex justify-between items-start mb-4">
                     <div
                         class="p-2 bg-orange-50 text-orange-600 rounded-lg group-hover:bg-orange-600 group-hover:text-white transition-colors">
@@ -71,7 +71,7 @@
 
             <!-- Upcoming Exams -->
             <div
-                class="bg-white p-5 rounded-xl border border-blue-50 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+                class="bg-white p-4 sm:p-5 rounded-xl border border-blue-50 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
                 <div class="flex justify-between items-start mb-4">
                     <div
                         class="p-2 bg-purple-50 text-purple-600 rounded-lg group-hover:bg-purple-600 group-hover:text-white transition-colors">
@@ -87,7 +87,7 @@
 
             <!-- PDS Progress -->
             <div
-                class="bg-white p-5 rounded-xl border border-blue-50 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+                class="bg-white p-4 sm:p-5 rounded-xl border border-blue-50 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
                 <div class="flex justify-between items-start mb-4">
                     <div
                         class="p-2 bg-green-50 text-green-600 rounded-lg group-hover:bg-green-600 group-hover:text-white transition-colors">
@@ -110,14 +110,14 @@
         </div>
 
         <!-- Main Content Layout -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
 
             <!-- Left Column: Applications (2/3 width) -->
             <div class="lg:col-span-2 space-y-8">
 
                 <!-- My Applications Section -->
                 <section class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-                    <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                    <div class="px-4 sm:px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
                         <h2 class="font-bold text-[#0D2B70] flex items-center gap-2">
                             <i data-feather="briefcase" class="w-4 h-4"></i> My Applications
                         </h2>
@@ -140,7 +140,7 @@
                         <div class="divide-y divide-gray-100">
                             @foreach($applications->take(5) as $app)
                                                 <div
-                                                    class="p-5 hover:bg-blue-50/30 transition flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                                    class="p-4 sm:p-5 hover:bg-blue-50/30 transition flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                                     <div>
                                                         <div class="flex items-center gap-2 mb-1">
                                                             <h3 class="font-bold text-[#0D2B70]">
@@ -181,7 +181,7 @@
 
                 <!-- Recent Notifications -->
                 <section class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-                    <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                    <div class="px-4 sm:px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
                         <h2 class="font-bold text-[#0D2B70] flex items-center gap-2">
                             <i data-feather="bell" class="w-4 h-4"></i> Recent Notifications
                         </h2>
@@ -222,7 +222,7 @@
             <div class="space-y-6">
 
                 <!-- Quick Actions / PDS Links -->
-                <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+                <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6">
                     <h3 class="font-bold text-[#0D2B70] mb-4 flex items-center gap-2">
                         <i data-feather="file-text" class="w-4 h-4"></i> Personal Data Sheet
                     </h3>
@@ -239,24 +239,24 @@
                         @endphp
                         @foreach($pdsLinks as $link)
                             <a href="{{ route($link['route']) }}"
-                                class="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-blue-300 hover:bg-blue-50 text-slate-700 hover:text-[#0D2B70] transition group">
+                                class="flex items-center gap-3 p-2.5 sm:p-3 rounded-lg border border-gray-100 hover:border-blue-300 hover:bg-blue-50 text-slate-700 hover:text-[#0D2B70] transition group">
                                 <div
-                                    class="w-8 h-8 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center text-xs group-hover:bg-[#0D2B70] group-hover:text-white transition-colors">
+                                    class="w-8 h-8 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center text-xs group-hover:bg-[#0D2B70] group-hover:text-white transition-colors shrink-0">
                                     <i data-feather="{{ $link['icon'] }}" class="w-3.5 h-3.5"></i>
                                 </div>
-                                <span class="text-sm font-medium">{{ $link['name'] }}</span>
+                                <span class="text-sm font-medium truncate">{{ $link['name'] }}</span>
                                 <i data-feather="chevron-right"
-                                    class="w-4 h-4 ml-auto text-gray-300 group-hover:text-[#0D2B70]"></i>
+                                    class="w-4 h-4 ml-auto text-gray-300 group-hover:text-[#0D2B70] shrink-0"></i>
                             </a>
                         @endforeach
 
                         <a href="{{ route('display_wes') }}"
-                            class="flex items-center gap-3 p-3 rounded-lg border border-dashed border-gray-300 hover:border-[#0D2B70] hover:bg-blue-50 text-slate-600 hover:text-[#0D2B70] transition mt-2">
+                            class="flex items-center gap-3 p-2.5 sm:p-3 rounded-lg border border-dashed border-gray-300 hover:border-[#0D2B70] hover:bg-blue-50 text-slate-600 hover:text-[#0D2B70] transition mt-2">
                             <div
-                                class="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-xs">
+                                class="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-xs shrink-0">
                                 <i data-feather="file-plus" class="w-3.5 h-3.5"></i>
                             </div>
-                            <span class="text-sm font-semibold">Work Experience Sheet</span>
+                            <span class="text-sm font-semibold truncate">Work Experience Sheet</span>
                         </a>
                     </div>
                 </div>
