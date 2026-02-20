@@ -186,8 +186,7 @@ Route::view('/c3_update', 'pds_update.c3_update')->name('c3_update');
 Route::view('/c4_update', 'pds_update.c4_update')->name('c4_update');
 Route::view('/c5_update', 'pds_update.c5_update')->name('c5_update');
 Route::view('/submit_update', 'pds_update.submit_update')->name('submit_update');
-Route::get('/auth/google', [GoogleController::class, 'redirectToGoogle'])->name('google.login');
-Route::get('/auth/google/callback', [GoogleController::class, 'handleGoogleCallback']);
+
 
 // ==================================================================================================
 // USER ROUTES
@@ -203,6 +202,12 @@ Route::view('/application_status/{}', 'dashboard_user.application_status')->name
 Route::view('/about', 'dashboard_user.about')->name('about');
 Route::get('/pds_print', fn() => view('dashboard_user.pds_print'))->name('pds_print');
 */
+
+// ==================================================================================================
+// GOOGLE AUTH ROUTES
+// ==================================================================================================
+Route::get('/auth/google', [GoogleController::class, 'redirectToGoogle'])->name('google.login');
+Route::get('/auth/google/callback', [GoogleController::class, 'handleGoogleCallback']);
 
 //Route::middleware(['auth', BlockIfAdmin::class])   // 👈 here!
 //->group(function () {

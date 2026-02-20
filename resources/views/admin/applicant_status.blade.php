@@ -61,121 +61,99 @@
 					</div>
 
 					<!-- Main Info Cards -->
-					<div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-
-						<!-- Deadline Card -->
-						<div class="bg-white rounded-lg border border-gray-200 p-4 shadow-lg">
-							<div class="text-sm font-semibold text-gray-700 mb-3">Deadline:</div>
-							<div class="flex gap-2">
-								<input type="date" name="deadline_date"
-									class="flex-1 text-sm px-3 py-2 rounded border border-gray-300 focus:ring-2 focus:ring-[#002C76] focus:border-[#002C76] outline-none"
-									value="{{ old('deadline_date', $application->deadline_date ? \Carbon\Carbon::parse($application->deadline_date)->format('Y-m-d') : '') }}">
-								<input type="time" name="deadline_time"
-									class="flex-1 text-sm px-3 py-2 rounded border border-gray-300 focus:ring-2 focus:ring-[#002C76] focus:border-[#002C76] outline-none"
-									value="{{ old('deadline_time', optional(\Carbon\Carbon::parse($application->deadline_time))->format('H:i')) }}">
-							</div>
-							<div id="deadlineWarning" class="text-red-500 text-xs mt-2 hidden">
-								<i data-feather="alert-triangle" class="inline w-3 h-3"></i> Deadline passed
-							</div>
-						</div>
+					<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
 						<!-- Qualification Standards Card -->
-						<div class="bg-white rounded-lg border border-gray-200 p-4 shadow-lg">
-							<div class="flex flex-row mb-4 gap-4">
-								<div class="text-sm font-semibold text-gray-700">Qualification Standards:</div>
+						<div
+							class="bg-white rounded-xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition-shadow duration-200">
+							<div
+								class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 pb-2 border-b border-gray-50">
+								Qualification Standards</div>
+							<div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
+								<!-- Overall Result -->
+								<div
+									class="col-span-1 md:col-span-2 flex items-center justify-between bg-blue-50/50 p-4 rounded-lg">
+									<span class="text-sm font-bold text-[#002C76]">Overall Standard</span>
+									<div class="flex items-center gap-4 ml-auto">
+										<label
+											class="flex items-center gap-2 cursor-pointer result-radio-grp text-green-700 font-semibold text-sm">
+											<input type="radio" name="qs_result" value="Qualified"
+												class="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 focus:ring-green-500"
+												{{ old('qs_result', $application->qs_result ?? 'Not Qualified') === 'Qualified' ? 'checked' : '' }}> Qualified
+										</label>
+										<label
+											class="flex items-center gap-2 cursor-pointer result-radio-grp text-red-700 font-semibold text-sm">
+											<input type="radio" name="qs_result" value="Not Qualified"
+												class="w-4 h-4 text-red-600 bg-gray-100 border-gray-300 focus:ring-red-500"
+												{{ old('qs_result', $application->qs_result ?? 'Not Qualified') === 'Not Qualified' ? 'checked' : '' }}> Not Qualified
+										</label>
+									</div>
+								</div>
 
-								<!-- Result -->
-								<div class="flex items-center  cursor-default group" onclick="toggleResult(this)">
+								@php
+									$qsFields = [
+										'qs_education' => 'Education',
+										'qs_eligibility' => 'Eligibility',
+										'qs_experience' => 'Experience',
+										'qs_training' => 'Training'
+									];
+								@endphp
+
+								@foreach($qsFields as $field => $label)
 									@php
-										$resultStatus = old('qs_result', $application->qs_result ?? 'Not Qualified');
-										$textColor = $resultStatus === 'Qualified' ? 'text-green-600' : 'text-red-600';
+										$val = old($field, $application->$field ?? 'no');
 									@endphp
-									<span
-										class="result-text text-sm font-semibold {{ $textColor }} group-hover:opacity-80 transition-opacity"
-										data-state="{{ $resultStatus }}">{{ $resultStatus }}</span>
-									<input type="hidden" name="qs_result" class="result-input" value="{{ $resultStatus }}">
-								</div>
-							</div>
-							<div class="grid grid-cols-2 md:grid-cols-4 items-center gap-x-4 gap-y-2">
-								<!-- Education -->
-								<div class="flex items-center  cursor-default group"
-									onclick="toggleQS(this.querySelector('.qs-toggle'))">
-									<button type="button"
-										class="qs-toggle w-2.5 h-2.5 shrink-0 rounded-full transition-all {{ old('qs_education', $application->qs_education ?? 'no') == 'yes' ? 'bg-green-500' : 'bg-red-500' }}"
-										data-field="qs_education"
-										data-state="{{ old('qs_education', $application->qs_education ?? 'no') }}">
-									</button>
-									<span class="text-xs text-gray-700 group-hover:text-[#002C76]">Education</span>
-									<input type="hidden" name="qs_education"
-										value="{{ old('qs_education', $application->qs_education ?? 'no') }}">
-								</div>
-
-								<!-- Eligibility -->
-								<div class="flex items-center  cursor-default group"
-									onclick="toggleQS(this.querySelector('.qs-toggle'))">
-									<button type="button"
-										class="qs-toggle w-2.5 h-2.5 shrink-0 rounded-full transition-all {{ old('qs_eligibility', $application->qs_eligibility ?? 'no') == 'yes' ? 'bg-green-500' : 'bg-red-500' }}"
-										data-field="qs_eligibility"
-										data-state="{{ old('qs_eligibility', $application->qs_eligibility ?? 'no') }}">
-									</button>
-									<span class="text-xs text-gray-700 group-hover:text-[#002C76]">Eligibility</span>
-									<input type="hidden" name="qs_eligibility"
-										value="{{ old('qs_eligibility', $application->qs_eligibility ?? 'no') }}">
-								</div>
-
-								<!-- Experience -->
-								<div class="flex items-center  cursor-default group"
-									onclick="toggleQS(this.querySelector('.qs-toggle'))">
-									<button type="button"
-										class="qs-toggle w-2.5 h-2.5 shrink-0 rounded-full transition-all {{ old('qs_experience', $application->qs_experience ?? 'no') == 'yes' ? 'bg-green-500' : 'bg-red-500' }}"
-										data-field="qs_experience"
-										data-state="{{ old('qs_experience', $application->qs_experience ?? 'no') }}">
-									</button>
-									<span class="text-xs text-gray-700 group-hover:text-[#002C76]">Experience</span>
-									<input type="hidden" name="qs_experience"
-										value="{{ old('qs_experience', $application->qs_experience ?? 'no') }}">
-								</div>
-
-								<!-- Training -->
-								<div class="flex items-center  cursor-default group"
-									onclick="toggleQS(this.querySelector('.qs-toggle'))">
-									<button type="button"
-										class="qs-toggle w-2.5 h-2.5 shrink-0 rounded-full transition-all {{ old('qs_training', $application->qs_training ?? 'no') == 'yes' ? 'bg-green-500' : 'bg-red-500' }}"
-										data-field="qs_training"
-										data-state="{{ old('qs_training', $application->qs_training ?? 'no') }}">
-									</button>
-									<span class="text-xs text-gray-700 group-hover:text-[#002C76]">Training</span>
-									<input type="hidden" name="qs_training"
-										value="{{ old('qs_training', $application->qs_training ?? 'no') }}">
-								</div>
+									<div class="flex flex-col gap-2 pb-3 border-b border-gray-50 last:border-0">
+										<span class="text-sm font-semibold text-gray-800">{{ $label }}</span>
+										<div class="flex items-center gap-2">
+											<label
+												class="flex items-center gap-1 cursor-pointer text-xs text-green-600 font-medium">
+												<input type="radio" name="{{ $field }}" value="yes"
+													class="w-3.5 h-3.5 text-green-600 bg-gray-100 border-gray-300 focus:ring-green-500"
+													{{ $val === 'yes' ? 'checked' : '' }}> Qualified
+											</label>
+											<label
+												class="flex items-center gap-1 cursor-pointer text-xs text-red-600 font-medium ml-1">
+												<input type="radio" name="{{ $field }}" value="no"
+													class="w-3.5 h-3.5 text-red-600 bg-gray-100 border-gray-300 focus:ring-red-500"
+													{{ $val === 'no' ? 'checked' : '' }}> Not Qualified
+											</label>
+										</div>
+									</div>
+								@endforeach
 							</div>
 						</div>
 
 						<!-- Application Progress Card -->
-						<div class="bg-white rounded-lg border border-gray-200 p-4 shadow-lg">
-							<div class="text-sm font-semibold text-gray-700 mb-3">Application Progress:</div>
-							<div class="flex items-center gap-3">
+						<div
+							class="bg-white rounded-xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col justify-center">
+							<div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Application Progress
+							</div>
+							<div class="flex flex-col gap-3">
 								<!-- Progress Bar -->
-								<div class="flex-1 h-4 bg-gray-300 rounded-full overflow-hidden">
+								<div class="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
 									<div id="linear-progress-bar"
-										class="h-full bg-[#002C76] transition-all duration-500 ease-out" style="width: 0%">
+										class="h-full bg-gradient-to-r from-[#002C76] to-[#0052cc] transition-all duration-700 ease-out"
+										style="width: 0%">
 									</div>
 								</div>
 
 								<!-- Progress Text -->
-								<div class="flex items-center gap-2">
-									<span id="progress-percentage" class="text-xs font-semibold text-gray-900">0%</span>
-									<span class="text-xs text-gray-500">
-										<span id="progress-count">0/15</span> Documents
-									</span>
+								<div class="flex items-center justify-between mt-1">
+									<div class="flex items-baseline gap-2">
+										<span id="progress-percentage" class="text-2xl font-bold text-[#002C76]">0%</span>
+										<span class="text-xs text-gray-500 font-medium tracking-wide">
+											<span id="progress-count">0/15</span> Documents Verified
+										</span>
+									</div>
 
 									<!-- Info Icon -->
 									<button type="button"
 										onclick="const t = document.getElementById('status-tooltip'); t.classList.toggle('hidden');"
-										class="text-gray-400 hover:text-[#002C76] transition-colors">
-										<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+										class="text-gray-400 hover:text-[#002C76] transition-colors p-1 rounded-full hover:bg-gray-50">
+										<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
 											viewBox="0 0 24 24" stroke="currentColor">
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
 												d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
 										</svg>
 									</button>
@@ -332,8 +310,19 @@
 					<div class="space-y-2">
 						<div class="text-xs font-semibold text-gray-500 uppercase">Compensation</div>
 						<div id="notify-compensation" class="text-sm font-semibold text-gray-900"></div>
-						<div class="text-xs text-gray-600">
-							Deadline: <span id="notify-deadline"></span>
+						<div class="text-xs text-gray-600 mt-2">
+							<div class="font-semibold text-gray-700 mb-1">Set Deadline:</div>
+							<div class="flex gap-2">
+								<input type="date" name="deadline_date" id="deadline_date"
+									class="flex-1 text-xs px-2 py-1.5 rounded border border-gray-300 focus:ring-2 focus:ring-[#002C76] focus:border-[#002C76] outline-none"
+									value="{{ old('deadline_date', $application->deadline_date ? \Carbon\Carbon::parse($application->deadline_date)->format('Y-m-d') : '') }}">
+								<input type="time" name="deadline_time" id="deadline_time"
+									class="flex-1 text-xs px-2 py-1.5 rounded border border-gray-300 focus:ring-2 focus:ring-[#002C76] focus:border-[#002C76] outline-none"
+									value="{{ old('deadline_time', optional(\Carbon\Carbon::parse($application->deadline_time))->format('H:i')) }}">
+							</div>
+							<div id="deadlineWarning" class="text-red-500 text-[10px] mt-1 hidden">
+								<i data-feather="alert-triangle" class="inline w-3 h-3"></i> Deadline passed
+							</div>
 						</div>
 					</div>
 				</div>
@@ -441,6 +430,14 @@
 			const timeInput = document.querySelector('input[name="deadline_time"]');
 			if (dateInput) dateInput.addEventListener('change', checkDeadline);
 			if (timeInput) timeInput.addEventListener('change', checkDeadline);
+
+			// Bind radio change events for QS
+			const qsRadioNames = ['qs_education', 'qs_eligibility', 'qs_experience', 'qs_training'];
+			qsRadioNames.forEach(name => {
+				document.querySelectorAll(`input[name="${name}"]`).forEach(radio => {
+					radio.addEventListener('change', checkOverallQualification);
+				});
+			});
 		});
 
 		// --- QS Logic (Phase 4) ---
@@ -485,73 +482,55 @@
 		}
 
 		function updateQSToggle(field, isGreen) {
-			const btn = document.querySelector(`button[data-field="${field}"]`);
-			if (!btn) return;
+			const radios = document.querySelectorAll(`input[name="${field}"]`);
+			if (radios.length === 0) return;
 
-			btn.classList.remove('bg-gray-400', 'cursor-not-allowed');
-
-			if (isGreen) {
-				btn.classList.remove('bg-[#EF4444]');
-				btn.classList.add('bg-[#10B981]'); // Green
-				btn.dataset.state = 'yes';
-			} else {
-				btn.classList.remove('bg-[#10B981]');
-				btn.classList.add('bg-[#EF4444]'); // Red
-				btn.dataset.state = 'no';
-			}
-			// Update hidden input
-			const input = btn.parentNode.querySelector('input[type="hidden"]');
-			if (input) input.value = btn.dataset.state;
+			const val = isGreen ? 'yes' : 'no';
+			radios.forEach(r => {
+				r.checked = (r.value === val);
+			});
 		}
 
 		function setQSGray(field) {
-			const btn = document.querySelector(`button[data-field="${field}"]`);
-			if (!btn) return;
+			const radios = document.querySelectorAll(`input[name="${field}"]`);
+			if (radios.length === 0) return;
 
-			btn.classList.remove('bg-[#EF4444]', 'bg-[#10B981]');
-			btn.classList.add('bg-gray-400'); // Gray
-			btn.dataset.state = 'na';
-
-			const input = btn.parentNode.querySelector('input[type="hidden"]');
-			if (input) input.value = 'na';
+			radios.forEach(r => {
+				r.checked = false;
+			});
 		}
 
 		function checkOverallQualification() {
-			const toggles = document.querySelectorAll('.qs-toggle');
+			const fields = ['qs_education', 'qs_eligibility', 'qs_experience', 'qs_training'];
 			let allGreen = true;
 			let hasRequirements = false;
 
-			toggles.forEach(btn => {
-				if (btn.classList.contains('bg-gray-400')) return; // Skip N/A
+			fields.forEach(field => {
+				const checkedRadio = document.querySelector(`input[name="${field}"]:checked`);
+				if (!checkedRadio) return;
+				const val = checkedRadio.value;
+
+				if (val === 'na') return; // Skip N/A
 
 				hasRequirements = true;
-				if (!btn.classList.contains('bg-[#10B981]')) {
+				if (val !== 'yes') {
 					allGreen = false;
 				}
 			});
 
-			const resultText = document.querySelector('.result-text');
 			if (hasRequirements && allGreen) {
-				updateResultButton(resultText, 'Qualified');
+				updateResultButton('Qualified');
 			} else {
-				updateResultButton(resultText, 'Not Qualified');
+				updateResultButton('Not Qualified');
 			}
 		}
 
-		function updateResultButton(textSpan, state) {
-			textSpan.textContent = state;
-			textSpan.dataset.state = state;
-
-			const hiddenInput = textSpan.parentNode.querySelector('.result-input');
-			if (hiddenInput) hiddenInput.value = state;
-
-			if (state === 'Qualified') {
-				textSpan.classList.remove('text-red-600');
-				textSpan.classList.add('text-green-600');
-			} else {
-				textSpan.classList.remove('text-green-600');
-				textSpan.classList.add('text-red-600');
-			}
+		function updateResultButton(state) {
+			const radios = document.querySelectorAll(`input[name="qs_result"]`);
+			if (radios.length === 0) return;
+			radios.forEach(r => {
+				r.checked = (r.value === state);
+			});
 		}
 
 		// --- Document Logic ---
@@ -597,9 +576,9 @@
 			}
 		}
 
-		function handleDocumentClick(doc) {
+		function handleDocumentClick(doc, force = false) {
 			// Prevent re-clicking same doc to avoid reload
-			if (currentSelectedDoc && currentSelectedDoc.id === doc.id) return;
+			if (!force && currentSelectedDoc && currentSelectedDoc.id === doc.id) return;
 
 			currentSelectedDoc = doc;
 
@@ -644,9 +623,32 @@
 				setDocumentRemarksVisibility(false);
 			}
 
-			// Enable Buttons
-			if (btnVerify) btnVerify.disabled = false;
-			if (btnRevision) btnRevision.disabled = false;
+			// Enable/Disable Buttons and Update Text
+			if (btnVerify) {
+				const isVerified = (doc.status === 'Verified' || doc.status === 'Okay/Confirmed');
+				btnVerify.disabled = isVerified;
+				btnVerify.textContent = isVerified ? 'Verified' : 'Verify';
+				if (isVerified) {
+					btnVerify.classList.add('opacity-50', 'cursor-not-allowed', 'bg-green-50');
+					btnVerify.classList.remove('hover:bg-green-50');
+				} else {
+					btnVerify.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-green-50');
+					btnVerify.classList.add('hover:bg-green-50');
+				}
+			}
+
+			if (btnRevision) {
+				const needsRevision = (doc.status === 'Needs Revision' || doc.status === 'Disapproved With Deficiency');
+				btnRevision.disabled = needsRevision;
+				btnRevision.textContent = needsRevision ? 'Needs Revisions' : 'Needs Revisions';
+				if (needsRevision) {
+					btnRevision.classList.add('opacity-50', 'cursor-not-allowed', 'bg-red-50');
+					btnRevision.classList.remove('hover:bg-red-50');
+				} else {
+					btnRevision.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-red-50');
+					btnRevision.classList.add('hover:bg-red-50');
+				}
+			}
 
 			// Load Preview with Loader
 			if (previewLoader) previewLoader.classList.remove('hidden');
@@ -690,13 +692,14 @@
 			updateStatusUI(newStatus);
 			currentSelectedDoc.status = newStatus;
 
-			// Update local object with current admin name immediately for UI responsiveness
-			// Assuming we have access to current admin name via PHP variable or similar
-			// For now, let's just use the previously loaded name if available, or placeholder
-			// Ideally we should get the name from the server response, but for "Last modified by",
-			// we can optimistically set it to "You" or the current admin's name if we had it in JS.
-			// Let's use the static admin name passed to the view
-			currentSelectedDoc.last_modified_by = "{{ Auth::guard('admin')->user()->name ?? 'Me' }}";
+			// Prepare the current date and time formatting
+			const now = new Date();
+			const formattedDate = now.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+			const formattedTime = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+
+			// Let's use the static admin name passed to the view with timestamp
+			const currentAdminName = "{{ Auth::guard('admin')->user()->name ?? 'Me' }}";
+			currentSelectedDoc.last_modified_by = `${currentAdminName} on ${formattedDate} ${formattedTime}`;
 
 			// Update the "Last modified by" text immediately
 			const modifiedEl = document.getElementById('document-modified');
@@ -741,6 +744,9 @@
 				if (currentSelectedDoc) currentSelectedDoc.remarks = "";
 				setDocumentRemarksVisibility(false);
 			}
+
+            // Immediately re-select the document to trigger all UI states (like disabling buttons)
+            handleDocumentClick(currentSelectedDoc, true);
 
 			// Defer heavy updates
 			setTimeout(() => {
@@ -879,12 +885,12 @@
 			const originalContent = btn.innerHTML;
 			btn.disabled = true;
 			btn.innerHTML = `
-								<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-									<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-									<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-								</svg>
-								Sending...
-							`;
+												<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+													<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+													<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+												</svg>
+												Sending...
+											`;
 			btn.classList.add("opacity-75", "cursor-not-allowed");
 
 			try {
@@ -895,11 +901,11 @@
 				const payload = {
 					deadline_date: dateInput ? dateInput.value : null,
 					deadline_time: timeInput ? timeInput.value : null,
-					qs_education: document.querySelector('input[name="qs_education"]')?.value,
-					qs_eligibility: document.querySelector('input[name="qs_eligibility"]')?.value,
-					qs_experience: document.querySelector('input[name="qs_experience"]')?.value,
-					qs_training: document.querySelector('input[name="qs_training"]')?.value,
-					qs_result: document.querySelector('input[name="qs_result"]')?.value,
+					qs_education: document.querySelector('input[name="qs_education"]:checked')?.value || 'na',
+					qs_eligibility: document.querySelector('input[name="qs_eligibility"]:checked')?.value || 'na',
+					qs_experience: document.querySelector('input[name="qs_experience"]:checked')?.value || 'na',
+					qs_training: document.querySelector('input[name="qs_training"]:checked')?.value || 'na',
+					qs_result: document.querySelector('input[name="qs_result"]:checked')?.value || 'Not Qualified',
 				};
 
 				const response = await fetch(`/admin/applicant_status/${userId}/${vacancyId}/notify`, {
@@ -960,16 +966,6 @@
 			if (compEl) {
 				compEl.textContent = "₱{{ number_format($compensation, 2) }}";
 			}
-			if (deadlineEl) {
-				const dateInput = document.querySelector('input[name=\"deadline_date\"]');
-				const timeInput = document.querySelector('input[name=\"deadline_time\"]');
-				const dateValue = dateInput ? dateInput.value : "";
-				const timeValue = timeInput ? timeInput.value : "";
-				deadlineEl.textContent = dateValue
-					? (timeValue ? `${dateValue} ${timeValue}` : dateValue)
-					: "No deadline set";
-			}
-
 			if (qsListEl) {
 				qsListEl.innerHTML = "";
 				const qsItems = [
@@ -979,7 +975,7 @@
 					{ field: 'qs_training', label: 'Training' }
 				];
 				qsItems.forEach(item => {
-					const input = document.querySelector(`input[name=\"${item.field}\"]`);
+					const input = document.querySelector(`input[name="${item.field}"]:checked`);
 					const value = input ? input.value : '';
 					let text = 'N/A';
 					let color = 'text-gray-500';
@@ -991,7 +987,7 @@
 						color = 'text-red-600';
 					}
 					const li = document.createElement('li');
-					li.innerHTML = `<span class=\"font-semibold\">${item.label}:</span> <span class=\"${color}\">${text}</span>`;
+					li.innerHTML = `<span class="font-semibold">${item.label}:</span> <span class="${color}">${text}</span>`;
 					qsListEl.appendChild(li);
 				});
 			}
@@ -1016,17 +1012,17 @@
 					remarksText = doc.remarks || "";
 				}
 				rowsHtml += `
-															<tr>
-																<td class="px-3 py-2 align-top text-gray-900">${doc.text}</td>
-																<td class="px-3 py-2 align-top text-gray-700">
-																	<div class="flex items-center gap-1">
-																		<span>${iconHtml}</span>
-																		<span>${status}</span>
-																	</div>
-																</td>
-																<td class="px-3 py-2 align-top text-gray-700">${remarksText}</td>
-															</tr>
-														`;
+																			<tr>
+																				<td class="px-3 py-2 align-top text-gray-900">${doc.text}</td>
+																				<td class="px-3 py-2 align-top text-gray-700">
+																					<div class="flex items-center gap-1">
+																						<span>${iconHtml}</span>
+																						<span>${status}</span>
+																					</div>
+																				</td>
+																				<td class="px-3 py-2 align-top text-gray-700">${remarksText}</td>
+																			</tr>
+																		`;
 			});
 			bodyEl.innerHTML = rowsHtml;
 

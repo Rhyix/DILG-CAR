@@ -44,7 +44,7 @@ class JobVacancyController extends Controller
             ->leftJoin('exam_details', 'job_vacancies.vacancy_id', '=', 'exam_details.vacancy_id')
             ->with('examDetail')
             ->orderByRaw("CASE 
-                WHEN job_vacancies.status = 'OPEN' AND (exam_details.date IS NULL OR exam_details.date = '') THEN 1 
+                WHEN job_vacancies.status = 'OPEN' AND exam_details.date IS NULL THEN 1 
                 WHEN job_vacancies.status = 'OPEN' THEN 2 
                 ELSE 3 
             END")
@@ -444,7 +444,7 @@ class JobVacancyController extends Controller
 
         // Priority sorting: Unscheduled & Open first
         $vacancies->orderByRaw("CASE 
-            WHEN job_vacancies.status = 'OPEN' AND (exam_details.date IS NULL OR exam_details.date = '') THEN 1 
+            WHEN job_vacancies.status = 'OPEN' AND exam_details.date IS NULL THEN 1 
             WHEN job_vacancies.status = 'OPEN' THEN 2 
             ELSE 3 
         END");
@@ -703,7 +703,7 @@ class JobVacancyController extends Controller
                 // Always prioritize live data over snapshot
                 $doc = $this->resolveUploadedDocument($uploadedDocuments, $docType);
                 $hasFile = $doc && !empty($doc->storage_path) && $doc->storage_path !== 'NOINPUT';
-                
+
                 $status = 'Not Submitted';
                 if ($doc) {
                     if (!empty($doc->status)) {
@@ -814,17 +814,17 @@ class JobVacancyController extends Controller
             'auth_user_id' => Auth::id(),
             'method' => $request->method()
         ]);
-        
+
         $application = Applications::where('user_id', $user_id)
             ->where('vacancy_id', $vacancy_id)
             ->with(['personalInformation', 'vacancy'])
             ->first();
-            
+
         if (!$application) {
             \Log::error("Application not found", ['user_id' => $user_id, 'vacancy_id' => $vacancy_id]);
             return response()->json(['error' => 'Application not found'], 404);
         }
-        
+
         // Use the same logic as applicationStatus method
         $snapshotNotification = \App\Models\Notification::where('notifiable_type', 'App\Models\User')
             ->where('notifiable_id', $user_id)
@@ -884,7 +884,7 @@ class JobVacancyController extends Controller
                 // Always prioritize live data over snapshot
                 $doc = $this->resolveUploadedDocument($uploadedDocuments, $docType);
                 $hasFile = $doc && !empty($doc->storage_path) && $doc->storage_path !== 'NOINPUT';
-                
+
                 // Debug: Log document details
                 \Log::info("Document check for {$docType} in getUpdatedDocumentsUser", [
                     'doc_found' => $doc ? true : false,
@@ -893,7 +893,7 @@ class JobVacancyController extends Controller
                     'status' => $doc?->status,
                     'last_modified_by' => $doc?->last_modified_by
                 ]);
-                
+
                 // Use actual status from database if document exists
                 $status = 'Not Submitted';
                 if ($doc) {
@@ -916,9 +916,9 @@ class JobVacancyController extends Controller
                 ];
             }
         }
-        
+
         \Log::info("Final documents array in getUpdatedDocumentsUser", ['count' => count($documents)]);
-        
+
         return response()->json([
             'documents' => $documents,
             'application' => [

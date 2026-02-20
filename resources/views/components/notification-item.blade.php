@@ -29,7 +29,10 @@
                     {{ $notification->data['title'] ?? 'Notification' }}
                 </p>
                 <span class="notif-time text-[10px] text-gray-400 whitespace-nowrap shrink-0">
-                    {{ $notification->created_at->diffForHumans(null, true, true) }}
+                    @php
+                        $diff = $notification->created_at->diffForHumans(null, true, true);
+                    @endphp
+                    {{ $diff === '0s' ? 'Just now' : $diff }}
                 </span>
             </div>
 

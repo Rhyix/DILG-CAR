@@ -200,8 +200,12 @@
                                             {{ $notif->data['message'] ?? '' }}
                                         </p>
                                     </div>
-                                    <span
-                                        class="text-[10px] text-gray-400 whitespace-nowrap">{{ $notif->created_at->diffForHumans(null, true, true) }}</span>
+                                    <span class="text-[10px] text-gray-400 whitespace-nowrap">
+                                        @php
+                                            $diff = $notif->created_at->diffForHumans(null, true, true);
+                                        @endphp
+                                        {{ $diff === '0s' ? 'Just now' : $diff }}
+                                    </span>
                                 </div>
                             </div>
                         @empty

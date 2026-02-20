@@ -644,6 +644,10 @@ class AdminController extends Controller
         $applicantName = User::find($user_id)->name ?? 'Applicant';
         $docName = $documentType === 'application_letter' ? 'Application Letter' : ucwords(str_replace('_', ' ', $documentType));
 
+        $now = now()->timezone('Asia/Manila')->format('M d, Y h:i A');
+        $adminName = Auth::guard('admin')->user()->name;
+        $lastModifiedStr = "{$adminName} on {$now}";
+
         if ($documentType === 'application_letter') {
             if ($request->has('status'))
                 $application->file_status = $status;
@@ -651,7 +655,7 @@ class AdminController extends Controller
                 $application->file_remarks = $remarks;
 
             // Update last modified by
-            $application->file_last_modified_by = Auth::guard('admin')->user()->name;
+            $application->file_last_modified_by = $lastModifiedStr;
 
             $application->save();
 
@@ -674,7 +678,7 @@ class AdminController extends Controller
                 }
 
                 // Update last modified by
-                $document->last_modified_by = Auth::guard('admin')->user()->name;
+                $document->last_modified_by = $lastModifiedStr;
 
                 $document->save();
             } else {
@@ -685,7 +689,7 @@ class AdminController extends Controller
                     'document_type' => $documentType,
                     'status' => $status ?? 'Pending',
                     'remarks' => $remarks ?? '',
-                    'last_modified_by' => Auth::guard('admin')->user()->name, // Add last modified by
+                    'last_modified_by' => $lastModifiedStr, // Add last modified by
                     'original_name' => '', // Placeholder
                     'stored_name' => '',   // Placeholder
                     'storage_path' => '',  // Placeholder
@@ -734,9 +738,9 @@ class AdminController extends Controller
         $application = Applications::where('user_id', $user_id)
             ->where('vacancy_id', $vacancy_id)
             ->first();
-            
+
         $documents = $this->getApplicantDocuments($user_id, $application);
-        
+
         return response()->json([
             'documents' => $documents,
             'application' => [
@@ -997,7 +1001,7 @@ class AdminController extends Controller
                     $timestamp = now()->timezone($timezone)->format('Y-m-d H:i:s T');
 
                     $verifiedDocs = array_values(array_filter($userDocumentsSnapshot, function ($d) {
-                        $status = strtoupper((string)($d['status'] ?? ''));
+                        $status = strtoupper((string) ($d['status'] ?? ''));
                         return in_array($status, ['VERIFIED', 'NEEDS REVISION']);
                     }));
 
