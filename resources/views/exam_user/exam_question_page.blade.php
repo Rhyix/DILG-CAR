@@ -14,9 +14,40 @@
 @endpush
 
 <!-- Floating Sticky Timer (Overlay Style) -->
-<div class="fixed mt-3 right-10 rounded-lg px-4 py-2 shadow-lg z-50">
-    <p class="uppercase text-xs text-gray-500 text-right">Time Remaining</p>
-    <p id="timer" class="text-2xl font-bold text-gray-800 text-right">00:00</p>
+<div x-data="{ expanded: true }" class="fixed mt-3 right-10 bg-white rounded-lg px-4 py-2 shadow-lg z-50 border border-gray-200">
+    <div class="flex items-center justify-end gap-4 mb-2">
+        <!-- Circular Progress (Pacman-ish ring) -->
+        <div class="relative w-12 h-12 flex-shrink-0">
+            <svg class="transform -rotate-90 w-12 h-12">
+                <!-- Background Circle -->
+                <circle cx="24" cy="24" r="18" stroke="#e5e7eb" stroke-width="6" fill="transparent" />
+                <!-- Progress Circle -->
+                <circle id="timer-circle" cx="24" cy="24" r="18" stroke="#002C76" stroke-width="6" fill="transparent" stroke-linecap="round" class="transition-all duration-1000 ease-linear" />
+            </svg>
+        </div>
+
+        <div>
+            <p class="uppercase text-xs text-gray-500 text-right">Time Remaining</p>
+            <p id="timer" class="text-2xl font-bold text-gray-800 text-right">00:00</p>
+        </div>
+        
+        <!-- Toggle Button -->
+        <button @click="expanded = !expanded" class="ml-1 text-gray-400 hover:text-[#002C76] focus:outline-none transition-colors" title="Toggle Time Info">
+            <svg x-show="expanded" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+            </svg>
+            <svg x-show="!expanded" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd" />
+            </svg>
+        </button>
+    </div>
+    
+    <!-- Collapsible PST Section -->
+    <div x-show="expanded" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 transform scale-95" x-transition:enter-end="opacity-100 transform scale-100" x-transition:leave="transition ease-in duration-100" x-transition:leave-start="opacity-100 transform scale-100" x-transition:leave-end="opacity-0 transform scale-95" class="border-t border-gray-200 pt-2">
+        <p class="uppercase text-xs text-gray-500 text-right">Philippine Standard Time</p>
+        <p id="pst-time" class="text-lg font-bold text-[#002C76] text-right">--:--:--</p>
+        <p id="pst-date" class="text-xs text-gray-600 text-right">--</p>
+    </div>
 </div>
 
 @section('content')
@@ -167,7 +198,17 @@
     renderAllQuestions();
 
     let duration = {{ $remaining_seconds }};
+    const totalDuration = {{ $total_seconds }}; // Total duration from controller
     const timerDisplay = document.getElementById('timer');
+    const timerCircle = document.getElementById('timer-circle');
+    
+    // Circle Config
+    const radius = 18;
+    const circumference = 2 * Math.PI * radius;
+    if (timerCircle) {
+        timerCircle.style.strokeDasharray = `${circumference} ${circumference}`;
+        timerCircle.style.strokeDashoffset = circumference;
+    }
     
     // Initial display
     updateTimerDisplay(duration);
@@ -187,12 +228,45 @@
         }
     }, 1000);
 
+    function updatePST() {
+        const now = new Date();
+        // Format time: 01:31:35 PM
+        const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
+        const timeStr = now.toLocaleTimeString('en-US', timeOptions);
+        
+        // Format date: Friday, 20 February 2026
+        const dateOptions = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+        const dateStr = now.toLocaleDateString('en-US', dateOptions);
+
+        const tEl = document.getElementById('pst-time');
+        const dEl = document.getElementById('pst-date');
+        if(tEl) tEl.textContent = timeStr;
+        if(dEl) dEl.textContent = dateStr;
+    }
+    setInterval(updatePST, 1000);
+    updatePST();
+
     function updateTimerDisplay(seconds) {
         if (seconds < 0) seconds = 0;
         const h = Math.floor(seconds / 3600);
         const m = Math.floor((seconds % 3600) / 60);
-        const s = seconds % 60;
+        const s = Math.floor(seconds % 60);
         
+        // Update Circle
+        if (timerCircle) {
+            const offset = circumference - (seconds / totalDuration) * circumference;
+            timerCircle.style.strokeDashoffset = offset;
+            
+            // Color change warning
+            if (seconds < 60) {
+                timerCircle.style.stroke = '#DC2626'; // Red
+            } else if (seconds < 300) {
+                timerCircle.style.stroke = '#F59E0B'; // Orange
+            } else {
+                timerCircle.style.stroke = '#002C76'; // Blue
+            }
+        }
+
         let timeStr = '';
         if (h > 0) {
             timeStr += `${String(h).padStart(2, '0')}:`;

@@ -37,8 +37,7 @@
     <!-- Title Bar -->
     <header class="flex items-center gap-4">
         <div class="flex items-center gap-4 border-b border-[#0D2B70] pb-4 w-full">
-            <!-- <button aria-label="Back" onclick="window.location.href='{{ route('applications_list') }}'" -->
-            <button onclick="goBack()" class="use-loader group">
+            <button onclick="handleBack()" class="use-loader group">
                 <svg xmlns="http://www.w3.org/2000/svg"
                     class="h-8 w-8 text-[#0D2B70] hover:opacity-80 transition" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor" stroke-width="2.5">
@@ -234,28 +233,31 @@
 
     <!-- Action buttons (galing sa vacancy_add_cos.blade.php) -->
     <div class="flex flex-col sm:flex-row items-stretch sm:items-center m-2 justify-end gap-2 sm:gap-4 py-8">
-        <button id="vacancy-discard-btn" type="button" onclick="history.back()" class="border-2 border-red-600 hover:bg-red-600 hover:text-white 
+        <button id="vacancy-discard-btn" type="button" onclick="handleBack()" class="border-2 border-red-600 hover:bg-red-600 hover:text-white 
         text-red-600 px-4 py-2 rounded-md flex items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
             DISCARD
         </button>
-        <button id="vacancy-save-btn" type="button" @click.prevent="$dispatch('open-plantilla-save-confirm')" class="border-2 border-[#0D2B70] hover:bg-[#0D2B70] hover:text-white 
-        text-[#0D2B70] px-4 py-2 rounded-md flex items-center gap-2 transition-all duration-200">
-            <span id="save-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-            </span>
-            <span id="save-loader" class="hidden">
-                <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-            </span>
-            <span id="save-text">SAVE</span>
-        </button>
+        <div class="flex flex-col items-end">
+            <span id="form-error-msg" class="text-red-600 text-xs mb-1 hidden">Please fill in all fields.</span>
+            <button id="vacancy-save-btn" type="button" @click.prevent="$dispatch('open-plantilla-save-confirm')" disabled class="opacity-50 cursor-not-allowed border-2 border-[#0D2B70] hover:bg-[#0D2B70] hover:text-white 
+            text-[#0D2B70] px-4 py-2 rounded-md flex items-center gap-2 transition-all duration-200">
+                <span id="save-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                </span>
+                <span id="save-loader" class="hidden">
+                    <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </span>
+                <span id="save-text">SAVE</span>
+            </button>
+        </div>
     </div>
 </main>
 
@@ -266,6 +268,14 @@
     event="open-plantilla-save-confirm"
     confirm="confirm-plantilla-save"
 />
+
+<x-confirm-modal 
+    title="Discard Changes"
+    message="You have unsaved changes. Are you sure you want to leave this page?"
+    event="open-plantilla-discard-confirm"
+    confirm="confirm-plantilla-discard"
+/>
+
 
 <script>
     function goBack() {
@@ -285,6 +295,34 @@
         } else {
             window.history.back(); // fallback
         }
+    }
+
+    function handleBack() {
+        if (isFormDirty()) {
+            window.dispatchEvent(new CustomEvent('open-plantilla-discard-confirm'));
+        } else {
+            goBack();
+        }
+    }
+
+    window.addEventListener('confirm-plantilla-discard', () => {
+        goBack();
+    });
+
+    function isFormDirty() {
+        const form = document.getElementById('plantillaForm');
+        const inputs = form.querySelectorAll('input:not([type="hidden"]), select, textarea');
+        let dirty = false;
+        
+        inputs.forEach(input => {
+            if (input.hasAttribute('readonly')) return; 
+            if (input.type === 'checkbox' || input.type === 'radio') {
+                if (input.checked !== input.defaultChecked) dirty = true;
+            } else {
+                if (input.value !== input.defaultValue) dirty = true;
+            }
+        });
+        return dirty;
     }
 </script>
 
@@ -331,6 +369,53 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // Initialize on page load
     handleSignatoryChange();
+});
+
+// Validate all fields
+function checkAllFieldsFilled() {
+    const form = document.getElementById('plantillaForm');
+    const inputs = form.querySelectorAll('input:not([type="hidden"]), select, textarea');
+    let allFilled = true;
+    
+    inputs.forEach(input => {
+        if (input.hasAttribute('readonly')) return; 
+        
+        // For Select
+        if (input.tagName === 'SELECT') {
+             if (!input.value || input.value === '') allFilled = false;
+             if (input.selectedOptions.length > 0 && input.selectedOptions[0].disabled) allFilled = false;
+             return;
+        }
+
+        if (!input.value.trim()) {
+            allFilled = false;
+        }
+    });
+    
+    const saveBtn = document.getElementById('vacancy-save-btn');
+    const errorMsg = document.getElementById('form-error-msg');
+    
+    if (allFilled) {
+        saveBtn.disabled = false;
+        saveBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        errorMsg.classList.add('hidden');
+    } else {
+        saveBtn.disabled = true;
+        saveBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        errorMsg.classList.remove('hidden');
+    }
+}
+
+// Add listeners for validation
+document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('plantillaForm');
+    const inputs = form.querySelectorAll('input, select, textarea');
+    inputs.forEach(input => {
+        input.addEventListener('input', checkAllFieldsFilled);
+        input.addEventListener('change', checkAllFieldsFilled);
+    });
+    // Initial check
+    checkAllFieldsFilled();
 });
 
 // Validate and submit on confirm

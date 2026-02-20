@@ -37,8 +37,7 @@
     <!-- Title Bar -->
     <header class="flex items-center gap-4">
         <div class="flex items-center gap-4 border-b border-[#0D2B70] pb-4 w-full">
-            <!-- <button aria-label="Back" onclick="window.location.href='{{ route('applications_list') }}'" -->
-            <button onclick="goBack()" class="use-loader group">
+            <button type="button" onclick="handleBack()" class="use-loader group">
                 <svg xmlns="http://www.w3.org/2000/svg"
                     class="h-8 w-8 text-[#0D2B70] hover:opacity-80 transition" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor" stroke-width="2.5">
@@ -77,7 +76,7 @@
       <p id="position_title_error" class="text-red-600 text-sm mt-1 hidden">Position title is required.</p>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 w-full gap-4 mt-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 w-full gap-4 mt-4">
       <!-- New input date Flatpickr -->
         <div class="w-full">
             <label class="block">Deadline of Application</label>
@@ -106,7 +105,7 @@
 
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div>
         <label class="block">Salary Grade/Pay Grade</label>
         <input id="salary_grade" type="text" name="salary_grade" value="{{ old('salary_grade', $vacancy->salary_grade ?? '') }}" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10">
@@ -202,30 +201,33 @@
 
     <!-- Action buttons -->
     <div class="flex flex-col md:flex-row items-stretch sm:items-center m-2 justify-end gap-2 sm:gap-4 py-8">
-        <button id="vacancy-discard-btn" type="button" onclick="history.back()" class="border-2 border-red-600 hover:bg-red-600 hover:text-white 
+        <button id="vacancy-discard-btn" type="button" onclick="handleBack()" class="border-2 border-red-600 hover:bg-red-600 hover:text-white 
         text-red-600 px-4 py-2 rounded-md flex items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
                 DISCARD
         </button>
-        <button
-            @click.prevent="$dispatch('open-cos-save-confirm')" 
-            id="vacancy-save-btn" type="button" class="border-2 border-[#0D2B70] hover:bg-[#0D2B70] hover:text-white 
-        text-[#0D2B70] px-4 py-2 rounded-md flex items-center gap-2 transition-all duration-200">
-            <span id="save-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-            </span>
-            <span id="save-loader" class="hidden">
-                <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-            </span>
-            <span id="save-text">SAVE</span>
-        </button>
+        <div class="flex flex-col items-end">
+            <span id="form-error-msg" class="text-red-600 text-xs mb-1 hidden">Please fill in all fields.</span>
+            <button
+                @click.prevent="$dispatch('open-cos-save-confirm')" 
+                id="vacancy-save-btn" type="button" disabled class="opacity-50 cursor-not-allowed border-2 border-[#0D2B70] hover:bg-[#0D2B70] hover:text-white 
+            text-[#0D2B70] px-4 py-2 rounded-md flex items-center gap-2 transition-all duration-200">
+                <span id="save-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                </span>
+                <span id="save-loader" class="hidden">
+                    <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </span>
+                <span id="save-text">SAVE</span>
+            </button>
+        </div>
     </div>
   @include('partials.loader')
 </main>
@@ -236,6 +238,13 @@
     message="Are you sure you want to add this job vacancy?"
     event="open-cos-save-confirm"
     confirm="confirm-cos-save"
+/>
+
+<x-confirm-modal 
+    title="Discard Changes"
+    message="You have unsaved changes. Are you sure you want to leave this page?"
+    event="open-cos-discard-confirm"
+    confirm="confirm-cos-discard"
 />
 
 
@@ -257,6 +266,34 @@
         } else {
         window.history.back(); // fallback
         }
+    }
+
+    function handleBack() {
+        if (isFormDirty()) {
+            window.dispatchEvent(new CustomEvent('open-cos-discard-confirm'));
+        } else {
+            goBack();
+        }
+    }
+
+    window.addEventListener('confirm-cos-discard', () => {
+        goBack();
+    });
+
+    function isFormDirty() {
+        const form = document.getElementById('vacancy-form');
+        const inputs = form.querySelectorAll('input:not([type="hidden"]), select, textarea');
+        let dirty = false;
+        
+        inputs.forEach(input => {
+            if (input.hasAttribute('readonly')) return; 
+            if (input.type === 'checkbox' || input.type === 'radio') {
+                if (input.checked !== input.defaultChecked) dirty = true;
+            } else {
+                if (input.value !== input.defaultValue) dirty = true;
+            }
+        });
+        return dirty;
     }
 </script>
 
@@ -304,6 +341,57 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // Initialize on page load
     handleSignatoryChange();
+});
+
+// Validate all fields
+function checkAllFieldsFilled() {
+    const form = document.getElementById('vacancy-form');
+    // Select inputs, selects, textareas that are not hidden and not readonly (except if it's the signatory select which is not readonly)
+    // Actually we want to check if the user *can* fill them.
+    // Readonly fields are usually filled by system or other fields.
+    const inputs = form.querySelectorAll('input:not([type="hidden"]), select, textarea');
+    let allFilled = true;
+    
+    inputs.forEach(input => {
+        if (input.hasAttribute('readonly')) return; 
+        
+        // For Select
+        if (input.tagName === 'SELECT') {
+             if (!input.value || input.value === '') allFilled = false;
+             // Check if selected option is disabled (like placeholder)
+             if (input.selectedOptions.length > 0 && input.selectedOptions[0].disabled) allFilled = false;
+             return;
+        }
+
+        if (!input.value.trim()) {
+            allFilled = false;
+        }
+    });
+    
+    const saveBtn = document.getElementById('vacancy-save-btn');
+    const errorMsg = document.getElementById('form-error-msg');
+    
+    if (allFilled) {
+        saveBtn.disabled = false;
+        saveBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        errorMsg.classList.add('hidden');
+    } else {
+        saveBtn.disabled = true;
+        saveBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        errorMsg.classList.remove('hidden');
+    }
+}
+
+// Add listeners for validation
+document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('vacancy-form');
+    const inputs = form.querySelectorAll('input, select, textarea');
+    inputs.forEach(input => {
+        input.addEventListener('input', checkAllFieldsFilled);
+        input.addEventListener('change', checkAllFieldsFilled);
+    });
+    // Initial check
+    checkAllFieldsFilled();
 });
 
 // Validate and submit on confirm

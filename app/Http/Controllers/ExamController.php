@@ -682,7 +682,9 @@ class ExamController extends Controller
             ->withProperties(['vacancy_id' => $vacancy_id, 'section' => 'Exam'])
             ->log('Viewed exam questions page.');
 
-        return view('exam_user.exam_question_page', compact('vacancy_id', 'examItems', 'remaining_seconds', 'vacancy'));
+        $total_seconds = $examDetail->duration * 60;
+
+        return view('exam_user.exam_question_page', compact('vacancy_id', 'examItems', 'remaining_seconds', 'vacancy', 'total_seconds'));
     }
 
     public function viewExam(Request $request, $vacancy_id, $user_id)
