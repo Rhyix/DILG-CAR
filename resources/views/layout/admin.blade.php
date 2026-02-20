@@ -143,7 +143,7 @@
         <div class="flex-1 flex flex-col h-screen overflow-hidden relative min-w-0">
             <!-- Top Header (Notification Bell & Profile) -->
             <header
-                class="flex justify-end items-center px-6 sm:px-8 md:px-10 pt-5 sm:pt-6 pb-3 shrink-0 z-50 bg-[#F1F6FC]">
+                class="flex justify-end items-center px-6 sm:px-8 md:px-10 pt-5 sm:pt-6 pb-3 shrink-0 z-50 ">
                 <div class="flex items-center gap-1 rounded-full border border-slate-200 bg-white/80 backdrop-blur-sm px-2 py-1 shadow-sm">
                     <!-- Notification Bell -->
                     <div id="notifBell" class="relative">

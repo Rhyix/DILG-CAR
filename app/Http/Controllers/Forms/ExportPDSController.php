@@ -12,11 +12,12 @@ use App\Models\OtherInformation;
 use App\Models\MiscInfos;
 use setasign\Fpdi\Fpdi;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class ExportPDSController
 {
-    public function exportPDS()
+    public function exportPDS(Request $request)
     {
         $user = Auth::user(); // Get currently authenticated user
 
@@ -66,9 +67,7 @@ class ExportPDSController
         $children = [];
 
         if ($familyBackground && $familyBackground->children_info) {
-            $children = is_string($familyBackground->children_info)
-                ? json_decode($familyBackground->children_info, true)
-                : $familyBackground->children_info;
+            $children = $this->normalizeListData($familyBackground->children_info);
         }
 
         $childrenChunks = array_chunk($children, 12);
@@ -78,9 +77,9 @@ class ExportPDSController
         $collegeData = $educationalBackground?->college ?? [];
         $gradData = $educationalBackground?->grad ?? [];
 
-        $vocational = is_string($vocationalData) ? json_decode($vocationalData, true) : $vocationalData;
-        $college = is_string($collegeData) ? json_decode($collegeData, true) : $collegeData;
-        $grad = is_string($gradData) ? json_decode($gradData, true) : $gradData;
+        $vocational = $this->normalizeListData($vocationalData);
+        $college = $this->normalizeListData($collegeData);
+        $grad = $this->normalizeListData($gradData);
 
         $vocationalChunks = array_chunk($vocational, 1);
         $collegeChunks = array_chunk($college, 1);
@@ -102,13 +101,13 @@ class ExportPDSController
         $lndChunks = array_chunk($learningAndDev->toArray(), 21);
 
         if ($otherInfo) {
-            $skills = json_decode($otherInfo->skill, true);
+            $skills = $this->normalizeListData($otherInfo->skill);
             $skillsChunks = array_chunk($skills, 7);
 
-            $distinctions = json_decode($otherInfo->distinction, true);
+            $distinctions = $this->normalizeListData($otherInfo->distinction);
             $distinctionsChunks = array_chunk($distinctions, 7);
 
-            $organizations = json_decode($otherInfo->organization, true);
+            $organizations = $this->normalizeListData($otherInfo->organization);
             $organizationsChunks = array_chunk($organizations, 7);
         } else {
             $skillsChunks = [];
@@ -125,13 +124,14 @@ class ExportPDSController
         $templateId = $pdf->importPage(1);
         $size = $pdf->getTemplateSize($templateId);
         $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
-        $pdf->useTemplate($templateId, null, null, $size['width'], 327, FALSE);
+        $pdf->useTemplate($templateId);
         $pdf->SetFont('Arial', '', 8);
 
         $this->writePersonalInfo($pdf, $personalInfo);
         $this->writeAddresses($pdf, $residential, $permanent, $this->getWriteCentered());
         $this->writeFamilyBackground($pdf, $familyBackground);
         $this->writeEducationalBackground($pdf, $educationalBackground);
+        $this->stampRevisedHeader($pdf);
 
         $this->writeCollegeChunk($pdf, $collegeChunks[0] ?? []);
         $this->writeVocationalChunk($pdf, $vocationalChunks[0] ?? []);
@@ -161,6 +161,7 @@ class ExportPDSController
             $pdf->Write(0, "CONTINUED");
             $pdf->SetFont('Arial', '', 8);
         }
+        $this->stampRevisedFooter($pdf);
 
         // ----------------------------
         // Overflow Pages: Children, Vocational, College, Graduate overflow
@@ -178,7 +179,7 @@ class ExportPDSController
         for ($i = 1; $i < $maxChunks; $i++) {
             $templateId = $pdf->importPage(1); // Reuse Page 1 template
             $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
-            $pdf->useTemplate($templateId, null, null, $size['width'], 327, FALSE);
+            $pdf->useTemplate($templateId);
 
             $pdf->SetXY(163.5, 310.190);
             $pdf->Write(0, Carbon::now()->format('m/d/Y'));
@@ -197,6 +198,7 @@ class ExportPDSController
 
             $pdf->SetXY(165.2, 53);
             $pdf->Write(0, $personalInfo->name_extension);
+            $this->stampRevisedHeader($pdf);
 
             // Write children overflow chunk if exists
             if (isset($childrenChunks[$i])) {
@@ -217,6 +219,7 @@ class ExportPDSController
             if (isset($gradChunks[$i])) {
                 $this->writeGraduateChunk($pdf, $gradChunks[$i]);
             }
+            $this->stampRevisedFooter($pdf);
         }
 
         // ----------------------------
@@ -225,7 +228,7 @@ class ExportPDSController
 
         $templateId = $pdf->importPage(2);
         $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
-        $pdf->useTemplate($templateId, null, null, $size['width'], 324, FALSE);
+        $pdf->useTemplate($templateId);
 
         // Write first CSE chunk (max 7 rows)
         $this->writeCivilServiceEligibilityChunk($pdf, $cseChunks[0] ?? []);
@@ -254,6 +257,7 @@ class ExportPDSController
 
         $pdf->SetXY(149.352, 310.190);
         $pdf->Write(0, Carbon::now()->format('m/d/Y'));
+        $this->stampRevisedFooter($pdf);
         // ----------------------------
         // Overflow Pages: CSE overflow + WE overflow
         // ----------------------------
@@ -261,7 +265,7 @@ class ExportPDSController
         // Handle CSE overflow pages
         for ($i = 1; $i < count($cseChunks); $i++) {
             $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
-            $pdf->useTemplate($templateId, null, null, $size['width'], 324, FALSE);
+            $pdf->useTemplate($templateId);
 
             $pdf->SetXY(149.352, 310.190);
             $pdf->Write(0, Carbon::now()->format('m/d/Y'));
@@ -272,17 +276,19 @@ class ExportPDSController
                 $this->writeWorkExperienceChunk($pdf, $weChunks[$i]);
                 unset($weChunks[$i]); // Mark as written
             }
+            $this->stampRevisedFooter($pdf);
         }
 
         // Handle remaining WE overflow pages
         foreach ($weChunks as $index => $chunk) {
             if ($index == 0) continue; // Already written first WE chunk on Page 2
             $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
-            $pdf->useTemplate($templateId, null, null, $size['width'], 324, FALSE);
+            $pdf->useTemplate($templateId);
 
             $pdf->SetXY(149.352, 310.190);
             $pdf->Write(0, Carbon::now()->format('m/d/Y'));
             $this->writeWorkExperienceChunk($pdf, $chunk);
+            $this->stampRevisedFooter($pdf);
         }
 
         // ----------------------------
@@ -334,6 +340,7 @@ class ExportPDSController
             $pdf->Write(0, "CONTINUED");
             $pdf->SetFont('Arial', '', 8);
         }
+        $this->stampRevisedFooter($pdf);
 
         // ----------------------------
         // Overflow Pages: Page 3 logic for remaining chunks
@@ -370,10 +377,12 @@ class ExportPDSController
             if ($skillsChunk || $distinctionsChunk || $organizationsChunk) {
                 $this->writeOtherInformation($pdf, $skillsChunk, $distinctionsChunk, $organizationsChunk);
             }
+            $this->stampRevisedFooter($pdf);
         }
 
         $pdf->SetXY(161, 305);
         $pdf->Write(0, Carbon::now()->format('m/d/Y'));
+        $this->stampRevisedFooter($pdf);
 
         // ----------------------------
         // Page 4: Other Information
@@ -388,6 +397,7 @@ class ExportPDSController
 
         $pdf->SetXY(113, 270);
         $pdf->Write(0, Carbon::now()->format('m/d/Y'));
+        $this->stampRevisedFooter($pdf);
 
         // C4 has no overflow data so no need for overflow page
 
@@ -416,7 +426,9 @@ class ExportPDSController
         $userAgent = $_SERVER['HTTP_USER_AGENT'];
         $isMobile = preg_match('/Android|iPhone|iPad|iPod|webOS|BlackBerry|Windows Phone/i', $userAgent);
 
-        if ($isMobile) {
+        $forceInline = $request->boolean('preview');
+
+        if ($isMobile && !$forceInline) {
             // Save the PDF temporarily
             $tempPath = storage_path("app/public/{$filename}");
             $pdf->Output($tempPath, 'F');
@@ -433,6 +445,71 @@ class ExportPDSController
         }
 
         exit;
+    }
+
+    private function stampRevisedFooter(Fpdi $pdf): void
+    {
+        // Mask template footer revision text and enforce current revision label.
+        $pdf->SetFillColor(255, 255, 255);
+        $pdf->Rect(5, 318.0, 95, 6.0, 'F');
+        $pdf->SetTextColor(0, 0, 0);
+        $pdf->SetFont('Arial', '', 8);
+        $pdf->SetXY(7, 321.5);
+        $pdf->Write(0, 'CS FORM 212 (Revised 2025)');
+    }
+
+    private function stampRevisedHeader(Fpdi $pdf): void
+    {
+        // Replace the top-left revision label on page 1 template.
+        $pdf->SetFillColor(255, 255, 255);
+        $pdf->Rect(5, 8.5, 32, 8.5, 'F');
+        $pdf->SetTextColor(0, 0, 0);
+        $pdf->SetFont('Arial', 'B', 9);
+        $pdf->SetXY(7, 11.5);
+        $pdf->Write(0, 'CS Form No. 212');
+        $pdf->SetFont('Arial', 'I', 8);
+        $pdf->SetXY(7, 15.3);
+        $pdf->Write(0, 'Revised 2025');
+    }
+
+    private function normalizeListData($data): array
+    {
+        if (is_string($data)) {
+            $decoded = json_decode($data, true);
+            $data = is_array($decoded) ? $decoded : [];
+        }
+
+        if (!is_array($data)) {
+            return [];
+        }
+
+        if (empty($data)) {
+            return [];
+        }
+
+        $hasNonNumericKeys = array_keys($data) !== range(0, count($data) - 1);
+        if ($hasNonNumericKeys) {
+            $data = [$data];
+        }
+
+        return array_values(array_filter($data, function ($row) {
+            if (is_array($row)) {
+                foreach ($row as $value) {
+                    if (is_array($value)) {
+                        foreach ($value as $nested) {
+                            if (trim((string) $nested) !== '') {
+                                return true;
+                            }
+                        }
+                    } elseif (trim((string) $value) !== '') {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            return trim((string) $row) !== '';
+        }));
     }
 
 

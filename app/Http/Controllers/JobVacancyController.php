@@ -331,11 +331,13 @@ class JobVacancyController extends Controller
 
     public function jobDescription(Request $request, $vacancy_id)
     {
-        $vacancy = JobVacancy::with('applications')->where('vacancy_id', $vacancy_id)->firstOrFail();
+        $vacancy = JobVacancy::where('vacancy_id', $vacancy_id)->firstOrFail();
 
         $hasPDS = PersonalInformation::where('user_id', Auth::id())->exists();
 
-        $hasApplied = $vacancy->applications->contains('user_id', Auth::id());
+        $hasApplied = Applications::where('user_id', Auth::id())
+            ->where('vacancy_id', $vacancy_id)
+            ->exists();
 
         return view('dashboard_user.job_description', [
             'vacancy' => $vacancy,
@@ -590,17 +592,24 @@ class JobVacancyController extends Controller
             'file_size_8b' => $file->getSize(),
         ]);
 
-        // Create notification for all admins
-        // Create notification for all admins
+        // Keep apply response fast: store lightweight DB notifications directly.
         $admins = \App\Models\Admin::all();
         foreach ($admins as $admin) {
-            $admin->notify(new \App\Notifications\DocumentUploadedNotification(
-                Auth::user()->name,
-                ['Application Letter'], // Application involves uploading this
-                $vacancy->position_title,
-                Auth::user()->id,
-                $vacancy->vacancy_id
-            ));
+            \App\Models\Notification::create([
+                'notifiable_type' => 'App\Models\Admin',
+                'notifiable_id' => $admin->id,
+                'type' => 'warning',
+                'data' => [
+                    'title' => 'New Job Application',
+                    'message' => Auth::user()->name . ' submitted an application for ' . $vacancy->position_title . '.',
+                    'link' => route('admin.applicant_status', ['user_id' => Auth::id(), 'vacancy_id' => $vacancy->vacancy_id]),
+                    'section' => 'Application List',
+                    'category' => 'document_verification',
+                    'user_id' => Auth::id(),
+                    'vacancy_id' => $vacancy->vacancy_id,
+                ],
+                'read_at' => null,
+            ]);
         }
 
         activity()

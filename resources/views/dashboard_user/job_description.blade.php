@@ -35,7 +35,6 @@
             $statusColor = $isClosed ? 'bg-red-600' : 'bg-green-600';
             $status = $isClosed ? 'CLOSED' : 'OPEN';
             $borderColor = $isClosed ? 'border-red-600' : 'border-green-600';
-            $hasApplied = $vacancy->applications->contains('user_id', auth()->id());
         @endphp
 
         <!-- Main Job Info Card -->

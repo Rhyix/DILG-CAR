@@ -243,7 +243,7 @@
                     </div>
                     <div class="relative">
                         <input pattern="\d{4}" maxlength="4" type="text" inputmode="numeric" required id="res_zipcode" name="res_zipcode" value="{{ old('res_zipcode', session('form.c1.res_zipcode')) }}" placeholder="" class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                        <label for="res_zipcode" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Zip Code*</label>
+                        <label for="res_zipcode" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">ZIP Code*</label>
                     </div>
                 </div>
             </section>
@@ -286,7 +286,7 @@
                     </div>
                     <div class="relative">
                         <input pattern="\d{4}" maxlength="4" type="text" inputmode="numeric" required id="per_zipcode" name="per_zipcode" value="{{ old('per_zipcode', session('form.c1.per_zipcode')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                        <label for="per_zipcode" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Zip Code*</label>
+                        <label for="per_zipcode" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">ZIP Code*</label>
                     </div>
                 </div>
             </section>
@@ -871,7 +871,7 @@
             const city = val(prefix + '_city');
             const prov = val(prefix + '_province');
             const zip = val(prefix + '_zipcode');
-            return 'House/Block/Lot No.: ' + house + ' • Street: ' + street + ' • Subdivision/Village: ' + sub + ' • Barangay: ' + brgy + ' • City/Municipality: ' + city + ' • Province: ' + prov + ' • ZIP CODE: ' + zip;
+            return 'House/Block/Lot No.: ' + house + ' • Street: ' + street + ' • Subdivision/Village: ' + sub + ' • Barangay: ' + brgy + ' • City/Municipality: ' + city + ' • Province: ' + prov + ' • ZIP Code: ' + zip;
         }
         function populatePreview() {
             set('preview_surname', val('surname'));
@@ -937,12 +937,12 @@
             set('preview_mother_maiden_middle_name', val('mother_maiden_middle_name'));
             set('preview_elem_school', val('elem_school'));
             set('preview_elem_basic', val('elem_basic'));
-            set('preview_elem_period', (val('elem_from') || '') + (val('elem_to') ? ' – ' + val('elem_to') : ''));
+            set('preview_elem_period', (val('elem_from') || '') + (val('elem_to') ? ' - ' + val('elem_to') : ''));
             set('preview_elem_year', val('elem_year_graduated'));
             set('preview_elem_honors', val('elem_academic_honors'));
             set('preview_jhs_school', val('jhs_school'));
             set('preview_jhs_basic', val('jhs_basic'));
-            set('preview_jhs_period', (val('jhs_from') || '') + (val('jhs_to') ? ' – ' + val('jhs_to') : ''));
+            set('preview_jhs_period', (val('jhs_from') || '') + (val('jhs_to') ? ' - ' + val('jhs_to') : ''));
             set('preview_jhs_year', val('jhs_year_graduated'));
             set('preview_jhs_honors', val('jhs_academic_honors'));
             const childrenNames = Array.from(document.querySelectorAll('input[name^="children"][name$="[name]"]'));
@@ -970,6 +970,10 @@
             openBtn.addEventListener('click', function () {
                 if (openBtn.disabled) return;
                 populatePreview();
+                const frame = document.getElementById('pdsPdfPreviewFrame');
+                if (frame) {
+                    frame.src = '/export-pds?preview=1&ts=' + Date.now();
+                }
                 const overlay = document.getElementById('pdsPreviewOverlay');
                 if (overlay) overlay.classList.remove('hidden');
             });
@@ -993,238 +997,19 @@
             </button>
         </div>
         <div class="p-4 sm:p-6">
-            <style>
-                .pds-preview { font-family: Arial, sans-serif; color:#000; }
-                .pds-preview h1 { font-size: 22px; font-weight: 700; text-align: center; letter-spacing: .5px; }
-                .pds-preview .subhead { text-align:center; font-size:12px; margin-top:2px; }
-                .pds-preview .warn { font-size:11px; margin:6px 0; }
-                .pds-preview table { border-collapse: collapse; width: 100%; table-layout: fixed; }
-                .pds-preview th, .pds-preview td { border: 1px solid #000; padding: 6px 8px; vertical-align: top; }
-                .pds-preview th { background:#e5e7eb; font-weight:700; text-transform:uppercase; font-size:12px; }
-                .pds-preview .section-title { background:#4b5563; color:#fff; font-weight:700; text-align:left; padding:6px 8px; }
-                .pds-preview .label { font-size:11px; font-weight:700; width: 25%; }
-                .pds-preview .value { font-size:11px; }
-                .pds-preview .small { font-size:10px; }
-                .pds-preview .muted { color:#6b7280; }
-                .pds-preview .underline { display:inline-block; border-bottom:1px solid #6b7280; min-width:120px; padding-bottom:2px; }
-                .pds-preview .note-red { color:#b91c1c; font-style:italic; font-size:10px; }
-                .pds-preview .grid th { text-align:center; }
-                .pds-preview .footer { font-size:10px; margin-top:6px; text-align:right; }
-                .pds-preview .choice { display:inline-flex; align-items:center; gap:6px; margin-right:14px; }
-                .pds-preview .dot { width:10px; height:10px; border:1px solid #000; border-radius:50%; display:inline-block; }
-                .pds-preview .dot.checked { background:#000; }
-            </style>
-            <div class="pds-preview">
-                <div class="subhead">CS Form No. 212 • Revised 2025</div>
-                <h1>PERSONAL DATA SHEET</h1>
-                <div class="warn">WARNING: Any misrepresentation made in the Personal Data Sheet and the Work Experience Sheet shall cause the filing of administrative/criminal case/s against the person concerned.</div>
-                <div class="warn">READ THE ATTACHED GUIDE TO FILLING OUT THE PERSONAL DATA SHEET (PDS) BEFORE ACCOMPLISHING THE FORM. Print legibly if accomplished through own handwriting. Tick appropriate boxes ( ) and use separate sheet if necessary. Indicate N/A if not applicable. DO NOT ABBREVIATE.</div>
-                <table class="grid">
-                    <tr><th colspan="4" class="section-title">I. PERSONAL INFORMATIONSSS</th></tr>
-                    <tr>
-                        <td class="label">1. SURNAME</td>
-                        <td class="value"><span id="preview_surname">{{ old('surname', session('form.c1.surname')) }}</span></td>
-                        <td class="label small">NAME EXTENSION (JR., SR.)</td>
-                        <td class="value"><span id="preview_name_extension">{{ old('name_extension', session('form.c1.name_extension')) }}</span></td>
-                    </tr>
-                    <tr>
-                        <td class="label">2. FIRST NAME</td>
-                        <td class="value"><span id="preview_first_name">{{ old('first_name', session('form.c1.first_name')) }}</span></td>
-                        <td class="label">MIDDLE NAME</td>
-                        <td class="value"><span id="preview_middle_name">{{ old('middle_name', session('form.c1.middle_name')) }}</span></td>
-                    </tr>
-                    <tr>
-                        <td class="label">3. DATE OF BIRTH (dd-mm-yyyy)</td>
-                        <td class="value"><span id="preview_date_of_birth">{{ old('date_of_birth', session('form.c1.date_of_birth')) }}</span></td>
-                        <td class="label" rowspan="2">16. CITIZENSHIP</td>
-                        <td class="value" rowspan="2">
-                            <div>
-                                <span class="choice"><span id="preview_cit_fil" class="dot"></span> Filipino</span>
-                                <span class="choice"><span id="preview_cit_dual" class="dot"></span> Dual Citizenship</span>
-                            </div>
-                            <div class="muted" style="margin-top:6px;">If holder of dual citizenship, please indicate the details</div>
-                            <div style="display:flex; gap:8px; align-items:center; margin-top:4px;">
-                                <span class="choice"><span id="preview_dual_birth_dot" class="dot"></span> By birth</span>
-                                <span class="choice"><span id="preview_dual_nat_dot" class="dot"></span> By naturalization</span>
-                                <span class="muted">Pls. indicate country:</span>
-                                <span class="underline" id="preview_dual_country">{{ old('dual_country', session('form.c1.dual_country')) }}</span>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="label">4. PLACE OF BIRTH</td>
-                        <td class="value"><span id="preview_place_of_birth">{{ old('place_of_birth', session('form.c1.place_of_birth')) }}</span></td>
-                    </tr>
-                    <tr>
-                        <td class="label">5. SEX AT BIRTH</td>
-                        <td class="value">
-                            <span class="choice"><span id="preview_sex_male_dot" class="dot"></span> Male</span>
-                            <span class="choice"><span id="preview_sex_female_dot" class="dot"></span> Female</span>
-                        </td>
-                        <td class="label">17. RESIDENTIAL ADDRESS</td>
-                        <td class="value small">
-                            <div class="muted">House/Block/Lot No. <span class="underline" id="preview_res_house">{{ old('res_house_no', session('form.c1.res_house_no')) }}</span> &nbsp;&nbsp; Street <span class="underline" id="preview_res_street">{{ old('res_street', session('form.c1.res_street')) }}</span></div>
-                            <div class="muted" style="margin-top:4px;">Subdivision/Village <span class="underline" id="preview_res_sub">{{ old('res_sub_vil', session('form.c1.res_sub_vil')) }}</span> &nbsp;&nbsp; Barangay <span class="underline" id="preview_res_brgy">{{ old('res_brgy', session('form.c1.res_brgy')) }}</span></div>
-                            <div class="muted" style="margin-top:4px;">City/Municipality <span class="underline" id="preview_res_city">{{ old('res_city', session('form.c1.res_city')) }}</span> &nbsp;&nbsp; Province <span class="underline" id="preview_res_province">{{ old('res_province', session('form.c1.res_province')) }}</span></div>
-                            <div class="muted" style="margin-top:4px;">ZIP CODE <span class="underline" id="preview_res_zip">{{ old('res_zipcode', session('form.c1.res_zipcode')) }}</span></div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="label">6. CIVIL STATUS</td>
-                        <td class="value"><span id="preview_civil_status">{{ old('civil_status', session('form.c1.civil_status')) }}</span></td>
-                        <td class="label">18. PERMANENT ADDRESS</td>
-                        <td class="value small">
-                            <div class="muted">House/Block/Lot No. <span class="underline" id="preview_per_house">{{ old('per_house_no', session('form.c1.per_house_no')) }}</span> &nbsp;&nbsp; Street <span class="underline" id="preview_per_street">{{ old('per_street', session('form.c1.per_street')) }}</span></div>
-                            <div class="muted" style="margin-top:4px;">Subdivision/Village <span class="underline" id="preview_per_sub">{{ old('per_sub_vil', session('form.c1.per_sub_vil')) }}</span> &nbsp;&nbsp; Barangay <span class="underline" id="preview_per_brgy">{{ old('per_brgy', session('form.c1.per_brgy')) }}</span></div>
-                            <div class="muted" style="margin-top:4px;">City/Municipality <span class="underline" id="preview_per_city">{{ old('per_city', session('form.c1.per_city')) }}</span> &nbsp;&nbsp; Province <span class="underline" id="preview_per_province">{{ old('per_province', session('form.c1.per_province')) }}</span></div>
-                            <div class="muted" style="margin-top:4px;">ZIP CODE <span class="underline" id="preview_per_zip">{{ old('per_zipcode', session('form.c1.per_zipcode')) }}</span></div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="label">7. HEIGHT (m)</td>
-                        <td class="value"><span id="preview_height">{{ old('height', session('form.c1.height')) }}</span></td>
-                        <td class="label">19. TELEPHONE NO.</td>
-                        <td class="value"><span id="preview_telephone">{{ old('telephone_no', session('form.c1.telephone_no')) }}</span></td>
-                    </tr>
-                    <tr>
-                        <td class="label">8. WEIGHT (kg)</td>
-                        <td class="value"><span id="preview_weight">{{ old('weight', session('form.c1.weight')) }}</span></td>
-                        <td class="label">20. MOBILE NO.</td>
-                        <td class="value"><span id="preview_mobile">{{ old('mobile_no', session('form.c1.mobile_no')) }}</span></td>
-                    </tr>
-                    <tr>
-                        <td class="label">9. BLOOD TYPE</td>
-                        <td class="value"><span id="preview_blood_type">{{ old('blood_type', session('form.c1.blood_type')) }}</span></td>
-                        <td class="label">21. E-MAIL ADDRESS (if any)</td>
-                        <td class="value"><span id="preview_email">{{ old('email_address', session('form.c1.email_address')) }}</span></td>
-                    </tr>
-                    <tr>
-                        <td class="label">10. GSIS ID NO.</td>
-                        <td class="value"><span id="preview_gsis">{{ old('gsis_id_no', session('form.c1.gsis_id_no')) }}</span></td>
-                        <td class="label">14. TIN NO.</td>
-                        <td class="value"><span id="preview_tin">{{ old('tin_no', session('form.c1.tin_no')) }}</span></td>
-                    </tr>
-                    <tr>
-                        <td class="label">11. PAG-IBIG ID NO.</td>
-                        <td class="value"><span id="preview_pagibig">{{ old('pagibig_id_no', session('form.c1.pagibig_id_no')) }}</span></td>
-                        <td class="label">15. AGENCY EMPLOYEE NO.</td>
-                        <td class="value"><span id="preview_agency">{{ old('agency_employee_no', session('form.c1.agency_employee_no')) }}</span></td>
-                    </tr>
-                    <tr>
-                        <td class="label">12. PHILHEALTH NO.</td>
-                        <td class="value"><span id="preview_philhealth">{{ old('philhealth_no', session('form.c1.philhealth_no')) }}</span></td>
-                        <td class="label">13. SSS ID NO.</td>
-                        <td class="value"><span id="preview_sss">{{ old('sss_id_no', session('form.c1.sss_id_no')) }}</span></td>
-                    </tr>
-                    <tr><th colspan="4" class="section-title">II. FAMILY BACKGROUND</th></tr>
-                    <tr>
-                        <td class="label">22. SPOUSE’S SURNAME</td>
-                        <td class="value"><span id="preview_spouse_surname">{{ old('spouse_surname', session('form.c1.spouse_surname')) }}</span></td>
-                        <td class="label">NAME EXTENSION (JR., SR.)</td>
-                        <td class="value"><span id="preview_spouse_name_extension">{{ old('spouse_name_extension', session('form.c1.spouse_name_extension')) }}</span></td>
-                    </tr>
-                    <tr>
-                        <td class="label">FIRST NAME</td>
-                        <td class="value"><span id="preview_spouse_first_name">{{ old('spouse_first_name', session('form.c1.spouse_first_name')) }}</span></td>
-                        <td class="label">MIDDLE NAME</td>
-                        <td class="value"><span id="preview_spouse_middle_name">{{ old('spouse_middle_name', session('form.c1.spouse_middle_name')) }}</span></td>
-                    </tr>
-                    <tr>
-                        <td class="label">OCCUPATION</td>
-                        <td class="value"><span id="preview_spouse_occupation">{{ old('spouse_occupation', session('form.c1.spouse_occupation')) }}</span></td>
-                        <td class="label">EMPLOYER/BUSINESS NAME</td>
-                        <td class="value"><span id="preview_spouse_employer">{{ old('spouse_employer', session('form.c1.spouse_employer')) }}</span></td>
-                    </tr>
-                    <tr>
-                        <td class="label">BUSINESS ADDRESS</td>
-                        <td class="value"><span id="preview_spouse_business_address">{{ old('spouse_business_address', session('form.c1.spouse_business_address')) }}</span></td>
-                        <td class="label">TELEPHONE NO.</td>
-                        <td class="value"><span id="preview_spouse_telephone">{{ old('spouse_telephone', session('form.c1.spouse_telephone')) }}</span></td>
-                    </tr>
-                    <tr>
-                        <td class="label">23. NAME OF CHILDREN</td>
-                        <td class="value" colspan="3">
-                            <div id="preview_children"></div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="label">24. FATHER’S SURNAME</td>
-                        <td class="value"><span id="preview_father_surname">{{ old('father_surname', session('form.c1.father_surname')) }}</span></td>
-                        <td class="label">NAME EXTENSION (JR., SR.)</td>
-                        <td class="value"><span id="preview_father_name_extension">{{ old('father_name_extension', session('form.c1.father_name_extension')) }}</span></td>
-                    </tr>
-                    <tr>
-                        <td class="label">FIRST NAME</td>
-                        <td class="value"><span id="preview_father_first_name">{{ old('father_first_name', session('form.c1.father_first_name')) }}</span></td>
-                        <td class="label">MIDDLE NAME</td>
-                        <td class="value"><span id="preview_father_middle_name">{{ old('father_middle_name', session('form.c1.father_middle_name')) }}</span></td>
-                    </tr>
-                    <tr>
-                        <td class="label">25. MOTHER’S MAIDEN NAME</td>
-                        <td class="value"><span id="preview_mother_maiden_surname">{{ old('mother_maiden_surname', session('form.c1.mother_maiden_surname')) }}</span></td>
-                        <td class="label"></td>
-                        <td class="value"></td>
-                    </tr>
-                    <tr>
-                        <td class="label">FIRST NAME</td>
-                        <td class="value"><span id="preview_mother_maiden_first_name">{{ old('mother_maiden_first_name', session('form.c1.mother_maiden_first_name')) }}</span></td>
-                        <td class="label">MIDDLE NAME</td>
-                        <td class="value"><span id="preview_mother_maiden_middle_name">{{ old('mother_maiden_middle_name', session('form.c1.mother_maiden_middle_name')) }}</span></td>
-                    </tr>
-                    <tr><th colspan="4" class="section-title">III. EDUCATIONAL BACKGROUND</th></tr>
-                    <tr>
-                        <td class="label">26. LEVEL</td>
-                        <td class="value">Elementary</td>
-                        <td class="label">NAME OF SCHOOL</td>
-                        <td class="value"><span id="preview_elem_school">{{ old('elem_school', session('form.c1.elem_school')) }}</span></td>
-                    </tr>
-                    <tr>
-                        <td class="label">Basic Education/Degree/Course</td>
-                        <td class="value"><span id="preview_elem_basic">{{ old('elem_basic', session('form.c1.elem_basic')) }}</span></td>
-                        <td class="label">Period of Attendance From/To</td>
-                        <td class="value"><span id="preview_elem_period">{{ old('elem_from', session('form.c1.elem_from')) }} – {{ old('elem_to', session('form.c1.elem_to')) }}</span></td>
-                    </tr>
-                    <tr>
-                        <td class="label">Highest Level/Units Earned</td>
-                        <td class="value"></td>
-                        <td class="label">Year Graduated</td>
-                        <td class="value"><span id="preview_elem_year">{{ old('elem_year_graduated', session('form.c1.elem_year_graduated')) }}</span></td>
-                    </tr>
-                    <tr>
-                        <td class="label">Scholarship/Academic Honors Received</td>
-                        <td class="value" colspan="3"><span id="preview_elem_honors">{{ old('elem_academic_honors', session('form.c1.elem_academic_honors')) }}</span></td>
-                    </tr>
-                    <tr>
-                        <td class="label">Level</td>
-                        <td class="value">Secondary</td>
-                        <td class="label">Name of School</td>
-                        <td class="value"><span id="preview_jhs_school">{{ old('jhs_school', session('form.c1.jhs_school')) }}</span></td>
-                    </tr>
-                    <tr>
-                        <td class="label">Basic Education/Degree/Course</td>
-                        <td class="value"><span id="preview_jhs_basic">{{ old('jhs_basic', session('form.c1.jhs_basic')) }}</span></td>
-                        <td class="label">Period of Attendance From/To</td>
-                        <td class="value"><span id="preview_jhs_period">{{ old('jhs_from', session('form.c1.jhs_from')) }} – {{ old('jhs_to', session('form.c1.jhs_to')) }}</span></td>
-                    </tr>
-                    <tr>
-                        <td class="label">Highest Level/Units Earned</td>
-                        <td class="value"></td>
-                        <td class="label">Year Graduated</td>
-                        <td class="value"><span id="preview_jhs_year">{{ old('jhs_year_graduated', session('form.c1.jhs_year_graduated')) }}</span></td>
-                    </tr>
-                    <tr>
-                        <td class="label">Scholarship/Academic Honors Received</td>
-                        <td class="value" colspan="3"><span id="preview_jhs_honors">{{ old('jhs_academic_honors', session('form.c1.jhs_academic_honors')) }}</span></td>
-                    </tr>
-                    <tr>
-                        <td class="label">Signature</td>
-                        <td class="value" colspan="2"></td>
-                        <td class="value">Date</td>
-                    </tr>
-                </table>
-                <div class="footer">CS FORM 212 (Revised 2025), Page 1 of 4</div>
+            <div class="mb-3 text-xs text-gray-500">Preview is rendered from the PDF template and auto-filled from your saved PDS data.</div>
+            <div class="w-full h-[75vh] border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
+                <iframe
+                    id="pdsPdfPreviewFrame"
+                    title="PDS PDF Preview"
+                    src="/export-pds?preview=1"
+                    class="w-full h-full"
+                ></iframe>
             </div>
         </div>
     </div>
 </div>
 @endsection
+
+
+
