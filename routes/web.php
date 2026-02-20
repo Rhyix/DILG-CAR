@@ -424,6 +424,7 @@ Route::middleware([ViewerAccess::class])->group(function () {
     // Exam management routes (accessible by both admin and viewer)
     Route::get('/admin/exam_management', [ExamController::class, 'examManagement'])->name('admin_exam_management');
     Route::get('/admin/exam_management/{vacancy_id}/view_exam/{user_id}', [ExamController::class, 'viewExam'])->name('admin.view_exam');
+    Route::get('/admin/exam_management/{vacancy_id}/view_exam/{user_id}/json', [ExamController::class, 'getExamAnswersJson'])->name('admin.view_exam.json');
     Route::post('/admin/exam_management/{vacancy_id}/view_exam/{user_id}', [ExamController::class, 'saveResult'])->name('admin.save_result');
     Route::get('/admin/exam_management/{vacancy_id}/manage', [ExamController::class, 'manageExam'])->name('admin.manage_exam');
     Route::get('/admin/exam_management/{vacancy_id}/qualified', [ExamController::class, 'getQualifiedApplicants'])->name('admin.exam.qualified');
@@ -494,6 +495,7 @@ Route::get('/exam/{vacancy_id}/questions', [ExamController::class, 'examQuestion
 Route::get('/exam/{vacancy_id}/lobby', [ExamController::class, 'examLobby'])->name('user.exam_lobby');
 // Route::post('/exam/{vacancy_id}/start', [ExamController::class, 'startCandidateExam'])->name('user.exam_start');
 Route::post('/exam/{vacancy_id}/submit', [ExamController::class, 'submit'])->name('exam.submit');
+Route::post('/exam/{vacancy_id}/autosave', [ExamController::class, 'autoSave'])->name('exam.autosave');
 Route::get('/exam/status/{vacancy_id}', [ExamController::class, 'checkExamStatus'])->name('exam.status.check');
 Route::get('/exam/{vacancy_id}/thankyou', fn() => view('exam_user.exam_thankyou'))->name('user.exam_thankyou');
 Route::post('/log-switch', [ExamController::class, 'logSwitch']);

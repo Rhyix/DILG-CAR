@@ -107,6 +107,75 @@ class ExamController extends Controller
 
         return redirect()->route('user.exam_thankyou', compact('vacancy_id', ));
     }
+
+    public function autoSave(Request $request, $vacancy_id)
+    {
+        $validated = $request->validate([
+            'vacancy_id' => 'required|string',
+            'user_id' => 'required|integer',
+            'answers' => 'nullable|array',
+        ]);
+
+        $answerRecord = Applications::where('vacancy_id', $validated['vacancy_id'])
+            ->where('user_id', $validated['user_id'])
+            ->firstOrFail();
+
+        // If exam is already submitted, don't allow autosave
+        if ($answerRecord->status === 'submitted') {
+            return response()->json(['success' => false, 'message' => 'Exam already submitted']);
+        }
+
+        // Calculate scores similar to submit, but don't finalize
+        $items = ExamItems::select('id', 'ans', 'is_essay', 'choices')
+            ->where('vacancy_id', $vacancy_id)
+            ->get();
+
+        $scores = [];
+        $totalMcq = 0;
+        $correctMcq = 0;
+
+        foreach ($items as $item) {
+            $given = $validated['answers'][$item->id] ?? null;
+            if ((int)$item->is_essay === 0) {
+                $totalMcq++;
+                $isCorrect = false;
+                if (!is_null($given)) {
+                    $givenStr = trim((string)$given);
+                    $ansStr = trim((string)($item->ans ?? ''));
+                    // Direct key match (e.g., "A" === "A"), case-insensitive
+                    if (strcasecmp($givenStr, $ansStr) === 0) {
+                        $isCorrect = true;
+                    } else {
+                        // Fallback: if 'ans' stores the choice text, verify mapping key->value match
+                        $choices = is_array($item->choices) ? $item->choices : [];
+                        foreach ($choices as $key => $val) {
+                            if (strcasecmp(trim((string)$val), $ansStr) === 0 && strcasecmp(trim((string)$key), $givenStr) === 0) {
+                                $isCorrect = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                $scores[$item->id] = $isCorrect ? 1 : 0;
+                if ($isCorrect) $correctMcq++;
+            } else {
+                // Essays are scored later by admin
+                $scores[$item->id] = null;
+            }
+        }
+
+        $resultStr = $totalMcq > 0 ? ($correctMcq . '/' . $totalMcq) : null;
+
+        // Update the answers and scores fields
+        $answerRecord->answers = $validated['answers'] ?? [];
+        $answerRecord->scores = $scores;
+        $answerRecord->result = $resultStr;
+        // Do NOT change status to submitted
+        $answerRecord->save();
+
+        return response()->json(['success' => true]);
+    }
+
     public function getExaminationDates(Request $request)
     {
         try {
@@ -392,6 +461,18 @@ class ExamController extends Controller
 
         $examDetails = ExamDetail::where('vacancy_id', $vacancy_id)->first();
 
+        $isExamExpired = false;
+        if ($examDetails && $examDetails->date && $examDetails->time) {
+             $startDateTime = \Carbon\Carbon::parse($examDetails->date . ' ' . $examDetails->time);
+             $endDateTime = $examDetails->time_end 
+                ? \Carbon\Carbon::parse($examDetails->date . ' ' . $examDetails->time_end)
+                : $startDateTime->copy()->addMinutes($examDetails->duration ?? 0);
+             
+             if (now()->gt($endDateTime)) {
+                 $isExamExpired = true;
+             }
+        }
+
         $user_name = [];
         foreach ($participants as $p) {
             $user_id = $p['user_id'];
@@ -406,18 +487,27 @@ class ExamController extends Controller
 
         foreach ($participants as $p) {
             $scores = $p->scores ?? [];
+            $status = strtolower($p->status ?? 'pending');
             
-            $mcScore = 0;
-            foreach ($mcItemIds as $id) {
-                if (isset($scores[$id])) $mcScore += (int)$scores[$id];
-            }
-            $p->mc_score_str = count($mcItemIds) > 0 ? "$mcScore / " . count($mcItemIds) : '-';
+            $mcString = '-';
+            $essayString = '-';
 
-            $essayScore = 0;
-            foreach ($essayItemIds as $id) {
-                if (isset($scores[$id])) $essayScore += (int)$scores[$id];
+            if ($status === 'submitted' || $isExamExpired) {
+                $mcScore = 0;
+                foreach ($mcItemIds as $id) {
+                    if (isset($scores[$id])) $mcScore += (int)$scores[$id];
+                }
+                $mcString = count($mcItemIds) > 0 ? "$mcScore / " . count($mcItemIds) : '-';
+    
+                $essayScore = 0;
+                foreach ($essayItemIds as $id) {
+                    if (isset($scores[$id])) $essayScore += (int)$scores[$id];
+                }
+                $essayString = count($essayItemIds) > 0 ? "$essayScore" : '-';
             }
-            $p->essay_score_str = count($essayItemIds) > 0 ? "$essayScore" : '-';
+
+            $p->mc_score_str = $mcString;
+            $p->essay_score_str = $essayString;
         }
 
         // Get qualified applicants for Tab 1
@@ -530,7 +620,20 @@ class ExamController extends Controller
         $mcItemIds = $examItems->where('is_essay', 0)->pluck('id')->toArray();
         $essayItemIds = $examItems->where('is_essay', 1)->pluck('id')->toArray();
 
-        $lobbyData = $participants->map(function ($p) use ($mcItemIds, $essayItemIds) {
+        $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->first();
+        $isExamExpired = false;
+        if ($examDetail && $examDetail->date && $examDetail->time) {
+             $startDateTime = \Carbon\Carbon::parse($examDetail->date . ' ' . $examDetail->time);
+             $endDateTime = $examDetail->time_end 
+                ? \Carbon\Carbon::parse($examDetail->date . ' ' . $examDetail->time_end)
+                : $startDateTime->copy()->addMinutes($examDetail->duration ?? 0);
+             
+             if (now()->gt($endDateTime)) {
+                 $isExamExpired = true;
+             }
+        }
+
+        $lobbyData = $participants->map(function ($p) use ($mcItemIds, $essayItemIds, $isExamExpired) {
             $statusColors = [
                 'ready' => '#4ade80',        // green-400
                 'in-progress' => '#facc15',  // yellow-400
@@ -543,17 +646,22 @@ class ExamController extends Controller
 
             $scores = $p->scores ?? [];
             
-            $mcScore = 0;
-            foreach ($mcItemIds as $id) {
-                if (isset($scores[$id])) $mcScore += (int)$scores[$id];
-            }
-            $mcString = count($mcItemIds) > 0 ? "$mcScore / " . count($mcItemIds) : '-';
+            $mcString = '-';
+            $essayString = '-';
 
-            $essayScore = 0;
-            foreach ($essayItemIds as $id) {
-                if (isset($scores[$id])) $essayScore += (int)$scores[$id];
+            if ($status === 'submitted' || $isExamExpired) {
+                $mcScore = 0;
+                foreach ($mcItemIds as $id) {
+                    if (isset($scores[$id])) $mcScore += (int)$scores[$id];
+                }
+                $mcString = count($mcItemIds) > 0 ? "$mcScore / " . count($mcItemIds) : '-';
+    
+                $essayScore = 0;
+                foreach ($essayItemIds as $id) {
+                    if (isset($scores[$id])) $essayScore += (int)$scores[$id];
+                }
+                $essayString = count($essayItemIds) > 0 ? "$essayScore" : '-';
             }
-            $essayString = count($essayItemIds) > 0 ? "$essayScore" : '-';
 
             return [
                 'user_id' => $p->user_id,
@@ -756,6 +864,59 @@ class ExamController extends Controller
             'vacancy_id' => $vacancy_id,
             'user_id' => $user_id,
             'userName' => $userName
+        ]);
+    }
+
+    public function getExamAnswersJson(Request $request, $vacancy_id, $user_id)
+    {
+        $application = Applications::select('user_id', 'answers', 'scores')->where('user_id', $user_id)->where('vacancy_id', $vacancy_id)->firstOrFail();
+        $examItems = ExamItems::select('id', 'question', 'ans', 'is_essay', 'choices')->where('vacancy_id', $vacancy_id)->get();
+
+        $answers = $application->answers;
+        $scores = $application->scores;
+
+        $examResults = [];
+
+        foreach ($examItems as $item) {
+            $givenAnswer = $answers[$item->id] ?? null;
+            $score = $scores[$item->id] ?? null;
+
+            $choices = is_array($item->choices) ? $item->choices : [];
+            // Normalize to strings
+            $givenKey = is_null($givenAnswer) ? null : (string)$givenAnswer;
+            $correctKey = is_null($item->ans) ? null : (string)$item->ans;
+            $givenText = $givenKey !== null && isset($choices[$givenKey]) ? (string)$choices[$givenKey] : null;
+            $correctText = $correctKey !== null && isset($choices[$correctKey]) ? (string)$choices[$correctKey] : null;
+
+            // Determine correctness:
+            // Prefer stored score if available; otherwise compute tolerant comparison
+            if ($item->is_essay == 0) {
+                if (!is_null($score)) {
+                    $is_correct = ((int)$score) === 1;
+                } else {
+                    $isKeyMatch = (!is_null($givenKey) && !is_null($correctKey) && strcasecmp(trim($givenKey), trim($correctKey)) === 0);
+                    $is_correct = $isKeyMatch;
+                }
+            } else {
+                $is_correct = null;
+            }
+
+            $examResults[] = [
+                'id' => $item->id,
+                'question' => $item->question,
+                'given_answer' => $givenAnswer,
+                'given_answer_text' => $givenText,
+                'correct_answer' => $item->ans,
+                'correct_answer_text' => $correctText,
+                'score' => $score,
+                'is_correct' => $is_correct,
+                'is_essay' => $item->is_essay,
+            ];
+        }
+
+        return response()->json([
+            'success' => true,
+            'examResults' => $examResults
         ]);
     }
 

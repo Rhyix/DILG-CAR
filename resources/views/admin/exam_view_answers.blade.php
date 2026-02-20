@@ -52,15 +52,101 @@
 <div id="question-container" class="px-6 pb-10 font-montserrat"></div>
 </form>
 <script>
-    const Questions = @json($examResults) ;
+    let Questions = @json($examResults);
 
     // This object stores the updated correctness per question
     const checkedAnswers = {};
+    let pollingInterval = null;
 
     let correctCount = 0;
     let final_score = 0;
     let highest_score = 0;
 
+    function startPolling() {
+        if (pollingInterval) clearInterval(pollingInterval);
+        pollingInterval = setInterval(fetchAnswers, 5000); // Poll every 5 seconds
+    }
+
+    function fetchAnswers() {
+        const refreshEl = document.getElementById('last-refreshed');
+        if(refreshEl) refreshEl.classList.add('animate-pulse', 'text-blue-600');
+
+        fetch(`{{ route('admin.view_exam.json', ['vacancy_id' => $vacancy_id, 'user_id' => $user_id]) }}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update the Questions data source
+                    // We need to be careful not to overwrite 'score' if we want to preserve local edits,
+                    // BUT for now let's assume 'Questions' tracks the server state.
+                    // The dropdowns are the 'local state'.
+                    
+                    // Actually, we only care about 'given_answer' updating.
+                    const newQuestions = data.examResults;
+                    
+                    newQuestions.forEach(nq => {
+                        const oldQ = Questions.find(oq => oq.id === nq.id);
+                        if (oldQ) {
+                            oldQ.given_answer = nq.given_answer;
+                            oldQ.given_answer_text = nq.given_answer_text;
+                            oldQ.is_correct = nq.is_correct;
+                            // We don't update 'score' here to avoid messing with manual grading in progress
+                            // unless we want to sync concurrent admins. Let's stick to answers.
+                        }
+                    });
+
+                    updateAnswersUI();
+                    
+                    if(refreshEl) {
+                        refreshEl.textContent = new Date().toLocaleString();
+                        refreshEl.classList.remove('animate-pulse', 'text-blue-600');
+                    }
+                }
+            })
+            .catch(err => console.error('Polling error:', err));
+    }
+
+    function updateAnswersUI() {
+        Questions.forEach(q => {
+            // Update Answer Text
+            const ansEl = document.getElementById(`answer-text-${q.id}`);
+            if (ansEl) {
+                if (q.is_essay) {
+                     // For essay
+                     ansEl.textContent = q.given_answer ?? 'No answer yet';
+                } else {
+                     // For MCQ
+                     const text = q.given_answer 
+                        ? `${q.given_answer}${q.given_answer_text ? ' - ' + q.given_answer_text : ''}`
+                        : 'No answer';
+                     ansEl.textContent = text;
+                }
+            }
+
+            // Update Badge (MCQ only)
+            if (!q.is_essay) {
+                const badgeEl = document.getElementById(`status-badge-${q.id}`);
+                const inputEl = document.querySelector(`input[name="scores[${q.id}]"]`);
+                
+                if (badgeEl) {
+                    if (q.is_correct) {
+                        badgeEl.className = 'text-sm font-semibold px-3 py-1 rounded-full bg-green-100 text-green-700';
+                        badgeEl.textContent = 'Correct';
+                    } else {
+                        badgeEl.className = 'text-sm font-semibold px-3 py-1 rounded-full bg-red-100 text-red-700';
+                        badgeEl.textContent = 'Incorrect';
+                    }
+                }
+                
+                // Also update the hidden input for score if auto-graded
+                if (inputEl) {
+                    inputEl.value = q.is_correct ? '1' : '0';
+                }
+            }
+        });
+        
+        // Recompute score based on new auto-grades + current dropdown values
+        recomputeScore();
+    }
 
     function recomputeScore() {
         let mcqCorrect = 0;
@@ -72,6 +158,7 @@
             if (q.is_essay) {
                 essayMax += 4;
                 const sel = document.getElementById(`score-select-${q.id}`);
+                // Use current DOM value, not the Question object (which might be stale from DB)
                 const val = sel && sel.value !== '' ? parseInt(sel.value, 10) : null;
                 if (val !== null) essaySum += val;
             } else {
@@ -84,10 +171,10 @@
         highest_score = mcqCount + essayMax;
 
         const scoreEl = document.getElementById('score');
-        scoreEl.textContent = `${final_score} / ${highest_score}`;
+        if(scoreEl) scoreEl.textContent = `${final_score} / ${highest_score}`;
 
         const resultEl = document.getElementById('result');
-        resultEl.value = `${final_score} / ${highest_score}`;
+        if(resultEl) resultEl.value = `${final_score} / ${highest_score}`;
     }
 
     function updateDropdownColor(selectElement) {
@@ -101,6 +188,7 @@
         };
 
         // Remove all existing bg/text classes
+        if(selectElement) {
             selectElement.classList.remove(
                 "bg-green-100", "text-green-700",
                 "bg-[#bbdb44]/20", "text-[#749300]",
@@ -109,11 +197,12 @@
                 "bg-red-100", "text-red-700",
                 "bg-gray-200", "text-gray-500"
             );
-        const selected = selectElement.value;
-        const [bgClass, textClass] = classMap[selected] || [];
-
-        if (bgClass && textClass) {
-            selectElement.classList.add(bgClass, textClass);
+            const selected = selectElement.value;
+            const [bgClass, textClass] = classMap[selected] || [];
+    
+            if (bgClass && textClass) {
+                selectElement.classList.add(bgClass, textClass);
+            }
         }
     }
 
@@ -121,8 +210,10 @@
     // Optional: Apply color on page load based on pre-selected value
     document.addEventListener("DOMContentLoaded", () => {
         document.querySelectorAll("select[id^='score-select-']").forEach(select => {
-        updateDropdownColor(select);
+            updateDropdownColor(select);
         });
+        renderAnswers();
+        startPolling();
     });
 
     function renderAnswers() {
@@ -149,7 +240,7 @@
             <div class="flex items-center gap-3">
                         ${!isEssay ? `
                             <input name="scores[${q.id}]" type="hidden" ${isCorrect ? 'value="1"' : 'value="0"'}>
-                            <span class="text-sm font-semibold px-3 py-1 rounded-full ${isCorrect ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
+                            <span id="status-badge-${q.id}" class="text-sm font-semibold px-3 py-1 rounded-full ${isCorrect ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
                                 ${isCorrect ? 'Correct' : 'Incorrect'}
                             </span>
                         ` : `
@@ -179,7 +270,7 @@
                         <div class="bg-gray-50 border border-gray-200 rounded px-4 py-3 space-y-1">
                             <p class="text-sm">
                                 <span class="font-semibold text-gray-700 mr-1">Examinee Answer:</span>
-                                <span class="text-gray-900">
+                                <span id="answer-text-${q.id}" class="text-gray-900">
                                     ${q.given_answer ? `${q.given_answer}${q.given_answer_text ? ' - ' + q.given_answer_text : ''}` : 'No answer'}
                                 </span>
                             </p>
@@ -194,7 +285,8 @@
                     : `
                         <div class="bg-gray-50 border border-gray-200 rounded px-4 py-3">
                             <p class="whitespace-pre-line">
-                                <span class="font-semibold text-gray-700 mr-1">Examinee Answer:</span>${userAnswer}
+                                <span class="font-semibold text-gray-700 mr-1">Examinee Answer:</span>
+                                <span id="answer-text-${q.id}">${userAnswer}</span>
                             </p>
                         </div>
                       `
@@ -209,8 +301,8 @@
         });
 
         // Save score + time
-        refreshedEl.textContent = new Date().toLocaleString();
-        scoreEl.textContent = `${final_score} / ${highest_score}`;
+        if(refreshedEl) refreshedEl.textContent = new Date().toLocaleString();
+        if(scoreEl) scoreEl.textContent = `${final_score} / ${highest_score}`;
 
         // Show Save Score button
         const saveBtn = document.createElement('div');

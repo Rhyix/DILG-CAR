@@ -397,14 +397,52 @@
     function attachAnswerListeners() {
         // Radio inputs
         document.querySelectorAll('input[type="radio"][name^="answers["]').forEach(input => {
-            input.addEventListener('change', updateSubmitEnabled);
+            input.addEventListener('change', () => {
+                updateSubmitEnabled();
+                autoSave();
+            });
         });
         // Essay textareas
         document.querySelectorAll('textarea[name^="answers["]').forEach(ta => {
             ta.addEventListener('input', updateSubmitEnabled);
-            ta.addEventListener('change', updateSubmitEnabled);
+            ta.addEventListener('change', () => {
+                updateSubmitEnabled();
+                autoSave();
+            });
         });
     }
+
+    // Debounce function for autosave
+    function debounce(func, wait) {
+        let timeout;
+        return function(...args) {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), wait);
+        };
+    }
+
+    const autoSave = debounce(function() {
+        collectCurrentAnswers();
+        
+        fetch("{{ route('exam.autosave', ['vacancy_id' => $vacancy_id]) }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+            },
+            body: JSON.stringify({
+                vacancy_id: '{{ $vacancy_id }}',
+                user_id: '{{ Auth::id() }}',
+                answers: answers
+            })
+        }).then(res => res.json())
+          .then(data => {
+              if(data.success) {
+                  showSaveNotification();
+              }
+          })
+          .catch(err => console.error('Autosave error', err));
+    }, 1000); // Wait 1 second after last change before saving
 
     function renderAllQuestions() {
     container.innerHTML = '';
