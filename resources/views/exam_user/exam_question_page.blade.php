@@ -99,6 +99,12 @@
 <script>
     const Questions = @json($examItems);
 
+    // Jumble the sequence of the questions
+    for (let i = Questions.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [Questions[i], Questions[j]] = [Questions[j], Questions[i]];
+    }
+
     const totalItems = Questions.length;
     const container = document.getElementById('question-container');
     const submitContainer = document.getElementById('submitContainer');
@@ -341,7 +347,7 @@
             html += Object.entries(opts).map(([key, val]) =>
                 `<label class="block text-[#002C76] font-semibold">
                     <input type="radio" name="answers[${q.id}]" value="${key}" class="mr-2">
-                    ${key}: ${val}
+                    ${val}
                 </label>`
             ).join('');
         } else {
