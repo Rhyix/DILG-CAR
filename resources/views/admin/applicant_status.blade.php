@@ -298,98 +298,112 @@
 				<button type="button" onclick="closeNotifyModal()"
 					class="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
 			</div>
-			<div class="px-6 py-4 max-h-[75vh] overflow-y-auto space-y-4">
-				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-					<div class="space-y-2">
-						<div class="text-xs font-semibold text-gray-500 uppercase">Job Applied</div>
-						<div id="notify-job-applied" class="text-sm font-semibold text-gray-900"></div>
-						<div class="text-xs text-gray-600">
-							<span id="notify-place-of-assignment"></span>
+			<div class="px-8 py-6 max-h-[75vh] overflow-y-auto">
+				<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+					<!-- Left Column -->
+					<div class="space-y-8">
+						<!-- Job Applied -->
+						<div>
+							<div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Job Applied
+							</div>
+							<div id="notify-job-applied" class="text-base font-semibold text-gray-800"></div>
+							<div class="text-sm text-gray-500 mt-1"><span id="notify-place-of-assignment"></span></div>
+						</div>
+						<!-- Compensation -->
+						<div>
+							<div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Compensation
+							</div>
+							<div id="notify-compensation" class="text-base font-semibold text-gray-800"></div>
+						</div>
+						<!-- Qualification Standards -->
+						<div>
+							<div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Qualification
+								Standards</div>
+							<ul id="notify-qs-list" class="text-sm text-gray-700 space-y-2"></ul>
 						</div>
 					</div>
-					<div class="space-y-2">
-						<div class="text-xs font-semibold text-gray-500 uppercase">Compensation</div>
-						<div id="notify-compensation" class="text-sm font-semibold text-gray-900"></div>
-						<div class="text-xs text-gray-600 mt-2">
-							<div class="font-semibold text-gray-700 mb-1">Set Deadline:</div>
-							<div class="flex gap-2">
-								<input type="date" name="deadline_date" id="deadline_date"
-									class="flex-1 text-xs px-2 py-1.5 rounded border border-gray-300 focus:ring-2 focus:ring-[#002C76] focus:border-[#002C76] outline-none"
-									value="{{ old('deadline_date', $application->deadline_date ? \Carbon\Carbon::parse($application->deadline_date)->format('Y-m-d') : '') }}">
-								<input type="time" name="deadline_time" id="deadline_time"
-									class="flex-1 text-xs px-2 py-1.5 rounded border border-gray-300 focus:ring-2 focus:ring-[#002C76] focus:border-[#002C76] outline-none"
-									value="{{ old('deadline_time', optional(\Carbon\Carbon::parse($application->deadline_time))->format('H:i')) }}">
+
+					<!-- Right Column -->
+					<div class="space-y-8">
+						<!-- Application Progress -->
+						<div>
+							<div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Application
+								Progress</div>
+							<div class="flex flex-col gap-2">
+								<div class="flex items-center justify-between text-sm">
+									<span id="notify-progress-percentage" class="font-bold text-[#002C76] text-lg">0%</span>
+									<span class="text-gray-500 text-xs font-medium"><span
+											id="notify-progress-count">0/0</span> Documents Verified</span>
+								</div>
+								<div class="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+									<div id="notify-progress-bar"
+										class="h-full bg-gradient-to-r from-[#002C76] to-[#0052cc] transition-all duration-500"
+										style="width:0%"></div>
+								</div>
 							</div>
-							<div id="deadlineWarning" class="text-red-500 text-[10px] mt-1 hidden">
-								<i data-feather="alert-triangle" class="inline w-3 h-3"></i> Deadline passed
+						</div>
+
+						<!-- Hidden by default, toggled via JS -->
+						<div id="notify-action-requirements" class="space-y-8 hidden">
+							<!-- Set Deadline -->
+							<div>
+								<div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Set Deadline
+								</div>
+								<div class="flex gap-3">
+									<input type="date" name="deadline_date" id="deadline_date"
+										class="flex-1 text-sm px-3 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-[#002C76] focus:border-[#002C76] disabled:bg-gray-50 disabled:text-gray-400 outline-none transition-shadow"
+										value="{{ old('deadline_date', $application->deadline_date ? \Carbon\Carbon::parse($application->deadline_date)->format('Y-m-d') : '') }}">
+									<input type="time" name="deadline_time" id="deadline_time"
+										class="flex-1 text-sm px-3 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-[#002C76] focus:border-[#002C76] disabled:bg-gray-50 disabled:text-gray-400 outline-none transition-shadow"
+										value="{{ old('deadline_time', optional(\Carbon\Carbon::parse($application->deadline_time))->format('H:i')) }}">
+								</div>
+								<div id="deadlineWarning" class="text-red-500 text-xs mt-2 hidden font-medium">
+									<i data-feather="alert-triangle" class="inline w-3 h-3"></i> Deadline passed
+								</div>
+							</div>
+
+							<!-- Remarks -->
+							<div>
+								<div class="flex items-center justify-between mb-3">
+									<div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Applicant
+										Remarks</div>
+									<span id="notify-remarks-status"
+										class="text-green-600 text-xs font-medium opacity-0 transition-opacity duration-500">Saved</span>
+								</div>
+								@php
+									$confirmedCount = collect($documents)->where('status', 'Verified')->count();
+									$isComplete = $confirmedCount === 17;
+									$defaultRemarks = '';
+									if ($isComplete) {
+										$defaultRemarks = "No further action required. Wait for further instruction on the next assessment phase.";
+									} else {
+										$deadline = $application->deadline_date && $application->deadline_time
+											? \Carbon\Carbon::parse($application->deadline_date . ' ' . $application->deadline_time)->format('F d, Y h:i A')
+											: null;
+										$defaultRemarks = $deadline
+											? "Correct and/or submit the above-noted inconsistencies and/or deficiencies not later than $deadline."
+											: "No remarks yet";
+									}
+								@endphp
+								<textarea id="notify-applicant-remarks"
+									class="w-full text-sm text-gray-700 border border-gray-200 rounded-lg p-4 focus:outline-none focus:ring-2 focus:ring-[#002C76] focus:border-[#002C76] transition-shadow resize-none bg-gray-50/50"
+									rows="4"
+									placeholder="Enter remarks for the applicant...">{{ old('application_remarks', $application->application_remarks ?? $defaultRemarks) }}</textarea>
 							</div>
 						</div>
 					</div>
 				</div>
-				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-					<div class="space-y-2">
-						<div class="text-xs font-semibold text-gray-500 uppercase">Qualification Standards</div>
-						<ul id="notify-qs-list" class="text-xs text-gray-800 space-y-1"></ul>
+
+				<!-- Required Documents Table -->
+				<div class="mt-8 border border-gray-100 rounded-xl overflow-hidden shadow-sm">
+					<div class="px-5 py-3 bg-gray-50/80 border-b border-gray-100 flex items-center justify-between">
+						<h4 class="text-xs font-bold text-gray-600 uppercase tracking-wider">Required Documents</h4>
+						<span class="text-[10px] text-gray-400 font-medium">With remarks only for items needing
+							revision</span>
 					</div>
-					<div class="space-y-2">
-						<div class="text-xs font-semibold text-gray-500 uppercase">Application Progress</div>
-						<div class="flex items-center gap-3">
-							<div class="flex-1 h-3 bg-gray-200 rounded-full overflow-hidden">
-								<div id="notify-progress-bar" class="h-full bg-[#002C76]" style="width:0%"></div>
-							</div>
-							<div class="text-xs text-gray-700">
-								<span id="notify-progress-percentage">0%</span>
-								<span class="text-gray-500 ml-1">
-									(<span id="notify-progress-count">0/0</span> Documents)
-								</span>
-							</div>
-						</div>
-					</div>
-				</div>
-				<div class="border border-gray-200 rounded-md">
-					<div class="px-3 py-2 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-						<h4 class="text-sm font-semibold text-gray-700">Required Documents</h4>
-						<span class="text-[10px] text-gray-500">With remarks only for items needing revision</span>
-					</div>
-					<table class="min-w-full text-xs">
-						<thead class="bg-gray-50 text-gray-600">
-							<tr>
-								<th class="px-3 py-2 text-left font-semibold">Document</th>
-								<th class="px-3 py-2 text-left font-semibold">Status</th>
-								<th class="px-3 py-2 text-left font-semibold">Remarks</th>
-							</tr>
-						</thead>
-						<tbody id="notify-documents-body" class="divide-y divide-gray-100"></tbody>
+					<table class="min-w-full text-sm">
+						<tbody id="notify-documents-body" class="divide-y divide-gray-50 bg-white"></tbody>
 					</table>
-				</div>
-				<div>
-					<h4 class="text-sm font-semibold text-gray-700 mb-2">Applicant Remarks</h4>
-					<div class="relative">
-						@php
-							$confirmedCount = collect($documents)->where('status', 'Verified')->count(); // Updated to Verified
-							$isComplete = $confirmedCount === 17;
-
-							$defaultRemarks = '';
-
-							if ($isComplete) {
-								$defaultRemarks = "No further action required. Wait for further instruction on the next assessment phase.";
-							} else {
-								$deadline = $application->deadline_date && $application->deadline_time
-									? \Carbon\Carbon::parse($application->deadline_date . ' ' . $application->deadline_time)->format('F d, Y h:i A')
-									: null;
-
-								$defaultRemarks = $deadline
-									? "Correct and/or submit the above-noted inconsistencies and/or deficiencies not later than $deadline."
-									: "No remarks yet";
-							}
-						@endphp
-						<textarea id="notify-applicant-remarks"
-							class="w-full text-xs text-gray-800 border border-gray-200 rounded-md p-3 bg-gray-50 resize-none focus:outline-none focus:ring-2 focus:ring-[#002C76]"
-							rows="4"
-							placeholder="Enter remarks for the applicant...">{{ old('application_remarks', $application->application_remarks ?? $defaultRemarks) }}</textarea>
-						<span id="notify-remarks-status"
-							class="absolute bottom-2 right-2 text-green-600 text-[10px] opacity-0 transition-opacity duration-500">Saved</span>
-					</div>
 				</div>
 			</div>
 			<div class="px-6 py-3 border-t border-gray-200 flex justify-end gap-3">
@@ -448,34 +462,18 @@
 				return doc && (doc.status === 'Verified' || doc.status === 'Okay/Confirmed');
 			};
 
-			// Plantilla Rules
-			if (vacancyType === 'Plantilla') {
-				// Eligibility: Green if cert_eligibility Verified
-				updateQSToggle('qs_eligibility', isVerified('cert_eligibility'));
+			// Unified Rules for both Plantilla and COS
+			// Eligibility: Green if cert_eligibility Verified
+			updateQSToggle('qs_eligibility', isVerified('cert_eligibility'));
 
-				// Education: Green if transcript_records AND photocopy_diploma Verified
-				updateQSToggle('qs_education', isVerified('transcript_records') && isVerified('photocopy_diploma'));
+			// Education: Green if transcript_records AND photocopy_diploma Verified
+			updateQSToggle('qs_education', isVerified('transcript_records') && isVerified('photocopy_diploma'));
 
-				// Training: Green if cert_training Verified
-				updateQSToggle('qs_training', isVerified('cert_training'));
+			// Training: Green if cert_training Verified
+			updateQSToggle('qs_training', isVerified('cert_training'));
 
-				// Experience: Always Gray (Not Applicable)
-				setQSGray('qs_experience');
-			}
-			// COS Rules
-			else if (vacancyType === 'COS') {
-				// Experience: Green if signed_work_exp_sheet Verified
-				updateQSToggle('qs_experience', isVerified('signed_work_exp_sheet'));
-
-				// Education: Green if transcript_records AND photocopy_diploma Verified
-				updateQSToggle('qs_education', isVerified('transcript_records') && isVerified('photocopy_diploma'));
-
-				// Training: Green if cert_training Verified
-				updateQSToggle('qs_training', isVerified('cert_training'));
-
-				// Eligibility: Always Gray
-				setQSGray('qs_eligibility');
-			}
+			// Experience: Green if signed_work_exp_sheet Verified
+			updateQSToggle('qs_experience', isVerified('signed_work_exp_sheet'));
 
 			// Overall Qualification Status
 			checkOverallQualification();
@@ -745,8 +743,8 @@
 				setDocumentRemarksVisibility(false);
 			}
 
-            // Immediately re-select the document to trigger all UI states (like disabling buttons)
-            handleDocumentClick(currentSelectedDoc, true);
+			// Immediately re-select the document to trigger all UI states (like disabling buttons)
+			handleDocumentClick(currentSelectedDoc, true);
 
 			// Defer heavy updates
 			setTimeout(() => {
@@ -885,12 +883,12 @@
 			const originalContent = btn.innerHTML;
 			btn.disabled = true;
 			btn.innerHTML = `
-												<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-													<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-													<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-												</svg>
-												Sending...
-											`;
+														<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+															<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+															<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+														</svg>
+														Sending...
+													`;
 			btn.classList.add("opacity-75", "cursor-not-allowed");
 
 			try {
@@ -1012,24 +1010,35 @@
 					remarksText = doc.remarks || "";
 				}
 				rowsHtml += `
-																			<tr>
-																				<td class="px-3 py-2 align-top text-gray-900">${doc.text}</td>
-																				<td class="px-3 py-2 align-top text-gray-700">
-																					<div class="flex items-center gap-1">
-																						<span>${iconHtml}</span>
-																						<span>${status}</span>
-																					</div>
-																				</td>
-																				<td class="px-3 py-2 align-top text-gray-700">${remarksText}</td>
-																			</tr>
-																		`;
+							<tr class="hover:bg-gray-50/50 transition-colors">
+								<td class="px-5 py-4 align-top text-gray-800 font-medium w-[40%]">${doc.text}</td>
+								<td class="px-5 py-4 align-top text-gray-700 w-[25%] whitespace-nowrap">
+									<div class="flex items-center gap-2">
+										<span>${iconHtml}</span>
+										<span class="font-semibold text-xs">${status}</span>
+									</div>
+								</td>
+								<td class="px-5 py-4 align-top text-gray-600 text-xs italic">${remarksText || '<span class="text-gray-300">No remarks</span>'}</td>
+							</tr>
+						`;
 			});
 			bodyEl.innerHTML = rowsHtml;
 
-			// Removed copying from deleted sidebar input
-			// const appRemarksInput = document.getElementById('application_remarks_input');
-			// remarksSummaryEl.textContent = appRemarksInput ? appRemarksInput.value : "";
-			// Remarks are now directly in the textarea via Blade rendering
+			// Logic to hide/show Deadline and Remarks
+			const qsResultInput = document.querySelector('input[name="qs_result"]:checked');
+			const isQualified = qsResultInput && qsResultInput.value === 'Qualified';
+			const hasRevisions = documents.some(doc => doc.status === 'Needs Revision' || doc.status === 'Disapproved With Deficiency');
+
+			const actionReqEl = document.getElementById('notify-action-requirements');
+			if (actionReqEl) {
+				// Condition: if "Qualified" remove deadline and remarks
+				// if documents have revisions and/or "Not Qualified", enable them
+				if (isQualified && !hasRevisions) {
+					actionReqEl.classList.add('hidden');
+				} else {
+					actionReqEl.classList.remove('hidden');
+				}
+			}
 
 			const modal = document.getElementById('notify-modal');
 			if (modal) modal.classList.remove('hidden');

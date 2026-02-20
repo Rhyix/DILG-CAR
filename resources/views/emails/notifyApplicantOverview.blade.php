@@ -3,472 +3,494 @@
 
 <head>
   <meta charset="UTF-8" />
-  <title>Application Document Status Overview</title>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet" />
+  <title>Application Document Status</title>
   <style>
     body {
       margin: 0;
       padding: 0;
-      font-family: 'Montserrat', sans-serif;
-      background-color: #F3F8FF;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #f9fafb;
+      -webkit-font-smoothing: antialiased;
     }
 
     .container {
-      max-width: 680px;
-      margin: 30px auto;
-      background: #FFFFFF;
-      border: 1px solid #cfd9e0;
-      border-radius: 16px;
+      max-width: 600px;
+      margin: 40px auto;
+      background: #ffffff;
+      border-radius: 12px;
       overflow: hidden;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+      border: 1px solid #e5e7eb;
     }
 
     .header {
-      padding: 20px 30px 10px;
-      display: flex;
-      align-items: center;
+      padding: 30px;
+      text-align: center;
+      border-bottom: 1px solid #f3f4f6;
     }
 
     .logo {
-      width: 60px;
-      height: 60px;
-      margin-right: 15px;
+      width: 64px;
+      height: 64px;
+      margin-bottom: 16px;
     }
 
-    .title-text h2 {
+    h1 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #111827;
+      margin: 0 0 4px 0;
+      letter-spacing: -0.025em;
+    }
+
+    .subtitle {
+      font-size: 12px;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 600;
       margin: 0;
-      font-size: 18px;
-      font-weight: 700;
-      color: #002C63;
-      line-height: 1.3;
-    }
-
-    .banner {
-      background-color: #002C76;
-      color: white;
-      padding: 15px 30px;
-      margin: 15px 15px 0px 15px;
-      font-size: 18px;
-      font-weight: 700;
-      border-radius: 16px;
     }
 
     .content {
-      padding: 0px 30px 15px 30px;
-      color: #1a202c;
+      padding: 32px;
+      color: #374151;
       font-size: 14px;
       line-height: 1.6;
     }
 
-    .info-grid {
-      display: table;
-      width: 100%;
-      margin: 15px 0;
-      border-collapse: collapse;
+    .greeting {
+      font-size: 16px;
+      font-weight: 600;
+      color: #111827;
+      margin-bottom: 16px;
     }
 
-    .info-row {
+    .section {
+      margin-top: 32px;
+    }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: #9ca3af;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 12px;
+    }
+
+    .grid {
+      display: table;
+      width: 100%;
+    }
+
+    .grid-row {
       display: table-row;
     }
 
-    .info-cell {
+    .grid-cell {
       display: table-cell;
-      padding: 8px 12px;
-      border: 1px solid #e2e8f0;
-      vertical-align: top;
+      padding-bottom: 16px;
+      width: 50%;
     }
 
-    .info-label {
+    .label {
       font-size: 11px;
-      font-weight: 600;
-      color: #64748b;
+      color: #6b7280;
       text-transform: uppercase;
-      display: block;
+      letter-spacing: 0.05em;
       margin-bottom: 4px;
-    }
-
-    .info-value {
-      font-size: 13px;
       font-weight: 600;
-      color: #002C63;
     }
 
-    .qs-section {
-      margin: 20px 0;
-      padding: 15px;
-      background-color: #f8fafc;
+    .value {
+      font-size: 14px;
+      font-weight: 600;
+      color: #111827;
+    }
+
+    .card {
+      background-color: #f9fafb;
+      border: 1px solid #f3f4f6;
       border-radius: 8px;
-      border: 1px solid #e2e8f0;
-    }
-
-    .qs-title {
-      font-size: 13px;
-      font-weight: 700;
-      color: #002C63;
-      margin-bottom: 10px;
+      padding: 20px;
+      margin-bottom: 16px;
     }
 
     .qs-items {
       display: table;
       width: 100%;
+      margin-bottom: 16px;
     }
 
     .qs-item {
       display: table-cell;
-      padding: 5px;
       text-align: center;
-      font-size: 11px;
+      font-size: 12px;
+      font-weight: 500;
+      color: #4b5563;
     }
 
-    .qs-indicator {
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
+    .indicator {
       display: inline-block;
-      margin-right: 5px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 6px;
     }
 
-    .qs-green {
+    .bg-green {
       background-color: #10B981;
     }
 
-    .qs-red {
+    .bg-red {
       background-color: #EF4444;
     }
 
-    .qs-gray {
+    .bg-gray {
       background-color: #9CA3AF;
     }
 
-    .progress-section {
-      margin: 20px 0;
-      padding: 15px;
-      background-color: #f8fafc;
-      border-radius: 8px;
-      border: 1px solid #e2e8f0;
-    }
-
-    .progress-bar-container {
-      width: 100%;
-      height: 20px;
-      background-color: #e2e8f0;
-      border-radius: 10px;
-      overflow: hidden;
-      margin: 10px 0;
-    }
-
-    .progress-bar {
-      height: 100%;
-      background-color: #002C76;
-      transition: width 0.3s ease;
-    }
-
-    .progress-text {
-      font-size: 12px;
-      color: #64748b;
+    .result {
       text-align: center;
-      margin-top: 5px;
+      font-size: 14px;
+      font-weight: 700;
+      padding-top: 16px;
+      border-top: 1px solid #e5e7eb;
     }
 
-    .doc-table {
+    .text-green {
+      color: #10B981;
+    }
+
+    .text-red {
+      color: #EF4444;
+    }
+
+    .progress-bar-bg {
+      background-color: #e5e7eb;
+      border-radius: 9999px;
+      height: 8px;
+      width: 100%;
+      overflow: hidden;
+      margin: 12px 0;
+    }
+
+    .progress-bar-fill {
+      background-color: #002C76;
+      height: 100%;
+    }
+
+    .progress-stats {
+      display: table;
+      width: 100%;
+    }
+
+    .progress-stats-left {
+      display: table-cell;
+      font-size: 18px;
+      font-weight: 700;
+      color: #002C76;
+    }
+
+    .progress-stats-right {
+      display: table-cell;
+      text-align: right;
+      font-size: 12px;
+      color: #6b7280;
+      font-weight: 500;
+    }
+
+    .remarks-box {
+      background-color: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      padding: 20px;
+      margin-top: 16px;
+    }
+
+    .remarks-text {
+      font-size: 14px;
+      color: #1e3a8a;
+      margin: 0;
+      white-space: pre-wrap;
+    }
+
+    .docs-table {
       width: 100%;
       border-collapse: collapse;
-      margin: 15px 0;
-      font-size: 12px;
+      margin-top: 8px;
+      font-size: 13px;
     }
 
-    .doc-table th {
-      background-color: #f1f5f9;
-      padding: 10px 8px;
+    .docs-table th {
       text-align: left;
-      font-weight: 700;
-      color: #002C63;
-      border-bottom: 2px solid #cbd5e1;
+      padding: 12px 16px;
+      background-color: #f9fafb;
+      border-bottom: 1px solid #e5e7eb;
       font-size: 11px;
+      font-weight: 600;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .docs-table td {
+      padding: 16px;
+      border-bottom: 1px solid #f3f4f6;
+      vertical-align: top;
+    }
+
+    .status-badge {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
       text-transform: uppercase;
     }
 
-    .doc-table td {
-      padding: 10px 8px;
-      border-bottom: 1px solid #e2e8f0;
+    .badge-verified {
+      color: #059669;
+    }
+
+    .badge-revision {
+      color: #dc2626;
+    }
+
+    .badge-pending {
+      color: #d97706;
+    }
+
+    .badge-gray {
+      color: #9ca3af;
     }
 
     .doc-name {
       font-weight: 600;
-      color: #002C63;
+      color: #111827;
+      margin-bottom: 4px;
     }
 
-    .status-verified {
-      color: #00730A;
-      font-weight: 700;
-    }
-
-    .status-revision {
-      color: #BC0000;
-      font-weight: 700;
-    }
-
-    .status-pending {
-      color: #E47E00;
-      font-weight: 700;
-    }
-
-    .remarks-text {
-      font-size: 11px;
+    .doc-remarks {
+      font-size: 12px;
+      color: #6b7280;
       font-style: italic;
-      color: #64748b;
-      margin-top: 3px;
     }
 
-    .admin-remarks-box {
-      background-color: #e6f0ff;
-      border: 2px solid #b3d1ff;
-      border-radius: 8px;
-      padding: 15px;
-      margin: 20px 0;
-    }
-
-    .admin-remarks-box h3 {
-      margin: 0 0 10px 0;
-      font-size: 14px;
-      font-weight: 700;
-      color: #002C63;
-    }
-
-    .admin-remarks-box p {
-      margin: 0;
-      font-size: 13px;
-      line-height: 1.5;
-    }
-
-    .button-container {
-      margin: 25px 0;
+    .footer {
+      background-color: #f9fafb;
+      padding: 32px;
       text-align: center;
+      border-top: 1px solid #e5e7eb;
     }
 
     .btn {
       display: inline-block;
-      margin: 5px;
-      padding: 14px 24px;
-      text-decoration: none;
-      font-weight: 600;
-      border-radius: 8px;
-      font-size: 14px;
-      transition: all 0.2s;
-    }
-
-    .btn-primary {
       background-color: #002C76;
-      color: white !important;
-    }
-
-    .btn-primary:hover {
-      background-color: #003b9c;
-    }
-
-    .btn-secondary {
-      background-color: #059669;
-      color: white !important;
-    }
-
-    .btn-secondary:hover {
-      background-color: #047857;
-    }
-
-    .note {
-      font-size: 12px;
-      color: #718096;
-      margin-top: 15px;
-      padding: 10px;
-      background-color: #f8fafc;
+      color: #ffffff !important;
+      font-weight: 600;
+      font-size: 14px;
+      text-decoration: none;
+      padding: 12px 24px;
       border-radius: 6px;
+      margin: 8px;
+    }
+
+    .btn-outline {
+      background-color: #ffffff;
+      color: #374151 !important;
+      border: 1px solid #d1d5db;
+    }
+
+    .footer-text {
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 24px;
+      line-height: 1.5;
+    }
+
+    .footer-link {
+      color: #002C76;
+      text-decoration: none;
+    }
+
+    td {
+      white-space: normal !important;
+      word-wrap: break-word;
     }
   </style>
 </head>
 
 <body>
+
+  @php
+    $hasRevisions = collect($documents)->contains(function ($doc) {
+      return $doc['status'] == 'Needs Revision' || $doc['status'] == 'Disapproved With Deficiency';
+    });
+    $isQualified = ($qs_result === 'Qualified');
+    $showActionRequirements = (!$isQualified || $hasRevisions);
+  @endphp
+
   <div class="container">
-    <!-- Header -->
     <div class="header">
       <img
-        src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/Department_of_the_Interior_and_Local_Government_%28DILG%29_Seal_-_Logo.svg/2048px-Department_of_the_Interior_and_Local_Government_%28DILG%29_Seal_-_Logo.svg.png"
+        src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/Department_of_the_Interior_and_Local_Government_%28DILG%29_Seal_-_Logo.svg/1024px-Department_of_the_Interior_and_Local_Government_%28DILG%29_Seal_-_Logo.svg.png"
         alt="DILG Logo" class="logo" />
-      <div class="title-text">
-        <h2>DILG - CAR<br>Recruitment Selection and Placement Portal</h2>
-      </div>
+      <h1>DILG - CAR</h1>
+      <p class="subtitle">Recruitment Selection & Placement</p>
     </div>
 
-    <!-- Banner -->
-    <div class="banner">
-      Application Status Overview
-    </div>
-
-    <!-- Content -->
     <div class="content">
-      <p style="margin-top: 20px;">Hello <strong>{{ $applicant_name ?? 'Applicant' }}</strong>,</p>
-
+      <div class="greeting">Hello {{ $applicant_name ?? 'Applicant' }},</div>
       <p>Your application for the position of <strong>{{ $position_title ?? '[Position Title]' }}</strong> has been
-        reviewed. Please find the complete overview of your application status below.</p>
+        reviewed. Here is the latest status overview of your application.</p>
 
-      <!-- Job Details Grid -->
-      <div class="info-grid">
-        <div class="info-row">
-          <div class="info-cell" style="width: 50%;">
-            <span class="info-label">Job Applied</span>
-            <span class="info-value">{{ $position_title ?? 'N/A' }}</span>
+      <div class="section">
+        <div class="section-title">Job Details</div>
+        <div class="grid">
+          <div class="grid-row">
+            <div class="grid-cell">
+              <div class="label">Job Applied</div>
+              <div class="value">{{ $position_title ?? 'N/A' }}</div>
+            </div>
+            <div class="grid-cell">
+              <div class="label">Compensation</div>
+              <div class="value">₱{{ number_format($compensation ?? 0, 2) }}</div>
+            </div>
           </div>
-          <div class="info-cell" style="width: 50%;">
-            <span class="info-label">Compensation</span>
-            <span class="info-value">₱{{ number_format($compensation ?? 0, 2) }}</span>
-          </div>
-        </div>
-        <div class="info-row">
-          <div class="info-cell" style="width: 50%;">
-            <span class="info-label">Place of Assignment</span>
-            <span class="info-value">{{ $place_of_assignment ?? 'N/A' }}</span>
-          </div>
-          <div class="info-cell" style="width: 50%;">
-            <span class="info-label">Deadline</span>
-            <span class="info-value">{{ $deadline ?? 'No deadline set' }}</span>
+          <div class="grid-row">
+            <div class="grid-cell">
+              <div class="label">Place of Assignment</div>
+              <div class="value">{{ $place_of_assignment ?? 'N/A' }}</div>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Qualification Standards -->
-      <div class="qs-section">
-        <div class="qs-title">Qualification Standards</div>
-        <div class="qs-items">
-          @if(!isset($vacancy_type) || $vacancy_type === 'Plantilla')
+      <div class="section">
+        <div class="section-title">Qualification Standards</div>
+        <div class="card">
+          <div class="qs-items">
             <div class="qs-item">
-              <span class="qs-indicator {{ $qs_education === 'yes' ? 'qs-green' : 'qs-red' }}"></span>
+              <span
+                class="indicator {{ strtolower($qs_education) === 'qualified' || strtolower($qs_education) === 'yes' ? 'bg-green' : 'bg-red' }}"></span>
               Education
             </div>
             <div class="qs-item">
               <span
-                class="qs-indicator {{ $qs_eligibility === 'yes' ? 'qs-green' : ($qs_eligibility === 'na' ? 'qs-gray' : 'qs-red') }}"></span>
+                class="indicator {{ strtolower($qs_eligibility) === 'qualified' || strtolower($qs_eligibility) === 'yes' ? 'bg-green' : (strtolower($qs_eligibility) === 'na' ? 'bg-gray' : 'bg-red') }}"></span>
               Eligibility
             </div>
             <div class="qs-item">
-              <span class="qs-indicator qs-gray"></span>
+              <span
+                class="indicator {{ strtolower($qs_experience) === 'qualified' || strtolower($qs_experience) === 'yes' ? 'bg-green' : (strtolower($qs_experience) === 'na' ? 'bg-gray' : 'bg-red') }}"></span>
               Experience
             </div>
             <div class="qs-item">
-              <span class="qs-indicator {{ $qs_training === 'yes' ? 'qs-green' : 'qs-red' }}"></span>
+              <span
+                class="indicator {{ strtolower($qs_training) === 'qualified' || strtolower($qs_training) === 'yes' ? 'bg-green' : (strtolower($qs_training) === 'na' ? 'bg-gray' : 'bg-red') }}"></span>
               Training
             </div>
-          @else
-            <div class="qs-item">
-              <span class="qs-indicator {{ $qs_education === 'yes' ? 'qs-green' : 'qs-red' }}"></span>
-              Education
+          </div>
+          <div class="result">
+            Overall Result: <span
+              class="{{ $isQualified ? 'text-green' : 'text-red' }}">{{ $qs_result ?? 'Not Qualified' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Application Progress</div>
+        <div class="card">
+          <div class="progress-stats">
+            <div class="progress-stats-left">{{ $progress_percentage ?? 0 }}%</div>
+            <div class="progress-stats-right">{{ $progress_count ?? '0/17' }} Documents Verified</div>
+          </div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" style="width: {{ $progress_percentage ?? 0 }}%;"></div>
+          </div>
+        </div>
+      </div>
+
+      @if($showActionRequirements)
+        <div class="section">
+          <div class="section-title">Action Requirements</div>
+
+          @if(!empty($deadline))
+            <div class="card" style="margin-bottom: 0; padding: 16px 20px;">
+              <div class="label" style="margin-bottom: 2px;">Submit compliance by</div>
+              <div class="value" style="color: #dc2626;">{{ \Carbon\Carbon::parse($deadline)->format('F d, Y h:i A') }}
+              </div>
             </div>
-            <div class="qs-item">
-              <span class="qs-indicator qs-gray"></span>
-              Eligibility
-            </div>
-            <div class="qs-item">
-              <span class="qs-indicator {{ $qs_experience === 'yes' ? 'qs-green' : 'qs-red' }}"></span>
-              Experience
-            </div>
-            <div class="qs-item">
-              <span class="qs-indicator {{ $qs_training === 'yes' ? 'qs-green' : 'qs-red' }}"></span>
-              Training
+          @endif
+
+          @if(!empty($application_remarks))
+            <div class="remarks-box">
+              <div class="label" style="color: #3b82f6; margin-bottom: 8px;">Applicant Remarks</div>
+              <div class="remarks-text">{{ $application_remarks }}</div>
             </div>
           @endif
         </div>
-        <p style="text-align: center; margin: 10px 0 0 0; font-size: 13px;">
-          <strong>Overall Result:
-            <span style="color: {{ $qs_result === 'Qualified' ? '#10B981' : '#EF4444' }};">
-              {{ $qs_result ?? 'Not Qualified' }}
-            </span>
-          </strong>
-        </p>
-      </div>
-
-      <!-- Application Progress -->
-      <div class="progress-section">
-        <div class="qs-title">Application Progress</div>
-        <div class="progress-bar-container">
-          <div class="progress-bar" style="width: {{ $progress_percentage ?? 0 }}%;"></div>
-        </div>
-        <div class="progress-text">
-          <strong>{{ $progress_percentage ?? 0 }}%</strong> Complete ({{ $progress_count ?? '0/17' }} Documents)
-        </div>
-      </div>
-
-      <!-- Admin Remarks -->
-      @if(!empty($application_remarks))
-        <div class="admin-remarks-box">
-          <h3>📋 Important Instructions</h3>
-          <p>{{ $application_remarks }}</p>
-        </div>
       @endif
 
-      <!-- Required Documents Table -->
-      <h3 style="color: #002C63; font-size: 14px; margin: 25px 0 10px 0;">Required Documents</h3>
-      <table class="doc-table">
-        <thead>
-          <tr>
-            <th style="width: 45%;">Document</th>
-            <th style="width: 20%;">Status</th>
-            <th style="width: 35%;">Remarks</th>
-          </tr>
-        </thead>
-        <tbody>
-          @foreach ($documents as $doc)
-            <tr>
-              <td class="doc-name">{{ $doc['name'] }}</td>
-              <td>
-                @if($doc['status'] == 'Verified' || $doc['status'] == 'Okay/Confirmed')
-                  <span class="status-verified">✓ VERIFIED</span>
-                @elseif($doc['status'] == 'Needs Revision' || $doc['status'] == 'Disapproved With Deficiency')
-                  <span class="status-revision">✗ NEEDS REVISION</span>
-                @elseif($doc['status'] == 'Not Submitted')
-                  <span class="status-pending">NOT SUBMITTED</span>
-                @else
-                  <span class="status-pending">{{ strtoupper($doc['status']) }}</span>
-                @endif
-              </td>
-              <td>
-                @if(!empty($doc['remarks']) && $doc['remarks'] != 'No remarks provided.' && !empty(trim($doc['remarks'])))
-                  {{ $doc['remarks'] }}
-                @else
-                  <span style="color: #cbd5e1;">—</span>
-                @endif
-              </td>
-            </tr>
-          @endforeach
-        </tbody>
-      </table>
+      <div class="section">
+        <div class="section-title">Required Documents Overview</div>
+        <div style="border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; margin-top: 12px;">
+          <table class="docs-table">
+            <thead>
+              <tr>
+                <th style="width: 50%;">Document</th>
+                <th style="width: 50%;">Status & Remarks</th>
+              </tr>
+            </thead>
+            <tbody>
+              @foreach ($documents as $doc)
+                @php
+                  $statusClass = 'badge-pending';
+                  $statusLabel = strtoupper($doc['status']);
+                  if ($doc['status'] == 'Verified' || $doc['status'] == 'Okay/Confirmed') {
+                    $statusClass = 'badge-verified';
+                    $statusLabel = '✓ VERIFIED';
+                  } elseif ($doc['status'] == 'Needs Revision' || $doc['status'] == 'Disapproved With Deficiency') {
+                    $statusClass = 'badge-revision';
+                    $statusLabel = '✗ NEEDS REVISION';
+                  } elseif ($doc['status'] == 'Not Submitted') {
+                    $statusClass = 'badge-gray';
+                  }
+                @endphp
+                <tr>
+                  <td>
+                    <div class="doc-name">{{ $doc['name'] }}</div>
+                  </td>
+                  <td>
+                    <div class="status-badge {{ $statusClass }}">{{ $statusLabel }}</div>
+                    @if(!empty($doc['remarks']) && $doc['remarks'] != 'No remarks provided.' && !empty(trim($doc['remarks'])))
+                      <div class="doc-remarks" style="margin-top: 4px;">{{ $doc['remarks'] }}</div>
+                    @endif
+                  </td>
+                </tr>
+              @endforeach
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
 
-      <!-- Action Buttons -->
-      <div class="button-container">
-        <a href="{{ route('login.form', ['redirect' => 'application_status', 'user' => $user_id, 'vacancy' => $vacancy_id]) }}"
-          class="btn btn-secondary">
-          📄 Comply & Upload Documents
-        </a>
-        <br>
+    <div class="footer">
+      <div style="margin-bottom: 24px;">
+        @if($showActionRequirements)
+          <a href="{{ route('login.form', ['redirect' => 'application_status', 'user' => $user_id, 'vacancy' => $vacancy_id]) }}"
+            class="btn">Login to Comply</a>
+        @endif
         <a href="{{ route('application_status', ['user' => $user_id, 'vacancy' => $vacancy_id]) }}"
-          class="btn btn-primary">
-          👁️ View Full Application
-        </a>
+          class="btn btn-outline">View Full Status</a>
       </div>
-
-      <div class="note">
-        <strong>Note:</strong> If you need to update or submit documents, click the "Comply & Upload Documents" button
-        above. This will take you directly to your application page where you can upload the required files.
-      </div>
-
-      <p style="margin-top: 25px; font-size: 13px;">
-        If you have any questions, feel free to reach out via email at
-        <a href="mailto:dilgcarcloud@gmail.com" style="color: #002C76;">dilgcarcloud@gmail.com</a>.
-      </p>
-
-      <p style="font-size: 13px;">
-        Thank you for your patience.<br>
-        <strong>– DILG-CAR Human Resources</strong>
+      <p class="footer-text">
+        If you have any questions, please contact us at <a href="mailto:dilgcarcloud@gmail.com"
+          class="footer-link">dilgcarcloud@gmail.com</a>.<br>
+        Thank you, <strong>DILG-CAR Human Resources</strong>
       </p>
     </div>
   </div>
+
 </body>
 
 </html>

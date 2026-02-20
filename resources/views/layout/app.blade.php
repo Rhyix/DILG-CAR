@@ -51,6 +51,12 @@
 
     <!-- Styles -->
     <style>
+        html,
+        body {
+            height: 100%;
+            overflow: hidden;
+        }
+
         .font-montserrat {
             font-family: 'Montserrat', sans-serif;
         }
@@ -123,7 +129,7 @@
 </head>
 
 <body x-data="{ mobileSidebarOpen: false, showLogoutModal: false }"
-    class="bg-[#F3F8FF] min-h-screen font-montserrat text-gray-900 overflow-x-hidden">
+    class="bg-[#F3F8FF] min-h-screen font-montserrat text-gray-900 overflow-hidden">
 
     <!-- 🔥 Mobile Toggle Button -->
     <button @click="mobileSidebarOpen = true"

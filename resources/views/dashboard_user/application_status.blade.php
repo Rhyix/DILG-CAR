@@ -14,11 +14,7 @@
   }
 @endphp
 
-<body class="bg-[#F3F8FF] min-h-screen font-sans text-gray-900 overflow-x-hidden">
-  <div class="flex min-h-screen w-full">
-    @section('content')
-          <!-- Main Content -->
-          <main class="flex-1 min-w-0">
+@section('content')
             <div class="space-y-6">
               <div class="bg-white p-6 rounded-xl shadow-lg font-montserrat">
                 <!-- Header Section -->
@@ -114,7 +110,9 @@
                     <!-- Deadline Card -->
                     <div class="bg-white rounded-lg border border-gray-200 p-4 shadow-lg">
                       <div class="text-sm font-semibold text-gray-700 mb-3">Deadline for Submission:</div>
-                      @if($displayDeadlineDate || $displayDeadlineTime)
+                      @if($displayQsResult === 'Qualified')
+                        <div class="text-sm text-green-600 font-semibold italic">Not applicable (Requirements complete)</div>
+                      @elseif($displayDeadlineDate || $displayDeadlineTime)
                         <div class="text-sm font-semibold text-[#002C76]">
                           {{ \Carbon\Carbon::parse($displayDeadlineDate . ' ' . ($displayDeadlineTime ?? '23:59:59'))->format('F d, Y h:i A') }}
                         </div>
@@ -259,36 +257,30 @@
                       </div>
                       <iframe id="doc-preview" src="about:blank" title="Document Preview"
                         class="w-full h-full rounded-md flex-grow border-0 bg-white"
-                        loading="lazy"></iframe>
+                        loading="lazy" scrolling="no"></iframe>
                     </div>
                   </section>
                 </div>
 
-                <!-- Document Status Summary -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-                  <div class="bg-white rounded-lg p-4 border border-gray-300">
-                    <div id="document-status" class="font-bold text-red-600 mb-5 transition-opacity duration-500">
-                      DOCUMENTS SUBMITTED: INCOMPLETE
+                <!-- Application Remarks -->
+                @php
+                  $isQualified = strtolower($displayQsResult ?? '') === 'qualified'
+                    || strtolower($displayApplicationStatus ?? '') === 'qualified';
+                @endphp
+                @if(!$isQualified)
+                  <div class="grid grid-cols-1 gap-4 mt-6">
+                    <div class="bg-white rounded-lg p-4 border border-gray-300">
+                      <div class="font-bold text-gray-800 mb-2">APPLICATION REMARKS</div>
+                      <p class="text-sm text-gray-700">
+                        {{ $displayApplicationRemarks ?: 'No remarks at this time.' }}
+                      </p>
                     </div>
-                    <div id="actions-heading" class="font-bold text-gray-800 mb-3 hidden">
-                      APPLICATION PROGRESS
-                    </div>
-                    <p id="actions-helper" class="text-sm text-gray-600">
-                      Please wait for the administrator to validate your application.
-                    </p>
                   </div>
-
-                  <div class="bg-white rounded-lg p-4 border border-gray-300">
-                    <div class="font-bold text-gray-800 mb-2">APPLICATION REMARKS</div>
-                    <p class="text-sm text-gray-700">
-                      {{ $displayApplicationRemarks ?: 'No remarks at this time.' }}
-                    </p>
-                  </div>
-                </div>
+                @endif
 
 
         <script>
-          const documents = @json($documents);
+          let documents = @json($documents);
           const isPastDeadline = @json($isPastDeadline);
           let currentSelectedDoc = null;
 
@@ -377,7 +369,12 @@
                 docPreview.onload = () => {
                   if (previewLoader) previewLoader.classList.add('hidden');
                 };
-                docPreview.src = doc.preview || "about:blank";
+                let previewUrl = doc.preview || "about:blank";
+                if (previewUrl && previewUrl !== "about:blank" && /\.pdf(\?|#|$)/i.test(previewUrl)) {
+                  const hashSeparator = previewUrl.includes('#') ? '&' : '#';
+                  previewUrl = `${previewUrl}${hashSeparator}toolbar=0&navpanes=0&scrollbar=0&view=FitH`;
+                }
+                docPreview.src = previewUrl;
               }
             }, 10);
           }
@@ -431,39 +428,10 @@
             });
           }
 
-          // Update document status display
-          function updateDocumentUI() {
-            const confirmedCount = documents.filter(d => d.status === 'Okay/Confirmed' || d.status === 'Verified').length;
-            const totalDocuments = documents.length;
-
-            const statusEl = document.getElementById('document-status');
-            const actionsHeading = document.getElementById('actions-heading');
-            const actionsHelper = document.getElementById('actions-helper');
-
-            if (confirmedCount === totalDocuments && totalDocuments > 0) {
-              if (statusEl) {
-                statusEl.textContent = "DOCUMENTS SUBMITTED: COMPLETE";
-                statusEl.classList.remove("text-red-600");
-                statusEl.classList.add("text-green-600");
-              }
-              if (actionsHeading) actionsHeading.classList.remove("hidden");
-              if (actionsHelper) actionsHelper.classList.add("hidden");
-            } else {
-              if (statusEl) {
-                statusEl.textContent = "DOCUMENTS SUBMITTED: INCOMPLETE";
-                statusEl.classList.remove("text-green-600");
-                statusEl.classList.add("text-red-600");
-              }
-              if (actionsHeading) actionsHeading.classList.add("hidden");
-              if (actionsHelper) actionsHelper.classList.remove("hidden");
-            }
-          }
-
           // Initialize
           document.addEventListener('DOMContentLoaded', function() {
             console.log("Documents from backend:", documents);
             renderDocuments(documents);
-            updateDocumentUI();
             
             // Force immediate refresh on page load
             setTimeout(async function() {
@@ -493,7 +461,6 @@
                         
                         // Re-render documents with new data
                         renderDocuments(documents);
-                        updateDocumentUI();
                     }
                 } catch (error) {
                     console.error('Error in immediate refresh:', error);
@@ -531,7 +498,6 @@
                         
                         // Re-render documents with new data
                         renderDocuments(documents);
-                        updateDocumentUI();
                     } else {
                         console.error('Response not ok:', response.statusText);
                     }
@@ -572,8 +538,5 @@
           });
         </script>
             </div>
-          </main>
-        </div>
-        @include('partials.loader')
-    @endsection
-  </body>
+            @include('partials.loader')
+@endsection

@@ -518,16 +518,8 @@ class AdminController extends Controller
             }
         }
 
-        $qs = $this->recalculateQualificationStatus($user_id, $vacancy_id);
-        foreach (['qs_education', 'qs_eligibility', 'qs_experience', 'qs_training', 'qs_result'] as $field) {
-            if ($application->$field !== $qs[$field]) {
-                $changes[$field] = [
-                    'old' => $application->$field,
-                    'new' => $qs[$field],
-                ];
-                $application->$field = $qs[$field];
-            }
-        }
+        // Allow the values submitted in the request to be final for QS.
+        // Removed dynamic recalculation here to ensure HR's manual overrides are respected.
 
         // Application letter status and remarks
         $file_status = $documentStatuses['application_letter'] ?? null;
@@ -816,8 +808,8 @@ class AdminController extends Controller
         }
         $application->save();
 
-        $qs = $this->recalculateQualificationStatus($user_id, $vacancy_id);
-        $application->fill($qs)->save();
+        // We trust the HR's explicitly validated QS variables instead of overwriting them.
+        // Removed recalculateQualificationStatus from here to respect the modal's selected radio buttons.
 
         $documents = $this->getApplicantDocuments($user_id, $application);
         $userDocumentsSnapshot = $this->buildUserDocumentsSnapshot($user_id, $application);
@@ -891,11 +883,11 @@ class AdminController extends Controller
         }
 
         // --- Retrieve Qualification Standards ---
-        $qsEducation = $qs['qs_education'] ?? 'no';
-        $qsEligibility = $qs['qs_eligibility'] ?? 'no';
-        $qsExperience = $qs['qs_experience'] ?? 'no';
-        $qsTraining = $qs['qs_training'] ?? 'no';
-        $qsResult = $qs['qs_result'] ?? 'Not Qualified';
+        $qsEducation = $application->qs_education ?? 'no';
+        $qsEligibility = $application->qs_eligibility ?? 'no';
+        $qsExperience = $application->qs_experience ?? 'no';
+        $qsTraining = $application->qs_training ?? 'no';
+        $qsResult = $application->qs_result ?? 'Not Qualified';
 
         $userEmail = User::where('id', $user_id)->value('email');
 

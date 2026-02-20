@@ -737,32 +737,29 @@ class JobVacancyController extends Controller
         $displayQsExperience = 'no';
         $displayQsTraining = 'no';
 
-        if ($vacancyType === 'Plantilla') {
-            $displayQsEligibility = $isVerified('cert_eligibility') ? 'yes' : 'no';
-            $displayQsEducation = ($isVerified('transcript_records') && $isVerified('photocopy_diploma')) ? 'yes' : 'no';
-            $displayQsTraining = $isVerified('cert_training') ? 'yes' : 'no';
-            $displayQsExperience = 'na';
-        } elseif ($vacancyType === 'COS') {
-            $displayQsExperience = $isVerified('signed_work_exp_sheet') ? 'yes' : 'no';
-            $displayQsEducation = ($isVerified('transcript_records') && $isVerified('photocopy_diploma')) ? 'yes' : 'no';
-            $displayQsTraining = $isVerified('cert_training') ? 'yes' : 'no';
-            $displayQsEligibility = 'na';
+        // Unified QS derivation based on live verifications
+        $displayQsExperience = $isVerified('signed_work_exp_sheet') ? 'yes' : 'no';
+        $displayQsEducation = ($isVerified('transcript_records') && $isVerified('photocopy_diploma')) ? 'yes' : 'no';
+        $displayQsTraining = $isVerified('cert_training') ? 'yes' : 'no';
+        $displayQsEligibility = $isVerified('cert_eligibility') ? 'yes' : 'no';
+
+        // Check if all necessary ones are verified (Assuming all 4 must be yes for 'Qualified')
+        // Or we just rely on HR's explicit save in $application->qs_result
+        // If HR has set a final result from the Admin side, we should respect that instead of auto-calculating it in the view.
+        // The admin side saves the latest QS into the application model.
+        if (isset($application->qs_result) && $application->qs_result !== 'Not Qualified') {
+            $displayQsResult = $application->qs_result;
         } else {
-            // Fallback to stored values if vacancy type is unknown
-            $displayQsEducation = $application->qs_education ?? 'no';
-            $displayQsEligibility = $application->qs_eligibility ?? 'no';
-            $displayQsExperience = $application->qs_experience ?? 'no';
-            $displayQsTraining = $application->qs_training ?? 'no';
+            $relevant = [$displayQsEducation, $displayQsEligibility, $displayQsExperience, $displayQsTraining];
+            $allOk = empty($relevant) ? false : collect($relevant)->every(fn($v) => $v === 'yes');
+            $displayQsResult = $allOk ? 'Qualified' : 'Not Qualified';
         }
 
-        $relevant = [];
-        if ($vacancyType === 'Plantilla') {
-            $relevant = [$displayQsEducation, $displayQsEligibility, $displayQsTraining];
-        } elseif ($vacancyType === 'COS') {
-            $relevant = [$displayQsEducation, $displayQsExperience, $displayQsTraining];
-        }
-        $allOk = empty($relevant) ? false : collect($relevant)->every(fn($v) => $v === 'yes');
-        $displayQsResult = $allOk ? 'Qualified' : 'Not Qualified';
+        // Ensure manual overrides from admin page are reflected if they exist
+        $displayQsEducation = $application->qs_education ?? $displayQsEducation;
+        $displayQsEligibility = $application->qs_eligibility ?? $displayQsEligibility;
+        $displayQsExperience = $application->qs_experience ?? $displayQsExperience;
+        $displayQsTraining = $application->qs_training ?? $displayQsTraining;
         $displayDeadlineDate = $application->deadline_date ?? null;
         $displayDeadlineTime = $application->deadline_time ?? null;
         $displayApplicationRemarks = $application->application_remarks ?? '';
