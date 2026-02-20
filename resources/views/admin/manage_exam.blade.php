@@ -806,6 +806,7 @@
         const venue = document.getElementById('venue').value.trim();
         const date = document.getElementById('date').value.trim();
         const time = document.getElementById('time').value.trim();
+        const message = document.getElementById('message').value.trim();
         const saveButton = document.getElementById('saveNotifyButton');
         
         // Ensure hidden end time is set (default to +1 hour if empty)
@@ -821,7 +822,7 @@
             timeEndInput.value = `${endHours}:${endMinutes}`;
         }
 
-        const allFilled = venue && date && time;
+        const allFilled = venue && date && time && message;
         
         // Only enable if all fields are filled AND details haven't been saved yet AND qualified applicants exist
         const detailsSaved = {{ $examDetails && $examDetails->details_saved ? 'true' : 'false' }};

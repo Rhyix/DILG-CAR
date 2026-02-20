@@ -16,7 +16,8 @@
 
         <!-- Header -->
         <section class="flex items-center space-x-4 mb-4 max-w-full border-b border-[#0D2B70]">
-            <button aria-label="Back" onclick="window.location.href='{{ route('admin.manage_exam', $vacancy_id) }}'"
+            <!-- BACK BUTTON -->
+            <button aria-label="Back" @click.prevent="handleBackClick('{{ route('admin.manage_exam', $vacancy_id) }}')"
                 class="use-loader group">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-[#0D2B70] hover:opacity-80 transition"
                     fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
@@ -119,8 +120,8 @@
                     <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
                         <div class="sm:flex sm:items-start">
                             <div class="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full sm:mx-0 sm:h-10 sm:w-10"
-                                :class="modalType === 'discard' ? 'bg-red-100' : 'bg-blue-100'">
-                                <template x-if="modalType === 'discard'">
+                                :class="(modalType === 'discard' || modalType === 'back') ? 'bg-red-100' : 'bg-blue-100'">
+                                <template x-if="modalType === 'discard' || modalType === 'back'">
                                     <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
                                         stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round"
@@ -146,7 +147,7 @@
                     <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
                         <button type="button"
                             class="inline-flex w-full justify-center rounded-md px-3 py-2 text-sm font-semibold text-white shadow-sm sm:ml-3 sm:w-auto flex items-center gap-2"
-                            :class="modalType === 'discard' ? 'bg-red-600 hover:bg-red-500' : 'bg-[#002C76] hover:bg-blue-800'"
+                            :class="(modalType === 'discard' || modalType === 'back') ? 'bg-red-600 hover:bg-red-500' : 'bg-[#002C76] hover:bg-blue-800'"
                             :disabled="isProcessing" @click="confirmAction()">
                             <svg x-show="isProcessing" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
                                 xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -166,6 +167,38 @@
                     </div>
                 </div>
             </div>
+        </div>
+
+        <!-- Toast Notification -->
+        <div x-show="showToast" 
+            x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0 transform translate-y-2"
+            x-transition:enter-end="opacity-100 transform translate-y-0"
+            x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100 transform translate-y-0"
+            x-transition:leave-end="opacity-0 transform translate-y-2"
+            class="fixed bottom-4 right-4 z-50 flex items-center w-full max-w-xs p-4 mb-4 text-gray-500 bg-white rounded-lg shadow dark:text-gray-400 dark:bg-gray-800"
+            role="alert">
+            <div class="inline-flex items-center justify-center flex-shrink-0 w-8 h-8 rounded-lg"
+                :class="toastType === 'success' ? 'text-green-500 bg-green-100 dark:bg-green-800 dark:text-green-200' : 'text-red-500 bg-red-100 dark:bg-red-800 dark:text-red-200'">
+                <template x-if="toastType === 'success'">
+                    <svg class="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z"/>
+                    </svg>
+                </template>
+                <template x-if="toastType === 'error'">
+                    <svg class="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 11.793a1 1 0 1 1-1.414 1.414L10 11.414l-2.293 2.293a1 1 0 0 1-1.414-1.414L8.586 10 6.293 7.707a1 1 0 0 1 1.414-1.414L10 8.586l2.293-2.293a1 1 0 0 1 1.414 1.414L11.414 10l2.293 2.293Z"/>
+                    </svg>
+                </template>
+            </div>
+            <div class="ml-3 text-sm font-normal" x-text="toastMessage"></div>
+            <button type="button" class="ml-auto -mx-1.5 -my-1.5 bg-white text-gray-400 hover:text-gray-900 rounded-lg focus:ring-2 focus:ring-gray-300 p-1.5 hover:bg-gray-100 inline-flex items-center justify-center h-8 w-8 dark:text-gray-500 dark:hover:text-white dark:bg-gray-800 dark:hover:bg-gray-700" @click="showToast = false" aria-label="Close">
+                <span class="sr-only">Close</span>
+                <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                </svg>
+            </button>
         </div>
 
         <!-- Question Form -->
@@ -597,6 +630,10 @@
                 modalTitle: '',
                 modalMessage: '',
                 isProcessing: false, // Loading state for modal
+                pendingBackUrl: '', // URL to navigate to after confirmation
+                showToast: false,
+                toastMessage: '',
+                toastType: 'success', // 'success' or 'error'
 
                 init() {
                     const data = @json($exam_items);
@@ -763,6 +800,18 @@
                     });
                 },
 
+                handleBackClick(url) {
+                    if (this.hasChanges) {
+                        this.modalType = 'back';
+                        this.modalTitle = 'Unsaved Changes';
+                        this.modalMessage = 'You have unsaved changes. Are you sure you want to leave? All unsaved progress will be lost.';
+                        this.pendingBackUrl = url;
+                        this.showConfirmModal = true;
+                    } else {
+                        window.location.href = url;
+                    }
+                },
+
                 handleDiscardClick() {
                     this.modalType = 'discard';
                     this.modalTitle = 'Discard All Questions';
@@ -784,12 +833,24 @@
                     this.showConfirmModal = false;
                 },
 
+                showToastNotification(message, type = 'success') {
+                    this.toastMessage = message;
+                    this.toastType = type;
+                    this.showToast = true;
+                    setTimeout(() => {
+                        this.showToast = false;
+                    }, 3000);
+                },
+
                 confirmAction() {
-                    if (this.modalType === 'discard') {
+                    if (this.modalType === 'back') {
+                        window.location.href = this.pendingBackUrl;
+                    } else if (this.modalType === 'discard') {
                         this.questions = [];
                         this.originalQuestionsSnapshot = JSON.stringify(this.questions);
                         this.hasChanges = false;
                         this.showConfirmModal = false;
+                        this.showToastNotification('Questions discarded.', 'success');
                     } else if (this.modalType === 'save') {
                         // Set processing state to true
                         this.isProcessing = true;
@@ -811,10 +872,12 @@
                         .then(response => response.json())
                         .then(data => {
                             if (data.success || data.message) {
-                                // Success - reload the page to see the saved questions
+                                // Success - show toast then reload
+                                this.showConfirmModal = false;
+                                this.showToastNotification('Questions saved successfully!', 'success');
                                 setTimeout(() => {
                                     window.location.reload();
-                                }, 500);
+                                }, 1500);
                             } else {
                                 throw new Error(data.msg || data.message || 'Failed to save exam');
                             }
@@ -822,7 +885,8 @@
                         .catch(error => {
                             console.error('Error saving exam:', error);
                             this.isProcessing = false;
-                            alert('Error saving exam: ' + error.message);
+                            this.showConfirmModal = false;
+                            this.showToastNotification('Error saving exam: ' + error.message, 'error');
                         });
                     }
                 },
@@ -845,7 +909,7 @@
 
                         // 1. Check if question text is empty (using duration field as question text based on UI)
                         if (!q.duration || q.duration.trim() === '') {
-                            alert(`Question ${i + 1} is empty. Please enter the question text.`);
+                            this.showToastNotification(`Question ${i + 1} is empty. Please enter the question text.`, 'error');
                             return false;
                         }
 
@@ -853,21 +917,21 @@
                         if (q.type === 'MCQ') {
                             // Check if choices exist
                             if (q.choices.length < 2) {
-                                alert(`Question ${i + 1} (MCQ) must have at least 2 options.`);
+                                this.showToastNotification(`Question ${i + 1} (MCQ) must have at least 2 options.`, 'error');
                                 return false;
                             }
 
                             // Check empty options
                             for (let j = 0; j < q.choices.length; j++) {
                                 if (!q.choices[j] || q.choices[j].trim() === '') {
-                                    alert(`Question ${i + 1} has an empty option at position ${j + 1}.`);
+                                    this.showToastNotification(`Question ${i + 1} has an empty option at position ${j + 1}.`, 'error');
                                     return false;
                                 }
                             }
 
                             // Check if correct answer is selected
                             if (q.correctAnswer === undefined || q.correctAnswer === null || q.correctAnswer < 0 || q.correctAnswer >= q.choices.length) {
-                                alert(`Please select a correct answer for Question ${i + 1}.`);
+                                this.showToastNotification(`Please select a correct answer for Question ${i + 1}.`, 'error');
                                 return false;
                             }
                         }
