@@ -1,6 +1,6 @@
 @if ($applications->count() > 0)
-<div class="rounded-xl border border-[#0D2B70] mt-2 overflow-hidden">
-    <div class="bg-[#0D2B70] text-white">
+<div class="rounded-xl border border-[#0D2B70] mt-2 overflow-hidden flex flex-col min-h-0">
+    <div class="bg-[#0D2B70] text-white flex-none">
         <table class="w-full text-left border-collapse table-fixed">
             <thead class="bg-[#0D2B70] text-white">
                 <tr>
@@ -13,7 +13,7 @@
             </thead>
         </table>
     </div>
-    <div>
+    <div class="flex-1 overflow-auto max-h-[60vh]">
         <table class="w-full text-left border-collapse table-fixed">
             <tbody class="divide-y divide-[#0D2B70]">
             @foreach ($applications as $application)

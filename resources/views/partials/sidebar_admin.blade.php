@@ -78,7 +78,7 @@
     ? 'bg-[#002C76] text-white shadow-md'
     : 'text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md' }}">
                 <i data-feather="user" class="w-5 h-5 stroke-[3] flex-shrink-0"></i>
-                <span class="ml-3 transition-opacity duration-200" x-show="open" x-transition.opacity.duration.200ms>APPLICATIONS LIST</span>
+                <span class="ml-3 transition-opacity duration-200" x-show="open" x-transition.opacity.duration.200ms>APPLICANTS MANAGEMENT</span>
             </a>
 
             <a href="{{ route('admin_exam_management') }}" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200

@@ -91,15 +91,7 @@
             <p id="closing_date_error" class="text-red-600 text-sm mt-1 hidden">Deadline of application is required.</p>
         </div>
 
-        <div class="w-full">
-            <label class="block">Status</label>
-            <select id="status" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10" name="status" required>
-            <option disabled {{ old('status', $vacancy->status ?? '') == null ? 'selected' : '' }}>Status</option>
-            <option value="OPEN" {{ old('status', $vacancy->status ?? '') == 'OPEN' ? 'selected' : '' }}>OPEN</option>
-            <option value="CLOSED" {{ old('status', $vacancy->status ?? '') == 'CLOSED' ? 'selected' : '' }}>CLOSED</option>
-            </select>
-            <p id="status_error" class="text-red-600 text-sm mt-1 hidden">Please select a status.</p>
-        </div>
+        <!-- Status removed as per request, default is OPEN handled in backend -->
 
         <div class="w-full">
             <label class="block">Place of Assignment</label>
@@ -316,21 +308,18 @@ window.addEventListener('confirm-cos-save', () => {
     // Fields
     const positionTitle = document.getElementById('position_title');
     const closingDate = document.getElementById('closing_date');
-    const status = document.getElementById('status');
     const place = document.getElementById('place_of_assignment');
     const monthlySalary = document.getElementById('monthly_salary');
     // Errors
     const eTitle = document.getElementById('position_title_error');
     const eClosing = document.getElementById('closing_date_error');
-    const eStatus = document.getElementById('status_error');
     const ePlace = document.getElementById('place_of_assignment_error');
     const eSalary = document.getElementById('monthly_salary_error');
     // Reset
-    [eTitle,eClosing,eStatus,ePlace,eSalary].forEach(hide);
+    [eTitle,eClosing,ePlace,eSalary].forEach(hide);
     // Validate basics
     if (!positionTitle.value.trim()) { errors.push('Position title is required.'); show(eTitle, 'Position title is required.'); }
     if (!closingDate.value) { errors.push('Deadline is required.'); show(eClosing, 'Deadline of application is required.'); }
-    if (!status.value || ['Status',''].includes(status.options[status.selectedIndex]?.text)) { errors.push('Status is required.'); show(eStatus, 'Please select a status.'); }
     if (!place.value) { errors.push('Place of assignment is required.'); show(ePlace, 'Place of assignment is required.'); }
     // Salary checks
     const MAX = 1000000;

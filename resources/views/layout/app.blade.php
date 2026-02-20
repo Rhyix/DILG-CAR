@@ -386,7 +386,8 @@
 
         const logo = document.querySelector('img[alt="DILG Logo"]');
         const toggleButton = document.getElementById('toggleSidebar');
-        let isOpen = localStorage.getItem('sidebarOpen') === 'true';
+        const storedOpen = localStorage.getItem('sidebarOpen');
+        let isOpen = storedOpen === 'true';
 
         function openSidebar() {
             sidebar?.classList.remove('w-16');
@@ -419,7 +420,7 @@
         window.addEventListener('DOMContentLoaded', () => {
             if (window.innerWidth >= 1024) {
                 // Open sidebar by default if not set in localStorage
-                if (isOpen === null) {
+                if (storedOpen === null) {
                     openSidebar();
                 } else {
                     isOpen ? openSidebar() : closeSidebar();

@@ -100,7 +100,6 @@ class JobVacancyController extends Controller
             'place_of_assignment' => 'required|string',
             //'vacancies' => 'required|integer|min:1',
             'closing_date' => 'required|date',
-            'status' => 'nullable|in:OPEN,CLOSED',
             'qualification_education' => 'required|string',
             'qualification_experience' => 'required|string',
             'qualification_training' => 'required|string',
@@ -140,10 +139,7 @@ class JobVacancyController extends Controller
         $closingDate = Carbon::parse($validated['closing_date']);
         $today = Carbon::today();
 
-        $status = $request->input('status');
-        if (!$status) {
-            $status = $closingDate->lt($today) ? 'CLOSED' : 'OPEN';
-        }
+        $status = 'OPEN';
 
         $vacancy->update([
             'vacancy_type' => $validated['vacancy_type'],
@@ -202,7 +198,7 @@ class JobVacancyController extends Controller
             'pcn_no' => 'nullable|string',
             'plantilla_item_no' => 'nullable|string',
             'closing_date' => 'required|date|after_or_equal:today',
-            'status' => 'nullable|in:OPEN,CLOSED',
+            // 'status' => 'nullable|in:OPEN,CLOSED', // Status is auto-set to OPEN
             'monthly_salary' => 'required|numeric',
             'salary_grade' => 'nullable|string',
             'place_of_assignment' => 'required|string',
@@ -252,10 +248,7 @@ class JobVacancyController extends Controller
         $closingDate = Carbon::parse($validated['closing_date']);
         $today = Carbon::today();
 
-        $status = $request->input('status');
-        if (!$status) {
-            $status = $closingDate->lt($today) ? 'CLOSED' : 'OPEN';
-        }
+        $status = 'OPEN'; // Default status for new vacancies
 
         // 🔷 Create vacancy
         $vacancy = JobVacancy::create([

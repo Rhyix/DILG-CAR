@@ -109,14 +109,7 @@
                 <input type="text" name="plantilla_item_no" value="{{ old('plantilla_item_no', $vacancy->plantilla_item_no ?? '') }}" class="w-full border-2 border-[#002C76] rounded px-2 py-1 h-10">
             </div>
 
-            <div class="mt-4 md:mt-0">
-                <label class="block">Status</label>
-                <select name="status" class="w-full border-2 border-[#002C76] rounded px-2 py-1 h-10">
-                    <option disabled>Status</option>
-                    <option value="OPEN" {{ old('status', $vacancy->status ?? '') == 'OPEN' ? 'selected' : '' }}>OPEN</option>
-                    <option value="CLOSED" {{ old('status', $vacancy->status ?? '') == 'CLOSED' ? 'selected' : '' }}>CLOSED</option>
-                </select>
-            </div>
+            <!-- Status removed as per request, default is OPEN handled in backend -->
         </div>
 
     </div>

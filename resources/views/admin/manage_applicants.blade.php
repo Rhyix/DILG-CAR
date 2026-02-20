@@ -14,7 +14,7 @@
             </button>
             <div class="flex items-center justify-between w-full border-b border-[#0D2B70] py-2">
                 <h1 class="text-white text-4xl font-montserrat tracking-wide select-none">
-                    <span class="whitespace-nowrap text-[#0D2B70]">Manage Applicants</span>
+                    <span class="whitespace-nowrap text-[#0D2B70]">Applicants Management</span>
                 </h1>
             </div>
         </section>
