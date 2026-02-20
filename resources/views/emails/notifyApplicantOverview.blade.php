@@ -331,9 +331,6 @@
 
   <div class="container">
     <div class="header">
-      <img
-        src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/Department_of_the_Interior_and_Local_Government_%28DILG%29_Seal_-_Logo.svg/1024px-Department_of_the_Interior_and_Local_Government_%28DILG%29_Seal_-_Logo.svg.png"
-        alt="DILG Logo" class="logo" />
       <h1>DILG - CAR</h1>
       <p class="subtitle">Recruitment Selection & Placement</p>
     </div>
@@ -442,7 +439,22 @@
               </tr>
             </thead>
             <tbody>
-              @foreach ($documents as $doc)
+              @php
+                // Sort documents to prioritize 'Needs Revision' and 'Disapproved With Deficiency'
+                $sortedDocuments = collect($documents)->sortBy(function($doc) {
+                    $status = $doc['status'];
+                    if ($status == 'Needs Revision' || $status == 'Disapproved With Deficiency') {
+                        return 1;
+                    } elseif ($status == 'Not Submitted' || $status == 'Pending') {
+                        return 2;
+                    } elseif ($status == 'Verified' || $status == 'Okay/Confirmed') {
+                        return 3;
+                    }
+                    return 4;
+                });
+              @endphp
+
+              @foreach ($sortedDocuments as $doc)
                 @php
                   $statusClass = 'badge-pending';
                   $statusLabel = strtoupper($doc['status']);

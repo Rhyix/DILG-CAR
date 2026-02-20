@@ -40,7 +40,21 @@
             </tr>
           </thead>
           <tbody>
-            @foreach($documents as $doc)
+            @php
+              // Sort documents to prioritize 'Needs Revision' items
+              $sortedDocuments = collect($documents)->sortBy(function($doc) {
+                  $status = $doc['status'] ?? '';
+                  if ($status == 'Needs Revision' || $status == 'Disapproved With Deficiency') {
+                      return 1;
+                  } elseif ($status == 'Not Submitted' || $status == 'Pending') {
+                      return 2;
+                  } elseif ($status == 'Verified' || $status == 'Okay/Confirmed') {
+                      return 3;
+                  }
+                  return 4;
+              });
+            @endphp
+            @foreach($sortedDocuments as $doc)
               <tr style="border-bottom:1px solid #e5e7eb;">
                 <td style="padding:10px; color:#111827;">{{ $doc['name'] ?? $doc['text'] ?? $doc['id'] ?? 'N/A' }}</td>
                 <td style="padding:10px; color:#111827;">{{ $doc['doc_id'] ?? 'N/A' }}</td>

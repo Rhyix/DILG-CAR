@@ -111,7 +111,6 @@
   <div class="container">
     <!-- Header -->
     <div class="header">
-      <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/Department_of_the_Interior_and_Local_Government_%28DILG%29_Seal_-_Logo.svg/2048px-Department_of_the_Interior_and_Local_Government_%28DILG%29_Seal_-_Logo.svg.png" alt="DILG Logo" class="logo" />
       <div class="title-text">
         <h2>DILG - CAR<br>Recruitment Selection and Placement Portal</h2>
       </div>
