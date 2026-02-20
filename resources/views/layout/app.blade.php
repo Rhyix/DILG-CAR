@@ -145,7 +145,7 @@
         </div>
 
         <!-- Main Content -->
-        <main class="flex-1 overflow-y-auto ml-2 pt-0 md:ml-20 transition-all duration-300"
+        <main class="flex-1 {{ request()->routeIs('my_applications') ? 'overflow-hidden' : 'overflow-y-auto' }} ml-2 pt-0 md:ml-20 transition-all duration-300"
             style="margin-left: 0; padding-left: 18px;">
             <header
                 class="sticky top-0 z-40 bg-[#F3F8FF] backdrop-blur px-4 sm:px-8 py-3 flex items-center justify-end gap-6">

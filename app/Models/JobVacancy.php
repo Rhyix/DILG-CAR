@@ -33,6 +33,7 @@ class JobVacancy extends Model
         'to_office',
         'to_office_address',
         'last_modified_by',
+        'last_modified_at',
     ];
 
     protected $casts = [

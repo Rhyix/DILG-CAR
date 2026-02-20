@@ -27,9 +27,23 @@ class RegisterController extends Controller
     {
         //info("mail");
         $request->validate([
-            'name'     => 'required|string|max:255',
+            'first_name' => 'required|string|max:255',
+            'middle_initial' => 'nullable|string|max:5',
+            'last_name' => 'required|string|max:255',
+            'phone_number' => 'required|string|max:20',
+            'sex' => 'required|string|in:Male,Female',
             'email'    => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:6|confirmed',
+            'password' => [
+                'required',
+                'string',
+                'min:8',
+                'confirmed',
+                'regex:/[A-Z]/',      // must contain at least one uppercase letter
+                'regex:/[0-9]/',      // must contain at least one digit
+                'regex:/[@$!%*#?&]/', // must contain a special character
+            ],
+        ], [
+            'password.regex' => 'Password must contain at least one uppercase letter, one number, and one special character.',
         ]);
 
         // Generate OTP
@@ -40,7 +54,12 @@ class RegisterController extends Controller
         // Store registration data temporarily in session
         session([
             'pending_registration' => [
-                'name'      => $request->name,
+                'name'      => trim($request->first_name . ' ' . $request->middle_initial . ' ' . $request->last_name),
+                'first_name' => $request->first_name,
+                'middle_initial' => $request->middle_initial,
+                'last_name' => $request->last_name,
+                'phone_number' => $request->phone_number,
+                'sex' => $request->sex,
                 'email'     => $request->email,
                 'password'  => Hash::make($request->password),
                 'otp'       => $otp,
@@ -132,6 +151,11 @@ class RegisterController extends Controller
         // OTP correct and not expired, create user
         $user = \App\Models\User::create([
             'name'     => $data['name'],
+            'first_name' => $data['first_name'],
+            'middle_initial' => $data['middle_initial'],
+            'last_name' => $data['last_name'],
+            'phone_number' => $data['phone_number'],
+            'sex' => $data['sex'],
             'email'    => $data['email'],
             'password' => $data['password'],
             'email_verified_at' => now(),

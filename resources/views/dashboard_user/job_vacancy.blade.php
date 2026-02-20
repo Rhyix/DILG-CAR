@@ -273,12 +273,13 @@
         <table class="w-full text-left border-collapse table-fixed">
             <thead class="bg-[#0D2B70] text-white sticky top-0 z-10">
                 <tr>
-                    <th class="py-4 px-6 text-left font-bold uppercase text-sm tracking-wider w-[35%]">Job Title</th>
-                    <th class="py-4 px-6 text-left font-bold uppercase text-sm tracking-wider w-[15%]">Monthly Salary</th>
-                    <th class="py-4 px-6 text-left font-bold uppercase text-sm tracking-wider w-[25%]">Place of Assignment</th>
-                    <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider w-[15%]">Exam Status</th>
-                    <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider w-[10%]">Status</th>
-                    <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider w-[15%]">Actions</th>
+                    <th class="py-4 px-6 text-left font-bold uppercase text-sm tracking-wider w-[25%]">Job Title</th>
+                    <th class="py-4 px-6 text-left font-bold uppercase text-sm tracking-wider w-[12%]">Monthly Salary</th>
+                    <th class="py-4 px-6 text-left font-bold uppercase text-sm tracking-wider w-[18%]">Place of Assignment</th>
+                    <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider w-[15%]">Deadline</th>
+                    <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider w-[10%]">Vacancies Status</th>
+                    <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider w-[10%]">Exam Status</th>
+                    <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider w-[10%]">Actions</th>
                 </tr>
             </thead>
         </table>

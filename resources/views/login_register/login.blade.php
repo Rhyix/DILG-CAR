@@ -107,9 +107,9 @@
                 class="w-full bg-white border border-blue-400 rounded-full pl-12 pr-12 py-3 outline-none text-blue-900 placeholder:text-blue-800/60 focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
                 required
               />
-              <!-- <button type="button" id="togglePassword" aria-label="Show password" aria-pressed="false" class="absolute inset-y-0 right-3 px-3 flex items-center text-blue-800/70 hover:text-blue-900">
+              <button type="button" id="togglePassword" aria-label="Show password" aria-pressed="false" class="absolute inset-y-0 right-3 px-3 flex items-center text-blue-800/70 hover:text-blue-900">
                 <i class="fas fa-eye"></i>
-              </button> -->
+              </button>
             </div>
             @error('password')
               <p class="text-red-600 text-sm ml-3 -mt-2">{{ $message }}</p>
@@ -180,13 +180,23 @@
 
   <script>
     const toggle = document.getElementById('togglePassword');
-    const input = document.getElementById('password');
+    const input = document.getElementById('user_password');
     if (toggle && input) {
       toggle.addEventListener('click', function () {
-        const is = input.getAttribute('type') === 'password';
-        input.setAttribute('type', is ? 'text' : 'password');
-        this.setAttribute('aria-pressed', is ? 'true' : 'false');
-        this.querySelector('i')?.classList.toggle('fa-eye-slash');
+        const isPassword = input.getAttribute('type') === 'password';
+        input.setAttribute('type', isPassword ? 'text' : 'password');
+        this.setAttribute('aria-pressed', isPassword ? 'true' : 'false');
+        
+        const icon = this.querySelector('i');
+        if (icon) {
+            if (isPassword) {
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
       });
     }
   </script>

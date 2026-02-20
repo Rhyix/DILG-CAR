@@ -92,7 +92,7 @@
     <script>
         document.addEventListener('alpine:init', () => {
             Alpine.data('sidebar', () => ({
-                open: localStorage.getItem('sidebarOpen') === 'true',
+                open: localStorage.getItem('adminSidebarOpen') === null ? true : localStorage.getItem('adminSidebarOpen') === 'true',
                 isMobile: window.innerWidth < 1024,
 
                 init() {
@@ -102,7 +102,7 @@
                     }
 
                     this.$watch('open', value => {
-                        localStorage.setItem('sidebarOpen', value);
+                        localStorage.setItem('adminSidebarOpen', value);
                         if (this.isMobile) {
                             if (value) document.body.style.overflow = 'hidden';
                             else document.body.style.overflow = '';

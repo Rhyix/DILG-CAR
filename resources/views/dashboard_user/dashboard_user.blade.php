@@ -45,12 +45,12 @@
                         class="p-2 bg-blue-50 text-[#0D2B70] rounded-lg group-hover:bg-[#0D2B70] group-hover:text-white transition-colors">
                         <i data-feather="briefcase" class="w-5 h-5"></i>
                     </div>
-                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wide">Active</span>
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wide">Applications in progress</span>
                 </div>
                 <div class="text-3xl font-extrabold text-[#0D2B70] mb-1">
                     {{ $applications->filter(fn($a) => strtolower($a->status) !== 'closed')->count() }}
                 </div>
-                <div class="text-sm text-slate-500">Applications in progress</div>
+                <!-- <div class="text-sm text-slate-500">Applications in progress</div> -->
             </div>
 
             <!-- Upcoming Deadlines -->
@@ -61,12 +61,12 @@
                         class="p-2 bg-orange-50 text-orange-600 rounded-lg group-hover:bg-orange-600 group-hover:text-white transition-colors">
                         <i data-feather="clock" class="w-5 h-5"></i>
                     </div>
-                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wide">Urgent</span>
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wide">Deadlines this week</span>
                 </div>
                 <div class="text-3xl font-extrabold text-[#0D2B70] mb-1">
                     {{ collect($deadlineCountdown)->filter(fn($d) => $d['days_remaining'] <= 5)->count() }}
                 </div>
-                <div class="text-sm text-slate-500">Deadlines this week</div>
+                <!-- <div class="text-sm text-slate-500">Deadlines this week</div> -->
             </div>
 
             <!-- Upcoming Exams -->
@@ -77,12 +77,12 @@
                         class="p-2 bg-purple-50 text-purple-600 rounded-lg group-hover:bg-purple-600 group-hover:text-white transition-colors">
                         <i data-feather="calendar" class="w-5 h-5"></i>
                     </div>
-                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wide">Exams</span>
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wide">Scheduled exams</span>
                 </div>
                 <div class="text-3xl font-extrabold text-[#0D2B70] mb-1">
                     {{ $upcomingExams->count() }}
                 </div>
-                <div class="text-sm text-slate-500">Scheduled exams</div>
+                <!-- <div class="text-sm text-slate-500">Scheduled exams</div> -->
             </div>
 
             <!-- PDS Progress -->

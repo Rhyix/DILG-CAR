@@ -37,6 +37,7 @@ use Illuminate\Support\Facades\Response;
 // ==================================================================================================
 Route::get('/', function () {
     $openVacancies = \App\Models\JobVacancy::where('status', 'OPEN')
+        ->whereDate('closing_date', '>=', now())
         ->orderByDesc('created_at')
         ->take(6)
         ->get();

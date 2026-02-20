@@ -26,7 +26,7 @@
     <div class="flex-1 overflow-y-auto scrollbar-thin">
         <button
             @click="toggle"
-            class="p-2 focus:outline-none absolute top-3 left-3 z-20 hover:bg-gray-100 rounded-lg transition-colors"
+            class="p-2 focus:outline-none absolute top-3 right-3 z-20 hover:bg-gray-100 rounded-lg transition-colors"
             aria-label="Toggle sidebar">
             <i data-feather="menu" class="w-5 h-5 stroke-[3]"></i>
         </button>

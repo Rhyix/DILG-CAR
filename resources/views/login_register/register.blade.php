@@ -18,7 +18,7 @@
     [x-cloak] { display: none !important; }
   </style>
 </head>
-<body class="min-h-screen bg-gradient-to-br from-blue-800 via-blue-700 to-blue-900 flex items-center justify-center p-4">
+<body class="h-screen overflow-hidden bg-gradient-to-br from-blue-800 via-blue-700 to-blue-900 flex items-center justify-center p-4">
 
 <!-- Flash Messages -->
 @if(session('success'))
@@ -51,11 +51,11 @@
 </template>
 
 <!-- Main Container (exactly like login page) -->
-<div class="w-full max-w-6xl bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl overflow-hidden">
-  <div class="flex flex-col lg:flex-row">
+<div class="w-full max-w-6xl bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl overflow-hidden h-full max-h-full">
+  <div class="flex flex-col lg:flex-row h-full">
 
     <!-- Left: Registration Form (exactly like login page styling) -->
-    <div class="flex-1 p-8 lg:p-12">
+    <div class="flex-1 p-8 lg:p-12 overflow-y-auto">
       <div class="max-w-md mx-auto">
         <div class="flex items-center justify-center gap-3 mb-6">
           <img src="{{ asset('images/dilg_logo.png') }}" alt="DILG Logo" class="w-12 h-12">
@@ -71,16 +71,78 @@
           @csrf
 
           <!-- Name (styled exactly like login email field) -->
-          <div class="relative">
-            <span class="absolute inset-y-0 left-4 flex items-center">
-              <i class="fas fa-user text-yellow-400"></i>
-            </span>
-            <input type="text" name="name" placeholder="Enter Name" value="{{ old('name') }}" required
-              class="w-full bg-white border border-blue-400 rounded-full pl-12 pr-4 py-3 outline-none text-blue-900 placeholder:text-blue-800/60 focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
-              pattern="^[A-Za-z\s\-\.]{2,50}$"
-              title="Name should contain only letters, spaces, hyphens, or periods (2-50 characters).">
+          <div class="flex flex-col justify-between gap-5">
+
+            <!-- First Name -->
+            <div class="relative">
+              <span class="absolute inset-y-0 left-4 flex items-center">
+                <i class="fas fa-user text-yellow-400"></i>
+              </span>
+              <input type="text" name="first_name" placeholder="Enter First Name" value="{{ old('first_name') }}" required
+                class="w-full bg-white border border-blue-400 rounded-full pl-12 pr-4 py-3 outline-none text-blue-900 placeholder:text-blue-800/60 focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
+                pattern="^[A-Za-z\s\-\.]{2,50}$"
+                title="Name should contain only letters, spaces, hyphens, or periods (2-50 characters).">
+            </div>  
+
+            <!-- Middle Initial -->
+            <div class="relative">
+              <span class="absolute inset-y-0 left-4 flex items-center">
+                <i class="fas fa-font text-yellow-400"></i>
+              </span>
+              <input type="text" name="middle_initial" placeholder="Enter Middle Initial" value="{{ old('middle_initial') }}" required
+                class="w-full bg-white border border-blue-400 rounded-full pl-12 pr-4 py-3 outline-none text-blue-900 placeholder:text-blue-800/60 focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
+                pattern="^[A-Za-z\.]{1,3}$"
+                title="Middle initial should contain only 1 letter (optional period allowed).">
+            </div>
+
+            <!-- Last Name -->
+            <div class="relative">
+              <span class="absolute inset-y-0 left-4 flex items-center">
+                <i class="fas fa-id-badge text-yellow-400"></i>
+              </span>
+              <input type="text" name="last_name" placeholder="Enter Last Name" value="{{ old('last_name') }}" required
+                class="w-full bg-white border border-blue-400 rounded-full pl-12 pr-4 py-3 outline-none text-blue-900 placeholder:text-blue-800/60 focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
+                pattern="^[A-Za-z\s\-\.]{2,50}$"
+                title="Name should contain only letters, spaces, hyphens, or periods (2-50 characters).">
+            </div>
+
           </div>
           @error('name') <p class="text-red-600 text-sm ml-3 -mt-2">{{ $message }}</p> @enderror
+
+<!-- Sex -->
+<div class="flex flex-col gap-2">
+  <span class="text-blue-900 font-semibold">Sex</span>
+
+  <div class="flex gap-6">
+
+    <!-- Male -->
+    <label class="flex items-center gap-2 cursor-pointer">
+      <input type="radio" name="sex" value="Male" required
+        class="w-4 h-4 text-blue-600 border-blue-400 focus:ring-blue-600">
+      <span class="text-blue-900">Male</span>
+    </label>
+
+    <!-- Female -->
+    <label class="flex items-center gap-2 cursor-pointer">
+      <input type="radio" name="sex" value="Female" required
+        class="w-4 h-4 text-blue-600 border-blue-400 focus:ring-blue-600">
+      <span class="text-blue-900">Female</span>
+    </label>
+
+  </div>
+</div>
+ 
+<!-- Contact Number -->
+<div class="relative">
+  <span class="absolute inset-y-0 left-4 flex items-center">
+    <i class="fas fa-phone text-yellow-400"></i>
+  </span>
+  <input type="text" name="phone_number" placeholder="Enter Contact Number" value="{{ old('phone_number') }}" required
+    class="w-full bg-white border border-blue-400 rounded-full pl-12 pr-4 py-3 outline-none text-blue-900 placeholder:text-blue-800/60 focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
+    pattern="^09[0-9]{9}$"
+    title="Contact number must be 11 digits long and start with 09.">
+</div>
+
 
           <!-- Email (styled exactly like login email field) -->
           <div class="relative">
@@ -105,7 +167,8 @@
               required 
               minlength="8"
               class="w-full bg-white border border-blue-400 rounded-full pl-12 pr-12 py-3 outline-none text-blue-900 placeholder:text-blue-800/60 focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
-              title="Password must be at least 8 characters long.">
+              pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[@$!%*#?&]).{8,}"
+              title="Password must be at least 8 characters long, contain 1 uppercase letter, 1 number, and 1 special character.">
             <button type="button" id="togglePassword" class="absolute inset-y-0 right-3 px-3 flex items-center text-blue-800/70 hover:text-blue-900">
               <i class="fas fa-eye"></i>
             </button>
