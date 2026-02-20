@@ -6,17 +6,17 @@
         class="sidebar sidebar-transition fixed ml-5 mt-5 mb-5 flex flex-col justify-between bg-white text-[#002C76] rounded-xl shadow-lg {{ $simple ? 'overflow-y-auto w-72' : 'overflow-hidden w-16' }} relative z-60 h-[95vh]">
 
         <style>
-            #pdsMenu.pds-menu {
+            #pdsMenu.pds-menu, #docsMenu.pds-menu {
                 overflow: hidden;
                 max-height: 0;
                 opacity: 0;
                 transition: max-height 200ms ease, opacity 200ms ease;
             }
-            #pdsMenu.pds-menu.show {
+            #pdsMenu.pds-menu.show, #docsMenu.pds-menu.show {
                 max-height: 600px;
                 opacity: 1;
             }
-            #pdsCaret.rotate-180 {
+            #pdsCaret.rotate-180, #docsCaret.rotate-180 {
                 transform: rotate(180deg);
                 transition: transform 200ms ease;
             }
@@ -138,6 +138,30 @@
                     </div>
                 </div>
 
+                <div class="w-full">
+                    <div class="flex items-center justify-between w-full rounded-md px-4 py-2 text-sm font-bold transition text-[#002C76] hover:text-white hover:bg-[#002C76]">
+                        <a href="#" class="flex items-center" id="btnDocs">
+                            <i data-feather="download" class="w-5 h-5 stroke-[3] flex-shrink-0"></i>
+                            <span id="textDownloadDocs" class="sidebar-text-hidden ml-3">DOWNLOAD DOCUMENTS</span>
+                        </a>
+                        <button type="button" id="docsToggle" aria-expanded="false" class="ml-2">
+                            <i id="docsCaret" data-feather="chevron-down" class="w-4 h-4 stroke-[3]"></i>
+                        </button>
+                    </div>
+                    <div id="docsMenu" class="pds-menu mt-1 pl-10 space-y-1">
+                        <a href="{{ asset('templates/PDS_Template.pdf') }}" target="_blank"
+                            class="flex items-center rounded-md px-3 py-2 text-sm font-semibold transition text-[#002C76] hover:text-white hover:bg-[#002C76]">
+                            <i data-feather="file-text" class="w-4 h-4 stroke-[3] flex-shrink-0"></i>
+                            <span class="ml-3">PDS TEMPLATE</span>
+                        </a>
+                        <a href="{{ asset('templates/WES_Template.docx') }}"
+                            class="flex items-center rounded-md px-3 py-2 text-sm font-semibold transition text-[#002C76] hover:text-white hover:bg-[#002C76]">
+                            <i data-feather="file" class="w-4 h-4 stroke-[3] flex-shrink-0"></i>
+                            <span class="ml-3">WES TEMPLATE</span>
+                        </a>
+                    </div>
+                </div>
+
                 <a href="{{ route('about') }}"
                     class="group flex items-center rounded-md px-4 py-2 text-sm font-bold transition use-loader
                         {{ request()->routeIs('about')
@@ -189,13 +213,41 @@
                 });
             });
 
+            // Download Documents Toggle Logic
+            const docsToggle = document.getElementById('docsToggle');
+            const docsMenu = document.getElementById('docsMenu');
+            const docsCaret = document.getElementById('docsCaret');
+            const btnDocs = document.getElementById('btnDocs');
+
+            if (docsToggle && docsMenu && docsCaret) {
+                const docsOpen = sessionStorage.getItem('docsOpen') === 'true';
+                if (docsOpen) {
+                    docsMenu.classList.add('show');
+                    docsCaret.classList.add('rotate-180');
+                }
+
+                const toggleDocs = () => {
+                    docsMenu.classList.toggle('show');
+                    docsCaret.classList.toggle('rotate-180');
+                    sessionStorage.setItem('docsOpen', docsMenu.classList.contains('show'));
+                };
+
+                docsToggle.addEventListener('click', toggleDocs);
+                if (btnDocs) {
+                    btnDocs.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        toggleDocs();
+                    });
+                }
+            }
+
             // Ensure sidebar stays open and allow scroll when PDS submenu is open
             const sidebar = document.getElementById('sidebar');
             const toggleButton = document.getElementById('toggleSidebar');
             const logo = document.querySelector('img[alt="DILG Logo"]');
             const textElements = [
                 "sidebarText", "textHome", "textJobVacancies", "textMyApplications",
-                "textPersonalDataSheet", "textAboutWebsite", "textWorkExperience"
+                "textPersonalDataSheet", "textDownloadDocs", "textAboutWebsite", "textWorkExperience"
             ].map(id => document.getElementById(id));
 
             const isSimple = {{ $simple ? 'true' : 'false' }};
