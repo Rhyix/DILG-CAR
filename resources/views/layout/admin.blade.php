@@ -143,129 +143,78 @@
         <div class="flex-1 flex flex-col h-screen overflow-hidden relative min-w-0">
             <!-- Top Header (Notification Bell & Profile) -->
             <header
-                class="flex justify-end items-center gap-6 px-6 sm:px-8 md:px-10 pt-6 sm:pt-8 pb-4 shrink-0 z-50 bg-[#F1F6FC]">
-                <!-- Notification Bell -->
-                <div class="relative" x-data="{ open: false, count: 0, notifications: [] }" x-init="
-                    const refreshCount = () => fetch('/notifications/count').then(r => r.json()).then(d => count = d.count);
-                    const refreshList = () => fetch('/notifications/fetch').then(r => r.json()).then(d => { 
-                        notifications = d.notifications; 
-                        setTimeout(() => feather.replace(), 100); 
-                    });
-                    refreshCount();
-                    // Refresh every 15s to reduce constant background load.
-                    setInterval(() => {
-                        refreshCount();
-                        if (open) { refreshList(); }
-                    }, 15000);
-                    // Also refresh on window focus
-                    window.addEventListener('focus', () => { refreshCount(); if (open) { refreshList(); } });
-                ">
-                    <button
-                        @click="open = !open; if(open) { fetch('/notifications/fetch').then(r => r.json()).then(d => { notifications = d.notifications; setTimeout(() => feather.replace(), 100); }); }"
-                        class="relative p-2 text-gray-600 hover:text-[#0D2B70] transition-colors focus:outline-none">
-                        <i data-feather="bell" class="w-6 h-6"></i>
-                        <span x-show="count > 0"
-                            class="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-                            x-text="count"></span>
-                    </button>
+                class="flex justify-end items-center px-6 sm:px-8 md:px-10 pt-5 sm:pt-6 pb-3 shrink-0 z-50 bg-[#F1F6FC]">
+                <div class="flex items-center gap-1 rounded-full border border-slate-200 bg-white/80 backdrop-blur-sm px-2 py-1 shadow-sm">
+                    <!-- Notification Bell -->
+                    <div id="notifBell" class="relative">
+                        <button id="notifToggle" aria-label="Notifications"
+                            class="relative h-10 w-10 rounded-full text-slate-500 hover:text-[#0D2B70] hover:bg-slate-100/80 transition-colors">
+                            <i data-feather="bell" class="w-5 h-5 mx-auto"></i>
+                            <span id="notifBadge"
+                                class="absolute top-0.5 right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center border-2 border-white"
+                                style="display: none;">0</span>
+                        </button>
 
-                    <!-- Notification Dropdown -->
-                    <div x-show="open" @click.away="open = false"
-                        class="absolute right-0 mt-3 w-80 sm:w-96 bg-white shadow-2xl rounded-2xl border border-gray-100 overflow-hidden z-50 transform origin-top-right transition-all duration-200"
-                        style="display: none;" x-cloak>
+                        <div id="notifMenu"
+                            class="hidden absolute right-0 mt-3 w-[24rem] sm:w-[26rem] bg-white shadow-2xl rounded-2xl border border-slate-200 overflow-hidden z-50 transform origin-top-right transition-all duration-200">
+                            <div
+                                class="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-white sticky top-0 z-10">
+                                <h3 class="font-bold text-[#0D2B70] text-base">Notifications</h3>
+                                <button id="notifMarkAll"
+                                    class="text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline transition-colors">
+                                    Mark all as read
+                                </button>
+                            </div>
 
-                        <!-- Header -->
-                        <div
-                            class="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-white sticky top-0 z-10">
-                            <h3 class="font-bold text-[#0D2B70] text-base">Notifications</h3>
-                            <button
-                                @click="count = 0; fetch('/notifications/mark-all', {method: 'POST', headers: {'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content}}); notifications = notifications.map(n => ({...n, read_at: new Date().toISOString()})); setTimeout(() => feather.replace(), 100);"
-                                class="text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline transition-colors">
-                                Mark all as read
-                            </button>
-                        </div>
+                            <ul id="notifList" class="max-h-[420px] overflow-y-auto divide-y divide-slate-100 scrollbar-thin"></ul>
 
-                        <!-- List -->
-                        <ul class="max-h-[400px] overflow-y-auto divide-y divide-gray-50 scrollbar-thin">
-                            <template x-for="notif in notifications" :key="notif.id">
-                                <li class="p-4 hover:bg-gray-50 transition-colors cursor-pointer"
-                                    :class="!notif.read_at ? 'bg-blue-50/40' : ''"
-                                    @click="if(notif.data && notif.data.link) window.location.href = notif.data.link">
-                                    <div class="flex items-start gap-3">
-                                        <!-- Icon -->
-                                        <div class="flex-shrink-0 mt-0.5">
-                                            <div class="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-                                                :class="!notif.read_at ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'">
-                                                <i data-feather="bell" class="w-4 h-4"></i>
-                                            </div>
-                                        </div>
-                                        <!-- Content -->
-                                        <div class="flex-1">
-                                            <p class="text-sm text-[#0D2B70]"
-                                                :class="!notif.read_at ? 'font-semibold' : 'font-medium'"
-                                                x-text="notif.data?.title || notif.title"></p>
-                                            <p class="text-xs text-slate-600 mt-0.5 line-clamp-2"
-                                                x-text="notif.data?.message || notif.message"></p>
-                                            <p class="text-[10px] text-gray-400 mt-1"
-                                                x-text="new Date(notif.created_at).toLocaleString()"></p>
-                                        </div>
-                                    </div>
-                                </li>
-                            </template>
-                            <li x-show="notifications.length === 0" class="p-8 text-center text-gray-500 text-sm">
-                                <div
-                                    class="inline-flex items-center justify-center w-12 h-12 bg-gray-50 rounded-full mb-3">
-                                    <i data-feather="bell-off" class="w-5 h-5 text-gray-300"></i>
-                                </div>
-                                <p>No new notifications</p>
-                            </li>
-                        </ul>
-
-                        <!-- Footer -->
-                        <div class="px-4 py-3 bg-gray-50 border-t border-gray-100 text-center">
-                            <a href="{{ route('notifications.index') }}"
-                                class="text-xs font-bold text-[#0D2B70] hover:text-blue-700 hover:underline">
-                                View Full History
-                            </a>
+                            <div class="px-4 py-3 bg-white border-t border-slate-100 text-center">
+                                <a href="{{ route('notifications.index') }}"
+                                    class="text-xs font-bold text-[#0D2B70] hover:text-blue-700 hover:underline">
+                                    View Full History
+                                </a>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Profile Dropdown -->
-                <div class="relative" x-data="{ open: false }">
-                    <button @click="open = !open" class="flex items-center gap-3 focus:outline-none group">
-                        <div class="text-right hidden sm:block">
-                            <p class="text-sm font-bold text-gray-800 group-hover:text-[#0D2B70] transition-colors">
-                                {{ Auth::guard('admin')->user()->name ?? 'Admin User' }}
-                            </p>
-                            <p class="text-xs text-gray-500 uppercase">
-                                {{ Auth::guard('admin')->user()->role ?? 'Administrator' }}
-                            </p>
-                        </div>
-                        <div
-                            class="w-10 h-10 rounded-full bg-[#0D2B70] text-white flex items-center justify-center font-bold text-lg shadow-md group-hover:shadow-lg transition-all">
-                            {{ substr(Auth::guard('admin')->user()->name ?? 'A', 0, 1) }}
-                        </div>
-                        <i data-feather="chevron-down"
-                            class="w-4 h-4 text-gray-400 group-hover:text-[#0D2B70] transition-colors"></i>
-                    </button>
+                    <div class="h-6 w-px bg-slate-200"></div>
 
-                    <!-- Profile Menu -->
-                    <div x-show="open" @click.away="open = false"
-                        class="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-xl z-50 py-1"
-                        style="display: none;" x-cloak>
-                        <a href="{{ route('admin_account_management') }}"
-                            class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-[#0D2B70]">
-                            <i data-feather="settings" class="w-4 h-4 inline-block mr-2"></i> Account Settings
-                        </a>
-                        <div class="border-t border-gray-100 my-1"></div>
-                        <form id="adminLogoutForm" method="POST" action="{{ route('admin.logout') }}">
-                            @csrf
-                            <button type="button" @click.prevent="$dispatch('open-logout-confirm')"
-                                class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 font-medium">
-                                <i data-feather="log-out" class="w-4 h-4 inline-block mr-2"></i> Logout
-                            </button>
-                        </form>
+                    <!-- Profile Dropdown -->
+                    <div class="relative" x-data="{ open: false }">
+                        <button @click="open = !open"
+                            class="flex items-center gap-2 rounded-full pl-1 pr-2 py-1 focus:outline-none hover:bg-slate-100/80 transition-colors">
+                            <div class="text-right hidden sm:block">
+                                <p class="text-sm font-semibold text-slate-800 leading-tight">
+                                    {{ Auth::guard('admin')->user()->name ?? 'Admin User' }}
+                                </p>
+                                <p class="text-[11px] text-slate-500 uppercase tracking-wide">
+                                    {{ Auth::guard('admin')->user()->role ?? 'Administrator' }}
+                                </p>
+                            </div>
+                            <div
+                                class="w-9 h-9 rounded-full bg-[#0D2B70] text-white flex items-center justify-center font-bold text-base shadow-sm">
+                                {{ substr(Auth::guard('admin')->user()->name ?? 'A', 0, 1) }}
+                            </div>
+                            <i data-feather="chevron-down" class="w-4 h-4 text-slate-400"></i>
+                        </button>
+
+                        <!-- Profile Menu -->
+                        <div x-show="open" @click.away="open = false"
+                            class="absolute right-0 mt-3 w-52 bg-white border border-slate-200 rounded-xl shadow-xl z-50 py-1"
+                            style="display: none;" x-cloak>
+                            <a href="{{ route('admin_account_management') }}"
+                                class="block px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-[#0D2B70]">
+                                <i data-feather="settings" class="w-4 h-4 inline-block mr-2"></i> Account Settings
+                            </a>
+                            <div class="border-t border-slate-100 my-1"></div>
+                            <form id="adminLogoutForm" method="POST" action="{{ route('admin.logout') }}">
+                                @csrf
+                                <button type="button" @click.prevent="$dispatch('open-logout-confirm')"
+                                    class="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 font-medium">
+                                    <i data-feather="log-out" class="w-4 h-4 inline-block mr-2"></i> Logout
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </header>
@@ -308,7 +257,6 @@
     document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('a.use-loader').forEach(link => {
             link.addEventListener('click', function (e) {
-                // Check if target is not blank
                 if (this.target !== '_blank') {
                     e.preventDefault();
                     loader?.classList.remove('hidden');
@@ -318,6 +266,165 @@
                 }
             });
         });
+
+        const notifToggle = document.getElementById('notifToggle');
+        const notifMenu = document.getElementById('notifMenu');
+        const notifBadge = document.getElementById('notifBadge');
+        const notifList = document.getElementById('notifList');
+        const notifMarkAll = document.getElementById('notifMarkAll');
+        let loading = false;
+
+        const iconMap = {
+            success: 'check',
+            warning: 'alert-triangle',
+            error: 'x',
+            info: 'bell'
+        };
+        const iconClassMap = {
+            success: 'bg-emerald-50 text-emerald-600',
+            warning: 'bg-amber-50 text-amber-600',
+            error: 'bg-red-50 text-red-600',
+            info: 'bg-slate-100 text-slate-500'
+        };
+
+        function formatTime(value) {
+            const ts = new Date(value);
+            if (Number.isNaN(ts.getTime())) return '';
+            const seconds = Math.floor((Date.now() - ts.getTime()) / 1000);
+            if (seconds < 60) return 'Just now';
+            if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+            if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+            return ts.toLocaleString();
+        }
+
+        function renderEmptyState() {
+            if (!notifList) return;
+            notifList.innerHTML = `
+                <li class="px-5 py-10 text-center text-slate-500">
+                    <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-100 mb-3">
+                        <i data-feather="bell-off" class="w-5 h-5 text-slate-400"></i>
+                    </div>
+                    <p class="text-sm">No notifications yet</p>
+                </li>
+            `;
+        }
+
+        function renderNotificationItems(items) {
+            if (!notifList) return;
+            if (!Array.isArray(items) || items.length === 0) {
+                renderEmptyState();
+                if (window.feather) feather.replace();
+                return;
+            }
+
+            notifList.innerHTML = '';
+            items.forEach((n) => {
+                const level = n?.data?.level || n?.type || 'info';
+                const iconName = iconMap[level] || iconMap.info;
+                const iconTone = iconClassMap[level] || iconClassMap.info;
+                const unread = !n.read_at;
+
+                const li = document.createElement('li');
+                li.className = `px-5 py-4 hover:bg-slate-50 transition-colors cursor-pointer ${unread ? 'bg-blue-50/30' : 'bg-white'}`;
+                li.innerHTML = `
+                    <div class="flex items-start gap-3">
+                        <div class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${iconTone}">
+                            <i data-feather="${iconName}" class="w-4 h-4"></i>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-start justify-between gap-2">
+                                <p class="text-sm ${unread ? 'font-semibold' : 'font-medium'} text-[#0D2B70] leading-5">
+                                    ${n?.data?.title || 'Notification'}
+                                </p>
+                                <span class="text-[11px] text-slate-400 whitespace-nowrap">${formatTime(n.created_at)}</span>
+                            </div>
+                            <p class="text-sm text-slate-600 mt-1 leading-6">
+                                ${n?.data?.message || ''}
+                            </p>
+                        </div>
+                    </div>
+                `;
+
+                li.addEventListener('click', async () => {
+                    try {
+                        await fetch(`/notifications/${n.id}/read`, {
+                            method: 'POST',
+                            headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content }
+                        });
+                        fetchCount();
+                    } catch (_) {}
+
+                    const targetUrl = n?.data?.action_url || n?.data?.link;
+                    if (targetUrl) window.location.href = targetUrl;
+                });
+
+                notifList.appendChild(li);
+            });
+
+            if (window.feather) feather.replace();
+        }
+
+        function fetchCount() {
+            fetch('/notifications/count')
+                .then(r => r.json())
+                .then(d => {
+                    const count = d.count || 0;
+                    if (notifBadge) {
+                        notifBadge.textContent = count;
+                        notifBadge.style.display = count > 0 ? 'flex' : 'none';
+                    }
+                });
+        }
+
+        function fetchItems() {
+            if (loading) return;
+            loading = true;
+            fetch('/notifications/fetch')
+                .then(r => r.json())
+                .then(d => renderNotificationItems(d.data || d.notifications || []))
+                .finally(() => { loading = false; });
+        }
+
+        notifToggle?.addEventListener('click', () => {
+            notifMenu?.classList.toggle('hidden');
+            if (notifMenu && !notifMenu.classList.contains('hidden')) {
+                fetchItems();
+                fetchCount();
+            }
+        });
+
+        notifMarkAll?.addEventListener('click', () => {
+            fetch('/notifications/mark-all', {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content }
+            }).then(() => {
+                fetchCount();
+                fetchItems();
+            });
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!notifMenu || notifMenu.classList.contains('hidden')) return;
+            if (!notifMenu.contains(e.target) && !notifToggle?.contains(e.target)) {
+                notifMenu.classList.add('hidden');
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') notifMenu?.classList.add('hidden');
+        });
+
+        setInterval(() => {
+            fetchCount();
+            if (notifMenu && !notifMenu.classList.contains('hidden')) fetchItems();
+        }, 15000);
+
+        window.addEventListener('focus', () => {
+            fetchCount();
+            if (notifMenu && !notifMenu.classList.contains('hidden')) fetchItems();
+        });
+
+        fetchCount();
     });
 
     window.addEventListener('pageshow', function (event) {
