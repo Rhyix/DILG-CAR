@@ -111,6 +111,9 @@
                     {{ isset($exam->time) && $exam->time ? \Carbon\Carbon::parse($exam->time)->format('h:i A') : 'TBD' }}
                 </p>
                 <p><strong>📍 Venue:</strong> {{ $exam->place ?? 'TBD' }}</p>
+                @if(isset($exam->message) && $exam->message)
+                    <p><strong>✉️ Message:</strong> {{ $exam->message }}</p>
+                @endif
                 <!-- <p><strong>⏱️ Duration:</strong> {{ $exam->duration ?? 'TBD' }} minutes</p> -->
             </div>
 

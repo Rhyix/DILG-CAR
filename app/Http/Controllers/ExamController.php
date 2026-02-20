@@ -399,6 +399,27 @@ class ExamController extends Controller
             $user_name[] = $user ? $user->name : 'Unknown User';
         }
 
+        // Pre-calculate scores for view
+        $examItems = ExamItems::where('vacancy_id', $vacancy_id)->get(['id', 'is_essay']);
+        $mcItemIds = $examItems->where('is_essay', 0)->pluck('id')->toArray();
+        $essayItemIds = $examItems->where('is_essay', 1)->pluck('id')->toArray();
+
+        foreach ($participants as $p) {
+            $scores = $p->scores ?? [];
+            
+            $mcScore = 0;
+            foreach ($mcItemIds as $id) {
+                if (isset($scores[$id])) $mcScore += (int)$scores[$id];
+            }
+            $p->mc_score_str = count($mcItemIds) > 0 ? "$mcScore / " . count($mcItemIds) : '-';
+
+            $essayScore = 0;
+            foreach ($essayItemIds as $id) {
+                if (isset($scores[$id])) $essayScore += (int)$scores[$id];
+            }
+            $p->essay_score_str = count($essayItemIds) > 0 ? "$essayScore" : '-';
+        }
+
         // Get qualified applicants for Tab 1
         $qualifiedApplicants = Applications::where('vacancy_id', $vacancy_id)
             ->where('status', 'qualified')
@@ -504,7 +525,12 @@ class ExamController extends Controller
             ->with('user')
             ->get();
 
-        $lobbyData = $participants->map(function ($p) {
+        // Get Exam Items to distinguish MC vs Essay
+        $examItems = ExamItems::where('vacancy_id', $vacancy_id)->get(['id', 'is_essay']);
+        $mcItemIds = $examItems->where('is_essay', 0)->pluck('id')->toArray();
+        $essayItemIds = $examItems->where('is_essay', 1)->pluck('id')->toArray();
+
+        $lobbyData = $participants->map(function ($p) use ($mcItemIds, $essayItemIds) {
             $statusColors = [
                 'ready' => '#4ade80',        // green-400
                 'in-progress' => '#facc15',  // yellow-400
@@ -515,10 +541,26 @@ class ExamController extends Controller
             $status = strtolower($p->status ?? 'pending');
             $color = $statusColors[$status] ?? '#9ca3af';
 
+            $scores = $p->scores ?? [];
+            
+            $mcScore = 0;
+            foreach ($mcItemIds as $id) {
+                if (isset($scores[$id])) $mcScore += (int)$scores[$id];
+            }
+            $mcString = count($mcItemIds) > 0 ? "$mcScore / " . count($mcItemIds) : '-';
+
+            $essayScore = 0;
+            foreach ($essayItemIds as $id) {
+                if (isset($scores[$id])) $essayScore += (int)$scores[$id];
+            }
+            $essayString = count($essayItemIds) > 0 ? "$essayScore" : '-';
+
             return [
                 'user_id' => $p->user_id,
                 'name' => $p->user->name ?? 'Unknown User',
                 'result' => $p->result ?: '-',
+                'mc_score' => $mcString,
+                'essay_score' => $essayString,
                 'status' => $p->status ?? 'Pending',
                 'status_color' => $color,
                 'vacancy_id' => $p->vacancy_id // needed for view button link
@@ -930,6 +972,7 @@ class ExamController extends Controller
                 'date' => 'required|date',
                 'place' => 'required|string',
                 'duration' => 'required|integer',
+                'message' => 'nullable|string',
             ]);
 
             // Add details_saved flag

@@ -16,6 +16,7 @@ class ExamDetail extends Model
         'time_end',
         'date',
         'place',
+        'message',
         'duration',
         'notified_at',
         'details_saved',

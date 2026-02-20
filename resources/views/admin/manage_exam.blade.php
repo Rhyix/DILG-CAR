@@ -145,7 +145,7 @@
                 </button>
                 <button id="tab-lobby" onclick="switchTab('lobby')"
                     class="tab-button pb-2 font-bold text-gray-400 border-b-2 border-transparent hover:text-[#0D2B70] transition-all duration-200 text-sm uppercase tracking-wide">
-                    Exam Lobby
+                    Exam Monitor
                 </button>
             </div>
             
@@ -259,10 +259,11 @@
                     <table class="w-full text-left border-collapse">
                         <thead class="bg-[#0D2B70] text-white">
                             <tr>
-                                <th class="py-3 px-3 md:py-4 md:px-6 text-left font-bold uppercase text-xs md:text-sm tracking-wider w-[35%] md:w-[30%]">Name</th>
-                                <th class="py-3 px-3 md:py-4 md:px-6 text-center font-bold uppercase text-xs md:text-sm tracking-wider w-[15%] md:w-[20%]">Score</th>
-                                <th class="py-3 px-3 md:py-4 md:px-6 text-center font-bold uppercase text-xs md:text-sm tracking-wider w-[25%]">Status</th>
-                                <th class="py-3 px-3 md:py-4 md:px-6 text-center font-bold uppercase text-xs md:text-sm tracking-wider w-[25%]">Action</th>
+                                <th class="py-3 px-3 md:py-4 md:px-6 text-left text-xs md:text-sm tracking-wider w-[25%] md:w-[25%]">Name</th>
+                                <th class="py-3 px-3 md:py-4 md:px-6 text-center text-xs md:text-sm tracking-wider w-[15%] md:w-[15%]">MC</th>
+                                <th class="py-3 px-3 md:py-4 md:px-6 text-center text-xs md:text-sm tracking-wider w-[15%] md:w-[15%]">Essay</th>
+                                <th class="py-3 px-3 md:py-4 md:px-6 text-center text-xs md:text-sm tracking-wider w-[20%]">Status</th>
+                                <th class="py-3 px-3 md:py-4 md:px-6 text-center text-xs md:text-sm tracking-wider w-[25%]">Action</th>
                             </tr>
                         </thead>
                     </table>
@@ -283,17 +284,22 @@
                                 @foreach ($participants as $index => $p)
                                 <tr class="hover:bg-blue-50 transition-colors duration-200">
                                     <!-- Name -->
-                                    <td class="py-3 px-3 md:py-4 md:px-6 text-[#0D2B70] font-semibold text-xs md:text-sm w-[35%] md:w-[30%]">
+                                    <td class="py-3 px-3 md:py-4 md:px-6 text-[#0D2B70] font-semibold text-xs md:text-sm w-[25%] md:w-[25%]">
                                         {{ $user_name[$index] ?? 'Unknown User' }}
                                     </td>
 
-                                    <!-- Score -->
-                                    <td class="py-3 px-3 md:py-4 md:px-6 text-center text-[#0D2B70] font-medium text-xs md:text-sm w-[15%] md:w-[20%]">
-                                        {{ $p->result ?: '-' }}
+                                    <!-- MC Score -->
+                                    <td class="py-3 px-3 md:py-4 md:px-6 text-center text-[#0D2B70] font-medium text-xs md:text-sm w-[15%] md:w-[15%]">
+                                        {{ $p->mc_score_str ?? '-' }}
+                                    </td>
+
+                                    <!-- Essay Score -->
+                                    <td class="py-3 px-3 md:py-4 md:px-6 text-center text-[#0D2B70] font-medium text-xs md:text-sm w-[15%] md:w-[15%]">
+                                        {{ $p->essay_score_str ?? '-' }}
                                     </td>
 
                                     <!-- Status -->
-                                    <td class="py-3 px-3 md:py-4 md:px-6 text-center w-[25%]">
+                                    <td class="py-3 px-3 md:py-4 md:px-6 text-center w-[20%]">
                                         <div class="inline-flex items-center gap-1 md:gap-2 text-[#0D2B70] font-medium text-xs md:text-sm">
                                             @php
                                                 $statusColors = [
@@ -345,7 +351,8 @@
             <form id="examDetailsForm" class="flex flex-col h-full justify-between pb-2">
             @csrf
             
-            <div class="flex flex-col gap-3">
+            <!-- PANEL 1: SCHEDULE EXAM (Default Visible) -->
+            <div id="panel-schedule" class="flex flex-col gap-3">
                 <!-- Header -->
                 <span class="text-xl text-[#0D2B70] font-bold border-b border-gray-200 pb-2 mb-1">
                     Schedule Exam
@@ -370,85 +377,97 @@
                         class="w-full px-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-[#0D2B70] disabled:bg-gray-100" />
                 </div>
 
-                <!-- TIME ROW -->
-                <div class="grid grid-cols-3 gap-2">
+                <!-- TIME (Start) -->
+                <div class="flex flex-col">
+                    <label for="time" class="text-[#0D2B70] font-bold text-xs mb-1">Time <span class="text-red-500">*</span></label>
+                    <input class="font-sm h-full" type="time" id="time" name="time" required
+                        value="{{ $examDetails->time ?? '' }}"
+                        {{ ($isExamActive || $isExamCompleted || ($examDetails && $examDetails->details_saved)) ? 'disabled' : '' }}
+                        class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-[#0D2B70] disabled:bg-gray-100" />
+                </div>
+
+                <!-- MESSAGE (New Field) -->
+                <div class="flex flex-col">
+                    <label for="message" class="text-[#0D2B70] font-bold text-xs mb-1">Message <span class="text-red-500">*</span></label>
+                    <textarea id="message" name="message" rows="3" required
+                        {{ ($isExamActive || $isExamCompleted || ($examDetails && $examDetails->details_saved)) ? 'disabled' : '' }}
+                        class="w-full px-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-[#0D2B70] disabled:bg-gray-100 placeholder-gray-400 resize-none"
+                        placeholder="Enter message for applicants">{{ $examDetails->message ?? '' }}</textarea>
+                </div>
+
+                <!-- HIDDEN FIELDS FOR BACKEND COMPATIBILITY -->
+                <input type="hidden" id="time_end_hidden" name="time_end" value="{{ $examDetails->time_end ?? '' }}">
+                <input type="hidden" id="duration" name="duration" value="{{ $examDetails->duration ?? '' }}">
+
+                <!-- ACTION BUTTONS: SCHEDULE -->
+                <div class="flex flex-col gap-2 mt-4">
                     <div class="flex flex-col">
-                        <label for="time" class="text-[#0D2B70] font-bold text-xs mb-1">Start<span class="text-red-500">*</span></label>
-                        <input class="font-sm h-full" type="time" id="time" name="time" required
-                            value="{{ $examDetails->time ?? '' }}"
-                            {{ ($isExamActive || $isExamCompleted || ($examDetails && $examDetails->details_saved)) ? 'disabled' : '' }}
-                            class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-[#0D2B70] disabled:bg-gray-100" />
-                    </div>
-                    <div class="flex flex-col relative">
-                        <label for="time_end" class="text-[#0D2B70] font-bold text-xs mb-1">End<span class="text-red-500">*</span></label>
-                        <input class="font-sm h-full peer" type="time" id="time_end" name="time_end" required
-                            value="{{ $examDetails->time_end ?? '' }}"
-                            {{ ($isExamActive || $isExamCompleted || ($examDetails && $examDetails->details_saved)) ? 'disabled' : '' }}
-                            class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-[#0D2B70] disabled:bg-gray-100 invalid:border-red-500 invalid:text-red-600" />
-                        <div id="timeTooltip" class="absolute bottom-full left-0 mb-2 px-2 py-1.5 bg-red-500 text-white text-xs rounded shadow-lg whitespace-nowrap pointer-events-none hidden 
-                                after:content-[''] after:absolute after:top-full after:left-2 after:border-4 after:border-red-500 after:border-t-red-500 after:border-r-transparent after:border-b-transparent after:border-l-transparent">
-                            End time must be after start time
+                        <div>
+                            <button type="submit" id="saveNotifyButton" name="action" value="save_notify" 
+                                    {{ ($isExamActive || $isExamCompleted || ($examDetails && $examDetails->details_saved) || ($qualifiedCount < 1)) ? 'disabled' : '' }}
+                                    class="w-full py-2 bg-[#0D2B70] border-2 border-[#0D2B70] rounded-lg text-white font-bold text-sm hover:scale-[1.02] flex items-center justify-center gap-2 transition-transform disabled:opacity-50 disabled:hover:scale-100">
+                                Save and Notify Applicants
+                            </button>
+                        </div>
+                        <div>
+                            @if($examDetails && $examDetails->notified_at)
+                                <p class="text-xs text-gray-600 italic text-left mt-1">
+                                    <b>{{ $notifiedByName ?? 'An admin' }} </b> notified applicants on 
+                                    <b>{{ \Carbon\Carbon::parse($examDetails->notified_at)->format('M d, h:i A') }}</b>
+                                </p>
+                            @endif
                         </div>
                     </div>
-                    <!-- DURATION -->
-                    <div class="flex flex-col">
-                        <label for="duration_display" class="text-[#0D2B70] font-bold text-xs mb-1">Duration</label>
-                        <input disabled type="text" id="duration_display" readonly
-                            value="{{ isset($examDetails->duration) ? $examDetails->duration . ' minutes' : '' }}"
-                            class="w-full px-3 py-1.5 border border-gray-300 rounded text-sm bg-gray-50 text-gray-600"
-                            placeholder="--" />
-                        <input type="hidden" id="duration" name="duration" value="{{ $examDetails->duration ?? '' }}">
-                    </div>
-                </div>
-
-
-            </div>
-
-            <!-- ACTION BUTTONS -->
-            <div class="flex flex-col gap-2 mt-4">
-                <div class="flex flex-col">
-                    <div>
-                        <button type="submit" id="saveNotifyButton" name="action" value="save_notify" 
-                                {{ ($isExamActive || $isExamCompleted || ($examDetails && $examDetails->details_saved) || ($qualifiedCount < 1)) ? 'disabled' : '' }}
-                                class="w-full py-2 border-2 border-[#0D2B70] rounded-lg text-[#0D2B70] font-bold text-sm hover:scale-[1.02] flex items-center justify-center gap-2 transition-transform disabled:opacity-50 disabled:hover:scale-100">
-                            <x-heroicon-o-check class="w-4 h-4" />
-                            Save & Notify Applicants
-                        </button>
-                    </div>
-                    <div>
-                        @if($examDetails && $examDetails->notified_at)
-                            <p class="text-xs text-gray-600 italic text-left">
-                                <b>{{ $notifiedByName ?? 'An admin' }} </b> notified the applicants on 
-                                <b>{{ \Carbon\Carbon::parse($examDetails->notified_at)->format('F d, Y \\a\\t h:i:s A') }}</b>
-                            </p>
-                        @endif
-                    </div>
-                </div>
-
-                
-                <button type="button" id="sendLinkButton" onclick="triggerSendLinkConfirm('{{ $vacancy->vacancy_id }}')" 
-                        {{ (!$examDetails || !$examDetails->details_saved || $examDetails->link_sent || $isExamActive || $isExamCompleted || !$isExamDay || ($qualifiedCount < 1)) ? 'disabled' : '' }}
-                        class="w-full py-2 border-2 border-[#0D2B70] rounded-lg text-[#0D2B70] font-bold text-sm hover:scale-[1.02] flex items-center justify-center gap-2 transition-transform disabled:opacity-50 disabled:hover:scale-100">
-                    <x-heroicon-o-paper-airplane class="w-4 h-4" />
-                    Send Link via Email
-                </button>
-                
-                <div class="flex flex-row gap-2 mt-2">
+                    
                     <button type="button" onclick="handleEditClick(event)"
                             {{ (($isExamActive && $isExamDay) || $isExamCompleted) ? 'disabled' : '' }}
-                            class="flex-1 py-2 bg-[#0D2B70] rounded-lg text-white font-bold text-sm hover:scale-[1.02] flex items-center justify-center gap-2 transition-transform disabled:opacity-50 disabled:hover:scale-100">
-                        <x-heroicon-o-pencil-square class="w-4 h-4" />
+                            class="w-full py-2 bg-white border-2 border-[#0D2B70] rounded-lg text-[#0D2B70] font-bold text-sm hover:scale-[1.02] flex items-center justify-center gap-2 transition-transform disabled:opacity-50 disabled:hover:scale-100">
                         Edit Questions
                     </button>
+                </div>
+            </div>
+
+            <!-- PANEL 2: EXAM MONITOR (Hidden initially) -->
+            <div id="panel-monitor" class="flex flex-col gap-3 hidden">
+                <!-- Header -->
+                <span class="text-xl text-[#0D2B70] font-bold border-b border-gray-200 pb-2 mb-1">
+                    Exam Monitor
+                </span>
+
+                <!-- START (Autofilled) & END -->
+                <div class="grid grid-cols-2 gap-2">
+                    <div class="flex flex-col">
+                        <label class="text-[#0D2B70] font-bold text-xs mb-1">Start</label>
+                        <input type="text" id="monitor_start" readonly
+                            value="{{ $examDetails->time ?? '--:--' }}"
+                            class="w-full px-3 py-1.5 border border-gray-300 rounded text-sm bg-gray-100 text-gray-600 cursor-not-allowed" />
+                        <p class="text-[10px] text-red-500 mt-0.5">*start field is autofilled*</p>
+                    </div>
+                    <div class="flex flex-col">
+                        <label for="monitor_end" class="text-[#0D2B70] font-bold text-xs mb-1">End <span class="text-red-500">*</span></label>
+                        <input type="time" id="monitor_end" 
+                            value="{{ $examDetails->time_end ?? '' }}"
+                            {{ ($isExamActive || $isExamCompleted) ? 'disabled' : '' }}
+                            class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-[#0D2B70] disabled:bg-gray-100" />
+                    </div>
+                </div>
+
+                <!-- ACTION BUTTONS: MONITOR -->
+                <div class="flex flex-col gap-2 mt-4">
+                    <button type="button" id="sendLinkButton" onclick="triggerSendLinkConfirm('{{ $vacancy->vacancy_id }}')" 
+                            {{ (!$examDetails || !$examDetails->details_saved || $examDetails->link_sent || $isExamActive || $isExamCompleted || !$isExamDay || ($qualifiedCount < 1)) ? 'disabled' : '' }}
+                            class="w-full py-2 bg-[#0D2B70] border-2 border-[#0D2B70] rounded-lg text-white font-bold text-sm hover:scale-[1.02] flex items-center justify-center gap-2 transition-transform disabled:opacity-50 disabled:hover:scale-100">
+                        Send Link via Email
+                    </button>
                     
-                <button type="button" id="startExamButton" onclick="triggerStartExamConfirm('{{ $vacancy->vacancy_id }}')" 
-                        {{ (!$examDetails || !$examDetails->link_sent || $isExamActive || $isExamCompleted || !$isExamDay || !$hasQuestions || ($lobbyCount < 1)) ? 'disabled' : '' }}
-                            class="flex-1 py-2 bg-[#0D2B70] rounded-lg text-white font-bold text-sm hover:scale-[1.02] flex items-center justify-center gap-2 transition-transform disabled:opacity-50 disabled:hover:scale-100">
-                        <x-heroicon-o-play class="w-4 h-4" />
+                    <button type="button" id="startExamButton" onclick="triggerStartExamConfirm('{{ $vacancy->vacancy_id }}')" 
+                            {{ (!$examDetails || !$examDetails->link_sent || $isExamActive || $isExamCompleted || !$isExamDay || !$hasQuestions || ($lobbyCount < 1)) ? 'disabled' : '' }}
+                            class="w-full py-2 bg-white border-2 border-[#0D2B70] rounded-lg text-[#0D2B70] font-bold text-sm hover:scale-[1.02] flex items-center justify-center gap-2 transition-transform disabled:opacity-50 disabled:hover:scale-100">
                         Start Exam
                     </button>
                 </div>
             </div>
+
             </form>
         </div>
                                         
@@ -629,7 +648,7 @@
         
         // Validate times before submission
         const startTime = document.getElementById('time').value;
-        const endTime = document.getElementById('time_end').value;
+        const endTime = document.getElementById('time_end_hidden').value;
         
         if (startTime && endTime && endTime <= startTime) {
             alert('End time must be after start time. Please correct the times.');
@@ -705,7 +724,9 @@
                 document.getElementById('venue').disabled = true;
                 document.getElementById('date').disabled = true;
                 document.getElementById('time').disabled = true;
-                document.getElementById('time_end').disabled = true;
+                document.getElementById('message').disabled = true;
+                const monitorEnd = document.getElementById('monitor_end');
+                if (monitorEnd) monitorEnd.disabled = true;
 
                 // Re-evaluate Send Link button state (uses latest lobby count)
                 updateSendLinkButtonState(currentLobbyCount);
@@ -780,27 +801,33 @@
         btn.classList.toggle('cursor-not-allowed', !shouldEnable);
     }
 
-    // Form validation - enable Save button only when all required fields are filled and at least one qualified applicant exists
+    // Form validation - enable Save button only when all required fields are filled
     function validateForm() {
         const venue = document.getElementById('venue').value.trim();
         const date = document.getElementById('date').value.trim();
         const time = document.getElementById('time').value.trim();
-        const timeEnd = document.getElementById('time_end').value.trim();
         const saveButton = document.getElementById('saveNotifyButton');
         
-        const allFilled = venue && date && time && timeEnd;
-        
-        // Check if end time is valid (not before start time)
-        let timesValid = true;
-        if (time && timeEnd) {
-            timesValid = timeEnd > time;
+        // Ensure hidden end time is set (default to +1 hour if empty)
+        const timeEndInput = document.getElementById('time_end_hidden');
+        if (time && !timeEndInput.value) {
+            // Auto-set end time to 1 hour later
+            const [hours, minutes] = time.split(':');
+            const dateObj = new Date();
+            dateObj.setHours(parseInt(hours) + 1);
+            dateObj.setMinutes(parseInt(minutes));
+            const endHours = String(dateObj.getHours()).padStart(2, '0');
+            const endMinutes = String(dateObj.getMinutes()).padStart(2, '0');
+            timeEndInput.value = `${endHours}:${endMinutes}`;
         }
+
+        const allFilled = venue && date && time;
         
-        // Only enable if all fields are filled AND times are valid AND details haven't been saved yet AND qualified applicants exist
+        // Only enable if all fields are filled AND details haven't been saved yet AND qualified applicants exist
         const detailsSaved = {{ $examDetails && $examDetails->details_saved ? 'true' : 'false' }};
         const hasQualified = qualifiedCount > 0;
 
-        if (allFilled && timesValid && !detailsSaved && hasQualified) {
+        if (allFilled && !detailsSaved && hasQualified) {
             saveButton.disabled = false;
             saveButton.classList.remove('opacity-50', 'cursor-not-allowed');
         } else {
@@ -810,7 +837,7 @@
     }
 
     // Add event listeners to form fields for validation
-    const formFields = ['venue', 'date', 'time', 'time_end'];
+    const formFields = ['venue', 'date', 'time', 'message'];
     formFields.forEach(fieldId => {
         const field = document.getElementById(fieldId);
         if (field) {
@@ -824,75 +851,59 @@
     validateForm();
     updateSendLinkButtonState(currentLobbyCount);
     updateStartButtonState();
+    // Sync initial state
+    syncMonitorFields();
 
     // Auto-calculate duration
     const startTimeInput = document.getElementById('time');
-    const endTimeInput = document.getElementById('time_end');
+    const timeEndHidden = document.getElementById('time_end_hidden');
     const durationInput = document.getElementById('duration');
-    const durationDisplay = document.getElementById('duration_display');
-    const timeTooltip = document.getElementById('timeTooltip');
-
-    function validateTimeRange() {
-        const start = startTimeInput.value;
-        const end = endTimeInput.value;
-
-        if (!start || !end) return true; // Allow empty fields for now
-
-        // Compare times as strings (HH:MM format naturally sorts correctly)
-        const isValid = end > start;
-
-        if (!isValid) {
-            timeTooltip.classList.remove('hidden');
-            endTimeInput.classList.add('border-red-500');
-        } else {
-            timeTooltip.classList.add('hidden');
-            endTimeInput.classList.remove('border-red-500');
-        }
-
-        return isValid;
-    }
 
     function calculateDuration() {
         const start = startTimeInput.value;
-        const end = endTimeInput.value;
+        let end = timeEndHidden.value;
 
-        // Set min attribute on end time to prevent selecting earlier times
-        if (start) {
-            endTimeInput.min = start;
+        if (start && !end) {
+             // Default 1 hour
+             const [h, m] = start.split(':');
+             const d = new Date();
+             d.setHours(parseInt(h) + 1);
+             d.setMinutes(parseInt(m));
+             end = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+             timeEndHidden.value = end;
         }
 
-        // Validate time range
-        const isValidRange = validateTimeRange();
+        if (start && end) {
+            // Check if end is before start (next day not supported for simplicity)
+            if (end <= start) {
+                // Force end to be start + 1 hour
+                 const [h, m] = start.split(':');
+                 const d = new Date();
+                 d.setHours(parseInt(h) + 1);
+                 d.setMinutes(parseInt(m));
+                 end = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+                 timeEndHidden.value = end;
+            }
 
-        if (start && end && isValidRange) {
             const startDate = new Date(`1970-01-01T${start}:00`);
             const endDate = new Date(`1970-01-01T${end}:00`);
-
+            
             let diffMs = endDate - startDate;
             let diffMins = Math.round(diffMs / 60000);
 
             if (diffMins > 0) {
                 durationInput.value = diffMins;
-                durationDisplay.value = `${diffMins} minutes`;
-                // Trigger change event to update button state
-                durationInput.dispatchEvent(new Event('input')); 
-            } else {
-                durationInput.value = '';
-                durationDisplay.value = 'Invalid Time';
             }
-        } else {
-            durationInput.value = '';
-            durationDisplay.value = '';
         }
-
-        // Update form validation
+        
+        syncMonitorFields();
         validateForm();
     }
 
-    startTimeInput.addEventListener('input', calculateDuration);
-    startTimeInput.addEventListener('change', calculateDuration);
-    endTimeInput.addEventListener('input', calculateDuration);
-    endTimeInput.addEventListener('change', calculateDuration);
+    if (startTimeInput) {
+        startTimeInput.addEventListener('input', calculateDuration);
+        startTimeInput.addEventListener('change', calculateDuration);
+    }
 
     // Prevent navigation if exam is active and user tries to edit
     function handleEditClick(e) {
@@ -919,6 +930,9 @@
     // ========================================
     function switchTab(tab) {
         const tabs = ['qualified', 'lobby'];
+        const panelSchedule = document.getElementById('panel-schedule');
+        const panelMonitor = document.getElementById('panel-monitor');
+
         tabs.forEach(t => {
             const tabBtn = document.getElementById(`tab-${t}`);
             const content = document.getElementById(`content-${t}`);
@@ -928,12 +942,18 @@
                 tabBtn.classList.remove('border-transparent', 'text-gray-400');
                 content.classList.remove('hidden');
                 
-                // If switching to lobby, fetch latest data
-                if (t === 'lobby') {
+                // Toggle Right Panel
+                if (t === 'qualified') {
+                    if (panelSchedule) panelSchedule.classList.remove('hidden');
+                    if (panelMonitor) panelMonitor.classList.add('hidden');
+                    stopLobbyPolling();
+                } else if (t === 'lobby') {
+                    if (panelSchedule) panelSchedule.classList.add('hidden');
+                    if (panelMonitor) panelMonitor.classList.remove('hidden');
                     fetchLobbyData();
                     startLobbyPolling();
-                } else {
-                    stopLobbyPolling();
+                    // Sync Monitor fields
+                    syncMonitorFields();
                 }
             } else {
                 tabBtn.classList.remove('border-[#0D2B70]', 'text-[#0D2B70]');
@@ -942,6 +962,17 @@
             }
         });
     }
+
+    function syncMonitorFields() {
+        const timeInput = document.getElementById('time');
+        const timeEndInput = document.getElementById('time_end_hidden');
+        const monitorStart = document.getElementById('monitor_start');
+        const monitorEnd = document.getElementById('monitor_end');
+
+        if (timeInput && monitorStart) monitorStart.value = timeInput.value || '--:--';
+        if (timeEndInput && monitorEnd) monitorEnd.value = timeEndInput.value || '';
+    }
+
 
     // ========================================
     // CHECKBOX MANAGEMENT
@@ -1217,17 +1248,22 @@
         tbody.innerHTML = participants.map(p => `
             <tr class="hover:bg-blue-50 transition-colors duration-200">
                 <!-- Name -->
-                <td class="py-3 px-3 md:py-4 md:px-6 text-[#0D2B70] font-semibold text-xs md:text-sm w-[35%] md:w-[30%]">
+                <td class="py-3 px-3 md:py-4 md:px-6 text-[#0D2B70] font-semibold text-xs md:text-sm w-[25%] md:w-[25%]">
                     ${p.name}
                 </td>
 
-                <!-- Score -->
-                <td class="py-3 px-3 md:py-4 md:px-6 text-center text-[#0D2B70] font-medium text-xs md:text-sm w-[15%] md:w-[20%]">
-                    ${p.result}
+                <!-- MC Score -->
+                <td class="py-3 px-3 md:py-4 md:px-6 text-center text-[#0D2B70] font-medium text-xs md:text-sm w-[15%] md:w-[15%]">
+                    ${p.mc_score}
+                </td>
+
+                <!-- Essay Score -->
+                <td class="py-3 px-3 md:py-4 md:px-6 text-center text-[#0D2B70] font-medium text-xs md:text-sm w-[15%] md:w-[15%]">
+                    ${p.essay_score}
                 </td>
 
                 <!-- Status -->
-                <td class="py-3 px-3 md:py-4 md:px-6 text-center w-[25%]">
+                <td class="py-3 px-3 md:py-4 md:px-6 text-center w-[20%]">
                     <div class="inline-flex items-center gap-1 md:gap-2 text-[#0D2B70] font-medium text-xs md:text-sm">
                         <i class="fa-solid fa-circle text-xs" style="color: ${p.status_color}"></i>
                         <span class="capitalize">${p.status}</span>

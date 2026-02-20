@@ -163,7 +163,7 @@
 
                 <!-- Monthly Applications Chart -->
                 <div
-                    class="bg-white border border-gray-200 rounded-lg md:rounded-xl p-3 md:p-4 shadow-sm hover:shadow-md transition-shadow duration-300 flex-1 min-h-0 flex flex-col">
+                    class="bg-white border border-gray-200 rounded-lg md:rounded-xl p-3 md:p-4 shadow-sm hover:shadow-md transition-shadow duration-300 flex-1 min-h-[300px] lg:min-h-0 flex flex-col">
                     <div class="flex items-center justify-between gap-2 mb-2 shrink-0">
                         <div class="flex items-center gap-2">
                             <div class="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-blue-50 flex items-center justify-center">
@@ -194,7 +194,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 h-auto min-h-[160px] lg:min-h-[180px] shrink-0">
                     <!-- Applicants Status (Pie Chart) -->
                     <div
-                        class="bg-white border border-gray-200 rounded-lg md:rounded-xl p-3 md:p-4 shadow-sm hover:shadow-md transition-shadow duration-300 flex flex-col h-full overflow-hidden">
+                        class="bg-white border border-gray-200 rounded-lg md:rounded-xl p-3 md:p-4 shadow-sm hover:shadow-md transition-shadow duration-300 flex flex-col min-h-[180px] lg:h-full lg:min-h-0 overflow-hidden">
                         <div class="flex items-center gap-2 mb-2 shrink-0">
                             <div class="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-blue-50 flex items-center justify-center">
                                 <i class="fas fa-users text-[#002C76] text-xs sm:text-sm"></i>
@@ -209,76 +209,20 @@
                         </div>
                     </div>
 
-                    <!-- Upcoming Examinations (Calendar) -->
-                    <div
-                        class="bg-white border border-gray-200 rounded-lg md:rounded-xl p-3 md:p-4 shadow-sm hover:shadow-md transition-shadow duration-300 flex flex-col h-full overflow-hidden">
-                        <div class="flex items-center gap-2 mb-2 shrink-0">
-                            <div class="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-blue-50 flex items-center justify-center">
-                                <i class="fas fa-calendar-alt text-[#002C76] text-xs sm:text-sm"></i>
+                    
+                    <!-- Right Column: Job Vacancies Ratio -->
+                    <div class="lg:col-span-1 h-full min-h-0">
+                        <div
+                            class="bg-white border border-gray-200 rounded-lg md:rounded-xl p-3 md:p-4 shadow-sm hover:shadow-md transition-shadow duration-300 min-h-[180px] lg:h-full lg:min-h-0 flex flex-col">
+                            <div class="flex items-center gap-2 mb-3 md:mb-4 shrink-0">
+                                <div class="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-blue-50 flex items-center justify-center">
+                                    <i class="fas fa-briefcase text-[#002C76] text-xs sm:text-sm"></i>
+                                </div>
+                                <h2 class="text-sm sm:text-base font-bold text-[#002C76] font-montserrat">Job Vacancies Ratio</h2>
                             </div>
-                            <h2 class="text-sm sm:text-base font-bold text-[#002C76] font-montserrat">Examination Calendar
-                            </h2>
-                        </div>
-
-                        <!-- Custom Calendar with Tailwind -->
-                        <div class="w-full bg-white rounded-lg">
-                            <!-- Calendar Header -->
-                            <div class="flex items-center justify-between mb-4">
-                                <button onclick="previousMonth()"
-                                    class="p-1 hover:bg-gray-100 rounded-full transition-colors">
-                                    <i class="fas fa-chevron-left text-[#002C76] text-sm"></i>
-                                </button>
-                                <h3 id="calendarMonthYear" class="text-sm font-bold text-[#002C76]">February 2026</h3>
-                                <button onclick="nextMonth()" class="p-1 hover:bg-gray-100 rounded-full transition-colors">
-                                    <i class="fas fa-chevron-right text-[#002C76] text-sm"></i>
-                                </button>
+                            <div class="flex-1 relative min-h-0">
+                                <canvas id="jobBarChart"></canvas>
                             </div>
-
-                            <!-- Week Days -->
-                            <div class="grid grid-cols-7 gap-1 mb-2">
-                                <div class="text-center text-[10px] font-bold text-[#002C76]">S</div>
-                                <div class="text-center text-[10px] font-bold text-[#002C76]">M</div>
-                                <div class="text-center text-[10px] font-bold text-[#002C76]">T</div>
-                                <div class="text-center text-[10px] font-bold text-[#002C76]">W</div>
-                                <div class="text-center text-[10px] font-bold text-[#002C76]">T</div>
-                                <div class="text-center text-[10px] font-bold text-[#002C76]">F</div>
-                                <div class="text-center text-[10px] font-bold text-[#002C76]">S</div>
-                            </div>
-
-                            <!-- Calendar Days Grid -->
-                            <div id="calendarDays" class="grid grid-cols-7 gap-1">
-                                <!-- Days will be populated by JavaScript -->
-                            </div>
-                        </div>
-
-                        <!-- Legend -->
-                        <div class="flex items-center gap-3 mt-2 text-[10px] text-gray-600">
-                            <div class="flex items-center gap-1">
-                                <div class="w-3 h-3 bg-[#002C76] rounded-full"></div>
-                                <span>Exam Date</span>
-                            </div>
-                            <div class="flex items-center gap-1">
-                                <div class="w-3 h-3 bg-yellow-100 border border-yellow-500 rounded-full"></div>
-                                <span>Today</span>
-                            </div>
-                        </div>
-
-
-                        <!-- Loading State -->
-                        <div id="calendarLoading" class="flex justify-center items-center py-4">
-                            <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-[#002C76]"></div>
-                        </div>
-
-                        <!-- Error State (hidden by default) -->
-                        <div id="calendarError" class="hidden text-center text-red-500 text-sm py-4">
-                            <i class="fas fa-exclamation-circle mr-1"></i>
-                            Failed to load examination dates.
-                        </div>
-
-                        <!-- No Exams State (hidden by default) -->
-                        <div id="noExams" class="hidden text-center text-gray-500 text-sm py-4">
-                            <i class="fas fa-calendar-times mr-1"></i>
-                            No scheduled examinations found.
                         </div>
                     </div>
 
@@ -304,19 +248,76 @@
                 </div>
             </div>
 
-            <!-- Right Column: Job Vacancies Ratio -->
-            <div class="lg:col-span-1 h-full min-h-0">
-                <div
-                    class="bg-white border border-gray-200 rounded-lg md:rounded-xl p-3 md:p-4 shadow-sm hover:shadow-md transition-shadow duration-300 h-full flex flex-col min-h-0">
-                    <div class="flex items-center gap-2 mb-3 md:mb-4 shrink-0">
-                        <div class="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-blue-50 flex items-center justify-center">
-                            <i class="fas fa-briefcase text-[#002C76] text-xs sm:text-sm"></i>
-                        </div>
-                        <h2 class="text-sm sm:text-base font-bold text-[#002C76] font-montserrat">Job Vacancies Ratio</h2>
+            <!-- Upcoming Examinations (Calendar) -->
+            <div
+                class="bg-white border border-gray-200 rounded-lg md:rounded-xl p-3 md:p-4 shadow-sm hover:shadow-md transition-shadow duration-300 flex flex-col min-h-[400px] lg:h-full lg:min-h-0 overflow-hidden">
+                <div class="flex items-center gap-2 mb-2 shrink-0">
+                    <div class="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-blue-50 flex items-center justify-center">
+                        <i class="fas fa-calendar-alt text-[#002C76] text-xs sm:text-sm"></i>
                     </div>
-                    <div class="flex-1 relative min-h-0">
-                        <canvas id="jobBarChart"></canvas>
+                    <h2 class="text-sm sm:text-base font-bold text-[#002C76] font-montserrat">Examination Calendar
+                    </h2>
+                </div>
+
+                <!-- Custom Calendar with Tailwind -->
+                <div class="w-full bg-white rounded-lg">
+                    <!-- Calendar Header -->
+                    <div class="flex items-center justify-between mb-4">
+                        <button onclick="previousMonth()"
+                            class="p-1 hover:bg-gray-100 rounded-full transition-colors">
+                            <i class="fas fa-chevron-left text-[#002C76] text-sm"></i>
+                        </button>
+                        <h3 id="calendarMonthYear" class="text-sm font-bold text-[#002C76]">February 2026</h3>
+                        <button onclick="nextMonth()" class="p-1 hover:bg-gray-100 rounded-full transition-colors">
+                            <i class="fas fa-chevron-right text-[#002C76] text-sm"></i>
+                        </button>
                     </div>
+
+                    <!-- Week Days -->
+                    <div class="grid grid-cols-7 gap-1 mb-2">
+                        <div class="text-center text-[10px] font-bold text-[#002C76]">S</div>
+                        <div class="text-center text-[10px] font-bold text-[#002C76]">M</div>
+                        <div class="text-center text-[10px] font-bold text-[#002C76]">T</div>
+                        <div class="text-center text-[10px] font-bold text-[#002C76]">W</div>
+                        <div class="text-center text-[10px] font-bold text-[#002C76]">T</div>
+                        <div class="text-center text-[10px] font-bold text-[#002C76]">F</div>
+                        <div class="text-center text-[10px] font-bold text-[#002C76]">S</div>
+                    </div>
+
+                    <!-- Calendar Days Grid -->
+                    <div id="calendarDays" class="grid grid-cols-7 gap-1">
+                        <!-- Days will be populated by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Legend -->
+                <div class="flex items-center gap-3 mt-2 text-[10px] text-gray-600">
+                    <div class="flex items-center gap-1">
+                        <div class="w-3 h-3 bg-[#002C76] rounded-full"></div>
+                        <span>Exam Date</span>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <div class="w-3 h-3 bg-yellow-100 border border-yellow-500 rounded-full"></div>
+                        <span>Today</span>
+                    </div>
+                </div>
+
+
+                <!-- Loading State -->
+                <div id="calendarLoading" class="flex justify-center items-center py-4">
+                    <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-[#002C76]"></div>
+                </div>
+
+                <!-- Error State (hidden by default) -->
+                <div id="calendarError" class="hidden text-center text-red-500 text-sm py-4">
+                    <i class="fas fa-exclamation-circle mr-1"></i>
+                    Failed to load examination dates.
+                </div>
+
+                <!-- No Exams State (hidden by default) -->
+                <div id="noExams" class="hidden text-center text-gray-500 text-sm py-4">
+                    <i class="fas fa-calendar-times mr-1"></i>
+                    No scheduled examinations found.
                 </div>
             </div>
         </div>

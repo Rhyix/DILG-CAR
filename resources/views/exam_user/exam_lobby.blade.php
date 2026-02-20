@@ -44,16 +44,7 @@
                 <p class="text-gray-700 text-lg mb-4">Schedule to be announced</p>
                 @endif
 
-                <button
-                    id="readyBtn"
-                    class="bg-yellow-400 hover:bg-yellow-500 text-yellow-900 font-semibold text-base uppercase py-2 px-6 rounded-full shadow-md transition duration-300 active:shadow-inner"
-                    type="button"
-                    onclick="toggleReady()"
-                >
-                    Click to Get Ready
-                </button>
-
-                <div id="waitingMessage" class="hidden mt-6 flex items-center gap-2">
+                <div id="waitingMessage" class="mt-6 flex items-center gap-2">
                     <div class="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
                     <p class="text-lg text-gray-600">Waiting for the Admin to start the exam.</p>
                 </div>
@@ -81,34 +72,8 @@
 <form id="redirect-form" action="{{ route('user.exam_question_page', ['vacancy_id' => $vacancy_id]) }}" method="GET" class="hidden"></form>
 
 <script>
-    let isReady = false;
     let pollInterval = null;
     let countdownInterval = null;
-
-    function toggleReady() {
-        const btn = document.getElementById('readyBtn');
-        const waiting = document.getElementById('waitingMessage');
-        const examStarted = document.getElementById('examStartedMessage');
-
-        isReady = !isReady;
-
-        if (isReady) {
-            btn.textContent = "Undo Ready";
-            btn.classList.remove("bg-yellow-400", "hover:bg-yellow-500", "text-yellow-900");
-            btn.classList.add("bg-red-400", "hover:bg-red-500", "text-red-900");
-            waiting.classList.remove("hidden");
-
-            startPolling();
-        } else {
-            btn.textContent = "Click to Get Ready";
-            btn.classList.remove("bg-red-400", "hover:bg-red-500", "text-red-900");
-            btn.classList.add("bg-yellow-400", "hover:bg-yellow-500", "text-yellow-900");
-            waiting.classList.add("hidden");
-            examStarted.classList.add("hidden");
-
-            stopPolling();
-        }
-    }
 
     function startPolling() {
         if (pollInterval) return; // Prevent multiple pollers
@@ -152,8 +117,6 @@
     function markExamStarted() {
         if (countdownInterval) return; // Prevent multiple intervals
 
-        const btn = document.getElementById('readyBtn');
-        if (btn) btn.classList.add('hidden'); // Hide the ready button
         document.getElementById('waitingMessage').classList.add('hidden');
         document.getElementById('examStartedMessage').classList.remove('hidden');
         stopPolling();
@@ -174,17 +137,7 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-        const waiting = document.getElementById('waitingMessage');
-        const examStarted = document.getElementById('examStartedMessage');
-
-        // Check if we are in "ready" state or if exam is already started UI state
-        // By default, PHP renders waitingMessage as hidden. 
-        // We only want to auto-start if we persist state, but here we don't.
-        // So we just ensure clean slate or auto-ready if user reload?
-        // Actually, let's keep it manual. User must click Ready.
-        // But if they were already redirected and came back, or if exam is started, check status once.
-        
-        checkStatus(); // One-time check on load
+        startPolling(); // Auto-start polling on load
     });
 </script>
 @include('partials.loader')
