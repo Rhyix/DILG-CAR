@@ -200,6 +200,9 @@
 						<h2 class="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide flex-none">Required
 							Documents
 						</h2>
+						<p class="text-[11px] text-gray-500 mb-2">
+							<span class="text-red-600 font-bold">*</span> Required for {{ $vacancy_type }} vacancy
+						</p>
 						<div class="pr-1">
 							<ul class="text-xs text-gray-700 space-y-1" id="document-list">
 								<!-- Documents will be injected here by JS -->
@@ -398,8 +401,10 @@
 				<div class="mt-8 border border-gray-100 rounded-xl overflow-hidden shadow-sm">
 					<div class="px-5 py-3 bg-gray-50/80 border-b border-gray-100 flex items-center justify-between">
 						<h4 class="text-xs font-bold text-gray-600 uppercase tracking-wider">Required Documents</h4>
-						<span class="text-[10px] text-gray-400 font-medium">With remarks only for items needing
-							revision</span>
+						<div class="text-[10px] text-gray-400 font-medium text-right">
+							<div><span class="text-red-600 font-bold">*</span> Required for {{ $vacancy_type }} vacancy</div>
+							<div>With remarks only for items needing revision</div>
+						</div>
 					</div>
 					<table class="min-w-full text-sm">
 						<tbody id="notify-documents-body" class="divide-y divide-gray-50 bg-white"></tbody>
@@ -429,8 +434,60 @@
 		const vacancyId = "{{ $vacancy_id }}";
 		const vacancyType = "{{ $vacancy_type }}"; // Plantilla or COS
 		let documents = @json($documents);
+		const requiredDocumentIds = @json($requiredDocumentIds ?? []);
+		const requiredDocumentSet = new Set(requiredDocumentIds);
+
+		function isRequiredDocument(docId) {
+			return requiredDocumentSet.has(docId);
+		}
+
+		function escapeHtml(value) {
+			const div = document.createElement('div');
+			div.textContent = value ?? '';
+			return div.innerHTML;
+		}
+
+		function getDocumentLabelHtml(doc) {
+			const label = escapeHtml(doc?.text || doc?.name || '');
+			const requiredStar = isRequiredDocument(doc?.id) ? '<span class="text-red-600 font-extrabold ml-1">*</span>' : '';
+			return `${label}${requiredStar}`;
+		}
+
+		function sortDocumentsForRequiredPriority(docList) {
+			return [...(docList || [])].sort((a, b) => {
+				const requiredA = isRequiredDocument(a?.id) ? 0 : 1;
+				const requiredB = isRequiredDocument(b?.id) ? 0 : 1;
+				if (requiredA !== requiredB) {
+					return requiredA - requiredB; // required first, optional last
+				}
+
+				const labelA = (a?.text || a?.name || a?.id || '').toLowerCase();
+				const labelB = (b?.text || b?.name || b?.id || '').toLowerCase();
+				return labelA.localeCompare(labelB);
+			});
+		}
+
+		function isSubmittedDocument(doc) {
+			if (!doc) return false;
+			const hasFile = !!doc.has_file;
+			const status = doc.status || 'Not Submitted';
+			if (doc.id === 'application_letter') {
+				return hasFile && status !== 'Not Submitted';
+			}
+			return hasFile;
+		}
+
+		function getNotifyDocuments(docList) {
+			const filtered = (docList || []).filter(doc => {
+				if (isRequiredDocument(doc?.id)) return true;
+				return isSubmittedDocument(doc);
+			});
+			return sortDocumentsForRequiredPriority(filtered);
+		}
 
 		document.addEventListener('DOMContentLoaded', function () {
+			documents = sortDocumentsForRequiredPriority(documents);
+
 			// Initialize UI
 			renderDocuments(documents);
 			updateProgressCircle();
@@ -1001,8 +1058,9 @@
 				progressBarEl.style.width = pctNumber + '%';
 			}
 
+			const notifyDocs = getNotifyDocuments(documents);
 			let rowsHtml = "";
-			documents.forEach(doc => {
+			notifyDocs.forEach(doc => {
 				const status = doc.status || "";
 				const iconHtml = getStatusIcon(status);
 				let remarksText = "";
@@ -1011,7 +1069,7 @@
 				}
 				rowsHtml += `
 							<tr class="hover:bg-gray-50/50 transition-colors">
-								<td class="px-5 py-4 align-top text-gray-800 font-medium w-[40%]">${doc.text}</td>
+								<td class="px-5 py-4 align-top text-gray-800 font-medium w-[40%]">${getDocumentLabelHtml(doc)}</td>
 								<td class="px-5 py-4 align-top text-gray-700 w-[25%] whitespace-nowrap">
 									<div class="flex items-center gap-2">
 										<span>${iconHtml}</span>
@@ -1027,7 +1085,7 @@
 			// Logic to hide/show Deadline and Remarks
 			const qsResultInput = document.querySelector('input[name="qs_result"]:checked');
 			const isQualified = qsResultInput && qsResultInput.value === 'Qualified';
-			const hasRevisions = documents.some(doc => doc.status === 'Needs Revision' || doc.status === 'Disapproved With Deficiency');
+			const hasRevisions = notifyDocs.some(doc => doc.status === 'Needs Revision' || doc.status === 'Disapproved With Deficiency');
 
 			const actionReqEl = document.getElementById('notify-action-requirements');
 			if (actionReqEl) {
@@ -1094,8 +1152,8 @@
 				iconWrapper.innerHTML = icon;
 
 				const textWrapper = document.createElement('span');
-				textWrapper.textContent = doc.text;
 				textWrapper.className = `${textColorClass} text-xs flex-1 break-words`;
+				textWrapper.innerHTML = getDocumentLabelHtml(doc);
 
 				btn.appendChild(iconWrapper);
 				btn.appendChild(textWrapper);

@@ -127,14 +127,6 @@
                             <i data-feather="briefcase" class="w-4 h-4 stroke-[3] flex-shrink-0"></i>
                             <span class="ml-3">WORK EXPERIENCE SHEET</span>
                         </a>
-                        <a href="{{ route('display_c5', ['simple' => 1]) }}"
-                            class="flex items-center rounded-md px-3 py-2 text-sm font-semibold transition
-                                {{ request()->routeIs('display_c5')
-                                    ? 'bg-[#002C76] text-white'
-                                    : 'text-[#002C76] hover:text-white hover:bg-[#002C76]' }}">
-                            <i data-feather="upload" class="w-4 h-4 stroke-[3] flex-shrink-0"></i>
-                            <span class="ml-3">UPLOAD PDF</span>
-                        </a>
                     </div>
                 </div>
 

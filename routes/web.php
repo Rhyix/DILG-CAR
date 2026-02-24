@@ -134,6 +134,16 @@ Route::middleware(['auth'])->group(function () {
 // USER LOGOUT
 // ==================================================================================================
 Route::post('/logout', function () {
+    session()->forget([
+        'form',
+        'data_learning',
+        'data_voluntary',
+        'data_otherInfo',
+        'vacancy_doc_uploads',
+        'pds_form_owner',
+        'redirect_after_login',
+        'pending_registration',
+    ]);
     Auth::logout();
     session()->invalidate();
     session()->regenerateToken();

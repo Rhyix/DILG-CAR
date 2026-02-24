@@ -15,6 +15,8 @@ use App\Models\WorkExperience;
 use App\Models\CivilServiceEligibility;
 use App\Models\VoluntaryWork;
 use App\Models\OtherInformation;
+use App\Models\FamilyBackground;
+use App\Models\EducationalBackground;
 use App\Models\MiscInfos;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -37,6 +39,16 @@ class JobVacancyController extends Controller
         'designation_order' => ['designation_orders'],
         'transcript_records' => ['transcript'],
         'photocopy_diploma' => ['diploma'],
+    ];
+
+    private const COS_REQUIRED_DOCUMENTS = [
+        'passport_photo',
+        'signed_pds',
+        'signed_work_exp_sheet',
+        'photocopy_diploma',
+        'tor_masteraldoctorate',
+        'application_letter',
+        'cert_training',
     ];
     public function jobVacancy()
     {
@@ -334,15 +346,52 @@ class JobVacancyController extends Controller
         $vacancy = JobVacancy::where('vacancy_id', $vacancy_id)->firstOrFail();
 
         $hasPDS = PersonalInformation::where('user_id', Auth::id())->exists();
+        $hasCompletedPdsForApply = Auth::check()
+            ? $this->hasCompletedPdsForApply((int) Auth::id())
+            : false;
 
         $hasApplied = Applications::where('user_id', Auth::id())
             ->where('vacancy_id', $vacancy_id)
             ->exists();
 
+        $normalizedVacancyTrack = $this->normalizeTrack($vacancy->vacancy_type);
+        $docTrackMismatchState = [
+            'hasMismatch' => false,
+            'submittedTrack' => null,
+            'vacancyTrack' => $normalizedVacancyTrack,
+            'redirectUrl' => route('display_c5', [
+                'doc_track' => $normalizedVacancyTrack,
+                'vacancy_id' => $vacancy->vacancy_id,
+                'fresh_upload' => 1,
+            ]),
+        ];
+        $requiredDocsModalState = [
+            'hasMissing' => false,
+            'previewDocs' => [],
+            'vacancyTrack' => $normalizedVacancyTrack,
+            'redirectUrl' => route('display_c5', [
+                'doc_track' => $normalizedVacancyTrack,
+                'vacancy_id' => $vacancy->vacancy_id,
+                'fresh_upload' => 1,
+            ]),
+        ];
+
+        if (Auth::check()) {
+            $docTrackMismatchState = $this->getDocumentTrackMismatchState((int) Auth::id(), (string) $vacancy->vacancy_type, (string) $vacancy->vacancy_id);
+            $requiredDocsModalState = $this->getRequiredDocsModalState((int) Auth::id(), (string) $vacancy->vacancy_type, (string) $vacancy->vacancy_id);
+        }
+
         return view('dashboard_user.job_description', [
             'vacancy' => $vacancy,
             'hasPDS' => $hasPDS,
+            'hasCompletedPdsForApply' => $hasCompletedPdsForApply,
             'hasApplied' => $hasApplied,
+            'docTrackMismatch' => $docTrackMismatchState['hasMismatch'],
+            'mismatchSubmittedTrack' => $docTrackMismatchState['submittedTrack'],
+            'vacancyTrack' => $requiredDocsModalState['vacancyTrack'],
+            'docUploadRedirectUrl' => $requiredDocsModalState['redirectUrl'],
+            'hasMissingRequiredDocs' => $requiredDocsModalState['hasMissing'],
+            'requiredDocsPreview' => $requiredDocsModalState['previewDocs'],
         ]);
 
 
@@ -557,10 +606,13 @@ class JobVacancyController extends Controller
 
     public function apply(Request $request, $vacancy_id)
     {
-        $request->validate([
-            'application_file' => 'required|file|mimes:pdf|max:5120', // max 5MB
-        ]);
         $vacancy = JobVacancy::where('vacancy_id', $vacancy_id)->firstOrFail();
+
+        if (!$this->hasCompletedPdsForApply((int) Auth::id())) {
+            return redirect()
+                ->route('job_description', ['id' => $vacancy->vacancy_id])
+                ->with('pds_required_prompt', true);
+        }
 
         // Check if user already applied
         $existing = \App\Models\Applications::where('user_id', Auth::id())
@@ -570,6 +622,32 @@ class JobVacancyController extends Controller
         if ($existing) {
             return redirect()->back()->with('error', 'You have already applied for this vacancy.');
         }
+
+        $requiredDocsModalState = $this->getRequiredDocsModalState((int) Auth::id(), (string) $vacancy->vacancy_type, (string) $vacancy->vacancy_id);
+        if ($requiredDocsModalState['hasMissing']) {
+            return redirect()
+                ->route('job_description', ['id' => $vacancy->vacancy_id])
+                ->with('required_docs_prompt', [
+                    'vacancy_track' => $requiredDocsModalState['vacancyTrack'],
+                    'redirect_url' => $requiredDocsModalState['redirectUrl'],
+                    'preview_docs' => $requiredDocsModalState['previewDocs'],
+                ]);
+        }
+
+        $docTrackMismatchState = $this->getDocumentTrackMismatchState((int) Auth::id(), (string) $vacancy->vacancy_type, (string) $vacancy->vacancy_id);
+        if ($docTrackMismatchState['hasMismatch']) {
+            return redirect()
+                ->route('job_description', ['id' => $vacancy->vacancy_id])
+                ->with('doc_track_mismatch', [
+                    'submitted_track' => $docTrackMismatchState['submittedTrack'],
+                    'vacancy_track' => $docTrackMismatchState['vacancyTrack'],
+                    'redirect_url' => $docTrackMismatchState['redirectUrl'],
+                ]);
+        }
+
+        $request->validate([
+            'application_file' => 'required|file|mimes:pdf|max:5120', // max 5MB
+        ]);
 
         // Handle file upload
         $file = $request->file('application_file');
@@ -591,6 +669,13 @@ class JobVacancyController extends Controller
             'file_remarks' => null,
             'file_size_8b' => $file->getSize(),
         ]);
+
+        // Consume fresh-upload marker for this vacancy after successful application submit.
+        $vacancyUploads = session('vacancy_doc_uploads', []);
+        if (is_array($vacancyUploads) && array_key_exists((string) $vacancy->vacancy_id, $vacancyUploads)) {
+            unset($vacancyUploads[(string) $vacancy->vacancy_id]);
+            session(['vacancy_doc_uploads' => $vacancyUploads]);
+        }
 
         // Keep apply response fast: store lightweight DB notifications directly.
         $admins = \App\Models\Admin::all();
@@ -942,6 +1027,194 @@ class JobVacancyController extends Controller
             }
         }
         return $doc ?: null;
+    }
+
+    private function getDocumentLabelMap(): array
+    {
+        return [
+            'application_letter' => 'Application Letter',
+            'pqe_result' => 'Pre-Qualifying Exam (PQE) Result',
+            'transcript_records' => 'Transcript of Records (Baccalaureate Degree)',
+            'photocopy_diploma' => 'Diploma',
+            'signed_pds' => 'Signed Personal Data Sheet',
+            'signed_work_exp_sheet' => 'Signed Work Experience Sheet',
+            'cert_lgoo_induction' => 'Certificate of Completion of LGOO Induction Training',
+            'passport_photo' => '2\" x 2\" or Passport Size Picture',
+            'cert_eligibility' => 'Certificate of Eligibility/Board Rating',
+            'ipcr' => 'Certification of Numerical Rating/Performance Rating/IPCR',
+            'non_academic' => 'Non-Academic Awards Received',
+            'cert_training' => 'Certificates of Training/Participation',
+            'designation_order' => 'Confirmed Designation Order/s',
+            'grade_masteraldoctorate' => 'Certificate of Grades with Masteral/Doctorate Units Earned',
+            'tor_masteraldoctorate' => 'TOR with Masteral/Doctorate Degree',
+            'cert_employment' => 'Certificate of Employment',
+            'other_documents' => 'Other Documents Submitted',
+        ];
+    }
+
+    private function getRequiredDocsByTrack(): array
+    {
+        $allDocumentTypes = array_values(array_filter(
+            UploadedDocument::DOCUMENTS,
+            fn($doc) => $doc !== 'isApproved'
+        ));
+
+        return [
+            'COS' => self::COS_REQUIRED_DOCUMENTS,
+            'Plantilla' => array_values(array_diff(
+                $allDocumentTypes,
+                ['tor_masteraldoctorate', 'grade_masteraldoctorate', 'cert_lgoo_induction', 'other_documents']
+            )),
+        ];
+    }
+
+    private function normalizeTrack(?string $track): string
+    {
+        return strcasecmp((string) $track, 'COS') === 0 ? 'COS' : 'Plantilla';
+    }
+
+    private function hasVacancyDocumentUploadForApply(int $userId, ?string $vacancyId): bool
+    {
+        if (!$vacancyId) {
+            return false;
+        }
+
+        $vacancyUploads = session('vacancy_doc_uploads', []);
+        $entry = $vacancyUploads[$vacancyId] ?? null;
+        if (!is_array($entry)) {
+            return false;
+        }
+
+        return ((int) ($entry['user_id'] ?? 0) === $userId) && !empty($entry['uploaded_at']);
+    }
+
+    private function getRequiredDocsModalState(int $userId, ?string $vacancyType, ?string $vacancyId = null): array
+    {
+        $vacancyTrack = $this->normalizeTrack($vacancyType);
+        $requiredDocsByTrack = $this->getRequiredDocsByTrack();
+        $requiredDocs = $requiredDocsByTrack[$vacancyTrack] ?? [];
+        $documentLabels = $this->getDocumentLabelMap();
+        $hasFreshUploadForVacancy = $this->hasVacancyDocumentUploadForApply($userId, $vacancyId);
+
+        $previewDocs = array_map(function (string $docType) use ($documentLabels) {
+            return [
+                'key' => $docType,
+                'label' => $documentLabels[$docType] ?? ucwords(str_replace('_', ' ', $docType)),
+            ];
+        }, $requiredDocs);
+
+        $hasMissing = true;
+        if ($vacancyId) {
+            // Business rule: every vacancy application requires a fresh upload pass.
+            $hasMissing = !$hasFreshUploadForVacancy;
+        } else {
+            // Fallback behavior when vacancy context is not present.
+            $uploadedDocuments = UploadedDocument::where('user_id', $userId)->get()->keyBy('document_type');
+            $hasApplicationLetterInApplications = Applications::where('user_id', $userId)
+                ->whereNotNull('file_storage_path')
+                ->exists();
+
+            $hasMissing = collect($requiredDocs)->contains(function (string $docType) use ($uploadedDocuments, $hasApplicationLetterInApplications) {
+                if ($docType === 'application_letter' && $hasApplicationLetterInApplications) {
+                    return false;
+                }
+
+                $doc = $this->resolveUploadedDocument($uploadedDocuments, $docType);
+                return !($doc && !empty($doc->storage_path) && $doc->storage_path !== 'NOINPUT');
+            });
+        }
+
+        return [
+            'hasMissing' => $hasMissing,
+            'previewDocs' => $previewDocs,
+            'vacancyTrack' => $vacancyTrack,
+            'redirectUrl' => route('display_c5', [
+                'doc_track' => $vacancyTrack,
+                'vacancy_id' => $vacancyId,
+                'fresh_upload' => 1,
+            ]),
+        ];
+    }
+
+    private function getTrackCompletenessByUser(int $userId): array
+    {
+        $requiredDocsByTrack = $this->getRequiredDocsByTrack();
+        $uploadedDocuments = UploadedDocument::where('user_id', $userId)->get()->keyBy('document_type');
+        $hasApplicationLetter = Applications::where('user_id', $userId)
+            ->whereNotNull('file_storage_path')
+            ->exists();
+
+        $isComplete = [];
+        foreach ($requiredDocsByTrack as $track => $requiredDocs) {
+            $isComplete[$track] = collect($requiredDocs)->every(function (string $docType) use ($uploadedDocuments, $hasApplicationLetter) {
+                if ($docType === 'application_letter') {
+                    if ($hasApplicationLetter) {
+                        return true;
+                    }
+                    $appLetterDoc = $this->resolveUploadedDocument($uploadedDocuments, $docType);
+                    return $appLetterDoc && !empty($appLetterDoc->storage_path) && $appLetterDoc->storage_path !== 'NOINPUT';
+                }
+
+                $doc = $this->resolveUploadedDocument($uploadedDocuments, $docType);
+                return $doc && !empty($doc->storage_path) && $doc->storage_path !== 'NOINPUT';
+            });
+        }
+
+        return $isComplete;
+    }
+
+    private function getDocumentTrackMismatchState(int $userId, ?string $vacancyType, ?string $vacancyId = null): array
+    {
+        $vacancyTrack = $this->normalizeTrack($vacancyType);
+        $otherTrack = $vacancyTrack === 'COS' ? 'Plantilla' : 'COS';
+        $trackCompleteness = $this->getTrackCompletenessByUser($userId);
+
+        $hasMismatch = ($trackCompleteness[$otherTrack] ?? false) && !($trackCompleteness[$vacancyTrack] ?? false);
+
+        return [
+            'hasMismatch' => $hasMismatch,
+            'submittedTrack' => $hasMismatch ? $otherTrack : null,
+            'vacancyTrack' => $vacancyTrack,
+            'redirectUrl' => route('display_c5', [
+                'doc_track' => $vacancyTrack,
+                'vacancy_id' => $vacancyId,
+                'fresh_upload' => 1,
+            ]),
+        ];
+    }
+
+    private function hasCompletedPdsForApply(int $userId): bool
+    {
+        $personalInfo = PersonalInformation::where('user_id', $userId)->first();
+        $familyBackground = FamilyBackground::where('user_id', $userId)->first();
+        $educationBackground = EducationalBackground::where('user_id', $userId)->first();
+        $miscInfo = MiscInfos::where('user_id', $userId)->first();
+        $hasWes = WorkExpSheet::where('user_id', $userId)->exists();
+
+        if (!$personalInfo || !$familyBackground || !$educationBackground || !$miscInfo || !$hasWes) {
+            return false;
+        }
+
+        return $this->hasMeaningfulValue($personalInfo->surname)
+            && $this->hasMeaningfulValue($personalInfo->first_name)
+            && $this->hasMeaningfulValue($personalInfo->mobile_no)
+            && $this->hasMeaningfulValue($personalInfo->email_address)
+            && $this->hasMeaningfulValue($familyBackground->mother_maiden_surname)
+            && $this->hasMeaningfulValue($familyBackground->mother_maiden_first_name)
+            && $this->hasMeaningfulValue($educationBackground->elem_school)
+            && $this->hasMeaningfulValue($educationBackground->jhs_school)
+            && $this->hasMeaningfulValue($miscInfo->govt_id_type)
+            && $this->hasMeaningfulValue($miscInfo->govt_id_number);
+    }
+
+    private function hasMeaningfulValue($value): bool
+    {
+        if (is_array($value)) {
+            return !empty(array_filter($value, fn($item) => $this->hasMeaningfulValue($item)));
+        }
+
+        $normalized = trim((string) $value);
+        return $normalized !== '' && strtoupper($normalized) !== 'NOINPUT';
     }
 
     public function calculatePdsProgress($userId)

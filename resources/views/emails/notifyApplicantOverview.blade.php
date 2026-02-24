@@ -440,17 +440,9 @@
             </thead>
             <tbody>
               @php
-                // Sort documents to prioritize 'Needs Revision' and 'Disapproved With Deficiency'
-                $sortedDocuments = collect($documents)->sortBy(function($doc) {
-                    $status = $doc['status'];
-                    if ($status == 'Needs Revision' || $status == 'Disapproved With Deficiency') {
-                        return 1;
-                    } elseif ($status == 'Not Submitted' || $status == 'Pending') {
-                        return 2;
-                    } elseif ($status == 'Verified' || $status == 'Okay/Confirmed') {
-                        return 3;
-                    }
-                    return 4;
+                // Sort document rows alphabetically by document name.
+                $sortedDocuments = collect($documents)->sortBy(function ($doc) {
+                    return strtolower($doc['text'] ?? $doc['name'] ?? '');
                 });
               @endphp
 
