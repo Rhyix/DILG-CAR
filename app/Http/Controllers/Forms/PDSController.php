@@ -35,6 +35,41 @@ class PDSController extends Controller
         'image/png',
     ];
 
+    public function __construct()
+    {
+        $this->middleware(function (Request $request, $next) {
+            $this->syncPdsSessionOwner($request);
+            return $next($request);
+        });
+    }
+
+    private function syncPdsSessionOwner(Request $request): void
+    {
+        if (!Auth::check()) {
+            return;
+        }
+
+        $user = Auth::user();
+        $ownerKey = implode('|', [
+            'uid:' . (string) $user->id,
+            'email:' . (string) ($user->email ?? ''),
+            'created:' . (string) optional($user->created_at)->timestamp,
+        ]);
+
+        $sessionOwner = (string) $request->session()->get('pds_form_owner', '');
+        if ($sessionOwner !== $ownerKey) {
+            $request->session()->forget([
+                'form',
+                'data_learning',
+                'data_voluntary',
+                'data_otherInfo',
+                'vacancy_doc_uploads',
+            ]);
+        }
+
+        $request->session()->put('pds_form_owner', $ownerKey);
+    }
+
     private function normalizeDateForForm(?string $value): ?string
     {
         if (empty($value)) {
@@ -1246,7 +1281,19 @@ class PDSController extends Controller
             ->whereNotNull('file_storage_path')
             ->exists();
 
+        $applicationVacancyId = request('vacancy_id');
+        $vacancyForApplication = null;
+        if (!empty($applicationVacancyId)) {
+            $vacancyForApplication = Models\JobVacancy::where('vacancy_id', $applicationVacancyId)->first();
+            if (!$vacancyForApplication) {
+                return redirect()->back()->withErrors(['vacancy_id' => 'Selected vacancy was not found.']);
+            }
+        }
+
         $defaultDocTrack = request('doc_track');
+        if ($vacancyForApplication) {
+            $defaultDocTrack = strcasecmp((string) $vacancyForApplication->vacancy_type, 'COS') === 0 ? 'COS' : 'Plantilla';
+        }
         if (!in_array($defaultDocTrack, ['COS', 'Plantilla'], true)) {
             $defaultDocTrack = $latestApplication?->vacancy?->vacancy_type;
         }
@@ -1256,8 +1303,17 @@ class PDSController extends Controller
 
         $requiredDocsByTrack = $this->getRequiredDocsByTrack();
         $documentLabels = $this->getDocumentLabelMap();
+        $isFreshUpload = in_array(request('fresh_upload'), [1, '1', true, 'true'], true) || !empty($applicationVacancyId);
 
-        return view('pds.c5', compact('documents', 'defaultDocTrack', 'requiredDocsByTrack', 'documentLabels', 'hasExistingApplicationLetter'));
+        return view('pds.c5', compact(
+            'documents',
+            'defaultDocTrack',
+            'requiredDocsByTrack',
+            'documentLabels',
+            'hasExistingApplicationLetter',
+            'applicationVacancyId',
+            'isFreshUpload'
+        ));
     }
 
 
@@ -1276,24 +1332,38 @@ class PDSController extends Controller
         if (!in_array($docTrack, ['COS', 'Plantilla'], true)) {
             $docTrack = 'Plantilla';
         }
+        $applicationVacancyId = $request->input('vacancy_id');
+        $vacancyForApplication = null;
+        if (!empty($applicationVacancyId)) {
+            $vacancyForApplication = Models\JobVacancy::where('vacancy_id', $applicationVacancyId)->first();
+            if (!$vacancyForApplication) {
+                return back()->withErrors(['vacancy_id' => 'Selected vacancy was not found.'])->withInput();
+            }
+            $docTrack = strcasecmp((string) $vacancyForApplication->vacancy_type, 'COS') === 0 ? 'COS' : 'Plantilla';
+        }
+
         $requiredDocsByTrack = $this->getRequiredDocsByTrack();
         $requiredDocs = $requiredDocsByTrack[$docTrack];
         $documentLabels = $this->getDocumentLabelMap();
+        $requiresFreshUpload = !empty($applicationVacancyId) || in_array($request->input('fresh_upload'), [1, '1', true, 'true'], true);
 
-        $existingDocs = UploadedDocument::where('user_id', Auth::id())
-            ->whereIn('document_type', $requiredDocs)
-            ->whereNotNull('storage_path')
-            ->pluck('document_type')
-            ->all();
-        $existingDocLookup = array_fill_keys($existingDocs, true);
+        $existingDocLookup = [];
+        if (!$requiresFreshUpload) {
+            $existingDocs = UploadedDocument::where('user_id', Auth::id())
+                ->whereIn('document_type', $requiredDocs)
+                ->whereNotNull('storage_path')
+                ->pluck('document_type')
+                ->all();
+            $existingDocLookup = array_fill_keys($existingDocs, true);
 
-        // Count previously uploaded application letter from Applications records as existing.
-        if (in_array('application_letter', $requiredDocs, true) && !isset($existingDocLookup['application_letter'])) {
-            $hasApplicationLetter = Applications::where('user_id', Auth::id())
-                ->whereNotNull('file_storage_path')
-                ->exists();
-            if ($hasApplicationLetter) {
-                $existingDocLookup['application_letter'] = true;
+            // Count previously uploaded application letter from Applications records as existing.
+            if (in_array('application_letter', $requiredDocs, true) && !isset($existingDocLookup['application_letter'])) {
+                $hasApplicationLetter = Applications::where('user_id', Auth::id())
+                    ->whereNotNull('file_storage_path')
+                    ->exists();
+                if ($hasApplicationLetter) {
+                    $existingDocLookup['application_letter'] = true;
+                }
             }
         }
 
@@ -1392,7 +1462,7 @@ class PDSController extends Controller
 
         $storedPaths = [];
         try {
-            return DB::transaction(function () use ($request, $uploaded_files, &$storedPaths, $go_to) {
+            return DB::transaction(function () use ($request, $uploaded_files, &$storedPaths, $go_to, $applicationVacancyId) {
                 $storedPaths = $this->c5StoreFilesToDB($uploaded_files);
                 
                 // Save declaration checkboxes to database - only if submitted from C5 form
@@ -1788,6 +1858,25 @@ class PDSController extends Controller
                     ->event('save')
                     ->log('Finalized PDS submission.');
 
+                if (!empty($applicationVacancyId)) {
+                    $vacancyUploads = session('vacancy_doc_uploads', []);
+                    $vacancyUploads[$applicationVacancyId] = [
+                        'user_id' => Auth::id(),
+                        'uploaded_at' => now()->toDateTimeString(),
+                    ];
+                    session(['vacancy_doc_uploads' => $vacancyUploads]);
+                }
+
+                if ($go_to === 'job_description') {
+                    $redirectVacancyId = $request->input('redirect_vacancy_id', $applicationVacancyId);
+                    if (!empty($redirectVacancyId)) {
+                        return redirect()
+                            ->route('job_description', ['id' => $redirectVacancyId])
+                            ->with('success', 'Required documents uploaded. You can now continue your application.');
+                    }
+                    return redirect()->route('job_vacancy');
+                }
+
                 return redirect()->route($go_to);
             });
         } catch (\Throwable $e) {
@@ -1886,7 +1975,7 @@ class PDSController extends Controller
             // Requirement requested by user: all required except these 3.
             'Plantilla' => array_values(array_diff(
                 $allDocumentTypes,
-                ['tor_masteraldoctorate', 'grade_masteraldoctorate', 'cert_lgoo_induction']
+                ['tor_masteraldoctorate', 'grade_masteraldoctorate', 'cert_lgoo_induction', 'other_documents']
             )),
         ];
     }

@@ -27,6 +27,8 @@
     if (!in_array($activeTrack, ['COS', 'Plantilla'], true)) {
         $activeTrack = 'Plantilla';
     }
+    $isApplicationFlow = !empty($applicationVacancyId);
+    $requiresFreshUpload = !empty($isFreshUpload);
 @endphp
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         @if ($errors->any())
@@ -39,37 +41,57 @@
             </div>
         @endif
 
-        <form id="myForm" method="POST" action="/pds/finalize/display_final_pds" enctype="multipart/form-data" data-upload-retry="1">
+        <form id="myForm" method="POST" action="/pds/finalize/{{ $isApplicationFlow ? 'job_description' : 'display_final_pds' }}" enctype="multipart/form-data" data-upload-retry="1">
             @csrf
             <input type="hidden" name="doc_track" id="doc-track-input" value="{{ $activeTrack }}">
+            @if($isApplicationFlow)
+                <input type="hidden" name="vacancy_id" value="{{ $applicationVacancyId }}">
+                <input type="hidden" name="redirect_vacancy_id" value="{{ $applicationVacancyId }}">
+            @endif
+            @if($requiresFreshUpload)
+                <input type="hidden" name="fresh_upload" value="1">
+            @endif
 
             <section class="bg-white rounded-2xl shadow-xl p-8 animate-slide-in">
                 <div class="flex items-center justify-between mb-6">
                     <h2 class="text-2xl font-bold text-gray-900">Supporting Documents</h2>
                 </div>
+                @if($requiresFreshUpload)
+                    <div class="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
+                        Fresh upload required for this job application. Please upload the required documents again before continuing.
+                    </div>
+                @endif
                 <p class="text-base font-semibold text-gray-900 mb-6">
                     Reminder: If you need to upload multiple files for a single document, please combine them into one file.
                 </p>
 
                 <div class="border-b border-gray-200 mb-6">
-                    <nav class="flex gap-6">
-                        <button
-                            id="tab-cos"
-                            type="button"
-                            onclick="switchDocTrack('COS')"
-                            class="tab-button pb-2 font-bold text-sm uppercase tracking-wide transition-all duration-200"
-                        >
-                            COS
-                        </button>
-                        <button
-                            id="tab-plantilla"
-                            type="button"
-                            onclick="switchDocTrack('Plantilla')"
-                            class="tab-button pb-2 font-bold text-sm uppercase tracking-wide transition-all duration-200"
-                        >
-                            Plantilla
-                        </button>
-                    </nav>
+                    @if($isApplicationFlow)
+                        <div class="pb-2">
+                            <span class="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-bold uppercase tracking-wide text-slate-700">
+                                Document Track: {{ $activeTrack }}
+                            </span>
+                        </div>
+                    @else
+                        <nav class="flex gap-6">
+                            <button
+                                id="tab-cos"
+                                type="button"
+                                onclick="switchDocTrack('COS')"
+                                class="tab-button pb-2 font-bold text-sm uppercase tracking-wide transition-all duration-200"
+                            >
+                                COS
+                            </button>
+                            <button
+                                id="tab-plantilla"
+                                type="button"
+                                onclick="switchDocTrack('Plantilla')"
+                                class="tab-button pb-2 font-bold text-sm uppercase tracking-wide transition-all duration-200"
+                            >
+                                Plantilla
+                            </button>
+                        </nav>
+                    @endif
                 </div>
 
                 <p id="doc-track-hint" class="mb-6 text-sm text-slate-600"></p>
@@ -80,8 +102,10 @@
                         $doc = $documents[$docType] ?? null;
                         $status = trim((string) ($doc->status ?? ''));
                         $isApproved = strcasecmp($status, 'Okay/Confirmed') === 0;
-                        $hasExisting = !empty($doc?->storage_path)
-                            || ($docType === 'application_letter' && !empty($hasExistingApplicationLetter));
+                        $hasExisting = !$requiresFreshUpload && (
+                            !empty($doc?->storage_path)
+                            || ($docType === 'application_letter' && !empty($hasExistingApplicationLetter))
+                        );
                         $requiredCos = in_array($docType, $requiredDocsByTrack['COS'] ?? [], true);
                         $requiredPlantilla = in_array($docType, $requiredDocsByTrack['Plantilla'] ?? [], true);
                         $requiredNow = $activeTrack === 'COS' ? $requiredCos : $requiredPlantilla;
@@ -105,30 +129,32 @@
                                 </span>
                             </h3>
 
-                            @if ($isApproved)
+                            @if ($isApproved && !$requiresFreshUpload)
                                 <div class="text-green-600 text-sm font-semibold">
                                     This document is already approved.
                                 </div>
                             @else
-                                <label
-                                    for="{{ $inputId }}"
-                                    class="cert-upload-area inline-flex items-center justify-center border border-gray-300 p-1 rounded cursor-pointer"
-                                >
-                                    <span class="material-icons text-5xl {{ $hasExisting ? 'text-green-500' : 'text-blue-400' }}">
-                                        cloud_upload
-                                    </span>
-                                </label>
-                                <input
-                                    type="file"
-                                    id="{{ $inputId }}"
-                                    name="cert_uploads[{{ $docType }}]"
-                                    accept="{{ $meta['accept'] }}"
-                                    class="doc-upload-input absolute opacity-0 w-px h-px"
-                                    data-has-existing="{{ $hasExisting ? 1 : 0 }}"
-                                    data-required-cos="{{ $requiredCos ? 1 : 0 }}"
-                                    data-required-plantilla="{{ $requiredPlantilla ? 1 : 0 }}"
-                                    {{ ($requiredNow && !$hasExisting) ? 'required' : '' }}
-                                >
+                                <div class="flex items-center gap-3">
+                                    <label
+                                        for="{{ $inputId }}"
+                                        class="cert-upload-area inline-flex items-center justify-center border border-gray-300 p-1 rounded cursor-pointer"
+                                    >
+                                        <span class="material-icons text-5xl {{ $hasExisting ? 'text-green-500' : 'text-blue-400' }}">
+                                            {{ $hasExisting ? 'check_circle' : 'cloud_upload' }}
+                                        </span>
+                                    </label>
+                                    <input
+                                        type="file"
+                                        id="{{ $inputId }}"
+                                        name="cert_uploads[{{ $docType }}]"
+                                        accept="{{ $meta['accept'] }}"
+                                        class="doc-upload-input absolute opacity-0 w-px h-px"
+                                        data-has-existing="{{ $hasExisting ? 1 : 0 }}"
+                                        data-required-cos="{{ $requiredCos ? 1 : 0 }}"
+                                        data-required-plantilla="{{ $requiredPlantilla ? 1 : 0 }}"
+                                        {{ ($requiredNow && !$hasExisting) ? 'required' : '' }}
+                                    >
+                                </div>
                             @endif
                         </div>
                     </div>
@@ -177,7 +203,7 @@
             </section>
 
             <div class="flex flex-col sm:flex-row justify-between items-center mt-8 gap-4">
-                <button type="button" onclick="window.location.href='{{ route('display_wes') }}'" class="use-loader w-full sm:w-auto px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors duration-200 flex items-center justify-center">
+                <button type="button" onclick="window.location.href='{{ $isApplicationFlow ? route('job_description', ['id' => $applicationVacancyId]) : route('display_wes') }}'" class="use-loader w-full sm:w-auto px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors duration-200 flex items-center justify-center">
                     <span class="material-icons mr-2">arrow_back</span>
                     Previous
                 </button>
@@ -198,6 +224,9 @@
 @endsection
 
 <script>
+    const lockDocTrack = @json($isApplicationFlow);
+    const lockedTrack = @json($activeTrack);
+
     function reorderDocumentRows(track) {
         const container = document.getElementById('documents-container');
         if (!container) return;
@@ -225,16 +254,21 @@
 
     function switchDocTrack(track) {
         const normalized = track === 'COS' ? 'COS' : 'Plantilla';
+        if (lockDocTrack && normalized !== lockedTrack) {
+            return;
+        }
         const hiddenInput = document.getElementById('doc-track-input');
         if (hiddenInput) hiddenInput.value = normalized;
 
         const cosBtn = document.getElementById('tab-cos');
         const plantillaBtn = document.getElementById('tab-plantilla');
         const activate = (btn) => {
+            if (!btn) return;
             btn.classList.add('text-[#0D2B70]', 'border-b-2', 'border-[#0D2B70]');
             btn.classList.remove('text-gray-400', 'border-transparent');
         };
         const deactivate = (btn) => {
+            if (!btn) return;
             btn.classList.remove('text-[#0D2B70]', 'border-b-2', 'border-[#0D2B70]');
             btn.classList.add('text-gray-400', 'border-b-2', 'border-transparent');
         };
@@ -249,9 +283,11 @@
 
         const hint = document.getElementById('doc-track-hint');
         if (hint) {
-            hint.textContent = normalized === 'COS'
+            hint.textContent = lockDocTrack
+                ? `This application uses ${normalized} requirements.`
+                : normalized === 'COS'
                 ? 'COS requirements are active. Required documents are based on COS vacancy rules.'
-                : 'Plantilla requirements are active. All documents are required except TOR with masteral/doctorate, Certificate of Grades with masteral/doctorate, and LGOO induction certificate.';
+                : 'Plantilla requirements are active. All documents are required except TOR with masteral/doctorate, Certificate of Grades with masteral/doctorate, LGOO induction certificate, and Other Documents Submitted.';
         }
 
         document.querySelectorAll('.doc-required-badge').forEach((badge) => {
@@ -282,23 +318,36 @@
         const initialTrack = document.getElementById('doc-track-input')?.value || 'Plantilla';
         switchDocTrack(initialTrack);
 
+        const updateUploadState = (input) => {
+            const row = input.closest('.doc-row');
+            if (!row) return;
+
+            const label = row.querySelector('.cert-upload-area');
+            const icon = label?.querySelector('.material-icons');
+            if (!label || !icon) return;
+
+            const hasExisting = input.dataset.hasExisting === '1';
+            const hasSelectedFile = (input.files?.length || 0) > 0;
+
+            if (hasSelectedFile) {
+                label.classList.add('bg-green-100', 'border-green-400');
+                icon.textContent = 'upload_file';
+                icon.classList.remove('text-blue-400');
+                icon.classList.add('text-green-500');
+                return;
+            }
+
+            label.classList.remove('bg-green-100', 'border-green-400');
+            icon.textContent = hasExisting ? 'check_circle' : 'cloud_upload';
+            icon.classList.remove('text-green-500', 'text-blue-400');
+            icon.classList.add(hasExisting ? 'text-green-500' : 'text-blue-400');
+        };
+
         document.querySelectorAll('.doc-upload-input').forEach((input) => {
             input.addEventListener('change', function () {
-                const label = input.previousElementSibling;
-                if (!label) return;
-                const icon = label.querySelector('.material-icons');
-                if (!icon) return;
-
-                if (input.files.length > 0) {
-                    label.classList.add('bg-green-100', 'border-green-400');
-                    icon.classList.remove('text-blue-400');
-                    icon.classList.add('text-green-500');
-                } else {
-                    label.classList.remove('bg-green-100', 'border-green-400');
-                    icon.classList.remove('text-green-500');
-                    icon.classList.add('text-blue-400');
-                }
+                updateUploadState(input);
             });
+            updateUploadState(input);
         });
     });
 

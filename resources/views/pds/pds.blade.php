@@ -573,7 +573,12 @@
     const resProvince = document.querySelector('#res_province');
     const resCity = document.querySelector('#res_city');
     const resBrgy = document.querySelector('#res_brgy');
-    const pageKey = 'pds:' + window.location.pathname.toLowerCase();
+    const userStorageKey = @json(
+        auth()->check()
+            ? ('uid:' . auth()->id() . '|email:' . auth()->user()->email . '|created:' . optional(auth()->user()->created_at)->timestamp)
+            : 'guest'
+    );
+    const pageKey = 'pds:' + userStorageKey + ':' + window.location.pathname.toLowerCase();
     let savedState = {};
     try { savedState = JSON.parse(localStorage.getItem(pageKey) || '{}'); } catch(e) {}
     const perProvinceName = savedState.per_province ?? "{{ old('per_province', session('form.c1.per_province')) }}";

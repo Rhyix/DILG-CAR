@@ -473,10 +473,10 @@
     </style>
     @livewireStyles
 </head>
-<body class="bg-gradient-to-br from-blue-50 via-white to-indigo-50 min-h-screen">
-    @php
-        $simple = in_array(request()->input('simple'), [1, '1', true, 'true'], true);
-    @endphp
+@php
+    $simple = in_array(request()->input('simple'), [1, '1', true, 'true'], true);
+@endphp
+<body class="bg-gradient-to-br from-blue-50 via-white to-indigo-50 {{ $simple ? 'h-screen overflow-hidden' : 'min-h-screen' }}">
     <!-- Notification Container -->
     <div id="notificationContainer"></div>
 
@@ -1130,8 +1130,13 @@
     <script>
         (function(){
             const keyPrefix = 'pds:';
-            const pageKey = keyPrefix + window.location.pathname.toLowerCase();
-            const coreKey = keyPrefix + 'core';
+            const userStorageKey = @json(
+                auth()->check()
+                    ? ('uid:' . auth()->id() . '|email:' . auth()->user()->email . '|created:' . optional(auth()->user()->created_at)->timestamp)
+                    : 'guest'
+            );
+            const pageKey = keyPrefix + userStorageKey + ':' + window.location.pathname.toLowerCase();
+            const coreKey = keyPrefix + userStorageKey + ':core';
             function getStore() {
                 try {
                     localStorage.setItem('__pds_test__','1'); localStorage.removeItem('__pds_test__');

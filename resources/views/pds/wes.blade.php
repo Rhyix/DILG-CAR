@@ -3,7 +3,7 @@
 @section('content')
   <form id="workExperienceForm" action="{{ route('work_experience_store') }}" method="POST">
     @csrf
-    <input type="hidden" name="after_action" id="after_action" value="save">
+    <input type="hidden" name="after_action" id="after_action" value="next">
 
     <main class="max-w-full md:max-w-6xl mx-auto bg-white border border-gray-200 p-6 md:p-8 rounded-2xl shadow-lg" x-data="{
                 entries: (() => {
@@ -160,37 +160,20 @@
 
     <div class="max-w-full md:max-w-5xl mx-auto mt-6 flex flex-col md:flex-row gap-4 justify-between items-center">
       <button type="button" onclick="window.location.href='{{ route('display_c4') }}'"
-        class="use-loader w-full md:w-auto bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 flex items-center gap-1 justify-center">
-        ← Previous
+        class="use-loader w-full sm:w-auto px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors duration-200 flex items-center justify-center">
+        <span class="material-icons mr-2">arrow_back</span>
+        Previous
       </button>
 
       <div class="flex flex-col sm:flex-row gap-4 w-full md:w-auto justify-end">
-        <button type="button" onclick="submitWithDownload()"
-          class="bg-blue-800 text-white px-4 py-2 rounded-lg hover:bg-blue-900 flex items-center gap-1 justify-center">
-          Download WES
-        </button>
-        <button type="submit" onclick="document.getElementById('after_action').value = 'save';"
+        <button type="submit" onclick="document.getElementById('after_action').value = 'next';"
           class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-1 justify-center">
           Save
-        </button>
-        <button type="submit" onclick="document.getElementById('after_action').value = 'next';"
-          class="use-loader bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-semibold flex items-center gap-1 justify-center transition-colors duration-200">
-          Next
-          <span class="material-icons ml-2">arrow_forward</span>
         </button>
       </div>
     </div>
   </form>
 
-  <script>
-    function submitWithDownload() {
-      const actionField = document.getElementById('after_action');
-      const form = document.getElementById('workExperienceForm');
-      if (!actionField || !form) return alert('Form not found.');
-      actionField.value = 'download';
-      form.submit();
-    }
-  </script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script>

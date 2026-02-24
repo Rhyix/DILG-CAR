@@ -9,6 +9,20 @@ use App\Http\Controllers\Controller; // Make sure to import the base Controller 
 
 class AdminAuthController extends Controller
 {
+    private function clearPdsSessionCache(Request $request): void
+    {
+        $request->session()->forget([
+            'form',
+            'data_learning',
+            'data_voluntary',
+            'data_otherInfo',
+            'vacancy_doc_uploads',
+            'pds_form_owner',
+            'redirect_after_login',
+            'pending_registration',
+        ]);
+    }
+
     public function showLoginForm()
     {
         if (Auth::guard('admin')->check()) {
@@ -38,6 +52,7 @@ public function login(Request $request)
     }
 
     if (Auth::check()) {
+        $this->clearPdsSessionCache($request);
         Auth::logout();
     }
 
@@ -109,13 +124,15 @@ public function login(Request $request)
 
     public function logout(Request $request)
     {
+        $admin = Auth::guard('admin')->user();
+        $this->clearPdsSessionCache($request);
         Auth::guard('admin')->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
         activity()
             ->withProperties(['section' => 'Login'])
-            ->causedBy(auth()->guard('admin')->user())
+            ->causedBy($admin)
             ->log('Admin logged out.');
 
         return redirect('/admin/login');

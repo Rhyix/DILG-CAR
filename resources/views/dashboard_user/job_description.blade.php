@@ -21,6 +21,30 @@
 @extends('layout.app')
 @section('title', 'DILG - Job Description')
 @section('content')
+    @php
+        $requiredDocsPayload = session('required_docs_prompt');
+        $showRequiredDocsModalOnLoad = is_array($requiredDocsPayload);
+        $showPdsRequiredModalOnLoad = (bool) session('pds_required_prompt', false);
+
+        $mismatchPayload = session('doc_track_mismatch');
+        $showMismatchModalOnLoad = is_array($mismatchPayload);
+        $hasDocTrackMismatch = ($docTrackMismatch ?? false) || $showMismatchModalOnLoad;
+        $submittedTrackForModal = $mismatchPayload['submitted_track'] ?? ($mismatchSubmittedTrack ?? null);
+        $vacancyTrackForModal = $mismatchPayload['vacancy_track'] ?? ($vacancyTrack ?? 'Plantilla');
+        $docUploadRedirectUrlForModal = $mismatchPayload['redirect_url']
+            ?? ($docUploadRedirectUrl ?? route('display_c5', ['doc_track' => $vacancyTrackForModal]));
+        $requiredDocsTrackForModal = $requiredDocsPayload['vacancy_track'] ?? $vacancyTrackForModal;
+        $requiredDocsRedirectUrlForModal = $requiredDocsPayload['redirect_url']
+            ?? ($docUploadRedirectUrl ?? route('display_c5', ['doc_track' => $requiredDocsTrackForModal]));
+        $requiredDocsPreviewFromPayload = is_array($requiredDocsPayload['preview_docs'] ?? null)
+            ? $requiredDocsPayload['preview_docs']
+            : [];
+        $requiredDocsPreviewForModal = !empty($requiredDocsPreviewFromPayload)
+            ? $requiredDocsPreviewFromPayload
+            : ($requiredDocsPreview ?? []);
+        $hasMissingRequiredDocsForModal = ($hasMissingRequiredDocs ?? false) || $showRequiredDocsModalOnLoad;
+        $hasIncompletePdsForApply = !($hasCompletedPdsForApply ?? false);
+    @endphp
     <main class="flex-1 min-w-0 space-y-8 font-montserrat">
 
         <!-- Header Section -->
@@ -83,11 +107,9 @@
                     @elseif (!$isClosed)
                     <!-- Apply Button -->
                         <button type="button"
-                            {{ !$hasPDS ? 'disabled' : '' }}
                             onclick="openApplyModal()"
-                            class="flex items-center justify-center gap-2 px-6 py-3 rounded-full text-sm font-semibold shadow transition w-full md:w-auto
-                                  {{ !$hasPDS ? 'bg-gray-400 cursor-not-allowed text-white' : 'bg-green-600 hover:bg-green-700 text-white' }}">
-                            <i data-feather="arrow-right" class="w-4 h-4"></i> {{ !$hasPDS ? 'NO PDS YET' : 'APPLY' }}
+                            class="flex items-center justify-center gap-2 px-6 py-3 rounded-full text-sm font-semibold shadow transition w-full md:w-auto bg-green-600 hover:bg-green-700 text-white">
+                            <i data-feather="arrow-right" class="w-4 h-4"></i> APPLY
                         </button>
                     @else
                     <!-- Application Closed Button -->
@@ -98,10 +120,12 @@
                     @endif
 
                     <!-- PDS Button -->
-                    <button onclick="window.location.href='{{ route('display_c1') }}'"
-                        class="use-loader flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow transition w-full md:w-auto">
-                        <i data-feather="arrow-right" class="w-4 h-4"></i> {{ !$hasPDS ? 'CREATE PDS' : 'UPDATE PDS' }}
-                    </button>
+                    @if($hasIncompletePdsForApply)
+                        <button onclick="window.location.href='{{ route('display_c1') }}'"
+                            class="use-loader flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow transition w-full md:w-auto">
+                            <i data-feather="arrow-right" class="w-4 h-4"></i> COMPLETE PDS
+                        </button>
+                    @endif
 
                     <!-- Work Experience Sheet Button - REMOVED -->
                 </div>
@@ -122,6 +146,97 @@
                         <button type="submit" class="use-loader px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Submit Application</button>
                     </div>
                 </form>
+            </div>
+        </div>
+
+        <!-- Complete PDS First Modal -->
+        <div id="pdsRequiredModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden">
+            <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
+                <h2 class="text-lg font-semibold text-[#002C76] mb-4">Complete Personal Data Sheet First</h2>
+                <p class="text-sm text-gray-700 mb-6">
+                    You need to complete your Personal Data Sheet from Personal Information up to Work Experience Sheet before applying for a job.
+                </p>
+
+                <div class="flex justify-end gap-2">
+                    <button type="button" onclick="closePdsRequiredModal()" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">
+                        Close
+                    </button>
+                    <button type="button" onclick="window.location.href='{{ route('display_c1') }}'" class="use-loader px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                        Go to PDS
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Required Documents Preview Modal -->
+        <div id="requiredDocsModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden">
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-0 overflow-hidden">
+                <div class="bg-[#0D2B70] px-6 py-4">
+                    <h2 class="text-lg font-semibold text-white">
+                        Required Documents ({{ $requiredDocsTrackForModal }})
+                    </h2>
+                    <p class="text-sm text-blue-100 mt-1">
+                        Upload these documents to continue your application.
+                    </p>
+                </div>
+
+                <div class="p-6">
+                <p class="text-sm text-gray-700 mb-4">
+                    Each job application requires a fresh document submission.
+                </p>
+
+                <div class="max-h-72 overflow-y-auto border border-gray-200 rounded-xl p-4 mb-6 bg-slate-50">
+                    <ul class="space-y-3">
+                        @forelse($requiredDocsPreviewForModal as $doc)
+                            @php
+                                $docLabel = is_array($doc) ? ($doc['label'] ?? 'Document') : 'Document';
+                            @endphp
+                            <li class="flex items-start gap-3 rounded-lg bg-white border border-slate-200 p-3">
+                                <span class="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#0D2B70] text-[11px] font-bold text-white">
+                                    {{ $loop->iteration }}
+                                </span>
+                                <span class="text-sm text-slate-800 leading-5">{{ $docLabel }}</span>
+                            </li>
+                        @empty
+                            <li class="text-sm text-gray-500">No required documents found.</li>
+                        @endforelse
+                    </ul>
+                </div>
+
+                <div class="flex justify-end gap-2">
+                    <button type="button" onclick="closeRequiredDocsModal()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
+                        Cancel
+                    </button>
+                    <button type="button" onclick="window.location.href='{{ $requiredDocsRedirectUrlForModal }}'" class="use-loader px-4 py-2 bg-[#0D2B70] text-white rounded-lg hover:bg-[#0A245D]">
+                        Confirm and Go to Upload PDF
+                    </button>
+                </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Document Track Mismatch Modal -->
+        <div id="docTrackMismatchModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden">
+            <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
+                <h2 class="text-lg font-semibold text-[#002C76] mb-4">Required Documents Mismatch</h2>
+                <p class="text-sm text-gray-700 mb-6">
+                    @if($submittedTrackForModal)
+                        You submitted <span class="font-semibold">{{ $submittedTrackForModal }}</span> documents,
+                        but this vacancy is <span class="font-semibold">{{ $vacancyTrackForModal }}</span>.
+                    @else
+                        This vacancy requires <span class="font-semibold">{{ $vacancyTrackForModal }}</span> documents.
+                    @endif
+                    Please upload the required {{ $vacancyTrackForModal }} documents first.
+                </p>
+
+                <div class="flex justify-end gap-2">
+                    <button type="button" onclick="closeDocTrackMismatchModal()" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">
+                        Close
+                    </button>
+                    <button type="button" onclick="window.location.href='{{ $docUploadRedirectUrlForModal }}'" class="use-loader px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                        Go to Upload PDF ({{ $vacancyTrackForModal }})
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -247,6 +362,24 @@
 
 <script>
     function openApplyModal() {
+        const hasIncompletePds = @json($hasIncompletePdsForApply);
+        if (hasIncompletePds) {
+            document.getElementById('pdsRequiredModal').classList.remove('hidden');
+            return;
+        }
+
+        const hasMissingRequiredDocs = @json($hasMissingRequiredDocsForModal);
+        if (hasMissingRequiredDocs) {
+            document.getElementById('requiredDocsModal').classList.remove('hidden');
+            return;
+        }
+
+        const hasDocTrackMismatch = @json($hasDocTrackMismatch);
+        if (hasDocTrackMismatch) {
+            document.getElementById('docTrackMismatchModal').classList.remove('hidden');
+            return;
+        }
+
         document.getElementById('applyModal').classList.remove('hidden');
     }
 
@@ -254,10 +387,37 @@
         document.getElementById('applyModal').classList.add('hidden');
     }
 
+    function closePdsRequiredModal() {
+        document.getElementById('pdsRequiredModal').classList.add('hidden');
+    }
+
+    function closeRequiredDocsModal() {
+        document.getElementById('requiredDocsModal').classList.add('hidden');
+    }
+
+    function closeDocTrackMismatchModal() {
+        document.getElementById('docTrackMismatchModal').classList.add('hidden');
+    }
+
     // Re-initialize Feather Icons
     document.addEventListener('DOMContentLoaded', function() {
         if (typeof feather !== 'undefined') {
             feather.replace();
+        }
+
+        const showPdsRequiredModalOnLoad = @json($showPdsRequiredModalOnLoad);
+        if (showPdsRequiredModalOnLoad) {
+            document.getElementById('pdsRequiredModal').classList.remove('hidden');
+        }
+
+        const showRequiredDocsModalOnLoad = @json($showRequiredDocsModalOnLoad);
+        if (showRequiredDocsModalOnLoad) {
+            document.getElementById('requiredDocsModal').classList.remove('hidden');
+        }
+
+        const showMismatchModalOnLoad = @json($showMismatchModalOnLoad);
+        if (showMismatchModalOnLoad) {
+            document.getElementById('docTrackMismatchModal').classList.remove('hidden');
         }
     });
 </script>

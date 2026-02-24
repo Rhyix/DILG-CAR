@@ -11,6 +11,18 @@ use Illuminate\Support\Facades\Http;
 
 class LoginController extends Controller
 {
+    private function clearPdsSessionCache(Request $request): void
+    {
+        $request->session()->forget([
+            'form',
+            'data_learning',
+            'data_voluntary',
+            'data_otherInfo',
+            'vacancy_doc_uploads',
+            'pds_form_owner',
+        ]);
+    }
+
     public function showLoginForm(Request $request)
     {
         if (Auth::user()) {
@@ -90,6 +102,7 @@ class LoginController extends Controller
 
         if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
+            $this->clearPdsSessionCache($request);
 
             activity()->log('login');
 

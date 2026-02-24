@@ -65,6 +65,15 @@ class AdminController extends Controller
         'transcript_records' => ['transcript'],
         'photocopy_diploma' => ['diploma'],
     ];
+    private const COS_REQUIRED_DOCUMENTS = [
+        'passport_photo',
+        'signed_pds',
+        'signed_work_exp_sheet',
+        'photocopy_diploma',
+        'tor_masteraldoctorate',
+        'application_letter',
+        'cert_training',
+    ];
 
     public function __construct()
     {
@@ -364,6 +373,7 @@ class AdminController extends Controller
                 // If status is null/empty for application letter, it might mean not submitted if file is missing,
                 // but usually there's a file_storage_path.
                 // Let's rely on file existence check in previewDocument, but here we just generate the link.
+                $hasFile = !empty($application->file_storage_path);
 
                 $documents[] = [
                     'id' => 'application_letter',
@@ -372,11 +382,14 @@ class AdminController extends Controller
                     'status' => $status,
                     'preview' => route('admin.preview_document', ['user_id' => $user_id, 'vacancy_id' => $application->vacancy_id, 'document_type' => 'application_letter']),
                     'remarks' => $application->file_remarks ?? '',
+                    'original_name' => $application->file_original_name ?? '',
+                    'has_file' => $hasFile,
                     'last_modified_by' => $application->file_last_modified_by ?? 'N/A',
                     'isBold' => true,
                 ];
             } else {
                 $doc = $this->resolveUploadedDocument($uploadedDocuments, $docType);
+                $hasFile = $doc && !empty($doc->storage_path) && $doc->storage_path !== 'NOINPUT';
                 $status = $doc ? $doc->status : 'Not Submitted';
                 $documents[] = [
                     'id' => $docType,
@@ -386,6 +399,7 @@ class AdminController extends Controller
                     'preview' => route('admin.preview_document', ['user_id' => $user_id, 'vacancy_id' => $application->vacancy_id, 'document_type' => $docType]),
                     'remarks' => $doc ? ($doc->remarks ?: '') : '',
                     'original_name' => $doc->original_name ?? '',
+                    'has_file' => $hasFile,
                     'last_modified_by' => $doc->last_modified_by ?? 'N/A',
                     'isBold' => true,
                 ];
@@ -407,6 +421,71 @@ class AdminController extends Controller
             }
         }
         return $doc ?: null;
+    }
+
+    private function getRequiredDocsByTrack(): array
+    {
+        $allDocumentTypes = array_values(array_filter(
+            UploadedDocument::DOCUMENTS,
+            fn($doc) => $doc !== 'isApproved'
+        ));
+
+        return [
+            'COS' => self::COS_REQUIRED_DOCUMENTS,
+            'Plantilla' => array_values(array_diff(
+                $allDocumentTypes,
+                ['tor_masteraldoctorate', 'grade_masteraldoctorate', 'cert_lgoo_induction', 'other_documents']
+            )),
+        ];
+    }
+
+    private function normalizeTrack(?string $track): string
+    {
+        return strcasecmp((string) $track, 'COS') === 0 ? 'COS' : 'Plantilla';
+    }
+
+    private function sortDocumentsAscending(array $documents): array
+    {
+        usort($documents, function ($a, $b) {
+            $labelA = strtolower((string) ($a['text'] ?? $a['name'] ?? $a['id'] ?? ''));
+            $labelB = strtolower((string) ($b['text'] ?? $b['name'] ?? $b['id'] ?? ''));
+            return $labelA <=> $labelB;
+        });
+
+        return $documents;
+    }
+
+    private function isDocumentSubmitted(array $doc): bool
+    {
+        $status = (string) ($doc['status'] ?? 'Not Submitted');
+        $hasFile = (bool) ($doc['has_file'] ?? false);
+
+        if ($doc['id'] === 'application_letter') {
+            return $hasFile && $status !== 'Not Submitted';
+        }
+
+        return $hasFile;
+    }
+
+    private function filterDocumentsForNotify(array $documents, array $requiredDocumentIds): array
+    {
+        $requiredLookup = array_fill_keys($requiredDocumentIds, true);
+
+        $filtered = array_values(array_filter($documents, function ($doc) use ($requiredLookup) {
+            $docId = (string) ($doc['id'] ?? '');
+            if ($docId === '') {
+                return false;
+            }
+
+            if (isset($requiredLookup[$docId])) {
+                return true;
+            }
+
+            // Optional documents: include only when a file was actually submitted.
+            return $this->isDocumentSubmitted($doc);
+        }));
+
+        return $this->sortDocumentsAscending($filtered);
     }
 
     public function viewApplicantStatus($user_id, $vacancy_id)
@@ -436,7 +515,14 @@ class AdminController extends Controller
         $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->first();
         $adminName = $application->updatedByAdmin?->username ?? null;
 
-        $documents = $this->getApplicantDocuments($user_id, $application);
+        $documents = $this->sortDocumentsAscending($this->getApplicantDocuments($user_id, $application));
+        $vacancyTrack = $this->normalizeTrack($vacancy->vacancy_type);
+        $requiredDocumentIds = $this->getRequiredDocsByTrack()[$vacancyTrack] ?? [];
+        usort($requiredDocumentIds, function ($a, $b) {
+            $labelA = strtolower(self::DOCUMENT_LABELS[$a] ?? $a);
+            $labelB = strtolower(self::DOCUMENT_LABELS[$b] ?? $b);
+            return $labelA <=> $labelB;
+        });
 
         activity()
             ->causedBy(auth('admin')->user())
@@ -458,6 +544,7 @@ class AdminController extends Controller
             'documents' => $documents,
             'admin_name' => $adminName,
             'vacancy_type' => $vacancy->vacancy_type, // Needed for Phase 4
+            'requiredDocumentIds' => $requiredDocumentIds,
         ]);
     }
 
@@ -731,7 +818,7 @@ class AdminController extends Controller
             ->where('vacancy_id', $vacancy_id)
             ->first();
 
-        $documents = $this->getApplicantDocuments($user_id, $application);
+        $documents = $this->sortDocumentsAscending($this->getApplicantDocuments($user_id, $application));
 
         return response()->json([
             'documents' => $documents,
@@ -811,8 +898,13 @@ class AdminController extends Controller
         // We trust the HR's explicitly validated QS variables instead of overwriting them.
         // Removed recalculateQualificationStatus from here to respect the modal's selected radio buttons.
 
-        $documents = $this->getApplicantDocuments($user_id, $application);
-        $userDocumentsSnapshot = $this->buildUserDocumentsSnapshot($user_id, $application);
+        $vacancy = JobVacancy::where('vacancy_id', $vacancy_id)->first();
+        $vacancyTrack = $this->normalizeTrack($vacancy->vacancy_type ?? null);
+        $requiredDocumentIds = $this->getRequiredDocsByTrack()[$vacancyTrack] ?? [];
+
+        $documents = $this->sortDocumentsAscending($this->getApplicantDocuments($user_id, $application));
+        $userDocumentsSnapshot = $this->sortDocumentsAscending($this->buildUserDocumentsSnapshot($user_id, $application));
+        $notifyDocumentsSnapshot = $this->filterDocumentsForNotify($userDocumentsSnapshot, $requiredDocumentIds);
 
         // --- Logic Check for Application Status Update ---
         $hasNeedsRevision = false;
@@ -865,7 +957,6 @@ class AdminController extends Controller
         $progressCount = "$verifiedCount/$totalDocuments";
 
         // --- Retrieve Job Vacancy Details ---
-        $vacancy = JobVacancy::where('vacancy_id', $vacancy_id)->first();
         $placeOfAssignment = $vacancy->place_of_assignment ?? 'N/A';
         $compensation = $vacancy->monthly_salary ?? 0;
         $vacancyType = $vacancy->vacancy_type ?? 'Plantilla';
@@ -921,7 +1012,7 @@ class AdminController extends Controller
                 'message' => $messageBody,
                 'level' => $messageLevel,
                 'action_url' => route('application_status', ['user' => $user_id, 'vacancy' => $vacancy_id]),
-                'documents' => $userDocumentsSnapshot,
+                'documents' => $notifyDocumentsSnapshot,
                 'application_status' => $application->status,
                 'application_remarks' => $application->application_remarks,
                 'qs_education' => $qsEducation,
@@ -940,7 +1031,7 @@ class AdminController extends Controller
             Mail::to($userEmail)->send(new NotifyApplicantOverview(
                 $user_id,
                 $vacancy_id,
-                $userDocumentsSnapshot,
+                $notifyDocumentsSnapshot,
                 $application->application_remarks,
                 $placeOfAssignment,
                 $compensation,
@@ -1026,6 +1117,7 @@ class AdminController extends Controller
                 continue;
 
             if ($docType === 'application_letter') {
+                $hasFile = !empty($application->file_storage_path);
                 $documents[] = [
                     'id' => 'application_letter',
                     'doc_id' => null,
@@ -1036,6 +1128,8 @@ class AdminController extends Controller
                         ? url('/preview-file/' . base64_encode($application->file_storage_path))
                         : '',
                     'remarks' => $application->file_remarks ?? '',
+                    'original_name' => $application->file_original_name ?? '',
+                    'has_file' => $hasFile,
                     'last_modified_by' => $application->file_last_modified_by ?? null,
                     'isBold' => true,
                 ];
@@ -1052,6 +1146,8 @@ class AdminController extends Controller
                 'status' => $hasFile ? ($doc->status ?? 'Pending') : 'Not Submitted',
                 'preview' => $hasFile ? url('/preview-file/' . base64_encode($doc->storage_path)) : '',
                 'remarks' => $doc ? ($doc->remarks ?: '') : '',
+                'original_name' => $doc->original_name ?? '',
+                'has_file' => $hasFile,
                 'last_modified_by' => $doc->last_modified_by ?? null,
                 'isBold' => true,
             ];
