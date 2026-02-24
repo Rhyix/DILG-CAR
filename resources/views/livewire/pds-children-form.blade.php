@@ -50,9 +50,9 @@
     <button
         type="button"
         wire:click.prevent="addEmptyChild"
-        class="use-loader text-green-600 border border-green-400 font-bold py-1 px-4 rounded-md text-sm 
-            transition-all duration-300 hover:scale-105 hover:bg-green-400 
-            hover:text-white hover:shadow-md inline-flex items-center gap-2 mx-auto"
+        class="use-loader text-white bg-green-400 border border-green-400 font-bold py-1 px-4 rounded-md text-sm 
+            transition-all duration-300 hover:scale-105 hover:bg-white 
+            hover:text-green-400 hover:shadow-md inline-flex items-center gap-2 mx-auto"
         >
         <span class="text-lg">+</span>
         Add Another Child

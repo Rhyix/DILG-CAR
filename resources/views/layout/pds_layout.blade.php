@@ -541,7 +541,7 @@
                 
                 <!-- Desktop Info -->
                 <div class="hidden md:flex items-center space-x-4">
-                    <span class="text-sm text-gray-500">CS Form No. 212 (Revised 2017)</span>
+                    <span class="text-sm text-gray-500">CS Form No. 212 (Revised 2025)</span>
                 </div>
             </div>
         </div>

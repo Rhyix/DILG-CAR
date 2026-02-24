@@ -1,9 +1,15 @@
 <section class="mb-10">
     <div class="flex items-center justify-between mb-4">
         <h3 class="text-xl font-semibold text-gray-700">{{ $education_type_meta['title'] }}</h3>
-        <button wire:click="addRow" id="add-vocational-btn" type="button"
-                class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">
-            Add {{ $education_type }}
+        <button
+            wire:click="addRow"
+            id="add-{{ $education_type }}-btn"
+            type="button"
+            class="use-loader text-green-600 border border-green-400 font-bold py-2 px-4 rounded-md text-sm 
+                   transition-all duration-300 hover:scale-105 hover:bg-green-400 hover:text-white hover:shadow-md 
+                   inline-flex items-center gap-2">
+            <span class="text-lg">+</span>
+            Add {{ ucfirst($education_type) }}
         </button>
     </div>
 

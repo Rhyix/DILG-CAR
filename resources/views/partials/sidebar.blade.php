@@ -149,15 +149,15 @@
                         </button>
                     </div>
                     <div id="docsMenu" class="pds-menu mt-1 pl-10 space-y-1">
-                        <a href="{{ asset('templates/PDS_Template.pdf') }}" target="_blank"
+                        <a href="{{ route('export.pds', ['download' => 1]) }}"
                             class="flex items-center rounded-md px-3 py-2 text-sm font-semibold transition text-[#002C76] hover:text-white hover:bg-[#002C76]">
                             <i data-feather="file-text" class="w-4 h-4 stroke-[3] flex-shrink-0"></i>
-                            <span class="ml-3">PDS TEMPLATE</span>
+                            <span class="ml-3">PERSONAL DATA SHEET</span>
                         </a>
                         <a href="{{ asset('templates/WES_Template.docx') }}"
                             class="flex items-center rounded-md px-3 py-2 text-sm font-semibold transition text-[#002C76] hover:text-white hover:bg-[#002C76]">
                             <i data-feather="file" class="w-4 h-4 stroke-[3] flex-shrink-0"></i>
-                            <span class="ml-3">WES TEMPLATE</span>
+                            <span class="ml-3">WORK EXPERIENCE SHEET</span>
                         </a>
                     </div>
                 </div>
