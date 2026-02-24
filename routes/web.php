@@ -39,7 +39,6 @@ Route::get('/', function () {
     $openVacancies = \App\Models\JobVacancy::where('status', 'OPEN')
         ->whereDate('closing_date', '>=', now())
         ->orderByDesc('created_at')
-        ->take(6)
         ->get();
     if (Auth::guard('admin')->check()) {
         $user = Auth::guard('admin')->user();

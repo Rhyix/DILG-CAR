@@ -111,7 +111,7 @@
         <div class="absolute inset-0 bg-gradient-to-br from-[#0D2B70] via-[#17439e] to-[#002C76] opacity-95"></div>
         <div class="relative max-w-7xl mx-auto px-6 py-6 h-full flex flex-col">
             <nav class="flex items-center justify-between flex-none">
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2">
                     <img src="{{ asset('images/dilg_logo.png') }}" alt="DILG" class="h-12 w-12 rounded-full border border-white/30">
                     <span class="text-white text-2xl font-bold tracking-wide">DILG - CAR</span>
                 </div>
@@ -131,7 +131,7 @@
                     <p class="text-white/90 text-sm sm:text-base">
                         Explore openings, track your application, and take examinations online. Join us in strengthening local governance across the Cordillera.
                     </p>
-                    <div class="bg-gradient-to-br w-[100%] from-white to-blue-50 border border-[#0D2B70]/20 rounded-2xl p-6 sm:p-8">
+                    <!-- <div class="bg-gradient-to-br w-[100%] from-white to-blue-50 border border-[#0D2B70]/20 rounded-2xl p-6 sm:p-8">
                         <div class="flex flex-col md:flex-row items-center justify-between gap-6">
                             <div>
                                 <div class="text-xl md:text-2xl font-bold text-[#0D2B70]">Start your application today</div>
@@ -148,18 +148,18 @@
                                 </a>
                             </div>
                         </div>
-                    </div>
+                    </div> -->
                 </div>
 
-                <div class="hidden lg:block">
+                <div class="block">
                     <div class="relative">
-                        <div class="absolute -inset-6 bg-white/10 blur-2xl rounded-3xl"></div>
-                        <div class="relative bg-white w-[125%] rounded-3xl shadow-2xl p-6">
+                        <div class="absolute bg-white/10 blur-2xl rounded-3xl"></div>
+                        <div class="relative bg-white w-full lg:w-[125%] rounded-3xl shadow-2xl p-6">
                             <div class="flex items-center justify-between">
                                 <div class="font-bold text-[#0D2B70]">Featured Openings</div>
                                 <a href="{{ route('job_vacancy') }}" class="text-sm text-[#0D2B70] font-semibold hover:underline">View all</a>
                             </div>
-                            <div class="mt-4 divide-y divide-gray-200">
+                            <div class="mt-4 divide-y divide-gray-200 max-h-[28rem] overflow-y-auto pr-2">
                                 @forelse(($vacancies ?? []) as $v)
                                     <div class="py-4 hover:bg-blue-50 transition-colors duration-200 rounded-lg cursor-pointer" onclick="showJobDetails({{ json_encode($v) }})">
                                         <div class="flex items-center justify-between px-2">

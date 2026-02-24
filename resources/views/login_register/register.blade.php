@@ -89,7 +89,7 @@
               <span class="absolute inset-y-0 left-4 flex items-center">
                 <i class="fas fa-font text-yellow-400"></i>
               </span>
-              <input type="text" name="middle_initial" placeholder="Enter Middle Initial" value="{{ old('middle_initial') }}" required
+              <input type="text" name="middle_initial" placeholder="Enter Middle Name" value="{{ old('middle_initial') }}" required
                 class="w-full bg-white border border-blue-400 rounded-full pl-12 pr-4 py-3 outline-none text-blue-900 placeholder:text-blue-800/60 focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
                 pattern="^[A-Za-z\.]{1,3}$"
                 title="Middle initial should contain only 1 letter (optional period allowed).">
