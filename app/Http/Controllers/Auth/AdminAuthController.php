@@ -47,7 +47,7 @@ class AdminAuthController extends Controller
 
         return match ($user->role ?? null) {
             'viewer' => redirect()->route('viewer'),
-            'hr_division' => redirect()->route('applications_list'),
+            'hr_division' => $useIntended ? redirect()->intended('/admin/dashboard') : redirect()->route('dashboard_admin'),
             default => $useIntended ? redirect()->intended('/admin/dashboard') : redirect()->route('dashboard_admin'),
         };
     }

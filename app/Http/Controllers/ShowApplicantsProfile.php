@@ -5,12 +5,75 @@ namespace App\Http\Controllers;
 use App\Models\Applications;
 use App\Models\PersonalInformation;
 use App\Models\JobVacancy;
+use App\Models\AdminVacancyAccess;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 
 class ShowApplicantsProfile extends Controller
 {
+    private function currentAdmin()
+    {
+        return Auth::guard('admin')->user();
+    }
+
+    private function hrDivisionGrantedVacancyIds(): array
+    {
+        $admin = $this->currentAdmin();
+        if (($admin->role ?? null) !== 'hr_division') {
+            return [];
+        }
+
+        if (!Schema::hasTable('admin_vacancy_accesses')) {
+            return [];
+        }
+
+        return AdminVacancyAccess::query()
+            ->where('admin_id', $admin->id)
+            ->pluck('vacancy_id')
+            ->map(fn($value) => (string) $value)
+            ->values()
+            ->all();
+    }
+
+    private function hrDivisionCanAccessVacancy(?string $vacancyId): bool
+    {
+        $admin = $this->currentAdmin();
+        if (($admin->role ?? null) !== 'hr_division') {
+            return true;
+        }
+
+        if (!Schema::hasTable('admin_vacancy_accesses')) {
+            return false;
+        }
+
+        $vacancyId = trim((string) $vacancyId);
+        if ($vacancyId === '') {
+            return false;
+        }
+
+        $hasGrant = AdminVacancyAccess::query()
+            ->where('admin_id', $admin->id)
+            ->where('vacancy_id', $vacancyId)
+            ->exists();
+
+        if (!$hasGrant) {
+            return false;
+        }
+
+        return JobVacancy::query()
+            ->where('vacancy_id', $vacancyId)
+            ->whereRaw('UPPER(vacancy_type) = ?', ['COS'])
+            ->exists();
+    }
+
     public function index(Request $request, $vacancy_id)
     {
+        if (!$this->hrDivisionCanAccessVacancy((string) $vacancy_id)) {
+            return redirect()->route('applications_list')
+                ->with('error', 'Access denied. This COS vacancy is not assigned to your account.');
+        }
+
         logger()->info("Filtering applicants for vacancy: " . $vacancy_id);
 
         $applications = Applications::with(['vacancy', 'personalInformation', 'user'])
@@ -46,6 +109,11 @@ class ShowApplicantsProfile extends Controller
 
     public function reviewedIndex(Request $request, $vacancy_id)
     {
+        if (!$this->hrDivisionCanAccessVacancy((string) $vacancy_id)) {
+            return redirect()->route('applications_list')
+                ->with('error', 'Access denied. This COS vacancy is not assigned to your account.');
+        }
+
         $sortStatus = $request->input('sort_status');
 
         $query = Applications::with(['vacancy', 'personalInformation', 'user'])
@@ -94,6 +162,18 @@ class ShowApplicantsProfile extends Controller
         $status = $request->input('sort_status');
         $vacancyId = $request->input('vacancy_id'); // ✅ Add this line
 
+        if (($this->currentAdmin()->role ?? null) === 'hr_division' && empty($vacancyId)) {
+            return response()->view('partials.reviewed_applicants_list', [
+                'applicants' => collect(),
+            ]);
+        }
+
+        if (!empty($vacancyId) && !$this->hrDivisionCanAccessVacancy((string) $vacancyId)) {
+            return response()->view('partials.reviewed_applicants_list', [
+                'applicants' => collect(),
+            ]);
+        }
+
         $query = Applications::with(['vacancy', 'personalInformation', 'user'])
             ->where('status', '!=', 'Pending');
 
@@ -140,8 +220,19 @@ class ShowApplicantsProfile extends Controller
     {
         $search = $request->input('search');
         $status = $request->input('status');
+        $admin = $this->currentAdmin();
+        $grantedVacancyIds = $this->hrDivisionGrantedVacancyIds();
 
         $query = JobVacancy::query();
+
+        if (($admin->role ?? null) === 'hr_division') {
+            if (empty($grantedVacancyIds)) {
+                $query->whereRaw('1 = 0');
+            } else {
+                $query->whereRaw('UPPER(vacancy_type) = ?', ['COS'])
+                    ->whereIn('vacancy_id', $grantedVacancyIds);
+            }
+        }
 
         // Filter by search text
         if (!empty($search)) {
@@ -193,6 +284,10 @@ class ShowApplicantsProfile extends Controller
         $sortOrder = $request->input('sort_order', 'latest');
         $vacancyId = $request->input('vacancy_id');
 
+        if (!$this->hrDivisionCanAccessVacancy((string) $vacancyId)) {
+            return response()->view('partials.applicants_list_ajax', ['applicants' => collect()]);
+        }
+
         $query = Applications::with(['vacancy', 'personalInformation', 'user'])
             ->where('vacancy_id', $vacancyId)
             ->where('status', 'Pending');
@@ -228,6 +323,11 @@ class ShowApplicantsProfile extends Controller
 
     public function allApplicants($vacancy_id)
     {
+        if (!$this->hrDivisionCanAccessVacancy((string) $vacancy_id)) {
+            return redirect()->route('applications_list')
+                ->with('error', 'Access denied. This COS vacancy is not assigned to your account.');
+        }
+
         $applications = Applications::with(['vacancy', 'personalInformation', 'user'])
             ->where('vacancy_id', $vacancy_id)
             ->orderByDesc('created_at') // Newest first
@@ -259,6 +359,11 @@ class ShowApplicantsProfile extends Controller
 
     public function manageApplicants(Request $request, $vacancy_id)
     {
+        if (!$this->hrDivisionCanAccessVacancy((string) $vacancy_id)) {
+            return redirect()->route('applications_list')
+                ->with('error', 'Access denied. This COS vacancy is not assigned to your account.');
+        }
+
         // Get new applicants (Pending status)
         $newApplications = Applications::with(['vacancy', 'personalInformation', 'user'])
             ->where('vacancy_id', $vacancy_id)
@@ -362,6 +467,10 @@ class ShowApplicantsProfile extends Controller
         $search = $request->input('search');
         $sortOrder = $request->input('sort_order', 'latest');
 
+        if (!$this->hrDivisionCanAccessVacancy((string) $vacancyId)) {
+            return response()->view('partials.manage_new_applicants_list', ['applicants' => collect()]);
+        }
+
         $query = Applications::with(['vacancy', 'personalInformation', 'user'])
             ->where('vacancy_id', $vacancyId)
             ->where('status', 'Pending');
@@ -410,6 +519,10 @@ class ShowApplicantsProfile extends Controller
         $vacancyId = $request->input('vacancy_id');
         $search = $request->input('search');
         $sortOrder = $request->input('sort_order', 'latest');
+
+        if (!$this->hrDivisionCanAccessVacancy((string) $vacancyId)) {
+            return response()->view('partials.manage_new_applicants_list', ['applicants' => collect()]);
+        }
 
         $query = Applications::with(['vacancy', 'personalInformation', 'user'])
             ->where('vacancy_id', $vacancyId)
@@ -461,6 +574,10 @@ class ShowApplicantsProfile extends Controller
         $search = $request->input('search');
         // $status filter removed as we only show Qualified here
 
+        if (!$this->hrDivisionCanAccessVacancy((string) $vacancyId)) {
+            return response()->view('partials.manage_reviewed_applicants_list', ['applicants' => collect()]);
+        }
+
         $query = Applications::with(['vacancy', 'personalInformation', 'user'])
             ->where('vacancy_id', $vacancyId)
             ->where('status', 'Qualified');
@@ -498,3 +615,4 @@ class ShowApplicantsProfile extends Controller
     }
 
 }
+

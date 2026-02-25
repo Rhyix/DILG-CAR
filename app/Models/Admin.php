@@ -36,6 +36,11 @@ class Admin extends Authenticatable
         return $this->hasMany(AdminNotificationPreference::class);
     }
 
+    public function vacancyAccesses()
+    {
+        return $this->hasMany(AdminVacancyAccess::class);
+    }
+
     public function wantsNotification($type)
     {
         // Default to true if no preference is set

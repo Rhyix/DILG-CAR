@@ -96,6 +96,28 @@
     let final_score = 0;
     let highest_score = 0;
 
+    function formatManilaDateTime(isoString) {
+        if (!isoString) return '-';
+
+        const dt = new Date(isoString);
+        if (Number.isNaN(dt.getTime())) return '-';
+
+        const datePart = dt.toLocaleDateString('en-PH', {
+            timeZone: 'Asia/Manila',
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+        });
+
+        const timePart = dt.toLocaleTimeString('en-PH', {
+            timeZone: 'Asia/Manila',
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+        }).replace(/\s/g, '');
+
+        return `${datePart} ${timePart}`;
+    }
     function startPolling() {
         if (pollingInterval) clearInterval(pollingInterval);
         pollingInterval = setInterval(fetchAnswers, 5000); // Poll every 5 seconds
@@ -117,9 +139,9 @@
                     if (logEl && Array.isArray(data.tab_violation_logs)) {
                         logEl.innerHTML = data.tab_violation_logs.map(l => {
                             const startedIso = l.started_at_iso || l.started_at || null;
-                            const started = startedIso ? new Date(startedIso).toLocaleString() : '—';
-                            const dur = (l.duration_seconds !== null && l.duration_seconds !== undefined) ? `${l.duration_seconds}s` : '—';
-                            return `<li class="text-xs text-gray-600"><span class="font-semibold">${started}</span> • Duration: <span class="font-semibold">${dur}</span></li>`;
+                            const started = formatManilaDateTime(startedIso);
+                            const dur = (l.duration_seconds !== null && l.duration_seconds !== undefined) ? `${l.duration_seconds}s` : '-';
+                            return `<li class="text-xs text-gray-600"><span class="font-semibold">${started}</span> &bull; Duration: <span class="font-semibold">${dur}</span></li>`;
                         }).join('') || '<li class="text-xs text-gray-400">No tab switch logs</li>';
                     }
                     // Update the Questions data source
@@ -414,3 +436,4 @@
 />
 
 @endsection
+

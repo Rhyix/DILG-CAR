@@ -10,6 +10,7 @@ use App\Models\JobVacancy;
 use App\Models\Applications;
 use App\Models\Notification;
 use App\Models\UploadedDocument;
+use App\Models\AdminVacancyAccess;
 use App\Models\User;
 use App\Models\EducationalBackground;
 use App\Models\WorkExperience;
@@ -90,6 +91,7 @@ class AdminController extends Controller
             ->orderBy('name')
             ->orderBy('email')
             ->get();
+        $hrDivisionAccessMap = $this->getHrDivisionAccessMap($admins);
         // $users = User::all(); // Removed to prevent fetching participants
 
         activity()
@@ -98,7 +100,7 @@ class AdminController extends Controller
             ->withProperties(['section' => 'System Users Management'])
             ->log('Viewed admin account management.');
 
-        return view('admin.admin_account_management', compact('admins'));
+        return view('admin.admin_account_management', compact('admins', 'cosVacancies', 'hrDivisionAccessMap'));
     }
 
     public function accountSettings()
@@ -638,6 +640,161 @@ class AdminController extends Controller
             ->with('success', 'Admin account updated successfully!');
     }
 
+    public function updateHrDivisionVacancyAccess(Request $request, $id)
+    {
+        $targetAdmin = Admin::findOrFail($id);
+        $authUser = Auth::guard('admin')->user();
+
+        if (!$authUser || ($authUser->role ?? null) !== 'superadmin') {
+            return redirect()->back()->with('error', 'Only superadmin can update HR Division vacancy access.');
+        }
+
+        if (($targetAdmin->role ?? null) !== 'hr_division') {
+            return redirect()->back()->with('error', 'Vacancy access can only be assigned to HR Division accounts.');
+        }
+
+        if (!Schema::hasTable('admin_vacancy_accesses')) {
+            return redirect()->back()->with('error', 'Vacancy access table is not ready. Please run database migrations first.');
+        }
+
+        $validated = $request->validate([
+            'vacancy_ids' => ['nullable', 'array'],
+            'vacancy_ids.*' => [
+                'string',
+                Rule::exists('job_vacancies', 'vacancy_id')->where(function ($query) {
+                    $query->whereRaw('UPPER(vacancy_type) = ?', ['COS']);
+                }),
+            ],
+        ]);
+
+        $vacancyIds = collect($validated['vacancy_ids'] ?? [])
+            ->map(fn($value) => trim((string) $value))
+            ->filter(fn($value) => $value !== '')
+            ->unique()
+            ->values()
+            ->all();
+
+        DB::transaction(function () use ($targetAdmin, $vacancyIds) {
+            AdminVacancyAccess::where('admin_id', $targetAdmin->id)->delete();
+
+            if (empty($vacancyIds)) {
+                return;
+            }
+
+            $timestamp = now();
+            $rows = array_map(function (string $vacancyId) use ($targetAdmin, $timestamp) {
+                return [
+                    'admin_id' => $targetAdmin->id,
+                    'vacancy_id' => $vacancyId,
+                    'created_at' => $timestamp,
+                    'updated_at' => $timestamp,
+                ];
+            }, $vacancyIds);
+
+            AdminVacancyAccess::insert($rows);
+        });
+
+        activity()
+            ->causedBy($authUser)
+            ->performedOn($targetAdmin)
+            ->event('update')
+            ->withProperties([
+                'updated_admin_id' => $targetAdmin->id,
+                'granted_vacancy_ids' => $vacancyIds,
+                'section' => 'System Users Management',
+            ])
+            ->log('Updated HR Division COS vacancy access.');
+
+        $assignedCount = count($vacancyIds);
+        return redirect()->back()->with('success', "HR Division access updated. {$assignedCount} COS position(s) assigned.");
+    }
+
+    private function getCosVacanciesForHrDivisionAccess()
+    {
+        return JobVacancy::query()
+            ->select(['vacancy_id', 'position_title', 'status'])
+            ->where('vacancy_type', 'COS')
+            ->orderBy('position_title')
+            ->orderBy('vacancy_id')
+            ->get();
+    }
+
+    private function getHrDivisionAccessMap($admins): array
+    {
+        $hrDivisionIds = $admins
+            ->where('role', 'hr_division')
+            ->pluck('id')
+            ->map(fn($id) => (int) $id)
+            ->values()
+            ->all();
+
+        if (empty($hrDivisionIds)) {
+            return [];
+        }
+
+        if (!Schema::hasTable('admin_vacancy_accesses')) {
+            return [];
+        }
+
+        return AdminVacancyAccess::query()
+            ->whereIn('admin_id', $hrDivisionIds)
+            ->orderBy('vacancy_id')
+            ->get(['admin_id', 'vacancy_id'])
+            ->groupBy('admin_id')
+            ->map(function ($rows) {
+                return $rows->pluck('vacancy_id')->values()->all();
+            })
+            ->toArray();
+    }
+
+    private function hasHrDivisionVacancyAccess(?string $vacancyId): bool
+    {
+        $admin = Auth::guard('admin')->user();
+        if (($admin->role ?? null) !== 'hr_division') {
+            return true;
+        }
+
+        if (!Schema::hasTable('admin_vacancy_accesses')) {
+            return false;
+        }
+
+        $vacancyId = trim((string) $vacancyId);
+        if ($vacancyId === '') {
+            return false;
+        }
+
+        $hasGrant = AdminVacancyAccess::query()
+            ->where('admin_id', $admin->id)
+            ->where('vacancy_id', $vacancyId)
+            ->exists();
+
+        if (!$hasGrant) {
+            return false;
+        }
+
+        return JobVacancy::query()
+            ->where('vacancy_id', $vacancyId)
+            ->whereRaw('UPPER(vacancy_type) = ?', ['COS'])
+            ->exists();
+    }
+
+    private function denyHrDivisionVacancyAccess(Request $request, ?string $vacancyId)
+    {
+        if ($this->hasHrDivisionVacancyAccess($vacancyId)) {
+            return null;
+        }
+
+        $message = 'Access denied. This COS vacancy is not assigned to your account.';
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => false,
+                'message' => $message,
+            ], 403);
+        }
+
+        return redirect()->route('applications_list')->with('error', $message);
+    }
+
     private function deactivateOtherSuperadmins(int $activeSuperadminId): void
     {
         Admin::where('role', 'superadmin')
@@ -705,13 +862,15 @@ class AdminController extends Controller
             ->orderBy('name')
             ->orderBy('email')
             ->get();
+        $cosVacancies = $this->getCosVacanciesForHrDivisionAccess();
+        $hrDivisionAccessMap = $this->getHrDivisionAccessMap($admins);
         /*
         activity()
             ->causedBy(auth()->guard('admin')->user())
             ->withProperties(['query' => $request->input('query')])
             ->log('Searched for admins.');
         */
-        return view('partials.admin_list', compact('admins'))->render();
+        return view('partials.admin_list', compact('admins', 'hrDivisionAccessMap'))->render();
     }
 
     private function getApplicantDocuments($user_id, $application)
@@ -868,6 +1027,10 @@ class AdminController extends Controller
 
     public function viewApplicantStatus($user_id, $vacancy_id)
     {
+        if ($accessDeniedResponse = $this->denyHrDivisionVacancyAccess(request(), (string) $vacancy_id)) {
+            return $accessDeniedResponse;
+        }
+
         $application = Applications::with(['personalInformation', 'vacancy', 'user'])
             ->where('user_id', $user_id)
             ->where('vacancy_id', $vacancy_id)
@@ -928,6 +1091,10 @@ class AdminController extends Controller
 
     public function updateApplicantStatus(Request $request, $user_id, $vacancy_id)
     {
+        if ($accessDeniedResponse = $this->denyHrDivisionVacancyAccess($request, (string) $vacancy_id)) {
+            return $accessDeniedResponse;
+        }
+
         $request->validate([
             'status' => 'required|string',
             'deadline_date' => 'nullable|date',
@@ -1086,6 +1253,10 @@ class AdminController extends Controller
 
     public function updateDocumentStatusAjax(Request $request, $user_id, $vacancy_id)
     {
+        if ($accessDeniedResponse = $this->denyHrDivisionVacancyAccess($request, (string) $vacancy_id)) {
+            return $accessDeniedResponse;
+        }
+
         $request->validate([
             'document_type' => 'required|string',
             'status' => 'nullable|string',
@@ -1198,6 +1369,10 @@ class AdminController extends Controller
      */
     public function getUpdatedDocuments(Request $request, $user_id, $vacancy_id)
     {
+        if ($accessDeniedResponse = $this->denyHrDivisionVacancyAccess($request, (string) $vacancy_id)) {
+            return $accessDeniedResponse;
+        }
+
         $application = Applications::where('user_id', $user_id)
             ->where('vacancy_id', $vacancy_id)
             ->first();
@@ -1217,6 +1392,10 @@ class AdminController extends Controller
 
     public function updateApplicationRemarksAjax(Request $request, $user_id, $vacancy_id)
     {
+        if ($accessDeniedResponse = $this->denyHrDivisionVacancyAccess($request, (string) $vacancy_id)) {
+            return $accessDeniedResponse;
+        }
+
         $request->validate([
             'application_remarks' => 'nullable|string',
         ]);
@@ -1250,6 +1429,10 @@ class AdminController extends Controller
 
     public function notifyApplicant(Request $request, $user_id, $vacancy_id)
     {
+        if ($accessDeniedResponse = $this->denyHrDivisionVacancyAccess($request, (string) $vacancy_id)) {
+            return $accessDeniedResponse;
+        }
+
         $application = Applications::where('user_id', $user_id)
             ->where('vacancy_id', $vacancy_id)
             ->firstOrFail();
@@ -1689,6 +1872,10 @@ class AdminController extends Controller
 
     public function previewDocument($user_id, $vacancy_id, $document_type)
     {
+        if ($accessDeniedResponse = $this->denyHrDivisionVacancyAccess(request(), (string) $vacancy_id)) {
+            return $accessDeniedResponse;
+        }
+
         $application = Applications::where('user_id', $user_id)
             ->where('vacancy_id', $vacancy_id)
             ->first();

@@ -96,7 +96,10 @@
                     </tr>
                 </thead>
                 <tbody id="adminRows" class="divide-y divide-slate-200">
-                    @include('partials.admin_list', ['admins' => $admins])
+                    @include('partials.admin_list', [
+                        'admins' => $admins,
+                        'hrDivisionAccessMap' => $hrDivisionAccessMap ?? [],
+                    ])
                 </tbody>
             </table>
         </div>
@@ -198,6 +201,77 @@
         </div>
     </div>
 
+    <div id="hrAccessModal"
+        class="fixed inset-0 z-[9990] hidden items-center justify-center bg-slate-900/55 px-4 py-6 backdrop-blur-sm"
+        data-route-template="{{ url('/admin/__ID__/hr-vacancy-access') }}">
+        <div class="w-full max-w-5xl rounded-2xl border border-slate-200 bg-white shadow-2xl">
+            <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+                <div>
+                    <h2 class="text-base font-bold text-[#0D2B70]">HR Division Vacancy Access</h2>
+                    <p class="text-xs text-slate-500">Grant COS vacancy access for this HR Division account.</p>
+                </div>
+                <button type="button" id="hrAccessModalClose"
+                    class="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+                    aria-label="Close">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <form id="hrAccessForm" method="POST" class="js-admin-hr-access-form no-spinner space-y-4 p-5">
+                @csrf
+                <p class="text-sm text-slate-700">
+                    Updating access for:
+                    <span id="hrAccessTargetName" class="font-semibold text-[#0D2B70]">-</span>
+                </p>
+                <p class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                    By default, this list is empty. HR Division users can only access COS positions placed in the
+                    granted list.
+                </p>
+
+                <div class="grid gap-4 md:grid-cols-[1fr_auto_1fr]">
+                    <div>
+                        <label class="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-600">Available COS Positions</label>
+                        <select id="hrAccessAvailable" multiple size="12"
+                            class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20"></select>
+                    </div>
+                    <div class="flex flex-col items-center justify-center gap-2">
+                        <button id="hrAccessMoveRight" type="button"
+                            class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                            aria-label="Grant selected positions">
+                            Add >
+                        </button>
+                        <button id="hrAccessMoveLeft" type="button"
+                            class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                            aria-label="Remove selected positions">
+                            &lt; Remove
+                        </button>
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-600">Granted COS Positions</label>
+                        <select id="hrAccessGranted" multiple size="12"
+                            class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20"></select>
+                    </div>
+                </div>
+
+                <div id="hrAccessHiddenInputs"></div>
+
+                <div class="flex justify-end gap-2 border-t border-slate-100 pt-4">
+                    <button type="button" id="hrAccessModalCancel"
+                        class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                        class="rounded-lg bg-[#0D2B70] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#0A2259]">
+                        Save Access
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <x-confirm-modal title="Confirm Activation" message="Are you sure you want to activate this account?"
         event="open-admin-activate-confirm" confirm="confirm-admin-activate" />
     <x-confirm-modal title="Confirm Deactivation" message="Are you sure you want to deactivate this account?"
@@ -208,6 +282,8 @@
         event="open-admin-decline-confirm" confirm="confirm-admin-decline" confirmText="Decline" tone="danger" />
     <x-confirm-modal title="Confirm Changes" message="Are you sure you want to save changes to this account?"
         event="open-admin-edit-confirm" confirm="confirm-admin-edit" />
+    <x-confirm-modal title="Confirm Access Update" message="Save COS vacancy access for this HR Division account?"
+        event="open-admin-hr-access-confirm" confirm="confirm-admin-hr-access" />
 
     @include('partials.loader')
 </main>
@@ -228,6 +304,20 @@
 @endpush
 
 @push('scripts')
+@php
+    $cosVacancyOptions = collect($cosVacancies ?? [])->map(function ($vacancy) {
+        $status = strtoupper((string) ($vacancy->status ?? ''));
+        $label = trim((string) ($vacancy->vacancy_id ?? '')) . ' - ' . trim((string) ($vacancy->position_title ?? 'Untitled Position'));
+        if ($status !== '') {
+            $label .= ' (' . $status . ')';
+        }
+
+        return [
+            'vacancy_id' => (string) ($vacancy->vacancy_id ?? ''),
+            'label' => $label,
+        ];
+    })->values();
+@endphp
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         let pendingConfirmationForm = null;
@@ -236,6 +326,17 @@
         const approveTargetName = document.getElementById('adminApproveTargetName');
         const approveModalClose = document.getElementById('adminApproveModalClose');
         const approveModalCancel = document.getElementById('adminApproveModalCancel');
+        const hrAccessModal = document.getElementById('hrAccessModal');
+        const hrAccessForm = document.getElementById('hrAccessForm');
+        const hrAccessTargetName = document.getElementById('hrAccessTargetName');
+        const hrAccessModalClose = document.getElementById('hrAccessModalClose');
+        const hrAccessModalCancel = document.getElementById('hrAccessModalCancel');
+        const hrAccessAvailable = document.getElementById('hrAccessAvailable');
+        const hrAccessGranted = document.getElementById('hrAccessGranted');
+        const hrAccessMoveRight = document.getElementById('hrAccessMoveRight');
+        const hrAccessMoveLeft = document.getElementById('hrAccessMoveLeft');
+        const hrAccessHiddenInputs = document.getElementById('hrAccessHiddenInputs');
+        const hrCosVacancies = @json($cosVacancyOptions);
 
         const showLoaderOverlay = () => {
             const overlay = document.getElementById('loader');
@@ -256,6 +357,80 @@
             pendingConfirmationForm = null;
             showLoaderOverlay();
             form.submit();
+        };
+
+        const createVacancyOption = (vacancyId, label) => {
+            const option = document.createElement('option');
+            option.value = String(vacancyId || '');
+            option.textContent = String(label || vacancyId || '');
+            return option;
+        };
+
+        const moveSelectedOptions = (source, target) => {
+            if (!source || !target) return;
+            const selectedOptions = Array.from(source.selectedOptions);
+            selectedOptions.forEach((option) => target.appendChild(option));
+        };
+
+        const sortSelectOptions = (selectElement) => {
+            if (!selectElement) return;
+            const options = Array.from(selectElement.options);
+            options.sort((a, b) => a.text.localeCompare(b.text, undefined, { sensitivity: 'base' }));
+            options.forEach((option) => selectElement.appendChild(option));
+        };
+
+        const syncHrAccessHiddenInputs = () => {
+            if (!hrAccessHiddenInputs || !hrAccessGranted) return;
+            hrAccessHiddenInputs.innerHTML = '';
+
+            Array.from(hrAccessGranted.options).forEach((option) => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'vacancy_ids[]';
+                input.value = option.value;
+                hrAccessHiddenInputs.appendChild(input);
+            });
+        };
+
+        const fillHrAccessLists = (grantedIdsRaw) => {
+            if (!hrAccessAvailable || !hrAccessGranted) return;
+            hrAccessAvailable.innerHTML = '';
+            hrAccessGranted.innerHTML = '';
+
+            const grantedIds = new Set((Array.isArray(grantedIdsRaw) ? grantedIdsRaw : []).map((id) => String(id)));
+
+            hrCosVacancies.forEach((vacancy) => {
+                const vacancyId = String(vacancy.vacancy_id || '');
+                if (vacancyId === '') return;
+                const option = createVacancyOption(vacancyId, vacancy.label || vacancyId);
+                if (grantedIds.has(vacancyId)) {
+                    hrAccessGranted.appendChild(option);
+                } else {
+                    hrAccessAvailable.appendChild(option);
+                }
+            });
+
+            sortSelectOptions(hrAccessAvailable);
+            sortSelectOptions(hrAccessGranted);
+            syncHrAccessHiddenInputs();
+        };
+
+        const closeHrAccessModal = () => {
+            if (!hrAccessModal) return;
+            hrAccessModal.classList.add('hidden');
+            hrAccessModal.classList.remove('flex');
+        };
+
+        const openHrAccessModal = (adminId, adminName, grantedIdsRaw) => {
+            if (!hrAccessModal || !hrAccessForm) return;
+            const routeTemplate = hrAccessModal.dataset.routeTemplate || '';
+            hrAccessForm.action = routeTemplate.replace('__ID__', String(adminId));
+            if (hrAccessTargetName) {
+                hrAccessTargetName.textContent = adminName || '-';
+            }
+            fillHrAccessLists(grantedIdsRaw);
+            hrAccessModal.classList.remove('hidden');
+            hrAccessModal.classList.add('flex');
         };
 
         const closeApproveModal = () => {
@@ -286,6 +461,33 @@
                 if (event.target === approveModal) {
                     closeApproveModal();
                 }
+            });
+        }
+        if (hrAccessModalClose) {
+            hrAccessModalClose.addEventListener('click', closeHrAccessModal);
+        }
+        if (hrAccessModalCancel) {
+            hrAccessModalCancel.addEventListener('click', closeHrAccessModal);
+        }
+        if (hrAccessModal) {
+            hrAccessModal.addEventListener('click', (event) => {
+                if (event.target === hrAccessModal) {
+                    closeHrAccessModal();
+                }
+            });
+        }
+        if (hrAccessMoveRight) {
+            hrAccessMoveRight.addEventListener('click', () => {
+                moveSelectedOptions(hrAccessAvailable, hrAccessGranted);
+                sortSelectOptions(hrAccessGranted);
+                syncHrAccessHiddenInputs();
+            });
+        }
+        if (hrAccessMoveLeft) {
+            hrAccessMoveLeft.addEventListener('click', () => {
+                moveSelectedOptions(hrAccessGranted, hrAccessAvailable);
+                sortSelectOptions(hrAccessAvailable);
+                syncHrAccessHiddenInputs();
             });
         }
 
@@ -321,15 +523,44 @@
                 window.dispatchEvent(new CustomEvent('open-admin-decline-confirm'));
                 return;
             }
+
+            if (form.matches('.js-admin-hr-access-form')) {
+                event.preventDefault();
+                syncHrAccessHiddenInputs();
+                pendingConfirmationForm = form;
+                window.dispatchEvent(new CustomEvent('open-admin-hr-access-confirm'));
+                return;
+            }
         }, true);
 
         document.addEventListener('click', (event) => {
-            const button = event.target.closest('.js-open-approve-modal');
-            if (!button) return;
-            const adminId = button.dataset.adminId;
-            const adminName = button.dataset.adminName;
+            const approveButton = event.target.closest('.js-open-approve-modal');
+            if (approveButton) {
+                const adminId = approveButton.dataset.adminId;
+                const adminName = approveButton.dataset.adminName;
+                if (!adminId) return;
+                openApproveModal(adminId, adminName);
+                return;
+            }
+
+            const hrAccessButton = event.target.closest('.js-open-hr-access-modal');
+            if (!hrAccessButton) return;
+            const adminId = hrAccessButton.dataset.adminId;
+            const adminName = hrAccessButton.dataset.adminName;
             if (!adminId) return;
-            openApproveModal(adminId, adminName);
+
+            let grantedIds = [];
+            try {
+                const raw = hrAccessButton.dataset.grantedVacancyIds || '[]';
+                grantedIds = JSON.parse(raw);
+                if (!Array.isArray(grantedIds)) {
+                    grantedIds = [];
+                }
+            } catch (e) {
+                grantedIds = [];
+            }
+
+            openHrAccessModal(adminId, adminName, grantedIds);
         });
 
         window.addEventListener('confirm-admin-activate', submitPendingForm);
@@ -340,6 +571,10 @@
         });
         window.addEventListener('confirm-admin-decline', submitPendingForm);
         window.addEventListener('confirm-admin-edit', submitPendingForm);
+        window.addEventListener('confirm-admin-hr-access', () => {
+            closeHrAccessModal();
+            submitPendingForm();
+        });
 
         const searchInput = document.getElementById('adminSearchInput');
         const clearBtn = document.getElementById('adminSearchClear');

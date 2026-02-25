@@ -141,6 +141,12 @@
 
     const answers = {};
     let switchCount = 0;
+    const AUTOSAVE_DEBOUNCE_MS = 900;
+    const AUTOSAVE_PERIODIC_MS = 15000;
+    let autoSaveInFlight = false;
+    let autoSaveQueued = false;
+    let answersDirty = false;
+    let lastSavedFingerprint = '';
 
     Questions.forEach((q, idx) => q.number = idx + 1);
 
@@ -402,17 +408,20 @@
         document.querySelectorAll('input[type="radio"][name^="answers["]').forEach(input => {
             input.addEventListener('change', () => {
                 updateSubmitEnabled();
-                autoSaveImmediate();
+                answersDirty = true;
+                autoSaveDebounced();
             });
         });
         document.querySelectorAll('textarea[name^="answers["]').forEach(ta => {
             ta.addEventListener('input', () => {
                 updateSubmitEnabled();
+                answersDirty = true;
                 autoSaveDebounced();
             });
             ta.addEventListener('change', () => {
                 updateSubmitEnabled();
-                autoSaveImmediate();
+                answersDirty = true;
+                autoSaveDebounced();
             });
         });
     }
@@ -425,8 +434,23 @@
         };
     }
 
-    function doAutoSave(showToast = true) {
+    function doAutoSave(showToast = true, force = false) {
+        if (window.isSubmitting) return;
+
         collectCurrentAnswers();
+
+        const fingerprint = JSON.stringify(answers);
+        if (!force && !answersDirty && fingerprint === lastSavedFingerprint) {
+            return;
+        }
+
+        if (autoSaveInFlight) {
+            autoSaveQueued = true;
+            return;
+        }
+
+        autoSaveInFlight = true;
+
         fetch("{{ route('exam.autosave', ['vacancy_id' => $vacancy_id]) }}", {
             method: 'POST',
             headers: {
@@ -439,12 +463,23 @@
                 answers: answers
             })
         }).then(res => res.json()).then(data => {
-            if (data.success && showToast) { showSaveNotification(); }
-        }).catch(() => {});
+            if (!data.success) return;
+
+            lastSavedFingerprint = fingerprint;
+            answersDirty = false;
+
+            if (showToast) { showSaveNotification(); }
+        }).catch(() => {}).finally(() => {
+            autoSaveInFlight = false;
+
+            if (autoSaveQueued && !window.isSubmitting) {
+                autoSaveQueued = false;
+                doAutoSave(false, true);
+            }
+        });
     }
 
-    const autoSaveDebounced = debounce(doAutoSave, 300);
-    function autoSaveImmediate() { doAutoSave(true); }
+    const autoSaveDebounced = debounce(() => doAutoSave(true), AUTOSAVE_DEBOUNCE_MS);
 
     function renderAllQuestions() {
     container.innerHTML = '';
@@ -476,13 +511,16 @@
     submitContainer.classList.remove('hidden');
     // After rendering inputs, attach listeners and set initial state
     attachAnswerListeners();
+    collectCurrentAnswers();
+    lastSavedFingerprint = JSON.stringify(answers);
+    answersDirty = false;
     updateSubmitEnabled();
 }
 
-    // Periodic autosave every 5 seconds (silent)
+    // Periodic autosave as fallback (silent)
     let periodicAutoSave = setInterval(() => {
-        if (!window.isSubmitting) doAutoSave(false);
-    }, 5000);
+        if (!window.isSubmitting && answersDirty) doAutoSave(false);
+    }, AUTOSAVE_PERIODIC_MS);
 
     window.addEventListener('beforeunload', () => {
         if (periodicAutoSave) clearInterval(periodicAutoSave);

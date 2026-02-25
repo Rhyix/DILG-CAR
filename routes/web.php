@@ -61,7 +61,7 @@ Route::get('/', function () {
 
         return match ($user->role ?? null) {
             'viewer' => redirect()->route('viewer'),
-            'hr_division' => redirect()->route('applications_list'),
+            'hr_division' => redirect()->route('dashboard_admin'),
             default => redirect()->route('dashboard_admin'),
         };
     } elseif (Auth::check()) {
@@ -392,6 +392,7 @@ Route::middleware([RedirectIfNotAdmin::class])->group(function () {
         Route::post('/admin/{id}/approve', [AdminController::class, 'approve'])->name('admin.approve');
         Route::post('/admin/{id}/decline', [AdminController::class, 'decline'])->name('admin.decline');
         Route::put('/admin/{id}/update', [AdminController::class, 'update'])->name('admin.update');
+        Route::post('/admin/{id}/hr-vacancy-access', [AdminController::class, 'updateHrDivisionVacancyAccess'])->name('admin.hr_vacancy_access.update');
         Route::get('/admin/search', [AdminController::class, 'search'])->name('admin.search');
     });
 

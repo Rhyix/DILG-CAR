@@ -59,7 +59,7 @@
 
         @php $adminRole = Auth::guard('admin')->user()->role ?? null; @endphp
         <nav class="mt-8 space-y-1 px-2 font-montserrat pb-4">
-            @if(in_array($adminRole, ['superadmin', 'admin'], true))
+            @if(in_array($adminRole, ['superadmin', 'admin', 'hr_division'], true))
                 <a href="{{ route('dashboard_admin') }}" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200
                         {{ request()->routeIs('dashboard_admin')
         ? 'bg-[#002C76] text-white shadow-md'
@@ -67,7 +67,9 @@
                     <i data-feather="home" class="w-5 h-5 stroke-[3] flex-shrink-0"></i>
                     <span class="ml-3 transition-opacity duration-200" x-show="open" x-transition.opacity.duration.200ms>HOME</span>
                 </a>
+            @endif
 
+            @if(in_array($adminRole, ['superadmin', 'admin'], true))
                 <a href="{{ route('vacancies_management') }}" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200
                         {{ request()->routeIs('vacancies_management')
         ? 'bg-[#002C76] text-white shadow-md'

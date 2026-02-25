@@ -1,3 +1,8 @@
+@php
+    $hrDivisionAccessMap = $hrDivisionAccessMap ?? [];
+    $isSuperadminActor = (auth('admin')->user()->role ?? null) === 'superadmin';
+@endphp
+
 @if ($admins->isEmpty())
     <tr data-empty-state="1">
         <td colspan="5" class="px-5 py-12 text-center">
@@ -44,6 +49,8 @@
             $isPending = $statusKey === 'pending';
             $isDeclined = $statusKey === 'declined';
             $displayIdentity = trim((string) ($admin->name ?? '')) ?: ($admin->email ?? ('Admin #' . $admin->id));
+            $grantedVacancyIds = array_values($hrDivisionAccessMap[$admin->id] ?? []);
+            $canManageHrDivisionAccess = $isSuperadminActor && !$isPending && (($admin->role ?? null) === 'hr_division');
         @endphp
 
         <tr class="transition hover:bg-slate-50/80" data-row="admin-account" data-role="{{ $admin->role }}" data-status="{{ $statusKey }}">
@@ -72,6 +79,19 @@
             </td>
             <td class="px-5 py-4 align-top">
                 <div class="flex items-center justify-center gap-2">
+                    @if ($canManageHrDivisionAccess)
+                        <button
+                            type="button"
+                            class="js-open-hr-access-modal inline-flex h-9 w-9 items-center justify-center rounded-lg border border-indigo-300 text-indigo-700 transition hover:bg-indigo-50"
+                            title="Manage COS vacancy access"
+                            data-admin-id="{{ $admin->id }}"
+                            data-admin-name="{{ $displayIdentity }}"
+                            data-granted-vacancy-ids='@json($grantedVacancyIds)'
+                        >
+                            <i data-feather="list" class="h-4 w-4"></i>
+                        </button>
+                    @endif
+
                     @if ($isPending)
                         <button
                             type="button"

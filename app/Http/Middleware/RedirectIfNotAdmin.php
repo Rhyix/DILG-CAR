@@ -47,8 +47,21 @@ class RedirectIfNotAdmin
             }
 
             if ($user->role === 'hr_division') {
+                $routeName = $request->route()?->getName();
+                $hrDivisionAllowedRoutes = [
+                    'home_admin',
+                    'dashboard_admin',
+                    'admin.account.settings',
+                    'admin.account.settings.update',
+                    'admin.account.password.update',
+                ];
+
+                if (in_array($routeName, $hrDivisionAllowedRoutes, true)) {
+                    return $next($request);
+                }
+
                 return redirect()->route('applications_list')
-                    ->with('error', 'Access denied. HR Division can only access applicants management.');
+                    ->with('error', 'Access denied. HR Division can access dashboard and applicants management only.');
             }
 
             return redirect()->route('admin.login')
