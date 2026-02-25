@@ -37,7 +37,7 @@ class JobStatusController extends Controller
             [
                 "id" => "pqe",
                 "name" => "pqe_result",
-                "text" => "Pre-Qualifying Exam (PQE) Result",
+                "text" => "Pre-Qualifying Exam (PQE) Result(if passed)",
                 "status" => $documents && $documents->pqe_result ? "valid" : "invalid",
                 "preview" => $documents && $documents->pqe_result ? asset('storage/' . $documents->pqe_result) : "",
                 "remarks" => $documents && $documents->pqe_result ? "Uploaded" : "No document uploaded",

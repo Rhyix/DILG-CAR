@@ -452,10 +452,10 @@
                   $statusLabel = strtoupper($doc['status']);
                   if ($doc['status'] == 'Verified' || $doc['status'] == 'Okay/Confirmed') {
                     $statusClass = 'badge-verified';
-                    $statusLabel = '✓ VERIFIED';
+                    $statusLabel = '✓';
                   } elseif ($doc['status'] == 'Needs Revision' || $doc['status'] == 'Disapproved With Deficiency') {
                     $statusClass = 'badge-revision';
-                    $statusLabel = '✗ NEEDS REVISION';
+                    $statusLabel = '✗';
                   } elseif ($doc['status'] == 'Not Submitted') {
                     $statusClass = 'badge-gray';
                   }

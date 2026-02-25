@@ -491,6 +491,27 @@
                     const cosCount = {{ $cosVacancyCount ?? 0 }};
                     const plantillaCount = {{ $plantillaVacancyCount ?? 0 }};
 
+                    const barValuePlugin = {
+                        id: 'barValue',
+                        afterDatasetsDraw(chart) {
+                            const { ctx } = chart;
+                            const dataset = chart.data.datasets[0];
+                            const meta = chart.getDatasetMeta(0);
+                            ctx.save();
+                            ctx.fillStyle = '#111827';
+                            ctx.font = 'bold 11px Montserrat';
+                            ctx.textAlign = 'left';
+                            meta.data.forEach((bar, idx) => {
+                                const val = dataset.data[idx];
+                                const props = bar.getProps(['x','y','width','height'], true);
+                                const rightX = props.x + (props.width / 2) + 10;
+                                const midY = props.y + (props.height / 2);
+                                ctx.fillText(val, rightX, midY);
+                            });
+                            ctx.restore();
+                        }
+                    };
+
                     new Chart(ctxBar, {
                         type: 'bar',
                         data: {
@@ -504,6 +525,7 @@
                                 maxBarThickness: 60
                             }]
                         },
+                        plugins: [barValuePlugin],
                         options: {
                             responsive: true,
                             maintainAspectRatio: false,

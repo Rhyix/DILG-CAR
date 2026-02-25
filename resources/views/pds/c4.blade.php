@@ -1,4 +1,4 @@
-@extends('layout.pds_layout')
+\@extends('layout.pds_layout')
 @section('title', 'Other Information')
 @section('content')
 @if ($errors->any())
@@ -18,7 +18,9 @@
                 <!-- NUMBER 34 -->
                 <div class="question-card">
                     <p class="text-gray-700 font-bold mb-3">
-                        34. Are you related by consanguinity or affinity to the appointing or recommending authority, or to the Bureau or Department where you will be appointed?
+                        34. Are you related by consanguinity or affinity to the appointing or recommending authority, or to the 
+                        chief of bureau or office or to the person who has immediate supervision over you in the Office,
+                        Bureau or Department where you will be apppointed, 
                     </p>
                     <p class="text-gray-700 font-medium mb-3">
                         a. within the degree?
@@ -85,7 +87,7 @@
 
                 <div class="question-card mt-6">
                     <p class="text-gray-700 font-bold mb-3">
-                        35. B. Have you been criminally charged before any court?
+                        B. Have you been criminally charged before any court?
                     </p>
                     <div class="flex gap-6"> <!-- NUMBER 35: b -->
                         <label class="flex items-center cursor-pointer hover:text-blue-600 transition-colors">
@@ -197,7 +199,7 @@
 
                 <div class="question-card mt-6">
                     <p class="text-gray-700 font-bold mb-3">
-                        38. B. Have you resigned from the goverment service during the three (3)-month period before the last election to promote/actively campaign for a national and local candidate?
+                        B. Have you resigned from the goverment service during the three (3)-month period before the last election to promote/actively campaign for a national and local candidate?
                     </p>
                     <div class="flex gap-6"> <!-- NUMBER 38: b -->
                         <label class="flex items-center cursor-pointer hover:text-blue-600 transition-colors">
@@ -248,7 +250,7 @@
     <section class="bg-white rounded-2xl shadow-xl p-8 animate-slide-in">
                 <!-- Special Status Questions -->
                 <p class="text-gray-700 font-bold mb-3">
-                    40. Pursuant to: (a) Indigenous Peoples Rights Act (RA 8371); (b) Magna Carta for Disabled Persons (RA 7277); and (c) Solo Parents Welfare Act of 2000 (RA 8972). please answer the following items:
+                40. Pursuant to: (a) Indigenous People's Act (RA 8371); (b) Magna Carta for Disabled Persons (RA 7277, as amended); and (c) Expanded Solo Parents Welfare Act (RA 11861), please answer the following items:
                 </p>
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8 pb-6 border-b-2 border-gray-200">
@@ -341,7 +343,7 @@
                             <div class="relative">
                                 <input required type="tel" name="ref1_tel" required value="{{ old('ref1_tel', $data['ref1_tel'] ?? '') }}"
                                 placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
-                                <label class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Telephone No.*</label>
+                                <label class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">CONTACT NO. AND/OR EMAIL*</label>
                             </div>
                             <div class="relative md:col-span-2">
                                 <input required type="text" name="ref1_address" required value="{{ old('ref1_address', $data['ref1_address'] ?? '') }}"
@@ -395,6 +397,10 @@
                         </div>
                     </div>
                 </div>
+            <div>
+                <p>42. I declare under oath that I have personally accomplished this Personal Data Sheet which is a true, correct, and complete statement pursuant to the provisions of pertinent laws, rules, and regulations of the Republic of the Philippines. I authorize the agency head/authorized representative to verify/validate the contents stated herein.          
+                    I  agree that any misrepresentation made in this document and its attachments shall cause the filing of administrative/criminal case/s against me.</p>
+            </div>
             </section>
 
             <!-- Government ID Section -->
