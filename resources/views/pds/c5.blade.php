@@ -59,7 +59,7 @@
                 <div class="flex items-center justify-between mb-6">
                     <h2 class="text-2xl font-bold text-gray-900">Supporting Documents</h2>
                 </div>
-                @if($requiresFreshUpload)
+                @if($requiresFreshUpload && !$hasFreshUploadForVacancy)
                     <div class="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
                         Fresh upload required for this job application. Please upload the required documents again before continuing.
                     </div>
@@ -110,8 +110,7 @@
                         $isApproved = strcasecmp($status, 'Okay/Confirmed') === 0;
                         $hasStoredDoc = !empty($doc?->storage_path)
                             || ($docType === 'application_letter' && !empty($hasExistingApplicationLetter));
-                        $allowExistingIndicator = !$requiresFreshUpload || !empty($hasFreshUploadForVacancy);
-                        $hasExisting = $allowExistingIndicator && $hasStoredDoc;
+                        $hasExisting = $hasStoredDoc;
                         $requiredCos = in_array($docType, $requiredDocsByTrack['COS'] ?? [], true);
                         $requiredPlantilla = in_array($docType, $requiredDocsByTrack['Plantilla'] ?? [], true);
                         $requiredNow = $activeTrack === 'COS' ? $requiredCos : $requiredPlantilla;

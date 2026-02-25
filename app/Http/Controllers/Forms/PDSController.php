@@ -35,6 +35,18 @@ class PDSController extends Controller
         'image/jpeg',
         'image/png',
     ];
+    private const DOCUMENT_TYPE_ALIASES = [
+        'cert_eligibility' => ['cert_elegibility'],
+        'cert_employment' => ['certificate_employment'],
+        'grade_masteraldoctorate' => ['certificate_grades'],
+        'tor_masteraldoctorate' => ['certified_tor'],
+        'ipcr' => ['performance_rating'],
+        'non_academic' => ['non_academic_awards'],
+        'cert_training' => ['certificates_participation'],
+        'designation_order' => ['designation_orders'],
+        'transcript_records' => ['transcript'],
+        'photocopy_diploma' => ['diploma'],
+    ];
 
     public function __construct()
     {
@@ -1269,6 +1281,61 @@ class PDSController extends Controller
         return $storedPaths;
     }
 
+    private function hasUploadedDocumentForType($documents, string $docType): bool
+    {
+        $candidates = array_merge([$docType], self::DOCUMENT_TYPE_ALIASES[$docType] ?? []);
+        foreach ($candidates as $candidate) {
+            $doc = $documents[$candidate] ?? null;
+            if ($doc && !empty($doc->storage_path) && $doc->storage_path !== 'NOINPUT') {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private function hasCompleteRequiredDocsForVacancy(
+        int $userId,
+        string $vacancyId,
+        string $docTrack,
+        array $requiredDocsByTrack
+    ): bool {
+        $supportsVacancyScopedDocs = Schema::hasColumn('uploaded_documents', 'vacancy_id');
+        if (!$supportsVacancyScopedDocs) {
+            return false;
+        }
+
+        $requiredDocs = $requiredDocsByTrack[$docTrack] ?? [];
+        if (empty($requiredDocs)) {
+            return false;
+        }
+
+        $documents = UploadedDocument::where('user_id', $userId)
+            ->where('vacancy_id', $vacancyId)
+            ->whereNotNull('storage_path')
+            ->where('storage_path', '!=', 'NOINPUT')
+            ->orderByDesc('updated_at')
+            ->get()
+            ->unique('document_type')
+            ->keyBy('document_type');
+
+        $hasApplicationLetterInApplications = Applications::where('user_id', $userId)
+            ->where('vacancy_id', $vacancyId)
+            ->whereNotNull('file_storage_path')
+            ->exists();
+
+        foreach ($requiredDocs as $docType) {
+            if ($docType === 'application_letter' && $hasApplicationLetterInApplications) {
+                continue;
+            }
+
+            if (!$this->hasUploadedDocumentForType($documents, $docType)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
 
     /**
      * Displays the C5 page for PDS.
@@ -1284,9 +1351,6 @@ class PDSController extends Controller
             ->with('vacancy')
             ->latest()
             ->first();
-        $hasExistingApplicationLetter = Applications::where('user_id', $user->id)
-            ->whereNotNull('file_storage_path')
-            ->exists();
 
         $applicationVacancyId = request('vacancy_id');
         $vacancyForApplication = null;
@@ -1296,6 +1360,12 @@ class PDSController extends Controller
                 return redirect()->back()->withErrors(['vacancy_id' => 'Selected vacancy was not found.']);
             }
         }
+        $hasExistingApplicationLetter = Applications::where('user_id', $user->id)
+            ->when(!empty($applicationVacancyId), function ($query) use ($applicationVacancyId) {
+                $query->where('vacancy_id', $applicationVacancyId);
+            })
+            ->whereNotNull('file_storage_path')
+            ->exists();
 
         // Fetch documents for this user and vacancy context.
         $documentCollection = UploadedDocument::where('user_id', $user->id)
@@ -1305,7 +1375,9 @@ class PDSController extends Controller
             ->get();
 
         // Restructure collection into associative array: ['document_type' => UploadedDocument]
-        $documents = $documentCollection->keyBy('document_type');
+        $documents = $documentCollection
+            ->unique('document_type')
+            ->keyBy('document_type');
 
         $defaultDocTrack = request('doc_track');
         if ($vacancyForApplication) {
@@ -1328,6 +1400,15 @@ class PDSController extends Controller
             $hasFreshUploadForVacancy = is_array($entry)
                 && ((int) ($entry['user_id'] ?? 0) === (int) $user->id)
                 && !empty($entry['uploaded_at']);
+
+            if (!$hasFreshUploadForVacancy) {
+                $hasFreshUploadForVacancy = $this->hasCompleteRequiredDocsForVacancy(
+                    (int) $user->id,
+                    (string) $applicationVacancyId,
+                    (string) $defaultDocTrack,
+                    $requiredDocsByTrack
+                );
+            }
 
             Log::info('C5 display with vacancy context', [
                 'user_id' => (int) $user->id,
@@ -1411,28 +1492,40 @@ class PDSController extends Controller
         $requiredDocsByTrack = $this->getRequiredDocsByTrack();
         $requiredDocs = $requiredDocsByTrack[$docTrack];
         $documentLabels = $this->getDocumentLabelMap();
-        $requiresFreshUpload = !empty($applicationVacancyId) || in_array($request->input('fresh_upload'), [1, '1', true, 'true'], true);
-
-        $existingDocLookup = [];
-        if (!$requiresFreshUpload) {
-            $supportsVacancyScopedDocs = Schema::hasColumn('uploaded_documents', 'vacancy_id');
-            $existingDocsQuery = UploadedDocument::where('user_id', Auth::id())
-                ->whereIn('document_type', $requiredDocs)
-                ->whereNotNull('storage_path');
-            if ($supportsVacancyScopedDocs) {
+        $supportsVacancyScopedDocs = Schema::hasColumn('uploaded_documents', 'vacancy_id');
+        $existingDocsQuery = UploadedDocument::where('user_id', Auth::id())
+            ->whereNotNull('storage_path')
+            ->where('storage_path', '!=', 'NOINPUT');
+        if ($supportsVacancyScopedDocs) {
+            if (!empty($applicationVacancyId)) {
+                $existingDocsQuery->where('vacancy_id', $applicationVacancyId);
+            } else {
                 $existingDocsQuery->whereNull('vacancy_id');
             }
-            $existingDocs = $existingDocsQuery->pluck('document_type')->all();
-            $existingDocLookup = array_fill_keys($existingDocs, true);
+        }
+        $existingDocs = $existingDocsQuery
+            ->orderByDesc('updated_at')
+            ->get()
+            ->unique('document_type')
+            ->keyBy('document_type');
 
-            // Count previously uploaded application letter from Applications records as existing.
-            if (in_array('application_letter', $requiredDocs, true) && !isset($existingDocLookup['application_letter'])) {
-                $hasApplicationLetter = Applications::where('user_id', Auth::id())
-                    ->whereNotNull('file_storage_path')
-                    ->exists();
-                if ($hasApplicationLetter) {
-                    $existingDocLookup['application_letter'] = true;
-                }
+        $existingDocLookup = [];
+        foreach ($requiredDocs as $docType) {
+            if ($this->hasUploadedDocumentForType($existingDocs, $docType)) {
+                $existingDocLookup[$docType] = true;
+            }
+        }
+
+        // Count previously uploaded application letter from Applications records as existing.
+        if (in_array('application_letter', $requiredDocs, true) && !isset($existingDocLookup['application_letter'])) {
+            $hasApplicationLetter = Applications::where('user_id', Auth::id())
+                ->when(!empty($applicationVacancyId), function ($query) use ($applicationVacancyId) {
+                    $query->where('vacancy_id', $applicationVacancyId);
+                })
+                ->whereNotNull('file_storage_path')
+                ->exists();
+            if ($hasApplicationLetter) {
+                $existingDocLookup['application_letter'] = true;
             }
         }
 
@@ -1561,6 +1654,23 @@ class PDSController extends Controller
                     throw new \RuntimeException('Simulated failure');
                 }
 
+                $hasSessionPayload = static function (string $key): bool {
+                    $payload = session($key);
+                    if (is_array($payload)) {
+                        return !empty($payload);
+                    }
+
+                    return !empty($payload);
+                };
+
+                $shouldPersistPdsData = $hasSessionPayload('form.c1')
+                    || $hasSessionPayload('form.c2')
+                    || $hasSessionPayload('data_learning')
+                    || $hasSessionPayload('data_voluntary')
+                    || $hasSessionPayload('data_otherInfo')
+                    || $hasSessionPayload('form.c4');
+
+                if ($shouldPersistPdsData) {
                 //********************************
                 //* +++++ Personal Information
                 //*******************************
@@ -1696,6 +1806,13 @@ class PDSController extends Controller
                     'user_id' => Auth::id()
                 ]);
 
+                $dateOfBirthForUpdate = $this->normalizeDateForDatabase($c1_form_data['date_of_birth']);
+                if (empty($dateOfBirthForUpdate)) {
+                    $dateOfBirthForUpdate = !empty($user_personal_info->date_of_birth)
+                        ? (string) $user_personal_info->date_of_birth
+                        : Carbon::now()->toDateString();
+                }
+
                 $user_personal_info->update([
                     //'cs_id_no'                  => $c1_form_data['cs_id_no'],
                     'surname' => $c1_form_data['surname'],
@@ -1704,7 +1821,7 @@ class PDSController extends Controller
                     'middle_name' => $c1_form_data['middle_name'],
                     'sex' => $c1_form_data['sex'],
                     'civil_status' => $c1_form_data['civil_status'],
-                    'date_of_birth' => $this->normalizeDateForDatabase($c1_form_data['date_of_birth']),
+                    'date_of_birth' => $dateOfBirthForUpdate,
                     'place_of_birth' => $c1_form_data['place_of_birth'],
                     'height' => $c1_form_data['height'],
                     'weight' => $c1_form_data['weight'],
@@ -1881,6 +1998,12 @@ class PDSController extends Controller
                         'user_id' => Auth::id()
                     ]);
                     $misc_info_data->update($c4_misc_info_data);
+                }
+                } else {
+                    Log::info('C5 finalize skipped C1-C4 persistence due to empty form session payload', [
+                        'user_id' => Auth::id(),
+                        'vacancy_id' => $applicationVacancyId,
+                    ]);
                 }
 
 
@@ -2470,8 +2593,11 @@ class PDSController extends Controller
         $supportsVacancyScopedDocs = Schema::hasColumn('uploaded_documents', 'vacancy_id');
         $documentCollection = UploadedDocument::where('user_id', Auth::id())
             ->when($supportsVacancyScopedDocs, fn($q) => $q->whereNull('vacancy_id'))
+            ->orderByDesc('updated_at')
             ->get();
-        $documents = $documentCollection->keyBy('document_type');
+        $documents = $documentCollection
+            ->unique('document_type')
+            ->keyBy('document_type');
         return view('pds_update.c5_update', compact('documents'));
     }
 }

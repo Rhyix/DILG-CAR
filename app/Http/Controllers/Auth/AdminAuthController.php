@@ -52,6 +52,21 @@ class AdminAuthController extends Controller
         };
     }
 
+    private function sanitizeAdminIntendedRedirect(Request $request): void
+    {
+        $intendedUrl = (string) $request->session()->get('url.intended', '');
+
+        if ($intendedUrl === '') {
+            return;
+        }
+
+        $intendedPath = (string) parse_url($intendedUrl, PHP_URL_PATH);
+
+        if ($intendedPath === '' || !Str::startsWith($intendedPath, '/admin')) {
+            $request->session()->forget('url.intended');
+        }
+    }
+
     private function clearPdsSessionCache(Request $request): void
     {
         $request->session()->forget([
@@ -226,6 +241,8 @@ class AdminAuthController extends Controller
                 ->withProperties(['section' => 'Login'])
                 ->event('login')
                 ->log('Admin logged in successfully.');
+
+            $this->sanitizeAdminIntendedRedirect($request);
 
             return $this->redirectByAdminRole($user, true);
         }

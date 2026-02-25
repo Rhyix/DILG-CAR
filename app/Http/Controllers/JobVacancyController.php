@@ -1193,11 +1193,22 @@ class JobVacancyController extends Controller
 
         $vacancyUploads = session('vacancy_doc_uploads', []);
         $entry = $vacancyUploads[$vacancyId] ?? null;
-        if (!is_array($entry)) {
-            return false;
+        $hasSessionMarker = is_array($entry)
+            && ((int) ($entry['user_id'] ?? 0) === $userId)
+            && !empty($entry['uploaded_at']);
+        if ($hasSessionMarker) {
+            return true;
         }
 
-        return ((int) ($entry['user_id'] ?? 0) === $userId) && !empty($entry['uploaded_at']);
+        if (Schema::hasColumn('uploaded_documents', 'vacancy_id')) {
+            return UploadedDocument::where('user_id', $userId)
+                ->where('vacancy_id', $vacancyId)
+                ->whereNotNull('storage_path')
+                ->where('storage_path', '!=', 'NOINPUT')
+                ->exists();
+        }
+
+        return false;
     }
 
     private function getRequiredDocsModalState(int $userId, ?string $vacancyType, ?string $vacancyId = null): array
@@ -1217,8 +1228,25 @@ class JobVacancyController extends Controller
 
         $hasMissing = true;
         if ($vacancyId) {
-            // Business rule: every vacancy application requires a fresh upload pass.
-            $hasMissing = !$hasFreshUploadForVacancy;
+            if (Schema::hasColumn('uploaded_documents', 'vacancy_id')) {
+                $uploadedDocuments = $this->loadUploadedDocumentsMap($userId, $vacancyId);
+                $hasApplicationLetterInApplications = Applications::where('user_id', $userId)
+                    ->where('vacancy_id', $vacancyId)
+                    ->whereNotNull('file_storage_path')
+                    ->exists();
+
+                $hasMissing = collect($requiredDocs)->contains(function (string $docType) use ($uploadedDocuments, $hasApplicationLetterInApplications) {
+                    if ($docType === 'application_letter' && $hasApplicationLetterInApplications) {
+                        return false;
+                    }
+
+                    $doc = $this->resolveUploadedDocument($uploadedDocuments, $docType);
+                    return !($doc && !empty($doc->storage_path) && $doc->storage_path !== 'NOINPUT');
+                });
+            } else {
+                // Legacy fallback: session marker based freshness when vacancy-scoped docs are unavailable.
+                $hasMissing = !$hasFreshUploadForVacancy;
+            }
         } else {
             // Fallback behavior when vacancy context is not present.
             $uploadedDocuments = UploadedDocument::where('user_id', $userId)->get()->keyBy('document_type');
