@@ -147,6 +147,7 @@
     let autoSaveQueued = false;
     let answersDirty = false;
     let lastSavedFingerprint = '';
+    let unloadSaveTriggered = false;
 
     Questions.forEach((q, idx) => q.number = idx + 1);
 
@@ -481,6 +482,59 @@
 
     const autoSaveDebounced = debounce(() => doAutoSave(true), AUTOSAVE_DEBOUNCE_MS);
 
+    function flushAutosaveOnUnload() {
+        if (window.isSubmitting || unloadSaveTriggered) return;
+
+        collectCurrentAnswers();
+        const fingerprint = JSON.stringify(answers);
+        if (!answersDirty && fingerprint === lastSavedFingerprint) return;
+
+        unloadSaveTriggered = true;
+
+        const url = "{{ route('exam.autosave', ['vacancy_id' => $vacancy_id]) }}";
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+
+        try {
+            if (navigator.sendBeacon) {
+                const formData = new FormData();
+                formData.append('_token', csrfToken);
+                formData.append('vacancy_id', '{{ $vacancy_id }}');
+                formData.append('user_id', '{{ Auth::id() }}');
+
+                Object.entries(answers).forEach(([questionId, value]) => {
+                    formData.append(`answers[${questionId}]`, value ?? '');
+                });
+
+                const sent = navigator.sendBeacon(url, formData);
+                if (sent) {
+                    lastSavedFingerprint = fingerprint;
+                    answersDirty = false;
+                    return;
+                }
+            }
+        } catch (_) {}
+
+        try {
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin',
+                keepalive: true,
+                body: JSON.stringify({
+                    vacancy_id: '{{ $vacancy_id }}',
+                    user_id: '{{ Auth::id() }}',
+                    answers: answers
+                })
+            });
+            lastSavedFingerprint = fingerprint;
+            answersDirty = false;
+        } catch (_) {}
+    }
+
     function renderAllQuestions() {
     container.innerHTML = '';
     Questions.forEach((q, idx) => {
@@ -523,7 +577,15 @@
     }, AUTOSAVE_PERIODIC_MS);
 
     window.addEventListener('beforeunload', () => {
+        flushAutosaveOnUnload();
         if (periodicAutoSave) clearInterval(periodicAutoSave);
+    });
+    window.addEventListener('pagehide', flushAutosaveOnUnload);
+    window.addEventListener('pageshow', () => { unloadSaveTriggered = false; });
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') {
+            flushAutosaveOnUnload();
+        }
     });
 
     // Ensure confirm button reflects latest state when opening modal
