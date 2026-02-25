@@ -88,7 +88,7 @@
             <table class="min-w-full text-sm">
                 <thead class="bg-[#0D2B70] text-white">
                     <tr>
-                        <th class="px-5 py-3 text-left font-semibold">Profile</th>
+                        <th class="px-5 py-3 text-left font-semibold">Email</th>
                         <th class="px-5 py-3 text-left font-semibold">Role</th>
                         <th class="px-5 py-3 text-left font-semibold">Office / Designation</th>
                         <th class="px-5 py-3 text-center font-semibold">Status</th>

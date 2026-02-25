@@ -48,8 +48,8 @@
 
         <tr class="transition hover:bg-slate-50/80" data-row="admin-account" data-role="{{ $admin->role }}" data-status="{{ $statusKey }}">
             <td class="px-5 py-4 align-top">
-                <p class="font-medium text-slate-800">{{ $admin->name }}</p>
-                <p class="text-xs text-slate-500">{{ $admin->email }}</p>
+                <p class="font-medium text-slate-800">{{ $admin->email }}</p>
+                <p class="text-xs text-slate-500">{{ $admin->name }}</p>
                 @if ($isCurrentUser)
                     <span class="mt-1 inline-flex rounded-full border border-slate-300 bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
                         You
