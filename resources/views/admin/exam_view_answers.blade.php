@@ -16,13 +16,13 @@
 <div class="px-6 mb-6 flex justify-between items-center font-montserrat">
     <div class="flex items-center gap-4">
         <!-- Back Button -->
-        <button aria-label="Go back" title="Go back"
+        <!-- <button aria-label="Go back" title="Go back"
             class="w-12 h-12 rounded-full bg-[#D8DCE3] flex justify-center items-center text-[#1E3664] hover:bg-[#c0c7d8] transition"
             onclick="triggerBackConfirm()">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="#1E3664" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
-        </button>
+        </button> -->
 
         <div>
             <h2 id="applicant-name" class="text-2xl font-bold uppercase text-[#002C76]">{{ $userName->name }}</h2>
@@ -56,12 +56,13 @@
 </div>
 
 
-<div class="flex flex-row">
-    <div class="px-6 mt-4">
-        <details class="max-w-3xl mx-auto bg-white rounded-xl border border-blue-200 shadow">
+<div class="flex flex-col lg:flex-row w-full gap-6">
+    <!-- Tab Switch Log Section - Left Side -->
+    <div class="lg:w-1/4 px-6 mt-4">
+        <details class="w-full bg-white rounded-xl border border-blue-200 shadow">
             <summary class="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-gray-700 flex items-center justify-between">
                 <span>Tab Switch Log</span>
-                <svg class="w-4 h-4 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+                <svg class="w-4 h-4 text-gray-500 transition-transform duration-200" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.08 1.04l-4.25 4.25a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
                 </svg>
             </summary>
@@ -73,14 +74,16 @@
         </details>
     </div>
 
-    <div class="px-6 mt-4">
+    <!-- Save Scores Form Section - Right Side -->
+    <div class="lg:w-3/4 px-6 mt-4">
         <form id="saveScoresForm" action="{{ route('admin.save_result', ['vacancy_id' => $vacancy_id, 'user_id' => $user_id] ) }}" method="POST">
             @csrf
             <input type="hidden" name="result" id="result">
-            <div id="question-container" class="px-6 pb-10 font-montserrat"></div>
+            <div id="question-container" class="bg-white rounded-xl border border-blue-200 shadow p-6 font-montserrat">
+                <!-- Question content will be loaded here -->
+            </div>
         </form>
     </div>
-
 </div>
 
 

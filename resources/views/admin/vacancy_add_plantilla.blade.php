@@ -97,7 +97,7 @@
         </div>
     
 
-        <div class="w-full grid grid-cols-3 gap-4">
+        <div class="w-full grid grid-cols-2 gap-4">
             <div class="w-full">
                 <label class="block">PCN No.</label>
                 <input type="text" name="pcn_no" value="{{ old('pcn_no', $vacancy->pcn_no ?? '') }}" class="w-full border-2 border-[#002C76] rounded px-2 py-1 h-10">
