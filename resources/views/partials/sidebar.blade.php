@@ -22,8 +22,8 @@
             }
         </style>
 
-        <!-- Toggle Button -->
-        <button id="toggleSidebar" class="p-2 focus:outline-none absolute top-3 right-3 z-20" aria-label="Toggle sidebar">
+        <!-- Toggle Button (mobile only) -->
+        <button id="toggleSidebar" class="lg:hidden p-2 focus:outline-none absolute top-3 right-3 z-20" aria-label="Toggle sidebar">
             <i data-feather="menu" class="w-5 h-5 stroke-[3]"></i>
         </button>
 

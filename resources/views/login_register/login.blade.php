@@ -55,7 +55,7 @@
   <meta name="twitter:image" content="{{ asset('images/dilg_rsp_thumbnail.png') }}" />
   
 </head>
-<body class="min-h-screen bg-gradient-to-br from-blue-800 via-blue-700 to-blue-900 flex items-center justify-center p-4">
+<body class="min-h-screen bg-gradient-to-br from-[#071A4D] via-[#0A2566] to-[#12398B] flex items-center justify-center p-4">
 
   <div class="w-full max-w-6xl bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl overflow-hidden">
     <div class="flex flex-col lg:flex-row">
@@ -129,10 +129,10 @@
                   <div class="g-recaptcha" data-sitekey="6LfpjpErAAAAADcMjUqP3AZmsMae7WvrjcA5OSvs" data-action="LOGIN"></div>
               </div>
             @endif
-            
+            <!-- w-full rounded-xl bg-[#0D2B70] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0A2259] -->
             <!-- LOG-IN Button - Visible -->
-            <button type="submit" class="w-full bg-yellow-400 hover:bg-yellow-500 text-blue-900 font-bold py-3 rounded-full shadow-md transition transform hover:scale-[1.02] active:scale-[0.98]">
-              LOG-IN
+            <button type="submit" class="use-loader flex items-center justify-center bg-[#0D2B70] gap-3 w-full text-white font-bold py-3 rounded-full hover:bg-[#0A2259] shadow-md transition transform hover:scale-[1.02] active:scale-[0.98]">
+              Sign In
             </button>
 
             <!-- Continue with Google Button - Visible -->

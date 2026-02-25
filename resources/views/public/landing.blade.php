@@ -157,7 +157,7 @@
                         <div class="relative bg-white w-full lg:w-[125%] rounded-3xl shadow-2xl p-6">
                             <div class="flex items-center justify-between">
                                 <div class="font-bold text-[#0D2B70]">Featured Openings</div>
-                                <button type="button" onclick="openVacanciesModal()" class="text-sm text-[#0D2B70] font-semibold hover:underline">View all</button>
+                                <a href="{{ route('job_vacancy') }}" class="text-sm text-[#0D2B70] font-semibold hover:underline">View all</a>
                             </div>
                             <div class="mt-4 divide-y divide-gray-200 max-h-[28rem] overflow-y-auto pr-2">
                                 @forelse(($vacancies ?? []) as $v)
@@ -187,36 +187,6 @@
             </div>
         </div>
     </header>
-    
-    <div id="vacanciesModal" class="fixed inset-0 z-50 hidden">
-        <div class="absolute inset-0 bg-black/40"></div>
-        <div class="relative z-10 max-w-4xl mx-auto my-10 bg-white rounded-2xl shadow-2xl overflow-hidden">
-            <div class="flex items-center justify-between px-6 py-4 border-b">
-                <h2 class="text-xl font-bold text-[#0D2B70]">All Open Vacancies</h2>
-                <button type="button" onclick="closeVacanciesModal()" class="rounded-md px-3 py-1.5 text-sm font-semibold text-white bg-[#0D2B70]">Close</button>
-            </div>
-            <div class="p-6 max-h-[70vh] overflow-y-auto">
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    @forelse(($vacancies ?? []) as $v)
-                        <div class="border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition">
-                            <div class="flex items-start justify-between gap-3">
-                                <div class="min-w-0">
-                                    <div class="text-[#0D2B70] font-bold truncate">{{ $v->position_title }}</div>
-                                    <div class="text-gray-600 text-sm">{{ $v->place_of_assignment }}</div>
-                                    <div class="text-gray-500 text-xs mt-1">{{ strtoupper($v->vacancy_type) }}</div>
-                                </div>
-                                <div class="text-right flex-shrink-0">
-                                    <div class="text-green-700 font-bold">₱{{ number_format($v->monthly_salary, 2) }}</div>
-                                </div>
-                            </div>
-                        </div>
-                    @empty
-                        <div class="py-10 text-center text-gray-500 font-semibold sm:col-span-2">No open vacancies</div>
-                    @endforelse
-                </div>
-            </div>
-        </div>
-    </div>
     
     <footer class="border-t border-gray-200 flex-none bg-[#F3F8FF] relative z-10">
         <div class="max-w-7xl mx-auto px-6 py-6 text-sm text-gray-600 flex flex-col sm:flex-row items-center justify-between gap-3">
@@ -330,20 +300,6 @@
         });
         
         feather.replace();
-        
-        function openVacanciesModal() {
-            const m = document.getElementById('vacanciesModal');
-            m.classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
-        }
-        function closeVacanciesModal() {
-            const m = document.getElementById('vacanciesModal');
-            m.classList.add('hidden');
-            document.body.style.overflow = '';
-        }
-        document.getElementById('vacanciesModal').addEventListener('click', function(e) {
-            if (e.target === this) closeVacanciesModal();
-        });
     </script>
  </body>
  </html>
