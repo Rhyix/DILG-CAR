@@ -39,7 +39,7 @@
                     <table id="civil-service-table" class="modern-table w-full min-w-[800px]">
                         <thead>
                             <tr>
-                                <th class="rounded-tl-lg text-xs sm:text-sm p-2 sm:p-3">27. CAREER SERVICE/ RA 1080 (BOARD/ BAR) UNDER SPECIAL LAWS/ CES/ CSEE<br>BARANGAY ELIGIBILITY / DRIVER'S LICENSE</th>
+                                <th class="rounded-tl-lg text-xs sm:text-sm p-2 sm:p-3">27. CES/CSEE/CAREER SERVICE/RA 1080 (BOARD/ BAR)/UNDER SPECIAL LAWS/CATEGORY II/ IV ELIGIBILITY and ELIGIBILITIES FOR UNIFORMED PERSONNEL</th>
                                 <th class="text-xs sm:text-sm p-2 sm:p-3">RATING<br>(If Applicable)</th>
                                 <th class="text-xs sm:text-sm p-2 sm:p-3">DATE OF EXAMINATION / CONFERMENT</th>
                                 <th class="text-xs sm:text-sm p-2 sm:p-3">PLACE OF EXAMINATION / CONFERMENT</th>

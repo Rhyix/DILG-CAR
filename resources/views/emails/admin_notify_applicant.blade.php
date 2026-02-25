@@ -44,11 +44,11 @@
               // Sort documents to prioritize 'Needs Revision' items
               $sortedDocuments = collect($documents)->sortBy(function($doc) {
                   $status = $doc['status'] ?? '';
-                  if ($status == 'Needs Revision' || $status == 'Disapproved With Deficiency') {
+                  if ($status == 'ggs' || $status == 'Disapproved With Deficiency') {
                       return 1;
-                  } elseif ($status == 'Not Submitted' || $status == 'Pending') {
+                  } elseif ($status == 'dds' || $status == 'Pending') {
                       return 2;
-                  } elseif ($status == 'Verified' || $status == 'Okay/Confirmed') {
+                  } elseif ($status == 'uni' || $status == 'Okay/Confirmed') {
                       return 3;
                   }
                   return 4;
@@ -59,8 +59,18 @@
                 <td style="padding:10px; color:#111827;">{{ $doc['name'] ?? $doc['text'] ?? $doc['id'] ?? 'N/A' }}</td>
                 <td style="padding:10px; color:#111827;">{{ $doc['doc_id'] ?? 'N/A' }}</td>
                 <td style="padding:10px;">
-                  <span style="display:inline-block; padding:4px 8px; border-radius:9999px; font-size:12px; font-weight:700; background:#eef2ff; color:#1f2937;">
-                    {{ $doc['status'] ?? 'N/A' }}
+                  @php
+                    $st = strtolower(trim($doc['status'] ?? ''));
+                    $isVerified = in_array($st, ['okay/confirmed','confirmed','approved','ok','uni'], true);
+                    $needsRevision = in_array($st, ['needs revision','disapproved with deficiency','rejected','ggs'], true);
+                    $isPending = in_array($st, ['pending','dds'], true);
+                    $badgeBg = $isVerified ? '#dcfce7' : ($needsRevision ? '#fee2e2' : '#e5e7eb');
+                    $badgeColor = $isVerified ? '#166534' : ($needsRevision ? '#991b1b' : '#374151');
+                    $icon = $isVerified ? '✓' : ($needsRevision ? '✕' : '•');
+                  @endphp
+                  <span style="display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:9999px; font-size:12px; font-weight:700; background:{{ $badgeBg }}; color:{{ $badgeColor }};">
+                    <span style="font-size:13px; line-height:1;">{{ $icon }}</span>
+                    <span>{{ $doc['status'] ?? 'N/A' }}</span>
                   </span>
                 </td>
                 <td style="padding:10px; color:#6b7280;">{{ $doc['remarks'] ?? '' }}</td>

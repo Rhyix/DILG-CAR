@@ -130,7 +130,9 @@
                                     data-required-cos="{{ $requiredCos ? 1 : 0 }}"
                                     data-required-plantilla="{{ $requiredPlantilla ? 1 : 0 }}"
                                 >
-                                    {{ $requiredNow ? '(required)' : '(optional)' }}
+                                    {{ $requiredNow ? '(required)' : '(if any)' }}
+                                    
+
                                 </span>
                             </h3>
 
@@ -299,7 +301,7 @@
             const required = normalized === 'COS'
                 ? badge.dataset.requiredCos === '1'
                 : badge.dataset.requiredPlantilla === '1';
-            badge.textContent = required ? '(required)' : '(optional)';
+            badge.textContent = required ? '(required)' : '(if any)';
             badge.classList.toggle('text-red-600', required);
             badge.classList.toggle('text-blue-500', !required);
         });
