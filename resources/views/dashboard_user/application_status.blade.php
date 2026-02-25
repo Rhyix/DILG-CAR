@@ -209,6 +209,7 @@
                   <section aria-label="Required Documents Panel"
                     class="w-full lg:w-72 flex-none bg-white rounded-lg border border-gray-300 p-3 shadow-lg flex flex-col">
                     <h2 class="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide flex-none">Required Documents</h2>
+                    <p class="text-xs font-semibold mb-2 text-red-600">* Required for {{ $application->vacancy->vacancy_type }} vacancy</p>
                     <p class="text-xs font-semibold mb-3 text-gray-600">Upload your documents below. If you need to upload multiple files for a single document, please combine them into one file.</p>
                     <div class="pr-1">
                       <form id="document-upload-form" method="POST" data-upload-retry="1"
@@ -289,8 +290,34 @@
 
         <script>
           let documents = @json($documents);
+          const requiredDocumentIds = @json($requiredDocumentIds ?? []);
+          let requiredDocumentSet = new Set(requiredDocumentIds);
           const isPastDeadline = @json($isPastDeadline);
           let currentSelectedDoc = null;
+
+          function isRequiredDocument(docId) {
+            return requiredDocumentSet.has(docId);
+          }
+
+          function escapeHtml(value) {
+            const div = document.createElement('div');
+            div.textContent = value ?? '';
+            return div.innerHTML;
+          }
+
+          function sortDocumentsForRequiredPriority(docList) {
+            return [...(docList || [])].sort((a, b) => {
+              const requiredA = isRequiredDocument(a?.id) ? 0 : 1;
+              const requiredB = isRequiredDocument(b?.id) ? 0 : 1;
+              if (requiredA !== requiredB) {
+                return requiredA - requiredB; // required first, optional last
+              }
+
+              const labelA = (a?.text || a?.name || a?.id || '').toLowerCase();
+              const labelB = (b?.text || b?.name || b?.id || '').toLowerCase();
+              return labelA.localeCompare(labelB);
+            });
+          }
 
           // Status icon helper
           function getStatusIcon(status) {
@@ -435,8 +462,8 @@
               iconWrapper.innerHTML = icon;
 
               const textWrapper = document.createElement('span');
-              textWrapper.textContent = doc.text || doc.name;
               textWrapper.className = `${textColorClass} text-xs flex-1 break-words`;
+              textWrapper.innerHTML = `${escapeHtml(doc.text || doc.name)}${isRequiredDocument(doc.id) ? ' <span class="text-red-600 font-extrabold">*</span>' : ''}`;
 
               btn.appendChild(iconWrapper);
               btn.appendChild(textWrapper);
@@ -454,6 +481,7 @@
           // Initialize
           document.addEventListener('DOMContentLoaded', function() {
             console.log("Documents from backend:", documents);
+            documents = sortDocumentsForRequiredPriority(documents);
             renderDocuments(documents);
             updateUploadNewButton(null);
 
@@ -501,11 +529,15 @@
                         data.documents?.forEach((doc, index) => {
                             console.log(`Doc ${index}: ${doc.name} - Status: "${doc.status}" - ID: ${doc.id}`);
                         });
-                        
-                        // Update documents array
-                        documents = data.documents || documents;
-                        
-                        // Re-render documents with new data
+
+                        if (Array.isArray(data.requiredDocumentIds)) {
+                            requiredDocumentSet = new Set(data.requiredDocumentIds);
+                        }
+
+                        // Update documents array (required first, optional last)
+                        documents = sortDocumentsForRequiredPriority(data.documents || documents);
+
+                        // Re-render documents with new sorted data
                         renderDocuments(documents);
                     }
                 } catch (error) {
@@ -538,11 +570,15 @@
                         data.documents?.forEach((doc, index) => {
                             console.log(`Doc ${index}: ${doc.name} - Status: "${doc.status}" - ID: ${doc.id}`);
                         });
-                        
-                        // Update documents array
-                        documents = data.documents || documents;
-                        
-                        // Re-render documents with new data
+
+                        if (Array.isArray(data.requiredDocumentIds)) {
+                            requiredDocumentSet = new Set(data.requiredDocumentIds);
+                        }
+
+                        // Update documents array (required first, optional last)
+                        documents = sortDocumentsForRequiredPriority(data.documents || documents);
+
+                        // Re-render documents with new sorted data
                         renderDocuments(documents);
                     } else {
                         console.error('Response not ok:', response.statusText);

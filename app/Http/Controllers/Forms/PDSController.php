@@ -21,6 +21,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\LearningAndDevelopment;
 use Illuminate\Support\Facades\DB;
 use App\Models\CivilServiceEligibility;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 
 class PDSController extends Controller
@@ -1215,8 +1216,9 @@ class PDSController extends Controller
      * @param UploadedFile[] $files
      * @return void
      */
-    private function c5StoreFilesToDB(array $files): array
+    private function c5StoreFilesToDB(array $files, ?string $vacancyId = null): array
     {
+        $supportsVacancyScopedDocs = Schema::hasColumn('uploaded_documents', 'vacancy_id');
 
         $storedPaths = [];
         foreach ($files as $doc_type => $file) {
@@ -1224,10 +1226,15 @@ class PDSController extends Controller
             $hashed_name = $file->hashName();
             $store_path = $file->store("uploads/pds-files", 'public');
 
-            $document = UploadedDocument::firstOrCreate([
+            $match = [
                 'user_id' => Auth::id(),
                 'document_type' => $doc_type
-            ]);
+            ];
+            if ($supportsVacancyScopedDocs) {
+                $match['vacancy_id'] = $vacancyId;
+            }
+
+            $document = UploadedDocument::firstOrCreate($match);
 
             // Auto-delete if file_paths don't match and if an item.
             if (
@@ -1238,7 +1245,7 @@ class PDSController extends Controller
                 Storage::disk('public')->delete($document->storage_path);
             }
 
-            $document->update([
+            $updates = [
                 'original_name' => $file->getClientOriginalName(),
                 'stored_name' => $hashed_name,
                 'storage_path' => $store_path,
@@ -1246,7 +1253,12 @@ class PDSController extends Controller
                 'file_size_8b' => $file->getSize(),
                 'status' => 'Pending', // Reset status to Pending on new upload
                 'remarks' => ''      // Clear old remarks
-            ]);
+            ];
+            if ($supportsVacancyScopedDocs) {
+                $updates['vacancy_id'] = $vacancyId;
+            }
+
+            $document->update($updates);
             $storedPaths[] = $store_path;
 
         }
@@ -1265,12 +1277,7 @@ class PDSController extends Controller
     public function c5DisplayForm()
     {
         $user = Auth::user();
-
-        // Fetch documents for this user
-        $documentCollection = UploadedDocument::where('user_id', $user->id)->get();
-
-        // Restructure collection into associative array: ['document_type' => UploadedDocument]
-        $documents = $documentCollection->keyBy('document_type');
+        $supportsVacancyScopedDocs = Schema::hasColumn('uploaded_documents', 'vacancy_id');
 
         // ✅ Fix the quote in the view name
         $latestApplication = Applications::where('user_id', $user->id)
@@ -1290,6 +1297,16 @@ class PDSController extends Controller
             }
         }
 
+        // Fetch documents for this user and vacancy context.
+        $documentCollection = UploadedDocument::where('user_id', $user->id)
+            ->when($supportsVacancyScopedDocs && !empty($applicationVacancyId), fn($q) => $q->where('vacancy_id', $applicationVacancyId))
+            ->when($supportsVacancyScopedDocs && empty($applicationVacancyId), fn($q) => $q->whereNull('vacancy_id'))
+            ->orderByDesc('updated_at')
+            ->get();
+
+        // Restructure collection into associative array: ['document_type' => UploadedDocument]
+        $documents = $documentCollection->keyBy('document_type');
+
         $defaultDocTrack = request('doc_track');
         if ($vacancyForApplication) {
             $defaultDocTrack = strcasecmp((string) $vacancyForApplication->vacancy_type, 'COS') === 0 ? 'COS' : 'Plantilla';
@@ -1304,6 +1321,22 @@ class PDSController extends Controller
         $requiredDocsByTrack = $this->getRequiredDocsByTrack();
         $documentLabels = $this->getDocumentLabelMap();
         $isFreshUpload = in_array(request('fresh_upload'), [1, '1', true, 'true'], true) || !empty($applicationVacancyId);
+        $hasFreshUploadForVacancy = false;
+        if (!empty($applicationVacancyId)) {
+            $vacancyUploads = session('vacancy_doc_uploads', []);
+            $entry = $vacancyUploads[$applicationVacancyId] ?? null;
+            $hasFreshUploadForVacancy = is_array($entry)
+                && ((int) ($entry['user_id'] ?? 0) === (int) $user->id)
+                && !empty($entry['uploaded_at']);
+
+            Log::info('C5 display with vacancy context', [
+                'user_id' => (int) $user->id,
+                'vacancy_id' => (string) $applicationVacancyId,
+                'doc_track' => $defaultDocTrack,
+                'fresh_upload' => $isFreshUpload,
+                'has_fresh_upload_marker' => $hasFreshUploadForVacancy,
+            ]);
+        }
 
         return view('pds.c5', compact(
             'documents',
@@ -1312,7 +1345,8 @@ class PDSController extends Controller
             'documentLabels',
             'hasExistingApplicationLetter',
             'applicationVacancyId',
-            'isFreshUpload'
+            'isFreshUpload',
+            'hasFreshUploadForVacancy'
         ));
     }
 
@@ -1328,11 +1362,43 @@ class PDSController extends Controller
      */
     public function finalizePDS(Request $request, $go_to)
     {
+        $request->validate(
+            [
+                'declaration' => 'accepted',
+                'consent' => 'accepted',
+                'confirmation' => 'accepted',
+            ],
+            [
+                'declaration.accepted' => 'Please check the declaration checkbox to continue.',
+                'consent.accepted' => 'Please check the consent checkbox to continue.',
+                'confirmation.accepted' => 'Please check the confirmation checkbox to continue.',
+            ]
+        );
+
         $docTrack = $request->input('doc_track', 'Plantilla');
         if (!in_array($docTrack, ['COS', 'Plantilla'], true)) {
             $docTrack = 'Plantilla';
         }
         $applicationVacancyId = $request->input('vacancy_id');
+        $refererVacancyId = $this->extractVacancyIdFromReferer($request->headers->get('referer'));
+        if (!empty($refererVacancyId) && $refererVacancyId !== $applicationVacancyId) {
+            Log::warning('C5 vacancy_id mismatch detected; using referer vacancy_id', [
+                'user_id' => Auth::id(),
+                'posted_vacancy_id' => $applicationVacancyId,
+                'referer_vacancy_id' => $refererVacancyId,
+                'referer' => $request->headers->get('referer'),
+            ]);
+            $applicationVacancyId = $refererVacancyId;
+        }
+
+        if (!empty($applicationVacancyId)) {
+            Log::info('C5 finalize vacancy context', [
+                'user_id' => Auth::id(),
+                'vacancy_id' => $applicationVacancyId,
+                'go_to' => $go_to,
+                'fresh_upload' => $request->input('fresh_upload'),
+            ]);
+        }
         $vacancyForApplication = null;
         if (!empty($applicationVacancyId)) {
             $vacancyForApplication = Models\JobVacancy::where('vacancy_id', $applicationVacancyId)->first();
@@ -1349,11 +1415,14 @@ class PDSController extends Controller
 
         $existingDocLookup = [];
         if (!$requiresFreshUpload) {
-            $existingDocs = UploadedDocument::where('user_id', Auth::id())
+            $supportsVacancyScopedDocs = Schema::hasColumn('uploaded_documents', 'vacancy_id');
+            $existingDocsQuery = UploadedDocument::where('user_id', Auth::id())
                 ->whereIn('document_type', $requiredDocs)
-                ->whereNotNull('storage_path')
-                ->pluck('document_type')
-                ->all();
+                ->whereNotNull('storage_path');
+            if ($supportsVacancyScopedDocs) {
+                $existingDocsQuery->whereNull('vacancy_id');
+            }
+            $existingDocs = $existingDocsQuery->pluck('document_type')->all();
             $existingDocLookup = array_fill_keys($existingDocs, true);
 
             // Count previously uploaded application letter from Applications records as existing.
@@ -1374,6 +1443,13 @@ class PDSController extends Controller
             }
         }
         if (!empty($missingRequiredDocs)) {
+            Log::warning('C5 missing required documents', [
+                'user_id' => Auth::id(),
+                'vacancy_id' => $applicationVacancyId,
+                'doc_track' => $docTrack,
+                'missing_docs' => $missingRequiredDocs,
+                'uploaded_keys' => array_keys($request->file('cert_uploads', [])),
+            ]);
             $errors = [];
             foreach ($missingRequiredDocs as $docType) {
                 $label = $documentLabels[$docType] ?? str_replace('_', ' ', $docType);
@@ -1462,36 +1538,23 @@ class PDSController extends Controller
 
         $storedPaths = [];
         try {
-            return DB::transaction(function () use ($request, $uploaded_files, &$storedPaths, $go_to, $applicationVacancyId) {
-                $storedPaths = $this->c5StoreFilesToDB($uploaded_files);
-                
-                // Save declaration checkboxes to database - only if submitted from C5 form
-                if ($request->hasFile('cert_uploads')) {
-                    $declaration_data = [
-                        'user_id' => Auth::id(),
-                        'declaration' => $request->input('declaration', '0'),
-                        'consent' => $request->input('consent', '0'),
-                        'confirmation' => $request->input('confirmation', '0'),
-                    ];
-                    
-                    // Add validation for declaration fields
-                    $declaration_rules = [
-                        'declaration' => 'required|boolean',
-                        'consent' => 'required|boolean', 
-                        'confirmation' => 'required|boolean',
-                    ];
-                    
-                    // Validate declaration data
-                    $declaration_validator = validator($request->only(['declaration', 'consent', 'confirmation']), $declaration_rules);
-                    
-                    if ($declaration_validator->fails()) {
-                        Log::error('Declaration validation failed: ' . $declaration_validator->errors()->toJson());
-                        return back()->withErrors(['declaration' => 'Please check: declaration checkboxes to continue.']);
+            return DB::transaction(function () use ($request, $uploaded_files, &$storedPaths, $go_to, $applicationVacancyId, $docTrack) {
+                $storedPaths = $this->c5StoreFilesToDB($uploaded_files, $applicationVacancyId);
+
+                // Persist declaration/consent only when DB columns exist.
+                if (Schema::hasTable('misc_infos')) {
+                    $miscInfoUpdates = [];
+                    if (Schema::hasColumn('misc_infos', 'declaration')) {
+                        $miscInfoUpdates['declaration'] = $request->boolean('declaration') ? '1' : '0';
                     }
-                    
-                    // Update or create misc info record
-                    $misc_info = MiscInfos::firstOrCreate(['user_id' => Auth::id()]);
-                    $misc_info->update($declaration_data);
+                    if (Schema::hasColumn('misc_infos', 'consent')) {
+                        $miscInfoUpdates['consent'] = $request->boolean('consent') ? '1' : '0';
+                    }
+
+                    if (!empty($miscInfoUpdates)) {
+                        $misc_info = MiscInfos::firstOrCreate(['user_id' => Auth::id()]);
+                        $misc_info->update($miscInfoUpdates);
+                    }
                 }
                 
                 if (app()->environment('testing') && $request->boolean('simulate_failure')) {
@@ -1865,6 +1928,29 @@ class PDSController extends Controller
                         'uploaded_at' => now()->toDateTimeString(),
                     ];
                     session(['vacancy_doc_uploads' => $vacancyUploads]);
+
+                    $submissionResult = $this->createOrUpdateApplicationFromVacancyUploads((string) $applicationVacancyId);
+                    if (!$submissionResult['ok']) {
+                        Log::warning('C5 application submit blocked', [
+                            'user_id' => Auth::id(),
+                            'vacancy_id' => $applicationVacancyId,
+                            'reason' => $submissionResult['message'],
+                        ]);
+                        return redirect()
+                            ->route('display_c5', [
+                                'doc_track' => $docTrack,
+                                'vacancy_id' => $applicationVacancyId,
+                                'fresh_upload' => 1,
+                                'simple' => 1,
+                            ])
+                            ->withErrors(['cert_uploads.application_letter' => $submissionResult['message']]);
+                    }
+
+                    return redirect()
+                        ->route('my_applications')
+                        ->with('success', $submissionResult['created']
+                            ? 'Application submitted successfully!'
+                            : 'Application updated successfully.');
                 }
 
                 if ($go_to === 'job_description') {
@@ -1883,9 +1969,124 @@ class PDSController extends Controller
             foreach ($storedPaths as $path) {
                 Storage::disk('public')->delete($path);
             }
+            Log::error('PDS finalize failed', [
+                'user_id' => Auth::id(),
+                'go_to' => $go_to,
+                'vacancy_id' => $request->input('vacancy_id'),
+                'doc_track' => $request->input('doc_track'),
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
             return back()->withErrors(['cert_uploads' => 'Upload failed. Please try again.']);
         }
     } // END finalize PDS
+
+    private function createOrUpdateApplicationFromVacancyUploads(string $vacancyId): array
+    {
+        $supportsVacancyScopedDocs = Schema::hasColumn('uploaded_documents', 'vacancy_id');
+
+        $applicationLetterDocQuery = UploadedDocument::where('user_id', Auth::id())
+            ->where('document_type', 'application_letter')
+            ->whereNotNull('storage_path')
+            ->where('storage_path', '!=', 'NOINPUT');
+        if ($supportsVacancyScopedDocs) {
+            $applicationLetterDocQuery->where('vacancy_id', $vacancyId);
+        }
+
+        $applicationLetterDoc = $applicationLetterDocQuery
+            ->latest('updated_at')
+            ->first();
+
+        if (!$applicationLetterDoc) {
+            return [
+                'ok' => false,
+                'created' => false,
+                'message' => 'Application Letter is required before submitting your application.',
+            ];
+        }
+
+        $applicationPayload = [
+            'file_original_name' => $applicationLetterDoc->original_name,
+            'file_stored_name' => $applicationLetterDoc->stored_name,
+            'file_storage_path' => $applicationLetterDoc->storage_path,
+            'file_status' => 'Submitted',
+            'file_remarks' => null,
+            'file_size_8b' => $applicationLetterDoc->file_size_8b,
+            'is_valid' => true,
+        ];
+
+        $application = Applications::where('user_id', Auth::id())
+            ->where('vacancy_id', $vacancyId)
+            ->first();
+
+        if ($application) {
+            if ($application->status === 'Compliance') {
+                $applicationPayload['status'] = 'Updated';
+            }
+
+            $application->update($applicationPayload);
+
+            Log::info('C5 application submit updated existing application', [
+                'user_id' => Auth::id(),
+                'vacancy_id' => $vacancyId,
+                'application_id' => $application->id,
+            ]);
+
+            return [
+                'ok' => true,
+                'created' => false,
+                'message' => 'Application updated successfully.',
+            ];
+        }
+
+        $application = Applications::create(array_merge($applicationPayload, [
+            'user_id' => Auth::id(),
+            'vacancy_id' => $vacancyId,
+            'status' => 'Pending',
+        ]));
+
+        $vacancy = Models\JobVacancy::where('vacancy_id', $vacancyId)->first();
+        if ($vacancy) {
+            $admins = \App\Models\Admin::all();
+            foreach ($admins as $admin) {
+                \App\Models\Notification::create([
+                    'notifiable_type' => 'App\Models\Admin',
+                    'notifiable_id' => $admin->id,
+                    'type' => 'warning',
+                    'data' => [
+                        'title' => 'New Job Application',
+                        'message' => Auth::user()->name . ' submitted an application for ' . $vacancy->position_title . '.',
+                        'link' => route('admin.applicant_status', ['user_id' => Auth::id(), 'vacancy_id' => $vacancyId]),
+                        'section' => 'Application List',
+                        'category' => 'document_verification',
+                        'user_id' => Auth::id(),
+                        'vacancy_id' => $vacancyId,
+                    ],
+                    'read_at' => null,
+                ]);
+            }
+
+            activity()
+                ->event('apply job')
+                ->causedBy(Auth::user())
+                ->performedOn($vacancy)
+                ->withProperties(['vacancy_id' => $vacancyId, 'section' => 'Job Vacancy'])
+                ->log('Applied to job vacancy.');
+        }
+
+        Log::info('C5 application submit created application', [
+            'user_id' => Auth::id(),
+            'vacancy_id' => $vacancyId,
+            'application_id' => $application->id,
+        ]);
+
+        return [
+            'ok' => true,
+            'created' => true,
+            'message' => 'Application submitted successfully!',
+        ];
+    }
 
     private function validateUploadedFile(UploadedFile $file, bool $allowImage): array
     {
@@ -1968,7 +2169,6 @@ class PDSController extends Controller
                 'signed_pds',
                 'signed_work_exp_sheet',
                 'photocopy_diploma',
-                'tor_masteraldoctorate',
                 'application_letter',
                 'cert_training',
             ],
@@ -2001,6 +2201,27 @@ class PDSController extends Controller
             'cert_employment' => 'Certificate of Employment',
             'other_documents' => 'Other Documents Submitted',
         ];
+    }
+
+    private function extractVacancyIdFromReferer(?string $referer): ?string
+    {
+        if (empty($referer)) {
+            return null;
+        }
+
+        $query = parse_url($referer, PHP_URL_QUERY);
+        if (empty($query)) {
+            return null;
+        }
+
+        parse_str($query, $params);
+        $vacancyId = $params['vacancy_id'] ?? null;
+        if (!is_string($vacancyId)) {
+            return null;
+        }
+
+        $vacancyId = trim($vacancyId);
+        return $vacancyId !== '' ? $vacancyId : null;
     }
 
     private function scanUploadedFile(UploadedFile $file): array
@@ -2154,7 +2375,7 @@ class PDSController extends Controller
             return redirect()->back()->withErrors($upload_errors);
         }
         if (!empty($uploaded_files)) {
-            $this->c5StoreFilesToDB($uploaded_files);
+            $this->c5StoreFilesToDB($uploaded_files, $vacancy_id);
 
             // *** NEW: Check if ANY uploaded file triggers "Compliance" -> "Updated"
             // We need to find the application associated with this user/vacancy if we are in admin context?
@@ -2246,7 +2467,10 @@ class PDSController extends Controller
 
     public function c5DisplayUpdateForm()
     {
-        $documentCollection = UploadedDocument::where('user_id', Auth::id())->get();
+        $supportsVacancyScopedDocs = Schema::hasColumn('uploaded_documents', 'vacancy_id');
+        $documentCollection = UploadedDocument::where('user_id', Auth::id())
+            ->when($supportsVacancyScopedDocs, fn($q) => $q->whereNull('vacancy_id'))
+            ->get();
         $documents = $documentCollection->keyBy('document_type');
         return view('pds_update.c5_update', compact('documents'));
     }

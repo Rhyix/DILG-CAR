@@ -86,6 +86,12 @@ class WorkExpSheetController extends Controller
             ])
             ->log($action . 'd Work Experience Sheet');
 
+        if ($request->boolean('simple_mode') || $request->input('after_action') === 'dashboard') {
+            return redirect()
+                ->route('dashboard_user')
+                ->with('success', 'Work Experience Sheet Saved!');
+        }
+
         if ($request->input('after_action') === 'next') {
             return redirect()->route('display_c5');
         }

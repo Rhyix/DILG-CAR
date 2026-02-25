@@ -20,6 +20,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Spatie\Activitylog\Models\Activity;
 use Illuminate\Support\Facades\Validator;
 
@@ -70,7 +71,6 @@ class AdminController extends Controller
         'signed_pds',
         'signed_work_exp_sheet',
         'photocopy_diploma',
-        'tor_masteraldoctorate',
         'application_letter',
         'cert_training',
     ];
@@ -359,7 +359,7 @@ class AdminController extends Controller
 
     private function getApplicantDocuments($user_id, $application)
     {
-        $uploadedDocuments = UploadedDocument::where('user_id', $user_id)->get()->keyBy('document_type');
+        $uploadedDocuments = $this->loadUploadedDocumentsMap((int) $user_id, (string) $application->vacancy_id);
         $documents = [];
 
         foreach (UploadedDocument::DOCUMENTS as $docType) {
@@ -421,6 +421,27 @@ class AdminController extends Controller
             }
         }
         return $doc ?: null;
+    }
+
+    private function loadUploadedDocumentsMap(int $userId, ?string $vacancyId = null)
+    {
+        $supportsVacancyScopedDocs = Schema::hasColumn('uploaded_documents', 'vacancy_id');
+        $docsQuery = UploadedDocument::where('user_id', $userId);
+        if ($supportsVacancyScopedDocs) {
+            if (!empty($vacancyId)) {
+                $docsQuery->where('vacancy_id', $vacancyId);
+            } else {
+                $docsQuery->whereNull('vacancy_id');
+            }
+        }
+
+        $docs = $docsQuery
+            ->orderByDesc('updated_at')
+            ->get();
+
+        return $docs
+            ->unique('document_type')
+            ->keyBy('document_type');
     }
 
     private function getRequiredDocsByTrack(): array
@@ -632,10 +653,13 @@ class AdminController extends Controller
         $application->save();
 
         // Update Uploaded Documents and track changes
+        $uploadedDocuments = $this->loadUploadedDocumentsMap((int) $user_id, (string) $vacancy_id);
         foreach ($documentStatuses as $docType => $status) {
-            $document = UploadedDocument::where('user_id', $user_id)
-                ->where('document_type', $docType)
-                ->first();
+            if ($docType === 'application_letter') {
+                continue;
+            }
+
+            $document = $this->resolveUploadedDocument($uploadedDocuments, $docType);
 
             if ($document) {
                 $doc_changes = [];
@@ -739,9 +763,8 @@ class AdminController extends Controller
             $application->save();
 
         } else {
-            $document = UploadedDocument::where('user_id', $user_id)
-                ->where('document_type', $documentType)
-                ->first();
+            $uploadedDocuments = $this->loadUploadedDocumentsMap((int) $user_id, (string) $vacancy_id);
+            $document = $this->resolveUploadedDocument($uploadedDocuments, $documentType);
 
             if ($document) {
                 if ($request->has('status'))
@@ -763,7 +786,7 @@ class AdminController extends Controller
             } else {
                 // If document doesn't exist, create a placeholder record so status/remarks can be saved
                 // This handles cases where admin wants to mark a missing document as "Needs Revision" or add remarks
-                UploadedDocument::create([
+                $createPayload = [
                     'user_id' => $user_id,
                     'document_type' => $documentType,
                     'status' => $status ?? 'Pending',
@@ -774,7 +797,11 @@ class AdminController extends Controller
                     'storage_path' => '',  // Placeholder
                     'mime_type' => '',     // Placeholder
                     'file_size_8b' => 0,   // Placeholder
-                ]);
+                ];
+                if (Schema::hasColumn('uploaded_documents', 'vacancy_id')) {
+                    $createPayload['vacancy_id'] = $vacancy_id;
+                }
+                UploadedDocument::create($createPayload);
             }
 
         }
@@ -1109,7 +1136,7 @@ class AdminController extends Controller
 
     private function buildUserDocumentsSnapshot($user_id, $application): array
     {
-        $uploadedDocuments = UploadedDocument::where('user_id', $user_id)->get()->keyBy('document_type');
+        $uploadedDocuments = $this->loadUploadedDocumentsMap((int) $user_id, (string) $application->vacancy_id);
         $documents = [];
 
         foreach (UploadedDocument::DOCUMENTS as $docType) {
@@ -1318,19 +1345,8 @@ class AdminController extends Controller
         if ($document_type === 'application_letter') {
             $path = $application->file_storage_path;
         } else {
-            $doc = UploadedDocument::where('user_id', $user_id)
-                ->where('document_type', $document_type)
-                ->first();
-            if (!$doc) {
-                foreach (self::DOCUMENT_TYPE_ALIASES[$document_type] ?? [] as $alias) {
-                    $doc = UploadedDocument::where('user_id', $user_id)
-                        ->where('document_type', $alias)
-                        ->first();
-                    if ($doc) {
-                        break;
-                    }
-                }
-            }
+            $uploadedDocuments = $this->loadUploadedDocumentsMap((int) $user_id, (string) $vacancy_id);
+            $doc = $this->resolveUploadedDocument($uploadedDocuments, $document_type);
             if ($doc) {
                 $path = $doc->storage_path;
             }

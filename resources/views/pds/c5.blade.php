@@ -22,12 +22,15 @@
         'other_documents' => ['label' => 'Other Documents Submitted', 'accept' => 'application/pdf'],
     ];
 
+    $isApplicationFlow = !empty($applicationVacancyId);
     $requiredDocsByTrack = $requiredDocsByTrack ?? ['COS' => [], 'Plantilla' => []];
-    $activeTrack = old('doc_track', $defaultDocTrack ?? 'Plantilla');
+    // In application flow, always lock UI track to vacancy track to match backend validation.
+    $activeTrack = $isApplicationFlow
+        ? ($defaultDocTrack ?? 'Plantilla')
+        : old('doc_track', $defaultDocTrack ?? 'Plantilla');
     if (!in_array($activeTrack, ['COS', 'Plantilla'], true)) {
         $activeTrack = 'Plantilla';
     }
-    $isApplicationFlow = !empty($applicationVacancyId);
     $requiresFreshUpload = !empty($isFreshUpload);
 @endphp
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -41,7 +44,7 @@
             </div>
         @endif
 
-        <form id="myForm" method="POST" action="/pds/finalize/{{ $isApplicationFlow ? 'job_description' : 'display_final_pds' }}" enctype="multipart/form-data" data-upload-retry="1">
+        <form id="myForm" method="POST" action="{{ route('finalize_pds', ['go_to' => $isApplicationFlow ? 'job_description' : 'display_final_pds']) }}" enctype="multipart/form-data" data-upload-retry="1">
             @csrf
             <input type="hidden" name="doc_track" id="doc-track-input" value="{{ $activeTrack }}">
             @if($isApplicationFlow)
@@ -70,6 +73,9 @@
                         <div class="pb-2">
                             <span class="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-bold uppercase tracking-wide text-slate-700">
                                 Document Track: {{ $activeTrack }}
+                            </span>
+                            <span class="inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-emerald-700 ml-2">
+                                Vacancy: {{ $applicationVacancyId }}
                             </span>
                         </div>
                     @else
@@ -102,10 +108,10 @@
                         $doc = $documents[$docType] ?? null;
                         $status = trim((string) ($doc->status ?? ''));
                         $isApproved = strcasecmp($status, 'Okay/Confirmed') === 0;
-                        $hasExisting = !$requiresFreshUpload && (
-                            !empty($doc?->storage_path)
-                            || ($docType === 'application_letter' && !empty($hasExistingApplicationLetter))
-                        );
+                        $hasStoredDoc = !empty($doc?->storage_path)
+                            || ($docType === 'application_letter' && !empty($hasExistingApplicationLetter));
+                        $allowExistingIndicator = !$requiresFreshUpload || !empty($hasFreshUploadForVacancy);
+                        $hasExisting = $allowExistingIndicator && $hasStoredDoc;
                         $requiredCos = in_array($docType, $requiredDocsByTrack['COS'] ?? [], true);
                         $requiredPlantilla = in_array($docType, $requiredDocsByTrack['Plantilla'] ?? [], true);
                         $requiredNow = $activeTrack === 'COS' ? $requiredCos : $requiredPlantilla;
@@ -180,21 +186,21 @@
 
                 <div class="space-y-4">
                     <label class="flex items-start cursor-pointer hover:bg-gray-50 p-3 rounded-lg transition-colors">
-                        <input type="checkbox" name="declaration" class="mt-1 mr-3" required>
+                        <input type="checkbox" name="declaration" value="1" class="mt-1 mr-3" required {{ old('declaration') ? 'checked' : '' }}>
                         <span class="text-gray-700">
                             I certify that all information provided in this form is true and correct to the best of my knowledge.
                         </span>
                     </label>
 
                     <label class="flex items-start cursor-pointer hover:bg-gray-50 p-3 rounded-lg transition-colors">
-                        <input type="checkbox" name="consent" class="mt-1 mr-3" required>
+                        <input type="checkbox" name="consent" value="1" class="mt-1 mr-3" required {{ old('consent') ? 'checked' : '' }}>
                         <span class="text-gray-700">
                             I consent to the collection and processing of my personal data in accordance with the Data Privacy Act of 2012.
                         </span>
                     </label>
 
                     <label class="flex items-start cursor-pointer hover:bg-gray-50 p-3 rounded-lg transition-colors">
-                        <input type="checkbox" name="confirmation" class="mt-1 mr-3" required>
+                        <input type="checkbox" name="confirmation" value="1" class="mt-1 mr-3" required {{ old('confirmation') ? 'checked' : '' }}>
                         <span class="text-gray-700">
                             I confirm that all uploaded documents are correct, complete, and accurately represent the required information.
                         </span>
@@ -315,6 +321,20 @@
     }
 
     document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('myForm');
+        const params = new URLSearchParams(window.location.search);
+        const vacancyFromUrl = params.get('vacancy_id');
+        if (form && vacancyFromUrl) {
+            const syncVacancyFields = () => {
+                const v = vacancyFromUrl.trim();
+                form.querySelectorAll('input[name="vacancy_id"], input[name="redirect_vacancy_id"]').forEach((input) => {
+                    input.value = v;
+                });
+            };
+            syncVacancyFields();
+            form.addEventListener('submit', syncVacancyFields, true);
+        }
+
         const initialTrack = document.getElementById('doc-track-input')?.value || 'Plantilla';
         switchDocTrack(initialTrack);
 

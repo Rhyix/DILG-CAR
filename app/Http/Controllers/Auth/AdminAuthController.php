@@ -135,6 +135,7 @@ public function login(Request $request)
             ->causedBy($admin)
             ->log('Admin logged out.');
 
-        return redirect('/admin/login');
+        return redirect('/admin/login')
+            ->header('Clear-Site-Data', '"cache","storage"');
     }
 }

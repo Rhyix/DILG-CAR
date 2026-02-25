@@ -20,6 +20,7 @@ use App\Models\EducationalBackground;
 use App\Models\MiscInfos;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Spatie\Activitylog\Models\Activity;
 use Carbon\Carbon;
 use App\Models\WorkExpSheet;
@@ -46,7 +47,6 @@ class JobVacancyController extends Controller
         'signed_pds',
         'signed_work_exp_sheet',
         'photocopy_diploma',
-        'tor_masteraldoctorate',
         'application_letter',
         'cert_training',
     ];
@@ -607,8 +607,16 @@ class JobVacancyController extends Controller
     public function apply(Request $request, $vacancy_id)
     {
         $vacancy = JobVacancy::where('vacancy_id', $vacancy_id)->firstOrFail();
+        Log::info('Apply request received', [
+            'user_id' => Auth::id(),
+            'vacancy_id' => $vacancy_id,
+        ]);
 
         if (!$this->hasCompletedPdsForApply((int) Auth::id())) {
+            Log::info('Apply blocked: incomplete PDS', [
+                'user_id' => Auth::id(),
+                'vacancy_id' => $vacancy_id,
+            ]);
             return redirect()
                 ->route('job_description', ['id' => $vacancy->vacancy_id])
                 ->with('pds_required_prompt', true);
@@ -620,11 +628,67 @@ class JobVacancyController extends Controller
             ->first();
 
         if ($existing) {
-            return redirect()->back()->with('error', 'You have already applied for this vacancy.');
+            Log::info('Apply skipped: already applied', [
+                'user_id' => Auth::id(),
+                'vacancy_id' => $vacancy_id,
+                'application_id' => $existing->id,
+            ]);
+            return redirect()
+                ->route('my_applications')
+                ->with('success', 'Application already exists for this vacancy.');
         }
 
         $requiredDocsModalState = $this->getRequiredDocsModalState((int) Auth::id(), (string) $vacancy->vacancy_type, (string) $vacancy->vacancy_id);
         if ($requiredDocsModalState['hasMissing']) {
+            Log::info('Apply blocked: required docs missing', [
+                'user_id' => Auth::id(),
+                'vacancy_id' => $vacancy_id,
+            ]);
+            return redirect()
+                ->route('job_description', ['id' => $vacancy->vacancy_id])
+                ->with('required_docs_prompt', [
+                    'vacancy_id' => $vacancy->vacancy_id,
+                    'vacancy_track' => $requiredDocsModalState['vacancyTrack'],
+                    'redirect_url' => $requiredDocsModalState['redirectUrl'],
+                    'preview_docs' => $requiredDocsModalState['previewDocs'],
+                ]);
+        }
+
+        $docTrackMismatchState = $this->getDocumentTrackMismatchState((int) Auth::id(), (string) $vacancy->vacancy_type, (string) $vacancy->vacancy_id);
+        if ($docTrackMismatchState['hasMismatch']) {
+            Log::info('Apply blocked: doc track mismatch', [
+                'user_id' => Auth::id(),
+                'vacancy_id' => $vacancy_id,
+                'submitted_track' => $docTrackMismatchState['submittedTrack'],
+                'vacancy_track' => $docTrackMismatchState['vacancyTrack'],
+            ]);
+            return redirect()
+                ->route('job_description', ['id' => $vacancy->vacancy_id])
+                ->with('doc_track_mismatch', [
+                    'vacancy_id' => $vacancy->vacancy_id,
+                    'submitted_track' => $docTrackMismatchState['submittedTrack'],
+                    'vacancy_track' => $docTrackMismatchState['vacancyTrack'],
+                    'redirect_url' => $docTrackMismatchState['redirectUrl'],
+                ]);
+        }
+
+        $supportsVacancyScopedDocs = Schema::hasColumn('uploaded_documents', 'vacancy_id');
+        $applicationLetterDocQuery = UploadedDocument::where('user_id', Auth::id())
+            ->where('document_type', 'application_letter')
+            ->whereNotNull('storage_path')
+            ->where('storage_path', '!=', 'NOINPUT');
+        if ($supportsVacancyScopedDocs) {
+            $applicationLetterDocQuery->where('vacancy_id', $vacancy->vacancy_id);
+        }
+        $applicationLetterDoc = $applicationLetterDocQuery
+            ->latest('updated_at')
+            ->first();
+
+        if (!$applicationLetterDoc) {
+            Log::info('Apply blocked: application letter not found in UploadedDocument', [
+                'user_id' => Auth::id(),
+                'vacancy_id' => $vacancy_id,
+            ]);
             return redirect()
                 ->route('job_description', ['id' => $vacancy->vacancy_id])
                 ->with('required_docs_prompt', [
@@ -634,40 +698,25 @@ class JobVacancyController extends Controller
                 ]);
         }
 
-        $docTrackMismatchState = $this->getDocumentTrackMismatchState((int) Auth::id(), (string) $vacancy->vacancy_type, (string) $vacancy->vacancy_id);
-        if ($docTrackMismatchState['hasMismatch']) {
-            return redirect()
-                ->route('job_description', ['id' => $vacancy->vacancy_id])
-                ->with('doc_track_mismatch', [
-                    'submitted_track' => $docTrackMismatchState['submittedTrack'],
-                    'vacancy_track' => $docTrackMismatchState['vacancyTrack'],
-                    'redirect_url' => $docTrackMismatchState['redirectUrl'],
-                ]);
-        }
-
-        $request->validate([
-            'application_file' => 'required|file|mimes:pdf|max:5120', // max 5MB
-        ]);
-
-        // Handle file upload
-        $file = $request->file('application_file');
-        $hashed_name = $file->hashName(); // auto-generates unique name
-        $store_path = $file->store("uploads/application-files", 'public'); // stores in public/uploads/application-files
-
 
         // Create application
-        \App\Models\Applications::create([
+        $application = \App\Models\Applications::create([
             'user_id' => Auth::id(),
             'vacancy_id' => $vacancy->vacancy_id,
             'status' => 'Pending',
             'is_valid' => true,
 
-            'file_original_name' => $file->getClientOriginalName(),
-            'file_stored_name' => $hashed_name,
-            'file_storage_path' => $store_path,
+            'file_original_name' => $applicationLetterDoc->original_name,
+            'file_stored_name' => $applicationLetterDoc->stored_name,
+            'file_storage_path' => $applicationLetterDoc->storage_path,
             'file_status' => 'Submitted',
             'file_remarks' => null,
-            'file_size_8b' => $file->getSize(),
+            'file_size_8b' => $applicationLetterDoc->file_size_8b,
+        ]);
+        Log::info('Apply success: application created', [
+            'user_id' => Auth::id(),
+            'vacancy_id' => $vacancy_id,
+            'application_id' => $application->id,
         ]);
 
         // Consume fresh-upload marker for this vacancy after successful application submit.
@@ -704,7 +753,7 @@ class JobVacancyController extends Controller
             ->withProperties(['vacancy_id' => $vacancy->vacancy_id, 'section' => 'Job Vacancy'])
             ->log('Applied to job vacancy.');
 
-        return redirect()->back()->with('success', 'Application submitted successfully!');
+        return redirect()->route('my_applications')->with('success', 'Application submitted successfully!');
     }
 
     public function myApplications()
@@ -744,7 +793,7 @@ class JobVacancyController extends Controller
         $adminName = $snapshotData['last_modified_by'] ?? null;
         $lastModifiedAt = $snapshotData['notified_at'] ?? null;
 
-        $uploadedDocuments = UploadedDocument::where('user_id', $user_id)->get()->keyBy('document_type');
+        $uploadedDocuments = $this->loadUploadedDocumentsMap((int) $user_id, (string) $vacancy_id);
         $documents = [];
 
         $labelMap = [
@@ -813,6 +862,9 @@ class JobVacancyController extends Controller
             }
         }
 
+        $requiredDocumentIds = $this->getRequiredDocumentIdsForVacancyType($application->vacancy?->vacancy_type);
+        $documents = $this->sortDocumentsForRequiredPriority($documents, $requiredDocumentIds);
+
         $displayApplicationStatus = $application->status ?? 'Pending';
         // Derive QS display from latest snapshot (preferred) or live document statuses to match admin view
         $vacancyType = $application->vacancy?->vacancy_type ?? null;
@@ -870,6 +922,7 @@ class JobVacancyController extends Controller
             'application',
             'examDetail',
             'documents',
+            'requiredDocumentIds',
             'adminName',
             'lastModifiedAt',
             'displayApplicationStatus',
@@ -919,7 +972,7 @@ class JobVacancyController extends Controller
         $snapshotData = $snapshotNotification?->data ?? null;
         $snapshotDocumentsById = collect($snapshotData['documents'] ?? [])->keyBy('id');
 
-        $uploadedDocuments = UploadedDocument::where('user_id', $user_id)->get()->keyBy('document_type');
+        $uploadedDocuments = $this->loadUploadedDocumentsMap((int) $user_id, (string) $vacancy_id);
         $documents = [];
 
         // Debug: Log uploaded documents count
@@ -1001,10 +1054,14 @@ class JobVacancyController extends Controller
             }
         }
 
+        $requiredDocumentIds = $this->getRequiredDocumentIdsForVacancyType($application->vacancy?->vacancy_type);
+        $documents = $this->sortDocumentsForRequiredPriority($documents, $requiredDocumentIds);
+
         \Log::info("Final documents array in getUpdatedDocumentsUser", ['count' => count($documents)]);
 
         return response()->json([
             'documents' => $documents,
+            'requiredDocumentIds' => $requiredDocumentIds,
             'application' => [
                 'status' => $application->status ?? 'Pending',
                 'file_last_modified_by' => $application->file_last_modified_by ?? null,
@@ -1027,6 +1084,61 @@ class JobVacancyController extends Controller
             }
         }
         return $doc ?: null;
+    }
+
+    private function loadUploadedDocumentsMap(int $userId, ?string $vacancyId = null)
+    {
+        $supportsVacancyScopedDocs = Schema::hasColumn('uploaded_documents', 'vacancy_id');
+        $docsQuery = UploadedDocument::where('user_id', $userId);
+        if ($supportsVacancyScopedDocs) {
+            if (!empty($vacancyId)) {
+                $docsQuery->where('vacancy_id', $vacancyId);
+            } else {
+                $docsQuery->whereNull('vacancy_id');
+            }
+        }
+
+        $docs = $docsQuery
+            ->orderByDesc('updated_at')
+            ->get();
+
+        return $docs
+            ->unique('document_type')
+            ->keyBy('document_type');
+    }
+
+    private function getRequiredDocumentIdsForVacancyType(?string $vacancyType): array
+    {
+        $vacancyTrack = $this->normalizeTrack($vacancyType);
+        $requiredDocumentIds = $this->getRequiredDocsByTrack()[$vacancyTrack] ?? [];
+
+        usort($requiredDocumentIds, function ($a, $b) {
+            $labelA = strtolower($this->getDocumentLabelMap()[$a] ?? $a);
+            $labelB = strtolower($this->getDocumentLabelMap()[$b] ?? $b);
+            return $labelA <=> $labelB;
+        });
+
+        return $requiredDocumentIds;
+    }
+
+    private function sortDocumentsForRequiredPriority(array $documents, array $requiredDocumentIds): array
+    {
+        $requiredLookup = array_fill_keys($requiredDocumentIds, true);
+
+        usort($documents, function ($a, $b) use ($requiredLookup) {
+            $requiredA = isset($requiredLookup[$a['id'] ?? '']) ? 0 : 1;
+            $requiredB = isset($requiredLookup[$b['id'] ?? '']) ? 0 : 1;
+
+            if ($requiredA !== $requiredB) {
+                return $requiredA - $requiredB;
+            }
+
+            $labelA = strtolower((string) ($a['text'] ?? $a['name'] ?? $a['id'] ?? ''));
+            $labelB = strtolower((string) ($b['text'] ?? $b['name'] ?? $b['id'] ?? ''));
+            return $labelA <=> $labelB;
+        });
+
+        return $documents;
     }
 
     private function getDocumentLabelMap(): array

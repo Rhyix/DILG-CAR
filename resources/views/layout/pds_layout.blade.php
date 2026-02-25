@@ -476,7 +476,7 @@
 @php
     $simple = in_array(request()->input('simple'), [1, '1', true, 'true'], true);
 @endphp
-<body class="bg-gradient-to-br from-blue-50 via-white to-indigo-50 {{ $simple ? 'h-screen overflow-hidden' : 'min-h-screen' }}">
+<body class="bg-gradient-to-br from-blue-50 via-white to-indigo-50 min-h-screen">
     <!-- Notification Container -->
     <div id="notificationContainer"></div>
 
@@ -571,11 +571,11 @@
     @endif
 
     @if($simple)
-        <div class="flex h-screen w-full overflow-hidden">
+        <div class="flex min-h-screen w-full">
             <div class="sidebar-desktop">
                 @include('partials.sidebar')
             </div>
-            <main class="flex-1 overflow-y-auto ml-2 p-3 sm:p-10 pt-8 mt-0 sm:mt-1 space-y-10 md:ml-20 transition-all duration-300" style="margin-left: 0; padding-left: 18px;">
+            <main class="flex-1 overflow-x-hidden ml-2 p-3 sm:p-10 pt-8 pb-10 mt-0 sm:mt-1 space-y-10 md:ml-20 transition-all duration-300" style="margin-left: 0; padding-left: 18px;">
                 @yield('content')
             </main>
         </div>
@@ -829,6 +829,7 @@
         // Mobile Navigation Functions
         function toggleMobileNav() {
             const menu = document.getElementById('mobileNavMenu');
+            if (!menu) return;
             const isOpen = menu.classList.contains('open');
             
             if (isOpen) {
@@ -840,11 +841,13 @@
         
         function openMobileNav() {
             const menu = document.getElementById('mobileNavMenu');
+            if (!menu) return;
             menu.classList.add('open');
         }
         
         function closeMobileNav() {
             const menu = document.getElementById('mobileNavMenu');
+            if (!menu) return;
             menu.classList.remove('open');
         }
 
@@ -962,6 +965,7 @@
             const menuButton = document.querySelector('[onclick="toggleMobileNav()"]');
             
             if (menu && menu.classList.contains('open') && 
+                menuButton &&
                 !menu.contains(event.target) && 
                 !menuButton.contains(event.target)) {
                 closeMobileNav();
@@ -1135,7 +1139,19 @@
                     ? ('uid:' . auth()->id() . '|email:' . auth()->user()->email . '|created:' . optional(auth()->user()->created_at)->timestamp)
                     : 'guest'
             );
-            const pageKey = keyPrefix + userStorageKey + ':' + window.location.pathname.toLowerCase();
+            const pageSearchKey = (function () {
+                try {
+                    const url = new URL(window.location.href);
+                    const entries = Array.from(url.searchParams.entries())
+                        .filter(([k]) => k !== '_token')
+                        .sort((a, b) => a[0].localeCompare(b[0]));
+                    if (entries.length === 0) return '';
+                    return '?' + entries.map(([k, v]) => `${k}=${v}`).join('&').toLowerCase();
+                } catch (e) {
+                    return '';
+                }
+            })();
+            const pageKey = keyPrefix + userStorageKey + ':' + window.location.pathname.toLowerCase() + pageSearchKey;
             const coreKey = keyPrefix + userStorageKey + ':core';
             function getStore() {
                 try {
@@ -1207,6 +1223,15 @@
             function keyFor(el) {
                 return el.name || el.id || '';
             }
+            function shouldPersist(el) {
+                if (!el || el.disabled) return false;
+                const t = String(el.type || '').toLowerCase();
+                // Browser blocks programmatic value set on file inputs, and hidden fields must never be restored.
+                if (t === 'file' || t === 'hidden') return false;
+                const n = String(el.name || '').toLowerCase();
+                if (n === '_token') return false;
+                return true;
+            }
             function debounce(fn, ms) {
                 let t; return function(){ clearTimeout(t); const a=arguments, self=this; t=setTimeout(function(){ fn.apply(self,a); }, ms); };
             }
@@ -1214,6 +1239,7 @@
                 const s = loadState(); s[k] = v; saveState(s);
             }, 150);
             function bind(el, state) {
+                if (!shouldPersist(el)) return;
                 const k = keyFor(el);
                 if (!k) return;
                 const coreKeys = new Set(['sex','civil_status','citizenship','dual_type','dual_country']);
@@ -1253,9 +1279,17 @@
                     const s = loadState();
                     const c = loadCore();
                     const coreKeys = new Set(['sex','civil_status','citizenship','dual_type','dual_country']);
-                    inputs.forEach(el => { const k = keyFor(el); if (k) s[k] = sanitize(el, getValue(el)); });
+                    inputs.forEach(el => {
+                        if (!shouldPersist(el)) return;
+                        const k = keyFor(el);
+                        if (k) s[k] = sanitize(el, getValue(el));
+                    });
                     saveState(s);
-                    inputs.forEach(el => { const k = keyFor(el); if (k && coreKeys.has(k)) c[k] = sanitize(el, getValue(el)); });
+                    inputs.forEach(el => {
+                        if (!shouldPersist(el)) return;
+                        const k = keyFor(el);
+                        if (k && coreKeys.has(k)) c[k] = sanitize(el, getValue(el));
+                    });
                     saveCore(c);
                 });
             });

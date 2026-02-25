@@ -146,7 +146,8 @@ Route::post('/logout', function () {
     Auth::logout();
     session()->invalidate();
     session()->regenerateToken();
-    return redirect('/login');
+    return redirect('/login')
+        ->header('Clear-Site-Data', '"cache","storage"');
 })->name('logout');
 
 // ==================================================================================================

@@ -23,26 +23,26 @@
 @section('content')
     @php
         $requiredDocsPayload = session('required_docs_prompt');
-        $showRequiredDocsModalOnLoad = is_array($requiredDocsPayload);
+        $showRequiredDocsModalOnLoad = is_array($requiredDocsPayload)
+            && (($requiredDocsPayload['vacancy_id'] ?? $vacancy->vacancy_id) === $vacancy->vacancy_id);
         $showPdsRequiredModalOnLoad = (bool) session('pds_required_prompt', false);
 
         $mismatchPayload = session('doc_track_mismatch');
-        $showMismatchModalOnLoad = is_array($mismatchPayload);
-        $hasDocTrackMismatch = ($docTrackMismatch ?? false) || $showMismatchModalOnLoad;
-        $submittedTrackForModal = $mismatchPayload['submitted_track'] ?? ($mismatchSubmittedTrack ?? null);
-        $vacancyTrackForModal = $mismatchPayload['vacancy_track'] ?? ($vacancyTrack ?? 'Plantilla');
-        $docUploadRedirectUrlForModal = $mismatchPayload['redirect_url']
-            ?? ($docUploadRedirectUrl ?? route('display_c5', ['doc_track' => $vacancyTrackForModal]));
-        $requiredDocsTrackForModal = $requiredDocsPayload['vacancy_track'] ?? $vacancyTrackForModal;
-        $requiredDocsRedirectUrlForModal = $requiredDocsPayload['redirect_url']
-            ?? ($docUploadRedirectUrl ?? route('display_c5', ['doc_track' => $requiredDocsTrackForModal]));
-        $requiredDocsPreviewFromPayload = is_array($requiredDocsPayload['preview_docs'] ?? null)
-            ? $requiredDocsPayload['preview_docs']
-            : [];
-        $requiredDocsPreviewForModal = !empty($requiredDocsPreviewFromPayload)
-            ? $requiredDocsPreviewFromPayload
-            : ($requiredDocsPreview ?? []);
-        $hasMissingRequiredDocsForModal = ($hasMissingRequiredDocs ?? false) || $showRequiredDocsModalOnLoad;
+        $showMismatchModalOnLoad = is_array($mismatchPayload)
+            && (($mismatchPayload['vacancy_id'] ?? $vacancy->vacancy_id) === $vacancy->vacancy_id);
+        $hasDocTrackMismatch = (bool) ($docTrackMismatch ?? false);
+        $submittedTrackForModal = $mismatchSubmittedTrack ?? ($mismatchPayload['submitted_track'] ?? null);
+        $vacancyTrackForModal = $vacancyTrack ?? ($mismatchPayload['vacancy_track'] ?? 'Plantilla');
+        $docUploadRedirectUrlForModal = $docUploadRedirectUrl
+            ?? route('display_c5', [
+                'doc_track' => $vacancyTrackForModal,
+                'vacancy_id' => $vacancy->vacancy_id,
+                'fresh_upload' => 1,
+            ]);
+        $requiredDocsTrackForModal = $vacancyTrackForModal;
+        $requiredDocsRedirectUrlForModal = $docUploadRedirectUrlForModal;
+        $requiredDocsPreviewForModal = $requiredDocsPreview ?? [];
+        $hasMissingRequiredDocsForModal = (bool) ($hasMissingRequiredDocs ?? false);
         $hasIncompletePdsForApply = !($hasCompletedPdsForApply ?? false);
     @endphp
     <main class="flex-1 min-w-0 space-y-8 font-montserrat">
@@ -132,17 +132,18 @@
             </div>
         </section>
 
-        <!-- Modal -->
-        <div id="applyModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden">
+        <!-- Confirm Application Modal -->
+        <div id="confirmApplyModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden">
             <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
-                <h2 class="text-lg font-semibold mb-4">Application Letter</h2>
+                <h2 class="text-lg font-semibold text-[#002C76] mb-3">Submit Application</h2>
+                <p class="text-sm text-gray-700 mb-6">
+                    Your required documents are ready. Do you want to submit your application now?
+                </p>
 
-                <form id="applyForm" action="{{ route('application.store', $vacancy->vacancy_id) }}" method="POST" enctype="multipart/form-data">
+                <form id="applyForm" action="{{ route('application.store', $vacancy->vacancy_id) }}" method="POST">
                     @csrf
-                    <input type="file" name="application_file" accept="application/pdf" required class="mb-4 border p-2 w-full">
-
                     <div class="flex justify-end gap-2">
-                        <button type="button" onclick="closeApplyModal()" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">Cancel</button>
+                        <button type="button" onclick="closeConfirmApplyModal()" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">Cancel</button>
                         <button type="submit" class="use-loader px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Submit Application</button>
                     </div>
                 </form>
@@ -380,11 +381,11 @@
             return;
         }
 
-        document.getElementById('applyModal').classList.remove('hidden');
+        document.getElementById('confirmApplyModal').classList.remove('hidden');
     }
 
-    function closeApplyModal() {
-        document.getElementById('applyModal').classList.add('hidden');
+    function closeConfirmApplyModal() {
+        document.getElementById('confirmApplyModal').classList.add('hidden');
     }
 
     function closePdsRequiredModal() {

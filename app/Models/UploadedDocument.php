@@ -32,6 +32,7 @@ class UploadedDocument extends Model
 
     protected $fillable = [
         'user_id',
+        'vacancy_id',
         'document_type',
         'original_name',
         'stored_name',
