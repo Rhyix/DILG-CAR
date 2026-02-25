@@ -244,6 +244,13 @@
                                 </div>
                             </div>
 
+                            <!-- Essay Max Score -->
+                            <div class="mt-3" x-show="q.type === 'Essay'">
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Max Score</label>
+                                <input type="number" min="0" x-model="q.essayMax" @input="checkForChanges"
+                                    class="w-40 border border-blue-300 rounded-lg h-10 px-3" placeholder="e.g., 50">
+                            </div>
+
                             <!-- MCQ Choices -->
                             <div class="mt-4 space-y-2" x-show="q.type === 'MCQ'">
                                 <template x-for="(option, optIndex) in q.choices" :key="optIndex">
@@ -528,16 +535,33 @@
             const type = document.getElementById('questionTypeModal').value;
             const choicesContainer = document.getElementById('choicesContainerModal');
             const essayGuideContainer = document.getElementById('essayGuideContainerModal');
+            // Create or find essay max input
+            let essayMaxContainer = document.getElementById('essayMaxContainerModal');
+            if (!essayMaxContainer) {
+                essayMaxContainer = document.createElement('div');
+                essayMaxContainer.id = 'essayMaxContainerModal';
+                essayMaxContainer.className = 'mb-4 hidden';
+                essayMaxContainer.innerHTML = `
+                    <label for="essayMaxScoreModal" class="block text-sm font-semibold text-gray-700 mb-2">Max Score <span class="text-red-500">*</span></label>
+                    <input type="number" id="essayMaxScoreModal" min="0" placeholder="e.g., 50"
+                        class="w-40 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0D2B70]">
+                `;
+                // Insert after essay guide
+                const ref = document.getElementById('essayGuideContainerModal');
+                ref.parentNode.insertBefore(essayMaxContainer, ref.nextSibling);
+            }
             const addChoiceBtn = document.getElementById('addChoiceContainerModal');
 
             if (type === 'multiple_choice') {
                 choicesContainer.classList.remove('hidden');
                 essayGuideContainer.classList.add('hidden');
+                essayMaxContainer.classList.add('hidden');
                 addChoiceBtn.classList.remove('hidden');
                 if (choiceCountModal === 0) for (let i=0;i<4;i++) addChoiceModal();
             } else {
                 choicesContainer.classList.add('hidden');
                 essayGuideContainer.classList.remove('hidden');
+                essayMaxContainer.classList.remove('hidden');
             }
         }
 
@@ -590,12 +614,19 @@
             const text = document.getElementById('questionTextModal').value.trim();
             const type = document.getElementById('questionTypeModal').value;
             const choices = (type === 'multiple_choice') ? getChoicesArrayModal() : [];
-            const correctAnswer = (type === 'multiple_choice' && selectedCorrectAnswerModal>=0) ? choices[selectedCorrectAnswerModal] : '';
+                        const correctAnswer = (type === 'multiple_choice' && selectedCorrectAnswerModal>=0) ? choices[selectedCorrectAnswerModal] : '';
             const isEssay = type === 'essay';
 
             const alpineRoot = document.querySelector('[x-data]');
             const comp = alpineRoot && alpineRoot.__x ? alpineRoot.__x.$data : null;
             if (!comp) return;
+
+            let essayMax = null;
+            const essayMaxEl = document.getElementById('essayMaxScoreModal');
+            if (isEssay && essayMaxEl) {
+                const v = essayMaxEl.value;
+                essayMax = v === '' ? null : parseInt(v, 10);
+            }
 
             const mapped = {
                 text: text,
@@ -603,7 +634,8 @@
                 type: isEssay ? 'Essay' : 'MCQ',
                 answer: correctAnswer || '',
                 choices: choices.length ? choices : (isEssay ? [] : ['Option 1']),
-                correctAnswer: (selectedCorrectAnswerModal>=0 ? selectedCorrectAnswerModal : -1)
+                correctAnswer: (selectedCorrectAnswerModal>=0 ? selectedCorrectAnswerModal : -1),
+                essayMax: essayMax
             };
 
             if (index === '') {
@@ -636,7 +668,7 @@
                 toastType: 'success', // 'success' or 'error'
 
                 init() {
-                    const data = @json($exam_items);
+                        const data = @json($exam_items);
                     // console.log('Loaded Exam Data:', data); // Debugging
 
                     this.questions = data.map(q => {
@@ -683,13 +715,14 @@
                         // If still empty, check if the object has a 'text' property (unlikely from DB but possible in JS)
                         if (!questionText && q.text) questionText = q.text;
 
-                        return {
+                            return {
                             text: questionText,
                             type: parseInt(q.is_essay) === 1 ? 'Essay' : 'MCQ',
                             answer: q.ans || '',
                             duration: questionText, // Use question as default for the input field model (x-model="q.duration")
                             choices: parsedChoices,
-                            correctAnswer: correctAnswerIndex
+                                correctAnswer: correctAnswerIndex,
+                                essayMax: q.essay_max_score ?? null
                         };
                     });
 
@@ -725,7 +758,8 @@
                                         answer: q.correct_answer || '',
                                         duration: text,
                                         choices: parsedChoices.length ? parsedChoices : (isEssay ? [] : ['Option 1']),
-                                        correctAnswer: correctIndex
+                                        correctAnswer: correctIndex,
+                                        essayMax: q.essay_max_score ?? null
                                     });
                                 });
                                 this.checkForChanges();
@@ -932,6 +966,17 @@
                             // Check if correct answer is selected
                             if (q.correctAnswer === undefined || q.correctAnswer === null || q.correctAnswer < 0 || q.correctAnswer >= q.choices.length) {
                                 this.showToastNotification(`Please select a correct answer for Question ${i + 1}.`, 'error');
+                                return false;
+                            }
+                        } else if (q.type === 'Essay') {
+                            // Validate essay max score
+                            if (q.essayMax === undefined || q.essayMax === null || q.essayMax === '') {
+                                this.showToastNotification(`Please set a max score for Essay Question ${i + 1}.`, 'error');
+                                return false;
+                            }
+                            const num = parseInt(q.essayMax, 10);
+                            if (isNaN(num) || num < 0) {
+                                this.showToastNotification(`Max score for Essay Question ${i + 1} must be 0 or greater.`, 'error');
                                 return false;
                             }
                         }

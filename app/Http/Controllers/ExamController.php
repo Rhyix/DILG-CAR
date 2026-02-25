@@ -17,6 +17,8 @@ use Illuminate\Support\Str;
 use App\Jobs\SendExamNotification;
 use App\Mail\NotifyApplicantMail;
 use Spatie\Activitylog\Models\Activity;
+use Illuminate\Support\Facades\Cookie;
+use App\Models\ExamTabViolation;
 
 class ExamController extends Controller
 {
@@ -94,6 +96,7 @@ class ExamController extends Controller
         $answerRecord->scores = $scores;
         $answerRecord->result = $resultStr;
         $answerRecord->status = 'submitted'; // Ensure status is updated to 'submitted'
+        $answerRecord->exam_submitted_at = now();
         $answerRecord->save();
 
         //$message = "submitted successfully";
@@ -257,14 +260,76 @@ class ExamController extends Controller
     {
         Log::info('User switched tab at ' . $request->input('time'));
 
-        activity()
-            ->causedBy(auth()->user())
-            ->event('switch tab')
-            ->withProperties(['time' => $request->input('time'), 'section' => 'Exam'])
-            ->log('Switched browser tab during exam.');
+        $user = auth()->user();
+        $vacancyId = $request->input('vacancy_id');
+        $countFromClient = (int) ($request->input('count') ?? 0);
+        $startedAt = $request->input('started_at');
+        $endedAt = $request->input('ended_at');
+        $duration = $request->input('duration_seconds');
 
+        $applicationQuery = Applications::where('user_id', $user?->id);
+        if ($vacancyId) {
+            $applicationQuery->where('vacancy_id', $vacancyId);
+        } else {
+            $applicationQuery->where('status', 'in-progress');
+        }
+        $application = $applicationQuery->orderByDesc('exam_started_at')->first();
 
-        return response()->noContent();
+        if ($application) {
+            $application->tab_violations = (int)($application->tab_violations ?? 0) + 1;
+            $application->last_tab_violation_at = now();
+            $application->save();
+
+            try {
+                ExamTabViolation::create([
+                    'user_id' => $application->user_id,
+                    'vacancy_id' => $application->vacancy_id,
+                    'started_at' => $startedAt ? \Carbon\Carbon::parse($startedAt) : now(),
+                    'ended_at' => $endedAt ? \Carbon\Carbon::parse($endedAt) : null,
+                    'duration_seconds' => is_numeric($duration) ? (int)$duration : null,
+                ]);
+            } catch (\Throwable $e) {
+                Log::error('Failed to persist exam tab violation', ['error' => $e->getMessage()]);
+            }
+
+            activity()
+                ->causedBy($user)
+                ->event('tab_violation')
+                ->withProperties([
+                    'vacancy_id' => $application->vacancy_id,
+                    'user_id' => $application->user_id,
+                    'count' => $application->tab_violations,
+                    'time' => $request->input('time'),
+                    'duration_seconds' => $duration,
+                    'section' => 'Exam'
+                ])
+                ->log('Exam tab switch violation recorded.');
+
+            // Broadcast-style admin notification (visible to all admins)
+            try {
+                \App\Models\Notification::create([
+                    'notifiable_type' => 'App\Models\Admin',
+                    'notifiable_id' => null, // visible to all admins
+                    'type' => 'warning',
+                    'data' => [
+                        'category' => 'exam_lifecycle',
+                        'title' => 'Tab Switch Detected',
+                        'message' => ($user?->name ?? 'Applicant') . ' switched tabs (' . $application->tab_violations . ' total).',
+                        'user_id' => $application->user_id,
+                        'vacancy_id' => $application->vacancy_id,
+                        'count' => $application->tab_violations,
+                        'link' => route('admin.view_exam', ['vacancy_id' => $application->vacancy_id, 'user_id' => $application->user_id]),
+                    ],
+                    'read_at' => null,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            } catch (\Throwable $e) {
+                Log::error('Failed to create admin notification for tab switch', ['error' => $e->getMessage()]);
+            }
+        }
+
+        return response()->json(['ok' => true]);
     }
 
     public function editExam(Request $request, $vacancy_id)
@@ -361,12 +426,18 @@ class ExamController extends Controller
                 // Prefer 'text' then 'duration'
                 $questionText = trim((string) ($q['text'] ?? '')) ?: trim((string) ($q['duration'] ?? ''));
 
+                $essayMax = null;
+                if ($isEssay) {
+                    $essayMax = isset($q['essayMax']) && is_numeric($q['essayMax']) ? max(0, (int)$q['essayMax']) : null;
+                }
+
                 $created = ExamItems::create([
                     'vacancy_id' => $vacancy_id,
                     'question' => $questionText,
                     'is_essay' => $isEssay ? 1 : 0,
                     'ans' => $ans,
                     'choices' => $choices,
+                    'essay_max_score' => $essayMax,
                 ]);
 
                 \Log::info('Question created', ['id' => $created->id, 'question' => substr($questionText, 0, 50)]);
@@ -698,6 +769,36 @@ class ExamController extends Controller
             ->where('user_id', $user_id)
             ->firstOrFail();
 
+        $sessionKey = 'exam_access_' . $vacancy_id;
+        $token = $request->query('token');
+        $deviceId = Cookie::get('device_id');
+
+        if (is_null($application->exam_token_used_at)) {
+            if (empty($token) || $token !== $application->exam_token) {
+                abort(403, 'Invalid or missing exam link.');
+            }
+            if (!$application->exam_token_expires_at || now()->greaterThan($application->exam_token_expires_at)) {
+                abort(403, 'This exam link has expired.');
+            }
+            if (!$deviceId) {
+                $deviceId = Str::random(40);
+                Cookie::queue(cookie('device_id', $deviceId, 60 * 24 * 365));
+            }
+            session([$sessionKey => true]);
+            $application->update([
+                'exam_token_used_at' => now(),
+                'exam_token_device_id' => $deviceId,
+                'exam_token_used_ip' => $request->ip(),
+                'exam_token_used_ua' => (string)$request->userAgent(),
+            ]);
+        } else {
+            $hasSession = session()->get($sessionKey, false);
+            $matchesDevice = $deviceId && $application->exam_token_device_id && hash_equals($application->exam_token_device_id, $deviceId);
+            if (!$hasSession && !$matchesDevice) {
+                abort(403, 'This exam link is already used on a different device.');
+            }
+        }
+
         // If already submitted, redirect to thank you
         if ($application->status === 'submitted') {
             return redirect()->route('user.exam_thankyou', ['vacancy_id' => $vacancy_id]);
@@ -768,7 +869,11 @@ class ExamController extends Controller
 
         // If time is up (allow 1 minute grace period for latency)
         if ($remaining_seconds < -60) {
-            $application->update(['status' => 'submitted']);
+            $payload = ['status' => 'submitted'];
+            if (!$application->exam_submitted_at) {
+                $payload['exam_submitted_at'] = now();
+            }
+            $application->update($payload);
             return redirect()->route('user.exam_thankyou', ['vacancy_id' => $vacancy_id]);
         }
 
@@ -799,8 +904,8 @@ class ExamController extends Controller
     {
         //dd($request->all());
         info($user_id);
-        $application = Applications::select('user_id', 'answers', 'scores')->where('user_id', $user_id)->where('vacancy_id', $vacancy_id)->firstOrFail();
-        $examItems = ExamItems::select('id', 'question', 'ans', 'is_essay', 'choices')->where('vacancy_id', $vacancy_id)->get();
+        $application = Applications::select('user_id', 'answers', 'scores', 'exam_started_at', 'exam_end_time', 'exam_submitted_at', 'tab_violations', 'last_tab_violation_at', 'status')->where('user_id', $user_id)->where('vacancy_id', $vacancy_id)->firstOrFail();
+        $examItems = ExamItems::select('id', 'question', 'ans', 'is_essay', 'choices', 'essay_max_score')->where('vacancy_id', $vacancy_id)->get();
         $positionTitle = JobVacancy::select('position_title')->where('vacancy_id', $vacancy_id)->firstOrFail();
         $userName = User::select('name')->find($user_id);
 
@@ -812,6 +917,8 @@ class ExamController extends Controller
         //info($answers);
 
         $result = 0;
+
+        $examineeCode = strtoupper('EXM-' . substr(hash('sha256', $vacancy_id . '-' . $user_id), 0, 8));
 
         foreach ($examItems as $item) {
             $givenAnswer = $answers[$item->id] ?? null;
@@ -847,6 +954,7 @@ class ExamController extends Controller
                 'score' => $score,
                 'is_correct' => $is_correct,
                 'is_essay' => $item->is_essay,
+                'essay_max_score' => (int) ($item->essay_max_score ?? 0),
             ];
         }
 
@@ -863,14 +971,16 @@ class ExamController extends Controller
             'positionTitle' => $positionTitle,
             'vacancy_id' => $vacancy_id,
             'user_id' => $user_id,
-            'userName' => $userName
+            'userName' => $userName,
+            'examineeCode' => $examineeCode,
+            'application' => $application,
         ]);
     }
 
     public function getExamAnswersJson(Request $request, $vacancy_id, $user_id)
     {
-        $application = Applications::select('user_id', 'answers', 'scores')->where('user_id', $user_id)->where('vacancy_id', $vacancy_id)->firstOrFail();
-        $examItems = ExamItems::select('id', 'question', 'ans', 'is_essay', 'choices')->where('vacancy_id', $vacancy_id)->get();
+        $application = Applications::select('user_id', 'answers', 'scores', 'tab_violations', 'last_tab_violation_at')->where('user_id', $user_id)->where('vacancy_id', $vacancy_id)->firstOrFail();
+        $examItems = ExamItems::select('id', 'question', 'ans', 'is_essay', 'choices', 'essay_max_score')->where('vacancy_id', $vacancy_id)->get();
 
         $answers = $application->answers;
         $scores = $application->scores;
@@ -911,25 +1021,263 @@ class ExamController extends Controller
                 'score' => $score,
                 'is_correct' => $is_correct,
                 'is_essay' => $item->is_essay,
+                'essay_max_score' => (int) ($item->essay_max_score ?? 0),
             ];
         }
 
+        $logsRaw = \App\Models\ExamTabViolation::where('vacancy_id', $vacancy_id)
+            ->where('user_id', $user_id)
+            ->orderByDesc('created_at')
+            ->limit(20)
+            ->get(['started_at', 'ended_at', 'duration_seconds', 'created_at']);
+        $logs = $logsRaw->map(function ($l) {
+            return [
+                'started_at_iso' => optional($l->started_at)->toIso8601String(),
+                'ended_at_iso' => optional($l->ended_at)->toIso8601String(),
+                'duration_seconds' => $l->duration_seconds,
+                'created_at_iso' => optional($l->created_at)->toIso8601String(),
+            ];
+        });
+
         return response()->json([
             'success' => true,
-            'examResults' => $examResults
+            'examResults' => $examResults,
+            'tab_violations' => (int) ($application->tab_violations ?? 0),
+            'last_violation_at' => $application->last_tab_violation_at,
+            'tab_violation_logs' => $logs
+        ]);
+    }
+
+    public function downloadExamPdf(Request $request, $vacancy_id, $user_id)
+    {
+        $application = Applications::select('user_id', 'answers', 'scores', 'exam_started_at', 'exam_end_time', 'status')
+            ->where('user_id', $user_id)->where('vacancy_id', $vacancy_id)->firstOrFail();
+        $examItems = ExamItems::select('id', 'question', 'is_essay', 'choices', 'essay_max_score', 'ans')
+            ->where('vacancy_id', $vacancy_id)->get();
+        $positionTitle = JobVacancy::select('position_title')->where('vacancy_id', $vacancy_id)->firstOrFail();
+        $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->first();
+
+        $examineeCode = strtoupper('EXM-' . substr(hash('sha256', $vacancy_id . '-' . $user_id), 0, 8));
+        $answers = $application->answers ?? [];
+        $scores = $application->scores ?? [];
+
+        // Build PDF inline using FPDF (installed via setasign/fpdf)
+        $pdf = new \FPDF();
+        $pdf->SetMargins(20, 20, 20);
+        $pdf->AddPage();
+        $pdf->SetTitle('Examination Result');
+
+        /*
+        |--------------------------------------------------------------------------
+        | APPLICANT INFORMATION TABLE
+        |--------------------------------------------------------------------------
+        */
+
+        $pdf->SetFont('Times', 'B', 11);
+        $pdf->Cell(0, 6, 'APPLICANT INFORMATION', 0, 1);
+        $pdf->Line(20, $pdf->GetY(), 190, $pdf->GetY());
+        $pdf->Ln(4);
+
+        $pdf->SetFont('Times', '', 11);
+
+        $dateStr = optional($examDetail)->date
+            ? \Carbon\Carbon::parse($examDetail->date)->format('F d, Y')
+            : '-';
+
+        $pdf->Cell(55, 6, 'Examinee Code:', 0, 0);
+        $pdf->Cell(0, 6, $examineeCode, 0, 1);
+
+        $pdf->Cell(55, 6, 'Position Applied For:', 0, 0);
+        // Encoding-safe text conversion for PDF core fonts
+        $toPdf = function ($text) {
+            $text = (string)$text;
+            $replacements = [
+                "’" => "'",
+                "‘" => "'",
+                "“" => '"',
+                "”" => '"',
+                "–" => "-",
+                "—" => "-",
+                "…" => "...",
+                "•" => "*",
+                " " => " ", // non-breaking space
+            ];
+            $text = strtr($text, $replacements);
+            $converted = @iconv('UTF-8', 'Windows-1252//TRANSLIT//IGNORE', $text);
+            if ($converted === false) {
+                $converted = utf8_decode($text);
+            }
+            return $converted;
+        };
+        $pdf->Cell(0, 6, $toPdf($positionTitle->position_title ?? '-'), 0, 1);
+
+        $pdf->Cell(55, 6, 'Date of Examination:', 0, 0);
+        $pdf->Cell(0, 6, $toPdf($dateStr), 0, 1);
+
+        $pdf->Cell(55, 6, 'Time Started:', 0, 0);
+        $startedStr = $application->exam_started_at
+            ? \Carbon\Carbon::parse($application->exam_started_at)->format('g:i A')
+            : '-';
+        $pdf->Cell(0, 6, $startedStr, 0, 1);
+
+        $pdf->Cell(55, 6, 'Time Submitted:', 0, 0);
+        // Use dedicated submission timestamp if available
+        $submittedStr = $application->exam_submitted_at
+            ? \Carbon\Carbon::parse($application->exam_submitted_at)->format('g:i A')
+            : '-';
+        $pdf->Cell(0, 6, $submittedStr, 0, 1);
+
+        $pdf->Cell(55, 6, 'Extracted At:', 0, 0);
+        $pdf->Cell(0, 6, now()->format('F d, Y g:i A'), 0, 1);
+
+        $pdf->Ln(8);
+
+        /*
+        |--------------------------------------------------------------------------
+        | RESPONSES SECTION
+        |--------------------------------------------------------------------------
+        */
+
+        $pdf->SetFont('Times', 'B', 11);
+        $pdf->Cell(0, 6, 'EXAMINATION RESPONSES', 0, 1);
+        $pdf->Line(20, $pdf->GetY(), 190, $pdf->GetY());
+        $pdf->Ln(6);
+
+        $idx = 1;
+
+        foreach ($examItems as $item) {
+
+            if ($pdf->GetY() > 250) {
+                $pdf->AddPage();
+            }
+
+            // Question header with right-aligned essay points (if applicable)
+            $pdf->SetFont('Times', 'B', 11);
+            $qStartY = $pdf->GetY();
+            $questionText = $toPdf($idx . '. ' . ($item->question ?? ''));
+
+            if ((int)$item->is_essay === 1) {
+                $maxPts = (int)($item->essay_max_score ?? 0);
+                if ($maxPts > 0) {
+                    $scoreVal = $scores[$item->id] ?? null;
+                    $ptsLabel = is_numeric($scoreVal) ? ($scoreVal . '/' . $maxPts . ' pts') : ('/' . $maxPts . ' pts');
+                    $label = $toPdf($ptsLabel);
+                    $labelW = $pdf->GetStringWidth($label);
+                    $rightX = 210 - 20 - $labelW; // page width 210mm, right margin 20mm
+                    $pdf->SetXY($rightX, $qStartY);
+                    $pdf->SetFont('Times', 'I', 10);
+                    $pdf->Cell($labelW, 6, $label, 0, 0, 'R');
+                    $pdf->SetXY(20, $qStartY);
+                    $pdf->SetFont('Times', 'B', 11);
+                }
+            }
+
+            $pdf->MultiCell(0, 6, $questionText);
+
+            if ((int)$item->is_essay === 1) {
+
+                $ans = isset($answers[$item->id]) ? (string)$answers[$item->id] : '';
+
+                $pdf->SetFont('Times', '', 11);
+
+                $boxHeight = 36;
+                $startY = $pdf->GetY();
+
+                $pdf->Rect(20, $startY, 170, $boxHeight);
+                $pdf->SetXY(22, $startY + 3);
+                $pdf->MultiCell(166, 6, $toPdf($ans));
+
+                $pdf->SetY($startY + $boxHeight + 8);
+
+            } else {
+
+            $given = $answers[$item->id] ?? null;
+            $choiceMap = is_array($item->choices) ? $item->choices : [];
+
+            $display = '-';
+
+            if (!is_null($given)) {
+                $keyRaw = (string)$given;
+                // Map numeric keys to letters (0->A, 1->B, ...)
+                if (is_numeric($keyRaw)) {
+                    $idxKey = (int)$keyRaw;
+                    $labelKey = chr(ord('A') + $idxKey);
+                } else {
+                    $labelKey = strtoupper($keyRaw);
+                }
+
+                // Handle choice maps that use numeric indexes
+                $choiceLookupKey = isset($choiceMap[$keyRaw]) ? $keyRaw : ( (is_numeric($keyRaw) && isset($choiceMap[(int)$keyRaw])) ? (int)$keyRaw : $keyRaw );
+                if (isset($choiceMap[$choiceLookupKey])) {
+                    $choiceText = (string)$choiceMap[$choiceLookupKey];
+                    $display = $labelKey . '. ' . $choiceText;   // eg. B. Lorem Ipsum
+                } else {
+                    $display = $labelKey; // fallback if mapping missing
+                }
+            }
+
+            $pdf->SetFont('Times', '', 11);
+            $pdf->Cell(45, 6, $toPdf("Applicant's Answer:"), 0, 0);
+
+            $pdf->SetFont('Times', 'B', 11);
+            $pdf->MultiCell(0, 6, $toPdf($display));
+            }
+
+            $pdf->Ln(8);
+            $idx++;
+        }
+
+        $content = $pdf->Output('S');
+        return response($content, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="exam-result.pdf"',
         ]);
     }
 
     public function saveResult(Request $request, $vacancy_id, $user_id)
     {
-        //dd($request->all());
-
         $scores = $request->input('scores');
         $result = $request->input('result');
 
         $validated = $request->validate([
             'scores' => 'nullable|array',
         ]);
+
+        // Clamp essay scores within [0, essay_max_score]
+        $items = ExamItems::where('vacancy_id', $vacancy_id)->get(['id', 'is_essay', 'essay_max_score']);
+        $essayMaxMap = [];
+        foreach ($items as $it) {
+            if ((int)$it->is_essay === 1) {
+                $essayMaxMap[$it->id] = is_null($it->essay_max_score) ? null : (int)$it->essay_max_score;
+            }
+        }
+
+        if (is_array($scores)) {
+            foreach ($scores as $qId => $val) {
+                if (array_key_exists($qId, $essayMaxMap)) {
+                    if ($val === '' || is_null($val)) {
+                        // Not scored
+                        continue;
+                    }
+                    $num = (int)$val;
+                    $max = $essayMaxMap[$qId] ?? 0;
+                    if (!is_null($max)) {
+                        if ($num < 0) $num = 0;
+                        if ($num > $max) $num = $max;
+                    } else {
+                        if ($num < 0) $num = 0;
+                    }
+                    $scores[$qId] = $num;
+                } else {
+                    // MCQ should be 0/1
+                    if ($val === '' || is_null($val)) {
+                        $scores[$qId] = null;
+                    } else {
+                        $scores[$qId] = (int)$val ? 1 : 0;
+                    }
+                }
+            }
+        }
 
         Applications::where('vacancy_id', $vacancy_id)
             ->where('user_id', $user_id)
@@ -1105,14 +1453,16 @@ class ExamController extends Controller
                     // Generate Token if not exists or expired (though we might just regenerate always for new link sending)
                     $token = Str::random(64);
 
-                    // Set expiration to Exam Date + Duration + Buffer (e.g. 1 day)
-                    // Or simply 48 hours for now as a default
-                    $expiresAt = now()->addHours(48);
+                    $expiresAt = now()->addMinutes(2);
 
                     $application->update([
                         'exam_token' => $token,
                         'exam_token_expires_at' => $expiresAt,
                         'link_sent_at' => now(),
+                        'exam_token_used_at' => null,
+                        'exam_token_device_id' => null,
+                        'exam_token_used_ip' => null,
+                        'exam_token_used_ua' => null,
                     ]);
 
                     // Dispatch Job

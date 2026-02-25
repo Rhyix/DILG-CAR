@@ -456,6 +456,7 @@ Route::middleware([ViewerAccess::class])->group(function () {
     Route::get('/admin/exam_management', [ExamController::class, 'examManagement'])->name('admin_exam_management');
     Route::get('/admin/exam_management/{vacancy_id}/view_exam/{user_id}', [ExamController::class, 'viewExam'])->name('admin.view_exam');
     Route::get('/admin/exam_management/{vacancy_id}/view_exam/{user_id}/json', [ExamController::class, 'getExamAnswersJson'])->name('admin.view_exam.json');
+    Route::get('/admin/exam_management/{vacancy_id}/view_exam/{user_id}/pdf', [ExamController::class, 'downloadExamPdf'])->name('admin.view_exam.pdf');
     Route::post('/admin/exam_management/{vacancy_id}/view_exam/{user_id}', [ExamController::class, 'saveResult'])->name('admin.save_result');
     Route::get('/admin/exam_management/{vacancy_id}/manage', [ExamController::class, 'manageExam'])->name('admin.manage_exam');
     Route::get('/admin/exam_management/{vacancy_id}/qualified', [ExamController::class, 'getQualifiedApplicants'])->name('admin.exam.qualified');

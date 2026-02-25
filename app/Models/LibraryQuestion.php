@@ -16,6 +16,7 @@ class LibraryQuestion extends Model
         'choices',
         'correct_answer',
         'essay_answer_guide',
+        'essay_max_score',
         'difficulty_level',
         'category',
         'tags',

@@ -130,11 +130,7 @@
 <script>
     const Questions = @json($examItems);
 
-    // Jumble the sequence of the questions
-    for (let i = Questions.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [Questions[i], Questions[j]] = [Questions[j], Questions[i]];
-    }
+    // Questions are shown in original order
 
     const totalItems = Questions.length;
     const container = document.getElementById('question-container');
@@ -325,16 +321,11 @@
 
     function handleTabSwitch() {
         switchCount++;
-        if (switchCount < 3) {
-            alert(`⚠️ Warning ${switchCount}/3: Please stay on the exam page.`);
-        } else if (switchCount === 3) {
-            if ( confirm( "🚫 You have switched tabs 3 times. Your exam will now be submitted. Click OK to continue." ) ) {
-                prepareSubmit();
-            }
-            /* ✂️  Removed confirm() – we’re forcing the submit */
-            alert("🚫 You have switched tabs 3 times. Your exam is being auto‑submitted.");
-            prepareSubmit();
-        }
+        alert(`⚠️ Warning ${switchCount}: Please stay on the exam page.`);
+
+        const endedAt = new Date();
+        const startedAt = window.__tabHiddenAt || endedAt;
+        const durationSeconds = Math.max(0, Math.round((endedAt.getTime() - startedAt.getTime()) / 1000));
 
         fetch('/log-switch', {
             method: 'POST',
@@ -342,9 +333,22 @@
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
             },
-            body: JSON.stringify({ type: 'tab-switch', count: switchCount, time: new Date().toISOString() })
+            body: JSON.stringify({
+                type: 'tab-switch',
+                count: switchCount,
+                time: endedAt.toISOString(),
+                vacancy_id: '{{ $vacancy_id }}',
+                started_at: startedAt.toISOString(),
+                ended_at: endedAt.toISOString(),
+                duration_seconds: durationSeconds
+            })
         });
     }
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden' && !window.allowFocusLoss && !window.isSubmitting) {
+            window.__tabHiddenAt = new Date();
+        }
+    });
 
     function prepareSubmit() {
         collectCurrentAnswers(); // updates 'answers' object with current screen inputs
@@ -395,24 +399,24 @@
     }
 
     function attachAnswerListeners() {
-        // Radio inputs
         document.querySelectorAll('input[type="radio"][name^="answers["]').forEach(input => {
             input.addEventListener('change', () => {
                 updateSubmitEnabled();
-                autoSave();
+                autoSaveImmediate();
             });
         });
-        // Essay textareas
         document.querySelectorAll('textarea[name^="answers["]').forEach(ta => {
-            ta.addEventListener('input', updateSubmitEnabled);
+            ta.addEventListener('input', () => {
+                updateSubmitEnabled();
+                autoSaveDebounced();
+            });
             ta.addEventListener('change', () => {
                 updateSubmitEnabled();
-                autoSave();
+                autoSaveImmediate();
             });
         });
     }
 
-    // Debounce function for autosave
     function debounce(func, wait) {
         let timeout;
         return function(...args) {
@@ -421,9 +425,8 @@
         };
     }
 
-    const autoSave = debounce(function() {
+    function doAutoSave(showToast = true) {
         collectCurrentAnswers();
-        
         fetch("{{ route('exam.autosave', ['vacancy_id' => $vacancy_id]) }}", {
             method: 'POST',
             headers: {
@@ -435,14 +438,13 @@
                 user_id: '{{ Auth::id() }}',
                 answers: answers
             })
-        }).then(res => res.json())
-          .then(data => {
-              if(data.success) {
-                  showSaveNotification();
-              }
-          })
-          .catch(err => console.error('Autosave error', err));
-    }, 1000); // Wait 1 second after last change before saving
+        }).then(res => res.json()).then(data => {
+            if (data.success && showToast) { showSaveNotification(); }
+        }).catch(() => {});
+    }
+
+    const autoSaveDebounced = debounce(doAutoSave, 300);
+    function autoSaveImmediate() { doAutoSave(true); }
 
     function renderAllQuestions() {
     container.innerHTML = '';
@@ -477,6 +479,20 @@
     updateSubmitEnabled();
 }
 
+    // Periodic autosave every 5 seconds (silent)
+    let periodicAutoSave = setInterval(() => {
+        if (!window.isSubmitting) doAutoSave(false);
+    }, 5000);
+
+    window.addEventListener('beforeunload', () => {
+        if (periodicAutoSave) clearInterval(periodicAutoSave);
+    });
+
+    const originalPrepareSubmit = prepareSubmit;
+    function prepareSubmit() {
+        if (periodicAutoSave) clearInterval(periodicAutoSave);
+        originalPrepareSubmit();
+    }
     window.prepareSubmit = prepareSubmit;
 </script>
 @include('partials.loader')

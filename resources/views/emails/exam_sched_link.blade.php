@@ -148,7 +148,7 @@
       </table>
     </div>
       <p>
-        Please ensure that you arrive at the venue at least 30 minutes before the scheduled time. Bring a valid ID and any other required documents.
+        Please ensure that you arrive at the venue at least 15 minutes before the scheduled time. Bring a valid ID and any other required documents.
       </p>
 
       <p>
@@ -156,6 +156,10 @@
       </p>
 
       <a href="{{ $join_link ?? '#' }}" class="join-button">Access Exam Link</a>
+
+      <p class="note" style="margin-top:10px;">
+        Important: The link expires in 2 minutes and can be used once on a single device.
+      </p>
 
       <p class="note">
          If the button above does not work, please copy and paste this link into your browser:<br>

@@ -130,6 +130,14 @@
                             placeholder="Answer here."></textarea>
                     </div>
 
+                    <!-- Essay Max Score -->
+                    <div id="essayMaxContainer" class="mb-4 hidden">
+                        <label for="essayMaxScore" class="block text-sm font-semibold text-gray-700 mb-2">Max Score <span class="text-red-500">*</span></label>
+                        <input type="number" id="essayMaxScore" min="0" placeholder="e.g., 50"
+                            class="w-40 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0D2B70]">
+                        <p class="text-xs text-gray-500 mt-1">Highest allowed score for this essay question.</p>
+                    </div>
+
 
 
                     <div class="flex gap-4 justify-end">
@@ -325,12 +333,14 @@
             const type = document.getElementById('questionType').value;
             const choicesContainer = document.getElementById('choicesContainer');
             const essayGuideContainer = document.getElementById('essayGuideContainer');
+            const essayMaxContainer = document.getElementById('essayMaxContainer');
             const addChoiceBtn = document.getElementById('addChoiceContainer');
             const choiceTip = document.getElementById('choiceTip');
 
             if (type === 'multiple_choice') {
                 choicesContainer.classList.remove('hidden');
                 essayGuideContainer.classList.add('hidden');
+                essayMaxContainer.classList.add('hidden');
                 addChoiceBtn.classList.remove('hidden');
                 choiceTip.classList.remove('hidden');
                 if (choiceCount === 0) {
@@ -342,6 +352,13 @@
             } else if (type === 'essay') {
                 choicesContainer.classList.add('hidden');
                 essayGuideContainer.classList.remove('hidden');
+                essayMaxContainer.classList.remove('hidden');
+                // Attach input listener to essay max score to re-validate on change
+                const essayMaxEl = document.getElementById('essayMaxScore');
+                if (essayMaxEl && !essayMaxEl._hasListener) {
+                    essayMaxEl.addEventListener('input', validateForm);
+                    essayMaxEl._hasListener = true;
+                }
                 validateForm();
             }
         }
@@ -496,6 +513,19 @@
                         }
                     }
                 }
+            } else if (type === 'essay') {
+                const essayMaxEl = document.getElementById('essayMaxScore');
+                if (essayMaxEl) {
+                    const v = essayMaxEl.value;
+                    if (v === '') {
+                        valid = false;
+                    } else {
+                        const num = parseInt(v, 10);
+                        if (isNaN(num) || num < 0) valid = false;
+                    }
+                } else {
+                    valid = false;
+                }
             }
 
             // toggle save button
@@ -589,6 +619,7 @@
                 choices: choices,
                 correct_answer: correctAnswer,
                 essay_answer_guide: type === 'essay' ? document.getElementById('essayGuide').value : null,
+                essay_max_score: type === 'essay' ? (function(){ const v = document.getElementById('essayMaxScore').value; return v === '' ? null : parseInt(v, 10); })() : null,
                 difficulty_level: null,
                 category: null,
                 tags: null,
@@ -670,6 +701,9 @@
                 document.getElementById('essayGuide').value = question.essay_answer_guide;
             }
 
+            // Populate essay max score if available
+            const essayMaxInput = document.getElementById('essayMaxScore');
+            if (essayMaxInput) essayMaxInput.value = (question.essay_max_score != null ? question.essay_max_score : '');
             document.getElementById('questionModal').classList.remove('hidden');
         }
 
@@ -706,8 +740,13 @@
             if (question.essay_answer_guide) {
                 document.getElementById('essayGuide').value = question.essay_answer_guide;
             }
+            const essayMaxInputDup = document.getElementById('essayMaxScore');
+            if (essayMaxInputDup) essayMaxInputDup.value = (question.essay_max_score != null ? question.essay_max_score : '');
 
             document.getElementById('questionModal').classList.remove('hidden');
+            // Ensure listeners are attached and validation runs for essay fields
+            handleTypeChange();
+            validateForm();
         }
 
         async function deleteQuestion(id) {

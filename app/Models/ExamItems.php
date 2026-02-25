@@ -15,6 +15,7 @@ class ExamItems extends Model
         'is_essay',
         'choices',
         'ans',
+        'essay_max_score',
     ];
 
     protected $casts = [

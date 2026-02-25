@@ -218,6 +218,7 @@ class ExamLibraryController extends Controller
                 'choices.*' => 'nullable|string',
                 'correct_answer' => 'nullable|string',
                 'essay_answer_guide' => 'nullable|string',
+                'essay_max_score' => 'nullable|integer|min:0',
                 'difficulty_level' => 'nullable|in:easy,medium,hard',
                 'category' => 'nullable|string|max:255',
                 'tags' => 'nullable|array',
@@ -238,6 +239,14 @@ class ExamLibraryController extends Controller
                 }
             }
 
+            // Additional validation for essay max score
+            if ($validated['question_type'] === 'essay') {
+                $ems = $request->input('essay_max_score', null);
+                if ($ems === null || $ems === '' || !is_numeric($ems) || (int)$ems < 0) {
+                    throw new \Exception('Essay questions require a valid max score (0 or greater).');
+                }
+            }
+
             $question = LibraryQuestion::create([
                 'series_id' => $seriesId,
                 'question' => $validated['question'],
@@ -245,6 +254,7 @@ class ExamLibraryController extends Controller
                 'choices' => $validated['choices'] ?? null,
                 'correct_answer' => $validated['correct_answer'] ?? null,
                 'essay_answer_guide' => $validated['essay_answer_guide'] ?? null,
+                'essay_max_score' => $request->input('essay_max_score', null),
                 'difficulty_level' => $validated['difficulty_level'] ?? null,
                 'category' => $validated['category'] ?? null,
                 'tags' => $validated['tags'] ?? null,
@@ -300,6 +310,7 @@ class ExamLibraryController extends Controller
                 'choices.*' => 'nullable|string',
                 'correct_answer' => 'nullable|string',
                 'essay_answer_guide' => 'nullable|string',
+                'essay_max_score' => 'nullable|integer|min:0',
                 'difficulty_level' => 'nullable|in:easy,medium,hard',
                 'category' => 'nullable|string|max:255',
                 'tags' => 'nullable|array',
@@ -318,11 +329,19 @@ class ExamLibraryController extends Controller
                     throw new \Exception('Multiple choice questions must have a correct answer.');
                 }
             }
+            if ($validated['question_type'] === 'essay') {
+                $ems = $request->input('essay_max_score', null);
+                if ($ems === null || $ems === '' || !is_numeric($ems) || (int)$ems < 0) {
+                    throw new \Exception('Essay questions require a valid max score (0 or greater).');
+                }
+            }
 
             // Check if question is used in exams
             $usageCount = $question->examUsages()->count();
 
-            $question->update($validated);
+            $question->update(array_merge($validated, [
+                'essay_max_score' => $request->input('essay_max_score', $question->essay_max_score),
+            ]));
 
             // Verify the update was successful
             $question = $question->fresh();

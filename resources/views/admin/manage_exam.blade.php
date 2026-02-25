@@ -102,7 +102,7 @@
                             {{ $questionsCount }}-question examination
                         </span>
                     @else
-                        <span class="text-xl md:text-2xl lg:text-3xl font-normal">
+                        <span class="text-xl md:text-2xl lg:text-3xl font-normal text-red-600 font-bold">
                             No questions yet
                         </span>
                     @endif
@@ -253,7 +253,7 @@
                 </div>
             </div>
 
-            <!-- Tab Content: Exam Lobby (Phase 2 - Participants Table) -->
+            <!-- Tab Content: EXAM MONITOR (Phase 2 - Participants Table) -->
             <div id="content-lobby" class="tab-content hidden flex-1 flex flex-col min-h-0 overflow-hidden border border-[#0D2B70] rounded-xl">
                  <div class="flex-none bg-[#0D2B70] text-white">
                     <table class="w-full text-left border-collapse">
@@ -268,6 +268,8 @@
                         </thead>
                     </table>
                 </div>
+
+                <!-- EXAM MONITOR TABLE -->
                 <div class="flex-1 overflow-y-auto bg-white">
                     <div class="flex items-center justify-between p-2 bg-gray-50 border-b border-[#0D2B70]">
                         <div class="flex items-center gap-3">
@@ -318,15 +320,24 @@
                                     </td>
 
                                     <!-- Action Button -->
-                                    <td class="py-3 px-3 md:py-4 md:px-6 text-center w-[25%]">
-                                        <button onclick="window.location.href='{{ route('admin.view_exam', ['vacancy_id' => $p->vacancy_id, 'user_id' => $p->user_id]) }}'"
+                                     <td class="py-3 px-3 md:py-4 md:px-6 text-center w-[25%]">
+                                        <a href="{{ route('admin.view_exam', ['vacancy_id' => $p->vacancy_id, 'user_id' => $p->user_id]) }}" target="_blank"
+                                            class="text-[#0D2B70] border border-[#0D2B70] font-bold py-1.5 px-3 md:py-2 md:px-6 rounded-md text-xs md:text-sm
+                                                transition-all duration-150 ease-[cubic-bezier(0.4,0,0.2,1)]
+                                                hover:scale-105 hover:bg-[#002C76] hover:text-white hover:shadow-md inline-flex items-center gap-1 md:gap-2">
+                                            <x-heroicon-o-eye class="w-3 h-3 md:w-4 md:h-4" />
+                                            <span class="hidden sm:inline">View</span>
+                                        </a>
+                                    </td>
+                                    <!-- <td class="py-3 px-3 md:py-4 md:px-6 text-center w-[25%]">
+                                        <button target="_blank" onclick="window.location.href='{{ route('admin.view_exam', ['vacancy_id' => $p->vacancy_id, 'user_id' => $p->user_id]) }}'"
                                             class="text-[#0D2B70] border border-[#0D2B70] font-bold py-1.5 px-3 md:py-2 md:px-6 rounded-md text-xs md:text-sm
                                                 transition-all duration-150 ease-[cubic-bezier(0.4,0,0.2,1)]
                                                 hover:scale-105 hover:bg-[#002C76] hover:text-white hover:shadow-md inline-flex items-center gap-1 md:gap-2">
                                             <x-heroicon-o-eye class="w-3 h-3 md:w-4 md:h-4" />
                                             <span class="hidden sm:inline">View</span>
                                         </button>
-                                    </td>
+                                    </td> -->
                                 </tr>
                                 @endforeach
                             @else

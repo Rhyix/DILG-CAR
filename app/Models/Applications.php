@@ -35,9 +35,16 @@ class Applications extends Model
         'link_sent_at',
         'exam_token',
         'exam_token_expires_at',
+        'exam_token_used_at',
+        'exam_token_device_id',
+        'exam_token_used_ip',
+        'exam_token_used_ua',
         'read_at',
         'exam_started_at',
-        'exam_end_time'
+        'exam_end_time',
+        'exam_submitted_at',
+        'tab_violations',
+        'last_tab_violation_at'
     ];
 
     protected $casts = [
