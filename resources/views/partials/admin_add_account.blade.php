@@ -1,5 +1,5 @@
 @php
-    $createHasErrors = $errors->any() && (old('username') || old('name') || old('email') || old('account_type'));
+    $createHasErrors = $errors->any() && (old('first_name') || old('last_name') || old('middle_name') || old('email') || old('account_type'));
 @endphp
 
 <div x-data="{ showCreateAccount: {{ $createHasErrors ? 'true' : 'false' }} }" class="inline-flex">
@@ -46,13 +46,18 @@
 
                     <div class="grid gap-4 md:grid-cols-2">
                         <div>
-                            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">Username</label>
-                            <input type="text" name="username" value="{{ old('username') }}" required
+                            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">First Name</label>
+                            <input type="text" name="first_name" value="{{ old('first_name') }}" required
                                 class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20" />
                         </div>
                         <div>
-                            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">Full Name</label>
-                            <input type="text" name="name" value="{{ old('name') }}" required
+                            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">Last Name</label>
+                            <input type="text" name="last_name" value="{{ old('last_name') }}" required
+                                class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20" />
+                        </div>
+                        <div>
+                            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">Middle Name</label>
+                            <input type="text" name="middle_name" value="{{ old('middle_name') }}"
                                 class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20" />
                         </div>
                         <div>

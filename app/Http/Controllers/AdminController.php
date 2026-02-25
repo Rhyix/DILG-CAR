@@ -24,6 +24,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Spatie\Activitylog\Models\Activity;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 
 
 use Illuminate\Support\Facades\Mail;
@@ -83,6 +84,22 @@ class AdminController extends Controller
         $this->middleware('auth:admin');
     }
 
+    private function generateUniqueUsername(string $firstName, string $lastName, string $email): string
+    {
+        $nameBase = Str::slug(trim($firstName . ' ' . $lastName), '_');
+        $emailBase = Str::slug((string) Str::before($email, '@'), '_');
+        $base = Str::lower($nameBase !== '' ? $nameBase : ($emailBase !== '' ? $emailBase : 'admin'));
+
+        $candidate = $base;
+        $suffix = 1;
+        while (Admin::where('username', $candidate)->exists()) {
+            $candidate = $base . '_' . $suffix;
+            $suffix++;
+        }
+
+        return $candidate;
+    }
+
     // List all admin accounts
     public function manage()
     {
@@ -91,6 +108,7 @@ class AdminController extends Controller
             ->orderBy('name')
             ->orderBy('email')
             ->get();
+        $cosVacancies = $this->getCosVacanciesForHrDivisionAccess();
         $hrDivisionAccessMap = $this->getHrDivisionAccessMap($admins);
         // $users = User::all(); // Removed to prevent fetching participants
 
@@ -218,15 +236,15 @@ class AdminController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'username' => ['required', 'string', 'max:255', 'unique:admins,username'],
-            'name' => ['required', 'string', 'max:255'],
+            'first_name' => ['required', 'string', 'max:255'],
+            'middle_name' => ['nullable', 'string', 'max:255'],
+            'last_name' => ['required', 'string', 'max:255'],
             'office' => ['required', 'string', 'max:255'],
             'designation' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:admins,email'],
             'password' => ['required', 'string', 'min:8'],
             'account_type' => ['required', Rule::in(self::ACCOUNT_TYPES)],
         ], [
-            'username.unique' => 'The username has already been taken.',
             'email.unique' => 'The email has already been taken.',
         ]);
 
@@ -235,11 +253,23 @@ class AdminController extends Controller
             return redirect()->back()->with('error', 'Only a superadmin can create another superadmin account.');
         }
 
-        $validated['password'] = Hash::make($validated['password']);
-        $validated['role'] = $validated['account_type'];
-        unset($validated['account_type']);
+        $firstName = trim((string) ($validated['first_name'] ?? ''));
+        $middleName = trim((string) ($validated['middle_name'] ?? ''));
+        $lastName = trim((string) ($validated['last_name'] ?? ''));
+        $fullName = trim(implode(' ', array_filter([$firstName, $lastName, $middleName], fn($part) => $part !== '')));
+        $generatedUsername = $this->generateUniqueUsername($firstName, $lastName, (string) ($validated['email'] ?? ''));
 
-        $createdAdmin = Admin::create($validated);
+        $payload = [
+            'username' => $generatedUsername,
+            'name' => $fullName,
+            'office' => $validated['office'],
+            'designation' => $validated['designation'],
+            'email' => $validated['email'],
+            'password' => Hash::make((string) $validated['password']),
+            'role' => $validated['account_type'],
+        ];
+
+        $createdAdmin = Admin::create($payload);
         if (($createdAdmin->role ?? null) === 'superadmin' && (int) ($createdAdmin->is_active ?? 1) === 1) {
             $this->deactivateOtherSuperadmins((int) $createdAdmin->id);
         }
@@ -248,7 +278,11 @@ class AdminController extends Controller
             ->causedBy(auth('admin')->user())
             ->performedOn($createdAdmin)
             ->event('create')
-            ->withProperties(['username' => $validated['username'], 'section' => 'System Users Management'])
+            ->withProperties([
+                'username' => $generatedUsername,
+                'email' => $validated['email'],
+                'section' => 'System Users Management',
+            ])
             ->log('Created a new admin account.');
 
         return redirect()->back()->with('success', 'Admin account created successfully!');

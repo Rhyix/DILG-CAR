@@ -562,6 +562,7 @@ Route::middleware([ApplicantsAccess::class])->group(function () {
     Route::get('/admin/reviewed-applicants', [ShowApplicantsProfile::class, 'reviewedIndex'])->name('reviewed_applicants');
     Route::get('/admin/reviewed-applicants/sort', [ShowApplicantsProfile::class, 'ajaxSort'])->name('reviewed_applicants.sort');
     Route::get('/admin/applications_list', [ShowApplicantsProfile::class, 'applicationsList'])->name('applications_list');
+    Route::get('/admin/applications_list/access-state', [ShowApplicantsProfile::class, 'hrDivisionAccessState'])->name('admin.applications_list.access_state');
     Route::get('/admin/reviewed/{vacancy_id}', [ShowApplicantsProfile::class, 'reviewedIndex'])->name('admin.reviewed');
     Route::get('/admin/applicants/{vacancy_id}', [ShowApplicantsProfile::class, 'index'])->name('admin.applicants');
     Route::get('/admin/applicants-profile/sort', [ShowApplicantsProfile::class, 'ajaxSortApplicants'])->name('admin.applicants.sort');

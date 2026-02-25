@@ -17,6 +17,19 @@ class ShowApplicantsProfile extends Controller
         return Auth::guard('admin')->user();
     }
 
+    private function buildHrDivisionAccessSignature(array $vacancyIds): string
+    {
+        $normalized = collect($vacancyIds)
+            ->map(fn($value) => trim((string) $value))
+            ->filter(fn($value) => $value !== '')
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+
+        return hash('sha256', implode('|', $normalized));
+    }
+
     private function hrDivisionGrantedVacancyIds(): array
     {
         $admin = $this->currentAdmin();
@@ -34,6 +47,16 @@ class ShowApplicantsProfile extends Controller
             ->map(fn($value) => (string) $value)
             ->values()
             ->all();
+    }
+
+    private function hrDivisionAccessSignature(): string
+    {
+        $admin = $this->currentAdmin();
+        if (($admin->role ?? null) !== 'hr_division') {
+            return '';
+        }
+
+        return $this->buildHrDivisionAccessSignature($this->hrDivisionGrantedVacancyIds());
     }
 
     private function hrDivisionCanAccessVacancy(?string $vacancyId): bool
@@ -222,10 +245,14 @@ class ShowApplicantsProfile extends Controller
         $status = $request->input('status');
         $admin = $this->currentAdmin();
         $grantedVacancyIds = $this->hrDivisionGrantedVacancyIds();
+        $isHrDivisionUser = (($admin->role ?? null) === 'hr_division');
+        $accessSignature = $isHrDivisionUser
+            ? $this->buildHrDivisionAccessSignature($grantedVacancyIds)
+            : '';
 
         $query = JobVacancy::query();
 
-        if (($admin->role ?? null) === 'hr_division') {
+        if ($isHrDivisionUser) {
             if (empty($grantedVacancyIds)) {
                 $query->whereRaw('1 = 0');
             } else {
@@ -275,8 +302,26 @@ class ShowApplicantsProfile extends Controller
         }
 
         return view('admin.applications_list', [
-            'vacancies' => $vacancies
+            'vacancies' => $vacancies,
+            'isHrDivisionUser' => $isHrDivisionUser,
+            'accessSignature' => $accessSignature,
         ]);
+    }
+
+    public function hrDivisionAccessState()
+    {
+        $admin = $this->currentAdmin();
+        if (!$admin) {
+            return response()->json([
+                'message' => 'Unauthorized.',
+            ], 401)->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+        }
+
+        $isHrDivisionUser = (($admin->role ?? null) === 'hr_division');
+        return response()->json([
+            'is_hr_division' => $isHrDivisionUser,
+            'access_signature' => $isHrDivisionUser ? $this->hrDivisionAccessSignature() : '',
+        ])->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
     }
 
     public function ajaxSortApplicants(Request $request)

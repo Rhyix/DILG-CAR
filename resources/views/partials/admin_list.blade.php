@@ -54,7 +54,7 @@
         @endphp
 
         <tr class="transition hover:bg-slate-50/80" data-row="admin-account" data-role="{{ $admin->role }}" data-status="{{ $statusKey }}">
-            <td class="px-5 py-4 align-top">
+            <td class="px-5 py-4 align-middle">
                 <p class="font-medium text-slate-800">{{ $admin->email }}</p>
                 <p class="text-xs text-slate-500">{{ $admin->name }}</p>
                 @if ($isCurrentUser)
@@ -63,77 +63,102 @@
                     </span>
                 @endif
             </td>
-            <td class="px-5 py-4 align-top">
+            <td class="px-5 py-4 align-middle">
                 <span class="inline-flex rounded-full border px-3 py-1 text-xs font-semibold {{ $roleClass }}">
                     {{ $roleLabel }}
                 </span>
             </td>
-            <td class="px-5 py-4 align-top">
+            <td class="px-5 py-4 align-middle">
                 <p class="text-sm font-medium text-slate-700">{{ $admin->office ?: 'Not set' }}</p>
                 <p class="text-xs text-slate-500">{{ $admin->designation ?: 'No designation' }}</p>
             </td>
-            <td class="px-5 py-4 text-center align-top">
+            <td class="px-5 py-4 text-center align-middle">
                 <span class="inline-flex rounded-full border px-3 py-1 text-xs font-semibold {{ $statusClass }}">
                     {{ $statusLabel }}
                 </span>
             </td>
-            <td class="px-5 py-4 align-top">
-                <div class="flex items-center justify-center gap-2">
+            <td class="w-[230px] min-w-[230px] px-5 py-4 text-right align-middle">
+                <div class="ml-auto flex w-max flex-nowrap items-center justify-end gap-2 whitespace-nowrap">
                     @if ($canManageHrDivisionAccess)
                         <button
                             type="button"
-                            class="js-open-hr-access-modal inline-flex h-9 w-9 items-center justify-center rounded-lg border border-indigo-300 text-indigo-700 transition hover:bg-indigo-50"
+                            class="js-open-hr-access-modal inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-indigo-300 text-indigo-700 transition hover:bg-indigo-50"
                             title="Manage COS vacancy access"
                             data-admin-id="{{ $admin->id }}"
                             data-admin-name="{{ $displayIdentity }}"
                             data-granted-vacancy-ids='@json($grantedVacancyIds)'
                         >
-                            <i data-feather="list" class="h-4 w-4"></i>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                stroke-width="1.8">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12M8.25 17.25h12M3.75 6.75h.008v.008H3.75V6.75zm0 5.25h.008v.008H3.75V12zm0 5.25h.008v.008H3.75v-.008z" />
+                            </svg>
                         </button>
                     @endif
 
                     @if ($isPending)
                         <button
                             type="button"
-                            class="js-open-approve-modal inline-flex h-9 w-9 items-center justify-center rounded-lg border border-emerald-300 text-emerald-700 transition hover:bg-emerald-50"
+                            class="js-open-approve-modal inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-emerald-300 text-emerald-700 transition hover:bg-emerald-50"
                             title="Approve account"
                             data-admin-id="{{ $admin->id }}"
                             data-admin-name="{{ $displayIdentity }}"
                         >
-                            <i data-feather="check-circle" class="h-4 w-4"></i>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                stroke-width="1.8">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                            </svg>
                         </button>
-                        <form method="POST" class="js-admin-decline-form no-spinner" action="{{ route('admin.decline', $admin->id) }}" data-admin-name="{{ $displayIdentity }}">
+                        <form method="POST" class="js-admin-decline-form no-spinner shrink-0" action="{{ route('admin.decline', $admin->id) }}" data-admin-name="{{ $displayIdentity }}">
                             @csrf
                             <button
                                 type="submit"
-                                class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-rose-300 text-rose-600 transition hover:bg-rose-50"
+                                class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-rose-300 text-rose-600 transition hover:bg-rose-50"
                                 title="Decline account"
                             >
-                                <i data-feather="x-circle" class="h-4 w-4"></i>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                    stroke-width="1.8">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                                </svg>
                             </button>
                         </form>
                     @elseif ($isDeclined)
                         <button type="button" disabled
-                            class="inline-flex h-9 w-9 cursor-not-allowed items-center justify-center rounded-lg border border-slate-200 text-slate-300"
+                            class="inline-flex h-9 w-9 shrink-0 cursor-not-allowed items-center justify-center rounded-lg border border-slate-200 text-slate-300"
                             title="Declined accounts cannot be activated without a new registration">
-                            <i data-feather="slash" class="h-4 w-4"></i>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                stroke-width="1.8">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M15 21H9a6 6 0 0 1-6-6V9a6 6 0 0 1 6-6h6a6 6 0 0 1 6 6v6a6 6 0 0 1-6 6Z" />
+                            </svg>
                         </button>
                     @elseif ($isCurrentUser)
                         <button type="button" disabled
-                            class="inline-flex h-9 w-9 cursor-not-allowed items-center justify-center rounded-lg border border-slate-200 text-slate-300"
+                            class="inline-flex h-9 w-9 shrink-0 cursor-not-allowed items-center justify-center rounded-lg border border-slate-200 text-slate-300"
                             title="You cannot change your own activation status">
-                            <i data-feather="minus-circle" class="h-4 w-4"></i>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                stroke-width="1.8">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 12h4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                            </svg>
                         </button>
                     @else
                         <form method="POST"
-                            class="js-admin-status-form no-spinner"
+                            class="js-admin-status-form no-spinner shrink-0"
                             data-action="{{ $admin->is_active ? 'deactivate' : 'activate' }}"
                             data-admin-name="{{ $displayIdentity }}"
                             action="{{ route($admin->is_active ? 'admin.deactivate' : 'admin.activate', $admin->id) }}">
                             @csrf
-                            <button type="submit" class="inline-flex h-9 w-9 items-center justify-center rounded-lg border text-sm transition {{ $admin->is_active ? 'border-rose-300 text-rose-600 hover:bg-rose-50' : 'border-emerald-300 text-emerald-600 hover:bg-emerald-50' }}"
+                            <button type="submit" class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border text-sm transition {{ $admin->is_active ? 'border-rose-300 text-rose-600 hover:bg-rose-50' : 'border-emerald-300 text-emerald-600 hover:bg-emerald-50' }}"
                                 title="{{ $admin->is_active ? 'Deactivate account' : 'Activate account' }}">
-                                <i data-feather="{{ $admin->is_active ? 'user-x' : 'user-check' }}" class="h-4 w-4"></i>
+                                @if ($admin->is_active)
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                        stroke-width="1.8">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="m18 6-12 12m0-12 12 12" />
+                                    </svg>
+                                @else
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                        stroke-width="1.8">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="m5.25 12 4.5 4.5L18.75 7.5" />
+                                    </svg>
+                                @endif
                             </button>
                         </form>
                     @endif

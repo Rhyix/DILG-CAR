@@ -158,6 +158,15 @@
 
         const searchInput = document.getElementById('searchInput');
         const statusFilter = document.getElementById('statusFilter');
+        const vacancyListContainer = document.getElementById('vacancy-list');
+        const applicationsListUrl = @json(route('applications_list'));
+        const hrAccessStateUrl = @json(route('admin.applications_list.access_state'));
+        const isHrDivisionUser = @json($isHrDivisionUser ?? false);
+        let latestHrAccessSignature = @json($accessSignature ?? '');
+        let hrAccessPollTimer = null;
+        let hrAccessPollController = null;
+        let hrAccessPollInFlight = false;
+        let accessRefreshLocked = false;
 
         function getSearchAndStatus() {
             return {
@@ -186,7 +195,7 @@
                 status: status
             });
 
-            fetch(`/admin/applications_list?${params.toString()}`, {
+            fetch(`${applicationsListUrl}?${params.toString()}`, {
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest'
                 }
@@ -197,7 +206,7 @@
         }
 
         function renderVacancies(vacancies) {
-            const container = document.getElementById('vacancy-list');
+            const container = vacancyListContainer;
             container.innerHTML = '';
 
             if (vacancies.length === 0) {
@@ -247,6 +256,92 @@
                         </div>
                     </td>
                 </tr>`;
+            });
+        }
+
+        function triggerAccessRefresh() {
+            if (accessRefreshLocked) return;
+            accessRefreshLocked = true;
+
+            if (vacancyListContainer) {
+                vacancyListContainer.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="py-10 px-6 text-center text-[#0D2B70]">
+                            <div class="inline-flex items-center gap-2 rounded-full border border-[#0D2B70]/20 bg-[#0D2B70]/5 px-4 py-2 text-sm font-semibold">
+                                Access updated by superadmin. Refreshing list...
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }
+
+            const overlay = document.getElementById('loader');
+            const liveRegion = document.getElementById('loader-live');
+            const loaderText = document.getElementById('loader-text');
+            if (overlay) {
+                overlay.classList.remove('hidden');
+                overlay.classList.remove('pds-loading-nonblocking');
+                overlay.setAttribute('aria-busy', 'true');
+            }
+            if (liveRegion) liveRegion.textContent = 'Refreshing access...';
+            if (loaderText) loaderText.textContent = 'Refreshing access...';
+
+            window.location.replace(`${applicationsListUrl}?access_updated=${Date.now()}`);
+        }
+
+        async function pollHrDivisionAccessState() {
+            if (!isHrDivisionUser || accessRefreshLocked || hrAccessPollInFlight) return;
+            hrAccessPollInFlight = true;
+            hrAccessPollController = new AbortController();
+
+            try {
+                const response = await fetch(`${hrAccessStateUrl}?_=${Date.now()}`, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Cache-Control': 'no-store'
+                    },
+                    cache: 'no-store',
+                    signal: hrAccessPollController.signal
+                });
+
+                if (!response.ok) return;
+                const payload = await response.json();
+                if (!payload || !payload.is_hr_division) return;
+
+                const nextSignature = String(payload.access_signature || '');
+                if (latestHrAccessSignature !== '' && nextSignature !== latestHrAccessSignature) {
+                    triggerAccessRefresh();
+                    return;
+                }
+
+                latestHrAccessSignature = nextSignature;
+            } catch (error) {
+                if (error?.name !== 'AbortError') {
+                    console.error('Access state polling error:', error);
+                }
+            } finally {
+                hrAccessPollInFlight = false;
+            }
+        }
+
+        if (isHrDivisionUser) {
+            pollHrDivisionAccessState();
+            hrAccessPollTimer = window.setInterval(pollHrDivisionAccessState, 1200);
+
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') {
+                    pollHrDivisionAccessState();
+                }
+            });
+
+            window.addEventListener('beforeunload', () => {
+                if (hrAccessPollTimer) {
+                    clearInterval(hrAccessPollTimer);
+                    hrAccessPollTimer = null;
+                }
+                if (hrAccessPollController) {
+                    hrAccessPollController.abort();
+                }
             });
         }
     </script>

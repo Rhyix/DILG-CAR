@@ -85,14 +85,21 @@
             </span>
         </div>
         <div class="overflow-x-auto">
-            <table class="min-w-full text-sm">
+            <table class="w-full min-w-[1080px] table-fixed text-sm">
+                <colgroup>
+                    <col class="w-[31%]">
+                    <col class="w-[16%]">
+                    <col class="w-[29%]">
+                    <col class="w-[10%]">
+                    <col class="w-[14%]">
+                </colgroup>
                 <thead class="bg-[#0D2B70] text-white">
                     <tr>
                         <th class="px-5 py-3 text-left font-semibold">Email</th>
                         <th class="px-5 py-3 text-left font-semibold">Role</th>
                         <th class="px-5 py-3 text-left font-semibold">Office / Designation</th>
                         <th class="px-5 py-3 text-center font-semibold">Status</th>
-                        <th class="px-5 py-3 text-center font-semibold">Actions</th>
+                        <th class="w-[230px] min-w-[230px] px-5 py-3 text-right font-semibold">Actions</th>
                     </tr>
                 </thead>
                 <tbody id="adminRows" class="divide-y divide-slate-200">
@@ -204,11 +211,11 @@
     <div id="hrAccessModal"
         class="fixed inset-0 z-[9990] hidden items-center justify-center bg-slate-900/55 px-4 py-6 backdrop-blur-sm"
         data-route-template="{{ url('/admin/__ID__/hr-vacancy-access') }}">
-        <div class="w-full max-w-5xl rounded-2xl border border-slate-200 bg-white shadow-2xl">
+        <div class="w-full max-w-6xl rounded-2xl border border-slate-200 bg-white shadow-2xl">
             <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
                 <div>
                     <h2 class="text-base font-bold text-[#0D2B70]">HR Division Vacancy Access</h2>
-                    <p class="text-xs text-slate-500">Grant COS vacancy access for this HR Division account.</p>
+                    <p class="text-xs text-slate-500">Grant or revoke COS vacancy visibility for this HR Division account.</p>
                 </div>
                 <button type="button" id="hrAccessModalClose"
                     class="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
@@ -222,51 +229,92 @@
 
             <form id="hrAccessForm" method="POST" class="js-admin-hr-access-form no-spinner space-y-4 p-5">
                 @csrf
-                <p class="text-sm text-slate-700">
-                    Updating access for:
-                    <span id="hrAccessTargetName" class="font-semibold text-[#0D2B70]">-</span>
-                </p>
-                <p class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
-                    By default, this list is empty. HR Division users can only access COS positions placed in the
-                    granted list.
-                </p>
+                <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                    <p class="text-sm text-slate-700">
+                        Updating access for:
+                        <span id="hrAccessTargetName" class="font-semibold text-[#0D2B70]">-</span>
+                    </p>
+                    <p class="mt-1 text-xs text-slate-600">
+                        Default is no access. Only COS positions in the granted list will appear for this HR Division user.
+                    </p>
+                </div>
 
-                <div class="grid gap-4 md:grid-cols-[1fr_auto_1fr]">
-                    <div>
-                        <label class="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-600">Available COS Positions</label>
+                <div class="grid gap-4 xl:grid-cols-[1fr_auto_1fr]">
+                    <section class="overflow-hidden rounded-xl border border-slate-200">
+                        <div class="flex items-center justify-between bg-slate-50 px-4 py-3">
+                            <div>
+                                <p class="text-sm font-semibold text-[#0D2B70]">Available COS Positions</p>
+                                <p class="text-xs text-slate-500">Select vacancies to grant access.</p>
+                            </div>
+                            <span id="hrAccessAvailableCount"
+                                class="inline-flex min-w-[2rem] justify-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-semibold text-slate-700">
+                                0
+                            </span>
+                        </div>
+                        <div class="border-y border-slate-200 bg-white px-3 py-2">
+                            <label for="hrAccessAvailableSearch" class="sr-only">Search available COS positions</label>
+                            <input id="hrAccessAvailableSearch" type="search" placeholder="Search available positions..."
+                                class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20">
+                        </div>
                         <select id="hrAccessAvailable" multiple size="12"
-                            class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20"></select>
-                    </div>
-                    <div class="flex flex-col items-center justify-center gap-2">
+                            class="hr-transfer-select h-[320px] w-full border-0 bg-white px-2 py-2 text-sm text-slate-700 outline-none focus:ring-0"></select>
+                    </section>
+
+                    <div class="flex flex-row items-center justify-center gap-2 xl:flex-col">
                         <button id="hrAccessMoveRight" type="button"
-                            class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                            class="inline-flex items-center gap-1 rounded-lg border border-[#0D2B70] bg-[#0D2B70] px-3 py-2 text-sm font-semibold text-white transition hover:bg-[#0A2259] disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-200 disabled:text-slate-500"
                             aria-label="Grant selected positions">
-                            Add >
+                            Add selected
                         </button>
                         <button id="hrAccessMoveLeft" type="button"
-                            class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                            class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-400"
                             aria-label="Remove selected positions">
-                            &lt; Remove
+                            Remove selected
+                        </button>
+                        <button id="hrAccessMoveAllLeft" type="button"
+                            class="inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-100 disabled:text-slate-400"
+                            aria-label="Remove all granted positions">
+                            Clear all
                         </button>
                     </div>
-                    <div>
-                        <label class="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-600">Granted COS Positions</label>
+
+                    <section class="overflow-hidden rounded-xl border border-slate-200">
+                        <div class="flex items-center justify-between bg-slate-50 px-4 py-3">
+                            <div>
+                                <p class="text-sm font-semibold text-[#0D2B70]">Granted COS Positions</p>
+                                <p class="text-xs text-slate-500">These vacancies are visible to this user.</p>
+                            </div>
+                            <span id="hrAccessGrantedCount"
+                                class="inline-flex min-w-[2rem] justify-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-semibold text-slate-700">
+                                0
+                            </span>
+                        </div>
+                        <div class="border-y border-slate-200 bg-white px-3 py-2">
+                            <label for="hrAccessGrantedSearch" class="sr-only">Search granted COS positions</label>
+                            <input id="hrAccessGrantedSearch" type="search" placeholder="Search granted positions..."
+                                class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20">
+                        </div>
                         <select id="hrAccessGranted" multiple size="12"
-                            class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20"></select>
-                    </div>
+                            class="hr-transfer-select h-[320px] w-full border-0 bg-white px-2 py-2 text-sm text-slate-700 outline-none focus:ring-0"></select>
+                    </section>
                 </div>
 
                 <div id="hrAccessHiddenInputs"></div>
 
-                <div class="flex justify-end gap-2 border-t border-slate-100 pt-4">
-                    <button type="button" id="hrAccessModalCancel"
-                        class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100">
-                        Cancel
-                    </button>
-                    <button type="submit"
-                        class="rounded-lg bg-[#0D2B70] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#0A2259]">
-                        Save Access
-                    </button>
+                <div class="flex items-center justify-between border-t border-slate-100 pt-4">
+                    <p class="text-xs font-medium text-slate-600">
+                        Total granted: <span id="hrAccessSummaryCount" class="font-semibold text-[#0D2B70]">0</span>
+                    </p>
+                    <div class="flex items-center gap-2">
+                        <button type="button" id="hrAccessModalCancel"
+                            class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100">
+                            Cancel
+                        </button>
+                        <button type="submit"
+                            class="rounded-lg bg-[#0D2B70] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#0A2259]">
+                            Save Access
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>
@@ -299,6 +347,17 @@
         border-color: #0d2b70;
         background-color: #eff6ff;
         box-shadow: 0 0 0 2px rgba(13, 43, 112, 0.1);
+    }
+
+    .hr-transfer-select option {
+        border-radius: 8px;
+        margin: 1px 0;
+        padding: 8px 10px;
+    }
+
+    .hr-transfer-select option:checked {
+        background: #0d2b70 linear-gradient(0deg, #0d2b70 0%, #0d2b70 100%);
+        color: #ffffff;
     }
 </style>
 @endpush
@@ -335,8 +394,21 @@
         const hrAccessGranted = document.getElementById('hrAccessGranted');
         const hrAccessMoveRight = document.getElementById('hrAccessMoveRight');
         const hrAccessMoveLeft = document.getElementById('hrAccessMoveLeft');
+        const hrAccessMoveAllLeft = document.getElementById('hrAccessMoveAllLeft');
+        const hrAccessAvailableSearch = document.getElementById('hrAccessAvailableSearch');
+        const hrAccessGrantedSearch = document.getElementById('hrAccessGrantedSearch');
+        const hrAccessAvailableCount = document.getElementById('hrAccessAvailableCount');
+        const hrAccessGrantedCount = document.getElementById('hrAccessGrantedCount');
+        const hrAccessSummaryCount = document.getElementById('hrAccessSummaryCount');
         const hrAccessHiddenInputs = document.getElementById('hrAccessHiddenInputs');
         const hrCosVacancies = @json($cosVacancyOptions);
+        const sortedHrCosVacancies = [...hrCosVacancies].sort((a, b) =>
+            String(a?.label || a?.vacancy_id || '').localeCompare(
+                String(b?.label || b?.vacancy_id || ''),
+                undefined,
+                { sensitivity: 'base' }
+            )
+        );
 
         const showLoaderOverlay = () => {
             const overlay = document.getElementById('loader');
@@ -369,27 +441,81 @@
         const moveSelectedOptions = (source, target) => {
             if (!source || !target) return;
             const selectedOptions = Array.from(source.selectedOptions);
-            selectedOptions.forEach((option) => target.appendChild(option));
+            selectedOptions.forEach((option) => {
+                option.selected = false;
+                target.appendChild(option);
+            });
         };
 
-        const sortSelectOptions = (selectElement) => {
+        const moveAllOptions = (source, target) => {
+            if (!source || !target) return;
+            Array.from(source.options).forEach((option) => {
+                option.selected = false;
+                target.appendChild(option);
+            });
+        };
+
+        const updateHrAccessCounts = () => {
+            const availableCount = hrAccessAvailable ? hrAccessAvailable.options.length : 0;
+            const grantedCount = hrAccessGranted ? hrAccessGranted.options.length : 0;
+
+            if (hrAccessAvailableCount) {
+                hrAccessAvailableCount.textContent = String(availableCount);
+            }
+            if (hrAccessGrantedCount) {
+                hrAccessGrantedCount.textContent = String(grantedCount);
+            }
+            if (hrAccessSummaryCount) {
+                hrAccessSummaryCount.textContent = String(grantedCount);
+            }
+        };
+
+        const refreshHrTransferButtons = () => {
+            const canMoveRight = hrAccessAvailable
+                ? Array.from(hrAccessAvailable.selectedOptions).some((option) => !option.hidden)
+                : false;
+            const canMoveLeft = hrAccessGranted
+                ? Array.from(hrAccessGranted.selectedOptions).some((option) => !option.hidden)
+                : false;
+
+            if (hrAccessMoveRight) hrAccessMoveRight.disabled = !canMoveRight;
+            if (hrAccessMoveLeft) hrAccessMoveLeft.disabled = !canMoveLeft;
+            if (hrAccessMoveAllLeft) hrAccessMoveAllLeft.disabled = !hrAccessGranted || hrAccessGranted.options.length === 0;
+        };
+
+        const filterSelectOptions = (selectElement, query) => {
             if (!selectElement) return;
-            const options = Array.from(selectElement.options);
-            options.sort((a, b) => a.text.localeCompare(b.text, undefined, { sensitivity: 'base' }));
-            options.forEach((option) => selectElement.appendChild(option));
+            const needle = String(query || '').trim().toLowerCase();
+            Array.from(selectElement.options).forEach((option) => {
+                const haystack = String(option.textContent || '').toLowerCase();
+                const shouldShow = needle === '' || haystack.includes(needle);
+                option.hidden = !shouldShow;
+                if (!shouldShow) option.selected = false;
+            });
+        };
+
+        const applyHrAccessFilters = () => {
+            filterSelectOptions(hrAccessAvailable, hrAccessAvailableSearch?.value);
+            filterSelectOptions(hrAccessGranted, hrAccessGrantedSearch?.value);
+            refreshHrTransferButtons();
         };
 
         const syncHrAccessHiddenInputs = () => {
             if (!hrAccessHiddenInputs || !hrAccessGranted) return;
             hrAccessHiddenInputs.innerHTML = '';
 
+            const fragment = document.createDocumentFragment();
             Array.from(hrAccessGranted.options).forEach((option) => {
                 const input = document.createElement('input');
                 input.type = 'hidden';
                 input.name = 'vacancy_ids[]';
                 input.value = option.value;
-                hrAccessHiddenInputs.appendChild(input);
+                fragment.appendChild(input);
             });
+            hrAccessHiddenInputs.appendChild(fragment);
+
+            updateHrAccessCounts();
+            refreshHrTransferButtons();
         };
 
         const fillHrAccessLists = (grantedIdsRaw) => {
@@ -398,20 +524,25 @@
             hrAccessGranted.innerHTML = '';
 
             const grantedIds = new Set((Array.isArray(grantedIdsRaw) ? grantedIdsRaw : []).map((id) => String(id)));
+            const availableFragment = document.createDocumentFragment();
+            const grantedFragment = document.createDocumentFragment();
 
-            hrCosVacancies.forEach((vacancy) => {
+            sortedHrCosVacancies.forEach((vacancy) => {
                 const vacancyId = String(vacancy.vacancy_id || '');
                 if (vacancyId === '') return;
                 const option = createVacancyOption(vacancyId, vacancy.label || vacancyId);
                 if (grantedIds.has(vacancyId)) {
-                    hrAccessGranted.appendChild(option);
+                    grantedFragment.appendChild(option);
                 } else {
-                    hrAccessAvailable.appendChild(option);
+                    availableFragment.appendChild(option);
                 }
             });
 
-            sortSelectOptions(hrAccessAvailable);
-            sortSelectOptions(hrAccessGranted);
+            hrAccessAvailable.appendChild(availableFragment);
+            hrAccessGranted.appendChild(grantedFragment);
+            if (hrAccessAvailableSearch) hrAccessAvailableSearch.value = '';
+            if (hrAccessGrantedSearch) hrAccessGrantedSearch.value = '';
+            applyHrAccessFilters();
             syncHrAccessHiddenInputs();
         };
 
@@ -431,6 +562,9 @@
             fillHrAccessLists(grantedIdsRaw);
             hrAccessModal.classList.remove('hidden');
             hrAccessModal.classList.add('flex');
+            if (hrAccessAvailableSearch) {
+                hrAccessAvailableSearch.focus();
+            }
         };
 
         const closeApproveModal = () => {
@@ -479,14 +613,43 @@
         if (hrAccessMoveRight) {
             hrAccessMoveRight.addEventListener('click', () => {
                 moveSelectedOptions(hrAccessAvailable, hrAccessGranted);
-                sortSelectOptions(hrAccessGranted);
+                applyHrAccessFilters();
                 syncHrAccessHiddenInputs();
             });
         }
         if (hrAccessMoveLeft) {
             hrAccessMoveLeft.addEventListener('click', () => {
                 moveSelectedOptions(hrAccessGranted, hrAccessAvailable);
-                sortSelectOptions(hrAccessAvailable);
+                applyHrAccessFilters();
+                syncHrAccessHiddenInputs();
+            });
+        }
+        if (hrAccessMoveAllLeft) {
+            hrAccessMoveAllLeft.addEventListener('click', () => {
+                moveAllOptions(hrAccessGranted, hrAccessAvailable);
+                applyHrAccessFilters();
+                syncHrAccessHiddenInputs();
+            });
+        }
+        if (hrAccessAvailableSearch) {
+            hrAccessAvailableSearch.addEventListener('input', applyHrAccessFilters);
+        }
+        if (hrAccessGrantedSearch) {
+            hrAccessGrantedSearch.addEventListener('input', applyHrAccessFilters);
+        }
+        if (hrAccessAvailable) {
+            hrAccessAvailable.addEventListener('change', refreshHrTransferButtons);
+            hrAccessAvailable.addEventListener('dblclick', () => {
+                moveSelectedOptions(hrAccessAvailable, hrAccessGranted);
+                applyHrAccessFilters();
+                syncHrAccessHiddenInputs();
+            });
+        }
+        if (hrAccessGranted) {
+            hrAccessGranted.addEventListener('change', refreshHrTransferButtons);
+            hrAccessGranted.addEventListener('dblclick', () => {
+                moveSelectedOptions(hrAccessGranted, hrAccessAvailable);
+                applyHrAccessFilters();
                 syncHrAccessHiddenInputs();
             });
         }
@@ -658,7 +821,6 @@
                 if (requestId !== latestRequestId) return;
                 rowsContainer.innerHTML = html;
                 updatePendingCount();
-                if (window.feather) window.feather.replace();
                 if (window.Alpine && typeof window.Alpine.initTree === 'function') {
                     window.Alpine.initTree(rowsContainer);
                 }
@@ -671,7 +833,7 @@
 
         const debouncedFetch = () => {
             clearTimeout(searchTimer);
-            searchTimer = setTimeout(fetchRows, 280);
+            searchTimer = setTimeout(fetchRows, 380);
         };
 
         searchInput.addEventListener('input', () => {

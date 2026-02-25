@@ -18,7 +18,7 @@
     $displayIdentity = trim((string) ($admin->name ?? '')) ?: ($admin->email ?? ('Admin #' . $admin->id));
 @endphp
 
-<div x-data="{ showEditAccount: {{ $isEditingCurrent ? 'true' : 'false' }} }" class="inline-flex">
+<div x-data="{ showEditAccount: {{ $isEditingCurrent ? 'true' : 'false' }} }" class="inline-flex shrink-0">
     <button type="button" @click="showEditAccount = true"
         class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 text-slate-600 transition hover:bg-slate-100 hover:text-slate-800"
         aria-label="Edit account" title="Edit account">
