@@ -19,14 +19,40 @@ class RedirectIfNotAdmin
         // Check if account is deactivated
         if ($user->is_active != 1) {
             Auth::guard('admin')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
             return redirect()->route('admin.login')
                    ->withErrors(['email' => 'Your account has been deactivated.']);
         }
+
+        $approvalStatus = (string) ($user->approval_status ?? 'approved');
+        if ($approvalStatus === 'pending') {
+            return redirect()->route('admin.pending.dashboard')
+                ->with('error', 'Your account is pending superadmin approval.');
+        }
+
+        if ($approvalStatus === 'declined') {
+            Auth::guard('admin')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+            return redirect()->route('admin.login')
+                ->withErrors(['email' => 'Your account request was declined. Please contact superadmin.']);
+        }
         
-        // Check if user role is admin (for admin-only routes)
-        if ($user->role !== 'admin') {
-            return redirect()->route('viewer')
-                   ->with('error', 'Access Denied. Admin privileges required.');
+        // Check if user role has admin-level access (for admin-only routes)
+        if (!in_array($user->role, ['admin', 'superadmin'], true)) {
+            if ($user->role === 'viewer') {
+                return redirect()->route('viewer')
+                    ->with('error', 'Access denied. Viewer can only access exam management.');
+            }
+
+            if ($user->role === 'hr_division') {
+                return redirect()->route('applications_list')
+                    ->with('error', 'Access denied. HR Division can only access applicants management.');
+            }
+
+            return redirect()->route('admin.login')
+                ->with('error', 'Access denied.');
         }
         
         return $next($request);

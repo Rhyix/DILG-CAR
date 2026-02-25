@@ -17,10 +17,19 @@ class Admin extends Authenticatable
         'email',
         'password',
         'role',
-        'is_active'
+        'is_active',
+        'approval_status',
+        'approved_by',
+        'approved_at',
+        'declined_at',
     ];
 
     protected $hidden = ['password'];
+
+    protected $casts = [
+        'approved_at' => 'datetime',
+        'declined_at' => 'datetime',
+    ];
 
     public function preferences()
     {

@@ -25,6 +25,8 @@ use App\Http\Controllers\{
 use App\Http\Middleware\RedirectIfNotAdmin;
 use App\Http\Middleware\ViewerAccess;
 use App\Http\Middleware\BlockIfAdmin;
+use App\Http\Middleware\EnsureSuperadmin;
+use App\Http\Middleware\ApplicantsAccess;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
 
@@ -42,9 +44,26 @@ Route::get('/', function () {
         ->get();
     if (Auth::guard('admin')->check()) {
         $user = Auth::guard('admin')->user();
-        return $user->role === 'viewer'
-            ? redirect()->route('viewer')
-            : redirect()->route('dashboard_admin');
+        $approvalStatus = (string) ($user->approval_status ?? 'approved');
+
+        if ($approvalStatus === 'pending') {
+            return redirect()->route('admin.pending.dashboard');
+        }
+
+        if ($approvalStatus === 'declined') {
+            Auth::guard('admin')->logout();
+            session()->invalidate();
+            session()->regenerateToken();
+            return redirect()->route('admin.login')->withErrors([
+                'email' => 'Your account request was declined. Please contact superadmin.',
+            ]);
+        }
+
+        return match ($user->role ?? null) {
+            'viewer' => redirect()->route('viewer'),
+            'hr_division' => redirect()->route('applications_list'),
+            default => redirect()->route('dashboard_admin'),
+        };
     } elseif (Auth::check()) {
         return redirect()->route('dashboard_user');
     } else {
@@ -261,6 +280,7 @@ Route::get('/pds_print', fn() => view('dashboard_user.pds_print'))
 //});
 Route::middleware('auth:admin')->group(function () {
     Route::post('/admin/logout', [AdminAuthController::class, 'logout'])->name('admin.logout');
+    Route::get('/admin/pending-dashboard', [AdminAuthController::class, 'pendingDashboard'])->name('admin.pending.dashboard');
 });
 
 // PDS and WES Export
@@ -272,6 +292,7 @@ Route::get('/export-wes', [Forms\ExportWESController::class, 'exportWES'])->name
 // ==================================================================================================
 Route::get('/admin/login', [AdminAuthController::class, 'showLoginForm'])->name('admin.login');
 Route::post('/admin/login', [AdminAuthController::class, 'login'])->name('admin.login.submit')->middleware('throttle:5,1');
+Route::post('/admin/register', [AdminAuthController::class, 'register'])->name('admin.register.submit')->middleware('throttle:5,1');
 Route::post('/admin/logout', [AdminAuthController::class, 'logout'])->name('admin.logout');
 // USER ROUTES (blocked if admin is logged in)
 // ==================================================================================================
@@ -360,12 +381,19 @@ Route::middleware(['auth', BlockIfAdmin::class])->group(function () {
 Route::middleware([RedirectIfNotAdmin::class])->group(function () {
     Route::get('/admin', [AdminController::class, 'dashboard'])->name('home_admin');
     Route::get('/admin/dashboard', [AdminController::class, 'dashboard'])->name('dashboard_admin')->middleware(\App\Http\Middleware\RunDailyTask::class);
-    Route::get('/admin/admin_account_management', [AdminController::class, 'manage'])->name('admin_account_management');
-    Route::post('/admin/store', [AdminController::class, 'store'])->name('admin.store');
-    Route::post('/admin/{id}/deactivate', [AdminController::class, 'deactivate'])->name('admin.deactivate');
-    Route::post('/admin/{id}/activate', [AdminController::class, 'activate'])->name('admin.activate');
-    Route::put('/admin/{id}/update', [AdminController::class, 'update'])->name('admin.update');
-    Route::get('/admin/search', [AdminController::class, 'search'])->name('admin.search');
+    Route::get('/admin/account-settings', [AdminController::class, 'accountSettings'])->name('admin.account.settings');
+    Route::put('/admin/account-settings', [AdminController::class, 'updateAccountSettings'])->name('admin.account.settings.update');
+    Route::put('/admin/account-settings/password', [AdminController::class, 'updateOwnPassword'])->name('admin.account.password.update');
+    Route::middleware([EnsureSuperadmin::class])->group(function () {
+        Route::get('/admin/admin_account_management', [AdminController::class, 'manage'])->name('admin_account_management');
+        Route::post('/admin/store', [AdminController::class, 'store'])->name('admin.store');
+        Route::post('/admin/{id}/deactivate', [AdminController::class, 'deactivate'])->name('admin.deactivate');
+        Route::post('/admin/{id}/activate', [AdminController::class, 'activate'])->name('admin.activate');
+        Route::post('/admin/{id}/approve', [AdminController::class, 'approve'])->name('admin.approve');
+        Route::post('/admin/{id}/decline', [AdminController::class, 'decline'])->name('admin.decline');
+        Route::put('/admin/{id}/update', [AdminController::class, 'update'])->name('admin.update');
+        Route::get('/admin/search', [AdminController::class, 'search'])->name('admin.search');
+    });
 
     Route::get('/admin/vacancies_management/add/plantilla', function () {
         $signatories = \App\Models\Signatory::all();
@@ -387,13 +415,6 @@ Route::middleware([RedirectIfNotAdmin::class])->group(function () {
     Route::get('/admin/vacancies/{vacancy_id}/edit', [JobVacancyController::class, 'edit'])->name('vacancies.edit');
     Route::put('/admin/vacancies/cos/{vacancy_id}/edit', [JobVacancyController::class, 'update'])->name('vacancies.update');
     Route::delete('/admin/vacancies/{vacancy_id}/delete', [JobVacancyController::class, 'delete'])->name('vacancies.delete');
-    Route::get('/admin/applicant_status/{user_id}/{vacancy_id}', [AdminController::class, 'viewApplicantStatus'])->name('admin.applicant_status');
-    Route::post('/admin/applicant_status/{user_id}/{vacancy_id}', [AdminController::class, 'updateApplicantStatus'])->name('admin.applicant_status.update');
-    Route::post('/admin/applicant_status/{user_id}/{vacancy_id}/update-document', [AdminController::class, 'updateDocumentStatusAjax'])->name('admin.applicant_status.update_document');
-    Route::get('/admin/applicant_status/{user_id}/{vacancy_id}/documents', [AdminController::class, 'getUpdatedDocuments'])->name('admin.applicant_status.get_documents');
-    Route::post('/admin/applicant_status/{user_id}/{vacancy_id}/update-remarks', [AdminController::class, 'updateApplicationRemarksAjax'])->name('admin.applicant_status.update_remarks');
-    Route::post('/admin/applicant_status/{user_id}/{vacancy_id}/notify', [AdminController::class, 'notifyApplicant'])->name('admin.applicant_status.notify');
-    Route::get('/admin/preview-document/{user_id}/{vacancy_id}/{document_type}', [AdminController::class, 'previewDocument'])->name('admin.preview_document');
 
     Route::get("/admin/activity_log", [activityLogController::class, 'view'])->name('admin_activity_log');
     Route::get('/admin/activity-log/data', [activityLogController::class, 'fetch'])->name('admin.activity_log.fetch');
@@ -467,19 +488,19 @@ Route::middleware([ViewerAccess::class])->group(function () {
     Route::post('/admin/exam_management/{vacancy_id}/edit', [ExamController::class, 'updateExam'])->name('admin.exam.update');
 
     //Export
-    Route::get('/export-job-vacancies-cos', [ExportController::class, 'exportCOS'])->name('exportJobVacancyCOS');
-    Route::get('/export-job-vacancies-plantilla', [ExportController::class, 'exportPlantilla'])->name('exportJobVacancyPlantilla');
-    Route::get('/export-job-vacancies-all', [ExportController::class, 'exportAllVacancies'])->name('exportJobVacancyAll');
-    Route::get('/export-activities-all', [ExportController::class, 'exportActivities'])->name('exportActivities');
-    Route::get('/export/reviewed-applications/{vacancy_id}', [ExportController::class, 'exportReviewedApplications'])->name('exportReviewed');
-    Route::get('/export/not-reviewed-applications/{vacancy_id}', [ExportController::class, 'exportNotReviewedApplications'])->name('exportNotReviewed');
+    Route::get('/export-job-vacancies-cos', [ExportController::class, 'exportCOS'])->middleware(RedirectIfNotAdmin::class)->name('exportJobVacancyCOS');
+    Route::get('/export-job-vacancies-plantilla', [ExportController::class, 'exportPlantilla'])->middleware(RedirectIfNotAdmin::class)->name('exportJobVacancyPlantilla');
+    Route::get('/export-job-vacancies-all', [ExportController::class, 'exportAllVacancies'])->middleware(RedirectIfNotAdmin::class)->name('exportJobVacancyAll');
+    Route::get('/export-activities-all', [ExportController::class, 'exportActivities'])->middleware(RedirectIfNotAdmin::class)->name('exportActivities');
+    Route::get('/export/reviewed-applications/{vacancy_id}', [ExportController::class, 'exportReviewedApplications'])->middleware(RedirectIfNotAdmin::class)->name('exportReviewed');
+    Route::get('/export/not-reviewed-applications/{vacancy_id}', [ExportController::class, 'exportNotReviewedApplications'])->middleware(RedirectIfNotAdmin::class)->name('exportNotReviewed');
 
 
     //Import
-    Route::post('/import-job-vacancy-cos', [ImportController::class, 'importCOS'])->name('importJobVacancyCOS');
-    Route::post('/import-job-vacancy-plantilla', [ImportController::class, 'importPlantilla'])->name('importJobVacancyPlantilla');
-    Route::get('/download-cos-template', [ImportController::class, 'downloadCOSTemplate'])->name('downloadCOSTemplate');
-    Route::get('/download-plantilla-template', [ImportController::class, 'downloadPlantillaTemplate'])->name('downloadPlantillaTemplate');
+    Route::post('/import-job-vacancy-cos', [ImportController::class, 'importCOS'])->middleware(RedirectIfNotAdmin::class)->name('importJobVacancyCOS');
+    Route::post('/import-job-vacancy-plantilla', [ImportController::class, 'importPlantilla'])->middleware(RedirectIfNotAdmin::class)->name('importJobVacancyPlantilla');
+    Route::get('/download-cos-template', [ImportController::class, 'downloadCOSTemplate'])->middleware(RedirectIfNotAdmin::class)->name('downloadCOSTemplate');
+    Route::get('/download-plantilla-template', [ImportController::class, 'downloadPlantillaTemplate'])->middleware(RedirectIfNotAdmin::class)->name('downloadPlantillaTemplate');
 
 
 });
@@ -526,20 +547,30 @@ Route::get('/auth/google/callback', [GoogleController::class, 'handleGoogleCallb
 // ==================================================================================================
 // APPLICANT PROFILE LIST
 // ==================================================================================================
-Route::get('/admin/applicants-profile', [ShowApplicantsProfile::class, 'index'])->name('applicants_profile');
-Route::get('/admin/reviewed-applicants', [ShowApplicantsProfile::class, 'reviewedIndex'])->name('reviewed_applicants');
-Route::get('/admin/reviewed-applicants/sort', [ShowApplicantsProfile::class, 'ajaxSort'])->name('reviewed_applicants.sort');
-Route::get('/admin/applications_list', [ShowApplicantsProfile::class, 'applicationsList'])->name('applications_list');
-Route::get('/admin/reviewed/{vacancy_id}', [ShowApplicantsProfile::class, 'reviewedIndex'])->name('admin.reviewed');
-Route::get('/admin/applicants/{vacancy_id}', [ShowApplicantsProfile::class, 'index'])->name('admin.applicants');
-Route::get('/admin/applicants-profile/sort', [ShowApplicantsProfile::class, 'ajaxSortApplicants'])->name('admin.applicants.sort');
-Route::get('/admin/all-applicants/{vacancy_id}', [ShowApplicantsProfile::class, 'allApplicants'])->name('applicants_profile.all');
+Route::middleware([ApplicantsAccess::class])->group(function () {
+    Route::get('/admin/applicant_status/{user_id}/{vacancy_id}', [AdminController::class, 'viewApplicantStatus'])->name('admin.applicant_status');
+    Route::post('/admin/applicant_status/{user_id}/{vacancy_id}', [AdminController::class, 'updateApplicantStatus'])->name('admin.applicant_status.update');
+    Route::post('/admin/applicant_status/{user_id}/{vacancy_id}/update-document', [AdminController::class, 'updateDocumentStatusAjax'])->name('admin.applicant_status.update_document');
+    Route::get('/admin/applicant_status/{user_id}/{vacancy_id}/documents', [AdminController::class, 'getUpdatedDocuments'])->name('admin.applicant_status.get_documents');
+    Route::post('/admin/applicant_status/{user_id}/{vacancy_id}/update-remarks', [AdminController::class, 'updateApplicationRemarksAjax'])->name('admin.applicant_status.update_remarks');
+    Route::post('/admin/applicant_status/{user_id}/{vacancy_id}/notify', [AdminController::class, 'notifyApplicant'])->name('admin.applicant_status.notify');
+    Route::get('/admin/preview-document/{user_id}/{vacancy_id}/{document_type}', [AdminController::class, 'previewDocument'])->name('admin.preview_document');
 
-// Manage Applicants Routes (New)
-Route::get('/admin/manage_applicants/{vacancy_id}', [ShowApplicantsProfile::class, 'manageApplicants'])->name('admin.manage_applicants');
-Route::get('/admin/manage_applicants/new', [ShowApplicantsProfile::class, 'ajaxFilterNewApplicants'])->name('admin.manage_applicants.new');
-Route::get('/admin/manage_applicants/compliance', [ShowApplicantsProfile::class, 'ajaxFilterComplianceApplicants'])->name('admin.manage_applicants.compliance');
-Route::get('/admin/manage_applicants/qualified', [ShowApplicantsProfile::class, 'ajaxFilterQualifiedApplicants'])->name('admin.manage_applicants.qualified');
+    Route::get('/admin/applicants-profile', [ShowApplicantsProfile::class, 'index'])->name('applicants_profile');
+    Route::get('/admin/reviewed-applicants', [ShowApplicantsProfile::class, 'reviewedIndex'])->name('reviewed_applicants');
+    Route::get('/admin/reviewed-applicants/sort', [ShowApplicantsProfile::class, 'ajaxSort'])->name('reviewed_applicants.sort');
+    Route::get('/admin/applications_list', [ShowApplicantsProfile::class, 'applicationsList'])->name('applications_list');
+    Route::get('/admin/reviewed/{vacancy_id}', [ShowApplicantsProfile::class, 'reviewedIndex'])->name('admin.reviewed');
+    Route::get('/admin/applicants/{vacancy_id}', [ShowApplicantsProfile::class, 'index'])->name('admin.applicants');
+    Route::get('/admin/applicants-profile/sort', [ShowApplicantsProfile::class, 'ajaxSortApplicants'])->name('admin.applicants.sort');
+    Route::get('/admin/all-applicants/{vacancy_id}', [ShowApplicantsProfile::class, 'allApplicants'])->name('applicants_profile.all');
+
+    // Manage Applicants Routes (New)
+    Route::get('/admin/manage_applicants/{vacancy_id}', [ShowApplicantsProfile::class, 'manageApplicants'])->name('admin.manage_applicants');
+    Route::get('/admin/manage_applicants/new', [ShowApplicantsProfile::class, 'ajaxFilterNewApplicants'])->name('admin.manage_applicants.new');
+    Route::get('/admin/manage_applicants/compliance', [ShowApplicantsProfile::class, 'ajaxFilterComplianceApplicants'])->name('admin.manage_applicants.compliance');
+    Route::get('/admin/manage_applicants/qualified', [ShowApplicantsProfile::class, 'ajaxFilterQualifiedApplicants'])->name('admin.manage_applicants.qualified');
+});
 // ==================================================================================================
 // APPLICATION ROUTE
 // CHAT-BOT ROUTES
@@ -573,12 +604,12 @@ Route::get('/test-event', function () {
     broadcast(new PackageSent('test data', 'test'));
     return 'Event broadcasted';
 });
-Route::middleware(['auth:admin'])->prefix('admin')->group(function () {
+Route::middleware([RedirectIfNotAdmin::class])->prefix('admin')->group(function () {
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard_admin');
 });
-Route::get('/admin/reviewed_applicants', [AdminController::class, 'reviewedApplicants'])->name('reviewed_applicants');
+Route::get('/admin/reviewed_applicants', [AdminController::class, 'reviewedApplicants'])->middleware(ApplicantsAccess::class)->name('reviewed_applicants');
 
-Route::get('/dashboard/admin', [AdminController::class, 'dashboard'])->name('dashboard_admin');
+Route::get('/dashboard/admin', [AdminController::class, 'dashboard'])->middleware(RedirectIfNotAdmin::class)->name('dashboard_admin');
 
 //Route::get('/dashboard-progress', [JobVacancyController::class, 'pdsAndWesProgress'])->name('dashboard.progress');
 //Route::get('/dashboard', [JobVacancyController::class, 'pdsAndWesProgress'])->name('dashboard_user');

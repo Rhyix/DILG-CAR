@@ -337,7 +337,15 @@
                         window.location.href = '/admin/vacancies_management';
                     }
                 } else if (section.includes('system')) {
-                    window.location.href = '/admin/admin_account_management';
+                    @if((Auth::guard('admin')->user()->role ?? null) === 'superadmin')
+                        window.location.href = '/admin/admin_account_management';
+                    @elseif((Auth::guard('admin')->user()->role ?? null) === 'hr_division')
+                        window.location.href = '/admin/applications_list';
+                    @elseif((Auth::guard('admin')->user()->role ?? null) === 'viewer')
+                        window.location.href = '/viewer';
+                    @else
+                        window.location.href = '/admin/dashboard';
+                    @endif
                 } else if (section.includes('exam')) {
                     window.location.href = '/admin/exam_management';
                 } else if (section.includes('activity')) {

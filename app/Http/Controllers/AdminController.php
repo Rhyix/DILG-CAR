@@ -35,6 +35,8 @@ use Illuminate\Support\Facades\Storage;
 
 class AdminController extends Controller
 {
+    private const ACCOUNT_TYPES = ['superadmin', 'admin', 'hr_division', 'viewer'];
+    private const APPROVABLE_ACCOUNT_TYPES = ['admin', 'hr_division', 'viewer'];
     private const DOCUMENT_LABELS = [
         'application_letter' => 'Application Letter',
         'signed_pds' => 'Signed Personal Data Sheet',
@@ -83,7 +85,11 @@ class AdminController extends Controller
     // List all admin accounts
     public function manage()
     {
-        $admins = Admin::all();
+        $admins = Admin::query()
+            ->orderByRaw("CASE WHEN approval_status = 'pending' THEN 0 WHEN approval_status = 'declined' THEN 2 ELSE 1 END")
+            ->orderBy('name')
+            ->orderBy('email')
+            ->get();
         // $users = User::all(); // Removed to prevent fetching participants
 
         activity()
@@ -95,6 +101,118 @@ class AdminController extends Controller
         return view('admin.admin_account_management', compact('admins'));
     }
 
+    public function accountSettings()
+    {
+        $admin = Auth::guard('admin')->user();
+
+        if (!$admin) {
+            return redirect()->route('admin.login');
+        }
+
+        activity()
+            ->causedBy($admin)
+            ->event('view')
+            ->withProperties(['section' => 'Account Settings'])
+            ->log('Viewed account settings.');
+
+        return view('admin.admin_account_settings', compact('admin'));
+    }
+
+    public function updateAccountSettings(Request $request)
+    {
+        $admin = Auth::guard('admin')->user();
+
+        if (!$admin) {
+            return redirect()->route('admin.login');
+        }
+
+        $validator = Validator::make($request->all(), [
+            'first_name' => ['required', 'string', 'max:255'],
+            'middle_name' => ['nullable', 'string', 'max:255'],
+            'last_name' => ['required', 'string', 'max:255'],
+            'office' => ['required', 'string', 'max:255'],
+            'designation' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('admins', 'email')->ignore($admin->id)],
+        ], [
+            'email.unique' => 'The email has already been taken.',
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()->back()
+                ->withErrors($validator, 'settingsUpdate')
+                ->withInput();
+        }
+
+        $validated = $validator->validated();
+        $firstName = trim((string) ($validated['first_name'] ?? ''));
+        $middleName = trim((string) ($validated['middle_name'] ?? ''));
+        $lastName = trim((string) ($validated['last_name'] ?? ''));
+        $fullName = implode(' ', array_filter([$firstName, $middleName, $lastName], fn($part) => $part !== ''));
+
+        $admin->update([
+            'name' => $fullName,
+            'office' => $validated['office'],
+            'designation' => $validated['designation'],
+            'email' => $validated['email'],
+        ]);
+
+        activity()
+            ->causedBy($admin)
+            ->performedOn($admin)
+            ->event('update')
+            ->withProperties(['section' => 'Account Settings'])
+            ->log('Updated own account profile details.');
+
+        return redirect()->back()->with('settings_success', 'Profile details updated successfully.');
+    }
+
+    public function updateOwnPassword(Request $request)
+    {
+        $admin = Auth::guard('admin')->user();
+
+        if (!$admin) {
+            return redirect()->route('admin.login');
+        }
+
+        $validator = Validator::make($request->all(), [
+            'current_password' => ['required', 'string'],
+            'new_password' => [
+                'required',
+                'string',
+                'min:8',
+                'confirmed',
+                'different:current_password',
+                'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/',
+            ],
+        ], [
+            'new_password.confirmed' => 'The new password confirmation does not match.',
+            'new_password.different' => 'The new password must be different from your current password.',
+            'new_password.regex' => 'Password must be at least 8 characters and include uppercase, lowercase, number, and special character.',
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()->back()
+                ->withErrors($validator, 'passwordUpdate');
+        }
+
+        if (!Hash::check((string) $request->input('current_password'), (string) $admin->password)) {
+            return redirect()->back()
+                ->withErrors(['current_password' => 'The current password is incorrect.'], 'passwordUpdate');
+        }
+
+        $admin->password = Hash::make((string) $request->input('new_password'));
+        $admin->save();
+
+        activity()
+            ->causedBy($admin)
+            ->performedOn($admin)
+            ->event('update')
+            ->withProperties(['section' => 'Account Settings'])
+            ->log('Updated own account password.');
+
+        return redirect()->back()->with('password_success', 'Password updated successfully.');
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -104,21 +222,29 @@ class AdminController extends Controller
             'designation' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:admins,email'],
             'password' => ['required', 'string', 'min:8'],
-            'account_type' => ['required', Rule::in(['admin', 'viewer'])],
+            'account_type' => ['required', Rule::in(self::ACCOUNT_TYPES)],
         ], [
             'username.unique' => 'The username has already been taken.',
             'email.unique' => 'The email has already been taken.',
         ]);
 
+        $actor = Auth::guard('admin')->user();
+        if (($validated['account_type'] ?? null) === 'superadmin' && $actor?->role !== 'superadmin') {
+            return redirect()->back()->with('error', 'Only a superadmin can create another superadmin account.');
+        }
+
         $validated['password'] = Hash::make($validated['password']);
         $validated['role'] = $validated['account_type'];
         unset($validated['account_type']);
 
-        Admin::create($validated);
+        $createdAdmin = Admin::create($validated);
+        if (($createdAdmin->role ?? null) === 'superadmin' && (int) ($createdAdmin->is_active ?? 1) === 1) {
+            $this->deactivateOtherSuperadmins((int) $createdAdmin->id);
+        }
 
         activity()
             ->causedBy(auth('admin')->user())
-            ->performedOn(Admin::where('email', $validated['email'])->first())
+            ->performedOn($createdAdmin)
             ->event('create')
             ->withProperties(['username' => $validated['username'], 'section' => 'System Users Management'])
             ->log('Created a new admin account.');
@@ -140,6 +266,10 @@ class AdminController extends Controller
             return redirect()->back()->with('error', 'You cannot deactivate your own account.');
         }
 
+        if ($admin->role === 'superadmin' && $authUser->role !== 'superadmin') {
+            return redirect()->back()->with('error', 'Only a superadmin can deactivate a superadmin account.');
+        }
+
         $admin->is_active = false;
         $admin->save();
 
@@ -157,8 +287,21 @@ class AdminController extends Controller
     public function activate($id)
     {
         $admin = Admin::findOrFail($id);
+        $authUser = Auth::guard('admin')->user();
+
+        if ((string) ($admin->approval_status ?? 'approved') === 'pending') {
+            return redirect()->back()->with('error', 'Pending accounts must be approved or declined first.');
+        }
+
+        if ($admin->role === 'superadmin' && $authUser?->role !== 'superadmin') {
+            return redirect()->back()->with('error', 'Only a superadmin can activate a superadmin account.');
+        }
+
         $admin->is_active = true;
         $admin->save();
+        if (($admin->role ?? null) === 'superadmin') {
+            $this->deactivateOtherSuperadmins((int) $admin->id);
+        }
 
         activity()
             ->causedBy(auth('admin')->user())
@@ -168,6 +311,121 @@ class AdminController extends Controller
             ->log('Activated an admin account.');
 
         return redirect()->back()->with('success', 'Admin activated successfully.');
+    }
+
+    public function approve(Request $request, $id)
+    {
+        $targetAdmin = Admin::findOrFail($id);
+        $authUser = Auth::guard('admin')->user();
+
+        if (!$authUser || ($authUser->role ?? null) !== 'superadmin') {
+            return redirect()->back()->with('error', 'Only superadmin can approve user registrations.');
+        }
+
+        if ((int) $targetAdmin->id === (int) $authUser->id) {
+            return redirect()->back()->with('error', 'You cannot approve your own account.');
+        }
+
+        if ((string) ($targetAdmin->approval_status ?? 'approved') !== 'pending') {
+            return redirect()->back()->with('error', 'Only pending accounts can be approved.');
+        }
+
+        $validated = $request->validate([
+            'approval_role' => ['required', Rule::in(self::APPROVABLE_ACCOUNT_TYPES)],
+        ]);
+
+        $targetAdmin->update([
+            'role' => $validated['approval_role'],
+            'approval_status' => 'approved',
+            'approved_by' => $authUser->id,
+            'approved_at' => now(),
+            'declined_at' => null,
+            'is_active' => 1,
+        ]);
+
+        $roleLabel = match ($validated['approval_role']) {
+            'admin' => 'Admin (HR)',
+            'hr_division' => 'HR Division',
+            'viewer' => 'Viewer',
+            default => ucfirst((string) $validated['approval_role']),
+        };
+
+        Notification::create([
+            'notifiable_type' => 'App\Models\Admin',
+            'notifiable_id' => $targetAdmin->id,
+            'type' => 'info',
+            'data' => [
+                'category' => 'account_approval',
+                'title' => 'Account Approved',
+                'message' => 'Your registration has been approved. Assigned role: ' . $roleLabel . '.',
+                'action_url' => route('admin.login'),
+                'level' => 'success',
+            ],
+        ]);
+
+        activity()
+            ->causedBy($authUser)
+            ->performedOn($targetAdmin)
+            ->event('approve')
+            ->withProperties([
+                'approved_admin_id' => $targetAdmin->id,
+                'assigned_role' => $validated['approval_role'],
+                'section' => 'System Users Management',
+            ])
+            ->log('Approved a pending admin registration.');
+
+        return redirect()->back()->with('success', 'Account approved successfully.');
+    }
+
+    public function decline($id)
+    {
+        $targetAdmin = Admin::findOrFail($id);
+        $authUser = Auth::guard('admin')->user();
+
+        if (!$authUser || ($authUser->role ?? null) !== 'superadmin') {
+            return redirect()->back()->with('error', 'Only superadmin can decline user registrations.');
+        }
+
+        if ((int) $targetAdmin->id === (int) $authUser->id) {
+            return redirect()->back()->with('error', 'You cannot decline your own account.');
+        }
+
+        if ((string) ($targetAdmin->approval_status ?? 'approved') !== 'pending') {
+            return redirect()->back()->with('error', 'Only pending accounts can be declined.');
+        }
+
+        $targetAdmin->update([
+            'approval_status' => 'declined',
+            'approved_by' => $authUser->id,
+            'approved_at' => null,
+            'declined_at' => now(),
+            'is_active' => 1,
+        ]);
+
+        Notification::create([
+            'notifiable_type' => 'App\Models\Admin',
+            'notifiable_id' => $targetAdmin->id,
+            'type' => 'warning',
+            'data' => [
+                'category' => 'account_approval',
+                'title' => 'Account Declined',
+                'message' => 'Your registration request was declined. Please contact the superadmin for details.',
+                'action_url' => route('admin.login'),
+                'level' => 'warning',
+            ],
+        ]);
+
+        activity()
+            ->causedBy($authUser)
+            ->performedOn($targetAdmin)
+            ->event('decline')
+            ->withProperties([
+                'declined_admin_id' => $targetAdmin->id,
+                'section' => 'System Users Management',
+            ])
+            ->log('Declined a pending admin registration.');
+
+        return redirect()->back()->with('success', 'Account declined successfully.');
     }
 
     private function getReviewedApplications()
@@ -298,14 +556,16 @@ class AdminController extends Controller
     public function update(Request $request, $id)
     {
         $admin = Admin::findOrFail($id);
+        $authUser = Auth::guard('admin')->user();
 
         $validator = Validator::make($request->all(), [
-            'username' => ['required', 'string', 'max:255', Rule::unique('admins')->ignore($admin->id)],
-            'name' => ['required', 'string', 'max:255'],
+            'first_name' => ['required', 'string', 'max:255'],
+            'middle_name' => ['nullable', 'string', 'max:255'],
+            'last_name' => ['required', 'string', 'max:255'],
             'office' => ['required', 'string', 'max:255'],
             'designation' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('admins')->ignore($admin->id)],
-            'account_type' => ['required', Rule::in(['admin', 'viewer'])],
+            'account_type' => ['required', Rule::in(self::ACCOUNT_TYPES)],
         ]);
 
         // If validation fails, flash errors as a single string or array
@@ -317,18 +577,55 @@ class AdminController extends Controller
         }
 
         $validated = $validator->validated();
+        $firstName = trim((string) ($validated['first_name'] ?? ''));
+        $middleName = trim((string) ($validated['middle_name'] ?? ''));
+        $lastName = trim((string) ($validated['last_name'] ?? ''));
+        $fullName = implode(' ', array_filter([$firstName, $middleName, $lastName], fn($part) => $part !== ''));
+
+        if ((string) ($admin->approval_status ?? 'approved') === 'pending' && ($validated['account_type'] ?? null) !== ($admin->role ?? null)) {
+            return redirect()->back()
+                ->with('_editing', $admin->id)
+                ->with('error', ['Pending account role can only be set through the Approve action.'])
+                ->withInput();
+        }
+
+        if (($admin->role ?? null) !== 'superadmin' && ($validated['account_type'] ?? null) === 'superadmin') {
+            return redirect()->back()
+                ->with('_editing', $admin->id)
+                ->with('error', ['Superadmin account type cannot be assigned through Edit Account.'])
+                ->withInput();
+        }
+
+        if (($admin->role ?? null) === 'superadmin' && ($validated['account_type'] ?? null) !== 'superadmin') {
+            return redirect()->back()
+                ->with('_editing', $admin->id)
+                ->with('error', ['Superadmin account type cannot be changed through Edit Account.'])
+                ->withInput();
+        }
+
+        if (
+            (($validated['account_type'] ?? null) === 'superadmin' || $admin->role === 'superadmin')
+            && $authUser?->role !== 'superadmin'
+        ) {
+            return redirect()->back()
+                ->with('_editing', $admin->id)
+                ->with('error', ['Only a superadmin can create, edit, or downgrade a superadmin account.'])
+                ->withInput();
+        }
 
         // Flash '_editing' so mother blade knows which admin was edited
         session()->flash('_editing', $admin->id);
 
         $admin->update([
-            'username' => $validated['username'],
-            'name' => $validated['name'],
+            'name' => $fullName,
             'office' => $validated['office'],
             'designation' => $validated['designation'],
             'email' => $validated['email'],
             'role' => $validated['account_type'],
         ]);
+        if (($admin->role ?? null) === 'superadmin' && (int) ($admin->is_active ?? 1) === 1) {
+            $this->deactivateOtherSuperadmins((int) $admin->id);
+        }
 
         activity()
             ->causedBy(auth('admin')->user())
@@ -341,12 +638,72 @@ class AdminController extends Controller
             ->with('success', 'Admin account updated successfully!');
     }
 
+    private function deactivateOtherSuperadmins(int $activeSuperadminId): void
+    {
+        Admin::where('role', 'superadmin')
+            ->where('id', '!=', $activeSuperadminId)
+            ->where('is_active', 1)
+            ->update(['is_active' => 0]);
+    }
+
     public function search(Request $request)
     {
-        $search = $request->input('query');
+        $search = trim((string) $request->input('query', ''));
+        $role = trim((string) $request->input('role', ''));
+        $status = trim((string) $request->input('status', ''));
 
-        $admins = Admin::where('username', 'like', "%{$search}%")
-            ->orWhere('email', 'like', "%{$search}%")
+        if (!in_array($role, self::ACCOUNT_TYPES, true)) {
+            $role = '';
+        }
+
+        if (!in_array($status, ['active', 'inactive', 'pending', 'declined'], true)) {
+            $status = '';
+        }
+
+        $admins = Admin::query()
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%")
+                        ->orWhere('office', 'like', "%{$search}%")
+                        ->orWhere('designation', 'like', "%{$search}%")
+                        ->orWhere('role', 'like', "%{$search}%");
+                });
+            })
+            ->when($role !== '', function ($query) use ($role) {
+                $query->where('role', $role);
+            })
+            ->when($status !== '', function ($query) use ($status) {
+                if ($status === 'active') {
+                    $query->where('is_active', 1)
+                        ->where(function ($statusQuery) {
+                            $statusQuery->whereNull('approval_status')
+                                ->orWhere('approval_status', 'approved');
+                        });
+                    return;
+                }
+
+                if ($status === 'inactive') {
+                    $query->where('is_active', 0)
+                        ->where(function ($statusQuery) {
+                            $statusQuery->whereNull('approval_status')
+                                ->orWhere('approval_status', 'approved');
+                        });
+                    return;
+                }
+
+                if ($status === 'pending') {
+                    $query->where('approval_status', 'pending');
+                    return;
+                }
+
+                if ($status === 'declined') {
+                    $query->where('approval_status', 'declined');
+                }
+            })
+            ->orderByRaw("CASE WHEN approval_status = 'pending' THEN 0 WHEN approval_status = 'declined' THEN 2 ELSE 1 END")
+            ->orderBy('name')
+            ->orderBy('email')
             ->get();
         /*
         activity()

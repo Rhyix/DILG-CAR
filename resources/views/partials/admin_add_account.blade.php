@@ -1,104 +1,141 @@
-<div x-data="{ showCreateAccount: {{ $errors->any() ? 'true' : 'false' }}, hasErrors: {{ $errors->any() ? 'true' : 'false' }} }" class="inline">
-    <button @click="showCreateAccount = true; if(!hasErrors) $nextTick(() => $refs.createForm.reset())"
-        class="font-semibold flex items-center px-4 py-2 bg-white text-[#0D2B70] rounded-md hover:bg-[#0D2B70]  transition whitespace-nowrap
-                hover:text-white hover:shadow-md border border-[#0D2B70]">
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 stroke-[3]" fill="none" viewBox="0 0 24 24"
-            stroke="currentColor" stroke-width="3">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6" />
+@php
+    $createHasErrors = $errors->any() && (old('username') || old('name') || old('email') || old('account_type'));
+@endphp
+
+<div x-data="{ showCreateAccount: {{ $createHasErrors ? 'true' : 'false' }} }" class="inline-flex">
+    <button type="button" @click="showCreateAccount = true"
+        class="inline-flex items-center gap-2 rounded-xl border border-[#0D2B70] bg-[#0D2B70] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0A2259]">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+            stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
         </svg>
         Add Account
     </button>
 
-    <!-- Modal -->
-    <div x-show="showCreateAccount"
-        x-transition:enter="transition ease-out duration-300"
-        x-transition:leave="transition ease-in duration-200"
-        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-        style="display: none;"
-        @keydown.escape.window="showCreateAccount = false; $nextTick(() => $refs.createForm.reset())">
-        
-        <div class="bg-white p-8 rounded-2xl max-w-xl w-full shadow-2xl relative">
-            <!-- Close Button -->
-            <button @click="showCreateAccount = false; $nextTick(() => $refs.createForm.reset())"
-                class="absolute top-4 right-4 text-red-500 text-2xl font-bold hover:text-red-700">&times;</button>
+    <div x-show="showCreateAccount" x-transition.opacity class="fixed inset-0 z-50 bg-slate-900/50 px-4 py-8"
+        style="display: none;" @keydown.escape.window="showCreateAccount = false" @click.self="showCreateAccount = false">
+        <div class="mx-auto flex min-h-full w-full max-w-3xl items-center justify-center">
+            <div class="w-full rounded-2xl border border-slate-200 bg-white shadow-2xl">
+                <div class="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-[#0D2B70]">Create System Account</h2>
+                        <p class="text-sm text-slate-500">Set identity details and assign access role.</p>
+                    </div>
+                    <button type="button" @click="showCreateAccount = false"
+                        class="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+                        aria-label="Close">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
 
-            <h2 class="text-2xl font-extrabold text-[#0D2B70] text-center mb-4">Create an Admin Account</h2>
+                <form action="{{ route('admin.store') }}" method="POST" class="space-y-5 p-6">
+                    @csrf
 
-    <form action="{{ route('admin.store') }}" method="POST" class="space-y-4" x-ref="createForm">
-        @if ($errors->any())
-            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
-                <ul class="list-disc list-inside text-sm">
-                    @foreach ($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
+                    @if ($createHasErrors)
+                        <div class="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+                            <ul class="list-disc pl-5">
+                                @foreach ($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <div>
+                            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">Username</label>
+                            <input type="text" name="username" value="{{ old('username') }}" required
+                                class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20" />
+                        </div>
+                        <div>
+                            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">Full Name</label>
+                            <input type="text" name="name" value="{{ old('name') }}" required
+                                class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20" />
+                        </div>
+                        <div>
+                            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">Office</label>
+                            <input type="text" name="office" value="{{ old('office') }}" required
+                                class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20" />
+                        </div>
+                        <div>
+                            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">Designation</label>
+                            <input type="text" name="designation" value="{{ old('designation') }}" required
+                                class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20" />
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">Email</label>
+                            <input type="email" name="email" value="{{ old('email') }}" required
+                                class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20" />
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">Password</label>
+                            <input type="password" name="password" required minlength="8"
+                                class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20" />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-600">Account Type</label>
+                        <p class="mb-2 text-xs text-slate-500">Only one active superadmin is allowed. Creating a new one deactivates the previous superadmin account.</p>
+                        <div class="grid gap-2 sm:grid-cols-2">
+                            <label class="role-option cursor-pointer rounded-xl border border-slate-300 p-3 hover:border-[#0D2B70]">
+                                <div class="flex items-start gap-2">
+                                    <input type="radio" name="account_type" value="superadmin" class="mt-0.5 accent-[#0D2B70]" required
+                                        {{ old('account_type') === 'superadmin' ? 'checked' : '' }}>
+                                    <div>
+                                        <p class="text-sm font-semibold text-[#0D2B70]">Superadmin</p>
+                                        <p class="text-xs text-slate-500">Full control over all modules and users.</p>
+                                    </div>
+                                </div>
+                            </label>
+                            <label class="role-option cursor-pointer rounded-xl border border-slate-300 p-3 hover:border-[#0D2B70]">
+                                <div class="flex items-start gap-2">
+                                    <input type="radio" name="account_type" value="admin" class="mt-0.5 accent-[#0D2B70]"
+                                        {{ old('account_type') === 'admin' ? 'checked' : '' }}>
+                                    <div>
+                                        <p class="text-sm font-semibold text-[#0D2B70]">Admin (HR)</p>
+                                        <p class="text-xs text-slate-500">All admin tools except user management.</p>
+                                    </div>
+                                </div>
+                            </label>
+                            <label class="role-option cursor-pointer rounded-xl border border-slate-300 p-3 hover:border-[#0D2B70]">
+                                <div class="flex items-start gap-2">
+                                    <input type="radio" name="account_type" value="hr_division" class="mt-0.5 accent-[#0D2B70]"
+                                        {{ old('account_type') === 'hr_division' ? 'checked' : '' }}>
+                                    <div>
+                                        <p class="text-sm font-semibold text-[#0D2B70]">HR Division</p>
+                                        <p class="text-xs text-slate-500">Applicants management only.</p>
+                                    </div>
+                                </div>
+                            </label>
+                            <label class="role-option cursor-pointer rounded-xl border border-slate-300 p-3 hover:border-[#0D2B70]">
+                                <div class="flex items-start gap-2">
+                                    <input type="radio" name="account_type" value="viewer" class="mt-0.5 accent-[#0D2B70]"
+                                        {{ old('account_type') === 'viewer' ? 'checked' : '' }}>
+                                    <div>
+                                        <p class="text-sm font-semibold text-[#0D2B70]">Viewer</p>
+                                        <p class="text-xs text-slate-500">Exam management only.</p>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-end gap-2 border-t border-slate-200 pt-4">
+                        <button type="button" @click="showCreateAccount = false"
+                            class="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
+                            Cancel
+                        </button>
+                        <button type="submit"
+                            class="rounded-xl bg-[#0D2B70] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#0A2259]">
+                            Create Account
+                        </button>
+                    </div>
+                </form>
             </div>
-        @endif
-
-
-
-    @csrf
-
-    <div class="flex flex-col">
-        <label class="font-bold text-[#002C76] text-sm mb-1">USERNAME</label>
-        <input type="text" name="username" value="" class="rounded-full border px-4 py-2 focus:outline-none" />
-    </div>
-
-    <div class="flex flex-col">
-        <label class="font-bold text-[#002C76] text-sm mb-1">NAME</label>
-        <input type="text" name="name" value="" class="rounded-full border px-4 py-2 focus:outline-none" />
-    </div>
-
-    <div class="flex flex-col">
-        <label class="font-bold text-[#002C76] text-sm mb-1">OFFICE</label>
-        <input type="text" name="office" value="" class="rounded-full border px-4 py-2 focus:outline-none" />
-    </div>
-
-    <div class="flex flex-col">
-        <label class="font-bold text-[#002C76] text-sm mb-1">DESIGNATION</label>
-        <input type="text" name="designation" value="" class="rounded-full border px-4 py-2 focus:outline-none" />
-    </div>
-
-    <div class="flex flex-col">
-        <label class="font-bold text-[#002C76] text-sm mb-1">EMAIL</label>
-        <input type="email" name="email" value="" class="rounded-full border px-4 py-2 focus:outline-none" />
-    </div>
-
-    <div class="flex flex-col">
-        <label class="font-bold text-[#002C76] text-sm mb-1">PASSWORD</label>
-        <input type="password" name="password" class="rounded-full border px-4 py-2 focus:outline-none" />
-    </div>
-
-    <div>
-        <label class="font-bold text-[#002C76] text-sm mb-1">ACCOUNT TYPE</label>
-        <div class="flex items-center gap-6 mt-1">
-            <label class="flex items-center gap-2 font-bold text-[#002C76] text-sm">
-                <input type="radio" name="account_type" value="admin" class="accent-[#002C76]"
-                    {{ old('account_type') === 'admin' ? 'checked' : '' }}>
-                ADMIN
-            </label>
-            <label class="flex items-center gap-2 font-bold text-[#002C76] text-sm">
-                <input type="radio" name="account_type" value="viewer" class="accent-[#002C76]"
-                    {{ old('account_type') === 'viewer' ? 'checked' : '' }}>
-                VIEWER
-            </label>
-        </div>
-    </div>
-
-
-    <div class="flex justify-end pt-4">
-        <button type="submit"
-            class="font-semibold flex items-center px-4 py-2 bg-white text-[#0D2B70] rounded-md hover:bg-[#0D2B70]  transition whitespace-nowrap
-                    hover:text-white hover:shadow-md border border-[#0D2B70]">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 stroke-[3]" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor" stroke-width="3">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6" />
-            </svg>
-            CREATE
-        </button>
-    </div>
-</form>
-
         </div>
     </div>
 </div>

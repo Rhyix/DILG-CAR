@@ -188,7 +188,13 @@
                                     {{ Auth::guard('admin')->user()->name ?? 'Admin User' }}
                                 </p>
                                 <p class="text-[11px] text-slate-500 uppercase tracking-wide">
-                                    {{ Auth::guard('admin')->user()->role ?? 'Administrator' }}
+                                    {{ match (Auth::guard('admin')->user()->role ?? 'admin') {
+                                        'superadmin' => 'Superadmin',
+                                        'admin' => 'Admin (HR)',
+                                        'hr_division' => 'HR Division',
+                                        'viewer' => 'Viewer',
+                                        default => 'Administrator',
+                                    } }}
                                 </p>
                             </div>
                             <div
@@ -202,10 +208,12 @@
                         <div x-show="open" @click.away="open = false"
                             class="absolute right-0 mt-3 w-52 bg-white border border-slate-200 rounded-xl shadow-xl z-50 py-1"
                             style="display: none;" x-cloak>
-                            <a href="{{ route('admin_account_management') }}"
-                                class="block px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-[#0D2B70]">
-                                <i data-feather="settings" class="w-4 h-4 inline-block mr-2"></i> Account Settings
-                            </a>
+                            @if(in_array((Auth::guard('admin')->user()->role ?? null), ['superadmin', 'admin'], true))
+                                <a href="{{ route('admin.account.settings') }}"
+                                    class="block px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-[#0D2B70]">
+                                    <i data-feather="settings" class="w-4 h-4 inline-block mr-2"></i> Account Settings
+                                </a>
+                            @endif
                             <div class="border-t border-slate-100 my-1"></div>
                             <form id="adminLogoutForm" method="POST" action="{{ route('admin.logout') }}">
                                 @csrf
@@ -454,32 +462,6 @@
         if (logoutForm) logoutForm.submit();
     });
 
-</script>
-
-<script>
-    function debounce(func, delay) {
-        let debounceTimer;
-        return function () {
-            const context = this;
-            const args = arguments;
-            clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(() => func.apply(context, args), delay);
-        };
-    }
-
-    const fetchAdmins = () => {
-        const search = document.getElementById('adminSearchInput');
-        if (!search) return;
-
-        fetch(`/admin/search?query=${encodeURIComponent(search.value)}`)
-            .then(response => response.text())
-            .then(html => {
-                const container = document.querySelector('section.space-y-4');
-                if (container) container.innerHTML = html;
-            });
-    };
-
-    const fetchAdminsDebounced = debounce(fetchAdmins, 300);
 </script>
 
 

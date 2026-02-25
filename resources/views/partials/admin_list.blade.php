@@ -1,41 +1,128 @@
 @if ($admins->isEmpty())
-    <div class="flex justify-center items-center min-h-[300px]">
-    <div class="text-center text-gray-500 font-semibold text-lg">
-        <i data-feather="info" class="w-6 h-6 inline-block mr-2 text-gray-400"></i>
-        No admin account found.
-    </div>
-</div>
-
+    <tr data-empty-state="1">
+        <td colspan="5" class="px-5 py-12 text-center">
+            <div class="mx-auto max-w-md rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6">
+                <p class="text-sm font-semibold text-slate-700">No accounts found</p>
+                <p class="mt-1 text-sm text-slate-500">Try a different search term or clear the filter.</p>
+            </div>
+        </td>
+    </tr>
 @else
     @foreach ($admins as $admin)
-        <div class="grid grid-cols-[1.2fr_2fr_1fr_1.5fr_1fr] gap-4 border-2 border-[#0D2B70] rounded-xl py-5 px-6">
-            <div class="font-extrabold">{{ $admin->username }}</div>
+        @php
+            $roleLabel = match ($admin->role) {
+                'superadmin' => 'Superadmin',
+                'admin' => 'Admin (HR)',
+                'hr_division' => 'HR Division',
+                'viewer' => 'Viewer',
+                default => ucfirst((string) $admin->role),
+            };
 
-            <div class="font-extrabold overflow-hidden text-ellipsis whitespace-nowrap">
-                {{ $admin->email }}
-            </div>
+            $roleClass = match ($admin->role) {
+                'superadmin' => 'border-violet-200 bg-violet-50 text-violet-700',
+                'admin' => 'border-blue-200 bg-blue-50 text-blue-700',
+                'hr_division' => 'border-amber-200 bg-amber-50 text-amber-700',
+                'viewer' => 'border-emerald-200 bg-emerald-50 text-emerald-700',
+                default => 'border-slate-200 bg-slate-50 text-slate-700',
+            };
 
-            <div class="text-center font-semibold">
-                {{ ucfirst($admin->role) }}
-            </div>
+            $approvalStatus = (string) ($admin->approval_status ?? 'approved');
+            $statusKey = match ($approvalStatus) {
+                'pending' => 'pending',
+                'declined' => 'declined',
+                default => ((int) ($admin->is_active ?? 0) === 1 ? 'active' : 'inactive'),
+            };
 
-            <div class="font-extrabold text-center">
-                {{ $admin->is_active ? 'Active' : 'Inactive' }}
-            </div>
+            [$statusLabel, $statusClass] = match ($statusKey) {
+                'pending' => ['Pending Approval', 'border-amber-200 bg-amber-50 text-amber-700'],
+                'declined' => ['Declined', 'border-rose-200 bg-rose-50 text-rose-700'],
+                'active' => ['Active', 'border-emerald-200 bg-emerald-50 text-emerald-700'],
+                default => ['Inactive', 'border-slate-300 bg-slate-100 text-slate-600'],
+            };
 
-            <div class="flex justify-center items-center gap-3">
-                <form method="POST" action="{{ route($admin->is_active ? 'admin.deactivate' : 'admin.activate', $admin->id) }}">
-                    @csrf
-                    <button type="submit"
-                        class="w-[130px] 
-                               {{ $admin->is_active ? 'bg-[#C5292F] hover:bg-red-700' : 'bg-[#00127.0.0.1] hover:bg-green-700' }} 
-                               text-white font-semibold rounded-full flex items-center justify-center gap-2 px-5 py-2 transition">
-                        {{ $admin->is_active ? 'DEACTIVATE' : 'ACTIVATE' }}
-                    </button>
-                </form>
+            $isCurrentUser = (int) (auth('admin')->id() ?? 0) === (int) $admin->id;
+            $isPending = $statusKey === 'pending';
+            $isDeclined = $statusKey === 'declined';
+            $displayIdentity = trim((string) ($admin->name ?? '')) ?: ($admin->email ?? ('Admin #' . $admin->id));
+        @endphp
 
-                @include('partials.admin_edit_account', ['admin' => $admin])
-            </div>
-        </div>
+        <tr class="transition hover:bg-slate-50/80" data-row="admin-account" data-role="{{ $admin->role }}" data-status="{{ $statusKey }}">
+            <td class="px-5 py-4 align-top">
+                <p class="font-medium text-slate-800">{{ $admin->name }}</p>
+                <p class="text-xs text-slate-500">{{ $admin->email }}</p>
+                @if ($isCurrentUser)
+                    <span class="mt-1 inline-flex rounded-full border border-slate-300 bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
+                        You
+                    </span>
+                @endif
+            </td>
+            <td class="px-5 py-4 align-top">
+                <span class="inline-flex rounded-full border px-3 py-1 text-xs font-semibold {{ $roleClass }}">
+                    {{ $roleLabel }}
+                </span>
+            </td>
+            <td class="px-5 py-4 align-top">
+                <p class="text-sm font-medium text-slate-700">{{ $admin->office ?: 'Not set' }}</p>
+                <p class="text-xs text-slate-500">{{ $admin->designation ?: 'No designation' }}</p>
+            </td>
+            <td class="px-5 py-4 text-center align-top">
+                <span class="inline-flex rounded-full border px-3 py-1 text-xs font-semibold {{ $statusClass }}">
+                    {{ $statusLabel }}
+                </span>
+            </td>
+            <td class="px-5 py-4 align-top">
+                <div class="flex items-center justify-center gap-2">
+                    @if ($isPending)
+                        <button
+                            type="button"
+                            class="js-open-approve-modal inline-flex h-9 w-9 items-center justify-center rounded-lg border border-emerald-300 text-emerald-700 transition hover:bg-emerald-50"
+                            title="Approve account"
+                            data-admin-id="{{ $admin->id }}"
+                            data-admin-name="{{ $displayIdentity }}"
+                        >
+                            <i data-feather="check-circle" class="h-4 w-4"></i>
+                        </button>
+                        <form method="POST" class="js-admin-decline-form no-spinner" action="{{ route('admin.decline', $admin->id) }}" data-admin-name="{{ $displayIdentity }}">
+                            @csrf
+                            <button
+                                type="submit"
+                                class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-rose-300 text-rose-600 transition hover:bg-rose-50"
+                                title="Decline account"
+                            >
+                                <i data-feather="x-circle" class="h-4 w-4"></i>
+                            </button>
+                        </form>
+                    @elseif ($isDeclined)
+                        <button type="button" disabled
+                            class="inline-flex h-9 w-9 cursor-not-allowed items-center justify-center rounded-lg border border-slate-200 text-slate-300"
+                            title="Declined accounts cannot be activated without a new registration">
+                            <i data-feather="slash" class="h-4 w-4"></i>
+                        </button>
+                    @elseif ($isCurrentUser)
+                        <button type="button" disabled
+                            class="inline-flex h-9 w-9 cursor-not-allowed items-center justify-center rounded-lg border border-slate-200 text-slate-300"
+                            title="You cannot change your own activation status">
+                            <i data-feather="minus-circle" class="h-4 w-4"></i>
+                        </button>
+                    @else
+                        <form method="POST"
+                            class="js-admin-status-form no-spinner"
+                            data-action="{{ $admin->is_active ? 'deactivate' : 'activate' }}"
+                            data-admin-name="{{ $displayIdentity }}"
+                            action="{{ route($admin->is_active ? 'admin.deactivate' : 'admin.activate', $admin->id) }}">
+                            @csrf
+                            <button type="submit" class="inline-flex h-9 w-9 items-center justify-center rounded-lg border text-sm transition {{ $admin->is_active ? 'border-rose-300 text-rose-600 hover:bg-rose-50' : 'border-emerald-300 text-emerald-600 hover:bg-emerald-50' }}"
+                                title="{{ $admin->is_active ? 'Deactivate account' : 'Activate account' }}">
+                                <i data-feather="{{ $admin->is_active ? 'user-x' : 'user-check' }}" class="h-4 w-4"></i>
+                            </button>
+                        </form>
+                    @endif
+
+                    @if (!$isPending)
+                        @include('partials.admin_edit_account', ['admin' => $admin])
+                    @endif
+                </div>
+            </td>
+        </tr>
     @endforeach
 @endif

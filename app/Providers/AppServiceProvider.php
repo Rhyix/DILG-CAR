@@ -114,6 +114,15 @@ class AppServiceProvider extends ServiceProvider
             $admins = Admin::all();
             $sentCount = 0;
             foreach ($admins as $admin) {
+                $notificationLink = $link;
+                if ($section === 'System Users Management' && ($admin->role ?? null) !== 'superadmin') {
+                    $notificationLink = match ($admin->role ?? null) {
+                        'hr_division' => route('applications_list'),
+                        'viewer' => route('viewer'),
+                        default => route('dashboard_admin'),
+                    };
+                }
+
                 Notification::create([
                     'notifiable_type' => 'App\Models\Admin',
                     'notifiable_id' => $admin->id,
@@ -123,7 +132,7 @@ class AppServiceProvider extends ServiceProvider
                     'data' => [
                         'title' => $section,
                         'message' => $message,
-                        'link' => $link,
+                        'link' => $notificationLink,
                         'category' => $category,
                     ]
                 ]);
@@ -137,7 +146,7 @@ class AppServiceProvider extends ServiceProvider
                         'vacancyId' => $vacancyId,
                         'title' => $section,
                         'body' => $message,
-                        'link' => $link,
+                        'link' => $notificationLink,
                         'occurredAt' => $activity->created_at,
                     ], function ($m) use ($admin) {
                         $m->to($admin->email)->subject('DILG-CAR Admin Notification');

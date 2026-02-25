@@ -1,14 +1,57 @@
 <?php
 
-namespace App\Http\Controllers\Auth; // Assuming your controllers are in this namespace
+namespace App\Http\Controllers\Auth;
 
-use Illuminate\Support\Facades\Http;
+use App\Http\Controllers\Controller;
+use App\Models\Admin;
+use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Http\Controllers\Controller; // Make sure to import the base Controller class
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 
 class AdminAuthController extends Controller
 {
+    private function generateUniqueUsername(string $firstName, string $lastName, string $email): string
+    {
+        $nameBase = Str::slug(trim($firstName . ' ' . $lastName), '_');
+        $emailBase = Str::slug((string) Str::before($email, '@'), '_');
+        $base = Str::lower($nameBase !== '' ? $nameBase : ($emailBase !== '' ? $emailBase : 'employee'));
+
+        $candidate = $base;
+        $suffix = 1;
+        while (Admin::where('username', $candidate)->exists()) {
+            $candidate = $base . '_' . $suffix;
+            $suffix++;
+        }
+
+        return $candidate;
+    }
+
+    private function redirectByAdminRole($user, bool $useIntended = false)
+    {
+        $approvalStatus = (string) ($user->approval_status ?? 'approved');
+
+        if ($approvalStatus === 'pending') {
+            return redirect()->route('admin.pending.dashboard');
+        }
+
+        if ($approvalStatus === 'declined') {
+            Auth::guard('admin')->logout();
+            return redirect()->route('admin.login')->withErrors([
+                'email' => 'Your account request was declined. Please contact superadmin.',
+            ]);
+        }
+
+        return match ($user->role ?? null) {
+            'viewer' => redirect()->route('viewer'),
+            'hr_division' => redirect()->route('applications_list'),
+            default => $useIntended ? redirect()->intended('/admin/dashboard') : redirect()->route('dashboard_admin'),
+        };
+    }
+
     private function clearPdsSessionCache(Request $request): void
     {
         $request->session()->forget([
@@ -26,88 +69,201 @@ class AdminAuthController extends Controller
     public function showLoginForm()
     {
         if (Auth::guard('admin')->check()) {
-        return redirect('/admin/dashboard');
+            return $this->redirectByAdminRole(Auth::guard('admin')->user());
         }
 
-        if(Auth::user()){
+        if (Auth::check()) {
             return redirect()->route('dashboard_user');
         }
 
         return view('login_register.admin_login');
     }
 
-public function login(Request $request)
-{
-    $attempts = session()->get('login_attempts', 0);
+    public function register(Request $request)
+    {
+        if (Auth::check()) {
+            $this->clearPdsSessionCache($request);
+            Auth::logout();
+        }
 
-    // Enforce reCAPTCHA only in production environment
-    if (app()->environment('production')) {
-        $captcha = $request->input('g-recaptcha-response');
+        if (Auth::guard('admin')->check()) {
+            Auth::guard('admin')->logout();
+        }
 
-        if (!$captcha || !$this->verifyRecaptcha($captcha, $request->ip())) {
-            return back()->withErrors([
-                'captcha' => 'Please confirm you are not a robot.'
+        $validator = Validator::make($request->all(), [
+            'first_name' => ['required', 'string', 'max:255'],
+            'middle_name' => ['nullable', 'string', 'max:255'],
+            'last_name' => ['required', 'string', 'max:255'],
+            'office' => ['required', 'string', 'max:255'],
+            'designation' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:admins,email'],
+            'password' => [
+                'required',
+                'string',
+                'min:8',
+                'confirmed',
+                'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/',
+            ],
+        ], [
+            'password.regex' => 'Password must be at least 8 characters and include uppercase, lowercase, number, and special character.',
+            'email.unique' => 'The email has already been taken.',
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()->back()
+                ->withErrors($validator, 'adminRegister')
+                ->withInput()
+                ->with('auth_tab', 'register');
+        }
+
+        $validated = $validator->validated();
+        $fullName = trim(implode(' ', array_filter([
+            trim((string) ($validated['first_name'] ?? '')),
+            trim((string) ($validated['middle_name'] ?? '')),
+            trim((string) ($validated['last_name'] ?? '')),
+        ])));
+        $generatedUsername = $this->generateUniqueUsername(
+            (string) ($validated['first_name'] ?? ''),
+            (string) ($validated['last_name'] ?? ''),
+            (string) ($validated['email'] ?? '')
+        );
+
+        $admin = Admin::create([
+            'username' => $generatedUsername,
+            'name' => $fullName,
+            'office' => $validated['office'],
+            'designation' => $validated['designation'],
+            'email' => $validated['email'],
+            'password' => Hash::make((string) $validated['password']),
+            'role' => 'viewer',
+            'is_active' => 1,
+            'approval_status' => 'pending',
+            'approved_by' => null,
+            'approved_at' => null,
+            'declined_at' => null,
+        ]);
+
+        $superadmins = Admin::query()
+            ->where('role', 'superadmin')
+            ->where('is_active', 1)
+            ->where(function ($q) {
+                $q->whereNull('approval_status')->orWhere('approval_status', 'approved');
+            })
+            ->get(['id']);
+
+        foreach ($superadmins as $superadmin) {
+            Notification::create([
+                'notifiable_type' => 'App\Models\Admin',
+                'notifiable_id' => $superadmin->id,
+                'type' => 'info',
+                'data' => [
+                    'category' => 'account_approval',
+                    'title' => 'New Employee Registration',
+                    'message' => $fullName . ' registered and is awaiting approval.',
+                    'action_url' => route('admin_account_management'),
+                    'registered_admin_id' => $admin->id,
+                    'level' => 'warning',
+                ],
             ]);
         }
-    }
 
-    if (Auth::check()) {
-        $this->clearPdsSessionCache($request);
-        Auth::logout();
-    }
-
-    $credentials = $request->validate([
-        'email' => 'required|email',
-        'password' => 'required',
-    ]);
-
-    if (Auth::guard('admin')->attempt($credentials)) {
+        Auth::guard('admin')->login($admin);
         $request->session()->regenerate();
 
-        $user = Auth::guard('admin')->user();
+        activity()
+            ->causedBy($admin)
+            ->withProperties(['section' => 'Login'])
+            ->event('register')
+            ->log('Admin account registered and pending approval.');
 
-        // 🔒 Check if the account is deactivated
-        if ($user->is_active != 1) {
-            Auth::guard('admin')->logout(); // Prevent login
+        return redirect()->route('admin.pending.dashboard')
+            ->with('registered_pending', 'Registration submitted. Wait for superadmin approval.');
+    }
+
+    public function login(Request $request)
+    {
+        if (app()->environment('production')) {
+            $captcha = $request->input('g-recaptcha-response');
+
+            if (!$captcha || !$this->verifyRecaptcha($captcha, $request->ip())) {
+                return back()->withErrors([
+                    'captcha' => 'Please confirm you are not a robot.',
+                ])->with('auth_tab', 'login');
+            }
+        }
+
+        if (Auth::check()) {
+            $this->clearPdsSessionCache($request);
+            Auth::logout();
+        }
+
+        $credentials = $request->validate([
+            'email' => 'required|email',
+            'password' => 'required',
+        ]);
+
+        if (Auth::guard('admin')->attempt($credentials)) {
+            $request->session()->regenerate();
+            $user = Auth::guard('admin')->user();
+            $approvalStatus = (string) ($user->approval_status ?? 'approved');
+
+            if (($user->is_active ?? 0) != 1) {
+                Auth::guard('admin')->logout();
+                return back()->withErrors([
+                    'email' => 'Your account has been deactivated.',
+                ])->with('auth_tab', 'login');
+            }
+
+            if ($approvalStatus === 'declined') {
+                Auth::guard('admin')->logout();
+                return back()->withErrors([
+                    'email' => 'Your account request was declined. Please contact superadmin.',
+                ])->with('auth_tab', 'login');
+            }
 
             activity()
                 ->causedBy($user)
                 ->withProperties(['section' => 'Login'])
                 ->event('login')
-                ->log('Admin login blocked. Account is deactivated.');
+                ->log('Admin logged in successfully.');
 
-            return back()->withErrors([
-                'email' => 'Your account has been deactivated.',
-            ]);
+            return $this->redirectByAdminRole($user, true);
         }
 
         activity()
-            ->causedBy($user)
-            ->withProperties(['section' => 'Login'])
+            ->withProperties(['ip' => $request->ip(), 'email' => $request->email, 'section' => 'Login'])
             ->event('login')
-            ->log('Admin logged in successfully.');
+            ->log('Admin logged in unsuccessfully.');
 
-        // 🎯 Redirect based on role
-        return $user->role === 'viewer'
-            ? redirect()->route('viewer')
-            : redirect()->intended('/admin/dashboard');
+        return back()->withErrors([
+            'email' => 'The provided credentials do not match our records.',
+        ])->withInput()->with('auth_tab', 'login');
     }
 
-    activity()
-        ->withProperties(['ip' => request()->ip(), 'email' => $request->email])
-        ->withProperties(['section' => 'Login'])
-        ->event('login')
-        ->log('Admin logged in unsuccessfully.');
+    public function pendingDashboard(Request $request)
+    {
+        if (!Auth::guard('admin')->check()) {
+            return redirect()->route('admin.login');
+        }
 
-        // session()->increment('login_attempts');
-        // return back()->withErrors([
-        //     'email' => 'Invalid credentials.'
-        // ])->withInput();
+        $admin = Auth::guard('admin')->user();
+        $approvalStatus = (string) ($admin->approval_status ?? 'approved');
 
-    return back()->withErrors([
-        'email' => 'The provided credentials do not match our records.',
-    ]);
-}
+        if ($approvalStatus === 'approved') {
+            return $this->redirectByAdminRole($admin);
+        }
+
+        if ($approvalStatus === 'declined') {
+            Auth::guard('admin')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+            return redirect()->route('admin.login')->withErrors([
+                'email' => 'Your account request was declined. Please contact superadmin.',
+            ]);
+        }
+
+        return view('admin.pending_dashboard', compact('admin'));
+    }
 
     protected function verifyRecaptcha($token, $ip)
     {

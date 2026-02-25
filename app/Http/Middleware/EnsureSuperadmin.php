@@ -3,29 +3,28 @@
 namespace App\Http\Middleware;
 
 use Closure;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Symfony\Component\HttpFoundation\Response;
 
-class ViewerAccess
+class EnsureSuperadmin
 {
-    public function handle($request, Closure $next)
+    public function handle(Request $request, Closure $next): Response
     {
-        // Check if user is authenticated with admin guard
         if (!Auth::guard('admin')->check()) {
             return redirect()->route('admin.login');
         }
-        
-        $user = Auth::guard('admin')->user();
-        
-        // Check if account is deactivated
-        if ($user->is_active != 1) {
+
+        $admin = Auth::guard('admin')->user();
+        if (($admin->is_active ?? 0) != 1) {
             Auth::guard('admin')->logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
             return redirect()->route('admin.login')
-                   ->withErrors(['email' => 'Your account has been deactivated.']);
+                ->withErrors(['email' => 'Your account has been deactivated.']);
         }
 
-        $approvalStatus = (string) ($user->approval_status ?? 'approved');
+        $approvalStatus = (string) ($admin->approval_status ?? 'approved');
         if ($approvalStatus === 'pending') {
             return redirect()->route('admin.pending.dashboard')
                 ->with('error', 'Your account is pending superadmin approval.');
@@ -38,18 +37,18 @@ class ViewerAccess
             return redirect()->route('admin.login')
                 ->withErrors(['email' => 'Your account request was declined. Please contact superadmin.']);
         }
-        
-        // Allow access if user is superadmin, admin, or viewer
-        if (!in_array($user->role, ['superadmin', 'admin', 'viewer'], true)) {
-            if ($user->role === 'hr_division') {
-                return redirect()->route('applications_list')
-                    ->with('error', 'Access denied. HR Division can only access applicants management.');
-            }
 
-            return redirect()->route('admin.login')
-                ->with('error', 'Access denied.');
+        if (($admin->role ?? null) !== 'superadmin') {
+            $target = match ($admin->role ?? null) {
+                'viewer' => route('viewer'),
+                'hr_division' => route('applications_list'),
+                default => route('dashboard_admin'),
+            };
+
+            return redirect($target)
+                ->with('error', 'Only superadmin can access user management.');
         }
-        
+
         return $next($request);
     }
 }

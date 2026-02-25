@@ -57,87 +57,99 @@
             </div>
         </a>
 
+        @php $adminRole = Auth::guard('admin')->user()->role ?? null; @endphp
         <nav class="mt-8 space-y-1 px-2 font-montserrat pb-4">
-            <a href="{{ route('dashboard_admin') }}" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200
-                    {{ request()->routeIs('dashboard_admin')
-    ? 'bg-[#002C76] text-white shadow-md'
-    : 'text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md' }}">
-                <i data-feather="home" class="w-5 h-5 stroke-[3] flex-shrink-0"></i>
-                <span class="ml-3 transition-opacity duration-200" x-show="open" x-transition.opacity.duration.200ms>HOME</span>
-            </a>
-            <a href="{{ route('vacancies_management') }}" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200
-                    {{ request()->routeIs('vacancies_management')
-    ? 'bg-[#002C76] text-white shadow-md'
-    : 'text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md' }}">
-                <i data-feather="archive" class="w-5 h-5 stroke-[3] flex-shrink-0"></i>
-                <span class="ml-3 transition-opacity duration-200" x-show="open" x-transition.opacity.duration.200ms>VACANCIES MANAGEMENT</span>
-            </a>
+            @if(in_array($adminRole, ['superadmin', 'admin'], true))
+                <a href="{{ route('dashboard_admin') }}" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200
+                        {{ request()->routeIs('dashboard_admin')
+        ? 'bg-[#002C76] text-white shadow-md'
+        : 'text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md' }}">
+                    <i data-feather="home" class="w-5 h-5 stroke-[3] flex-shrink-0"></i>
+                    <span class="ml-3 transition-opacity duration-200" x-show="open" x-transition.opacity.duration.200ms>HOME</span>
+                </a>
 
-            <a href="{{ route('applications_list') }}" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200
-                    {{ request()->routeIs('applications_list') || request()->routeIs('admin.applicant_status*')
-    ? 'bg-[#002C76] text-white shadow-md'
-    : 'text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md' }}">
-                <i data-feather="user" class="w-5 h-5 stroke-[3] flex-shrink-0"></i>
-                <span class="ml-3 transition-opacity duration-200" x-show="open" x-transition.opacity.duration.200ms>APPLICANTS MANAGEMENT</span>
-            </a>
+                <a href="{{ route('vacancies_management') }}" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200
+                        {{ request()->routeIs('vacancies_management')
+        ? 'bg-[#002C76] text-white shadow-md'
+        : 'text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md' }}">
+                    <i data-feather="archive" class="w-5 h-5 stroke-[3] flex-shrink-0"></i>
+                    <span class="ml-3 transition-opacity duration-200" x-show="open" x-transition.opacity.duration.200ms>VACANCIES MANAGEMENT</span>
+                </a>
+            @endif
 
-            <a href="{{ route('admin_exam_management') }}" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200
-                    {{ request()->routeIs('admin_exam_management') || request()->routeIs('admin.exam*')
-    ? 'bg-[#002C76] text-white shadow-md'
-    : 'text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md' }}">
-                <i data-feather="file-text" class="w-5 h-5 stroke-[3] flex-shrink-0"></i>
-                <span class="ml-3 transition-opacity duration-200" x-show="open" x-transition.opacity.duration.200ms>EXAM MANAGEMENT</span>
-            </a>
+            @if(in_array($adminRole, ['superadmin', 'admin', 'hr_division'], true))
+                <a href="{{ route('applications_list') }}" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200
+                        {{ request()->routeIs('applications_list') || request()->routeIs('admin.applicant_status*')
+        ? 'bg-[#002C76] text-white shadow-md'
+        : 'text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md' }}">
+                    <i data-feather="user" class="w-5 h-5 stroke-[3] flex-shrink-0"></i>
+                    <span class="ml-3 transition-opacity duration-200" x-show="open" x-transition.opacity.duration.200ms>APPLICANTS MANAGEMENT</span>
+                </a>
+            @endif
 
-            <a href="{{ route('admin_account_management') }}" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200
-                    {{ request()->routeIs('admin_account_management')
-                        ? 'bg-[#002C76] text-white shadow-md'
-                        : 'text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md' }}">
-                <i class="fa-solid fa-users-gear w-5 h-5 flex-shrink-0"></i>
-                <span class="ml-3 transition-opacity duration-200" x-show="open" x-transition.opacity.duration.200ms>USER MANAGEMENT</span>
-            </a>
+            @if(in_array($adminRole, ['superadmin', 'admin', 'viewer'], true))
+                <a href="{{ route('admin_exam_management') }}" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200
+                        {{ request()->routeIs('admin_exam_management') || request()->routeIs('admin.exam*')
+        ? 'bg-[#002C76] text-white shadow-md'
+        : 'text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md' }}">
+                    <i data-feather="file-text" class="w-5 h-5 stroke-[3] flex-shrink-0"></i>
+                    <span class="ml-3 transition-opacity duration-200" x-show="open" x-transition.opacity.duration.200ms>EXAM MANAGEMENT</span>
+                </a>
+            @endif
 
-            <!-- Utilities Dropdown -->
-            <div x-data="{ submenuOpen: {{ (request()->routeIs('admin_activity_log') || request()->routeIs('signatories.*') || request()->routeIs('admin.reports.index')) ? 'true' : 'false' }} }" class="relative">
-                <button @click="submenuOpen = !submenuOpen" class="w-full group flex items-center justify-between rounded-md px-4 py-2 text-sm font-bold transition-all duration-200 text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md">
-                    <div class="flex items-center">
-                        <i class="fa-solid fa-screwdriver-wrench w-5 h-5 flex-shrink-0"></i>
-                        <span class="ml-3 transition-opacity duration-200 uppercase" x-show="open" x-transition.opacity.duration.200ms>UTILITIES</span>
-                    </div>
-                    <div class="transition-transform duration-200" :class="{'rotate-180': submenuOpen}" x-show="open" x-transition.opacity.duration.200ms>
-                        <i class="fa-solid fa-chevron-down w-5 h-5 stroke-[2.5] flex-shrink-0"></i>
-                    </div>
-                </button>
-
-                <!-- Submenu -->
-                <div x-show="submenuOpen && open" x-collapse class="pl-4 mt-1 space-y-1 overflow-hidden">
-                    <!-- Signatories -->
-                    <a href="{{ route('signatories.index') }}" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200 {{ request()->routeIs('signatories.*')
+            @if($adminRole === 'superadmin')
+                <a href="{{ route('admin_account_management') }}" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200
+                        {{ request()->routeIs('admin_account_management')
                             ? 'bg-[#002C76] text-white shadow-md'
                             : 'text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md' }}">
-                        <i data-feather="edit-3" class="w-5 h-5 stroke-[2.5] justify-center items-center flex-shrink-0 ml-2"></i>
-                        <span class="ml-3 transition-opacity duration-200">SIGNATORIES</span>
-                    </a>
+                    <i class="fa-solid fa-users-gear w-5 h-5 flex-shrink-0"></i>
+                    <span class="ml-3 transition-opacity duration-200" x-show="open" x-transition.opacity.duration.200ms>USER MANAGEMENT</span>
+                </a>
+            @endif
 
-                    <!-- Activity Log -->
-                    <a href="{{ route('admin_activity_log') }}" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200
-                            {{ request()->routeIs('admin_activity_log')
+            @if(in_array($adminRole, ['superadmin', 'admin'], true))
+                <!-- Utilities Dropdown -->
+                <div x-data="{ submenuOpen: {{ (request()->routeIs('admin_activity_log') || request()->routeIs('signatories.*') || request()->routeIs('admin.reports.index')) ? 'true' : 'false' }} }" class="relative">
+                    <button @click="submenuOpen = !submenuOpen" class="w-full group flex items-center justify-between rounded-md px-4 py-2 text-sm font-bold transition-all duration-200 text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md">
+                        <div class="flex items-center">
+                            <i class="fa-solid fa-screwdriver-wrench w-5 h-5 flex-shrink-0"></i>
+                            <span class="ml-3 transition-opacity duration-200 uppercase" x-show="open" x-transition.opacity.duration.200ms>UTILITIES</span>
+                        </div>
+                        <div class="transition-transform duration-200" :class="{'rotate-180': submenuOpen}" x-show="open" x-transition.opacity.duration.200ms>
+                            <i class="fa-solid fa-chevron-down w-5 h-5 stroke-[2.5] flex-shrink-0"></i>
+                        </div>
+                    </button>
+
+                    <!-- Submenu -->
+                    <div x-show="submenuOpen && open" x-collapse class="pl-4 mt-1 space-y-1 overflow-hidden">
+                        <!-- Signatories -->
+                        <a href="{{ route('signatories.index') }}" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200 {{ request()->routeIs('signatories.*')
                                 ? 'bg-[#002C76] text-white shadow-md'
                                 : 'text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md' }}">
-                        <i data-feather="clock" class="w-5 h-5 stroke-[2.5] flex-shrink-0 ml-2"></i>
-                        <span class="ml-3 transition-opacity duration-200">ACTIVITY LOG</span>
-                    </a>
+                            <i data-feather="edit-3" class="w-5 h-5 stroke-[2.5] justify-center items-center flex-shrink-0 ml-2"></i>
+                            <span class="ml-3 transition-opacity duration-200">SIGNATORIES</span>
+                        </a>
 
-                    <!-- Reports -->
-                    <a href="{{ route('admin.reports.index') }}" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200
-                            {{ request()->routeIs('admin.reports.index')
-                                ? 'bg-[#002C76] text-white shadow-md'
-                                : 'text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md' }}">
-                        <i data-feather="bar-chart-2" class="w-5 h-5 stroke-[2.5] flex-shrink-0 ml-2"></i>
-                        <span class="ml-3 transition-opacity duration-200">REPORTS</span>
-                    </a>
+                        <!-- Activity Log -->
+                        <a href="{{ route('admin_activity_log') }}" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200
+                                {{ request()->routeIs('admin_activity_log')
+                                    ? 'bg-[#002C76] text-white shadow-md'
+                                    : 'text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md' }}">
+                            <i data-feather="clock" class="w-5 h-5 stroke-[2.5] flex-shrink-0 ml-2"></i>
+                            <span class="ml-3 transition-opacity duration-200">ACTIVITY LOG</span>
+                        </a>
+
+                        <!-- Reports -->
+                        <a href="{{ route('admin.reports.index') }}" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200
+                                {{ request()->routeIs('admin.reports.index')
+                                    ? 'bg-[#002C76] text-white shadow-md'
+                                    : 'text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md' }}">
+                            <i data-feather="bar-chart-2" class="w-5 h-5 stroke-[2.5] flex-shrink-0 ml-2"></i>
+                            <span class="ml-3 transition-opacity duration-200">REPORTS</span>
+                        </a>
+                    </div>
                 </div>
-            </div>
+            @endif
 
         </nav>
     </div>

@@ -19,7 +19,8 @@ class NotificationController extends Controller
                 ->where(function ($q) {
                     $q->where('data->category', 'document_verification')
                         ->orWhere('data->category', 'exam_lifecycle')
-                        ->orWhere('data->category', 'exam_questions');
+                        ->orWhere('data->category', 'exam_questions')
+                        ->orWhere('data->category', 'account_approval');
                 });
         } elseif (Auth::check()) {
             return Notification::where('notifiable_type', 'App\Models\User')
