@@ -488,12 +488,20 @@
         if (periodicAutoSave) clearInterval(periodicAutoSave);
     });
 
-    const originalPrepareSubmit = prepareSubmit;
-    function prepareSubmit() {
-        if (periodicAutoSave) clearInterval(periodicAutoSave);
-        originalPrepareSubmit();
+    // Ensure confirm button reflects latest state when opening modal
+    if (openSubmitBtn) {
+        openSubmitBtn.addEventListener('click', () => {
+            updateSubmitEnabled();
+        });
     }
-    window.prepareSubmit = prepareSubmit;
+    // Clear periodic autosave before final submit
+    (function wrapSubmit() {
+        const original = prepareSubmit;
+        window.prepareSubmit = function() {
+            if (periodicAutoSave) clearInterval(periodicAutoSave);
+            original();
+        };
+    })();
 </script>
 @include('partials.loader')
 @endsection
