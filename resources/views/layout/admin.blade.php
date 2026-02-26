@@ -85,6 +85,26 @@
             /* Firefox */
             appearance: textfield;
         }
+
+        .page-enter {
+            opacity: 0;
+            transform: translateY(6px);
+        }
+
+        .page-enter.page-ready {
+            opacity: 1;
+            transform: translateY(0);
+            transition: opacity 180ms ease-out, transform 180ms ease-out;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .page-enter,
+            .page-enter.page-ready {
+                opacity: 1;
+                transform: none;
+                transition: none;
+            }
+        }
     </style>
 
     @stack('styles')
@@ -228,8 +248,8 @@
             </header>
 
             <!-- Main Content Scrollable -->
-            <main
-                class="flex-1 overflow-y-auto px-6 sm:px-8 md:px-10 pb-6 sm:pb-8 md:pb-10 pt-0 relative scroll-smooth">
+            <main id="page-shell"
+                class="page-enter flex-1 overflow-y-auto px-6 sm:px-8 md:px-10 pb-6 sm:pb-8 md:pb-10 pt-0 relative scroll-smooth">
                 <!-- Mobile Menu Button (visible only on mobile) -->
                 <button id="mobileMenuButton" @click="toggle" x-show="isMobile && !open"
                     class="lg:hidden fixed top-4 left-4 z-20 bg-[#0D2B70] text-white p-3 rounded-lg shadow-lg hover:bg-[#001a4d] transition-all duration-200"
@@ -262,7 +282,11 @@
         });
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', () => {
+        requestAnimationFrame(() => {
+            document.getElementById('page-shell')?.classList.add('page-ready');
+        });
+
         document.querySelectorAll('a.use-loader').forEach(link => {
             link.addEventListener('click', function (e) {
                 if (this.target !== '_blank') {

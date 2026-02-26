@@ -69,7 +69,8 @@ class AppServiceProvider extends ServiceProvider
         });
 
         Activity::created(function (Activity $activity) {
-            ProcessAdminActivityNotification::dispatch($activity->id);
+            ProcessAdminActivityNotification::dispatch($activity->id)
+                ->onConnection('database');
         });
     }
 }

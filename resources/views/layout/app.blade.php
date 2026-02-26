@@ -112,6 +112,26 @@
             -moz-appearance: textfield;
         }
 
+        .page-enter {
+            opacity: 0;
+            transform: translateY(6px);
+        }
+
+        .page-enter.page-ready {
+            opacity: 1;
+            transform: translateY(0);
+            transition: opacity 180ms ease-out, transform 180ms ease-out;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .page-enter,
+            .page-enter.page-ready {
+                opacity: 1;
+                transform: none;
+                transition: none;
+            }
+        }
+
         @media (max-width: 1024px) {
             .sidebar-desktop {
                 display: none;
@@ -145,7 +165,7 @@
         </div>
 
         <!-- Main Content -->
-        <main class="flex-1 overflow-y-auto ml-2 pt-0 md:ml-20 transition-all duration-300"
+        <main id="page-shell" class="page-enter flex-1 overflow-y-auto ml-2 pt-0 md:ml-20 transition-all duration-300"
             style="margin-left: 0; padding-left: 18px;">
             <header
                 class="sticky top-0 z-40 bg-[#F3F8FF] backdrop-blur px-4 sm:px-8 py-3 flex items-center justify-end gap-6">
@@ -239,13 +259,12 @@
 
     <!-- Feather + Sidebar Script -->
     <script>
-        document.addEventListener('alpine:init', () => {
-            Alpine.effect(() => {
-                feather.replace();
-            });
-        });
         document.addEventListener('DOMContentLoaded', () => {
             feather.replace();
+            requestAnimationFrame(() => {
+                document.getElementById('page-shell')?.classList.add('page-ready');
+            });
+
             const notifToggle = document.getElementById('notifToggle');
             const notifMenu = document.getElementById('notifMenu');
             const notifBadge = document.getElementById('notifBadge');
@@ -254,6 +273,56 @@
             const notifMarkAll = document.getElementById('notifMarkAll');
             let page = 1;
             let loading = false;
+
+            function renderNotifications(items) {
+                const list = Array.isArray(items) ? items : [];
+                const fragment = document.createDocumentFragment();
+                notifList.innerHTML = '';
+
+                if (!list.length) {
+                    const empty = document.createElement('li');
+                    empty.className = 'px-5 py-8 text-center text-sm text-slate-500';
+                    empty.textContent = 'No notifications yet.';
+                    fragment.appendChild(empty);
+                    notifList.appendChild(fragment);
+                    return;
+                }
+
+                list.forEach((n) => {
+                    const level = (n?.data?.level || 'info').toLowerCase();
+                    const unread = !n?.read_at;
+                    const item = document.createElement('li');
+                    item.className = `px-4 py-3 transition-colors cursor-pointer ${unread ? 'bg-blue-50/30' : 'bg-white'} hover:bg-slate-50`;
+
+                    item.innerHTML = `
+                        <div class="flex items-start justify-between gap-2">
+                            <div class="min-w-0">
+                                <p class="text-sm ${unread ? 'font-semibold' : 'font-medium'} text-[#0D2B70]">${n?.data?.title || 'Notification'}</p>
+                                <p class="text-xs text-slate-600 mt-1 line-clamp-2">${n?.data?.message || ''}</p>
+                            </div>
+                            <span class="text-[10px] text-gray-400 whitespace-nowrap">${n?.created_at ? new Date(n.created_at).toLocaleString() : ''}</span>
+                        </div>
+                    `;
+
+                    item.addEventListener('click', () => {
+                        fetch("{{ url('/notifications') }}/" + n.id + "/read", {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                            }
+                        }).finally(() => fetchCount());
+
+                        if (n?.data?.action_url || n?.data?.link) {
+                            window.location.href = n.data.action_url || n.data.link;
+                        }
+                    });
+
+                    fragment.appendChild(item);
+                });
+
+                notifList.appendChild(fragment);
+            }
+
             function fetchCount() {
                 fetch("{{ route('notifications.count') }}", { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
                     .then(r => r.json()).then(d => { notifBadge.textContent = d.count; notifBadge.style.display = d.count > 0 ? 'flex' : 'none'; });
@@ -263,88 +332,11 @@
                 if (reset) { page = 1; notifList.innerHTML = ''; }
                 fetch("{{ route('notifications.fetch') }}?page=" + page, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
                     .then(r => r.json()).then(d => {
-                        d.data.forEach(n => {
-                            const li = document.createElement('li');
-                            // Render component HTML
-                            li.innerHTML = `{!! str_replace("\n", '', view('components.notification-item', ['notification' => (object) ['id' => '__ID__', 'data' => [], 'created_at' => now(), 'read_at' => null]])->render()) !!}`;
-                            
-                            // 1. Set ID
-                            li.setAttribute('data-id', n.id);
-                            
-                            // 2. Inject Content (using specific classes)
-                            const titleEl = li.querySelector('.notif-title');
-                            const msgEl = li.querySelector('.notif-message');
-                            if (titleEl) titleEl.textContent = n.data.title ?? 'Notification';
-                            if (msgEl) msgEl.textContent = n.data.message ?? '';
-
-                            // 2.5 Fix timestamps if possible (client-side formatting is complex without a library, so we accept the server-rendered placeholder or use a simple date)
-                            // Ideally, backend returns a formatted string. For now, leave the placeholder or set a simple text.
-                            // const timeEl = li.querySelector('.notif-time');
-                            // if (timeEl) timeEl.textContent = 'Just now'; // Or parse n.created_at
-
-                            page = d.current_page + 1;
-                            
-                            // 3. Attach click listener to the DIV inside (or the LI itself)
-                            // Since the component is now a DIV, the LI wraps it.
-                            li.addEventListener('click', () => {
-                                // Mark as read
-                                fetch("{{ url('/notifications') }}/" + n.id + "/read", { method: 'POST', headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' } })
-                                    .then(() => { 
-                                        // Visually mark read (remove blue border and bg)
-                                        const div = li.querySelector('div[data-id]');
-                                        if(div) {
-                                            div.classList.remove('border-blue-600', 'bg-blue-50/30');
-                                            div.classList.add('border-transparent', 'bg-white');
-                                        }
-                                        fetchCount(); 
-                                    });
-                                
-                                // Navigate
-                                if (n.data.action_url || n.data.link) { 
-                                    window.location.href = n.data.action_url || n.data.link; 
-                                }
-                            });
-                            
-                            // Replace icons if needed? No, the component has logic for levels.
-                            // But wait, the component renders based on the DUMMY data (level=info).
-                            // If the actual notification has level=error, the icon will be wrong (Info icon).
-                            // WE NEED TO UPDATE THE ICON TOO via JS or pass the level.
-                            // JS updating of feather icons is tricky because feather.replace() runs on load.
-                            // Better: The backend view() call should theoretically happen PER notification if we were using server-side rendering for the list.
-                            // But here we are using client-side fetching with a SINGLE server-side template.
-                            // This limits us. We can't easily change the icon class via JS without mapping 'level' -> 'icon-name'.
-                            
-                            // Quick Fix for Icons:
-                            // We can map levels to feathers here.
-                            const level = n.data.level || 'info';
-                            const iconMap = {
-                                'success': 'check', 'warning': 'alert-triangle', 'error': 'x', 'info': 'info'
-                            };
-                            const colorMap = {
-                                'success': 'bg-green-50 text-green-600',
-                                'warning': 'bg-yellow-50 text-yellow-600',
-                                'error': 'bg-red-50 text-red-600',
-                                'info': 'bg-blue-50 text-blue-600'
-                            };
-                            
-                            const iconContainer = li.querySelector('.rounded-full'); // The icon container
-                            const icon = iconContainer ? iconContainer.querySelector('i') : null;
-                            
-                            if (iconContainer && colorMap[level]) {
-                                // Reset classes
-                                iconContainer.className = `mt-0.5 w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${colorMap[level]}`;
-                            }
-                            if (icon && iconMap[level]) {
-                                icon.setAttribute('data-feather', iconMap[level]);
-                            }
-
-                            notifList.appendChild(li);
-                        });
-                        
-                        // Re-run feather to render new icons
-                        if (window.feather) feather.replace();
-
-                        notifLoadMore.style.display = d.next_page_url ? 'block' : 'none';
+                        renderNotifications(d.data || []);
+                        page = d.current_page + 1;
+                        if (notifLoadMore) {
+                            notifLoadMore.style.display = d.next_page_url ? 'block' : 'none';
+                        }
                     }).finally(() => { loading = false; });
             }
             notifToggle?.addEventListener('click', () => {
@@ -359,7 +351,7 @@
             const profileToggle = document.getElementById('profileToggle');
             const profileMenu = document.getElementById('profileMenu');
             profileToggle?.addEventListener('click', () => profileMenu.classList.toggle('hidden'));
-            setInterval(fetchCount, 30000);
+            setInterval(fetchCount, 60000);
             fetchCount();
             const isAuthed = @json(auth()->check());
             const channelId = @json(auth()->id());

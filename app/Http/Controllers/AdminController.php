@@ -34,6 +34,7 @@ use App\Mail\AdminEventNotification;
 
 
 use App\Mail\NotifyApplicantOverview;
+use App\Jobs\SendApplicantNotificationEmails;
 use Illuminate\Support\Facades\Storage;
 use App\Services\ApplicationStatusTransitionService;
 
@@ -1709,35 +1710,21 @@ class AdminController extends Controller
             ]
         ]);
 
-        try {
-            Mail::to($userEmail)->send(new NotifyApplicantOverview(
-                $user_id,
-                $vacancy_id,
-                $notifyDocumentsSnapshot,
-                $application->application_remarks,
-                $placeOfAssignment,
-                $compensation,
-                $deadline,
-                $qsEducation,
-                $qsEligibility,
-                $qsExperience,
-                $qsTraining,
-                $qsResult,
-                $progressPercentage,
-                $progressCount,
-                $vacancyType
-            ));
-        } catch (\Exception $e) {
-            \Log::error('Mail sending failed: ' . $e->getMessage());
-            return response()->json(['success' => false, 'message' => 'Failed to send email: ' . $e->getMessage()]);
-        }
-
         // Notify all admins (except actor) about the notification sent to applicant
         $admins = Admin::where('id', '!=', Auth::guard('admin')->id())->get();
         $actorName = Auth::guard('admin')->user()->name;
         $applicantName = User::where('id', $user_id)->value('name');
         $positionTitle = JobVacancy::where('vacancy_id', $vacancy_id)->value('position_title');
-        $occurredAt = now();
+
+        $timezone = config('app.timezone') ?: 'UTC';
+        $timestamp = now()->timezone($timezone)->format('Y-m-d H:i:s T');
+
+        $verifiedDocs = array_values(array_filter($userDocumentsSnapshot, function ($d) {
+            $status = strtoupper((string) ($d['status'] ?? ''));
+            return in_array($status, ['VERIFIED', 'NEEDS REVISION']);
+        }));
+
+        $adminMailPayloads = [];
         foreach ($admins as $admin) {
             Notification::create([
                 'notifiable_type' => 'App\Models\Admin',
@@ -1753,40 +1740,45 @@ class AdminController extends Controller
             ]);
 
             if ($admin->email) {
-                try {
-                    \Log::info('Attempting admin notify email', [
-                        'recipient' => $admin->email,
-                        'actor' => $actorName,
-                        'applicant' => $applicantName,
-                        'vacancy_id' => $vacancy_id,
-                        'time' => now()->timezone(config('app.timezone'))->format('Y-m-d H:i:s T')
-                    ]);
-
-                    $timezone = config('app.timezone') ?: 'UTC';
-                    $timestamp = now()->timezone($timezone)->format('Y-m-d H:i:s T');
-
-                    $verifiedDocs = array_values(array_filter($userDocumentsSnapshot, function ($d) {
-                        $status = strtoupper((string) ($d['status'] ?? ''));
-                        return in_array($status, ['VERIFIED', 'NEEDS REVISION']);
-                    }));
-
-                    Mail::to($admin->email)->send(new \App\Mail\AdminNotifyApplicant(
-                        $actorName,
-                        $applicantName,
-                        $vacancy_id,
-                        $positionTitle,
-                        $verifiedDocs,
-                        $timestamp,
-                        $timezone
-                    ));
-                    \Log::info('Admin notify email sent', ['recipient' => $admin->email]);
-                } catch (\Throwable $e) {
-                    \Log::error('Admin notify email failed', ['error' => $e->getMessage()]);
-                }
+                $adminMailPayloads[] = [
+                    'email' => $admin->email,
+                    'actor_name' => $actorName,
+                    'applicant_name' => $applicantName,
+                    'vacancy_id' => $vacancy_id,
+                    'position_title' => $positionTitle,
+                    'documents' => $verifiedDocs,
+                    'timestamp' => $timestamp,
+                    'timezone' => $timezone,
+                ];
             }
         }
 
-        return response()->json(['success' => true, 'message' => 'Applicant notified successfully.']);
+        SendApplicantNotificationEmails::dispatch(
+            $userEmail,
+            [
+                'user_id' => $user_id,
+                'vacancy_id' => $vacancy_id,
+                'notify_documents_snapshot' => $notifyDocumentsSnapshot,
+                'application_remarks' => $application->application_remarks,
+                'place_of_assignment' => $placeOfAssignment,
+                'compensation' => $compensation,
+                'deadline' => $deadline,
+                'qs_education' => $qsEducation,
+                'qs_eligibility' => $qsEligibility,
+                'qs_experience' => $qsExperience,
+                'qs_training' => $qsTraining,
+                'qs_result' => $qsResult,
+                'progress_percentage' => $progressPercentage,
+                'progress_count' => $progressCount,
+                'vacancy_type' => $vacancyType,
+            ],
+            $adminMailPayloads
+        )->onConnection('database')->afterResponse();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Applicant notified successfully. Email delivery is being processed in the background.',
+        ]);
     }
 
     private function buildUserDocumentsSnapshot($user_id, $application): array
