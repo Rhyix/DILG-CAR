@@ -254,7 +254,7 @@
                     <span class="material-icons text-blue-600 mr-2 sm:mr-3 text-2xl sm:text-3xl">home</span>
                     <h2 class="text-lg sm:text-2xl font-bold text-gray-900">18. PERMANENT ADDRESS</h2>
                 </div>
-                <div class="mb-4">
+                <div class="mb-4 w-full flex justify-end">
                     <button type="button" id="copy_res_to_per" 
                     class="border-2 border-[#002C76] bg-[#002C76] text-white rounded-lg px-4 py-2 text-sm sm:text-base font-montserrat 
                     hover:bg-white hover:text-[#002C76] transition">
