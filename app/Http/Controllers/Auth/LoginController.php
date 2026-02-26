@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Spatie\Activitylog\Models\Activity;
 use Illuminate\Support\Facades\Http;
 
@@ -100,7 +102,19 @@ class LoginController extends Controller
             'password' => 'required|string|min:6',
         ]);
 
-        if (Auth::attempt($credentials)) {
+        $email = trim((string) ($credentials['email'] ?? ''));
+        $password = (string) ($credentials['password'] ?? '');
+        $remember = $request->boolean('remember');
+
+        $user = User::query()
+            ->where('email', $email)
+            ->first();
+
+        $emailMatchesCase = $user && hash_equals((string) $user->email, $email);
+        $passwordMatches = $user && Hash::check($password, (string) $user->password);
+
+        if ($emailMatchesCase && $passwordMatches) {
+            Auth::login($user, $remember);
             $request->session()->regenerate();
             $this->clearPdsSessionCache($request);
 

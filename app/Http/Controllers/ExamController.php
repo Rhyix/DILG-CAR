@@ -256,6 +256,30 @@ class ExamController extends Controller
         }
     }
 
+    private function isViewerRole(): bool
+    {
+        return auth('admin')->check()
+            && (string) (auth('admin')->user()->role ?? '') === 'viewer';
+    }
+
+    private function denyViewerAccess(Request $request, string $message = 'Viewer role has read-only exam monitoring access.')
+    {
+        if (!$this->isViewerRole()) {
+            return null;
+        }
+
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => false,
+                'message' => $message,
+            ], 403);
+        }
+
+        return redirect()
+            ->route('admin_exam_management')
+            ->with('error', $message);
+    }
+
     public function logSwitch(Request $request)
     {
         Log::info('User switched tab at ' . $request->input('time'));
@@ -334,6 +358,10 @@ class ExamController extends Controller
 
     public function editExam(Request $request, $vacancy_id)
     {
+        if ($denied = $this->denyViewerAccess($request, 'Viewer cannot edit exam content.')) {
+            return $denied;
+        }
+
         //info('edit_exam');
         $exam_items = ExamItems::where('vacancy_id', $vacancy_id)->get();
         $vacancy = JobVacancy::select('position_title', 'vacancy_type')->where('vacancy_id', $vacancy_id)->firstOrFail();
@@ -349,6 +377,10 @@ class ExamController extends Controller
 
     public function updateExam(Request $request, $vacancy_id)
     {
+        if ($denied = $this->denyViewerAccess($request, 'Viewer cannot update exam content.')) {
+            return $denied;
+        }
+
         // Handle both form-encoded and JSON requests
         $raw = $request->input('questions') ?? $request->getContent();
 
@@ -475,9 +507,10 @@ class ExamController extends Controller
 
     public function examManagement(Request $request)
     {
+        $isViewer = $this->isViewerRole();
         $search = $request->input('search');
-        $jobType = $request->input('job_type');
-        $examStatus = $request->input('exam_status');
+        $jobType = $isViewer ? null : $request->input('job_type');
+        $examStatus = $isViewer ? 'Ongoing' : $request->input('exam_status');
 
         $jobVacancies = JobVacancy::query()
             ->with(['examDetail']) // Eager load the relationship
@@ -517,12 +550,14 @@ class ExamController extends Controller
 
         return view('admin.exam_management', [
             'vacancies' => $jobVacancies,
-            'search' => $search
+            'search' => $search,
+            'isViewer' => $isViewer,
         ]);
     }
 
     public function manageExam(Request $request, $vacancy_id)
     {
+        $isViewer = $this->isViewerRole();
         $vacancy = JobVacancy::select('vacancy_id', 'position_title', 'vacancy_type')->where('vacancy_id', $vacancy_id)->first();
         // Only fetch participants who have entered the lobby (read_at is not null)
         $participants = Applications::where('vacancy_id', $vacancy_id)
@@ -531,6 +566,15 @@ class ExamController extends Controller
             ->get();
 
         $examDetails = ExamDetail::where('vacancy_id', $vacancy_id)->first();
+
+        if ($isViewer) {
+            $viewerExamStatus = $examDetails ? $this->getExamStatus($examDetails) : 'Unscheduled';
+            if ($viewerExamStatus !== 'Ongoing') {
+                return redirect()
+                    ->route('admin_exam_management')
+                    ->with('error', 'Viewer can only monitor ongoing exams.');
+            }
+        }
 
         $isExamExpired = false;
         if ($examDetails && $examDetails->date && $examDetails->time) {
@@ -600,26 +644,29 @@ class ExamController extends Controller
         }
 
         // Get qualified applicants for Tab 1
-        $qualifiedApplicants = Applications::where('vacancy_id', $vacancy_id)
-            ->where('status', 'qualified')
-            ->with(['user'])
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(function ($app) {
-                return [
-                    'id' => $app->id,
-                    'user_id' => $app->user_id,
-                    'vacancy_id' => $app->vacancy_id,
-                    'name' => $app->user->name ?? 'Unknown',
-                    'email' => $app->user->email ?? 'N/A',
-                    'application_date' => $app->created_at->format('M d, Y'),
-                    'status' => $app->status,
-                    'link_sent_at' => $app->link_sent_at,
-                    'link_sent' => !is_null($app->link_sent_at),
-                    'read_at' => $app->read_at,
-                    'is_read' => !is_null($app->read_at),
-                ];
-            });
+        $qualifiedApplicants = collect();
+        if (!$isViewer) {
+            $qualifiedApplicants = Applications::where('vacancy_id', $vacancy_id)
+                ->where('status', 'qualified')
+                ->with(['user'])
+                ->orderBy('created_at', 'desc')
+                ->get()
+                ->map(function ($app) {
+                    return [
+                        'id' => $app->id,
+                        'user_id' => $app->user_id,
+                        'vacancy_id' => $app->vacancy_id,
+                        'name' => $app->user->name ?? 'Unknown',
+                        'email' => $app->user->email ?? 'N/A',
+                        'application_date' => $app->created_at->format('M d, Y'),
+                        'status' => $app->status,
+                        'link_sent_at' => $app->link_sent_at,
+                        'link_sent' => !is_null($app->link_sent_at),
+                        'read_at' => $app->read_at,
+                        'is_read' => !is_null($app->read_at),
+                    ];
+                });
+        }
 
         activity()
             ->causedBy(auth()->user())
@@ -638,6 +685,15 @@ class ExamController extends Controller
             }
         }
 
+        if ($isViewer) {
+            return view('viewer.manage_exam_monitor', [
+                'vacancy' => $vacancy,
+                'participants' => $participants,
+                'user_name' => $user_name,
+                'examDetails' => $examDetails,
+            ]);
+        }
+
         return view('admin.manage_exam', [
             'vacancy' => $vacancy,
             'participants' => $participants,
@@ -650,6 +706,10 @@ class ExamController extends Controller
 
     public function getQualifiedApplicants(Request $request, $vacancy_id)
     {
+        if ($denied = $this->denyViewerAccess($request, 'Viewer cannot access qualified applicants list.')) {
+            return $denied;
+        }
+
         $search = $request->get('search', '');
         $status = $request->get('status', '');
 
@@ -697,6 +757,17 @@ class ExamController extends Controller
 
     public function getLobbyData(Request $request, $vacancy_id)
     {
+        if ($this->isViewerRole()) {
+            $viewerExamDetail = ExamDetail::where('vacancy_id', $vacancy_id)->first();
+            $viewerExamStatus = $viewerExamDetail ? $this->getExamStatus($viewerExamDetail) : 'Unscheduled';
+            if ($viewerExamStatus !== 'Ongoing') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Viewer can only monitor ongoing exams.',
+                ], 403);
+            }
+        }
+
         // Get all applications that are considered participants for this exam
         // Filter by those who have "read" the notification or entered the lobby (read_at is not null)
         $participants = Applications::where('vacancy_id', $vacancy_id)
@@ -939,6 +1010,10 @@ class ExamController extends Controller
 
     public function viewExam(Request $request, $vacancy_id, $user_id)
     {
+        if ($denied = $this->denyViewerAccess($request, 'Viewer cannot check applicant answers.')) {
+            return $denied;
+        }
+
         //dd($request->all());
         info($user_id);
         $application = Applications::select('user_id', 'answers', 'scores', 'exam_started_at', 'exam_end_time', 'exam_submitted_at', 'tab_violations', 'last_tab_violation_at', 'status')->where('user_id', $user_id)->where('vacancy_id', $vacancy_id)->firstOrFail();
@@ -1016,6 +1091,10 @@ class ExamController extends Controller
 
     public function getExamAnswersJson(Request $request, $vacancy_id, $user_id)
     {
+        if ($denied = $this->denyViewerAccess($request, 'Viewer cannot check applicant answers.')) {
+            return $denied;
+        }
+
         $application = Applications::select('user_id', 'answers', 'scores', 'tab_violations', 'last_tab_violation_at')->where('user_id', $user_id)->where('vacancy_id', $vacancy_id)->firstOrFail();
         $examItems = ExamItems::select('id', 'question', 'ans', 'is_essay', 'choices', 'essay_max_score')->where('vacancy_id', $vacancy_id)->get();
 
@@ -1087,6 +1166,10 @@ class ExamController extends Controller
 
     public function downloadExamPdf(Request $request, $vacancy_id, $user_id)
     {
+        if ($denied = $this->denyViewerAccess($request, 'Viewer cannot export applicant exam answers.')) {
+            return $denied;
+        }
+
         $application = Applications::select('user_id', 'answers', 'scores', 'exam_started_at', 'exam_end_time', 'status')
             ->where('user_id', $user_id)->where('vacancy_id', $vacancy_id)->firstOrFail();
         $examItems = ExamItems::select('id', 'question', 'is_essay', 'choices', 'essay_max_score', 'ans')
@@ -1273,6 +1356,10 @@ class ExamController extends Controller
 
     public function saveResult(Request $request, $vacancy_id, $user_id)
     {
+        if ($denied = $this->denyViewerAccess($request, 'Viewer cannot score applicant exams.')) {
+            return $denied;
+        }
+
         $scores = $request->input('scores');
         $result = $request->input('result');
 
@@ -1335,6 +1422,10 @@ class ExamController extends Controller
 
     public function notifyApplicants(Request $request, $vacancy_id)
     {
+        if ($denied = $this->denyViewerAccess($request, 'Viewer cannot send exam notifications.')) {
+            return $denied;
+        }
+
         try {
             // Check if details have been saved first
             $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->first();
@@ -1438,6 +1529,10 @@ class ExamController extends Controller
 
     public function notifySelectedApplicants(Request $request, $vacancy_id)
     {
+        if ($denied = $this->denyViewerAccess($request, 'Viewer cannot send exam notifications.')) {
+            return $denied;
+        }
+
         try {
             $validated = $request->validate([
                 'user_ids' => 'required|array',
@@ -1513,6 +1608,10 @@ class ExamController extends Controller
 
     public function saveExamDetails(Request $request, $vacancy_id)
     {
+        if ($denied = $this->denyViewerAccess($request, 'Viewer cannot modify exam details.')) {
+            return $denied;
+        }
+
         try {
             Log::info('saveExamDetails called', ['vacancy_id' => $vacancy_id, 'notify' => $request->boolean('notify')]);
 
@@ -1594,6 +1693,10 @@ class ExamController extends Controller
 
     public function startExam(Request $request, $vacancy_id)
     {
+        if ($denied = $this->denyViewerAccess($request, 'Viewer cannot start exams.')) {
+            return $denied;
+        }
+
         try {
             $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->first();
 

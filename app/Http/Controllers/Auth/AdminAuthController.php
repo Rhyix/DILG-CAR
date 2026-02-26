@@ -217,7 +217,18 @@ class AdminAuthController extends Controller
             'password' => 'required',
         ]);
 
-        if (Auth::guard('admin')->attempt($credentials)) {
+        $email = trim((string) ($credentials['email'] ?? ''));
+        $password = (string) ($credentials['password'] ?? '');
+
+        $admin = Admin::query()
+            ->where('email', $email)
+            ->first();
+
+        $emailMatchesCase = $admin && hash_equals((string) $admin->email, $email);
+        $passwordMatches = $admin && Hash::check($password, (string) $admin->password);
+
+        if ($emailMatchesCase && $passwordMatches) {
+            Auth::guard('admin')->login($admin);
             $request->session()->regenerate();
             $user = Auth::guard('admin')->user();
             $approvalStatus = (string) ($user->approval_status ?? 'approved');

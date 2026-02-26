@@ -14,6 +14,24 @@ use Spatie\Activitylog\Models\Activity;
 
 class ForgotPasswordController extends Controller
 {
+    private function findUserByExactEmail(string $email): ?User
+    {
+        $email = trim($email);
+        if ($email === '') {
+            return null;
+        }
+
+        $user = User::query()
+            ->where('email', $email)
+            ->first();
+
+        if (!$user) {
+            return null;
+        }
+
+        return hash_equals((string) $user->email, $email) ? $user : null;
+    }
+
     // 1. Show forgot password email input form
     public function showForgotPasswordForm()
     {
@@ -25,7 +43,8 @@ class ForgotPasswordController extends Controller
     {
         $request->validate(['email' => 'required|email']);
 
-        $user = User::where('email', $request->email)->first();
+        $email = trim((string) $request->email);
+        $user = $this->findUserByExactEmail($email);
 
         if (!$user) {
             return back()->withErrors(['email' => 'Email not found.']);
@@ -38,10 +57,10 @@ class ForgotPasswordController extends Controller
         $user->save();
 
         // Send OTP email
-        Mail::to($request->email)->send(new ResetOTPmail($otp));
+        Mail::to($user->email)->send(new ResetOTPmail($otp));
 
         activity()
-            ->withProperties(['ip' => request()->ip(), 'email' => $request->email, 'section' => 'Forgot Password'])
+            ->withProperties(['ip' => request()->ip(), 'email' => $email, 'section' => 'Forgot Password'])
             ->event('send')
             ->log('Sent OTP for password reset.');
 
@@ -78,14 +97,16 @@ class ForgotPasswordController extends Controller
             'otp' => 'required'
         ]);
 
-        $user = User::where('email', $request->email)
-                    ->where('otp', $request->otp)
-                    ->where('otp_expires_at', '>', Carbon::now())
-                    ->first();
+        $email = trim((string) $request->email);
+        $user = $this->findUserByExactEmail($email);
+        $otpIsValid = $user
+            && !is_null($user->otp_expires_at)
+            && (string) $user->otp === (string) $request->otp
+            && Carbon::parse($user->otp_expires_at)->gt(Carbon::now());
 
-        if (!$user) {
+        if (!$otpIsValid) {
             activity()
-                ->withProperties(['ip' => request()->ip(), 'email' => $request->email, 'section' => 'Forgot Password'])
+                ->withProperties(['ip' => request()->ip(), 'email' => $email, 'section' => 'Forgot Password'])
                 ->event('verify')
                 ->log('Invalid or expired OTP attempted.');
 
@@ -111,6 +132,8 @@ class ForgotPasswordController extends Controller
     // 5. Show password reset form
     public function showResetForm($email)
     {
+        $email = trim((string) $email);
+
         // Check session verification
         if (session('password_reset_verified') !== $email) {
             activity()
@@ -125,7 +148,7 @@ class ForgotPasswordController extends Controller
         // Clear session to prevent reuse
         session()->forget('password_reset_verified');
 
-        $user = User::where('email', $email)->first();
+        $user = $this->findUserByExactEmail($email);
 
         if (!$user) {
             activity()
@@ -152,11 +175,12 @@ class ForgotPasswordController extends Controller
             'password' => 'required|confirmed|min:6',
         ]);
 
-        $user = User::where('email', $request->email)->first();
+        $email = trim((string) $request->email);
+        $user = $this->findUserByExactEmail($email);
 
         if (!$user) {
             activity()
-                ->withProperties(['ip' => request()->ip(), 'email' => $request->email, 'section' => 'Forgot Password'])
+                ->withProperties(['ip' => request()->ip(), 'email' => $email, 'section' => 'Forgot Password'])
                 ->event('reset')
                 ->log('Password reset failed (email not found).');
 
@@ -179,11 +203,12 @@ class ForgotPasswordController extends Controller
     {
         $request->validate(['email' => 'required|email']);
 
-        $user = User::where('email', $request->email)->first();
+        $email = trim((string) $request->email);
+        $user = $this->findUserByExactEmail($email);
 
         if (!$user) {
             activity()
-                ->withProperties(['ip' => request()->ip(), 'email' => $request->email, 'section' => 'Forgot Password'])
+                ->withProperties(['ip' => request()->ip(), 'email' => $email, 'section' => 'Forgot Password'])
                 ->event('send')
                 ->log('Password reset failed (email not found).');
 

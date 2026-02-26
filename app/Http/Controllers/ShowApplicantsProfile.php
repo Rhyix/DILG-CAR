@@ -12,6 +12,12 @@ use Illuminate\Support\Facades\Schema;
 
 class ShowApplicantsProfile extends Controller
 {
+    private function complianceStageStatuses(): array
+    {
+        // "Updated" means applicant complied and resubmitted docs after a Compliance request.
+        return ['compliance', 'updated'];
+    }
+
     private function currentAdmin()
     {
         return Auth::guard('admin')->user();
@@ -277,7 +283,7 @@ class ShowApplicantsProfile extends Controller
                 $q->where('status', 'Pending');
             },
             'applications as compliance_count' => function ($q) {
-                $q->where('status', 'Compliance');
+                $q->whereRaw('LOWER(TRIM(status)) IN (?, ?)', $this->complianceStageStatuses());
             },
             'applications as qualified_count' => function ($q) {
                 $q->where('status', 'Qualified');
@@ -419,7 +425,7 @@ class ShowApplicantsProfile extends Controller
         // Get compliance applicants
         $complianceApplications = Applications::with(['vacancy', 'personalInformation', 'user'])
             ->where('vacancy_id', $vacancy_id)
-            ->where('status', 'Compliance')
+            ->whereRaw('LOWER(TRIM(status)) IN (?, ?)', $this->complianceStageStatuses())
             ->orderByDesc('created_at')
             ->get();
 
@@ -571,7 +577,7 @@ class ShowApplicantsProfile extends Controller
 
         $query = Applications::with(['vacancy', 'personalInformation', 'user'])
             ->where('vacancy_id', $vacancyId)
-            ->where('status', 'Compliance');
+            ->whereRaw('LOWER(TRIM(status)) IN (?, ?)', $this->complianceStageStatuses());
 
         // Apply search filter
         if (!empty($search)) {

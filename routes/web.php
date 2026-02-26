@@ -462,46 +462,48 @@ Route::middleware([RedirectIfNotAdmin::class])->group(function () {
 // ==================================================================================================
 Route::middleware([ViewerAccess::class])->group(function () {
     // Viewer routes
-    Route::get('/viewer', fn() => view('viewer.viewer_dashboard'))->name('viewer');
-    Route::get('/viewer/exam_management', fn() => view('viewer.viewer_exam_management'))->name('viewer.exam_management');
-    Route::get('/viewer/exam_management/view_exam', fn() => view('viewer.viewer_answer_view'))->name('viewer.view_exam');
+    Route::get('/viewer', fn() => redirect()->route('admin_exam_management'))->name('viewer');
+    Route::get('/viewer/exam_management', fn() => redirect()->route('admin_exam_management'))->name('viewer.exam_management');
+    Route::get('/viewer/exam_management/view_exam', fn() => redirect()->route('admin_exam_management'))->name('viewer.view_exam');
 
 
     // Exam management routes (accessible by both admin and viewer)
     Route::get('/admin/exam_management', [ExamController::class, 'examManagement'])->name('admin_exam_management');
-    Route::get('/admin/exam_management/{vacancy_id}/view_exam/{user_id}', [ExamController::class, 'viewExam'])->name('admin.view_exam');
-    Route::get('/admin/exam_management/{vacancy_id}/view_exam/{user_id}/json', [ExamController::class, 'getExamAnswersJson'])->name('admin.view_exam.json');
-    Route::get('/admin/exam_management/{vacancy_id}/view_exam/{user_id}/pdf', [ExamController::class, 'downloadExamPdf'])->name('admin.view_exam.pdf');
-    Route::post('/admin/exam_management/{vacancy_id}/view_exam/{user_id}', [ExamController::class, 'saveResult'])->name('admin.save_result');
     Route::get('/admin/exam_management/{vacancy_id}/manage', [ExamController::class, 'manageExam'])->name('admin.manage_exam');
-    Route::get('/admin/exam_management/{vacancy_id}/qualified', [ExamController::class, 'getQualifiedApplicants'])->name('admin.exam.qualified');
-    Route::post('/admin/exam_management/{vacancy_id}/notify', [ExamController::class, 'notifyApplicants'])->name('admin.exam_notify');
-    //Route::get('/admin/exam_management/{vacancy_id}/notify', [ExamController::class, 'notifyApplicants'])->name('admin.exam_notify');
-    Route::post('/admin/exam_management/{vacancy_id}/details/save', [ExamController::class, 'saveExamDetails'])->name('admin.exam.details.save');
-    Route::post('/admin/exam_management/{vacancy_id}/start', [ExamController::class, 'startExam'])->name('admin.exam_start');
     Route::get('/admin/exam_management/{vacancy_id}/lobby-data', [ExamController::class, 'getLobbyData'])->name('admin.exam.lobby_data');
-    Route::post('/admin/exam_management/{vacancy_id}/notify-selected', [ExamController::class, 'notifySelectedApplicants'])->name('admin.exam.notify_selected');
+
+    // Admin-only exam checking/scoring/config
+    Route::get('/admin/exam_management/{vacancy_id}/view_exam/{user_id}', [ExamController::class, 'viewExam'])->name('admin.view_exam')->middleware(RedirectIfNotAdmin::class);
+    Route::get('/admin/exam_management/{vacancy_id}/view_exam/{user_id}/json', [ExamController::class, 'getExamAnswersJson'])->name('admin.view_exam.json')->middleware(RedirectIfNotAdmin::class);
+    Route::get('/admin/exam_management/{vacancy_id}/view_exam/{user_id}/pdf', [ExamController::class, 'downloadExamPdf'])->name('admin.view_exam.pdf')->middleware(RedirectIfNotAdmin::class);
+    Route::post('/admin/exam_management/{vacancy_id}/view_exam/{user_id}', [ExamController::class, 'saveResult'])->name('admin.save_result')->middleware(RedirectIfNotAdmin::class);
+    Route::get('/admin/exam_management/{vacancy_id}/qualified', [ExamController::class, 'getQualifiedApplicants'])->name('admin.exam.qualified')->middleware(RedirectIfNotAdmin::class);
+    Route::post('/admin/exam_management/{vacancy_id}/notify', [ExamController::class, 'notifyApplicants'])->name('admin.exam_notify')->middleware(RedirectIfNotAdmin::class);
+    //Route::get('/admin/exam_management/{vacancy_id}/notify', [ExamController::class, 'notifyApplicants'])->name('admin.exam_notify');
+    Route::post('/admin/exam_management/{vacancy_id}/details/save', [ExamController::class, 'saveExamDetails'])->name('admin.exam.details.save')->middleware(RedirectIfNotAdmin::class);
+    Route::post('/admin/exam_management/{vacancy_id}/start', [ExamController::class, 'startExam'])->name('admin.exam_start')->middleware(RedirectIfNotAdmin::class);
+    Route::post('/admin/exam_management/{vacancy_id}/notify-selected', [ExamController::class, 'notifySelectedApplicants'])->name('admin.exam.notify_selected')->middleware(RedirectIfNotAdmin::class);
 
 
     // Exam Library Routes
-    Route::get('/admin/exam-library', [App\Http\Controllers\ExamLibraryController::class, 'index'])->name('admin.exam_library');
+    Route::get('/admin/exam-library', [App\Http\Controllers\ExamLibraryController::class, 'index'])->name('admin.exam_library')->middleware(RedirectIfNotAdmin::class);
     // Selection page (read-only) for importing series into an exam
     Route::get('/admin/exam-library/select', function (Illuminate\Http\Request $request) {
         $series = App\Models\QuestionSeries::withCount('questions')->orderByDesc('created_at')->get();
         return view('admin.exam_library.select', compact('series'));
-    })->name('admin.exam_library.select');
-    Route::post('/admin/exam-library/series', [App\Http\Controllers\ExamLibraryController::class, 'storeSeries'])->name('admin.exam_library.series.store');
-    Route::put('/admin/exam-library/series/{id}', [App\Http\Controllers\ExamLibraryController::class, 'updateSeries'])->name('admin.exam_library.series.update');
-    Route::delete('/admin/exam-library/series/{id}', [App\Http\Controllers\ExamLibraryController::class, 'deleteSeries'])->name('admin.exam_library.series.delete');
-    Route::get('/admin/exam-library/series/{id}', [App\Http\Controllers\ExamLibraryController::class, 'getSeriesQuestions'])->name('admin.exam_library.series.show');
-    Route::get('/admin/exam-library/series/{id}/questions', [App\Http\Controllers\ExamLibraryController::class, 'getSeriesQuestions'])->name('admin.exam_library.series.questions');
-    Route::post('/admin/exam-library/series/{id}/questions', [App\Http\Controllers\ExamLibraryController::class, 'storeQuestion'])->name('admin.exam_library.questions.store');
-    Route::put('/admin/exam-library/questions/{id}', [App\Http\Controllers\ExamLibraryController::class, 'updateQuestion'])->name('admin.exam_library.questions.update');
-    Route::delete('/admin/exam-library/questions/{id}', [App\Http\Controllers\ExamLibraryController::class, 'deleteQuestion'])->name('admin.exam_library.questions.delete');
-    Route::get('/admin/exam-library/questions/selection', [App\Http\Controllers\ExamLibraryController::class, 'getQuestionsForSelection'])->name('admin.exam_library.questions.selection');
+    })->name('admin.exam_library.select')->middleware(RedirectIfNotAdmin::class);
+    Route::post('/admin/exam-library/series', [App\Http\Controllers\ExamLibraryController::class, 'storeSeries'])->name('admin.exam_library.series.store')->middleware(RedirectIfNotAdmin::class);
+    Route::put('/admin/exam-library/series/{id}', [App\Http\Controllers\ExamLibraryController::class, 'updateSeries'])->name('admin.exam_library.series.update')->middleware(RedirectIfNotAdmin::class);
+    Route::delete('/admin/exam-library/series/{id}', [App\Http\Controllers\ExamLibraryController::class, 'deleteSeries'])->name('admin.exam_library.series.delete')->middleware(RedirectIfNotAdmin::class);
+    Route::get('/admin/exam-library/series/{id}', [App\Http\Controllers\ExamLibraryController::class, 'getSeriesQuestions'])->name('admin.exam_library.series.show')->middleware(RedirectIfNotAdmin::class);
+    Route::get('/admin/exam-library/series/{id}/questions', [App\Http\Controllers\ExamLibraryController::class, 'getSeriesQuestions'])->name('admin.exam_library.series.questions')->middleware(RedirectIfNotAdmin::class);
+    Route::post('/admin/exam-library/series/{id}/questions', [App\Http\Controllers\ExamLibraryController::class, 'storeQuestion'])->name('admin.exam_library.questions.store')->middleware(RedirectIfNotAdmin::class);
+    Route::put('/admin/exam-library/questions/{id}', [App\Http\Controllers\ExamLibraryController::class, 'updateQuestion'])->name('admin.exam_library.questions.update')->middleware(RedirectIfNotAdmin::class);
+    Route::delete('/admin/exam-library/questions/{id}', [App\Http\Controllers\ExamLibraryController::class, 'deleteQuestion'])->name('admin.exam_library.questions.delete')->middleware(RedirectIfNotAdmin::class);
+    Route::get('/admin/exam-library/questions/selection', [App\Http\Controllers\ExamLibraryController::class, 'getQuestionsForSelection'])->name('admin.exam_library.questions.selection')->middleware(RedirectIfNotAdmin::class);
 
-    Route::get('/admin/exam_management/{vacancy_id}/edit', [ExamController::class, 'editExam'])->name('admin.exam.edit');
-    Route::post('/admin/exam_management/{vacancy_id}/edit', [ExamController::class, 'updateExam'])->name('admin.exam.update');
+    Route::get('/admin/exam_management/{vacancy_id}/edit', [ExamController::class, 'editExam'])->name('admin.exam.edit')->middleware(RedirectIfNotAdmin::class);
+    Route::post('/admin/exam_management/{vacancy_id}/edit', [ExamController::class, 'updateExam'])->name('admin.exam.update')->middleware(RedirectIfNotAdmin::class);
 
     //Export
     Route::get('/export-job-vacancies-cos', [ExportController::class, 'exportCOS'])->middleware(RedirectIfNotAdmin::class)->name('exportJobVacancyCOS');
@@ -583,10 +585,11 @@ Route::middleware([ApplicantsAccess::class])->group(function () {
     Route::get('/admin/all-applicants/{vacancy_id}', [ShowApplicantsProfile::class, 'allApplicants'])->name('applicants_profile.all');
 
     // Manage Applicants Routes (New)
-    Route::get('/admin/manage_applicants/{vacancy_id}', [ShowApplicantsProfile::class, 'manageApplicants'])->name('admin.manage_applicants');
+    // Keep static AJAX endpoints before dynamic vacancy route to avoid route collisions.
     Route::get('/admin/manage_applicants/new', [ShowApplicantsProfile::class, 'ajaxFilterNewApplicants'])->name('admin.manage_applicants.new');
     Route::get('/admin/manage_applicants/compliance', [ShowApplicantsProfile::class, 'ajaxFilterComplianceApplicants'])->name('admin.manage_applicants.compliance');
     Route::get('/admin/manage_applicants/qualified', [ShowApplicantsProfile::class, 'ajaxFilterQualifiedApplicants'])->name('admin.manage_applicants.qualified');
+    Route::get('/admin/manage_applicants/{vacancy_id}', [ShowApplicantsProfile::class, 'manageApplicants'])->name('admin.manage_applicants');
 });
 // ==================================================================================================
 // APPLICATION ROUTE

@@ -3,6 +3,9 @@
 @section('content')
 
 <main class="w-full h-[calc(98vh-6rem)] flex flex-col space-y-6 overflow-hidden">
+    @php
+        $isViewerMode = (bool) ($isViewer ?? ((Auth::guard('admin')->user()->role ?? null) === 'viewer'));
+    @endphp
 
     <section class="flex items-center space-x-4 mb-4 max-w-full">
         <h1 class="flex items-center gap-3 w-full border-b border-[#0D2B70] text-white text-4xl font-montserrat py-2 tracking-wide select-none">
@@ -45,11 +48,16 @@
             <div class="flex flex-row items-center ml-4">
                 <span class="text-[#0D2B70] font-semibold mr-2 flex flex-row">Job Type</span>    
                 <select id="jobTypeFilter"
+                        {{ $isViewerMode ? 'disabled' : '' }}
                         class="h-10 cursor-pointer px-4 rounded-md border border-[#0D2B70] text-[#0D2B70] font-semibold bg-white
                             focus:outline-none focus:ring-2 focus:ring-[#0D2B70] focus:ring-offset-1">
-                    <option value="">All</option>
-                    <option value="COS">COS</option>
-                    <option value="Plantilla">Plantilla</option>
+                    @if($isViewerMode)
+                        <option value="" selected>All</option>
+                    @else
+                        <option value="">All</option>
+                        <option value="COS">COS</option>
+                        <option value="Plantilla">Plantilla</option>
+                    @endif
                 </select>
             </div>
 
@@ -57,22 +65,29 @@
             <div class="flex flex-row items-center ml-4">
                 <span class="text-[#0D2B70] font-semibold mr-2">Status</span>    
                 <select id="examStatusFilter"
+                        {{ $isViewerMode ? 'disabled' : '' }}
                         class="h-10 cursor-pointer px-4 rounded-md border border-[#0D2B70] text-[#0D2B70] font-semibold bg-white
                             focus:outline-none focus:ring-2 focus:ring-[#0D2B70] focus:ring-offset-1">
-                    <option value="">All</option>
-                    <option value="Unscheduled">Unscheduled</option>
-                    <option value="Scheduled">Scheduled</option>
-                    <option value="Ongoing">Ongoing</option>
-                    <option value="Completed">Completed</option>
+                    @if($isViewerMode)
+                        <option value="Ongoing" selected>Ongoing</option>
+                    @else
+                        <option value="">All</option>
+                        <option value="Unscheduled">Unscheduled</option>
+                        <option value="Scheduled">Scheduled</option>
+                        <option value="Ongoing">Ongoing</option>
+                        <option value="Completed">Completed</option>
+                    @endif
                 </select>
             </div>
             <!-- exam library button -->
-            <div class="flex justify-end ml-auto">
-                <button onclick="window.location.href='{{ route('admin.exam_library') }}'" 
-                    class="h-10 hover:scale-105 animate-ease-in-out px-6 border border-[#0D2B70] transition bg-white font-semibold rounded-md flex items-center gap-2 text-sm">
-                    <span class="text-[#0D2B70] font-bold">Exam Library</span>
-                </button>
-            </div>
+            @if(!$isViewerMode)
+                <div class="flex justify-end ml-auto">
+                    <button onclick="window.location.href='{{ route('admin.exam_library') }}'" 
+                        class="h-10 hover:scale-105 animate-ease-in-out px-6 border border-[#0D2B70] transition bg-white font-semibold rounded-md flex items-center gap-2 text-sm">
+                        <span class="text-[#0D2B70] font-bold">Exam Library</span>
+                    </button>
+                </div>
+            @endif
         </div>
     </form>
 
@@ -139,7 +154,7 @@
                                     transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
                                     hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md"
                             >
-                                Manage
+                                {{ $isViewerMode ? 'Monitor' : 'Manage' }}
                             </button>
                         </td>
                     </tr>
@@ -150,6 +165,7 @@
     </div>
 
     <script>
+        const isViewerMode = @json($isViewerMode);
         const searchInput = document.getElementById('examIdFilter');
         const jobTypeFilter = document.getElementById('jobTypeFilter');
         const examStatusFilter = document.getElementById('examStatusFilter');
@@ -184,8 +200,8 @@
 
         function fetchVacancies() {
             const query = searchInput.value;
-            const jobType = jobTypeFilter.value;
-            const examStatus = examStatusFilter.value;
+            const jobType = isViewerMode ? '' : jobTypeFilter.value;
+            const examStatus = isViewerMode ? 'Ongoing' : examStatusFilter.value;
 
             // Build query parameters
             const params = new URLSearchParams();
@@ -212,7 +228,7 @@
             if (vacancies.length === 0) {
                 container.innerHTML = `
                     <tr>
-                        <td colspan="4" class="py-6 text-center text-gray-500 font-medium">
+                        <td colspan="5" class="py-6 text-center text-gray-500 font-medium">
                             No records found.
                         </td>
                     </tr>
@@ -258,11 +274,11 @@
                         </span>
                     </td>
                     <td class="py-4 px-6 text-center w-[15%]">
-                        <button onclick="window.location.href='/admin/exam_management/manage_exam/${vacancy.vacancy_id}'" 
+                        <button onclick="window.location.href='/admin/exam_management/${encodeURIComponent(vacancy.vacancy_id)}/manage'" 
                                 class="text-[#0D2B70] border border-[#0D2B70] font-bold py-2 px-6 rounded-md text-sm
                                 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
                                 hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md">
-                            Manage
+                            ${isViewerMode ? 'Monitor' : 'Manage'}
                         </button>
                     </td>
                 </tr>
