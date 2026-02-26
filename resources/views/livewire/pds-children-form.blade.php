@@ -3,6 +3,7 @@
         <span class="material-icons text-sm mr-2 text-blue-500">child_care</span>
         23. CHILDREN INFORMATION
     </h3>
+    
     @foreach ($children as $index => $child)
         <div wire:key="child-{{ $index }}" class="border-2 border-gray-200 rounded-lg p-4 mb-4">
             <!-- Header with Remove Button -->
@@ -44,17 +45,17 @@
         </div>
     @endforeach
 
-    
-    
-    <!-- Add Child Button -->
-    <button
-        type="button"
-        wire:click.prevent="addEmptyChild"
-        class="use-loader text-white bg-green-400 border border-green-400 font-bold py-1 px-4 rounded-md text-sm 
-            transition-all duration-300 hover:scale-105 hover:bg-white 
-            hover:text-green-400 hover:shadow-md inline-flex items-center gap-2 mx-auto"
-        >
-        <span class="text-lg">+</span>
-        Add Another Child
-    </button>
+    <!-- Add Child Button - Right Aligned -->
+    <div class="w-full flex justify-end">
+        <button
+            type="button"
+            wire:click.prevent="addEmptyChild"
+            class="use-loader text-white bg-[#002C76] border border-[#002C76] font-bold py-1 px-4 rounded-md text-sm 
+                transition-all duration-300 hover:scale-105 hover:bg-white 
+                hover:text-[#002C76] hover:shadow-md inline-flex items-center gap-2"
+            >
+            <span class="text-lg">+</span>
+            Add Another Child
+        </button>
+    </div>
 </div>

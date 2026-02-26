@@ -46,11 +46,17 @@
       border: 1px solid #777777;
       border-radius: 50%;
       text-align: center;
-      font-size: 14px;
-      font-weight: 700;
-      line-height: 64px;
-      letter-spacing: 0.5px;
       margin: 0 auto;
+      overflow: hidden;
+      background: #ffffff;
+    }
+
+    .logo-img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      border: 0;
+      object-fit: contain;
     }
 
     .office-name {
@@ -99,6 +105,12 @@
       padding: 6px 7px;
       font-size: 12px;
       vertical-align: top;
+      white-space: normal !important;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+      height: auto !important;
+      max-height: none !important;
+      overflow: visible !important;
     }
 
     .receipt-table th,
@@ -244,7 +256,7 @@
     $qsEligibilityValue = $formatQsValue($qs_eligibility ?? 'no');
     $qsExperienceValue = $formatQsValue($qs_experience ?? 'no');
     $qsTrainingValue = $formatQsValue($qs_training ?? 'no');
-    $overallQsMark = $isQualified ? 'YES (/)' : 'NO (X)';
+    $overallQsMark = $isQualified ? 'YES (✓)' : 'NO (✕)';
 
     $displayDeadline = !empty($deadline) && $deadline !== 'No deadline set' ? $deadline : null;
     $displayRemarks = trim((string) ($application_remarks ?? ''));
@@ -252,13 +264,25 @@
     $sortedDocuments = $normalizedDocuments->sortBy(function ($doc) {
       return strtolower($doc['name']);
     })->values();
+
+    $logoPath = public_path('images/dilg_logo.png');
+    $logoSrc = asset('images/dilg_logo.png');
+    if (isset($message) && is_object($message) && file_exists($logoPath)) {
+      try {
+        $logoSrc = $message->embed($logoPath);
+      } catch (\Throwable $e) {
+        $logoSrc = asset('images/dilg_logo.png');
+      }
+    }
   @endphp
 
   <div class="page">
     <table class="header-table" role="presentation">
       <tr>
         <td class="logo-cell">
-          <div class="logo-box">DILG</div>
+          <div class="logo-box">
+            <img src="{{ $logoSrc }}" alt="DILG Logo" class="logo-img">
+          </div>
         </td>
         <td>
           <p class="office-name">DILG - Cordillera Administrative Region</p>
@@ -279,7 +303,7 @@
       <thead>
         <tr>
           <th>Required Documents</th>
-          <th class="mark-col">(/ or X)</th>
+          <th class="mark-col">(✓ or ✕)</th>
           <th class="remarks-col">Remarks</th>
         </tr>
       </thead>
@@ -293,9 +317,9 @@
             @php
               $mark = '-';
               if (in_array($doc['status'], $verifiedStatuses, true)) {
-                $mark = '/';
+                $mark = '✓';
               } elseif (in_array($doc['status'], $revisionStatuses, true)) {
-                $mark = 'X';
+                $mark = '✕';
               }
 
               $remarksText = $doc['remarks'] !== '' && strtolower($doc['remarks']) !== 'no remarks provided.'

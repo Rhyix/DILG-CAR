@@ -120,9 +120,9 @@
         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-3">
             <h3 class="text-base sm:text-lg font-semibold text-gray-700">{{ strtoupper($education_type_meta['title']) }}</h3>
             <button type="button" 
-            class="use-loader text-white bg-green-400 border border-green-400 font-bold py-1 px-4 
+            class="use-loader text-white bg-[#002C76] border border-[#002C76] font-bold py-1 px-4 
             rounded-md text-sm transition-all duration:300 hover:scal-105 hover:bg-white
-            hover:text-green-600 hover:shadow-md inline-flex items-center gap-2
+            hover:text-[#002C76] hover:shadow-md inline-flex items-center gap-2
             w-full sm:w-auto justify-center sm:justify-start" 
             onclick="addEducationRow('{{ $education_type }}')">
                 <span class="material-icons" style="font-size: 20px;">add</span>
