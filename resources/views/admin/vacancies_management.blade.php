@@ -447,7 +447,7 @@
         };
     }
 
-    const fetchVacanciesDebounced = debounce(fetchVacancies, 10);
+    const fetchVacanciesDebounced = debounce(fetchVacancies, 400);
 
     async function fetchVacancies() {
         const status = document.getElementById('statusFilter')?.value ?? '';

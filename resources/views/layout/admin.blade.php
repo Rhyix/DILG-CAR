@@ -425,7 +425,7 @@
         setInterval(() => {
             fetchCount();
             if (notifMenu && !notifMenu.classList.contains('hidden')) fetchItems();
-        }, 15000);
+        }, 30000);
 
         window.addEventListener('focus', () => {
             fetchCount();
