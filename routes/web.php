@@ -624,7 +624,7 @@ Route::get('/test-event', function () {
 Route::middleware([RedirectIfNotAdmin::class])->prefix('admin')->group(function () {
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard_admin');
 });
-Route::get('/admin/reviewed_applicants', [AdminController::class, 'reviewedApplicants'])->middleware(ApplicantsAccess::class)->name('reviewed_applicants_legacy');
+Route::get('/admin/reviewed_applicants', [AdminController::class, 'reviewedApplicants'])->middleware(ApplicantsAccess::class)->name('reviewed_applicants');
 
 Route::get('/dashboard/admin', [AdminController::class, 'dashboard'])->middleware(RedirectIfNotAdmin::class)->name('dashboard_admin');
 
