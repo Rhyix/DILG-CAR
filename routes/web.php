@@ -366,11 +366,12 @@ Route::middleware(['auth', BlockIfAdmin::class])->group(function () {
     // =========================
     // Profile
     // =========================
+    Route::get('/account-settings', [ProfileController::class, 'accountSettings'])->name('account.settings');
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
     Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::post('/profile/edit', [ProfileController::class, 'update'])->name('profile.update');
     Route::post('/profile/avatar', [ProfileController::class, 'avatar'])->name('profile.avatar');
-    Route::get('/profile/password', fn() => view('profile.password'))->name('profile.password.form');
+    Route::get('/profile/password', fn() => redirect()->route('account.settings'))->name('profile.password.form');
     Route::post('/profile/password', [ProfileController::class, 'password'])->name('profile.password');
 });
 

@@ -3,373 +3,419 @@
 @section('title', 'Reports & Analytics')
 
 @section('content')
-<div class="flex h-screen bg-gray-50">
-    <!-- Sidebar Navigation for Reports -->
-    <div class="w-64 bg-white shadow-md z-10 hidden md:block">
-        <div class="p-6 border-b">
-            <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                Reports
-            </h2>
-        </div>
-        <nav class="mt-4 px-4 space-y-1">
-            <button onclick="loadReport('recruitment_performance')" class="report-nav-item w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors group active-report">
-                <svg class="mr-3 h-5 w-5 text-gray-400 group-hover:text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                Recruitment Perf.
-            </button>
-            <button onclick="loadReport('applicant_demographics')" class="report-nav-item w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors group">
-                <svg class="mr-3 h-5 w-5 text-gray-400 group-hover:text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-                Applicant Demographics
-            </button>
-            <button onclick="loadReport('financial_summary')" class="report-nav-item w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors group">
-                <svg class="mr-3 h-5 w-5 text-gray-400 group-hover:text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Financial Summaries
-            </button>
-            <button onclick="loadReport('inventory')" class="report-nav-item w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors group">
-                <svg class="mr-3 h-5 w-5 text-gray-400 group-hover:text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                </svg>
-                Talent Inventory
-            </button>
-            <button onclick="loadReport('user_activity')" class="report-nav-item w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors group">
-                <svg class="mr-3 h-5 w-5 text-gray-400 group-hover:text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                User Activity
-            </button>
-        </nav>
-    </div>
+<main class="mx-auto w-full max-w-[1500px] pb-8">
+    <section class="flex items-center gap-3 border-b border-[#0D2B70] pb-3">
+        <h1 class="text-3xl font-montserrat font-semibold text-[#0D2B70]">Reports & Analytics</h1>
+        <span id="reportTitleBadge" class="rounded-full border border-[#0D2B70]/30 bg-[#0D2B70]/10 px-3 py-1 text-xs font-semibold text-[#0D2B70]">
+            Vacancy Summary Report
+        </span>
+    </section>
 
-    <!-- Main Content -->
-    <div class="flex-1 flex flex-col overflow-hidden">
-        <!-- Header -->
-        <header class="bg-white shadow-sm z-10 p-4 flex justify-between items-center">
-            <h1 id="report-title" class="text-2xl font-bold text-gray-800">Recruitment Performance</h1>
-            <div class="flex items-center gap-3">
-                <!-- Date Range Picker -->
-                <div class="flex items-center gap-2 bg-gray-100 p-1 rounded-md">
-                    <input type="date" id="start_date" class="bg-transparent border-none text-sm focus:ring-0 text-gray-600">
-                    <span class="text-gray-400">-</span>
-                    <input type="date" id="end_date" class="bg-transparent border-none text-sm focus:ring-0 text-gray-600">
-                </div>
-                <button onclick="refreshReport()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    Refresh
-                </button>
-                <div class="relative group">
-                    <button class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
-                        Export
-                    </button>
-                    <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 hidden group-hover:block border">
-                        <a href="#" onclick="exportReport('csv'); return false;" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Export as CSV</a>
-                        <!-- <a href="#" onclick="exportReport('pdf'); return false;" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Export as PDF</a> -->
-                    </div>
-                </div>
+    <section class="mt-4 grid gap-4 xl:grid-cols-[280px_1fr]">
+        <aside class="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+            <p class="px-2 pb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Report Modules</p>
+            <div class="space-y-1" id="reportNav">
+                <button type="button" data-report="vacancy_summary" class="report-nav-btn is-active">A. Vacancy Summary Report</button>
+                <button type="button" data-report="vacancy_performance" class="report-nav-btn">B. Vacancy Performance Report</button>
+                <button type="button" data-report="vacancy_detailed" class="report-nav-btn">C. Vacancy Detailed Report (Printable)</button>
+                <button type="button" data-report="applicant_master_list" class="report-nav-btn">Applicant Master List</button>
+                <button type="button" data-report="applicant_status_analytics" class="report-nav-btn">Applicant Status Analytics</button>
+                <button type="button" data-report="exam_schedule" class="report-nav-btn">Exam Schedule Report</button>
+                <button type="button" data-report="exam_result_summary" class="report-nav-btn">Exam Result Summary</button>
+                <button type="button" data-report="exam_vacancy_based_result" class="report-nav-btn">Vacancy-Based Exam Result</button>
             </div>
-        </header>
+        </aside>
 
-        <!-- Scrollable Content -->
-        <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-6">
-            <div id="loading-state" class="hidden flex justify-center items-center h-64">
-                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-            </div>
-
-            <div id="report-content" class="space-y-6">
-                <!-- Summary Cards -->
-                <div id="summary-cards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <!-- Dynamic Content -->
+        <div class="space-y-4">
+            <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+                    <div>
+                        <label for="startDate" class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500">Start Date</label>
+                        <input id="startDate" type="date" class="filter-input">
+                    </div>
+                    <div>
+                        <label for="endDate" class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500">End Date</label>
+                        <input id="endDate" type="date" class="filter-input">
+                    </div>
+                    <div>
+                        <label for="vacancyFilter" class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500">Vacancy</label>
+                        <select id="vacancyFilter" class="filter-input">
+                            <option value="">All Vacancies</option>
+                            @foreach($vacancies ?? [] as $vacancy)
+                                <option value="{{ $vacancy->vacancy_id }}">
+                                    {{ $vacancy->vacancy_id }} - {{ $vacancy->position_title }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div id="statusFilterWrap" class="hidden">
+                        <label for="statusFilter" class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500">Status</label>
+                        <select id="statusFilter" class="filter-input">
+                            <option value="">All Statuses</option>
+                            <option value="reviewed">Reviewed</option>
+                            <option value="ongoing">Ongoing</option>
+                            <option value="passed">Passed</option>
+                            <option value="failed">Failed</option>
+                            <option value="withdrawn">Withdrawn</option>
+                            <option value="pending">Pending</option>
+                            <option value="submitted">Submitted</option>
+                            <option value="updated">Updated</option>
+                            <option value="qualified">Qualified</option>
+                        </select>
+                    </div>
+                    <div id="qualificationFilterWrap" class="hidden">
+                        <label for="qualificationFilter" class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500">Qualification</label>
+                        <select id="qualificationFilter" class="filter-input">
+                            <option value="">All Qualifications</option>
+                            <option value="Qualified">Qualified</option>
+                            <option value="Not Qualified">Not Qualified</option>
+                        </select>
+                    </div>
                 </div>
 
-                <!-- Charts Section -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                        <h3 class="text-lg font-semibold text-gray-800 mb-4" id="chart-1-title">Analytics</h3>
-                        <canvas id="chart1" height="200"></canvas>
+                <div class="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button type="button" id="applyFiltersBtn" class="primary-btn">Apply Filters</button>
+                        <button type="button" id="resetFiltersBtn" class="secondary-btn">Reset</button>
                     </div>
-                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                        <h3 class="text-lg font-semibold text-gray-800 mb-4" id="chart-2-title">Breakdown</h3>
-                        <canvas id="chart2" height="200"></canvas>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button type="button" id="exportCsvBtn" class="secondary-btn">Export CSV</button>
+                        <button type="button" id="exportExcelBtn" class="secondary-btn hidden">Export Excel</button>
+                        <button type="button" id="exportPdfBtn" class="secondary-btn hidden">Export PDF</button>
+                        <button type="button" id="printReportBtn" class="secondary-btn hidden">Print</button>
                     </div>
                 </div>
+            </section>
 
-                <!-- Data Table -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                    <div class="px-6 py-4 border-b border-gray-100">
-                        <h3 class="text-lg font-semibold text-gray-800">Detailed Data</h3>
+            <section id="reportError" class="hidden rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700"></section>
+
+            <section id="reportLoading" class="hidden rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm">
+                <div class="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-[#0D2B70]"></div>
+                <p class="mt-3 text-sm font-semibold text-slate-600">Loading report data...</p>
+            </section>
+
+            <section id="reportContent" class="space-y-4">
+                <div id="summaryCards" class="grid gap-3 md:grid-cols-2 xl:grid-cols-4"></div>
+
+                <div id="chartsGrid" class="grid gap-4 lg:grid-cols-2"></div>
+
+                <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                    <div class="border-b border-slate-200 px-4 py-3">
+                        <h2 id="tableTitle" class="text-sm font-bold uppercase tracking-wide text-[#0D2B70]">Report Data</h2>
                     </div>
                     <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200" id="data-table">
-                            <thead class="bg-gray-50">
-                                <!-- Dynamic Headers -->
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
-                                <!-- Dynamic Rows -->
-                            </tbody>
+                        <table class="min-w-full table-auto text-sm" id="reportTable">
+                            <thead class="bg-slate-50"></thead>
+                            <tbody class="divide-y divide-slate-100 bg-white"></tbody>
                         </table>
                     </div>
                 </div>
-            </div>
-        </main>
-    </div>
-</div>
+            </section>
+        </div>
+    </section>
+</main>
+@endsection
+
+@push('styles')
+<style>
+    .report-nav-btn {
+        width: 100%;
+        border: 1px solid transparent;
+        border-radius: 12px;
+        padding: 0.65rem 0.7rem;
+        text-align: left;
+        font-size: 0.84rem;
+        font-weight: 600;
+        color: #334155;
+        transition: all 0.15s ease;
+    }
+    .report-nav-btn:hover { border-color: #bfdbfe; background: #eff6ff; color: #0d2b70; }
+    .report-nav-btn.is-active { border-color: #0d2b70; background: #0d2b70; color: #fff; }
+    .filter-input {
+        width: 100%;
+        border: 1px solid #cbd5e1;
+        border-radius: 0.75rem;
+        padding: 0.58rem 0.7rem;
+        font-size: 0.875rem;
+        color: #1e293b;
+        background: #fff;
+        outline: none;
+    }
+    .filter-input:focus { border-color: #0d2b70; box-shadow: 0 0 0 2px rgba(13, 43, 112, 0.12); }
+    .primary-btn {
+        border: 1px solid #0d2b70;
+        background: #0d2b70;
+        color: #fff;
+        border-radius: 0.6rem;
+        padding: 0.5rem 0.85rem;
+        font-size: 0.78rem;
+        font-weight: 700;
+    }
+    .primary-btn:hover { background: #0a2259; }
+    .secondary-btn {
+        border: 1px solid #cbd5e1;
+        background: #fff;
+        color: #334155;
+        border-radius: 0.6rem;
+        padding: 0.5rem 0.85rem;
+        font-size: 0.78rem;
+        font-weight: 700;
+    }
+    .secondary-btn:hover { background: #f8fafc; }
+    @media print {
+        #reportNav, #applyFiltersBtn, #resetFiltersBtn, #exportCsvBtn, #exportExcelBtn, #exportPdfBtn, #printReportBtn,
+        #statusFilterWrap, #qualificationFilterWrap {
+            display: none !important;
+        }
+        .border, .shadow-sm, .rounded-2xl, .rounded-xl { box-shadow: none !important; border: 0 !important; }
+        main { max-width: none !important; padding: 0 !important; margin: 0 !important; }
+    }
+</style>
+@endpush
 
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    let currentReport = 'recruitment_performance';
-    let chart1Instance = null;
-    let chart2Instance = null;
+    const reportMeta = {
+        vacancy_summary: 'Vacancy Summary Report',
+        vacancy_performance: 'Vacancy Performance Report',
+        vacancy_detailed: 'Vacancy Detailed Report (Printable)',
+        applicant_master_list: 'Applicant Master List',
+        applicant_status_analytics: 'Applicant Status Analytics',
+        exam_schedule: 'Exam Schedule Report',
+        exam_result_summary: 'Exam Result Summary',
+        exam_vacancy_based_result: 'Vacancy-Based Exam Result'
+    };
 
-    document.addEventListener('DOMContentLoaded', () => {
-        // Set default dates (This Month)
+    const els = {
+        nav: document.getElementById('reportNav'),
+        titleBadge: document.getElementById('reportTitleBadge'),
+        startDate: document.getElementById('startDate'),
+        endDate: document.getElementById('endDate'),
+        vacancy: document.getElementById('vacancyFilter'),
+        statusWrap: document.getElementById('statusFilterWrap'),
+        qualificationWrap: document.getElementById('qualificationFilterWrap'),
+        status: document.getElementById('statusFilter'),
+        qualification: document.getElementById('qualificationFilter'),
+        applyBtn: document.getElementById('applyFiltersBtn'),
+        resetBtn: document.getElementById('resetFiltersBtn'),
+        exportCsvBtn: document.getElementById('exportCsvBtn'),
+        exportExcelBtn: document.getElementById('exportExcelBtn'),
+        exportPdfBtn: document.getElementById('exportPdfBtn'),
+        printBtn: document.getElementById('printReportBtn'),
+        loading: document.getElementById('reportLoading'),
+        content: document.getElementById('reportContent'),
+        error: document.getElementById('reportError'),
+        cards: document.getElementById('summaryCards'),
+        chartsGrid: document.getElementById('chartsGrid'),
+        tableTitle: document.getElementById('tableTitle'),
+        tableHead: document.querySelector('#reportTable thead'),
+        tableBody: document.querySelector('#reportTable tbody')
+    };
+
+    let currentReport = 'vacancy_summary';
+    let chartInstances = [];
+
+    function setDefaultDates() {
         const now = new Date();
-        const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-        document.getElementById('start_date').valueAsDate = firstDay;
-        document.getElementById('end_date').valueAsDate = now;
-
-        loadReport('recruitment_performance');
-    });
-
-    function loadReport(type) {
-        currentReport = type;
-        
-        // Update Sidebar UI
-        document.querySelectorAll('.report-nav-item').forEach(el => {
-            el.classList.remove('bg-blue-50', 'text-blue-700', 'border-r-4', 'border-blue-600');
-            el.classList.add('text-gray-700');
-        });
-        const activeBtn = document.querySelector(`button[onclick="loadReport('${type}')"]`);
-        if(activeBtn) {
-            activeBtn.classList.add('bg-blue-50', 'text-blue-700', 'border-r-4', 'border-blue-600');
-            activeBtn.classList.remove('text-gray-700');
-        }
-
-        // Update Title
-        const titles = {
-            'recruitment_performance': 'Recruitment Performance Analytics',
-            'applicant_demographics': 'Applicant Demographics Report',
-            'financial_summary': 'Financial & Salary Summary',
-            'user_activity': 'User Activity Logs',
-            'inventory': 'Talent Pool Inventory'
-        };
-        document.getElementById('report-title').innerText = titles[type];
-
-        fetchReportData();
+        const startOfYear = new Date(now.getFullYear(), 0, 1);
+        els.startDate.valueAsDate = startOfYear;
+        els.endDate.valueAsDate = now;
     }
 
-    function refreshReport() {
-        fetchReportData();
+    function setActiveReport(reportType) {
+        currentReport = reportType;
+        els.titleBadge.textContent = reportMeta[reportType] || reportType;
+        [...document.querySelectorAll('.report-nav-btn')].forEach((btn) => {
+            btn.classList.toggle('is-active', btn.dataset.report === reportType);
+        });
+
+        const applicantReport = reportType === 'applicant_master_list' || reportType === 'applicant_status_analytics';
+        els.qualificationWrap.classList.toggle('hidden', !applicantReport);
+        els.statusWrap.classList.toggle('hidden', reportType !== 'applicant_master_list');
+
+        const masterList = reportType === 'applicant_master_list';
+        els.exportExcelBtn.classList.toggle('hidden', !masterList);
+        els.exportPdfBtn.classList.toggle('hidden', !masterList);
+        els.printBtn.classList.toggle('hidden', reportType !== 'vacancy_detailed');
+    }
+
+    function buildParams(extra = {}) {
+        const params = new URLSearchParams({
+            type: currentReport,
+            start_date: els.startDate.value || '',
+            end_date: els.endDate.value || '',
+            vacancy_id: els.vacancy.value || '',
+            ...extra
+        });
+
+        if (!els.statusWrap.classList.contains('hidden') && els.status.value) {
+            params.set('status', els.status.value);
+        }
+        if (!els.qualificationWrap.classList.contains('hidden') && els.qualification.value) {
+            params.set('qualification', els.qualification.value);
+        }
+        return params;
+    }
+
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function showError(message) {
+        els.error.textContent = message;
+        els.error.classList.remove('hidden');
+    }
+
+    function clearError() {
+        els.error.textContent = '';
+        els.error.classList.add('hidden');
+    }
+
+    function renderCards(cards = []) {
+        els.cards.innerHTML = '';
+        if (!cards.length) return;
+
+        cards.forEach((card) => {
+            const wrap = document.createElement('div');
+            wrap.className = 'rounded-xl border border-slate-200 bg-white p-4 shadow-sm';
+            wrap.innerHTML = `
+                <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">${escapeHtml(card.label)}</p>
+                <p class="mt-1 text-2xl font-bold text-[#0D2B70]">${escapeHtml(card.value)}</p>
+            `;
+            els.cards.appendChild(wrap);
+        });
+    }
+
+    function destroyCharts() {
+        chartInstances.forEach((chart) => chart.destroy());
+        chartInstances = [];
+    }
+
+    function renderCharts(charts = []) {
+        destroyCharts();
+        els.chartsGrid.innerHTML = '';
+        if (!charts.length) return;
+
+        charts.forEach((chartConfig, index) => {
+            const card = document.createElement('div');
+            card.className = 'rounded-2xl border border-slate-200 bg-white p-4 shadow-sm';
+            const canvasId = `report-chart-${index}`;
+            card.innerHTML = `
+                <h3 class="mb-3 text-sm font-bold uppercase tracking-wide text-[#0D2B70]">${escapeHtml(chartConfig.title || 'Chart')}</h3>
+                <div class="h-[280px]"><canvas id="${canvasId}"></canvas></div>
+            `;
+            els.chartsGrid.appendChild(card);
+
+            const ctx = document.getElementById(canvasId);
+            if (!ctx) return;
+
+            const instance = new Chart(ctx, {
+                type: chartConfig.type || 'bar',
+                data: {
+                    labels: chartConfig.labels || [],
+                    datasets: chartConfig.datasets || []
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: ['bar', 'line'].includes(chartConfig.type)
+                        ? { y: { beginAtZero: true } }
+                        : {}
+                }
+            });
+            chartInstances.push(instance);
+        });
+    }
+
+    function renderTable(table = {}) {
+        els.tableTitle.textContent = table.title || 'Report Data';
+        const headers = table.headers || [];
+        const rows = table.rows || [];
+
+        els.tableHead.innerHTML = `<tr>${headers.map((h) => `<th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">${escapeHtml(h)}</th>`).join('')}</tr>`;
+
+        if (!rows.length) {
+            els.tableBody.innerHTML = `<tr><td colspan="${Math.max(headers.length, 1)}" class="px-4 py-10 text-center text-sm text-slate-500">No records found for the selected filters.</td></tr>`;
+            return;
+        }
+
+        els.tableBody.innerHTML = rows.map((row) => {
+            const cols = Array.isArray(row) ? row : [];
+            return `<tr>${cols.map((value) => `<td class="px-4 py-3 align-top text-sm text-slate-700">${escapeHtml(value)}</td>`).join('')}</tr>`;
+        }).join('');
+    }
+
+    async function loadReport() {
+        clearError();
+        els.loading.classList.remove('hidden');
+        els.content.classList.add('hidden');
+
+        try {
+            const params = buildParams();
+            const response = await fetch(`{{ route('admin.reports.data') }}?${params.toString()}`, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to load report (${response.status})`);
+            }
+
+            const payload = await response.json();
+            if (payload.error) {
+                throw new Error(payload.error);
+            }
+
+            renderCards(payload.summary_cards || []);
+            renderCharts(payload.charts || []);
+            renderTable(payload.table || {});
+        } catch (error) {
+            showError(error.message || 'Unable to load report data.');
+            renderCards([]);
+            renderCharts([]);
+            renderTable({ headers: ['Message'], rows: [['No data available']] });
+        } finally {
+            els.loading.classList.add('hidden');
+            els.content.classList.remove('hidden');
+        }
     }
 
     function exportReport(format) {
-        const start = document.getElementById('start_date').value;
-        const end = document.getElementById('end_date').value;
-        const url = `{{ route('admin.reports.export') }}?type=${currentReport}&start_date=${start}&end_date=${end}&format=${format}`;
-        window.location.href = url;
+        const params = buildParams({ format });
+        window.location.href = `{{ route('admin.reports.export') }}?${params.toString()}`;
     }
 
-    async function fetchReportData() {
-        const start = document.getElementById('start_date').value;
-        const end = document.getElementById('end_date').value;
-        
-        document.getElementById('loading-state').classList.remove('hidden');
-        document.getElementById('report-content').classList.add('hidden');
+    document.addEventListener('DOMContentLoaded', () => {
+        setDefaultDates();
+        setActiveReport('vacancy_summary');
 
-        try {
-            const response = await fetch(`{{ route('admin.reports.data') }}?type=${currentReport}&start_date=${start}&end_date=${end}`);
-            const data = await response.json();
-            
-            renderDashboard(data);
-        } catch (error) {
-            console.error('Error fetching report:', error);
-            alert('Failed to load report data.');
-        } finally {
-            document.getElementById('loading-state').classList.add('hidden');
-            document.getElementById('report-content').classList.remove('hidden');
-        }
-    }
-
-    function renderDashboard(data) {
-        renderSummaryCards(data);
-        renderCharts(data);
-        renderTable(data);
-    }
-
-    function renderSummaryCards(data) {
-        const container = document.getElementById('summary-cards');
-        container.innerHTML = '';
-        
-        let cards = [];
-
-        if (currentReport === 'recruitment_performance') {
-            cards = [
-                { label: 'Total Applications', value: data.total_applications, color: 'blue' },
-                { label: 'Total Vacancies', value: data.total_vacancies, color: 'green' },
-                { label: 'Avg. Apps/Vacancy', value: data.total_vacancies ? (data.total_applications / data.total_vacancies).toFixed(1) : 0, color: 'purple' },
-                { label: 'Active Campaigns', value: data.vacancy_status.find(s => s.status === 'OPEN')?.count || 0, color: 'yellow' }
-            ];
-        } else if (currentReport === 'financial_summary') {
-            cards = [
-                { label: 'Total Projected Cost', value: '₱' + Number(data.total_projected_cost).toLocaleString(), color: 'green' },
-                { label: 'Positions Count', value: data.top_salaries.length, color: 'blue' }
-            ];
-        } else if (currentReport === 'inventory') {
-            cards = [
-                { label: 'Total Candidates', value: data.total_candidates, color: 'indigo' },
-                { label: 'Eligibility Types', value: data.eligibility_breakdown.length, color: 'pink' }
-            ];
-        }
-
-        cards.forEach(card => {
-            container.innerHTML += `
-                <div class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-${card.color}-500">
-                    <p class="text-sm font-medium text-gray-500 uppercase tracking-wider">${card.label}</p>
-                    <p class="mt-2 text-3xl font-bold text-gray-800">${card.value}</p>
-                </div>
-            `;
+        els.nav?.addEventListener('click', (event) => {
+            const btn = event.target.closest('.report-nav-btn');
+            if (!btn) return;
+            setActiveReport(btn.dataset.report);
+            loadReport();
         });
-    }
 
-    function renderCharts(data) {
-        if (chart1Instance) chart1Instance.destroy();
-        if (chart2Instance) chart2Instance.destroy();
+        els.applyBtn?.addEventListener('click', loadReport);
+        els.resetBtn?.addEventListener('click', () => {
+            setDefaultDates();
+            els.vacancy.value = '';
+            els.status.value = '';
+            els.qualification.value = '';
+            loadReport();
+        });
 
-        const ctx1 = document.getElementById('chart1').getContext('2d');
-        const ctx2 = document.getElementById('chart2').getContext('2d');
+        els.exportCsvBtn?.addEventListener('click', () => exportReport('csv'));
+        els.exportExcelBtn?.addEventListener('click', () => exportReport('excel'));
+        els.exportPdfBtn?.addEventListener('click', () => exportReport('pdf'));
+        els.printBtn?.addEventListener('click', () => window.print());
 
-        if (currentReport === 'recruitment_performance') {
-            // Chart 1: Applications Over Time (Line)
-            const dates = data.applications_over_time.map(d => d.date);
-            const counts = data.applications_over_time.map(d => d.count);
-            
-            chart1Instance = new Chart(ctx1, {
-                type: 'line',
-                data: {
-                    labels: dates,
-                    datasets: [{
-                        label: 'Applications',
-                        data: counts,
-                        borderColor: '#3B82F6',
-                        tension: 0.3,
-                        fill: true,
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)'
-                    }]
-                },
-                options: { responsive: true, plugins: { legend: { display: false } } }
-            });
-
-            // Chart 2: Vacancy Status (Doughnut)
-            const statuses = data.vacancy_status.map(s => s.status);
-            const statusCounts = data.vacancy_status.map(s => s.count);
-
-            chart2Instance = new Chart(ctx2, {
-                type: 'doughnut',
-                data: {
-                    labels: statuses,
-                    datasets: [{
-                        data: statusCounts,
-                        backgroundColor: ['#10B981', '#EF4444', '#F59E0B', '#6366F1']
-                    }]
-                }
-            });
-        } 
-        else if (currentReport === 'financial_summary') {
-             // Chart 1: Cost by Type (Bar)
-             const types = data.cost_by_type.map(d => d.vacancy_type);
-             const costs = data.cost_by_type.map(d => d.total);
-
-             chart1Instance = new Chart(ctx1, {
-                type: 'bar',
-                data: {
-                    labels: types,
-                    datasets: [{
-                        label: 'Total Cost',
-                        data: costs,
-                        backgroundColor: '#8B5CF6'
-                    }]
-                }
-            });
-        }
-        else if (currentReport === 'inventory') {
-             // Chart 1: Eligibility (Pie)
-             const labels = data.eligibility_breakdown.map(d => d.qs_eligibility || 'N/A');
-             const vals = data.eligibility_breakdown.map(d => d.count);
-
-             chart1Instance = new Chart(ctx1, {
-                type: 'pie',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        data: vals,
-                        backgroundColor: ['#EC4899', '#8B5CF6', '#3B82F6', '#10B981', '#F59E0B']
-                    }]
-                }
-            });
-        }
-    }
-
-    function renderTable(data) {
-        const thead = document.querySelector('#data-table thead');
-        const tbody = document.querySelector('#data-table tbody');
-        thead.innerHTML = '';
-        tbody.innerHTML = '';
-
-        if (currentReport === 'recruitment_performance') {
-            // We can show raw application logs or vacancy summary
-            thead.innerHTML = `<tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Count</th>
-            </tr>`;
-            
-            data.applications_over_time.slice(0, 10).forEach(row => {
-                tbody.innerHTML += `<tr>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${row.date}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row.count}</td>
-                </tr>`;
-            });
-        } else if (currentReport === 'financial_summary') {
-            thead.innerHTML = `<tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Position</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Monthly Salary</th>
-            </tr>`;
-            
-            data.top_salaries.forEach(row => {
-                tbody.innerHTML += `<tr>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${row.position_title}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row.vacancy_type}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">₱${Number(row.monthly_salary).toLocaleString()}</td>
-                </tr>`;
-            });
-        } else if (currentReport === 'user_activity') {
-            thead.innerHTML = `<tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-            </tr>`;
-            
-            data.recent_logs.forEach(row => {
-                tbody.innerHTML += `<tr>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${new Date(row.created_at).toLocaleString()}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${row.causer ? row.causer.name : 'System'}</td>
-                    <td class="px-6 py-4 text-sm text-gray-500 truncate max-w-xs">${row.description}</td>
-                </tr>`;
-            });
-        }
-    }
+        loadReport();
+    });
 </script>
 @endpush
-@endsection

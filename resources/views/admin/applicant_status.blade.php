@@ -143,7 +143,7 @@
 									<div class="flex items-baseline gap-2">
 										<span id="progress-percentage" class="text-2xl font-bold text-[#002C76]">0%</span>
 										<span class="text-xs text-gray-500 font-medium tracking-wide">
-											<span id="progress-count">0/15</span> Documents Verified
+											<span id="progress-count">0/0</span> Documents Verified
 										</span>
 									</div>
 
@@ -514,48 +514,11 @@ value="{{ old('deadline_time', $application->deadline_time ? \Carbon\Carbon::par
 			});
 		});
 
-		// --- QS Logic (Phase 4) ---
+		// --- QS Logic (Manual QS only) ---
 		function updateQualificationStatus() {
-			// Helper to check if doc is verified
-			const isVerified = (id) => {
-				const doc = documents.find(d => d.id === id);
-				return doc && (doc.status === 'Verified' || doc.status === 'Okay/Confirmed');
-			};
-
-			// Unified Rules for both Plantilla and COS
-			// Eligibility: Green if cert_eligibility Verified
-			updateQSToggle('qs_eligibility', isVerified('cert_eligibility'));
-
-			// Education: Green if transcript_records AND photocopy_diploma Verified
-			updateQSToggle('qs_education', isVerified('transcript_records') && isVerified('photocopy_diploma'));
-
-			// Training: Green if cert_training Verified
-			updateQSToggle('qs_training', isVerified('cert_training'));
-
-			// Experience: Green if signed_work_exp_sheet Verified
-			updateQSToggle('qs_experience', isVerified('signed_work_exp_sheet'));
-
-			// Overall Qualification Status
+			// Keep overall result in sync with current QS radio selections only.
+			// Document verification must not auto-toggle QS fields.
 			checkOverallQualification();
-		}
-
-		function updateQSToggle(field, isGreen) {
-			const radios = document.querySelectorAll(`input[name="${field}"]`);
-			if (radios.length === 0) return;
-
-			const val = isGreen ? 'yes' : 'no';
-			radios.forEach(r => {
-				r.checked = (r.value === val);
-			});
-		}
-
-		function setQSGray(field) {
-			const radios = document.querySelectorAll(`input[name="${field}"]`);
-			if (radios.length === 0) return;
-
-			radios.forEach(r => {
-				r.checked = false;
-			});
 		}
 
 		function checkOverallQualification() {
@@ -809,7 +772,6 @@ value="{{ old('deadline_time', $application->deadline_time ? \Carbon\Carbon::par
 			// Defer heavy updates
 			setTimeout(() => {
 				updateProgressCircle();
-				updateQualificationStatus();
 			}, 0);
 
 			try {
@@ -1174,9 +1136,13 @@ value="{{ old('deadline_time', $application->deadline_time ? \Carbon\Carbon::par
 
 		// Update Progress Bar
 		function updateProgressCircle() {
-			const totalDocs = 17; // Should ideally be dynamic based on requirements
-			const confirmedDocs = documents.reduce((acc, doc) => (doc.status === 'Okay/Confirmed' || doc.status === 'Verified' ? acc + 1 : acc), 0);
-			const percentage = Math.round((confirmedDocs / totalDocs) * 100);
+			const relevantDocs = documents.filter(doc => isRequiredDocument(doc?.id));
+			const docsForProgress = relevantDocs.length > 0 ? relevantDocs : documents;
+			const totalDocs = docsForProgress.length;
+			const confirmedDocs = docsForProgress.reduce((acc, doc) => (
+				doc.status === 'Okay/Confirmed' || doc.status === 'Verified' ? acc + 1 : acc
+			), 0);
+			const percentage = totalDocs > 0 ? Math.round((confirmedDocs / totalDocs) * 100) : 0;
 
 			const bar = document.getElementById('linear-progress-bar');
 			if (bar) {

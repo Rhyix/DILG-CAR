@@ -564,19 +564,35 @@ class JobVacancyController extends Controller
         })->values();
 
         // Deadline countdown per active application
+        $now = Carbon::now();
         $deadlineCountdown = $applications
             ->filter(function ($app) {
-                return $app->deadline_date && $app->deadline_time && strtolower($app->status) !== 'closed';
+                if (!$app->deadline_date || !$app->deadline_time) {
+                    return false;
+                }
+
+                $applicationStatus = strtolower(trim((string) ($app->status ?? '')));
+                $qsResult = strtolower(trim((string) ($app->qs_result ?? '')));
+                $isTerminalStatus = in_array($applicationStatus, ['closed', 'qualified'], true);
+                $isVacancyClosed = $app->vacancy && strtolower((string) ($app->vacancy->status ?? '')) === 'closed';
+
+                return !$isTerminalStatus && !$isVacancyClosed && $qsResult !== 'qualified';
             })
-            ->map(function ($app) {
+            ->map(function ($app) use ($now) {
                 $deadline = Carbon::parse($app->deadline_date . ' ' . $app->deadline_time);
+                $secondsRemaining = $now->diffInSeconds($deadline, false);
+                if ($secondsRemaining <= 0) {
+                    return null;
+                }
+
                 return [
                     'vacancy_id' => $app->vacancy_id,
                     'position_title' => $app->vacancy->position_title ?? '',
                     'deadline' => $deadline->toDateTimeString(),
-                    'days_remaining' => Carbon::now()->diffInDays($deadline, false),
+                    'days_remaining' => (int) ceil($secondsRemaining / 86400),
                 ];
             })
+            ->filter()
             ->sortBy('days_remaining')
             ->values();
 
@@ -866,46 +882,12 @@ class JobVacancyController extends Controller
         $documents = $this->sortDocumentsForRequiredPriority($documents, $requiredDocumentIds);
 
         $displayApplicationStatus = $application->status ?? 'Pending';
-        // Derive QS display from latest snapshot (preferred) or live document statuses to match admin view
-        $vacancyType = $application->vacancy?->vacancy_type ?? null;
-        $isVerified = function ($docId) use ($snapshotDocumentsById, $uploadedDocuments) {
-            if ($snapshotDocumentsById && $snapshotDocumentsById->has($docId)) {
-                $st = $snapshotDocumentsById->get($docId)['status'] ?? null;
-                return in_array($st, ['Verified', 'Okay/Confirmed'], true);
-            }
-            $doc = $uploadedDocuments->get($docId);
-            $st = $doc?->status;
-            return in_array($st, ['Verified', 'Okay/Confirmed'], true);
-        };
-
-        $displayQsEducation = 'no';
-        $displayQsEligibility = 'no';
-        $displayQsExperience = 'no';
-        $displayQsTraining = 'no';
-
-        // Unified QS derivation based on live verifications
-        $displayQsExperience = $isVerified('signed_work_exp_sheet') ? 'yes' : 'no';
-        $displayQsEducation = ($isVerified('transcript_records') && $isVerified('photocopy_diploma')) ? 'yes' : 'no';
-        $displayQsTraining = $isVerified('cert_training') ? 'yes' : 'no';
-        $displayQsEligibility = $isVerified('cert_eligibility') ? 'yes' : 'no';
-
-        // Check if all necessary ones are verified (Assuming all 4 must be yes for 'Qualified')
-        // Or we just rely on HR's explicit save in $application->qs_result
-        // If HR has set a final result from the Admin side, we should respect that instead of auto-calculating it in the view.
-        // The admin side saves the latest QS into the application model.
-        if (isset($application->qs_result) && $application->qs_result !== 'Not Qualified') {
-            $displayQsResult = $application->qs_result;
-        } else {
-            $relevant = [$displayQsEducation, $displayQsEligibility, $displayQsExperience, $displayQsTraining];
-            $allOk = empty($relevant) ? false : collect($relevant)->every(fn($v) => $v === 'yes');
-            $displayQsResult = $allOk ? 'Qualified' : 'Not Qualified';
-        }
-
-        // Ensure manual overrides from admin page are reflected if they exist
-        $displayQsEducation = $application->qs_education ?? $displayQsEducation;
-        $displayQsEligibility = $application->qs_eligibility ?? $displayQsEligibility;
-        $displayQsExperience = $application->qs_experience ?? $displayQsExperience;
-        $displayQsTraining = $application->qs_training ?? $displayQsTraining;
+        // Show only manually saved QS values from admin review.
+        $displayQsEducation = $application->qs_education ?? 'no';
+        $displayQsEligibility = $application->qs_eligibility ?? 'no';
+        $displayQsExperience = $application->qs_experience ?? 'no';
+        $displayQsTraining = $application->qs_training ?? 'no';
+        $displayQsResult = $application->qs_result ?? 'Not Qualified';
         $displayDeadlineDate = $application->deadline_date ?? null;
         $displayDeadlineTime = $application->deadline_time ?? null;
         $displayApplicationRemarks = $application->application_remarks ?? '';
@@ -1359,121 +1341,57 @@ class JobVacancyController extends Controller
 
     public function calculatePdsProgress($userId)
     {
-        $progress = 0;
+        $userId = (int) $userId;
 
-        // C1: Personal, Family, and Education Info
-        $c1 = \App\Models\PersonalInformation::where('user_id', $userId)->first();
-        $family = \App\Models\FamilyBackground::where('user_id', $userId)->first();
-        $education = \App\Models\EducationalBackground::where('user_id', $userId)->first();
+        // Determine required docs from tracks the user has applied for.
+        $applicationTracks = Applications::where('user_id', $userId)
+            ->with('vacancy:vacancy_id,vacancy_type')
+            ->get()
+            ->map(fn($app) => $this->normalizeTrack($app->vacancy?->vacancy_type))
+            ->filter()
+            ->unique()
+            ->values();
 
-        $simpleFields = [
-            // Personal Info 14 fields
-            'surname',
-            'first_name',
-            'civil_status',
-            'date_of_birth',
-            'place_of_birth',
-            'citizenship',
-            'sex',
-            'mobile_no',
-            'email_address',
-            'height',
-            'weight',
-            'permanent_address',
-            'residential_address',
-            // Family Background
-            'mother_maiden_surname',
-            'mother_maiden_first_name',
+        if ($applicationTracks->isEmpty()) {
+            $applicationTracks = collect(['Plantilla']);
+        }
 
-            // Elementary
-            'elem_year_graduated',
-            'elem_from',
-            'elem_to',
-            'elem_school',
+        $requiredDocsByTrack = $this->getRequiredDocsByTrack();
+        $requiredDocumentIds = $applicationTracks
+            ->flatMap(fn($track) => $requiredDocsByTrack[$track] ?? [])
+            ->unique()
+            ->values();
 
-            // Junior High
-            'jhs_year_graduated',
-            'jhs_from',
-            'jhs_to',
-            'jhs_school',
+        $totalRequiredDocs = $requiredDocumentIds->count();
+        if ($totalRequiredDocs === 0) {
+            return 0;
+        }
 
-            //College 2 fields
-            'college',
-            'grad',
+        $uploadedDocuments = UploadedDocument::where('user_id', $userId)
+            ->orderByDesc('updated_at')
+            ->get()
+            ->unique('document_type')
+            ->keyBy('document_type');
 
-        ];
+        $hasApplicationLetterInApplications = Applications::where('user_id', $userId)
+            ->whereNotNull('file_storage_path')
+            ->exists();
 
-        $filledFields = collect($simpleFields)->filter(function ($field) use ($c1, $family, $education) {
-            return !empty($c1?->$field ?? $family?->$field ?? $education?->$field);
-        });
+        $completedRequiredDocs = $requiredDocumentIds->filter(function (string $docType) use ($uploadedDocuments, $hasApplicationLetterInApplications) {
+            if ($docType === 'application_letter') {
+                if ($hasApplicationLetterInApplications) {
+                    return true;
+                }
 
+                $applicationLetterDoc = $this->resolveUploadedDocument($uploadedDocuments, $docType);
+                return $applicationLetterDoc && !empty($applicationLetterDoc->storage_path) && $applicationLetterDoc->storage_path !== 'NOINPUT';
+            }
 
-        $c1Progress = round(($filledFields->count() / count($simpleFields)) * 20);
-        $progress += $c1Progress;
+            $doc = $this->resolveUploadedDocument($uploadedDocuments, $docType);
+            return $doc && !empty($doc->storage_path) && $doc->storage_path !== 'NOINPUT';
+        })->count();
 
-        //C2 will automatically grant 20% if C4 is reached
-        // If the user has proceeded to MiscInfos (C4), we assume C2 is complete or intentionally skipped
-        $hasReachedC4 = \App\Models\MiscInfos::where('user_id', $userId)->exists();
-        $progress += $hasReachedC4 ? 20 : 0;
-
-        // C3: Automatically grant 20% if C4 started
-        $hasReachedC4 = \App\Models\MiscInfos::where('user_id', $userId)->exists();
-        $progress += $hasReachedC4 ? 20 : 0;
-
-        // C4: Misc Info Section
-        $c4 = \App\Models\MiscInfos::where('user_id', $userId)->first();
-        $c4Fields = [
-            'related_34_a',
-            'related_34_b',
-            'guilty_35_a',
-            'criminal_35_b',
-            'convicted_36',
-            'separated_37',
-            'candidate_38',
-            'resigned_38_b',
-            'immigrant_39',
-            'indigenous_40_a',
-            'pwd_40_b',
-            'solo_parent_40_c',
-            'govt_id_type',
-            'govt_id_number',
-            'govt_id_date_issued',
-            'govt_id_place_issued',
-            'photo_upload',
-        ];
-
-        $c4Filled = collect($c4Fields)->filter(function ($field) use ($c4) {
-            $value = $c4?->$field;
-            return is_array($value) ? !empty(array_filter($value)) : !empty($value);
-        });
-
-        $c4Progress = round(($c4Filled->count() / count($c4Fields)) * 20);
-        $progress += $c4Progress;
-
-        // C5: Uploaded PDF Documents
-        $c5Documents = \App\Models\UploadedDocument::where('user_id', $userId)->get();
-        $pdfFields = [
-            'pqe_result',
-            'cert_eligibility',
-            'ipcr',
-            'non_academic',
-            'cert_training',
-            'designation_order',
-            'transcript_records',
-            'photocopy_diploma',
-            'grade_masteraldoctorate',
-            'tor_masteraldoctorate',
-            'cert_employment',
-            'cert_lgoo_induction',
-            'passport_photo',
-            'other_documents',
-        ];
-
-        $c5Filled = collect($pdfFields)->filter(fn($type) => $c5Documents->contains('document_type', $type));
-        $c5Progress = round(($c5Filled->count() / count($pdfFields)) * 20);
-        $progress += $c5Progress;
-
-        return min($progress, 100);
+        return (int) round(($completedRequiredDocs / $totalRequiredDocs) * 100);
     }
 
     public function sortMyApplications(Request $request)

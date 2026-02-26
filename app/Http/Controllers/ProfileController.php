@@ -21,12 +21,17 @@ class ProfileController extends Controller
 
     public function show()
     {
-        return view('profile.show', ['user' => Auth::user()]);
+        return redirect()->route('account.settings');
     }
 
     public function edit()
     {
-        return view('profile.edit', ['user' => Auth::user()]);
+        return redirect()->route('account.settings');
+    }
+
+    public function accountSettings()
+    {
+        return view('profile.account_settings', ['user' => Auth::user()]);
     }
 
     public function update(UpdateProfileRequest $request)
@@ -41,7 +46,7 @@ class ProfileController extends Controller
         if (array_key_exists('address', $validated)) $profile->address = $validated['address'];
         if (array_key_exists('preferences', $validated)) $profile->preferences = $validated['preferences'];
         $profile->save();
-        return redirect()->route('profile.show')->with('status', 'Profile updated.');
+        return redirect()->route('account.settings')->with('settings_success', 'Profile updated successfully.');
     }
 
     public function avatar(Request $request)
@@ -82,6 +87,6 @@ class ProfileController extends Controller
         }
         $user->password = Hash::make($request->input('password'));
         $user->save();
-        return redirect()->route('profile.show')->with('status', 'Password changed.');
+        return redirect()->route('account.settings')->with('password_success', 'Password updated successfully.');
     }
 }

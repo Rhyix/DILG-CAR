@@ -50,7 +50,7 @@ class NotifyApplicantOverview extends Mailable
         $qs_training = 'no',
         $qs_result = 'Not Qualified',
         $progress_percentage = 0,
-        $progress_count = '0/17',
+        $progress_count = '0/0',
         $vacancy_type = 'Plantilla'
     ) {
         $this->user_id = $user_id;
@@ -98,4 +98,3 @@ class NotifyApplicantOverview extends Mailable
         return [];
     }
 }
-

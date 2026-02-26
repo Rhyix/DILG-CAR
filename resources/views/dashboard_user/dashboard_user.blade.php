@@ -24,9 +24,9 @@
                         class="inline-flex items-center gap-2 bg-white text-[#0D2B70] px-5 py-2.5 rounded-lg font-bold text-sm hover:bg-gray-100 transition shadow-sm">
                         <i data-feather="search" class="w-4 h-4"></i> Browse Jobs
                     </a>
-                    <a href="{{ route('profile.show') }}"
+                    <a href="{{ route('account.settings') }}"
                         class="inline-flex items-center gap-2 bg-[#ffffff20] text-white px-5 py-2.5 rounded-lg font-bold text-sm hover:bg-[#ffffff30] transition backdrop-blur-sm border border-white/20">
-                        <i data-feather="user" class="w-4 h-4"></i> My Profile
+                        <i data-feather="settings" class="w-4 h-4"></i> Account Settings
                     </a>
                 </div>
             </div>
@@ -270,8 +270,9 @@
                         <div class="space-y-3">
                             @foreach(collect($deadlineCountdown)->take(3) as $deadline)
                                 <div class="p-3 bg-orange-50 rounded-lg border border-orange-100">
+                                    @php($daysRemaining = (int) ($deadline['days_remaining'] ?? 0))
                                     <p class="text-xs font-bold text-orange-800 uppercase mb-1">Due in
-                                        {{ $deadline['days_remaining'] }} Days</p>
+                                        {{ $daysRemaining }} {{ $daysRemaining === 1 ? 'Day' : 'Days' }}</p>
                                     <p class="text-sm font-bold text-[#0D2B70]">{{ $deadline['position_title'] }}</p>
                                     <p class="text-[11px] text-gray-600 mt-0.5">Deadline:
                                         {{ \Carbon\Carbon::parse($deadline['deadline'])->format('M d, h:i A') }}</p>

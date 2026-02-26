@@ -445,7 +445,7 @@
         <div class="card">
           <div class="progress-stats">
             <div class="progress-stats-left">{{ $progress_percentage ?? 0 }}%</div>
-            <div class="progress-stats-right">{{ $progress_count ?? '0/17' }} Documents Verified</div>
+            <div class="progress-stats-right">{{ $progress_count ?? '0/0' }} Documents Verified</div>
           </div>
           <div class="progress-bar-bg">
             <div class="progress-bar-fill" style="width: {{ $progress_percentage ?? 0 }}%;"></div>

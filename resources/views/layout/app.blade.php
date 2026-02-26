@@ -213,12 +213,10 @@
                     </button>
                     <div id="profileMenu"
                         class="hidden absolute right-0 mt-2 w-56 bg-white shadow-lg rounded-lg border border-gray-200 p-2">
-                        <a href="{{ route('profile.show') }}"
-                            class="block px-3 py-2 text-sm rounded hover:bg-gray-100">View Profile</a>
-                        <a href="{{ route('profile.edit') }}"
-                            class="block px-3 py-2 text-sm rounded hover:bg-gray-100">Edit Profile</a>
-                        <a href="{{ route('profile.password.form') }}"
-                            class="block px-3 py-2 text-sm rounded hover:bg-gray-100">Change Password</a>
+                        <a href="{{ route('account.settings') }}"
+                            class="block px-3 py-2 text-sm rounded hover:bg-gray-100">
+                            <i data-feather="settings" class="w-4 h-4 inline-block mr-2"></i> Account Settings
+                        </a>
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
                             <button type="submit"

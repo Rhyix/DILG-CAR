@@ -1597,9 +1597,16 @@ class AdminController extends Controller
         $application->save();
         // -------------------------------------------------
 
-        // --- Calculate Progress ---
-        $totalDocuments = count($documents);
-        $verifiedCount = collect($documents)->whereIn('status', ['Verified', 'Okay/Confirmed'])->count();
+        // --- Calculate Progress (required docs only, aligned with admin progress UI) ---
+        $requiredLookup = array_fill_keys($requiredDocumentIds, true);
+        $requiredDocuments = array_values(array_filter($documents, function ($doc) use ($requiredLookup) {
+            $docId = (string) ($doc['id'] ?? '');
+            return $docId !== '' && isset($requiredLookup[$docId]);
+        }));
+
+        $progressSourceDocs = !empty($requiredDocuments) ? $requiredDocuments : $documents;
+        $totalDocuments = count($progressSourceDocs);
+        $verifiedCount = collect($progressSourceDocs)->whereIn('status', ['Verified', 'Okay/Confirmed'])->count();
         $progressPercentage = $totalDocuments > 0 ? round(($verifiedCount / $totalDocuments) * 100) : 0;
         $progressCount = "$verifiedCount/$totalDocuments";
 
