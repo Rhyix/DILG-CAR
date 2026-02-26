@@ -1133,7 +1133,7 @@ class JobVacancyController extends Controller
             'signed_pds' => 'Signed Personal Data Sheet',
             'signed_work_exp_sheet' => 'Signed Work Experience Sheet',
             'cert_lgoo_induction' => 'Certificate of Completion of LGOO Induction Training',
-            'passport_photo' => '2\" x 2\" or Passport Size Picture',
+            'passport_photo' => '2" x 2" or Passport Size Picture',
             'cert_eligibility' => 'Certificate of Eligibility/Board Rating',
             'ipcr' => 'Certification of Numerical Rating/Performance Rating/IPCR',
             'non_academic' => 'Non-Academic Awards Received',

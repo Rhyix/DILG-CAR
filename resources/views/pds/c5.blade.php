@@ -129,10 +129,13 @@
                                     class="doc-required-badge text-sm font-semibold {{ $requiredNow ? 'text-red-600' : 'text-blue-500' }}"
                                     data-required-cos="{{ $requiredCos ? 1 : 0 }}"
                                     data-required-plantilla="{{ $requiredPlantilla ? 1 : 0 }}"
+                                    data-doc-type="{{ $docType }}"
                                 >
-                                    {{ $requiredNow ? '(required)' : '(if any)' }}
-                                    
-
+                                    @if($docType === 'pqe_result')
+                                        (if taken and passed)
+                                    @else
+                                        {{ $requiredNow ? '(required)' : '(if any)' }}
+                                    @endif
                                 </span>
                             </h3>
 
@@ -298,12 +301,21 @@
         }
 
         document.querySelectorAll('.doc-required-badge').forEach((badge) => {
+            const docType = badge.dataset.docType;
             const required = normalized === 'COS'
                 ? badge.dataset.requiredCos === '1'
                 : badge.dataset.requiredPlantilla === '1';
-            badge.textContent = required ? '(required)' : '(if any)';
-            badge.classList.toggle('text-red-600', required);
-            badge.classList.toggle('text-blue-500', !required);
+            
+            // Special handling for PQE
+            if (docType === 'pqe_result') {
+                badge.textContent = '(if taken and passed)';
+                badge.classList.remove('text-red-600');
+                badge.classList.add('text-blue-500');
+            } else {
+                badge.textContent = required ? '(required)' : '(if any)';
+                badge.classList.toggle('text-red-600', required);
+                badge.classList.toggle('text-blue-500', !required);
+            }
         });
 
         document.querySelectorAll('.doc-upload-input').forEach((input) => {

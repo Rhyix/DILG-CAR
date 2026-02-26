@@ -47,10 +47,10 @@
                     <div class="flex items-center justify-between w-full">
                         <h3 class="text-gray-700 font-medium">
                             Pre-Qualifying Exam (PQE) result
-    <a href="https://docs.google.com/forms/d/e/1FAIpQLSf7PF9_Chb7_tgLgsKFkYzGV9kDLkpvpw8Dikol8rEEUDu4jA/viewform" target="_blank" class="text-blue-600 hover:underline">
-     (if you don't have PQE click here)
-    </a>
-</h3>
+                            <a href="https://docs.google.com/forms/d/e/1FAIpQLSf7PF9_Chb7_tgLgsKFkYzGV9kDLkpvpw8Dikol8rEEUDu4jA/viewform" target="_blank" class="text-blue-600 hover:underline">
+                            (if you don't have PQE click here)
+                            </a>
+                        </h3>
                         @if(isset($documents['pqe_result']) && $documents['pqe_result']->status === 'Okay/Confirmed
 ')
                             <div class="text-green-600 text-sm font-semibold">

@@ -188,7 +188,21 @@
 
                 <div class="max-h-72 overflow-y-auto border border-gray-200 rounded-xl p-4 mb-6 bg-slate-50">
                     <ul class="space-y-3">
-                        @forelse($requiredDocsPreviewForModal as $doc)
+                        @php
+                            // Filter documents for COS positions
+                            $filteredDocs = $requiredDocsPreviewForModal;
+                            if (strtolower($vacancy->vacancy_type) === 'cos') {
+                                $filteredDocs = collect($requiredDocsPreviewForModal)->filter(function($doc) {
+                                    $docLabel = is_array($doc) ? ($doc['label'] ?? '') : '';
+                                    // Remove Certificate of Employment, Certificate of Training, and Transcript of Record
+                                    return !str_contains(strtolower($docLabel), 'certificate of employment') && 
+                                        !str_contains(strtolower($docLabel), 'certificate of training') && 
+                                        !str_contains(strtolower($docLabel), 'transcript of record');
+                                })->values()->toArray();
+                            }
+                        @endphp
+                        
+                        @forelse($filteredDocs as $doc)
                             @php
                                 $docLabel = is_array($doc) ? ($doc['label'] ?? 'Document') : 'Document';
                             @endphp
