@@ -467,7 +467,7 @@ class AdminController extends Controller
         return redirect()->back()->with('success', 'Account declined successfully.');
     }
 
-    private function getReviewedApplications()
+    private function getReviewedApplications(?int $limit = null)
     {
         /*
         activity()
@@ -475,11 +475,16 @@ class AdminController extends Controller
             ->log('Viewed reviewed applicants list.');
         */
 
-        return Applications::with(['personalInformation', 'vacancy'])
-            ->where('status', '!=', 'Pending')
+        $query = Applications::with(['personalInformation', 'vacancy'])
+            ->whereRaw('LOWER(TRIM(status)) <> ?', [strtolower(ApplicationStatus::PENDING->value)])
             ->whereHas('personalInformation')
-            ->latest()
-            ->get();
+            ->latest();
+
+        if (!is_null($limit)) {
+            $query->limit($limit);
+        }
+
+        return $query->get();
     }
 
     public function dashboard(Request $request)
@@ -526,32 +531,39 @@ class AdminController extends Controller
         $chartLabels = $monthLabels;
         $chartData = $monthCounts;
 
-        $openVacancies = Vacancy::where('status', 'OPEN')->get();
-        $openVacancyCount = $openVacancies->count();
-        $cosVacancyCount = $openVacancies->where('vacancy_type', 'COS')->count();
-        $plantillaVacancyCount = $openVacancies->where('vacancy_type', 'Plantilla')->count();
+        $openVacanciesQuery = Vacancy::query()->where('status', 'OPEN');
+        $openVacancyCount = (clone $openVacanciesQuery)->count();
+        $cosVacancyCount = (clone $openVacanciesQuery)
+            ->whereRaw('UPPER(vacancy_type) = ?', ['COS'])
+            ->count();
+        $plantillaVacancyCount = max($openVacancyCount - $cosVacancyCount, 0);
+        $openVacancies = collect();
 
-        $onGoingApplications = Applications::with(['personalInformation', 'vacancy'])
+        $onGoingApplications = Applications::query()
+            ->select(['id', 'user_id', 'vacancy_id', 'status', 'created_at'])
+            ->with(['personalInformation', 'vacancy'])
             ->whereIn('status', ['Incomplete', 'Pending'])
-            ->take(6)
+            ->latest('created_at')
+            ->limit(6)
             ->get();
 
-        //info('check');
+        $onGoingApplicationsCount = Applications::query()
+            ->whereIn('status', ['Incomplete', 'Pending'])
+            ->count();
 
-        $onGoingApplicationsCount = $onGoingApplications->count();
-        $reviewedApplications = $this->getReviewedApplications();
-        $reviewedApplicationsCount = Applications::where('status', '!=', 'Pending')->count();
+        $reviewedApplications = $this->getReviewedApplications(10);
+        $reviewedApplicationsCount = Applications::query()
+            ->whereRaw('LOWER(TRIM(status)) <> ?', [strtolower(ApplicationStatus::PENDING->value)])
+            ->count();
 
-        $systemUsers = Admin::where('is_active', 1)->get();
-        $systemUsersCount = $systemUsers->count();
+        $systemUsersCount = Admin::query()->where('is_active', 1)->count();
+        $systemUsers = collect();
 
         $now = Carbon::now()->toDateTimeString();
-        $upcomingExams = ExamDetail::whereRaw("TIMESTAMP(`date`, `time`) > ?", [$now])
-            ->orderByRaw("TIMESTAMP(`date`, `time`)")
-            ->with('vacancy')
-            ->get();
-
-        $upcomingExamsCount = $upcomingExams->count();
+        $upcomingExamsCount = ExamDetail::query()
+            ->whereRaw("TIMESTAMP(`date`, `time`) > ?", [$now])
+            ->count();
+        $upcomingExams = collect();
 
         /*
         activity()

@@ -13,7 +13,7 @@ class ExportController extends Controller
     {
     $timestamp = now()->format('Y-m-d_H-i-s');
     $fileName = "job_vacancies(COS)_{$timestamp}.csv";
-    $jobVacancies = JobVacancy::where('vacancy_type', 'COS')->get();
+    $jobVacancies = JobVacancy::where('vacancy_type', 'COS')->orderBy('id');
 
         $headers = [
             "Content-Type" => "text/csv",
@@ -44,7 +44,7 @@ class ExportController extends Controller
             $file = fopen('php://output', 'w');
             fputcsv($file, $columns);
 
-            foreach ($jobVacancies as $vacancy) {
+            foreach ($jobVacancies->cursor() as $vacancy) {
                 fputcsv($file, [
                     $vacancy->position_title,
                     $vacancy->vacancy_type,
@@ -82,7 +82,7 @@ class ExportController extends Controller
     {
     $timestamp = now()->format('Y-m-d_H-i-s');
     $fileName = "job_vacancies(Plantilla)_{$timestamp}.csv";
-    $jobVacancies = JobVacancy::where('vacancy_type', 'Plantilla')->get();
+    $jobVacancies = JobVacancy::where('vacancy_type', 'Plantilla')->orderBy('id');
 
         $headers = [
             "Content-Type" => "text/csv",
@@ -114,7 +114,7 @@ class ExportController extends Controller
             $file = fopen('php://output', 'w');
             fputcsv($file, $columns);
 
-            foreach ($jobVacancies as $vacancy) {
+            foreach ($jobVacancies->cursor() as $vacancy) {
                 fputcsv($file, [
                     $vacancy->position_title,
                     $vacancy->vacancy_type,
@@ -153,7 +153,7 @@ class ExportController extends Controller
     {
     $timestamp = now()->format('Y-m-d_H-i-s');
     $fileName = "job_vacancies(All)_{$timestamp}.csv";
-    $jobVacancies = JobVacancy::all();
+    $jobVacancies = JobVacancy::query()->orderBy('id');
 
         $headers = [
             "Content-Type" => "text/csv",
@@ -188,7 +188,7 @@ class ExportController extends Controller
             $file = fopen('php://output', 'w');
             fputcsv($file, $columns);
 
-            foreach ($jobVacancies as $vacancy) {
+            foreach ($jobVacancies->cursor() as $vacancy) {
                 fputcsv($file, [
                     $vacancy->position_title,
                     $vacancy->vacancy_type,
@@ -230,7 +230,7 @@ class ExportController extends Controller
     {
     $timestamp = now()->format('Y-m-d_H-i-s');
     $fileName = "activity_logs_{$timestamp}.csv";
-    $activities = Activity::latest()->get(); // You can add filters if needed
+    $activities = Activity::query()->orderByDesc('id'); // You can add filters if needed
 
         $headers = [
             "Content-Type" => "text/csv",
@@ -254,7 +254,7 @@ class ExportController extends Controller
             $file = fopen('php://output', 'w');
             fputcsv($file, $columns);
 
-            foreach ($activities as $activity) {
+            foreach ($activities->cursor() as $activity) {
                 $target = 'N/A';
 
                 if ($activity->subject) {
@@ -300,7 +300,10 @@ public function exportReviewedApplications($vacancy_id)
 {
     $timestamp = now()->format('Y-m-d_H-i-s');
     $fileName = "reviewed_applications_{$timestamp}.csv";
-    $applications = Applications::where('status', '!=', 'Pending')->where('vacancy_id', $vacancy_id)->get();
+    $applications = Applications::query()
+        ->where('status', '!=', 'Pending')
+        ->where('vacancy_id', $vacancy_id)
+        ->orderBy('id');
 
     $headers = [
         "Content-Type" => "text/csv",
@@ -336,7 +339,7 @@ public function exportReviewedApplications($vacancy_id)
         $file = fopen('php://output', 'w');
         fputcsv($file, $columns);
 
-        foreach ($applications as $app) {
+        foreach ($applications->cursor() as $app) {
             fputcsv($file, [
                 $app->user_id,
                 $app->updated_by_admin_id,
@@ -380,7 +383,10 @@ public function exportNotReviewedApplications($vacancy_id)
 {
     $timestamp = now()->format('Y-m-d_H-i-s');
     $fileName = "not_reviewed_applications_{$timestamp}.csv";
-    $applications = Applications::where('status', 'Pending')->where('vacancy_id', $vacancy_id)->get();
+    $applications = Applications::query()
+        ->where('status', 'Pending')
+        ->where('vacancy_id', $vacancy_id)
+        ->orderBy('id');
 
 
     $headers = [
@@ -417,7 +423,7 @@ public function exportNotReviewedApplications($vacancy_id)
         $file = fopen('php://output', 'w');
         fputcsv($file, $columns);
 
-        foreach ($applications as $app) {
+        foreach ($applications->cursor() as $app) {
             fputcsv($file, [
                 $app->user_id,
                 $app->updated_by_admin_id,
@@ -459,4 +465,3 @@ public function exportNotReviewedApplications($vacancy_id)
 
 
 }
-

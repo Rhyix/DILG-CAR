@@ -8,6 +8,7 @@ use App\Models\JobVacancy;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -15,6 +16,8 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 class ReportController extends Controller
 {
     private const PASSING_PERCENTAGE = 75.0;
+    private const REPORT_CACHE_TTL_SECONDS = 300;
+    private const REPORT_CACHE_VERSION = 'v1';
 
     private const REPORT_TYPES = [
         'vacancy_summary',
@@ -29,11 +32,17 @@ class ReportController extends Controller
 
     public function index()
     {
-        $vacancies = JobVacancy::query()
-            ->select(['vacancy_id', 'position_title', 'vacancy_type', 'status'])
-            ->orderBy('position_title')
-            ->orderBy('vacancy_id')
-            ->get();
+        $vacancies = Cache::remember(
+            'reports:index:vacancies:' . self::REPORT_CACHE_VERSION,
+            now()->addSeconds(self::REPORT_CACHE_TTL_SECONDS),
+            function () {
+                return JobVacancy::query()
+                    ->select(['vacancy_id', 'position_title', 'vacancy_type', 'status'])
+                    ->orderBy('position_title')
+                    ->orderBy('vacancy_id')
+                    ->get();
+            }
+        );
 
         return view('admin.reports.index', compact('vacancies'));
     }
@@ -47,7 +56,7 @@ class ReportController extends Controller
 
         [$start, $end] = $this->resolveDateRange($request);
         $filters = $this->resolveFilters($request, $start, $end);
-        $payload = $this->buildReportPayload($type, $filters);
+        $payload = $this->reportPayloadFromCache($type, $filters);
 
         if ($payload === null) {
             return response()->json(['error' => 'Unable to build report'], 422);
@@ -65,7 +74,7 @@ class ReportController extends Controller
 
         [$start, $end] = $this->resolveDateRange($request);
         $filters = $this->resolveFilters($request, $start, $end);
-        $payload = $this->buildReportPayload($type, $filters);
+        $payload = $this->reportPayloadFromCache($type, $filters);
 
         if ($payload === null || empty($payload['table']['headers'] ?? [])) {
             return response()->json(['error' => 'No exportable data found for this report'], 422);
@@ -151,6 +160,31 @@ class ReportController extends Controller
             'exam_vacancy_based_result' => $this->buildExamVacancyBasedResultReport($filters),
             default => null,
         };
+    }
+
+    private function reportPayloadFromCache(string $type, array $filters): ?array
+    {
+        $cacheKey = $this->buildReportCacheKey($type, $filters);
+
+        return Cache::remember(
+            $cacheKey,
+            now()->addSeconds(self::REPORT_CACHE_TTL_SECONDS),
+            fn() => $this->buildReportPayload($type, $filters)
+        );
+    }
+
+    private function buildReportCacheKey(string $type, array $filters): string
+    {
+        $normalized = [
+            'type' => $type,
+            'start_date' => (string) ($filters['start_date'] ?? ''),
+            'end_date' => (string) ($filters['end_date'] ?? ''),
+            'vacancy_id' => (string) ($filters['vacancy_id'] ?? ''),
+            'status' => (string) ($filters['status'] ?? ''),
+            'qualification' => (string) ($filters['qualification'] ?? ''),
+        ];
+
+        return 'reports:data:' . self::REPORT_CACHE_VERSION . ':' . sha1(json_encode($normalized));
     }
 
     private function buildVacancySummaryReport(array $filters): array

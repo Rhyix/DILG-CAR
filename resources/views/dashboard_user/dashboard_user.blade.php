@@ -80,7 +80,7 @@
                     <span class="text-xs font-bold text-slate-400 uppercase tracking-wide">Scheduled exams</span>
                 </div>
                 <div class="text-3xl font-extrabold text-[#0D2B70] mb-1">
-                    {{ $upcomingExams->count() }}
+                    {{ $upcomingExamsCount ?? $upcomingExams->count() }}
                 </div>
                 <!-- <div class="text-sm text-slate-500">Scheduled exams</div> -->
             </div>

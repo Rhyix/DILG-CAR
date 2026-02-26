@@ -256,7 +256,8 @@ class ShowApplicantsProfile extends Controller
             ? $this->buildHrDivisionAccessSignature($grantedVacancyIds)
             : '';
 
-        $query = JobVacancy::query();
+        $query = JobVacancy::query()
+            ->select(['vacancy_id', 'position_title', 'vacancy_type', 'status', 'created_at']);
 
         if ($isHrDivisionUser) {
             if (empty($grantedVacancyIds)) {
@@ -278,7 +279,7 @@ class ShowApplicantsProfile extends Controller
         }
 
         // Get all vacancies with counts per status
-        $vacancies = $query->withCount([
+        $vacancyQuery = $query->withCount([
             'applications as pending_count' => function ($q) {
                 $q->statusEquals(ApplicationStatus::PENDING->value);
             },
@@ -288,24 +289,17 @@ class ShowApplicantsProfile extends Controller
             'applications as qualified_count' => function ($q) {
                 $q->statusEquals(ApplicationStatus::QUALIFIED->value);
             },
-        ])->get();
-
-        // Sort logic: Open first, then Closed. Inside each, sort by newest created.
-        $vacancies = $vacancies->sortBy(function ($vacancy) {
-            $statusPriority = match (strtolower($vacancy->status)) {
-                'open' => 1,
-                'closed' => 2,
-                default => 99
-            };
-
-            // Combine status priority and inverse of created_at timestamp
-            return [$statusPriority, -strtotime($vacancy->created_at)];
-        });
+        ])
+            ->orderByRaw("CASE WHEN LOWER(status) = 'open' THEN 1 WHEN LOWER(status) = 'closed' THEN 2 ELSE 99 END")
+            ->orderByDesc('created_at');
 
         // Return JSON if AJAX (for search)
         if ($request->ajax()) {
+            $vacancies = $vacancyQuery->limit(200)->get();
             return response()->json($vacancies->values()); // reset keys
         }
+
+        $vacancies = $vacancyQuery->paginate(20)->withQueryString();
 
         return view('admin.applications_list', [
             'vacancies' => $vacancies,

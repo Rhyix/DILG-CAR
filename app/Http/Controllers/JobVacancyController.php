@@ -513,9 +513,26 @@ class JobVacancyController extends Controller
     {
         $userId = Auth::id();
 
-        $vacancies = JobVacancy::where('status', 'OPEN')->orderBy('created_at', 'desc')->get();
+        $vacancies = collect();
+        $openVacanciesQuery = JobVacancy::query()->where('status', 'OPEN');
+        $openVacancyCount = (clone $openVacanciesQuery)->count();
+        $cosVacancyCount = (clone $openVacanciesQuery)
+            ->whereRaw('UPPER(vacancy_type) = ?', ['COS'])
+            ->count();
+        $plantillaVacancyCount = max($openVacancyCount - $cosVacancyCount, 0);
 
-        $applications = \App\Models\Applications::where('user_id', $userId)
+        $applications = \App\Models\Applications::query()
+            ->select([
+                'id',
+                'user_id',
+                'vacancy_id',
+                'status',
+                'qs_result',
+                'deadline_date',
+                'deadline_time',
+                'created_at',
+            ])
+            ->where('user_id', $userId)
             ->with(['vacancy'])
             ->orderBy('created_at', 'desc')
             ->get();
@@ -527,18 +544,13 @@ class JobVacancyController extends Controller
         // Application Status Summary
         $statusSummary = $applications->groupBy('status')->map->count();
 
-        // COS vs Plantilla counts (OPEN)
-        $cosVacancyCount = $vacancies->where('vacancy_type', 'COS')->count();
-        $plantillaVacancyCount = $vacancies->where('vacancy_type', 'Plantilla')->count();
-
         // Upcoming exams for user's applied vacancies
         $vacancyIds = $applications->pluck('vacancy_id')->filter()->unique()->values();
         $now = Carbon::now()->toDateTimeString();
-        $upcomingExams = ExamDetail::whereIn('vacancy_id', $vacancyIds)
+        $upcomingExamsCount = ExamDetail::whereIn('vacancy_id', $vacancyIds)
             ->whereRaw("STR_TO_DATE(CONCAT(`date`, ' ', `time`), '%Y-%m-%d %H:%i:%s') > ?", [$now])
-            ->orderByRaw("STR_TO_DATE(CONCAT(`date`, ' ', `time`), '%Y-%m-%d %H:%i:%s')")
-            ->with('vacancy')
-            ->get();
+            ->count();
+        $upcomingExams = collect();
 
         // Required Documents Status
         $uploadedDocuments = UploadedDocument::where('user_id', $userId)->get()->keyBy('document_type');
@@ -600,6 +612,7 @@ class JobVacancyController extends Controller
 
         return view('dashboard_user.dashboard_user', [
             'vacancies' => $vacancies,
+            'openVacancyCount' => $openVacancyCount,
             'applications' => $applications,
             'pdsProgress' => $pdsProgress,
             'hasPDS' => $hasPDS,
@@ -608,6 +621,7 @@ class JobVacancyController extends Controller
             'cosVacancyCount' => $cosVacancyCount,
             'plantillaVacancyCount' => $plantillaVacancyCount,
             'upcomingExams' => $upcomingExams,
+            'upcomingExamsCount' => $upcomingExamsCount,
             'documentStatusSummary' => $documentStatusSummary,
             'recentlyClosedApplications' => $recentlyClosedApplications,
             'deadlineCountdown' => $deadlineCountdown,

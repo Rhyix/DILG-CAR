@@ -142,6 +142,11 @@
         </table>
     </div>
 </div>           
+        @if(method_exists($vacancies, 'links'))
+            <div class="mt-3 flex justify-end">
+                {{ $vacancies->links() }}
+            </div>
+        @endif
     @include('partials.loader')
 </main>
 
