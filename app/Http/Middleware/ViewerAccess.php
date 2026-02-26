@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 
 class ViewerAccess
 {
@@ -39,9 +40,9 @@ class ViewerAccess
                 ->withErrors(['email' => 'Your account request was declined. Please contact superadmin.']);
         }
         
-        // Allow access if user is superadmin, admin, or viewer
-        if (!in_array($user->role, ['superadmin', 'admin', 'viewer'], true)) {
-            if ($user->role === 'hr_division') {
+        // Allow access only for roles with exam monitoring permission.
+        if (!Gate::forUser($user)->allows('admin.exam.monitor')) {
+            if (Gate::forUser($user)->allows('admin.applicants.monitor')) {
                 return redirect()->route('applications_list')
                     ->with('error', 'Access denied. HR Division can only access applicants management.');
             }

@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\ApplicationStatus;
 use App\Models\Applications;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -16,7 +17,12 @@ class ApplicationsFactory extends Factory
         return [
             'user_id' => $this->faker->unique()->numberBetween(1, 20),
             'vacancy_id' => 'DEV-001',
-            'status' => $this->faker->randomElement(['Pending', 'Complete', 'Incomplete', 'Closed']),
+            'status' => $this->faker->randomElement([
+                ApplicationStatus::PENDING->value,
+                ApplicationStatus::COMPLIANCE->value,
+                ApplicationStatus::UPDATED->value,
+                ApplicationStatus::QUALIFIED->value,
+            ]),
 
             // ✅ Split deadline into date and time
             'deadline_date' => $deadline->format('Y-m-d'),

@@ -25,10 +25,9 @@ class ProfileTest extends TestCase
             'email' => $user->email,
             'bio' => 'Hello',
         ]);
-        $res->assertRedirect(route('profile.show'));
+        $res->assertRedirect(route('account.settings'));
         $user->refresh();
         $this->assertEquals('New Name', $user->name);
         $this->assertEquals('Hello', $user->bio);
     }
 }
-

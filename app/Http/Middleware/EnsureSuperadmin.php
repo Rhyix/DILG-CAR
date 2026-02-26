@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Symfony\Component\HttpFoundation\Response;
 
 class EnsureSuperadmin
@@ -38,7 +39,7 @@ class EnsureSuperadmin
                 ->withErrors(['email' => 'Your account request was declined. Please contact superadmin.']);
         }
 
-        if (($admin->role ?? null) !== 'superadmin') {
+        if (Gate::forUser($admin)->denies('admin.system.manage')) {
             $target = match ($admin->role ?? null) {
                 'viewer' => route('viewer'),
                 'hr_division' => route('applications_list'),

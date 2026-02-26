@@ -19,6 +19,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append(SecureHeaders::class);
         $middleware->web(replace: [
             ValidateCsrfToken::class => VerifyCsrfToken::class,
+        $middleware->alias([
+            'admin.ability' => \App\Http\Middleware\EnsureAdminAbility::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

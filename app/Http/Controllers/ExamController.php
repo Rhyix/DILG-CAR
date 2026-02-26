@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Log;
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Gate;
 use App\Jobs\SendExamNotification;
 use App\Mail\NotifyApplicantMail;
 use Spatie\Activitylog\Models\Activity;
@@ -256,15 +257,14 @@ class ExamController extends Controller
         }
     }
 
-    private function isViewerRole(): bool
-    {
-        return auth('admin')->check()
-            && (string) (auth('admin')->user()->role ?? '') === 'viewer';
-    }
-
     private function denyViewerAccess(Request $request, string $message = 'Viewer role has read-only exam monitoring access.')
     {
-        if (!$this->isViewerRole()) {
+        if (!auth('admin')->check()) {
+            return redirect()->route('admin.login');
+        }
+
+        $admin = auth('admin')->user();
+        if (Gate::forUser($admin)->allows('admin.exam.manage')) {
             return null;
         }
 
@@ -278,6 +278,17 @@ class ExamController extends Controller
         return redirect()
             ->route('admin_exam_management')
             ->with('error', $message);
+    }
+
+    private function isViewerRole(): bool
+    {
+        if (!auth('admin')->check()) {
+            return false;
+        }
+
+        $admin = auth('admin')->user();
+        return Gate::forUser($admin)->allows('admin.exam.monitor')
+            && Gate::forUser($admin)->denies('admin.exam.manage');
     }
 
     public function logSwitch(Request $request)

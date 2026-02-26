@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ApplicationStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
@@ -51,6 +52,39 @@ class Applications extends Model
         'answers' => 'array',
         'scores' => 'array',
     ];
+
+    public function setStatusAttribute($value): void
+    {
+        $this->attributes['status'] = ApplicationStatus::normalize(is_null($value) ? null : (string) $value);
+    }
+
+    public function scopeStatusEquals($query, string $status)
+    {
+        $normalized = ApplicationStatus::normalize($status);
+        if ($normalized === null || $normalized === '') {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->whereRaw('LOWER(TRIM(status)) = ?', [strtolower($normalized)]);
+    }
+
+    public function scopeStatusIn($query, array $statuses)
+    {
+        $normalized = collect($statuses)
+            ->map(fn($status) => ApplicationStatus::normalize(is_null($status) ? null : (string) $status))
+            ->filter(fn($status) => !is_null($status) && $status !== '')
+            ->unique()
+            ->values();
+
+        if ($normalized->isEmpty()) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        $placeholders = implode(',', array_fill(0, $normalized->count(), '?'));
+        $lowerValues = $normalized->map(fn($status) => strtolower((string) $status))->all();
+
+        return $query->whereRaw("LOWER(TRIM(status)) IN ({$placeholders})", $lowerValues);
+    }
 
     public function vacancy()
     {

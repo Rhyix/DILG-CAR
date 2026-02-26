@@ -10,7 +10,7 @@ use App\Models\Applications;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Mail;
-use App\Jobs\SendExamNotification;
+use App\Mail\NotifyApplicantMail;
 
 class ExamNotificationTest extends TestCase
 {
@@ -76,14 +76,10 @@ class ExamNotificationTest extends TestCase
         $response->assertStatus(200)
             ->assertJson(['success' => true, 'notified' => true]);
 
-        // Check Job Pushed
-        Queue::assertPushed(SendExamNotification::class, function ($job) use ($user, $vacancy) {
-            $ref = new \ReflectionClass($job);
-            $vacancyProp = $ref->getProperty('vacancyId');
-            $vacancyProp->setAccessible(true);
-            $userProp = $ref->getProperty('userId');
-            $userProp->setAccessible(true);
-            return $userProp->getValue($job) === $user->id && $vacancyProp->getValue($job) === $vacancy->vacancy_id;
+        // saveExamDetails(notify=1) queues exam schedule mails.
+        Mail::assertQueued(NotifyApplicantMail::class, function ($mail) use ($user, $vacancy) {
+            return $mail->user_id === $user->id
+                && $mail->vacancy_id === $vacancy->vacancy_id;
         });
 
         // Check Exam Detail Updated
