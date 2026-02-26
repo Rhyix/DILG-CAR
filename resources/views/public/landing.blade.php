@@ -110,7 +110,7 @@
     <header class="relative overflow-hidden flex-1">
         <div class="absolute inset-0 bg-gradient-to-br from-[#0D2B70] via-[#17439e] to-[#002C76] opacity-95"></div>
         <div class="relative max-w-7xl mx-auto px-6 py-6 h-full flex flex-col">
-            <nav class="flex items-center justify-between flex-none">
+            <nav class="flex items-center justify-between flex-none mb-4">
                 <div class="flex items-center gap-2">
                     <img src="{{ asset('images/dilg_logo.png') }}" alt="DILG" class="h-12 w-12 rounded-full border border-white/30">
                     <span class="text-white text-2xl font-bold tracking-wide">DILG - CAR</span>
@@ -123,73 +123,193 @@
                     </a>
                 </div>
             </nav>
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 flex-1 content-center items-center">
-                <div class="space-y-6">
-                    <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white leading-tight">
-                        Build Your Career in Public Service
-                    </h1>
-                    <p class="text-white/90 text-sm sm:text-base">
-                        Explore openings, track your application, and take examinations online. Join us in strengthening local governance across the Cordillera.
-                    </p>
-                    <!-- <div class="bg-gradient-to-br w-[100%] from-white to-blue-50 border border-[#0D2B70]/20 rounded-2xl p-6 sm:p-8">
-                        <div class="flex flex-col md:flex-row items-center justify-between gap-6">
-                            <div>
-                                <div class="text-xl md:text-2xl font-bold text-[#0D2B70]">Start your application today</div>
-                                <div class="text-gray-600 mt-1 text-sm">Sign in or create an account to begin.</div>
-                            </div>
-                            <div class="flex items-center gap-3">
-                                <a href="{{ route('login.form') }}" class="inline-flex items-center gap-2 bg-[#0D2B70] text-white px-5 py-2.5 rounded-full w-[100%] font-bold shadow hover:shadow-md">
-                                    <i data-feather="log-in" class="w-5 h-5"></i>
-                                    Sign In
-                                </a>
-                                <a href="{{ route('register.form') }}" class="inline-flex items-center gap-2 bg-white border border-[#0D2B70] text-[#0D2B70] px-5 py-2.5 rounded-full font-bold hover:bg-blue-50">
-                                    <i data-feather="user-plus" class="w-5 h-5"></i>
-                                    Create Account
-                                </a>
-                            </div>
-                        </div>
-                    </div> -->
-                </div>
+            
+            <!-- Hero Text - Repositioned at top left with minimal style -->
+            <!-- <div class="mb-6 max-w-2xl">
+                <h1 class="text-3xl sm:text-4xl font-extrabold text-white leading-tight">
+                    Build Your Career in Public Service
+                </h1>
+                <p class="text-white/80 text-sm mt-2 max-w-xl">
+                    Explore openings, track your application, and take examinations online. Join us in strengthening local governance across the Cordillera.
+                </p>
+            </div> -->
+            <!-- cards dapat -->
+            <div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-8">
+    <!-- Filter/Tabs Section - Now as separate element -->
+    <div class="max-w-7xl mx-auto mb-8">
+        <h2 class="text-3xl font-bold text-gray-800 mb-4">Latest Jobs</h2>
+        <div class="flex flex-wrap items-center gap-2">
+            <button class="px-6 py-2.5 bg-[#0D2B70] text-white rounded-full font-semibold text-sm shadow-md hover:shadow-lg transition-all">All Vacancies</button>
+            <button class="px-6 py-2.5 text-gray-600 bg-white rounded-full font-semibold text-sm shadow-sm hover:shadow-md hover:bg-gray-50 transition-all">Permanent</button>
+            <button class="px-6 py-2.5 text-gray-600 bg-white rounded-full font-semibold text-sm shadow-sm hover:shadow-md hover:bg-gray-50 transition-all">Contract of Service</button>
+            <button class="px-6 py-2.5 text-gray-600 bg-white rounded-full font-semibold text-sm shadow-sm hover:shadow-md hover:bg-gray-50 transition-all">On-the-Job Training</button>
+            <button class="px-6 py-2.5 text-gray-600 bg-white rounded-full font-semibold text-sm shadow-sm hover:shadow-md hover:bg-gray-50 transition-all">Contractual</button>
+        </div>
+    </div>
 
-                <div class="block">
-                    <div class="relative">
-                        <div class="absolute bg-white/10 blur-2xl rounded-3xl"></div>
-                        <div class="relative bg-white w-full lg:w-[125%] rounded-3xl shadow-2xl p-6">
-                            <div class="flex items-center justify-between">
-                                <div class="font-bold text-[#0D2B70]">Featured Openings</div>
-                                <a href="{{ route('job_vacancy') }}" class="text-sm text-[#0D2B70] font-semibold hover:underline">View all</a>
-                            </div>
-                            <div class="mt-4 divide-y divide-gray-200 max-h-[28rem] overflow-y-auto pr-2">
-                                @forelse(($vacancies ?? []) as $v)
-                                    <div class="py-4 hover:bg-blue-50 transition-colors duration-200 rounded-lg cursor-pointer" onclick="showJobDetails({{ json_encode($v) }})">
-                                        <div class="flex items-center justify-between px-2">
-                                            <div>
-                                                <div class="text-[#0D2B70] font-bold hover:underline">{{ $v->position_title }}</div>
-                                                <div class="text-gray-600 text-sm">{{ $v->place_of_assignment }}</div>
-                                                <div class="text-gray-500 text-xs mt-1">{{ strtoupper($v->vacancy_type) }}</div>
-                                            </div>
-                                            <div class="text-right">
-                                                <div class="text-green-700 font-bold">₱{{ number_format($v->monthly_salary, 2) }}</div>
-                                                <span class="inline-flex items-center gap-1 mt-2 text-[#0D2B70] font-semibold">
-                                                    <i data-feather="eye" class="w-4 h-4"></i>
-                                                    View Details
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                @empty
-                                    <div class="py-10 text-center text-gray-500 font-semibold">No open vacancies</div>
-                                @endforelse
-                            </div>
-                        </div>
-                    </div>
+    <!-- Jobs Cards - Individual cards outside container -->
+    <div class="max-w-7xl mx-auto">
+        <!-- Card 1 -->
+        <div class="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer mb-6 border-l-4 border-[#0D2B70]">
+            <div class="p-6">
+                <!-- Job Title and Salary -->
+                <div class="flex items-start justify-between gap-4">
+                    <h3 class="font-bold text-[#0D2B70] text-xl">Local Government Operations Officer II</h3>
+                    <span class="text-green-700 font-bold whitespace-nowrap text-lg bg-green-50 px-3 py-1 rounded-lg">₱36,125.00</span>
                 </div>
+                
+                <!-- Department/Office -->
+                <p class="text-gray-700 text-base mt-2 font-medium">NATIONAL BARANGAY OPERATIONS OFFICE</p>
+                
+                <!-- Location -->
+                <div class="flex items-center gap-2 mt-4 text-gray-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                    <span class="text-base">📍 DILG-CENTRAL OFFICE</span>
+                </div>
+                
+                <!-- Deadline and Action -->
+                <div class="flex items-center justify-between mt-5 pt-4 border-t border-gray-200">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        <span class="text-base text-gray-500">Deadline: March 05, 2026</span>
+                    </div>
+                    <span class="text-base text-[#0D2B70] font-semibold hover:underline flex items-center gap-2">
+                        View details
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+                        </svg>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer mb-6 border-l-4 border-[#0D2B70]">
+            <div class="p-6">
+                <div class="flex items-start justify-between gap-4">
+                    <h3 class="font-bold text-[#0D2B70] text-xl">Administrative Aide VI</h3>
+                    <span class="text-green-700 font-bold whitespace-nowrap text-lg bg-green-50 px-3 py-1 rounded-lg">₱19,716.00</span>
+                </div>
+                
+                <p class="text-gray-700 text-base mt-2 font-medium">INFORMATION SYSTEMS AND TECHNOLOGY MANAGEMENT SERVICE</p>
+                
+                <div class="flex items-center gap-2 mt-4 text-gray-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                    <span class="text-base">📍 DILG-CENTRAL OFFICE</span>
+                </div>
+                
+                <div class="flex items-center justify-between mt-5 pt-4 border-t border-gray-200">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        <span class="text-base text-gray-500">Deadline: March 05, 2026</span>
+                    </div>
+                    <span class="text-base text-[#0D2B70] font-semibold hover:underline flex items-center gap-2">
+                        View details
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+                        </svg>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer mb-6 border-l-4 border-[#0D2B70]">
+            <div class="p-6">
+                <div class="flex items-start justify-between gap-4">
+                    <h3 class="font-bold text-[#0D2B70] text-xl">Local Government Operations Officer III</h3>
+                    <span class="text-green-700 font-bold whitespace-nowrap text-lg bg-green-50 px-3 py-1 rounded-lg">₱45,000.00</span>
+                </div>
+                
+                <p class="text-gray-700 text-base mt-2 font-medium">BUREAU OF LOCAL GOVERNMENT SUPERVISION</p>
+                
+                <div class="flex items-center gap-2 mt-4 text-gray-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                    <span class="text-base">📍 DILG-CENTRAL OFFICE</span>
+                </div>
+                
+                <div class="flex items-center justify-between mt-5 pt-4 border-t border-gray-200">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        <span class="text-base text-gray-500">Deadline: March 05, 2026</span>
+                    </div>
+                    <span class="text-base text-[#0D2B70] font-semibold hover:underline flex items-center gap-2">
+                        View details
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+                        </svg>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 4 - Additional card to show variety -->
+        <div class="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer mb-6 border-l-4 border-[#0D2B70]">
+            <div class="p-6">
+                <div class="flex items-start justify-between gap-4">
+                    <h3 class="font-bold text-[#0D2B70] text-xl">Project Development Officer III</h3>
+                    <span class="text-green-700 font-bold whitespace-nowrap text-lg bg-green-50 px-3 py-1 rounded-lg">₱51,000.00</span>
+                </div>
+                
+                <p class="text-gray-700 text-base mt-2 font-medium">PLANNING AND PROJECT DEVELOPMENT DIVISION</p>
+                
+                <div class="flex items-center gap-2 mt-4 text-gray-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                    <span class="text-base">📍 DILG-CENTRAL OFFICE</span>
+                </div>
+                
+                <div class="flex items-center justify-between mt-5 pt-4 border-t border-gray-200">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        <span class="text-base text-gray-500">Deadline: March 12, 2026</span>
+                    </div>
+                    <span class="text-base text-[#0D2B70] font-semibold hover:underline flex items-center gap-2">
+                        View details
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+                        </svg>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- View All Link - Separate element -->
+    <div class="max-w-7xl mx-auto mt-8 text-right">
+        <a href="#" class="inline-flex items-center gap-3 text-lg text-[#0D2B70] font-semibold hover:underline bg-white px-6 py-3 rounded-full shadow-md hover:shadow-lg transition-all">
+            View all vacancies
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+            </svg>
+        </a>
+    </div>
+</div>
             </div>
         </div>
     </header>
     
     <footer class="border-t border-gray-200 flex-none bg-[#F3F8FF] relative z-10">
-        <div class="max-w-7xl mx-auto px-6 py-6 text-sm text-gray-600 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div class="max-w-7xl mx-auto px-6 py-4 text-sm text-gray-600 flex flex-col sm:flex-row items-center justify-between gap-3">
             <div>© {{ date('Y') }} DILG - CAR</div>
             <div class="flex items-center gap-4">
                 <a href="{{ route('job_vacancy') }}" class="text-[#0D2B70] font-semibold hover:underline">Vacancies</a>
@@ -294,9 +414,7 @@
         document.getElementById('applyNowBtn').addEventListener('click', function(e) {
             const jobId = sessionStorage.getItem('selectedJobId');
             const jobTitle = sessionStorage.getItem('selectedJobTitle');
-            
             // this.href = "{{ route('login.form') }}?redirect=apply/" + jobId;
-   
         });
         
         feather.replace();
