@@ -20,6 +20,9 @@ class ExportPDSController
     public function exportPDS(Request $request)
     {
         $user = Auth::user(); // Get currently authenticated user
+        if (!$user) {
+            abort(401);
+        }
 
         // C1
         $personalInfo = PersonalInformation::where('user_id', $user->id)->first(); // changed from firstOrFail()

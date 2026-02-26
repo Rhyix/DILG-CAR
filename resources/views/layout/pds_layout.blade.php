@@ -1136,7 +1136,7 @@
             const keyPrefix = 'pds:';
             const userStorageKey = @json(
                 auth()->check()
-                    ? ('uid:' . auth()->id() . '|email:' . auth()->user()->email . '|created:' . optional(auth()->user()->created_at)->timestamp)
+                    ? ('uid:' . auth()->id())
                     : 'guest'
             );
             const pageSearchKey = (function () {
@@ -1155,13 +1155,11 @@
             const coreKey = keyPrefix + userStorageKey + ':core';
             function getStore() {
                 try {
-                    localStorage.setItem('__pds_test__','1'); localStorage.removeItem('__pds_test__');
-                    return localStorage;
-                } catch(e) {
-                    try {
-                        sessionStorage.setItem('__pds_test__','1'); sessionStorage.removeItem('__pds_test__');
-                        return sessionStorage;
-                    } catch(_) { return { getItem(){return null;}, setItem(){}, removeItem(){} }; }
+                    sessionStorage.setItem('__pds_test__','1');
+                    sessionStorage.removeItem('__pds_test__');
+                    return sessionStorage;
+                } catch(_) {
+                    return { getItem(){return null;}, setItem(){}, removeItem(){} };
                 }
             }
             const store = getStore();
@@ -1230,7 +1228,20 @@
                 if (t === 'file' || t === 'hidden') return false;
                 const n = String(el.name || '').toLowerCase();
                 if (n === '_token') return false;
-                return true;
+                const allowed = new Set([
+                    'sex',
+                    'civil_status',
+                    'citizenship',
+                    'dual_type',
+                    'dual_country',
+                    'res_province',
+                    'res_city',
+                    'res_brgy',
+                    'per_province',
+                    'per_city',
+                    'per_brgy',
+                ]);
+                return allowed.has(n);
             }
             function debounce(fn, ms) {
                 let t; return function(){ clearTimeout(t); const a=arguments, self=this; t=setTimeout(function(){ fn.apply(self,a); }, ms); };

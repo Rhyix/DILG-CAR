@@ -4,12 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>DILG-CAR Careers</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/feather-icons"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    @vite('resources/css/app.css')
     <style>
-        body { font-family: 'Montserrat', sans-serif; }
+        body { font-family: sans-serif; }
         .modal-transition {
             transition: opacity 0.3s ease-in-out;
         }
@@ -37,15 +34,15 @@
                     <p class="text-gray-600 text-sm mt-1" id="modalVacancyType">Vacancy Type</p>
                 </div>
                 <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
-                    <i data-feather="x" class="w-6 h-6"></i>
+                    <span class="w-6 h-6 inline-flex items-center justify-center text-xl leading-none">&times;</span>
                 </button>
             </div>
             
             <!-- Modal Body -->
             <div class="p-6">
                 <div class="mb-6">
-                    <h4 class="font-bold text-blue-900 mb-3 flex items-center gap-2">
-                        <i data-feather="check-circle" class="w-5 h-5"></i>
+                    <h4 class="font-bold text-[#0D2B70] mb-3 flex items-center gap-2">
+                        <span class="w-5 h-5 inline-flex items-center justify-center">✓</span>
                         Qualification Standards
                     </h4>
                     <div class="bg-gray-50 rounded-xl p-4 space-y-3 text-sm">
@@ -73,8 +70,8 @@
                 </div>
 
                 <div class="mb-4">
-                    <h4 class="font-bold text-blue-900 mb-3 flex items-center gap-2">
-                        <i data-feather="file-text" class="w-5 h-5"></i>
+                    <h4 class="font-bold text-[#0D2B70] mb-3 flex items-center gap-2">
+                        <span class="w-5 h-5 inline-flex items-center justify-center">📄</span>
                         Required Documents
                     </h4>
                     <div class="bg-blue-50 rounded-xl p-4">
@@ -85,8 +82,8 @@
                 </div>
                 
                 <div class="mt-6">
-                    <h4 class="font-bold text-blue-900 mb-3 flex items-center gap-2">
-                        <i data-feather="info" class="w-5 h-5"></i>
+                    <h4 class="font-bold text-[#0D2B70] mb-3 flex items-center gap-2">
+                        <span class="w-5 h-5 inline-flex items-center justify-center">ℹ</span>
                         Additional Information
                     </h4>
                     <div class="text-sm text-gray-600 space-y-2" id="additionalInfo">
@@ -99,7 +96,7 @@
                 <!-- Login Prompt for Guest Users -->
                 <div class="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                     <p class="text-sm text-yellow-800 flex items-center gap-2">
-                        <i data-feather="info" class="w-4 h-4"></i>
+                        <span class="w-4 h-4 inline-flex items-center justify-center">ℹ</span>
                         You need to be logged in to apply for this position.
                     </p>
                 </div>
@@ -110,8 +107,8 @@
                 <button onclick="closeModal()" class="px-4 py-2 text-gray-600 font-semibold hover:bg-gray-100 rounded-lg transition-colors">
                     Close
                 </button>
-                <a href="{{ route('login.form') }}" id="applyNowBtn" class="inline-flex items-center gap-2 bg-blue-900 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-950 transition-colors">
-                    <i data-feather="log-in" class="w-4 h-4"></i>
+                <a href="{{ route('login.form') }}" id="applyNowBtn" class="inline-flex items-center gap-2 bg-[#0D2B70] text-white px-6 py-2 rounded-lg font-bold hover:bg-[#002C76] transition-colors">
+                    <span class="w-4 h-4 inline-flex items-center justify-center">→</span>
                     Login to Apply
                 </a>
             </div>
@@ -130,8 +127,8 @@
                 </div>
                 <div class="flex items-center gap-3">
                     <a href="{{ route('login.form') }}" class="text-white/90 hover:text-white font-semibold">Sign In</a>
-                    <a href="{{ route('register.form') }}" class="inline-flex items-center gap-2 bg-white text-blue-900 px-4 py-2 rounded-full font-bold shadow hover:shadow-md">
-                        <i data-feather="user-plus" class="w-4 h-4"></i>
+                    <a href="{{ route('register.form') }}" class="ml-2 inline-flex items-center gap-2 bg-white text-[#0D2B70] px-4 py-2 rounded-full font-bold shadow hover:shadow-md">
+                        <span class="w-4 h-4 inline-flex items-center justify-center">+</span>
                         Create Account
                     </a>
                 </div>
@@ -256,7 +253,6 @@
 
     <script>
         function showJobDetails(job) {
-            // Store job ID in session storage or data attribute for later use
             sessionStorage.setItem('selectedJobId', job.vacancy_id);
             sessionStorage.setItem('selectedJobTitle', job.position_title);
             
@@ -308,7 +304,7 @@
                 const li = document.createElement('li');
                 li.className = 'flex items-center gap-3 text-gray-700';
                 li.innerHTML = `
-                    <i data-feather="${doc.icon}" class="w-4 h-4 text-blue-900"></i>
+                    <span class="w-4 h-4 inline-flex items-center justify-center text-[#0D2B70]">•</span>
                     <span>${doc.name}</span>
                 `;
                 documentsList.appendChild(li);
@@ -317,10 +313,7 @@
             // Show modal
             const modal = document.getElementById('documentsModal');
             modal.classList.remove('hidden');
-            
-            // Re-initialize feather icons
-            feather.replace();
-            
+
             // Prevent body scrolling
             document.body.style.overflow = 'hidden';
         }
@@ -385,14 +378,11 @@
             }
         });
         
-        // Optional: Store the job ID in the login link to redirect back after login
         document.getElementById('applyNowBtn').addEventListener('click', function(e) {
             const jobId = sessionStorage.getItem('selectedJobId');
             const jobTitle = sessionStorage.getItem('selectedJobTitle');
             // this.href = "{{ route('login.form') }}?redirect=apply/" + jobId;
         });
-        
-        feather.replace();
     </script>
  </body>
  </html>

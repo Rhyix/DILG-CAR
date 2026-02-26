@@ -286,8 +286,10 @@ Route::middleware('auth:admin')->group(function () {
 });
 
 // PDS and WES Export
-Route::get('/export-pds', [Forms\ExportPDSController::class, 'exportPDS'])->name('export.pds');
-Route::get('/export-wes', [Forms\ExportWESController::class, 'exportWES'])->name('export.wes');
+Route::middleware('auth')->group(function () {
+    Route::get('/export-pds', [Forms\ExportPDSController::class, 'exportPDS'])->name('export.pds');
+    Route::get('/export-wes', [Forms\ExportWESController::class, 'exportWES'])->name('export.wes');
+});
 
 // ==================================================================================================
 // ADMIN AUTH ROUTES

@@ -577,19 +577,20 @@
     const resBrgy = document.querySelector('#res_brgy');
     const userStorageKey = @json(
         auth()->check()
-            ? ('uid:' . auth()->id() . '|email:' . auth()->user()->email . '|created:' . optional(auth()->user()->created_at)->timestamp)
+            ? ('uid:' . auth()->id())
             : 'guest'
     );
     const pageKey = 'pds:' + userStorageKey + ':' + window.location.pathname.toLowerCase();
     let savedState = {};
-    try { savedState = JSON.parse(localStorage.getItem(pageKey) || '{}'); } catch(e) {}
+    try { savedState = JSON.parse(sessionStorage.getItem(pageKey) || '{}'); } catch(e) {}
     const perProvinceName = savedState.per_province ?? "{{ old('per_province', session('form.c1.per_province')) }}";
     const perCityName = savedState.per_city ?? "{{ old('per_city', session('form.c1.per_city')) }}";
     const perBrgyName = savedState.per_brgy ?? "{{ old('per_brgy', session('form.c1.per_brgy')) }}";
     const resProvinceName = savedState.res_province ?? "{{ old('res_province', session('form.c1.res_province')) }}";
     const resCityName = savedState.res_city ?? "{{ old('res_city', session('form.c1.res_city')) }}";
     const resBrgyName = savedState.res_brgy ?? "{{ old('res_brgy', session('form.c1.res_brgy')) }}";
-    ['per_house_no','per_street','per_sub_vil','per_zipcode','res_house_no','res_street','res_sub_vil','res_zipcode'].forEach(id=>{
+    // Do not persist free-text address fields in browser storage.
+    ['per_zipcode','res_zipcode'].forEach(id=>{
         const el = document.getElementById(id);
         if (!el) return;
         if (savedState[id] !== undefined && savedState[id] !== null) {
@@ -597,15 +598,15 @@
         }
         const handler = () => {
             let s = {};
-            try { s = JSON.parse(localStorage.getItem(pageKey) || '{}'); } catch(e) {}
+            try { s = JSON.parse(sessionStorage.getItem(pageKey) || '{}'); } catch(e) {}
             s[id] = el.value;
-            try { localStorage.setItem(pageKey, JSON.stringify(s)); } catch(e) {}
+            try { sessionStorage.setItem(pageKey, JSON.stringify(s)); } catch(e) {}
         };
         el.addEventListener('input', handler);
         el.addEventListener('change', handler);
     });
-    function readState(){ try { return JSON.parse(localStorage.getItem(pageKey) || '{}'); } catch(e){ return {}; } }
-    function writeState(k, v){ const s = readState(); s[k] = v; try { localStorage.setItem(pageKey, JSON.stringify(s)); } catch(e){} }
+    function readState(){ try { return JSON.parse(sessionStorage.getItem(pageKey) || '{}'); } catch(e){ return {}; } }
+    function writeState(k, v){ const s = readState(); s[k] = v; try { sessionStorage.setItem(pageKey, JSON.stringify(s)); } catch(e){} }
     function setRadio(name, val){
         if (!val) return;
         const target = document.querySelector('input[name="'+name+'"][value="'+val+'"]');
@@ -788,7 +789,7 @@
                 if (resZip && perZip) {
                     perZip.value = resZip.value;
                     perZip.readOnly = resZip.readOnly;
-                    // Trigger change event to save to localStorage
+                    // Trigger change event to save in session storage
                     perZip.dispatchEvent(new Event('change'));
                 }
             }, 400);
@@ -1017,6 +1018,4 @@
     </div>
 </div>
 @endsection
-
-
 
