@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 
 class RedirectIfNotAdmin
 {
@@ -39,14 +40,14 @@ class RedirectIfNotAdmin
                 ->withErrors(['email' => 'Your account request was declined. Please contact superadmin.']);
         }
         
-        // Check if user role has admin-level access (for admin-only routes)
-        if (!in_array($user->role, ['admin', 'superadmin'], true)) {
-            if ($user->role === 'viewer') {
+        // Check if user has full admin-level access for admin-only routes.
+        if (!Gate::forUser($user)->allows('admin.backoffice.full')) {
+            if (Gate::forUser($user)->allows('admin.exam.monitor')) {
                 return redirect()->route('viewer')
                     ->with('error', 'Access denied. Viewer can only access exam management.');
             }
 
-            if ($user->role === 'hr_division') {
+            if (Gate::forUser($user)->allows('admin.applicants.monitor')) {
                 $routeName = $request->route()?->getName();
                 $hrDivisionAllowedRoutes = [
                     'home_admin',

@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Models\JobVacancy;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Gate;
 class AppServiceProvider extends ServiceProvider
 {
     /**
@@ -29,6 +30,26 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Gate::define('admin.exam.monitor', function ($admin): bool {
+            return in_array((string) ($admin->role ?? ''), ['superadmin', 'admin', 'viewer'], true);
+        });
+
+        Gate::define('admin.exam.manage', function ($admin): bool {
+            return in_array((string) ($admin->role ?? ''), ['superadmin', 'admin'], true);
+        });
+
+        Gate::define('admin.applicants.monitor', function ($admin): bool {
+            return in_array((string) ($admin->role ?? ''), ['superadmin', 'admin', 'hr_division'], true);
+        });
+
+        Gate::define('admin.system.manage', function ($admin): bool {
+            return (string) ($admin->role ?? '') === 'superadmin';
+        });
+
+        Gate::define('admin.backoffice.full', function ($admin): bool {
+            return in_array((string) ($admin->role ?? ''), ['superadmin', 'admin'], true);
+        });
+
         Event::listen(Logout::class, function (Logout $event) {
             $user = $event->user;
             if ($user) {

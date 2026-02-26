@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Symfony\Component\HttpFoundation\Response;
 
 class ApplicantsAccess
@@ -38,8 +39,8 @@ class ApplicantsAccess
                 ->withErrors(['email' => 'Your account request was declined. Please contact superadmin.']);
         }
 
-        if (!in_array($admin->role, ['superadmin', 'admin', 'hr_division'], true)) {
-            if ($admin->role === 'viewer') {
+        if (!Gate::forUser($admin)->allows('admin.applicants.monitor')) {
+            if (Gate::forUser($admin)->allows('admin.exam.monitor')) {
                 return redirect()->route('viewer')
                     ->with('error', 'Access denied. Viewer can only access exam management.');
             }

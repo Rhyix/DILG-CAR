@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Forms;
 
+use App\Enums\ApplicationStatus;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
@@ -23,6 +24,7 @@ use Illuminate\Support\Facades\DB;
 use App\Models\CivilServiceEligibility;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
+use App\Services\ApplicationStatusTransitionService;
 
 class PDSController extends Controller
 {
@@ -2144,8 +2146,11 @@ class PDSController extends Controller
             ->first();
 
         if ($application) {
-            if ($application->status === 'Compliance') {
-                $applicationPayload['status'] = 'Updated';
+            if (ApplicationStatus::equals($application->status, ApplicationStatus::COMPLIANCE)) {
+                $statusTransitions = app(ApplicationStatusTransitionService::class);
+                if ($statusTransitions->canTransition($application->status, ApplicationStatus::UPDATED->value)) {
+                    $applicationPayload['status'] = ApplicationStatus::UPDATED->value;
+                }
             }
 
             $application->update($applicationPayload);
@@ -2166,7 +2171,7 @@ class PDSController extends Controller
         $application = Applications::create(array_merge($applicationPayload, [
             'user_id' => Auth::id(),
             'vacancy_id' => $vacancyId,
-            'status' => 'Pending',
+            'status' => ApplicationStatus::PENDING->value,
         ]));
 
         $vacancy = Models\JobVacancy::where('vacancy_id', $vacancyId)->first();
@@ -2463,8 +2468,11 @@ class PDSController extends Controller
                 ]);
 
                 // *** NEW: Check if application was "Compliance" -> update to "Updated" ***
-                if ($application->status === 'Compliance') {
-                    $application->update(['status' => 'Updated']);
+                if (ApplicationStatus::equals($application->status, ApplicationStatus::COMPLIANCE)) {
+                    $statusTransitions = app(ApplicationStatusTransitionService::class);
+                    if ($statusTransitions->canTransition($application->status, ApplicationStatus::UPDATED->value)) {
+                        $application->update(['status' => ApplicationStatus::UPDATED->value]);
+                    }
 
                     $admins = \App\Models\Admin::all();
                     foreach ($admins as $admin) {
@@ -2509,8 +2517,11 @@ class PDSController extends Controller
                 ->where('vacancy_id', $vacancy_id)
                 ->first();
 
-            if ($application && $application->status === 'Compliance') {
-                $application->update(['status' => 'Updated']);
+            if ($application && ApplicationStatus::equals($application->status, ApplicationStatus::COMPLIANCE)) {
+                $statusTransitions = app(ApplicationStatusTransitionService::class);
+                if ($statusTransitions->canTransition($application->status, ApplicationStatus::UPDATED->value)) {
+                    $application->update(['status' => ApplicationStatus::UPDATED->value]);
+                }
 
                 $admins = \App\Models\Admin::all();
                 foreach ($admins as $admin) {

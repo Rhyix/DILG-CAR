@@ -13,6 +13,9 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->redirectGuestsTo('/login'); // redirect to login when some user is not logged in
+        $middleware->alias([
+            'admin.ability' => \App\Http\Middleware\EnsureAdminAbility::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

@@ -460,7 +460,7 @@ Route::middleware([RedirectIfNotAdmin::class])->group(function () {
 // ==================================================================================================
 // VIEWER ROUTES (accessible to both admin and viewer roles)
 // ==================================================================================================
-Route::middleware([ViewerAccess::class])->group(function () {
+Route::middleware([ViewerAccess::class, 'admin.ability:admin.exam.monitor'])->group(function () {
     // Viewer routes
     Route::get('/viewer', fn() => redirect()->route('admin_exam_management'))->name('viewer');
     Route::get('/viewer/exam_management', fn() => redirect()->route('admin_exam_management'))->name('viewer.exam_management');
@@ -565,7 +565,7 @@ Route::get('/auth/google/callback', [GoogleController::class, 'handleGoogleCallb
 // ==================================================================================================
 // APPLICANT PROFILE LIST
 // ==================================================================================================
-Route::middleware([ApplicantsAccess::class])->group(function () {
+Route::middleware([ApplicantsAccess::class, 'admin.ability:admin.applicants.monitor'])->group(function () {
     Route::get('/admin/applicant_status/{user_id}/{vacancy_id}', [AdminController::class, 'viewApplicantStatus'])->name('admin.applicant_status');
     Route::post('/admin/applicant_status/{user_id}/{vacancy_id}', [AdminController::class, 'updateApplicantStatus'])->name('admin.applicant_status.update');
     Route::post('/admin/applicant_status/{user_id}/{vacancy_id}/update-document', [AdminController::class, 'updateDocumentStatusAjax'])->name('admin.applicant_status.update_document');

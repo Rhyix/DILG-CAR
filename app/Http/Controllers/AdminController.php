@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ApplicationStatus;
 use Carbon\Carbon;
 use App\Models\Admin;
 use App\Models\Vacancy;
@@ -34,6 +35,7 @@ use App\Mail\AdminEventNotification;
 
 use App\Mail\NotifyApplicantOverview;
 use Illuminate\Support\Facades\Storage;
+use App\Services\ApplicationStatusTransitionService;
 
 class AdminController extends Controller
 {
@@ -1025,7 +1027,13 @@ class AdminController extends Controller
         $docsQuery = UploadedDocument::where('user_id', $userId);
         if ($supportsVacancyScopedDocs) {
             if (!empty($vacancyId)) {
-                $docsQuery->where('vacancy_id', $vacancyId);
+                // Backward compatibility:
+                // include legacy documents with null vacancy_id, but prioritize exact vacancy match.
+                $docsQuery->where(function ($query) use ($vacancyId) {
+                    $query->where('vacancy_id', $vacancyId)
+                        ->orWhereNull('vacancy_id');
+                });
+                $docsQuery->orderByRaw("CASE WHEN vacancy_id = ? THEN 0 ELSE 1 END", [$vacancyId]);
             } else {
                 $docsQuery->whereNull('vacancy_id');
             }
@@ -1191,6 +1199,9 @@ class AdminController extends Controller
             ->where('vacancy_id', $vacancy_id)
             ->firstOrFail();
 
+        $qsFields = ['qs_education', 'qs_eligibility', 'qs_experience', 'qs_training', 'qs_result'];
+        $qsExplicitlyProvided = collect($qsFields)->contains(fn($field) => $request->has($field));
+
         $documentStatuses = $request->input('document_statuses', []);
         $documentRemarks = $request->input('document_remarks', []);
 
@@ -1230,8 +1241,21 @@ class AdminController extends Controller
             }
         }
 
-        // Allow the values submitted in the request to be final for QS.
-        // Removed dynamic recalculation here to ensure HR's manual overrides are respected.
+        // Recalculate QS when admin did not explicitly provide QS values.
+        // Manual overrides are still respected when QS fields are included in the request.
+        if (!$qsExplicitlyProvided) {
+            $calculatedQs = $this->recalculateQualificationStatus((int) $user_id, (string) $vacancy_id);
+            foreach ($calculatedQs as $field => $value) {
+                $oldValue = $application->$field;
+                if ($oldValue !== $value) {
+                    $changes[$field] = [
+                        'old' => $oldValue,
+                        'new' => $value,
+                    ];
+                    $application->$field = $value;
+                }
+            }
+        }
 
         // Application letter status and remarks
         $file_status = $documentStatuses['application_letter'] ?? null;
@@ -1555,8 +1579,7 @@ class AdminController extends Controller
 
         // --- Logic Check for Application Status Update ---
         $hasNeedsRevision = false;
-        $allVerified = true;
-        $submittedCount = 0;
+        $isQualifiedByQs = strcasecmp((string) ($application->qs_result ?? ''), 'Qualified') === 0;
 
         foreach ($documents as $doc) {
             $status = $doc['status'];
@@ -1568,30 +1591,23 @@ class AdminController extends Controller
                 // If $doc exists but status is 'Pending', it counts as submitted.
             }
 
-            if ($status === 'Not Submitted') {
-                continue;
-            }
-
-            $submittedCount++;
-
             if ($status === 'Needs Revision' || $status === 'Disapproved With Deficiency') {
                 $hasNeedsRevision = true;
-            }
-
-            if ($status !== 'Verified' && $status !== 'Okay/Confirmed') {
-                $allVerified = false;
             }
         }
 
         // Logic:
-        // 1. If ANY document needs revision -> Status = Compliance
-        // 2. If ALL submitted documents are verified -> Status = Qualified
-        // 3. Otherwise -> Status stays as is (e.g. Pending)
+        // 1. If QS result is Qualified -> force Qualified status (used by Qualified tab queries)
+        // 2. Else if any document needs revision -> Status = Compliance
+        // 3. Otherwise -> keep current status
 
-        if ($hasNeedsRevision) {
-            $application->status = 'Compliance';
-        } elseif ($allVerified && $submittedCount > 0) {
-            $application->status = 'Qualified';
+        $statusTransitions = app(ApplicationStatusTransitionService::class);
+        if ($isQualifiedByQs) {
+            $application->status = ApplicationStatus::QUALIFIED->value;
+        } elseif ($hasNeedsRevision) {
+            if ($statusTransitions->canTransition($application->status, ApplicationStatus::COMPLIANCE->value)) {
+                $application->status = ApplicationStatus::COMPLIANCE->value;
+            }
         }
 
         $application->save();
@@ -1643,14 +1659,14 @@ class AdminController extends Controller
         $messageTitle = 'Application Status Update';
         $messageBody = 'Your application has been reviewed. Please see the updated status.';
         $messageLevel = 'info';
-        if ($hasNeedsRevision) {
+        if ($isQualifiedByQs) {
+            $messageTitle = 'Application Qualified';
+            $messageBody = 'Your application has been marked as qualified.';
+            $messageLevel = 'success';
+        } elseif ($hasNeedsRevision) {
             $messageTitle = 'Documents Need Revision';
             $messageBody = 'Some documents require revision. Please review the updates.';
             $messageLevel = 'warning';
-        } elseif ($allVerified && $submittedCount > 0) {
-            $messageTitle = 'Documents Verified';
-            $messageBody = 'Your documents have been verified.';
-            $messageLevel = 'success';
         }
 
         Notification::create([

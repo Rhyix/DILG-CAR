@@ -3,6 +3,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ApplicationStatus;
 use App\Models\JobVacancy;
 use App\Models\ExamDetail;
 use App\Models\ExamItems;
@@ -716,7 +717,7 @@ class JobVacancyController extends Controller
         $application = \App\Models\Applications::create([
             'user_id' => Auth::id(),
             'vacancy_id' => $vacancy->vacancy_id,
-            'status' => 'Pending',
+            'status' => ApplicationStatus::PENDING->value,
             'is_valid' => true,
 
             'file_original_name' => $applicationLetterDoc->original_name,

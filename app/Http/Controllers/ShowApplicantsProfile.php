@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ApplicationStatus;
 use App\Models\Applications;
 use App\Models\PersonalInformation;
 use App\Models\JobVacancy;
@@ -14,8 +15,7 @@ class ShowApplicantsProfile extends Controller
 {
     private function complianceStageStatuses(): array
     {
-        // "Updated" means applicant complied and resubmitted docs after a Compliance request.
-        return ['compliance', 'updated'];
+        return ApplicationStatus::complianceStages();
     }
 
     private function currentAdmin()
@@ -107,7 +107,7 @@ class ShowApplicantsProfile extends Controller
 
         $applications = Applications::with(['vacancy', 'personalInformation', 'user'])
             ->where('vacancy_id', $vacancy_id)
-            ->where('status', 'Pending')
+            ->statusEquals(ApplicationStatus::PENDING->value)
             ->orderByDesc('created_at') // Sort from newest to oldest
             ->get();
 
@@ -146,7 +146,7 @@ class ShowApplicantsProfile extends Controller
         $sortStatus = $request->input('sort_status');
 
         $query = Applications::with(['vacancy', 'personalInformation', 'user'])
-            ->where('status', '!=', 'Pending')
+            ->whereRaw('LOWER(TRIM(status)) <> ?', [strtolower(ApplicationStatus::PENDING->value)])
             ->where('vacancy_id', $vacancy_id); // filter by vacancy_id
 
         if ($sortStatus) {
@@ -204,7 +204,7 @@ class ShowApplicantsProfile extends Controller
         }
 
         $query = Applications::with(['vacancy', 'personalInformation', 'user'])
-            ->where('status', '!=', 'Pending');
+            ->whereRaw('LOWER(TRIM(status)) <> ?', [strtolower(ApplicationStatus::PENDING->value)]);
 
         if ($vacancyId) {
             $query->where('vacancy_id', $vacancyId); // ✅ Filter by current vacancy
@@ -280,13 +280,13 @@ class ShowApplicantsProfile extends Controller
         // Get all vacancies with counts per status
         $vacancies = $query->withCount([
             'applications as pending_count' => function ($q) {
-                $q->where('status', 'Pending');
+                $q->statusEquals(ApplicationStatus::PENDING->value);
             },
             'applications as compliance_count' => function ($q) {
-                $q->whereRaw('LOWER(TRIM(status)) IN (?, ?)', $this->complianceStageStatuses());
+                $q->statusIn($this->complianceStageStatuses());
             },
             'applications as qualified_count' => function ($q) {
-                $q->where('status', 'Qualified');
+                $q->statusEquals(ApplicationStatus::QUALIFIED->value);
             },
         ])->get();
 
@@ -341,7 +341,7 @@ class ShowApplicantsProfile extends Controller
 
         $query = Applications::with(['vacancy', 'personalInformation', 'user'])
             ->where('vacancy_id', $vacancyId)
-            ->where('status', 'Pending');
+            ->statusEquals(ApplicationStatus::PENDING->value);
 
         if ($sortOrder === 'oldest') {
             $query->orderBy('created_at', 'asc');
@@ -418,21 +418,21 @@ class ShowApplicantsProfile extends Controller
         // Get new applicants (Pending status)
         $newApplications = Applications::with(['vacancy', 'personalInformation', 'user'])
             ->where('vacancy_id', $vacancy_id)
-            ->where('status', 'Pending')
+            ->statusEquals(ApplicationStatus::PENDING->value)
             ->orderByDesc('created_at')
             ->get();
 
         // Get compliance applicants
         $complianceApplications = Applications::with(['vacancy', 'personalInformation', 'user'])
             ->where('vacancy_id', $vacancy_id)
-            ->whereRaw('LOWER(TRIM(status)) IN (?, ?)', $this->complianceStageStatuses())
+            ->statusIn($this->complianceStageStatuses())
             ->orderByDesc('created_at')
             ->get();
 
         // Get qualified applicants
         $qualifiedApplications = Applications::with(['vacancy', 'personalInformation', 'user'])
             ->where('vacancy_id', $vacancy_id)
-            ->where('status', 'Qualified')
+            ->statusEquals(ApplicationStatus::QUALIFIED->value)
             ->orderByDesc('created_at')
             ->get();
 
@@ -524,7 +524,7 @@ class ShowApplicantsProfile extends Controller
 
         $query = Applications::with(['vacancy', 'personalInformation', 'user'])
             ->where('vacancy_id', $vacancyId)
-            ->where('status', 'Pending');
+            ->statusEquals(ApplicationStatus::PENDING->value);
 
         // Apply search filter
         if (!empty($search)) {
@@ -577,7 +577,7 @@ class ShowApplicantsProfile extends Controller
 
         $query = Applications::with(['vacancy', 'personalInformation', 'user'])
             ->where('vacancy_id', $vacancyId)
-            ->whereRaw('LOWER(TRIM(status)) IN (?, ?)', $this->complianceStageStatuses());
+            ->statusIn($this->complianceStageStatuses());
 
         // Apply search filter
         if (!empty($search)) {
@@ -631,7 +631,7 @@ class ShowApplicantsProfile extends Controller
 
         $query = Applications::with(['vacancy', 'personalInformation', 'user'])
             ->where('vacancy_id', $vacancyId)
-            ->where('status', 'Qualified');
+            ->statusEquals(ApplicationStatus::QUALIFIED->value);
 
         // Apply search filter
         if (!empty($search)) {
