@@ -72,8 +72,22 @@
 
     <div>
       <label class="block">Position Title</label>
-      <input id="position_title" required type="text" name="position_title" value="{{ old('position_title', $vacancy->position_title ?? '') }}" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10">
+      <select id="position_title_select" name="position_title" required class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10">
+        <option value="">-- Select Position Title --</option>
+      </select>
       <p id="position_title_error" class="text-red-600 text-sm mt-1 hidden">Position title is required.</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label class="block">Salary Grade/Pay Grade</label>
+        <input id="salary_grade" type="text" name="salary_grade" value="{{ old('salary_grade', $vacancy->salary_grade ?? '') }}" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10" readonly>
+      </div>
+      <div>
+        <label class="block">Monthly Salary</label>
+        <input id="monthly_salary" required type="number" step="0.01" min="0" max="1000000" inputmode="decimal" name="monthly_salary" value="{{ old('monthly_salary', $vacancy->monthly_salary ?? '') }}" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10" readonly>
+        <p id="monthly_salary_error" class="text-red-600 text-sm mt-1 hidden"></p>
+      </div>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 w-full gap-4 mt-4">
@@ -105,17 +119,7 @@
 
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div>
-        <label class="block">Salary Grade/Pay Grade</label>
-        <input id="salary_grade" type="text" name="salary_grade" value="{{ old('salary_grade', $vacancy->salary_grade ?? '') }}" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10">
-      </div>
-      <div>
-        <label class="block">Monthly Salary</label>
-        <input id="monthly_salary" required type="number" step="0.01" min="0" max="1000000" inputmode="decimal" name="monthly_salary" value="{{ old('monthly_salary', $vacancy->monthly_salary ?? '') }}" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10">
-        <p id="monthly_salary_error" class="text-red-600 text-sm mt-1 hidden"></p>
-      </div>
-    </div>
+
 
 
     <hr class="border-1 mt-4 border-[#002C76]">
@@ -454,3 +458,40 @@ document.addEventListener('input', (e) => {
 </script>
 
 @endsection
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const select = document.getElementById('position_title_select');
+  const sg = document.getElementById('salary_grade');
+  const sal = document.getElementById('monthly_salary');
+  try {
+    const res = await fetch("{{ route('admin.vacancy_titles.list') }}");
+    const data = await res.json();
+    if (data.success) {
+      const opts = data.data || [];
+      const current = "{{ old('position_title', $vacancy->position_title ?? '') }}";
+      opts.forEach(o => {
+        const opt = document.createElement('option');
+        opt.value = o.position_title;
+        opt.textContent = o.position_title;
+        if (current && current === o.position_title) opt.selected = true;
+        opt.dataset.sg = o.salary_grade || '';
+        opt.dataset.salary = o.monthly_salary || 0;
+        select.appendChild(opt);
+      });
+      // Initialize if current exists
+      const sel = select.options[select.selectedIndex];
+      if (sel && sel.dataset) {
+        sg.value = sel.dataset.sg || '';
+        sal.value = sel.dataset.salary || '';
+      }
+    }
+  } catch(e) {}
+  select.addEventListener('change', () => {
+    const sel = select.options[select.selectedIndex];
+    sg.value = sel?.dataset?.sg || '';
+    sal.value = sel?.dataset?.salary || '';
+  });
+});
+</script>
+@endpush

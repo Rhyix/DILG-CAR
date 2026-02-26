@@ -30,6 +30,7 @@ use App\Http\Middleware\ApplicantsAccess;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\BackupRestoreController;
+use App\Http\Controllers\VacancyTitleController;
 
 use App\Events\PackageSent;
 use Illuminate\Support\Facades\Storage;
@@ -432,7 +433,12 @@ Route::middleware([RedirectIfNotAdmin::class])->group(function () {
         Route::get('/admin/utilities/backup-restore', [BackupRestoreController::class, 'index'])->name('admin.backup.index');
         Route::post('/admin/utilities/backup-restore/backup', [BackupRestoreController::class, 'backup'])->name('admin.backup.run');
         Route::post('/admin/utilities/backup-restore/restore', [BackupRestoreController::class, 'restore'])->name('admin.backup.restore');
+        Route::get('/admin/utilities/vacancy-titles', [VacancyTitleController::class, 'index'])->name('admin.vacancy_titles.index');
+        Route::post('/admin/utilities/vacancy-titles', [VacancyTitleController::class, 'store'])->name('admin.vacancy_titles.store');
+        Route::put('/admin/utilities/vacancy-titles/{id}', [VacancyTitleController::class, 'update'])->name('admin.vacancy_titles.update');
+        Route::delete('/admin/utilities/vacancy-titles/{id}', [VacancyTitleController::class, 'destroy'])->name('admin.vacancy_titles.destroy');
     });
+    Route::get('/admin/utilities/vacancy-titles/list', [VacancyTitleController::class, 'listJson'])->name('admin.vacancy_titles.list');
 
     // ==================================================================================================
     // SIGNATORY ROUTES

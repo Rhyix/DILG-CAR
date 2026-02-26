@@ -131,6 +131,14 @@
                             <i data-feather="edit-3" class="w-5 h-5 stroke-[2.5] justify-center items-center flex-shrink-0 ml-2"></i>
                             <span class="ml-3 transition-opacity duration-200">SIGNATORIES</span>
                         </a>
+                        @if($adminRole === 'superadmin')
+                        <a href="{{ route('admin.vacancy_titles.index') }}" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200 {{ request()->routeIs('admin.vacancy_titles.*')
+                                ? 'bg-[#002C76] text-white shadow-md'
+                                : 'text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md' }}">
+                            <i class="fa-solid fa-briefcase w-5 h-5 flex-shrink-0 ml-2"></i>
+                            <span class="ml-3 transition-opacity duration-200">VACANCY TITLES</span>
+                        </a>
+                        @endif
 
                         <!-- Activity Log -->
                         <a href="{{ route('admin_activity_log') }}" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200

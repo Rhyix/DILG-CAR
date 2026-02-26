@@ -90,25 +90,29 @@
     <input type="hidden" name="vacancy_type" value="Plantilla">
 
     <div class="grid grid-cols-2 gap-4 mt-4">
-        <div class="w-full>
+        <div class="w-full">
             <label class="block">Position Title</label>
-            <input id="position_title" required type="text" name="position_title" value="{{ old('position_title', $vacancy->position_title ?? '') }}" class="w-full border-2 border-[#002C76] rounded px-2 py-1 h-10">
+            <select id="position_title_select" name="position_title" required class="w-full border-2 border-[#002C76] rounded px-2 py-1 h-10">
+                <option value="">-- Select Position Title --</option>
+            </select>
             <p id="position_title_error" class="text-red-600 text-sm mt-1 hidden">Position title is required.</p>
         </div>
     
 
         <div class="w-full grid grid-cols-2 gap-4">
-            <div class="w-full">
-                <label class="block">PCN No.</label>
-                <input type="text" name="pcn_no" value="{{ old('pcn_no', $vacancy->pcn_no ?? '') }}" class="w-full border-2 border-[#002C76] rounded px-2 py-1 h-10">
-            </div>
+                    <div>
+            <label class="block">Salary Grade/Pay Grade</label>
+            <input id="salary_grade" type="text" name="salary_grade" value="{{ old('salary_grade', $vacancy->salary_grade ?? '') }}" class="w-full border-2 border-[#002C76] rounded px-2 py-1 h-10" readonly>
+        </div>
 
-            <div>
-                <label class="block">Plantilla Item No.</label>
-                <input type="text" name="plantilla_item_no" value="{{ old('plantilla_item_no', $vacancy->plantilla_item_no ?? '') }}" class="w-full border-2 border-[#002C76] rounded px-2 py-1 h-10">
-            </div>
+        <div>
+            <label class="block">Monthly Salary</label>
+            <input id="monthly_salary" required type="number" step="0.01" min="0" max="1000000" inputmode="decimal" name="monthly_salary" value="{{ old('monthly_salary', $vacancy->monthly_salary ?? '') }}" class="w-full border-2 border-[#002C76] rounded px-2 py-1 h-10" readonly>
+            <p id="monthly_salary_error" class="text-red-600 text-sm mt-1 hidden"></p>
+        </div>
 
-            <!-- Status removed as per request, default is OPEN handled in backend -->
+
+            <!-- Status is OPEN handled in backend -->
         </div>
 
     </div>
@@ -127,15 +131,16 @@
             <p id="closing_date_error" class="text-red-600 text-sm mt-1 hidden">Deadline of application is required.</p>
         </div>
 
-        <div>
-            <label class="block">Salary Grade/Pay Grade</label>
-            <input type="text" name="salary_grade" value="{{ old('salary_grade', $vacancy->salary_grade ?? '') }}" class="w-full border-2 border-[#002C76] rounded px-2 py-1 h-10">
+
+
+        <div class="w-full">
+            <label class="block">PCN No.</label>
+            <input type="text" name="pcn_no" value="{{ old('pcn_no', $vacancy->pcn_no ?? '') }}" class="w-full border-2 border-[#002C76] rounded px-2 py-1 h-10">
         </div>
 
         <div>
-            <label class="block">Monthly Salary</label>
-            <input id="monthly_salary" required type="number" step="0.01" min="0" max="1000000" inputmode="decimal" name="monthly_salary" value="{{ old('monthly_salary', $vacancy->monthly_salary ?? '') }}" class="w-full border-2 border-[#002C76] rounded px-2 py-1 h-10">
-            <p id="monthly_salary_error" class="text-red-600 text-sm mt-1 hidden"></p>
+            <label class="block">Plantilla Item No.</label>
+            <input type="text" name="plantilla_item_no" value="{{ old('plantilla_item_no', $vacancy->plantilla_item_no ?? '') }}" class="w-full border-2 border-[#002C76] rounded px-2 py-1 h-10">
         </div>
     </div>
 
@@ -369,6 +374,39 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // Initialize on page load
     handleSignatoryChange();
+
+    // Vacancy Titles dropdown population
+    const titleSelect = document.getElementById('position_title_select');
+    const sgField = document.getElementById('salary_grade');
+    const salField = document.getElementById('monthly_salary');
+    if (titleSelect) {
+        fetch("{{ route('admin.vacancy_titles.list') }}")
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    const current = "{{ old('position_title', $vacancy->position_title ?? '') }}";
+                    data.data.forEach(o => {
+                        const opt = document.createElement('option');
+                        opt.value = o.position_title;
+                        opt.textContent = o.position_title;
+                        if (current && current === o.position_title) opt.selected = true;
+                        opt.dataset.sg = o.salary_grade || '';
+                        opt.dataset.salary = o.monthly_salary || 0;
+                        titleSelect.appendChild(opt);
+                    });
+                    const sel = titleSelect.options[titleSelect.selectedIndex];
+                    if (sel && sel.dataset) {
+                        sgField.value = sel.dataset.sg || '';
+                        salField.value = sel.dataset.salary || '';
+                    }
+                }
+            }).catch(() => {});
+        titleSelect.addEventListener('change', () => {
+            const sel = titleSelect.options[titleSelect.selectedIndex];
+            sgField.value = sel?.dataset?.sg || '';
+            salField.value = sel?.dataset?.salary || '';
+        });
+    }
 });
 
 // Validate all fields
