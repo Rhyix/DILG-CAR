@@ -85,19 +85,21 @@
             </span>
         </div>
         <div class="overflow-x-auto">
-            <table class="w-full min-w-[1080px] table-fixed text-sm">
+            <table class="w-full min-w-[1240px] table-fixed text-sm">
                 <colgroup>
-                    <col class="w-[31%]">
-                    <col class="w-[16%]">
-                    <col class="w-[29%]">
-                    <col class="w-[10%]">
+                    <col class="w-[26%]">
                     <col class="w-[14%]">
+                    <col class="w-[22%]">
+                    <col class="w-[18%]">
+                    <col class="w-[8%]">
+                    <col class="w-[12%]">
                 </colgroup>
                 <thead class="bg-[#0D2B70] text-white">
                     <tr>
                         <th class="px-5 py-3 text-left font-semibold">Email</th>
                         <th class="px-5 py-3 text-left font-semibold">Role</th>
                         <th class="px-5 py-3 text-left font-semibold">Office / Designation</th>
+                        <th class="px-5 py-3 text-left font-semibold">Access</th>
                         <th class="px-5 py-3 text-center font-semibold">Status</th>
                         <th class="w-[230px] min-w-[230px] px-5 py-3 text-right font-semibold">Actions</th>
                     </tr>
@@ -106,6 +108,7 @@
                     @include('partials.admin_list', [
                         'admins' => $admins,
                         'hrDivisionAccessMap' => $hrDivisionAccessMap ?? [],
+                        'hrDivisionAccessLabelMap' => $hrDivisionAccessLabelMap ?? [],
                     ])
                 </tbody>
             </table>
@@ -765,7 +768,7 @@
 
         const loadingRow = `
             <tr>
-                <td colspan="5" class="px-5 py-10 text-center text-slate-500">
+                <td colspan="6" class="px-5 py-10 text-center text-slate-500">
                     <div class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
                         <svg class="h-4 w-4 animate-spin text-[#0D2B70]" viewBox="0 0 24 24" fill="none">
                             <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" class="opacity-20"></circle>
@@ -778,7 +781,7 @@
 
         const errorRow = `
             <tr>
-                <td colspan="5" class="px-5 py-10 text-center text-rose-600">
+                <td colspan="6" class="px-5 py-10 text-center text-rose-600">
                     Unable to load search results. Please try again.
                 </td>
             </tr>`;

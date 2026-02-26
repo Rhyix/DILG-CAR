@@ -39,7 +39,7 @@
             <p><span class="font-medium text-gray-600">Score:</span> <span id="score">--</span></p>
         </div>
         <div class="flex items-center gap-2">
-            <button onclick="renderAnswers()" aria-label="Refresh answers" title="Refresh answers"
+            <button onclick="fetchAnswers(true)" aria-label="Refresh answers" title="Refresh answers"
                 class="mt-2 w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-700 flex justify-center items-center transition shadow-md">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <polyline points="1 4 1 10 7 10"></polyline>
@@ -99,6 +99,10 @@
     let final_score = 0;
     let highest_score = 0;
 
+    function hasDisplayValue(value) {
+        return value !== null && value !== undefined && String(value) !== '';
+    }
+
     function formatManilaDateTime(isoString) {
         if (!isoString) return '-';
 
@@ -126,11 +130,19 @@
         pollingInterval = setInterval(fetchAnswers, 5000); // Poll every 5 seconds
     }
 
-    function fetchAnswers() {
+    function fetchAnswers(isManual = false) {
         const refreshEl = document.getElementById('last-refreshed');
         if(refreshEl) refreshEl.classList.add('animate-pulse', 'text-blue-600');
 
-        fetch(`{{ route('admin.view_exam.json', ['vacancy_id' => $vacancy_id, 'user_id' => $user_id]) }}`)
+        const url = `{{ route('admin.view_exam.json', ['vacancy_id' => $vacancy_id, 'user_id' => $user_id]) }}?_=${Date.now()}`;
+
+        fetch(url, {
+            cache: 'no-store',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
@@ -184,10 +196,10 @@
             if (ansEl) {
                 if (q.is_essay) {
                      // For essay
-                     ansEl.textContent = q.given_answer ?? 'No answer yet';
+                     ansEl.textContent = hasDisplayValue(q.given_answer) ? q.given_answer : 'No answer yet';
                 } else {
                      // For MCQ
-                     const text = q.given_answer 
+                     const text = hasDisplayValue(q.given_answer)
                         ? `${q.given_answer}${q.given_answer_text ? ' - ' + q.given_answer_text : ''}`
                         : 'No answer';
                      ansEl.textContent = text;
@@ -290,7 +302,7 @@
         container.innerHTML = '';
 
         Questions.forEach((q, index) => {
-            const userAnswer = q.given_answer ?? 'No answer yet';
+            const userAnswer = hasDisplayValue(q.given_answer) ? q.given_answer : 'No answer yet';
             // use manual check if available, otherwise fallback to auto
             const isCorrect = q.is_correct;
             const isEssay = q.is_essay;
@@ -337,13 +349,13 @@
                             <p class="text-sm">
                                 <span class="font-semibold text-gray-700 mr-1">Examinee Answer:</span>
                                 <span id="answer-text-${q.id}" class="text-gray-900">
-                                    ${q.given_answer ? `${q.given_answer}${q.given_answer_text ? ' - ' + q.given_answer_text : ''}` : 'No answer'}
+                                    ${hasDisplayValue(q.given_answer) ? `${q.given_answer}${q.given_answer_text ? ' - ' + q.given_answer_text : ''}` : 'No answer'}
                                 </span>
                             </p>
                             <p class="text-sm">
                                 <span class="font-semibold text-gray-700 mr-1">Correct Answer:</span>
                                 <span class="text-gray-900">
-                                    ${q.correct_answer ? `${q.correct_answer}${q.correct_answer_text ? ' - ' + q.correct_answer_text : ''}` : '—'}
+                                    ${hasDisplayValue(q.correct_answer) ? `${q.correct_answer}${q.correct_answer_text ? ' - ' + q.correct_answer_text : ''}` : '-'}
                                 </span>
                             </p>
                         </div>

@@ -110,6 +110,7 @@ class AdminController extends Controller
             ->get();
         $cosVacancies = $this->getCosVacanciesForHrDivisionAccess();
         $hrDivisionAccessMap = $this->getHrDivisionAccessMap($admins);
+        $hrDivisionAccessLabelMap = $this->getHrDivisionAccessLabelMap($hrDivisionAccessMap);
         // $users = User::all(); // Removed to prevent fetching participants
 
         activity()
@@ -118,7 +119,7 @@ class AdminController extends Controller
             ->withProperties(['section' => 'System Users Management'])
             ->log('Viewed admin account management.');
 
-        return view('admin.admin_account_management', compact('admins', 'cosVacancies', 'hrDivisionAccessMap'));
+        return view('admin.admin_account_management', compact('admins', 'cosVacancies', 'hrDivisionAccessMap', 'hrDivisionAccessLabelMap'));
     }
 
     public function accountSettings()
@@ -781,6 +782,51 @@ class AdminController extends Controller
             ->toArray();
     }
 
+    private function getHrDivisionAccessLabelMap(array $hrDivisionAccessMap): array
+    {
+        $vacancyIds = collect($hrDivisionAccessMap)
+            ->flatten(1)
+            ->map(fn($vacancyId) => trim((string) $vacancyId))
+            ->filter(fn($vacancyId) => $vacancyId !== '')
+            ->unique()
+            ->values()
+            ->all();
+
+        if (empty($vacancyIds)) {
+            return [];
+        }
+
+        $vacancyTitleMap = JobVacancy::query()
+            ->whereIn('vacancy_id', $vacancyIds)
+            ->select(['vacancy_id', 'position_title'])
+            ->get()
+            ->mapWithKeys(function ($vacancy) {
+                $vacancyId = trim((string) ($vacancy->vacancy_id ?? ''));
+                $title = trim((string) ($vacancy->position_title ?? ''));
+
+                return [$vacancyId => ($title !== '' ? $title : $vacancyId)];
+            })
+            ->toArray();
+
+        return collect($hrDivisionAccessMap)
+            ->map(function ($assignedVacancyIds) use ($vacancyTitleMap) {
+                return collect($assignedVacancyIds)
+                    ->map(function ($vacancyId) use ($vacancyTitleMap) {
+                        $vacancyId = trim((string) $vacancyId);
+                        if ($vacancyId === '') {
+                            return null;
+                        }
+
+                        return $vacancyTitleMap[$vacancyId] ?? $vacancyId;
+                    })
+                    ->filter(fn($value) => $value !== null && $value !== '')
+                    ->unique()
+                    ->values()
+                    ->all();
+            })
+            ->toArray();
+    }
+
     private function hasHrDivisionVacancyAccess(?string $vacancyId): bool
     {
         $admin = Auth::guard('admin')->user();
@@ -896,15 +942,15 @@ class AdminController extends Controller
             ->orderBy('name')
             ->orderBy('email')
             ->get();
-        $cosVacancies = $this->getCosVacanciesForHrDivisionAccess();
         $hrDivisionAccessMap = $this->getHrDivisionAccessMap($admins);
+        $hrDivisionAccessLabelMap = $this->getHrDivisionAccessLabelMap($hrDivisionAccessMap);
         /*
         activity()
             ->causedBy(auth()->guard('admin')->user())
             ->withProperties(['query' => $request->input('query')])
             ->log('Searched for admins.');
         */
-        return view('partials.admin_list', compact('admins', 'hrDivisionAccessMap'))->render();
+        return view('partials.admin_list', compact('admins', 'hrDivisionAccessMap', 'hrDivisionAccessLabelMap'))->render();
     }
 
     private function getApplicantDocuments($user_id, $application)

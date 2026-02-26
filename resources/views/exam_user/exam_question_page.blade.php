@@ -123,12 +123,13 @@
 
 <div class="px-6 mt-2 max-w-3xl mx-auto">
     <div id="saveNotification" class="hidden text-green-600 text-sm font-semibold transition-opacity duration-300">
-        Answers from the previous screen have been saved.
+        Answers restored from your latest autosave.
     </div>
 </div>
 
 <script>
     const Questions = @json($examItems);
+    const savedAnswers = @json($savedAnswers ?? []);
 
     // Questions are shown in original order
 
@@ -140,6 +141,9 @@
     const confirmSubmitBtn = document.getElementById('confirmSubmitBtn');
 
     const answers = {};
+    const normalizedSavedAnswers = Object.fromEntries(
+        Object.entries(savedAnswers || {}).map(([questionId, value]) => [String(questionId), value ?? ''])
+    );
     let switchCount = 0;
     const AUTOSAVE_DEBOUNCE_MS = 900;
     const AUTOSAVE_PERIODIC_MS = 15000;
@@ -148,8 +152,22 @@
     let answersDirty = false;
     let lastSavedFingerprint = '';
     let unloadSaveTriggered = false;
+    let restoredNoticeShown = false;
 
     Questions.forEach((q, idx) => q.number = idx + 1);
+
+    function hasAnswerValue(value) {
+        return value !== null && value !== undefined && String(value) !== '';
+    }
+
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
 
     function collectCurrentAnswers() {
         form.querySelectorAll('[name^="answers["]').forEach(input => {
@@ -537,9 +555,13 @@
 
     function renderAllQuestions() {
     container.innerHTML = '';
-    Questions.forEach((q, idx) => {
+        Questions.forEach((q, idx) => {
         const qDiv = document.createElement('div');
         qDiv.className = 'bg-white rounded-xl border border-blue-200 shadow-md p-6 mb-6 max-w-3xl mx-auto';
+        const questionId = String(q.id);
+        const savedValue = Object.prototype.hasOwnProperty.call(normalizedSavedAnswers, questionId)
+            ? normalizedSavedAnswers[questionId]
+            : '';
 
         const number = idx + 1;
         let html = `<p class="text-lg font-semibold text-gray-800">QUESTION ${number} of ${Questions.length}</p>`;
@@ -549,12 +571,12 @@
             const opts = q.choices;
             html += Object.entries(opts).map(([key, val]) =>
                 `<label class="block text-[#002C76] font-semibold">
-                    <input type="radio" name="answers[${q.id}]" value="${key}" class="mr-2">
+                    <input type="radio" name="answers[${q.id}]" value="${key}" class="mr-2" ${hasAnswerValue(savedValue) && String(savedValue) === String(key) ? 'checked' : ''}>
                     ${val}
                 </label>`
             ).join('');
         } else {
-            html += `<textarea name="answers[${q.id}]" class="w-full border border-gray-300 rounded-md p-4 min-h-[150px]" placeholder="Type your answer..."></textarea>`;
+            html += `<textarea name="answers[${q.id}]" class="w-full border border-gray-300 rounded-md p-4 min-h-[150px]" placeholder="Type your answer...">${escapeHtml(savedValue)}</textarea>`;
         }
 
         qDiv.innerHTML = html;
@@ -565,10 +587,17 @@
     submitContainer.classList.remove('hidden');
     // After rendering inputs, attach listeners and set initial state
     attachAnswerListeners();
+    Object.entries(normalizedSavedAnswers).forEach(([questionId, value]) => {
+        answers[String(questionId)] = value ?? '';
+    });
     collectCurrentAnswers();
     lastSavedFingerprint = JSON.stringify(answers);
     answersDirty = false;
     updateSubmitEnabled();
+    if (!restoredNoticeShown && Object.keys(normalizedSavedAnswers).length > 0) {
+        restoredNoticeShown = true;
+        showSaveNotification();
+    }
 }
 
     // Periodic autosave as fallback (silent)

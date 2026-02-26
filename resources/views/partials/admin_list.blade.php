@@ -1,11 +1,12 @@
 @php
     $hrDivisionAccessMap = $hrDivisionAccessMap ?? [];
+    $hrDivisionAccessLabelMap = $hrDivisionAccessLabelMap ?? [];
     $isSuperadminActor = (auth('admin')->user()->role ?? null) === 'superadmin';
 @endphp
 
 @if ($admins->isEmpty())
     <tr data-empty-state="1">
-        <td colspan="5" class="px-5 py-12 text-center">
+        <td colspan="6" class="px-5 py-12 text-center">
             <div class="mx-auto max-w-md rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6">
                 <p class="text-sm font-semibold text-slate-700">No accounts found</p>
                 <p class="mt-1 text-sm text-slate-500">Try a different search term or clear the filter.</p>
@@ -50,6 +51,9 @@
             $isDeclined = $statusKey === 'declined';
             $displayIdentity = trim((string) ($admin->name ?? '')) ?: ($admin->email ?? ('Admin #' . $admin->id));
             $grantedVacancyIds = array_values($hrDivisionAccessMap[$admin->id] ?? []);
+            $grantedAccessLabels = array_values($hrDivisionAccessLabelMap[$admin->id] ?? []);
+            $accessPreview = array_slice($grantedAccessLabels, 0, 2);
+            $remainingAccessCount = max(count($grantedAccessLabels) - count($accessPreview), 0);
             $canManageHrDivisionAccess = $isSuperadminActor && !$isPending && (($admin->role ?? null) === 'hr_division');
         @endphp
 
@@ -71,6 +75,28 @@
             <td class="px-5 py-4 align-middle">
                 <p class="text-sm font-medium text-slate-700">{{ $admin->office ?: 'Not set' }}</p>
                 <p class="text-xs text-slate-500">{{ $admin->designation ?: 'No designation' }}</p>
+            </td>
+            <td class="px-5 py-4 align-middle">
+                @if (($admin->role ?? null) !== 'hr_division')
+                    <span class="text-xs font-medium text-slate-400">Not applicable</span>
+                @elseif (empty($grantedAccessLabels))
+                    <span class="inline-flex rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
+                        No access assigned
+                    </span>
+                @else
+                    <div class="flex flex-wrap gap-1.5" title="{{ implode(', ', $grantedAccessLabels) }}">
+                        @foreach ($accessPreview as $accessLabel)
+                            <span class="inline-flex max-w-[220px] truncate rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700">
+                                {{ $accessLabel }}
+                            </span>
+                        @endforeach
+                        @if ($remainingAccessCount > 0)
+                            <span class="inline-flex rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
+                                +{{ $remainingAccessCount }} more
+                            </span>
+                        @endif
+                    </div>
+                @endif
             </td>
             <td class="px-5 py-4 text-center align-middle">
                 <span class="inline-flex rounded-full border px-3 py-1 text-xs font-semibold {{ $statusClass }}">

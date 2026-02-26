@@ -558,12 +558,30 @@ class ExamController extends Controller
 
         foreach ($participants as $p) {
             $scores = $p->scores ?? [];
+            $answers = $p->answers ?? [];
             $status = strtolower($p->status ?? 'pending');
             
             $mcString = '-';
             $essayString = '-';
 
-            if ($status === 'submitted' || $isExamExpired) {
+            if ($status === 'in-progress') {
+                $mcScore = 0;
+                foreach ($mcItemIds as $id) {
+                    if (isset($scores[$id])) {
+                        $mcScore += (int)$scores[$id];
+                    }
+                }
+                $mcString = count($mcItemIds) > 0 ? "$mcScore / " . count($mcItemIds) : '-';
+
+                $answeredEssay = 0;
+                foreach ($essayItemIds as $id) {
+                    $val = $answers[$id] ?? null;
+                    if (!is_null($val) && trim((string)$val) !== '') {
+                        $answeredEssay++;
+                    }
+                }
+                $essayString = count($essayItemIds) > 0 ? "$answeredEssay / " . count($essayItemIds) : '-';
+            } elseif ($status === 'submitted' || $isExamExpired) {
                 $mcScore = 0;
                 foreach ($mcItemIds as $id) {
                     if (isset($scores[$id])) $mcScore += (int)$scores[$id];
@@ -716,11 +734,29 @@ class ExamController extends Controller
             $color = $statusColors[$status] ?? '#9ca3af';
 
             $scores = $p->scores ?? [];
-            
+            $answers = $p->answers ?? [];
+             
             $mcString = '-';
             $essayString = '-';
 
-            if ($status === 'submitted' || $isExamExpired) {
+            if ($status === 'in-progress') {
+                $mcScore = 0;
+                foreach ($mcItemIds as $id) {
+                    if (isset($scores[$id])) {
+                        $mcScore += (int)$scores[$id];
+                    }
+                }
+                $mcString = count($mcItemIds) > 0 ? "$mcScore / " . count($mcItemIds) : '-';
+
+                $answeredEssay = 0;
+                foreach ($essayItemIds as $id) {
+                    $val = $answers[$id] ?? null;
+                    if (!is_null($val) && trim((string)$val) !== '') {
+                        $answeredEssay++;
+                    }
+                }
+                $essayString = count($essayItemIds) > 0 ? "$answeredEssay / " . count($essayItemIds) : '-';
+            } elseif ($status === 'submitted' || $isExamExpired) {
                 $mcScore = 0;
                 foreach ($mcItemIds as $id) {
                     if (isset($scores[$id])) $mcScore += (int)$scores[$id];
@@ -896,8 +932,9 @@ class ExamController extends Controller
             ->log('Viewed exam questions page.');
 
         $total_seconds = $examDetail->duration * 60;
+        $savedAnswers = is_array($application->answers) ? $application->answers : [];
 
-        return view('exam_user.exam_question_page', compact('vacancy_id', 'examItems', 'remaining_seconds', 'vacancy', 'total_seconds'));
+        return view('exam_user.exam_question_page', compact('vacancy_id', 'examItems', 'remaining_seconds', 'vacancy', 'total_seconds', 'savedAnswers'));
     }
 
     public function viewExam(Request $request, $vacancy_id, $user_id)
