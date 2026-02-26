@@ -149,6 +149,15 @@
                             <i data-feather="bar-chart-2" class="w-5 h-5 stroke-[2.5] flex-shrink-0 ml-2"></i>
                             <span class="ml-3 transition-opacity duration-200">REPORTS</span>
                         </a>
+                        @if($adminRole === 'superadmin')
+                        <a href="{{ route('admin.backup.index') }}" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200
+                                {{ request()->routeIs('admin.backup.index')
+                                    ? 'bg-[#002C76] text-white shadow-md'
+                                    : 'text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md' }}">
+                            <i class="fa-solid fa-database w-5 h-5 flex-shrink-0 ml-2"></i>
+                            <span class="ml-3 transition-opacity duration-200">BACKUP & RESTORE</span>
+                        </a>
+                        @endif
                     </div>
                 </div>
             @endif

@@ -29,6 +29,7 @@ use App\Http\Middleware\EnsureSuperadmin;
 use App\Http\Middleware\ApplicantsAccess;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\BackupRestoreController;
 
 use App\Events\PackageSent;
 use Illuminate\Support\Facades\Storage;
@@ -426,6 +427,12 @@ Route::middleware([RedirectIfNotAdmin::class])->group(function () {
     Route::get('/admin/utilities/reports', [App\Http\Controllers\ReportController::class, 'index'])->name('admin.reports.index');
     Route::get('/admin/utilities/reports/data', [App\Http\Controllers\ReportController::class, 'getData'])->name('admin.reports.data');
     Route::get('/admin/utilities/reports/export', [App\Http\Controllers\ReportController::class, 'export'])->name('admin.reports.export');
+
+    Route::middleware([EnsureSuperadmin::class])->group(function () {
+        Route::get('/admin/utilities/backup-restore', [BackupRestoreController::class, 'index'])->name('admin.backup.index');
+        Route::post('/admin/utilities/backup-restore/backup', [BackupRestoreController::class, 'backup'])->name('admin.backup.run');
+        Route::post('/admin/utilities/backup-restore/restore', [BackupRestoreController::class, 'restore'])->name('admin.backup.restore');
+    });
 
     // ==================================================================================================
     // SIGNATORY ROUTES
