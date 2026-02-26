@@ -255,7 +255,9 @@
                     <h2 class="text-lg sm:text-2xl font-bold text-gray-900">18. PERMANENT ADDRESS</h2>
                 </div>
                 <div class="mb-4">
-                    <button type="button" id="copy_res_to_per" class="border-2 border-[#002C76] text-black rounded-lg px-4 py-2 text-sm sm:text-base font-montserrat hover:bg-[#002C76] hover:text-white transition">
+                    <button type="button" id="copy_res_to_per" 
+                    class="border-2 border-[#002C76] bg-[#002C76] text-white rounded-lg px-4 py-2 text-sm sm:text-base font-montserrat 
+                    hover:bg-white hover:text-[#002C76] transition">
                         Copy from Residential Address
                     </button>
                 </div>
@@ -510,12 +512,12 @@
     'education_data' => $grad_schools
 ])
                 </div>
-                <div class="mt-4 sm:mt-6 flex justify-end">
+                <!-- <div class="mt-4 sm:mt-6 flex justify-end">
                     <button type="button" id="pdsPreviewBtn" disabled class="px-4 sm:px-6 py-3 bg-gray-400 text-white rounded-lg font-semibold cursor-not-allowed opacity-60 transition-colors duration-200 flex items-center gap-2">
                         <span class="material-icons text-lg sm:text-xl">visibility</span>
                         View Personal Data Sheet
                     </button>
-                </div>
+                </div> -->
             </section>
 
             <!-- Navigation -->

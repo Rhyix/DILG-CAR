@@ -30,12 +30,32 @@
       @if(empty($documents))
         <p style="margin:0; color:#6b7280;">No documents were marked Verified or Needs Revision.</p>
       @else
+        @php
+          // Check if all documents are verified
+          $allVerified = true;
+          foreach($documents as $doc) {
+              $st = strtolower(trim($doc['status'] ?? ''));
+              $isVerified = in_array($st, ['okay/confirmed','confirmed','approved','ok','uni'], true);
+              if (!$isVerified) {
+                  $allVerified = false;
+                  break;
+              }
+          }
+        @endphp
+
+        @if($allVerified)
+          <div style="margin-bottom:16px; padding:12px 16px; background:#dcfce7; border:1px solid #bbf7d0; border-radius:8px; color:#166534; font-size:14px;">
+            <strong>Qualification Status:</strong> All documents have been verified. Applicant is now qualified.<br>
+            <strong>Remarks:</strong> No further action required. Wait for further instruction on the next assessment phase.
+          </div>
+        @endif
+
         <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse; margin-top:8px;">
           <thead>
             <tr style="background:#f3f4f6; color:#111827;">
               <th align="left" style="padding:10px; font-size:12px; text-transform:uppercase; letter-spacing:.03em;">Document Type</th>
               <th align="left" style="padding:10px; font-size:12px; text-transform:uppercase; letter-spacing:.03em;">Document ID</th>
-              <th align="left" style="padding:10px; font-size:12px; text-transform:uppercase; letter-spacing:.03em;">Status</th>
+              <th align="center" style="padding:10px; font-size:12px; text-transform:uppercase; letter-spacing:.03em; width:60px;">Status</th>
               <th align="left" style="padding:10px; font-size:12px; text-transform:uppercase; letter-spacing:.03em;">Remarks</th>
             </tr>
           </thead>
@@ -58,22 +78,20 @@
               <tr style="border-bottom:1px solid #e5e7eb;">
                 <td style="padding:10px; color:#111827;">{{ $doc['name'] ?? $doc['text'] ?? $doc['id'] ?? 'N/A' }}</td>
                 <td style="padding:10px; color:#111827;">{{ $doc['doc_id'] ?? 'N/A' }}</td>
-                <td style="padding:10px;">
+                <td style="padding:10px; text-align:center;">
                   @php
                     $st = strtolower(trim($doc['status'] ?? ''));
                     $isVerified = in_array($st, ['okay/confirmed','confirmed','approved','ok','uni'], true);
                     $needsRevision = in_array($st, ['needs revision','disapproved with deficiency','rejected','ggs'], true);
-                    $isPending = in_array($st, ['pending','dds'], true);
                     $badgeBg = $isVerified ? '#dcfce7' : ($needsRevision ? '#fee2e2' : '#e5e7eb');
                     $badgeColor = $isVerified ? '#166534' : ($needsRevision ? '#991b1b' : '#374151');
                     $icon = $isVerified ? '✓' : ($needsRevision ? '✕' : '•');
                   @endphp
-                  <span style="display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:9999px; font-size:12px; font-weight:700; background:{{ $badgeBg }}; color:{{ $badgeColor }};">
-                    <span style="font-size:13px; line-height:1;">{{ $icon }}</span>
-                    <span>{{ $doc['status'] ?? 'N/A' }}</span>
+                  <span style="display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:50%; font-size:18px; font-weight:700; background:{{ $badgeBg }}; color:{{ $badgeColor }}; line-height:1;">
+                    {{ $icon }}
                   </span>
                 </td>
-                <td style="padding:10px; color:#6b7280;">{{ $doc['remarks'] ?? '' }}</td>
+                <td style="padding:10px; color:#6b7280; font-size:13px;">{{ $doc['remarks'] ?? '-' }}</td>
               </tr>
             @endforeach
           </tbody>

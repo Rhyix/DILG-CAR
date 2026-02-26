@@ -15,7 +15,7 @@
         }
     </style>
 </head>
-<body class="bg-[#F3F8FF] text-gray-900 min-h-screen flex flex-col">
+<body class="bg-gray-50 text-gray-900 min-h-screen flex flex-col">
     @php
         $vacancyTypeCounts = collect($vacancies)->groupBy(function ($vacancy) {
             return strtolower(trim((string) ($vacancy->vacancy_type ?? '')));
@@ -33,7 +33,7 @@
             <!-- Modal Header -->
             <div class="flex items-center justify-between p-6 border-b border-gray-200">
                 <div>
-                    <h3 class="text-2xl font-bold text-[#0D2B70]" id="modalJobTitle">Job Position</h3>
+                    <h3 class="text-2xl font-bold text-blue-900" id="modalJobTitle">Job Position</h3>
                     <p class="text-gray-600 text-sm mt-1" id="modalVacancyType">Vacancy Type</p>
                 </div>
                 <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
@@ -44,7 +44,7 @@
             <!-- Modal Body -->
             <div class="p-6">
                 <div class="mb-6">
-                    <h4 class="font-bold text-[#0D2B70] mb-3 flex items-center gap-2">
+                    <h4 class="font-bold text-blue-900 mb-3 flex items-center gap-2">
                         <i data-feather="check-circle" class="w-5 h-5"></i>
                         Qualification Standards
                     </h4>
@@ -73,7 +73,7 @@
                 </div>
 
                 <div class="mb-4">
-                    <h4 class="font-bold text-[#0D2B70] mb-3 flex items-center gap-2">
+                    <h4 class="font-bold text-blue-900 mb-3 flex items-center gap-2">
                         <i data-feather="file-text" class="w-5 h-5"></i>
                         Required Documents
                     </h4>
@@ -85,7 +85,7 @@
                 </div>
                 
                 <div class="mt-6">
-                    <h4 class="font-bold text-[#0D2B70] mb-3 flex items-center gap-2">
+                    <h4 class="font-bold text-blue-900 mb-3 flex items-center gap-2">
                         <i data-feather="info" class="w-5 h-5"></i>
                         Additional Information
                     </h4>
@@ -110,7 +110,7 @@
                 <button onclick="closeModal()" class="px-4 py-2 text-gray-600 font-semibold hover:bg-gray-100 rounded-lg transition-colors">
                     Close
                 </button>
-                <a href="{{ route('login.form') }}" id="applyNowBtn" class="inline-flex items-center gap-2 bg-[#0D2B70] text-white px-6 py-2 rounded-lg font-bold hover:bg-[#002C76] transition-colors">
+                <a href="{{ route('login.form') }}" id="applyNowBtn" class="inline-flex items-center gap-2 bg-blue-900 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-950 transition-colors">
                     <i data-feather="log-in" class="w-4 h-4"></i>
                     Login to Apply
                 </a>
@@ -118,10 +118,9 @@
         </div>
     </div>
 
-    <header class="relative overflow-hidden">
-        <div class="absolute inset-0 bg-gradient-to-br from-[#0D2B70] via-[#17439e] to-[#002C76] opacity-95"></div>
-        <div class="absolute -top-24 -left-16 w-64 h-64 rounded-full bg-white/10 blur-2xl"></div>
-        <div class="absolute -bottom-28 right-0 w-80 h-80 rounded-full bg-white/10 blur-2xl"></div>
+    <header class="relative overflow-hidden bg-gradient-to-br from-[#003d99] to-[#002966]">
+        <div class="absolute -top-24 -left-16 w-64 h-64 rounded-full bg-white/5 blur-2xl"></div>
+        <div class="absolute -bottom-28 right-0 w-80 h-80 rounded-full bg-white/5 blur-2xl"></div>
 
         <div class="relative max-w-7xl mx-auto px-6 py-6">
             <nav class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
@@ -131,7 +130,7 @@
                 </div>
                 <div class="flex items-center gap-3">
                     <a href="{{ route('login.form') }}" class="text-white/90 hover:text-white font-semibold">Sign In</a>
-                    <a href="{{ route('register.form') }}" class="inline-flex items-center gap-2 bg-white text-[#0D2B70] px-4 py-2 rounded-full font-bold shadow hover:shadow-md">
+                    <a href="{{ route('register.form') }}" class="inline-flex items-center gap-2 bg-white text-blue-900 px-4 py-2 rounded-full font-bold shadow hover:shadow-md">
                         <i data-feather="user-plus" class="w-4 h-4"></i>
                         Create Account
                     </a>
@@ -149,19 +148,19 @@
         </div>
     </header>
 
-    <main class="flex-1 -mt-5 relative z-10 inset-0 bg-gradient-to-br from-[#0D2B70] via-[#17439e] to-[#002C76] opacity-95">
+    <main class="flex-1 -mt-5 relative z-10 bg-gray-50">
         <section class="max-w-7xl mx-auto px-6 pb-8">
             <div class="bg-white rounded-2xl shadow-lg p-5 sm:p-6 md:p-8">
                 <div class="flex flex-col gap-5 mb-6">
                     <div class="flex items-center justify-between gap-4">
                         <h2 class="text-2xl sm:text-3xl font-bold text-gray-800">Latest Jobs</h2>
-                        <span class="hidden sm:inline-flex items-center rounded-full bg-[#0D2B70]/10 px-3 py-1 text-sm font-semibold text-[#0D2B70]">
+                        <span class="hidden sm:inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-sm font-semibold text-blue-900">
                             {{ $allCount }} Open Vacancy{{ $allCount === 1 ? '' : 'ies' }}
                         </span>
                     </div>
 
                     <div class="flex flex-wrap items-center gap-2" id="filterButtons">
-                        <button type="button" class="filter-btn px-4 py-2.5 bg-[#0D2B70] text-white rounded-full font-semibold text-sm shadow-sm active" data-filter="all">All Vacancies ({{ $allCount }})</button>
+                        <button type="button" class="filter-btn px-4 py-2.5 bg-blue-900 text-white rounded-full font-semibold text-sm shadow-sm active" data-filter="all">All Vacancies ({{ $allCount }})</button>
                         <button type="button" class="filter-btn px-4 py-2.5 text-gray-600 bg-gray-100 rounded-full font-semibold text-sm" data-filter="permanent">Permanent ({{ $permanentCount }})</button>
                         <button type="button" class="filter-btn px-4 py-2.5 text-gray-600 bg-gray-100 rounded-full font-semibold text-sm" data-filter="cos">Contract of Service ({{ $cosCount }})</button>
                         <!-- <button type="button" class="filter-btn px-4 py-2.5 text-gray-600 bg-gray-100 rounded-full font-semibold text-sm" data-filter="ojt">On-the-Job Training ({{ $ojtCount }})</button> -->
@@ -180,7 +179,7 @@
                             };
                         @endphp
                         <article
-                            class="vacancy-card bg-white rounded-xl border border-gray-200 hover:border-[#0D2B70]/40 hover:shadow-md transition-all duration-200 cursor-pointer"
+                            class="vacancy-card bg-white rounded-xl border border-gray-200 hover:border-blue-400 hover:shadow-md transition-all duration-200 cursor-pointer"
                             data-type="{{ $filterType }}"
                             data-vacancy="{{ base64_encode(json_encode([
                                 'vacancy_id' => $vacancy->vacancy_id,
@@ -196,9 +195,9 @@
                             <div class="p-5 sm:p-6">
                                 <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                                     <div>
-                                        <h3 class="font-bold text-[#0D2B70] text-lg sm:text-xl">{{ $vacancy->position_title }}</h3>
+                                        <h3 class="font-bold text-blue-900 text-lg sm:text-xl">{{ $vacancy->position_title }}</h3>
                                         <p class="text-gray-700 text-sm sm:text-base mt-1 font-medium">{{ $vacancy->office_assignment ?? 'DILG - CAR' }}</p>
-                                        <p class="text-[#0D2B70]/75 text-sm mt-1 italic">{{ $vacancy->vacancy_type }}</p>
+                                        <p class="text-blue-700 text-sm mt-1 italic">{{ $vacancy->vacancy_type }}</p>
                                     </div>
                                     <span class="text-green-700 font-bold whitespace-nowrap text-base sm:text-lg bg-green-50 px-3 py-1 rounded-lg w-fit">
                                         ₱{{ number_format((float) ($vacancy->monthly_salary ?? 0), 2) }}
@@ -217,7 +216,7 @@
                                         </div>
                                     </div>
 
-                                    <span class="text-[#0D2B70] font-semibold hover:underline inline-flex items-center gap-2">
+                                    <span class="text-blue-900 font-semibold hover:underline inline-flex items-center gap-2">
                                         View details
                                         <i data-feather="arrow-right" class="w-4 h-4"></i>
                                     </span>
@@ -236,7 +235,7 @@
                 </div>
 
                 <div class="mt-8 text-right">
-                    <a href="{{ route('job_vacancy') }}" class="inline-flex items-center gap-3 text-base sm:text-lg text-[#0D2B70] font-semibold hover:underline bg-gray-50 border border-gray-200 px-5 py-3 rounded-full hover:bg-gray-100 transition-colors">
+                    <a href="{{ route('job_vacancy') }}" class="inline-flex items-center gap-3 text-base sm:text-lg text-blue-900 font-semibold hover:underline bg-gray-100 border border-gray-300 px-5 py-3 rounded-full hover:bg-gray-200 transition-colors">
                         View all vacancies
                         <i data-feather="arrow-right" class="w-5 h-5"></i>
                     </a>
@@ -245,12 +244,12 @@
         </section>
     </main>
 
-    <footer class="border-t border-gray-200 bg-[#F3F8FF]">
+    <footer class="border-t border-gray-200 bg-white">
         <div class="max-w-7xl mx-auto px-6 py-4 text-sm text-gray-600 flex flex-col sm:flex-row items-center justify-between gap-3">
             <div>© {{ date('Y') }} DILG - CAR</div>
             <div class="flex items-center gap-4">
-                <a href="{{ route('job_vacancy') }}" class="text-[#0D2B70] font-semibold hover:underline">Vacancies</a>
-                <a href="{{ route('about') }}" class="text-[#0D2B70] font-semibold hover:underline">About</a>
+                <a href="{{ route('job_vacancy') }}" class="text-blue-900 font-semibold hover:underline">Vacancies</a>
+                <a href="{{ route('about') }}" class="text-blue-900 font-semibold hover:underline">About</a>
             </div>
         </div>
     </footer>
@@ -309,7 +308,7 @@
                 const li = document.createElement('li');
                 li.className = 'flex items-center gap-3 text-gray-700';
                 li.innerHTML = `
-                    <i data-feather="${doc.icon}" class="w-4 h-4 text-[#0D2B70]"></i>
+                    <i data-feather="${doc.icon}" class="w-4 h-4 text-blue-900"></i>
                     <span>${doc.name}</span>
                 `;
                 documentsList.appendChild(li);
@@ -352,11 +351,11 @@
                 
                 // Update active button styling
                 allButtons.forEach(btn => {
-                    btn.classList.remove('bg-[#0D2B70]', 'text-white', 'active');
+                    btn.classList.remove('bg-blue-900', 'text-white', 'active');
                     btn.classList.add('text-gray-600', 'bg-gray-100');
                 });
                 this.classList.remove('text-gray-600', 'bg-gray-100');
-                this.classList.add('bg-[#0D2B70]', 'text-white', 'active');
+                this.classList.add('bg-blue-900', 'text-white', 'active');
                 
                 // Show/hide vacancy cards based on filter
                 allCards.forEach(card => {
