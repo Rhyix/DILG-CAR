@@ -18,11 +18,11 @@
     [x-cloak] { display: none !important; }
   </style>
 </head>
-<body class="h-screen overflow-hidden bg-gradient-to-br from-blue-800 via-blue-700 to-blue-900 flex items-center justify-center p-4">
+<body class="h-screen overflow-hidden bg-gradient-to-br from-[#071A4D] via-[#0A2566] to-[#12398B] flex items-center justify-center p-4">
 
-<!-- Flash Messages -->
+<!-- Flash Messages (styled like login page success message) -->
 @if(session('success'))
-  <div x-data="{ show: true }" x-init="setTimeout(() => show = false, 3000)" x-show="show" x-transition
+  <div x-data="{ show: true }" x-init="setTimeout(() => show = false, 4000)" x-show="show" x-transition
     class="fixed top-5 right-5 z-50 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-xl shadow-lg w-full max-w-sm">
     <strong class="font-bold">Success!</strong>
     <p class="text-sm">{{ session('success') }}</p>
@@ -30,7 +30,7 @@
 @endif
 
 @if ($errors->any())
-  <div x-data="{ show: true }" x-init="setTimeout(() => show = false, 3000)" x-show="show" x-transition
+  <div x-data="{ show: true }" x-init="setTimeout(() => show = false, 4000)" x-show="show" x-transition
     class="fixed top-5 right-5 z-50 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl shadow-lg w-full max-w-sm">
     <strong class="font-bold">Whoops!</strong>
     <ul class="list-disc list-inside text-sm mt-1">
@@ -70,9 +70,8 @@
           x-on:submit.prevent="if (agreed && checkboxChecked) { isSubmitting = true; $el.submit(); }">
           @csrf
 
-          <!-- Name (styled exactly like login email field) -->
-          <div class="flex flex-col justify-between gap-5">
-
+          <!-- Name fields (styled exactly like login email field) -->
+          <div class="space-y-5">
             <!-- First Name -->
             <div class="relative">
               <span class="absolute inset-y-0 left-4 flex items-center">
@@ -105,44 +104,36 @@
                 pattern="^[A-Za-z\s\-\.]{2,50}$"
                 title="Name should contain only letters, spaces, hyphens, or periods (2-50 characters).">
             </div>
-
           </div>
           @error('name') <p class="text-red-600 text-sm ml-3 -mt-2">{{ $message }}</p> @enderror
 
-<!-- Sex -->
-<div class="flex flex-col gap-2">
-  <span class="text-blue-900 font-semibold">Sex</span>
-
-  <div class="flex gap-6">
-
-    <!-- Male -->
-    <label class="flex items-center gap-2 cursor-pointer">
-      <input type="radio" name="sex" value="Male" required
-        class="w-4 h-4 text-blue-600 border-blue-400 focus:ring-blue-600">
-      <span class="text-blue-900">Male</span>
-    </label>
-
-    <!-- Female -->
-    <label class="flex items-center gap-2 cursor-pointer">
-      <input type="radio" name="sex" value="Female" required
-        class="w-4 h-4 text-blue-600 border-blue-400 focus:ring-blue-600">
-      <span class="text-blue-900">Female</span>
-    </label>
-
-  </div>
-</div>
+          <!-- Sex (styled with consistent spacing) -->
+          <div class="flex flex-col gap-2">
+            <span class="text-blue-900 font-semibold">Sex</span>
+            <div class="flex gap-6">
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="sex" value="Male" required
+                  class="w-4 h-4 text-blue-600 border-blue-400 focus:ring-blue-600">
+                <span class="text-blue-900">Male</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="sex" value="Female" required
+                  class="w-4 h-4 text-blue-600 border-blue-400 focus:ring-blue-600">
+                <span class="text-blue-900">Female</span>
+              </label>
+            </div>
+          </div>
  
-<!-- Contact Number -->
-<div class="relative">
-  <span class="absolute inset-y-0 left-4 flex items-center">
-    <i class="fas fa-phone text-yellow-400"></i>
-  </span>
-  <input type="text" name="phone_number" placeholder="Enter Contact Number" value="{{ old('phone_number') }}" required
-    class="w-full bg-white border border-blue-400 rounded-full pl-12 pr-4 py-3 outline-none text-blue-900 placeholder:text-blue-800/60 focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
-    pattern="^09[0-9]{9}$"
-    title="Contact number must be 11 digits long and start with 09.">
-</div>
-
+          <!-- Contact Number (styled exactly like login email field) -->
+          <div class="relative">
+            <span class="absolute inset-y-0 left-4 flex items-center">
+              <i class="fas fa-phone text-yellow-400"></i>
+            </span>
+            <input type="text" name="phone_number" placeholder="Enter Contact Number" value="{{ old('phone_number') }}" required
+              class="w-full bg-white border border-blue-400 rounded-full pl-12 pr-4 py-3 outline-none text-blue-900 placeholder:text-blue-800/60 focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
+              pattern="^09[0-9]{9}$"
+              title="Contact number must be 11 digits long and start with 09.">
+          </div>
 
           <!-- Email (styled exactly like login email field) -->
           <div class="relative">
@@ -204,12 +195,12 @@
             </label>
           </div>
 
-          <!-- Register Button (styled exactly like login button) -->
+          <!-- Register Button (styled exactly like login button - changed to match login blue color) -->
           <button type="submit"
             :disabled="!(agreed && checkboxChecked) || isSubmitting"
             :class="{ 'opacity-50 cursor-not-allowed': !(agreed && checkboxChecked), 'cursor-wait': isSubmitting }"
-            class="w-full bg-yellow-400 hover:bg-yellow-500 text-blue-900 font-bold py-3 rounded-full shadow-md transition transform hover:scale-[1.02] active:scale-[0.98]">
-            <span x-text="isSubmitting ? 'Processing…' : 'REGISTER'"></span>
+            class="w-full bg-[#0D2B70] text-white font-bold py-3 rounded-full hover:bg-[#0A2259] shadow-md transition transform hover:scale-[1.02] active:scale-[0.98]">
+            <span x-text="isSubmitting ? 'Processing…' : 'Sign Up'"></span>
           </button>
 
           <!-- Google Login (styled exactly like login google button) -->
@@ -264,9 +255,20 @@
     toggle.addEventListener('click', function () {
       const input = document.getElementById('password');
       if (!input) return;
-      const is = input.getAttribute('type') === 'password';
-      input.setAttribute('type', is ? 'text' : 'password');
-      this.querySelector('i').classList.toggle('fa-eye-slash');
+      const isPassword = input.getAttribute('type') === 'password';
+      input.setAttribute('type', isPassword ? 'text' : 'password');
+      this.setAttribute('aria-pressed', isPassword ? 'true' : 'false');
+      
+      const icon = this.querySelector('i');
+      if (icon) {
+        if (isPassword) {
+          icon.classList.remove('fa-eye');
+          icon.classList.add('fa-eye-slash');
+        } else {
+          icon.classList.remove('fa-eye-slash');
+          icon.classList.add('fa-eye');
+        }
+      }
     });
   }
 
@@ -276,9 +278,20 @@
     toggleConfirm.addEventListener('click', function () {
       const input = document.getElementById('password_confirmation');
       if (!input) return;
-      const is = input.getAttribute('type') === 'password';
-      input.setAttribute('type', is ? 'text' : 'password');
-      this.querySelector('i').classList.toggle('fa-eye-slash');
+      const isPassword = input.getAttribute('type') === 'password';
+      input.setAttribute('type', isPassword ? 'text' : 'password');
+      this.setAttribute('aria-pressed', isPassword ? 'true' : 'false');
+      
+      const icon = this.querySelector('i');
+      if (icon) {
+        if (isPassword) {
+          icon.classList.remove('fa-eye');
+          icon.classList.add('fa-eye-slash');
+        } else {
+          icon.classList.remove('fa-eye-slash');
+          icon.classList.add('fa-eye');
+        }
+      }
     });
   }
 </script>

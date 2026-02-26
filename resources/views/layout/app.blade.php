@@ -51,12 +51,6 @@
 
     <!-- Styles -->
     <style>
-        html,
-        body {
-            height: 100%;
-            overflow: hidden;
-        }
-
         .font-montserrat {
             font-family: 'Montserrat', sans-serif;
         }
@@ -129,7 +123,7 @@
 </head>
 
 <body x-data="{ mobileSidebarOpen: false, showLogoutModal: false }"
-    class="bg-[#F3F8FF] min-h-screen font-montserrat text-gray-900 overflow-hidden">
+    class="bg-[#F3F8FF] min-h-screen font-montserrat text-gray-900 overflow-x-hidden">
 
     <!-- 🔥 Mobile Toggle Button -->
     <button @click="mobileSidebarOpen = true"
@@ -151,90 +145,85 @@
         </div>
 
         <!-- Main Content -->
-        <main class="flex-1 {{ request()->routeIs('my_applications') ? 'overflow-hidden' : 'overflow-y-auto' }} ml-2 pt-0 md:ml-20 transition-all duration-300"
-            style="padding-left: 18px;">
+        <main class="flex-1 overflow-y-auto ml-2 pt-0 md:ml-20 transition-all duration-300"
+            style="margin-left: 0; padding-left: 18px;">
             <header
-                class="sticky top-0 z-40 bg-[#F3F8FF] backdrop-blur px-4 sm:px-8 pt-5 sm:pt-6 pb-3 flex items-center justify-end">
-                <div class="flex items-center gap-1 rounded-full border border-slate-200 bg-white/80 backdrop-blur-sm px-2 py-1 shadow-sm">
-                    <div id="notifBell" class="relative">
-                        <button id="notifToggle" aria-label="Notifications"
-                            class="relative h-10 w-10 rounded-full text-slate-500 hover:text-[#0D2B70] hover:bg-slate-100/80 transition-colors">
-                            <i data-feather="bell" class="w-5 h-5 mx-auto"></i>
-                            <span id="notifBadge"
-                                class="absolute top-0.5 right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center border-2 border-white"
-                                style="display: none;">0</span>
-                        </button>
+                class="sticky top-0 z-40 bg-[#F3F8FF] backdrop-blur px-4 sm:px-8 py-3 flex items-center justify-end gap-6">
+                <div id="notifBell" class="relative group">
+                    <button id="notifToggle" aria-label="Notifications"
+                        class="relative p-2 rounded-full hover:bg-blue-50 transition-colors group-hover:bg-blue-50">
+                        <i data-feather="bell" class="w-6 h-6 text-[#0D2B70]"></i>
+                        <span id="notifBadge"
+                            class="absolute top-1 right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center border-2 border-[#F3F8FF]"
+                            style="display: none;">0</span>
+                    </button>
 
-                        <!-- Dropdown Menu -->
-                        <div id="notifMenu"
-                            class="hidden absolute right-0 mt-3 w-[24rem] sm:w-[26rem] bg-white shadow-2xl rounded-2xl border border-slate-200 overflow-hidden transform origin-top-right transition-all duration-200 z-50">
-                            <!-- Header -->
+                    <!-- Dropdown Menu -->
+                    <div id="notifMenu"
+                        class="hidden absolute right-0 mt-3 w-80 sm:w-96 bg-white shadow-2xl rounded-2xl border border-gray-100 overflow-hidden transform origin-top-right transition-all duration-200 z-50">
+                        <!-- Header -->
+                        <div
+                            class="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-white sticky top-0 z-10">
+                            <h3 class="font-bold text-[#0D2B70] text-base">Notifications</h3>
+                            <button id="notifMarkAll"
+                                class="text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline transition-colors">
+                                Mark all as read
+                            </button>
+                        </div>
+
+                        <!-- List -->
+                        <ul id="notifList" class="max-h-[400px] overflow-y-auto divide-y divide-gray-50 scrollbar-thin">
+                            <!-- Items will be injected here via JS -->
+                        </ul>
+
+                        <!-- Footer -->
+                        <div class="px-4 py-3 bg-gray-50 border-t border-gray-100 text-center">
+                            <a href="{{ route('notifications.index') }}"
+                                class="text-xs font-bold text-[#0D2B70] hover:text-blue-700 hover:underline">
+                                View Full History
+                            </a>
+                        </div>
+
+                        <!-- Loader (Hidden by default) -->
+                        <div id="notifLoader"
+                            class="hidden absolute inset-0 bg-white/80 flex items-center justify-center z-20">
                             <div
-                                class="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-white sticky top-0 z-10">
-                                <h3 class="font-bold text-[#0D2B70] text-base">Notifications</h3>
-                                <button id="notifMarkAll"
-                                    class="text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline transition-colors">
-                                    Mark all as read
-                                </button>
-                            </div>
-
-                            <!-- List -->
-                            <ul id="notifList" class="max-h-[420px] overflow-y-auto divide-y divide-slate-100 scrollbar-thin">
-                                <!-- Items will be injected here via JS -->
-                            </ul>
-
-                            <!-- Footer -->
-                            <div class="px-4 py-3 bg-white border-t border-slate-100 text-center">
-                                <a href="{{ route('notifications.index') }}"
-                                    class="text-xs font-bold text-[#0D2B70] hover:text-blue-700 hover:underline">
-                                    View Full History
-                                </a>
-                            </div>
-
-                            <!-- Loader (Hidden by default) -->
-                            <div id="notifLoader"
-                                class="hidden absolute inset-0 bg-white/80 flex items-center justify-center z-20">
-                                <div
-                                    class="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin">
-                                </div>
+                                class="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin">
                             </div>
                         </div>
                     </div>
-
-                    <div class="h-6 w-px bg-slate-200"></div>
-
-                    <div class="relative">
-                        <button id="profileToggle" aria-label="Profile menu"
-                            class="flex items-center gap-2 rounded-full pl-1 pr-2 py-1 hover:bg-slate-100/80 transition-colors">
-                            @php
-                                $u = Auth::user();
-                                $avatar = $u->avatar_path ? asset('storage/' . $u->avatar_path) : null;
-                                $initials = collect(explode(' ', $u->name))->map(fn($p) => mb_substr($p, 0, 1))->join('');
-                            @endphp
-                            @if($avatar)
-                                <img src="{{ $avatar }}" alt="Avatar" class="w-9 h-9 rounded-full object-cover">
-                            @else
-                                <div
-                                    class="w-9 h-9 rounded-full bg-[#0D2B70] text-white flex items-center justify-center text-xs font-bold shadow-sm">
-                                    {{ $initials }}</div>
-                            @endif
-                            <span class="text-sm font-semibold text-slate-800 hidden sm:inline">{{ $u->name }}</span>
-                            <i data-feather="chevron-down" class="w-4 h-4 text-slate-400"></i>
-                        </button>
-                        <div id="profileMenu"
-                            class="hidden absolute right-0 mt-3 w-56 bg-white shadow-xl rounded-xl border border-slate-200 p-2">
-                            <a href="{{ route('profile.show') }}"
-                                class="block px-3 py-2.5 text-sm rounded text-slate-700 hover:bg-slate-50 hover:text-[#0D2B70]">View Profile</a>
-                            <a href="{{ route('profile.edit') }}"
-                                class="block px-3 py-2.5 text-sm rounded text-slate-700 hover:bg-slate-50 hover:text-[#0D2B70]">Edit Profile</a>
-                            <a href="{{ route('profile.password.form') }}"
-                                class="block px-3 py-2.5 text-sm rounded text-slate-700 hover:bg-slate-50 hover:text-[#0D2B70]">Change Password</a>
-                            <form method="POST" action="{{ route('logout') }}">
-                                @csrf
-                                <button type="submit"
-                                    class="w-full text-left px-3 py-2.5 text-sm rounded text-red-600 hover:bg-red-50 font-medium">Logout</button>
-                            </form>
-                        </div>
+                </div>
+                <div class="relative">
+                    <button id="profileToggle" aria-label="Profile menu"
+                        class="flex items-center gap-2 p-2 rounded hover:bg-gray-100">
+                        @php
+                            $u = Auth::user();
+                            $avatar = $u->avatar_path ? asset('storage/' . $u->avatar_path) : null;
+                            $initials = collect(explode(' ', $u->name))->map(fn($p) => mb_substr($p, 0, 1))->join('');
+                        @endphp
+                        @if($avatar)
+                            <img src="{{ $avatar }}" alt="Avatar" class="w-8 h-8 rounded-full object-cover">
+                        @else
+                            <div
+                                class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">
+                                {{ $initials }}</div>
+                        @endif
+                        <span class="text-sm font-semibold">{{ $u->name }}</span>
+                        <i data-feather="chevron-down" class="w-4 h-4"></i>
+                    </button>
+                    <div id="profileMenu"
+                        class="hidden absolute right-0 mt-2 w-56 bg-white shadow-lg rounded-lg border border-gray-200 p-2">
+                        <a href="{{ route('profile.show') }}"
+                            class="block px-3 py-2 text-sm rounded hover:bg-gray-100">View Profile</a>
+                        <a href="{{ route('profile.edit') }}"
+                            class="block px-3 py-2 text-sm rounded hover:bg-gray-100">Edit Profile</a>
+                        <a href="{{ route('profile.password.form') }}"
+                            class="block px-3 py-2 text-sm rounded hover:bg-gray-100">Change Password</a>
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button type="submit"
+                                class="w-full text-left px-3 py-2 text-sm rounded hover:bg-gray-100">Logout</button>
+                        </form>
                     </div>
                 </div>
             </header>
@@ -263,156 +252,122 @@
             const notifMenu = document.getElementById('notifMenu');
             const notifBadge = document.getElementById('notifBadge');
             const notifList = document.getElementById('notifList');
+            const notifLoadMore = document.getElementById('notifLoadMore');
             const notifMarkAll = document.getElementById('notifMarkAll');
+            let page = 1;
             let loading = false;
-
-            const iconMap = {
-                success: 'check',
-                warning: 'alert-triangle',
-                error: 'x',
-                info: 'bell'
-            };
-            const iconClassMap = {
-                success: 'bg-emerald-50 text-emerald-600',
-                warning: 'bg-amber-50 text-amber-600',
-                error: 'bg-red-50 text-red-600',
-                info: 'bg-slate-100 text-slate-500'
-            };
-
-            function formatTime(value) {
-                const ts = new Date(value);
-                if (Number.isNaN(ts.getTime())) return '';
-                const seconds = Math.floor((Date.now() - ts.getTime()) / 1000);
-                if (seconds < 60) return 'Just now';
-                if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-                if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-                return ts.toLocaleString();
-            }
-
-            function renderEmptyState() {
-                notifList.innerHTML = `
-                    <li class="px-5 py-10 text-center text-slate-500">
-                        <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-100 mb-3">
-                            <i data-feather="bell-off" class="w-5 h-5 text-slate-400"></i>
-                        </div>
-                        <p class="text-sm">No notifications yet</p>
-                    </li>
-                `;
-            }
-
-            function renderNotificationItems(items) {
-                if (!Array.isArray(items) || items.length === 0) {
-                    renderEmptyState();
-                    if (window.feather) feather.replace();
-                    return;
-                }
-
-                notifList.innerHTML = '';
-                items.forEach((n) => {
-                    const level = n?.data?.level || n?.type || 'info';
-                    const iconName = iconMap[level] || iconMap.info;
-                    const iconTone = iconClassMap[level] || iconClassMap.info;
-                    const unread = !n.read_at;
-
-                    const li = document.createElement('li');
-                    li.className = `px-5 py-4 hover:bg-slate-50 transition-colors cursor-pointer ${unread ? 'bg-blue-50/30' : 'bg-white'}`;
-                    li.innerHTML = `
-                        <div class="flex items-start gap-3">
-                            <div class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${iconTone}">
-                                <i data-feather="${iconName}" class="w-4 h-4"></i>
-                            </div>
-                            <div class="min-w-0 flex-1">
-                                <div class="flex items-start justify-between gap-2">
-                                    <p class="text-sm ${unread ? 'font-semibold' : 'font-medium'} text-[#0D2B70] leading-5">
-                                        ${n?.data?.title || 'Notification'}
-                                    </p>
-                                    <span class="text-[11px] text-slate-400 whitespace-nowrap">${formatTime(n.created_at)}</span>
-                                </div>
-                                <p class="text-sm text-slate-600 mt-1 leading-6">
-                                    ${n?.data?.message || ''}
-                                </p>
-                            </div>
-                        </div>
-                    `;
-
-                    li.addEventListener('click', async () => {
-                        try {
-                            await fetch(`{{ url('/notifications') }}/${n.id}/read`, {
-                                method: 'POST',
-                                headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
-                            });
-                            fetchCount();
-                        } catch (_) {}
-
-                        const targetUrl = n?.data?.action_url || n?.data?.link;
-                        if (targetUrl) window.location.href = targetUrl;
-                    });
-
-                    notifList.appendChild(li);
-                });
-
-                if (window.feather) feather.replace();
-            }
-
             function fetchCount() {
                 fetch("{{ route('notifications.count') }}", { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
                     .then(r => r.json()).then(d => { notifBadge.textContent = d.count; notifBadge.style.display = d.count > 0 ? 'flex' : 'none'; });
             }
-
-            function fetchItems() {
-                if (loading) return;
-                loading = true;
-                fetch("{{ route('notifications.fetch') }}", { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            function fetchItems(reset = false) {
+                if (loading) return; loading = true;
+                if (reset) { page = 1; notifList.innerHTML = ''; }
+                fetch("{{ route('notifications.fetch') }}?page=" + page, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
                     .then(r => r.json()).then(d => {
-                        renderNotificationItems(d.data || d.notifications || []);
+                        d.data.forEach(n => {
+                            const li = document.createElement('li');
+                            // Render component HTML
+                            li.innerHTML = `{!! str_replace("\n", '', view('components.notification-item', ['notification' => (object) ['id' => '__ID__', 'data' => [], 'created_at' => now(), 'read_at' => null]])->render()) !!}`;
+                            
+                            // 1. Set ID
+                            li.setAttribute('data-id', n.id);
+                            
+                            // 2. Inject Content (using specific classes)
+                            const titleEl = li.querySelector('.notif-title');
+                            const msgEl = li.querySelector('.notif-message');
+                            if (titleEl) titleEl.textContent = n.data.title ?? 'Notification';
+                            if (msgEl) msgEl.textContent = n.data.message ?? '';
+
+                            // 2.5 Fix timestamps if possible (client-side formatting is complex without a library, so we accept the server-rendered placeholder or use a simple date)
+                            // Ideally, backend returns a formatted string. For now, leave the placeholder or set a simple text.
+                            // const timeEl = li.querySelector('.notif-time');
+                            // if (timeEl) timeEl.textContent = 'Just now'; // Or parse n.created_at
+
+                            page = d.current_page + 1;
+                            
+                            // 3. Attach click listener to the DIV inside (or the LI itself)
+                            // Since the component is now a DIV, the LI wraps it.
+                            li.addEventListener('click', () => {
+                                // Mark as read
+                                fetch("{{ url('/notifications') }}/" + n.id + "/read", { method: 'POST', headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' } })
+                                    .then(() => { 
+                                        // Visually mark read (remove blue border and bg)
+                                        const div = li.querySelector('div[data-id]');
+                                        if(div) {
+                                            div.classList.remove('border-blue-600', 'bg-blue-50/30');
+                                            div.classList.add('border-transparent', 'bg-white');
+                                        }
+                                        fetchCount(); 
+                                    });
+                                
+                                // Navigate
+                                if (n.data.action_url || n.data.link) { 
+                                    window.location.href = n.data.action_url || n.data.link; 
+                                }
+                            });
+                            
+                            // Replace icons if needed? No, the component has logic for levels.
+                            // But wait, the component renders based on the DUMMY data (level=info).
+                            // If the actual notification has level=error, the icon will be wrong (Info icon).
+                            // WE NEED TO UPDATE THE ICON TOO via JS or pass the level.
+                            // JS updating of feather icons is tricky because feather.replace() runs on load.
+                            // Better: The backend view() call should theoretically happen PER notification if we were using server-side rendering for the list.
+                            // But here we are using client-side fetching with a SINGLE server-side template.
+                            // This limits us. We can't easily change the icon class via JS without mapping 'level' -> 'icon-name'.
+                            
+                            // Quick Fix for Icons:
+                            // We can map levels to feathers here.
+                            const level = n.data.level || 'info';
+                            const iconMap = {
+                                'success': 'check', 'warning': 'alert-triangle', 'error': 'x', 'info': 'info'
+                            };
+                            const colorMap = {
+                                'success': 'bg-green-50 text-green-600',
+                                'warning': 'bg-yellow-50 text-yellow-600',
+                                'error': 'bg-red-50 text-red-600',
+                                'info': 'bg-blue-50 text-blue-600'
+                            };
+                            
+                            const iconContainer = li.querySelector('.rounded-full'); // The icon container
+                            const icon = iconContainer ? iconContainer.querySelector('i') : null;
+                            
+                            if (iconContainer && colorMap[level]) {
+                                // Reset classes
+                                iconContainer.className = `mt-0.5 w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${colorMap[level]}`;
+                            }
+                            if (icon && iconMap[level]) {
+                                icon.setAttribute('data-feather', iconMap[level]);
+                            }
+
+                            notifList.appendChild(li);
+                        });
+                        
+                        // Re-run feather to render new icons
+                        if (window.feather) feather.replace();
+
+                        notifLoadMore.style.display = d.next_page_url ? 'block' : 'none';
                     }).finally(() => { loading = false; });
             }
-
             notifToggle?.addEventListener('click', () => {
                 notifMenu.classList.toggle('hidden');
-                if (!notifMenu.classList.contains('hidden')) {
-                    fetchItems();
-                    fetchCount();
-                }
+                if (!notifMenu.classList.contains('hidden')) { fetchItems(true); fetchCount(); }
             });
-
+            notifLoadMore?.addEventListener('click', () => fetchItems(false));
             notifMarkAll?.addEventListener('click', () => {
                 fetch("{{ route('notifications.mark_all') }}", { method: 'POST', headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' } })
-                    .then(() => {
-                        fetchCount();
-                        fetchItems();
-                    });
+                    .then(() => { fetchCount(); notifMenu.classList.add('hidden'); });
             });
-
-            document.addEventListener('click', (e) => {
-                if (!notifMenu || notifMenu.classList.contains('hidden')) return;
-                if (!notifMenu.contains(e.target) && !notifToggle?.contains(e.target)) {
-                    notifMenu.classList.add('hidden');
-                }
-            });
-
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape') notifMenu?.classList.add('hidden');
-            });
-
             const profileToggle = document.getElementById('profileToggle');
             const profileMenu = document.getElementById('profileMenu');
             profileToggle?.addEventListener('click', () => profileMenu.classList.toggle('hidden'));
-            setInterval(() => {
-                fetchCount();
-                if (notifMenu && !notifMenu.classList.contains('hidden')) fetchItems();
-            }, 15000);
+            setInterval(fetchCount, 15000);
             fetchCount();
-            window.addEventListener('focus', () => {
-                fetchCount();
-                if (notifMenu && !notifMenu.classList.contains('hidden')) fetchItems();
-            });
             const isAuthed = @json(auth()->check());
             const channelId = @json(auth()->id());
             if (window.Echo && isAuthed && channelId) {
                 window.Echo.private('notifications.' + channelId).listen('.NewSystemNotification', () => {
                     fetchCount();
-                    if (notifMenu && !notifMenu.classList.contains('hidden')) fetchItems();
                 });
             }
         });
@@ -431,8 +386,7 @@
 
         const logo = document.querySelector('img[alt="DILG Logo"]');
         const toggleButton = document.getElementById('toggleSidebar');
-        const storedOpen = localStorage.getItem('sidebarOpen');
-        let isOpen = storedOpen === 'true';
+        let isOpen = localStorage.getItem('sidebarOpen') === 'true';
 
         function openSidebar() {
             sidebar?.classList.remove('w-16');
@@ -464,12 +418,7 @@
 
         window.addEventListener('DOMContentLoaded', () => {
             if (window.innerWidth >= 1024) {
-                // Open sidebar by default if not set in localStorage
-                if (storedOpen === null) {
-                    openSidebar();
-                } else {
-                    isOpen ? openSidebar() : closeSidebar();
-                }
+                openSidebar();
             }
         });
     </script>

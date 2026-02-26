@@ -215,6 +215,27 @@
       white-space: pre-wrap;
     }
 
+    .next-phase-box {
+      background-color: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      border-radius: 8px;
+      padding: 20px;
+      margin-top: 16px;
+    }
+
+    .next-phase-text {
+      font-size: 14px;
+      color: #065f46;
+      margin: 0;
+      font-weight: 500;
+    }
+
+    .next-phase-icon {
+      display: inline-block;
+      margin-right: 8px;
+      font-size: 16px;
+    }
+
     .docs-table {
       width: 100%;
       border-collapse: collapse;
@@ -300,6 +321,13 @@
       border: 1px solid #d1d5db;
     }
 
+    .btn-disabled {
+      background-color: #d1d5db;
+      color: #6b7280 !important;
+      pointer-events: none;
+      cursor: default;
+    }
+
     .footer-text {
       font-size: 12px;
       color: #6b7280;
@@ -327,6 +355,14 @@
     });
     $isQualified = ($qs_result === 'Qualified');
     $showActionRequirements = (!$isQualified || $hasRevisions);
+    
+    // Check if all documents are verified
+    $allDocumentsVerified = collect($documents)->every(function ($doc) {
+      return $doc['status'] == 'Verified' || $doc['status'] == 'Okay/Confirmed';
+    });
+    
+    // Show next phase message if qualified and all documents are verified
+    $showNextPhaseMessage = $isQualified && $allDocumentsVerified;
   @endphp
 
   <div class="container">
@@ -339,6 +375,16 @@
       <div class="greeting">Hello {{ $applicant_name ?? 'Applicant' }},</div>
       <p>Your application for the position of <strong>{{ $position_title ?? '[Position Title]' }}</strong> has been
         reviewed. Here is the latest status overview of your application.</p>
+
+      @if($showNextPhaseMessage)
+        <div class="next-phase-box">
+          <div class="next-phase-text">
+            <!-- dadadagdagan ko to icon -->
+            <span class="next-phase-icon">✓</span>
+            No further action required. Wait for further instruction on the next assessment phase.
+          </div>
+        </div>
+      @endif
 
       <div class="section">
         <div class="section-title">Job Details</div>
@@ -452,9 +498,11 @@
                   $statusLabel = strtoupper($doc['status']);
                   if ($doc['status'] == 'Verified' || $doc['status'] == 'Okay/Confirmed') {
                     $statusClass = 'badge-verified';
+                    // verified notification
                     $statusLabel = '✓';
                   } elseif ($doc['status'] == 'Needs Revision' || $doc['status'] == 'Disapproved With Deficiency') {
                     $statusClass = 'badge-revision';
+                    // needs revision notification
                     $statusLabel = '✗';
                   } elseif ($doc['status'] == 'Not Submitted') {
                     $statusClass = 'badge-gray';
@@ -484,8 +532,13 @@
           <a href="{{ route('login.form', ['redirect' => 'application_status', 'user' => $user_id, 'vacancy' => $vacancy_id]) }}"
             class="btn">Login to Comply</a>
         @endif
-        <a href="{{ route('application_status', ['user' => $user_id, 'vacancy' => $vacancy_id]) }}"
-          class="btn btn-outline">View Full Status</a>
+        @if($showNextPhaseMessage)
+          <a href="{{ route('application_status', ['user' => $user_id, 'vacancy' => $vacancy_id]) }}"
+            class="btn btn-outline">View Full Status</a>
+        @else
+          <a href="{{ route('application_status', ['user' => $user_id, 'vacancy' => $vacancy_id]) }}"
+            class="btn btn-outline">View Full Status</a>
+        @endif
       </div>
       <p class="footer-text">
         If you have any questions, please contact us at <a href="mailto:dilgcarcloud@gmail.com"
