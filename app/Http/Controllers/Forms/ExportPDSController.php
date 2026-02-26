@@ -439,7 +439,7 @@ class ExportPDSController
             // Optionally store the path in session or flash data for download link
             // Redirect with success message
             return redirect()
-                ->route('dashboard') // Change to your actual route
+                ->route('dashboard_user') // Change to your actual route
                 ->with('success', 'PDF generated successfully! You may download it from your dashboard.');
         } else {
             // Preview inline on desktop

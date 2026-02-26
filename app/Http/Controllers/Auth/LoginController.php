@@ -51,7 +51,7 @@ class LoginController extends Controller
                     ]);
                 }
             }
-            return redirect()->route('dashboard');
+            return redirect()->route('dashboard_user');
         }
 
         if (Auth::guard('admin')->check()) {
@@ -144,7 +144,7 @@ class LoginController extends Controller
                 }
             }
 
-            return redirect()->route('dashboard')->with('status', 'welcome');
+            return redirect()->route('dashboard_user')->with('status', 'welcome');
         }
 
         activity()

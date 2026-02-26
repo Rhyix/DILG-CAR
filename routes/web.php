@@ -147,7 +147,7 @@ Route::post('/forgot-password/reset', [ForgotPasswordController::class, 'resetPa
 // removed duplicate root route
 
 Route::middleware(['auth'])->group(function () {
-    Route::get('/dashboard_user', [JobVacancyController::class, 'getOpenVacanciesForDashboard'])->name('dashboard')->middleware(\App\Http\Middleware\RunDailyTask::class);
+    Route::get('/dashboard_user', [JobVacancyController::class, 'getOpenVacanciesForDashboard'])->name('dashboard_legacy')->middleware(\App\Http\Middleware\RunDailyTask::class);
 });
 
 // ==================================================================================================

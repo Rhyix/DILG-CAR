@@ -75,6 +75,6 @@ class GoogleController extends Controller
             ->event('login')
             ->log('login through google');
 
-        return redirect()->route('dashboard');
+        return redirect()->route('dashboard_user');
     }
 }
