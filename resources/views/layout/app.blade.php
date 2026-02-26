@@ -359,7 +359,7 @@
             const profileToggle = document.getElementById('profileToggle');
             const profileMenu = document.getElementById('profileMenu');
             profileToggle?.addEventListener('click', () => profileMenu.classList.toggle('hidden'));
-            setInterval(fetchCount, 15000);
+            setInterval(fetchCount, 30000);
             fetchCount();
             const isAuthed = @json(auth()->check());
             const channelId = @json(auth()->id());

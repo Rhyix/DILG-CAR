@@ -442,9 +442,6 @@ class JobVacancyController extends Controller
         session(['vacancyFilterJob' => $job]);
         session(['vacancyFilterStatus' => $status]);
 
-        info(session()->all());
-        //dd(session()->all());
-
         /*activity()
             ->causedBy(auth()->user())
             ->log('Filtered job vacancies (admin).');
