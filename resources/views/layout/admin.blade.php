@@ -108,56 +108,20 @@
     </style>
 
     @stack('styles')
-
-    <script>
-        document.addEventListener('alpine:init', () => {
-            Alpine.data('sidebar', () => ({
-                open: localStorage.getItem('adminSidebarOpen') === null ? true : localStorage.getItem('adminSidebarOpen') === 'true',
-                isMobile: window.innerWidth < 1024,
-
-                init() {
-                    // Initialize state
-                    if (this.isMobile && this.open) {
-                        document.body.style.overflow = 'hidden';
-                    }
-
-                    this.$watch('open', value => {
-                        localStorage.setItem('adminSidebarOpen', value);
-                        if (this.isMobile) {
-                            if (value) document.body.style.overflow = 'hidden';
-                            else document.body.style.overflow = '';
-                        }
-                    });
-
-                    window.addEventListener('resize', () => {
-                        const wasMobile = this.isMobile;
-                        this.isMobile = window.innerWidth < 1024;
-
-                        if (wasMobile && !this.isMobile) {
-                            document.body.style.overflow = '';
-                        }
-                    });
-                },
-
-                toggle() {
-                    this.open = !this.open;
-                },
-
-                close() {
-                    this.open = false;
-                }
-            }))
-        })
-    </script>
 </head>
 
-<body class="bg-[#F1F6FC] h-screen font-sans font-montserrat text-gray-900 overflow-hidden" x-data="sidebar">
+<body class="bg-[#F1F6FC] h-screen font-sans font-montserrat text-gray-900 overflow-hidden">
 
     <!-- App Container: Sidebar + Content -->
     <div class="flex h-screen w-full overflow-hidden">
 
-        {{-- Sidebar --}}
-        @include('partials.sidebar_admin')
+        <div class="lg:hidden">
+            @include('partials.mobile-sidebar-admin')
+        </div>
+
+        <div class="hidden lg:block">
+            @include('partials.sidebar_admin')
+        </div>
 
         <!-- Content Wrapper -->
         <div class="flex-1 flex flex-col h-screen overflow-hidden relative min-w-0">
@@ -250,13 +214,6 @@
             <!-- Main Content Scrollable -->
             <main id="page-shell"
                 class="page-enter flex-1 overflow-y-auto px-6 sm:px-8 md:px-10 pb-6 sm:pb-8 md:pb-10 pt-0 relative scroll-smooth">
-                <!-- Mobile Menu Button (visible only on mobile) -->
-                <button id="mobileMenuButton" @click="toggle" x-show="isMobile && !open"
-                    class="lg:hidden fixed top-4 left-4 z-20 bg-[#0D2B70] text-white p-3 rounded-lg shadow-lg hover:bg-[#001a4d] transition-all duration-200"
-                    aria-label="Open menu" x-cloak>
-                    <i data-feather="menu" class="w-6 h-6"></i>
-                </button>
-
                 @yield('content')
             </main>
         </div>

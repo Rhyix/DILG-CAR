@@ -280,12 +280,24 @@
                 isOpen ? closeSidebar() : openSidebar();
             });
 
+            // Always open on desktop, always closed on mobile
             if (window.innerWidth >= 1024) {
-                if (isOpen) {
-                    openSidebar();
-                } else {
-                    closeSidebar();
-                }
+                openSidebar();
+            } else {
+                closeSidebar();
             }
+
+            // Auto open/close on resize
+            let userSidebarResizeTimer;
+            window.addEventListener('resize', () => {
+                clearTimeout(userSidebarResizeTimer);
+                userSidebarResizeTimer = setTimeout(() => {
+                    if (window.innerWidth >= 1024) {
+                        openSidebar();
+                    } else {
+                        closeSidebar();
+                    }
+                }, 150);
+            });
         });
     </script>

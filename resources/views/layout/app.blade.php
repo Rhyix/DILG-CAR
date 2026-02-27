@@ -399,56 +399,6 @@
                 });
             }
         });
-
-        const sidebar = document.getElementById('sidebar');
-        const textElements = [
-            "sidebarText",
-            "textHome",
-            "textJobVacancies",
-            "textMyApplications",
-            "textPersonalDataSheet",
-            "textAboutWebsite",
-            "textWorkExperience",
-            "textLogOut"
-        ].map(id => document.getElementById(id));
-
-        const logo = document.querySelector('img[alt="DILG Logo"]');
-        const toggleButton = document.getElementById('toggleSidebar');
-        let isOpen = localStorage.getItem('sidebarOpen') === 'true';
-
-        function openSidebar() {
-            sidebar?.classList.remove('w-16');
-            sidebar?.classList.add('w-72');
-            logo?.classList.remove('logo-small');
-            textElements.forEach(el => {
-                el?.classList.remove('sidebar-text-hidden');
-                el?.classList.add('sidebar-text-visible');
-            });
-            isOpen = true;
-            localStorage.setItem('sidebarOpen', 'true');
-        }
-
-        function closeSidebar() {
-            sidebar?.classList.remove('w-72');
-            sidebar?.classList.add('w-16');
-            logo?.classList.add('logo-small');
-            textElements.forEach(el => {
-                el?.classList.remove('sidebar-text-visible');
-                el?.classList.add('sidebar-text-hidden');
-            });
-            isOpen = false;
-            localStorage.setItem('sidebarOpen', 'false');
-        }
-
-        toggleButton?.addEventListener('click', () => {
-            isOpen ? closeSidebar() : openSidebar();
-        });
-
-        window.addEventListener('DOMContentLoaded', () => {
-            if (window.innerWidth >= 1024) {
-                openSidebar();
-            }
-        });
     </script>
 
     @stack('scripts')

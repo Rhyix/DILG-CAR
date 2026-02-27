@@ -194,6 +194,41 @@
                     </a>
                 </div>
             </div>
+
+            <!-- Download Template Button -->
+            <div x-data="{ open: false }" class="relative">
+                <button
+                    @click="open = !open"
+                    class="font-semibold flex items-center px-4 py-2 bg-white text-[#0D2B70] rounded-md hover:bg-[#0D2B70] transition whitespace-nowrap hover:text-white hover:shadow-md border border-[#0D2B70]"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M12 4v10m0 0l-4-4m4 4l4-4M5 18h14" />
+                    </svg>
+                    Download
+                    <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" stroke-width="2"
+                        viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </button>
+                <div
+                    x-show="open"
+                    x-cloak
+                    @click.away="open = false"
+                    x-transition
+                    class="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-xl shadow-lg z-50"
+                >
+                    <a href="{{ route('downloadCOSTemplate') }}"
+                        class="block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold">
+                        Download COS template
+                    </a>
+                    <a href="{{ route('downloadPlantillaTemplate') }}"
+                        class="block px-4 py-2 text-sm text-[#0D2B70] hover:bg-gray-100 font-semibold">
+                        Download Plantilla template
+                    </a>
+                </div>
+            </div>
         </div>
             <!-- Export Button -->
             <div x-data="{ open: false }" class="relative">
