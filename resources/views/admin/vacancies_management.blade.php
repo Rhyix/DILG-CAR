@@ -14,9 +14,14 @@
     </section>
 
     <!-- Search and Controls -->
-    <section class="flex-none flex flex-wrap gap-4 items-end justify-between">
+    <section class="flex-none flex flex-col gap-3 items-stretch 
+                sm:gap-4 
+                md:flex-row md:flex-wrap md:items-end md:gap-4 
+                lg:gap-4 lg:justify-between
+                xl:flex-row xl:items-end xl:justify-between              
+    ">
         <!-- Search Box -->
-        <form class="relative flex-1 min-w-[300px]" onsubmit="return false;">
+        <form class="relative w-full min-w-0 md:flex-1 md:min-w-[260px] lg:min-w-[320px]" onsubmit="return false;">
             <input id="searchInput" type="search" placeholder="Search" aria-label="Search" value="{{ session('vacancyFilterSearch') }}"
                 class="pl-10 pr-4 py-2 rounded-md w-full border border-[#0D2B70] placeholder:text-[#7D93B3] placeholder:font-semibold text-[#0D2B70] focus:outline-none focus:ring-2 focus:ring-[#0D2B70] focus:ring-offset-1"
                 oninput="fetchVacanciesDebounced()" />
@@ -29,12 +34,12 @@
         </form>
 
         <!-- Filters and Action Buttons -->
-        <div class="flex gap-4 items-end flex-wrap">
+        <!-- <div class="flex w-full flex-col gap-3 items-stretch sm:flex-row sm:flex-wrap sm:items-end lg:w-auto lg:justify-end"> -->
         <!-- Job Type Filter -->
-            <div x-data="{ jobOpen: false }" class="relative">
+            <div x-data="{ jobOpen: false }" class="relative w-full sm:w-[calc(50%-0.5rem)] md:w-auto">
                 <button
                     @click="jobOpen = !jobOpen"
-                    class="font-semibold flex items-center px-4 py-2 bg-white text-[#0D2B70] rounded-md hover:bg-[#0D2B70] transition whitespace-nowrap hover:text-white hover:shadow-md border border-[#0D2B70] min-w-[140px] justify-between"
+                    class="w-full sm:w-full md:w-auto font-semibold flex items-center px-4 py-2 bg-white text-[#0D2B70] rounded-md hover:bg-[#0D2B70] transition whitespace-nowrap hover:text-white hover:shadow-md border border-[#0D2B70] min-w-0 lg:min-w-[140px] justify-between"
                 >
                     <span class="flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -103,10 +108,10 @@
                 </div> -->
 
             <!-- Status Filter -->
-            <div x-data="{ statusOpen: false, selectedStatus: '{{ session('vacancyFilterStatus') ?: 'All' }}' }" class="relative">
+            <div x-data="{ statusOpen: false, selectedStatus: '{{ session('vacancyFilterStatus') ?: 'All' }}' }" class="relative w-full sm:w-[calc(50%-0.5rem)] md:w-auto">
                 <button
                     @click="statusOpen = !statusOpen"
-                    class="font-semibold flex items-center px-4 py-2 bg-white text-[#0D2B70] rounded-md hover:bg-[#0D2B70] transition whitespace-nowrap hover:text-white hover:shadow-md border border-[#0D2B70] min-w-[140px] justify-between"
+                    class="w-full sm:w-full md:w-auto font-semibold flex items-center px-4 py-2 bg-white text-[#0D2B70] rounded-md hover:bg-[#0D2B70] transition whitespace-nowrap hover:text-white hover:shadow-md border border-[#0D2B70] min-w-0 lg:min-w-[140px] justify-between"
                 >
                     <span class="flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -162,10 +167,10 @@
 
 
             <!-- Add New Vacancy Button -->
-            <div x-data="{ open: false }" class="relative">
+            <div x-data="{ open: false }" class="relative w-full sm:w-[calc(50%-0.5rem)] md:w-auto">
                 <button
                     @click="open = !open"
-                        class = "font-semibold flex items-center px-4 py-2 bg-white text-[#0D2B70] rounded-md hover:bg-[#0D2B70]  transition whitespace-nowrap
+                        class = "w-full sm:w-full md:w-auto font-semibold flex items-center px-4 py-2 bg-white text-[#0D2B70] rounded-md hover:bg-[#0D2B70]  transition whitespace-nowrap
                                  hover:text-white hover:shadow-md border border-[#0D2B70]">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 stroke-[3]" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor" stroke-width="3">
@@ -196,10 +201,10 @@
             </div>
 
             <!-- Download Template Button -->
-            <div x-data="{ open: false }" class="relative">
+            <div x-data="{ open: false }" class="relative w-full sm:w-[calc(50%-0.5rem)] md:w-auto">
                 <button
                     @click="open = !open"
-                    class="font-semibold flex items-center px-4 py-2 bg-white text-[#0D2B70] rounded-md hover:bg-[#0D2B70] transition whitespace-nowrap hover:text-white hover:shadow-md border border-[#0D2B70]"
+                    class="w-full sm:w-full md:w-auto font-semibold flex items-center px-4 py-2 bg-white text-[#0D2B70] rounded-md hover:bg-[#0D2B70] transition whitespace-nowrap hover:text-white hover:shadow-md border border-[#0D2B70]"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor" stroke-width="2">
@@ -229,12 +234,12 @@
                     </a>
                 </div>
             </div>
-        </div>
+        <!-- </div> -->
             <!-- Export Button -->
-            <div x-data="{ open: false }" class="relative">
+            <div x-data="{ open: false }" class="relative w-full sm:w-[calc(50%-0.5rem)] md:w-auto">
                 <button
                     @click="open = !open"
-                    class="font-semibold flex items-center px-4 py-2 bg-white text-[#0D2B70] rounded-md hover:bg-[#0D2B70]  transition whitespace-nowrap
+                    class="w-full sm:w-full md:w-auto font-semibold flex items-center px-4 py-2 bg-white text-[#0D2B70] rounded-md hover:bg-[#0D2B70]  transition whitespace-nowrap
                             hover:text-white hover:shadow-md border border-[#0D2B70]"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24"
@@ -295,10 +300,10 @@
             </div>
 
             <!-- Import Button -->
-            <div x-data="{ open: false }" class="relative">
+            <div x-data="{ open: false }" class="relative w-full sm:w-[calc(50%-0.5rem)] md:w-auto">
                 <button
                     @click="open = !open"
-                    class="font-semibold flex items-center px-4 py-2 bg-white text-[#0D2B70] rounded-md hover:bg-[#0D2B70]  transition whitespace-nowrap
+                    class="w-full sm:w-full md:w-auto font-semibold flex items-center px-4 py-2 bg-white text-[#0D2B70] rounded-md hover:bg-[#0D2B70]  transition whitespace-nowrap
                             hover:text-white hover:shadow-md border border-[#0D2B70]"
                 >
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">

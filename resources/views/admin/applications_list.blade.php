@@ -2,151 +2,152 @@
 @section('title', 'DILG - Applications List')
 @section('content')
 
+<main class="w-full h-full flex flex-col space-y-4 overflow-hidden">
     <main class="w-full h-full min-h-0 flex flex-col space-y-4 overflow-hidden">
 
-        <!-- Header with back arrow and title -->
-        <section class="flex-none flex items-center space-x-4 max-w-full">
-            <h1
-                class="flex items-center gap-3 w-full border-b border-[#0D2B70] text-white text-4xl font-montserrat py-2 tracking-wide select-none">
-                <span class="whitespace-nowrap text-[#0D2B70]">Applications List</span>
-            </h1>
-        </section>
+    <!-- Header with back arrow and title -->
+    <section class="flex-none flex items-center space-x-4 max-w-full">
+        <h1
+            class="flex items-center gap-3 w-full border-b border-[#0D2B70] text-white text-4xl font-montserrat py-2 tracking-wide select-none">
+            <span class="whitespace-nowrap text-[#0D2B70]">Applications List</span>
+        </h1>
+    </section>
 
-        {{-- Search & Sort Section --}}
-        <div class="flex-none flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <!-- Search Bar -->
-            <form onsubmit="return false;" class="relative w-full max-w-xs">
-                <input id="searchInput" type="search" placeholder="Search" aria-label="Search"
-                    class="pl-10 pr-4 py-1.5 rounded-full border border-[#0D2B70] placeholder:text-[#7D93B3] placeholder:font-semibold text-[#0D2B70] focus:outline-none focus:ring-2 focus:ring-[#0D2B70] focus:ring-offset-1" />
-                <svg xmlns="http://www.w3.org/2000/svg"
-                    class="w-5 h-5 text-[#7D93B3] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none"
-                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                        d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
-                </svg>
-            </form>
+    <!-- Search & Sort Section -->
+    <div class="flex flex-col gap-3 items-stretch sm:gap-4 md:flex-row md:flex-wrap md:items-end md:justify-between">
+        <!-- Search Bar -->
+        <form onsubmit="return false;" class="relative w-full min-w-0 md:flex-1 md:min-w-[260px] lg:min-w-[320px] no-spinner" data-loading-handled="1">
+            <input id="searchInput" type="search" placeholder="Search" aria-label="Search"
+                class="w-full pl-10 pr-4 py-1.5 rounded-full border border-[#0D2B70] placeholder:text-[#7D93B3] placeholder:font-semibold text-[#0D2B70] focus:outline-none focus:ring-2 focus:ring-[#0D2B70] focus:ring-offset-1" />
+            <svg xmlns="http://www.w3.org/2000/svg"
+                class="w-5 h-5 text-[#7D93B3] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none"
+                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
+            </svg>
+        </form>
 
-            <!-- Sort Dropdown with Custom Design -->
-            <div class="flex flex-wrap gap-2 items-center">
-                <div class="flex flex-col gap-2">
-                    <label for="statusFilter" class="font-semibold text-[#0D2B70] text-sm">Sort By Status</label>
-                    <select aria-label="Filter by Status" id="statusFilter"
-                        class="rounded-md text-[#0D2B70] p-2 px-3 font-semibold cursor-pointer border border-[#0D2B70]">
-                        <option value="">All</option>
-                        <option value="open">OPEN</option>
-                        <option value="closed">CLOSED</option>
-                    </select>
-                </div>
+        <!-- Sort Dropdown with Custom Design -->
+        <div class="flex w-full items-stretch sm:w-auto">
+            <div class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:justify-center">
+                <label for="statusFilter" class="font-semibold text-[#0D2B70] text-sm">Sort By Status</label>
+                <select aria-label="Filter by Status" id="statusFilter"
+                    class="w-full sm:w-auto rounded-md text-[#0D2B70] p-2 px-3 font-semibold cursor-pointer border border-[#0D2B70]">
+                    <option value="">All</option>
+                    <option value="open">OPEN</option>
+                    <option value="closed">CLOSED</option>
+                </select>
             </div>
         </div>
-
-        <!-- Table Container -->
-        <div class="flex-1 min-h-0 flex flex-col border border-[#0D2B70] rounded-2xl overflow-hidden">
-            <!-- HEADER - Fixed outside scrollable area -->
-            <div class="bg-[#0D2B70] text-white rounded-t-xl flex-none">
-                <table class="w-full text-left border-separate table-fixed">
-                    <thead>
-                        <tr>
-                            <th class="py-4 px-6 font-normal w-[15%]">Vacancy ID</th>
-                            <th class="py-4 px-6 font-normal w-[30%]">Job Title</th>
-                            <th class="py-4 px-6 font-normal text-left w-[15%]">Status</th>
-                            <th class="py-4 px-6 font-normal text-center w-[40%]">Manage Applicants</th>
-                        </tr>
-                    </thead>
-                </table>
-            </div>
-<!-- SCROLLABLE BODY CONTAINER -->
-    <div class="flex-1 overflow-y-auto min-h-0">
-        <table class="w-full align-items-center text-left border-collapse table-fixed">
-            <tbody id="vacancy-list" class="divide-y divide-[#0D2B70]">
-                @forelse ($vacancies as $vacancy)
-                    <tr class="text-[#0D2B70] select-none hover:bg-blue-50 transition-colors duration-200">
-                        <td class="py-4 px-6 w-[15%]">{{ $vacancy->vacancy_id }}</td>
-
-                        <td class="py-4 px-6 w-[30%]">
-                            <p class="font-medium">{{ $vacancy->position_title }}</p>
-                            <p class="text-[#0D2B70]/70 text-[0.8rem] italic mt-0.5">
-                                {{ $vacancy->vacancy_type }}
-                            </p>
-                        </td>
-
-                        <td class="py-4 px-6 text-left w-[15%]">
-                            <div class="flex justify-start items-center gap-2 font-normal">
-                                @php
-                                    $statusColor = match (strtolower($vacancy->status)) {
-                                        'open' => 'bg-green-600',
-                                        'closed' => 'bg-red-600',
-                                        default => 'bg-gray-400'
-                                    };
-                                @endphp
-
-                                <span class="w-4 h-4 rounded-full inline-block {{ $statusColor }}"></span>
-                                <span class="font-semibold uppercase text-sm">
-                                    {{ $vacancy->status }}
-                                </span>
-                            </div>
-                        </td>
-
-                        <td class="py-4 px-6 text-center w-[40%]">
-                            <div class="flex justify-center items-center gap-3">
-                                <a href="{{ route('admin.manage_applicants', ['vacancy_id' => $vacancy->vacancy_id]) }}?tab=new"
-                                   class="relative group use-loader flex items-center justify-center w-28 h-10 text-[#0D2B70] border border-[#0D2B70] font-bold rounded-md text-sm transition-all duration-300 hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md">
-                                   <span>New</span>
-                                   @if(isset($vacancy->pending_count) && $vacancy->pending_count > 0)
-                                       <span class="absolute -top-2 -right-2 flex items-center justify-center w-5 h-5 rounded-full bg-red-600 text-white text-[10px] font-bold shadow-sm border border-white z-10">
-                                           {{ $vacancy->pending_count }}
-                                       </span>
-                                   @endif
-                                </a>
-                                <a href="{{ route('admin.manage_applicants', ['vacancy_id' => $vacancy->vacancy_id]) }}?tab=compliance"
-                                   class="relative group use-loader flex items-center justify-center w-28 h-10 text-[#0D2B70] border border-[#0D2B70] font-bold rounded-md text-sm transition-all duration-300 hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md">
-                                   <span>Compliance</span>
-                                   @if(isset($vacancy->compliance_count) && $vacancy->compliance_count > 0)
-                                       <span class="absolute -top-2 -right-2 flex items-center justify-center w-5 h-5 rounded-full bg-orange-500 text-white text-[10px] font-bold shadow-sm border border-white z-10">
-                                           {{ $vacancy->compliance_count }}
-                                       </span>
-                                   @endif
-                                </a>
-                                <a href="{{ route('admin.manage_applicants', ['vacancy_id' => $vacancy->vacancy_id]) }}?tab=qualified"
-                                   class="relative group use-loader flex items-center justify-center w-28 h-10 text-[#0D2B70] border border-[#0D2B70] font-bold rounded-md text-sm transition-all duration-300 hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md">
-                                   <span>Qualified</span>
-                                   @if(isset($vacancy->qualified_count) && $vacancy->qualified_count > 0)
-                                       <span class="absolute -top-2 -right-2 flex items-center justify-center w-5 h-5 rounded-full bg-green-600 text-white text-[10px] font-bold shadow-sm border border-white z-10">
-                                           {{ $vacancy->qualified_count }}
-                                       </span>
-                                   @endif
-                                </a>
-                            </div>
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="4" class="text-center py-12 text-gray-500 text-lg">
-                            <div class="flex flex-col items-center justify-center gap-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                                </svg>
-                                <p>No job vacancies found.</p>
-                            </div>
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-            
-            <!-- Optional: Add bottom padding for better scrolling experience -->
-            <tfoot>
-                <tr>
-                    <td colspan="4" class="h-4"></td>
-                </tr>
-            </tfoot>
-        </table>
     </div>
-</div>           
-        @if(method_exists($vacancies, 'links'))
-            <div class="mt-3 flex justify-end">
-                {{ $vacancies->links() }}
-            </div>
-        @endif
+
+    <!-- Table Container -->
+    <div class="flex-1 min-h-0 flex flex-col border border-[#0D2B70] rounded-2xl overflow-hidden">
+        <!-- HEADER - Fixed outside scrollable area -->
+        <div class="bg-[#0D2B70] text-white rounded-t-xl flex-none">
+            <table class="w-full text-left border-separate table-fixed">
+                <thead>
+                    <tr>
+                        <th class="py-4 px-6 font-normal w-[15%]">Vacancy ID</th>
+                        <th class="py-4 px-6 font-normal w-[30%]">Job Title</th>
+                        <th class="py-4 px-6 font-normal text-left w-[15%]">Status</th>
+                        <th class="py-4 px-6 font-normal text-center w-[40%]">Manage Applicants</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+        <!-- SCROLLABLE BODY CONTAINER -->
+        <div class="flex-1 overflow-y-auto min-h-0">
+            <table class="w-full align-items-center text-left border-collapse table-fixed">
+                <tbody id="vacancy-list" class="divide-y divide-[#0D2B70]">
+                    @forelse ($vacancies as $vacancy)
+                        <tr class="text-[#0D2B70] select-none hover:bg-blue-50 transition-colors duration-200">
+                            <td class="py-2 px-6 w-[15%]">{{ $vacancy->vacancy_id }}</td>
+
+                            <td class="py-2 px-6 w-[30%]">
+                                <p class="font-medium">{{ $vacancy->position_title }}</p>
+                                <p class="text-[#0D2B70]/70 text-[0.8rem] italic mt-0.5">
+                                    {{ $vacancy->vacancy_type }}
+                                </p>
+                            </td>
+
+                            <td class="py-2 px-6 text-left w-[15%]">
+                                <div class="flex justify-start items-center gap-2 font-normal">
+                                    @php
+                                        $statusColor = match (strtolower($vacancy->status)) {
+                                            'open' => 'bg-green-600',
+                                            'closed' => 'bg-red-600',
+                                            default => 'bg-gray-400'
+                                        };
+                                    @endphp
+
+                                    <span class="w-4 h-4 rounded-full inline-block {{ $statusColor }}"></span>
+                                    <span class="font-semibold uppercase text-sm">
+                                        {{ $vacancy->status }}
+                                    </span>
+                                </div>
+                            </td>
+
+                            <td class="py-2 px-6 text-center w-[40%]">
+                                <div class="flex justify-center items-center gap-3">
+                                    <a href="{{ route('admin.manage_applicants', ['vacancy_id' => $vacancy->vacancy_id]) }}?tab=new"
+                                    class="relative group use-loader flex items-center justify-center w-28 h-10 text-[#0D2B70] border border-[#0D2B70] font-bold rounded-md text-sm transition-all duration-300 hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md">
+                                    <span>New</span>
+                                    @if(isset($vacancy->pending_count) && $vacancy->pending_count > 0)
+                                        <span class="absolute -top-2 -right-2 flex items-center justify-center w-5 h-5 rounded-full bg-red-600 text-white text-[10px] font-bold shadow-sm border border-white z-10">
+                                            {{ $vacancy->pending_count }}
+                                        </span>
+                                    @endif
+                                    </a>
+                                    <a href="{{ route('admin.manage_applicants', ['vacancy_id' => $vacancy->vacancy_id]) }}?tab=compliance"
+                                    class="relative group use-loader flex items-center justify-center w-28 h-10 text-[#0D2B70] border border-[#0D2B70] font-bold rounded-md text-sm transition-all duration-300 hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md">
+                                    <span>Compliance</span>
+                                    @if(isset($vacancy->compliance_count) && $vacancy->compliance_count > 0)
+                                        <span class="absolute -top-2 -right-2 flex items-center justify-center w-5 h-5 rounded-full bg-orange-500 text-white text-[10px] font-bold shadow-sm border border-white z-10">
+                                            {{ $vacancy->compliance_count }}
+                                        </span>
+                                    @endif
+                                    </a>
+                                    <a href="{{ route('admin.manage_applicants', ['vacancy_id' => $vacancy->vacancy_id]) }}?tab=qualified"
+                                    class="relative group use-loader flex items-center justify-center w-28 h-10 text-[#0D2B70] border border-[#0D2B70] font-bold rounded-md text-sm transition-all duration-300 hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md">
+                                    <span>Qualified</span>
+                                    @if(isset($vacancy->qualified_count) && $vacancy->qualified_count > 0)
+                                        <span class="absolute -top-2 -right-2 flex items-center justify-center w-5 h-5 rounded-full bg-green-600 text-white text-[10px] font-bold shadow-sm border border-white z-10">
+                                            {{ $vacancy->qualified_count }}
+                                        </span>
+                                    @endif
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="4" class="text-center py-12 text-gray-500 text-lg">
+                                <div class="flex flex-col items-center justify-center gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                                    </svg>
+                                    <p>No job vacancies found.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+                
+                <!-- Optional: Add bottom padding for better scrolling experience -->
+                <tfoot>
+                    <tr>
+                        <td colspan="4" class="h-4"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>           
+    @if(method_exists($vacancies, 'links'))
+        <div class="flex justify-end">
+            {{ $vacancies->links() }}
+        </div>
+    @endif
     @include('partials.loader')
 </main>
 
@@ -163,6 +164,7 @@
 
         const searchInput = document.getElementById('searchInput');
         const statusFilter = document.getElementById('statusFilter');
+        const searchForm = searchInput?.form ?? null;
         const vacancyListContainer = document.getElementById('vacancy-list');
         const applicationsListUrl = @json(route('applications_list'));
         const hrAccessStateUrl = @json(route('admin.applications_list.access_state'));
@@ -187,6 +189,23 @@
         }, 500);
 
         searchInput.addEventListener('input', handleSearch);
+        searchInput.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+            }
+        });
+        if (searchForm) {
+            searchForm.addEventListener('submit', function (event) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                const overlay = document.getElementById('loader');
+                if (overlay) {
+                    overlay.classList.add('hidden');
+                    overlay.classList.remove('pds-loading-nonblocking');
+                    overlay.setAttribute('aria-busy', 'false');
+                }
+            });
+        }
 
         statusFilter.addEventListener('change', function () {
             const { search, status } = getSearchAndStatus();
@@ -233,18 +252,18 @@
 
                 container.innerHTML += `
                 <tr class="text-[#0D2B70] select-none hover:bg-blue-50 transition-colors duration-200">
-                    <td class="py-4 px-6 w-[15%] text-left">${vacancy.vacancy_id}</td>
-                    <td class="py-4 px-6 w-[30%] text-left">
+                    <td class="py-2 px-6 w-[15%] text-left">${vacancy.vacancy_id}</td>
+                    <td class="py-2 px-6 w-[30%] text-left">
                         <p>${vacancy.position_title}</p>
                         <p class="text-[#0D2B70]/70 text-[0.9rem] italic">${vacancy.vacancy_type}</p>
                     </td>
-                    <td class="py-4 px-6 text-left w-[15%]">
+                    <td class="py-2 px-6 text-left w-[15%]">
                         <div class="flex justify-start items-center gap-3 font-normal">
                             <span class="w-5 h-5 rounded-full inline-block ${statusColor}"></span>
                             <span class="text-center font-semibold uppercase">${vacancy.status}</span>
                         </div>
                     </td>
-                    <td class="py-4 px-6 text-center w-[40%]">
+                    <td class="py-2 px-6 text-center w-[40%]">
                         <div class="flex justify-center items-center gap-3">
                             <a href="/admin/manage_applicants/${vacancy.vacancy_id}?tab=new" class="relative group use-loader flex items-center justify-center w-28 h-10 text-[#0D2B70] border border-[#0D2B70] font-bold rounded-md text-sm transition-all duration-300 hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md">
                                 <span>New</span>

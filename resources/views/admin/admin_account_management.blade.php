@@ -2,7 +2,7 @@
 @section('title', 'DILG - User Management')
 @section('content')
 
-<main class="mx-auto w-full max-w-[1400px] pb-8">
+<main class="mx-auto w-full">
     <section class="flex-none flex items-center space-x-4 max-w-full">
         <h1 class="flex items-center gap-3 w-full border-b border-[#0D2B70] text-4xl font-montserrat tracking-wide select-none">
             <span class="whitespace-nowrap text-[#0D2B70]">User Management</span>
