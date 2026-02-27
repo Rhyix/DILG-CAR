@@ -58,7 +58,7 @@
                     </div>
                     <div class="relative">
                         <input type="text" id="name_extension" name="name_extension" value="{{ old('name_extension', session('form.c1.name_extension')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                        <label for="name_extension" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Name Ext.</label>
+                        <label for="name_extension" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">NAME EXTENSION (JR., SR.)</label>
                     </div>
                 </div>
 
@@ -66,15 +66,15 @@
                 <div class="mobile-stack md:grid md:grid-cols-4 gap-4 rounded-lg p-4 sm:gap-6 mb-4 sm:mb-6">
                     <div class="relative">
                         <input type="text" id="date_of_birth" name="date_of_birth" value="{{ old('date_of_birth', session('form.c1.date_of_birth')) }}" required class="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base">
-                        <label for="date_of_birth" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">3. Date of Birth *</label>
-                        <label for="date_of_birth" class="absolute -top-2 left-3 bg-white px-1 text-xs text-gray-600 ml-[50%]">(dd-mm-yyyy) </label>
+                        <label for="date_of_birth" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">3. DATE OF BIRTH *</label>
+                        <label for="date_of_birth" class="absolute -top-2 left-3 bg-white px-1 text-xs text-gray-600 ml-[50%]">(dd/mm/yyyy) </label>
                     </div>
                     <div class="relative md:col-span-2">
                         <input type="text" id="place_of_birth" name="place_of_birth" value="{{ old('place_of_birth', session('form.c1.place_of_birth')) }}" placeholder=" " required class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
                         <label for="place_of_birth" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">4. Place of Birth *</label>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">5. Sex *</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">5. SEX AT BIRTH *</label>
                         <div class="flex space-x-4 sm:space-x-6">
                             <label class="flex items-center cursor-pointer hover:text-blue-600 transition-colors text-sm sm:text-base">
                                 <input type="radio" name="sex" value="male" {{ old('sex', session('form.c1.sex')) == 'male' ? 'checked' : '' }} class="mr-2 text-blue-600 focus:ring-blue-500" required>
@@ -104,7 +104,7 @@
                     <!-- Physical Info -->
                     <div class="relative">
                         <input type="number" style="-moz-appearance: textfield; -webkit-appearance: textfield;" required step="0.01" id="height" name="height" value="{{ old('height', session('form.c1.height')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                        <label for="height" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">7. Height (cm)*</label>
+                        <label for="height" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">7. HEIGHT (m) *</label>
                     </div>
                     <div class="relative">
                         <input type="number" style="-moz-appearance: textfield; -webkit-appearance: textfield;" required step="0.1" id="weight" name="weight" value="{{ old('weight', session('form.c1.weight')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
@@ -132,34 +132,34 @@
                 <div class="mobile-stack md:grid md:grid-cols-3 gap-4 sm:gap-6 mb-4 sm:mb-6">
                     <div class="relative">
                         <input type="number" style="-moz-appearance: textfield; -webkit-appearance: textfield;" id="gsis_id_no" name="gsis_id_no" value="{{ old('gsis_id_no', session('form.c1.gsis_id_no')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                        <label for="gsis_id_no" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">10. GSIS ID No.</label>
+                        <label for="gsis_id_no" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">10. UMID ID NO.</label>
                     </div>
                     <div class="relative">
                         <input type="number" style="-moz-appearance: textfield; -webkit-appearance: textfield;" id="pagibig_id_no" name="pagibig_id_no" value="{{ old('pagibig_id_no', session('form.c1.pagibig_id_no')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                        <label for="pagibig_id_no" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">11. PAGIBIG ID No.</label>
+                        <label for="pagibig_id_no" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">11. PAG-IBIG ID NO.</label>
                     </div>
                     <div class="relative">
                         <input type="number" style="-moz-appearance: textfield; -webkit-appearance: textfield;" id="philhealth_no" name="philhealth_no" value="{{ old('philhealth_no', session('form.c1.philhealth_no')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                        <label for="philhealth_no" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">12. PhilHealth No.</label>
+                        <label for="philhealth_no" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">12. PHILHEALTH NO.</label>
                     </div>
                     <div class="relative">
                         <input type="number" style="-moz-appearance: textfield; -webkit-appearance: textfield;" id="sss_id_no" name="sss_id_no" value="{{ old('sss_id_no', session('form.c1.sss_id_no')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                        <label for="sss_id_no" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">13. SSS ID No.</label>
+                        <label for="sss_id_no" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">13. PhilSys Number (PSN):</label>
                     </div>
                     <div class="relative">
                         <input type="number" style="-moz-appearance: textfield; -webkit-appearance: textfield;" id="tin_no" name="tin_no" value="{{ old('tin_no', session('form.c1.tin_no')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                        <label for="tin_no" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">14. TIN No.</label>
+                        <label for="tin_no" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">14. TIN NO.</label>
                     </div>
                     <div class="relative">
                         <input type="number" style="-moz-appearance: textfield; -webkit-appearance: textfield;" id="agency_employee_no" name="agency_employee_no" value="{{ old('agency_employee_no', session('form.c1.agency_employee_no')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                        <label for="agency_employee_no" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">15. Agency Employee No.</label>
+                        <label for="agency_employee_no" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">15. AGENCY EMPLOYEE NO.</label>
                     </div>
                 </div>
 
                 <!-- Additional Personal Info -->
                 <div class="mobile-stack md:grid md:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
                     <div x-data="{ citizenship: '{{ old('citizenship', session('form.c1.citizenship')) }}', dualType: '{{ old('dual_type', session('form.c1.dual_type')) }}' }" class="space-y-4">
-                        <label class="block text-gray-700 font-medium mb-2 text-sm sm:text-base">16. Citizenship *</label>
+                        <label class="block text-gray-700 font-medium mb-2 text-sm sm:text-base">16. CITIZENSHIP *</label>
 
                         <!-- Primary citizenship options -->
                         <div class="flex flex-col sm:flex-row gap-2">
@@ -181,7 +181,7 @@
                         <!-- Show only when Dual Citizenship is selected -->
                         <div x-show="citizenship === 'Dual Citizenship'" class="space-y-4 mt-4">
                             <!-- Sub-options -->
-                            <label class="block text-gray-700 font-medium mb-2 text-sm sm:text-base">Type of Dual Citizenship</label>
+                            <label class="block text-gray-700 font-medium mb-2 text-sm sm:text-base">If holder of dual citizenship, please indicate the details.</label>
                             <div class="flex flex-col sm:flex-row gap-2">
                                 <label class="inline-flex items-center text-sm sm:text-base">
                                     <input type="radio" name="dual_type" value="By Birth" x-model="dualType"
@@ -223,7 +223,7 @@
                     </div>
                     <div class="relative">
                         <input type="text" id="res_street" name="res_street" value="{{ old('res_street', session('form.c1.res_street')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                        <label for="res_street" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Street Name</label>
+                        <label for="res_street" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Street</label>
                     </div>
                     <div class="relative">
                         <input type="text" id="res_sub_vil" name="res_sub_vil" value="{{ old('res_sub_vil', session('form.c1.res_sub_vil')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
@@ -268,7 +268,7 @@
                     </div>
                     <div class="relative">
                         <input type="text" id="per_street" name="per_street" value="{{ old('per_street', session('form.c1.per_street')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                        <label for="per_street" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Street Name</label>
+                        <label for="per_street" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Street</label>
                     </div>
                     <div class="relative">
                         <input type="text" id="per_sub_vil" name="per_sub_vil" value="{{ old('per_sub_vil', session('form.c1.per_sub_vil')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
@@ -301,15 +301,15 @@
                 <div class="mobile-stack md:grid md:grid-cols-3 gap-4 sm:gap-6">
                     <div class="relative">
                         <input type="tel" style="-moz-appearance: textfield; -webkit-appearance: textfield;" pattern="^0\d{9,10}$" maxlength="11" id="telephone_no" name="telephone_no" value="{{ old('telephone_no', session('form.c1.telephone_no')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                        <label for="telephone_no" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">19. Telephone No.</label>
+                        <label for="telephone_no" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">19. TELEPHONE NO.</label>
                     </div>
                     <div class="relative">
                         <input required type="tel" style="-moz-appearance: textfield; -webkit-appearance: textfield;" pattern="^09\d{9}$" maxlength="11" id="mobile_no" name="mobile_no" value="{{ old('mobile_no', session('form.c1.mobile_no')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                        <label for="mobile_no" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">20. Mobile No.*</label>
+                        <label for="mobile_no" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">20. MOBILE NO. *</label>
                     </div>
                     <div class="relative">
                         <input required type="email" id="email_address" name="email_address" value="{{ old('email_address', session('form.c1.email_address')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                        <label for="email_address" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">21. Email Address*</label>
+                        <label for="email_address" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">21. E-MAIL ADDRESS (if any) *</label>
                     </div>
                 </div>
             </section>
@@ -538,7 +538,7 @@
             <p class="mb-2">
                 <strong>WARNING:</strong> Any misrepresentation made in the Personal Data Sheet and the Work Experience Sheet shall cause the filing of administrative/criminal case/s against the person concerned.
             </p>
-            <p>CS Form No. 212 (Revised 2017). Read the attached guide to filling out the Personal Data Sheet before accomplishing the form.</p>
+            <p>CS FORM 212 (Revised 2025), Page 1 of 4.</p>
         </footer>
     </main>
 
@@ -1018,4 +1018,3 @@
     </div>
 </div>
 @endsection
-

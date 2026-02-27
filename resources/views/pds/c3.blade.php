@@ -113,7 +113,7 @@
                         <span
                             class="material-icons text-blue-600 mr-3 text-2xl sm:text-3xl mt-1 sm:mt-0">volunteer_activism</span>
                         <h2 class="text-lg sm:text-2xl font-bold text-gray-900 leading-tight">VI. VOLUNTARY WORK OR
-                            INVOLVEMENT IN CIVIC/<br class="hidden sm:block">NON-GOVERNMENT/PEOPLE/VOLUNTARY ORGANIZATION/S
+                            INVOLVEMENT IN CIVIC /<br class="hidden sm:block">NON-GOVERNMENT / PEOPLE / VOLUNTARY ORGANIZATION/S
                         </h2>
                     </div>
                     <button type="button" id="add-voluntary-btn"
@@ -151,7 +151,7 @@
                     <div class="flex items-start sm:items-center">
                         <span class="material-icons text-blue-600 mr-3 text-2xl sm:text-3xl mt-1 sm:mt-0">school</span>
                         <h2 class="text-lg sm:text-2xl font-bold text-gray-900 leading-tight">VII. LEARNING AND DEVELOPMENT
-                            (L&D) INTERVENTIONS/<br class="hidden sm:block">TRAINING PROGRAMS ATTENDED</h2>
+                            (L&D) INTERVENTIONS /<br class="hidden sm:block">TRAINING PROGRAMS ATTENDED</h2>
                     </div>
                     <button type="button" id="add-learning-btn"
                         class="w-full sm:w-auto flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 text-sm sm:text-base">
@@ -234,7 +234,7 @@
                     <div>
                         <h3 class="text-base sm:text-lg font-semibold text-gray-700 mb-4 flex items-center">
                             <span class="material-icons text-sm mr-2 text-blue-500">groups</span>
-                            33. MEMBERSHIP IN ASSOCIATION/ORGANIZATION
+                            33. MEMBERSHIP IN ASSOCIATION/ORGANIZATION (Write in full)
                         </h3>
                         <div id="organizations-container" class="space-y-3">
                             <div class="flex flex-col sm:flex-row gap-3">
@@ -272,8 +272,7 @@
             <strong>WARNING:</strong> Any misrepresentation made in the Personal Data Sheet and the Work Experience Sheet
             shall cause the filing of administrative/criminal case/s against the person concerned.
         </p>
-        <p>CS Form No. 212 (Revised 2017). Read the attached guide to filling out the Personal Data Sheet before
-            accomplishing the form.</p>
+        <p>CS FORM 212 (Revised 2025), Page 3 of 4.</p>
     </footer>
 @endsection
 

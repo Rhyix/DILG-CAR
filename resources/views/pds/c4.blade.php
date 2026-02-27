@@ -20,10 +20,10 @@
                     <p class="text-gray-700 font-bold mb-3">
                         34. Are you related by consanguinity or affinity to the appointing or recommending authority, or to the 
                         chief of bureau or office or to the person who has immediate supervision over you in the Office,
-                        Bureau or Department where you will be apppointed, 
+                        Bureau or Department where you will be appointed, 
                     </p>
                     <p class="text-gray-700 font-medium mb-3">
-                        a. within the degree?
+                        a. within the third degree?
                     </p>
                     <div class="flex gap-4 mb-4"> <!-- NUMBER 34: a -->
                             <label class="flex items-center cursor-pointer hover:text-blue-600 transition-colors">
@@ -151,7 +151,7 @@
             <section class="bg-white rounded-2xl shadow-xl p-8 animate-slide-in">
                 <div class="question-card">
                     <p class="text-gray-700 font-bold mb-3">
-                        37. Have you ever been separated from the service in any of the following modes: resignation, retirement, dropped from the rollls, dismissal, termination, end of term
+                        37. Have you ever been separated from the service in any of the following modes: resignation, retirement, dropped from the rolls, dismissal, termination, end of term
                         finish contract or phased out (abolition) in the public or private sector?
                     </p>
                     <div class="flex gap-6"> <!--NUMBER 37 -->
@@ -199,7 +199,7 @@
 
                 <div class="question-card mt-6">
                     <p class="text-gray-700 font-bold mb-3">
-                        B. Have you resigned from the goverment service during the three (3)-month period before the last election to promote/actively campaign for a national and local candidate?
+                        B. Have you resigned from the government service during the three (3)-month period before the last election to promote/actively campaign for a national and local candidate?
                     </p>
                     <div class="flex gap-6"> <!-- NUMBER 38: b -->
                         <label class="flex items-center cursor-pointer hover:text-blue-600 transition-colors">
@@ -323,11 +323,11 @@
             <section class="bg-white rounded-2xl shadow-xl p-8 animate-slide-in">
                 <div class="flex items-center mb-6">
                     <span class="material-icons text-blue-600 mr-3 text-3xl">people</span>
-                    <h2 class="text-2xl font-bold text-gray-900">41.REFERENCES</h2>
+                    <h2 class="text-2xl font-bold text-gray-900">41. REFERENCES</h2>
                 </div>
 
                 <p class="text-gray-600 mb-6 text-sm">
-                    Person not related by consanguinity or affinity to applicant/appointee
+                    Person not related by consanguinity or affinity to applicant /appointee
                 </p>
 
                 <div class="space-y-6">
@@ -407,7 +407,7 @@
             <section class="bg-white rounded-2xl shadow-xl p-8 animate-slide-in">
                 <div class="flex items-center mb-6">
                     <span class="material-icons text-blue-600 mr-3 text-3xl">badge</span>
-                    <h2 class="text-2xl font-bold text-gray-900">Government Issued ID</h2>
+                    <h2 class="text-2xl font-bold text-gray-900">Government Issued ID (i.e.Passport, GSIS, SSS, PRC, Driver's License, etc.)</h2>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -415,22 +415,26 @@
                     <div class="relative">
                         <select id="govt_id_type" name="govt_id_type" class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all appearance-none bg-white" required>
                             <option value="">Select ID Type</option>
-                            @php $selectedId = old('govt_id_type', $data['govt_id_type'] ?? '') @endphp
-                            <option value="Passport" {{ $selectedId == 'passport' ? 'selected' : '' }}>Passport</option>
-                            <option value="GSIS" {{ $selectedId == 'gsis' ? 'selected' : '' }}>GSIS</option>
-                            <option value="SSS" {{ $selectedId == 'sss' ? 'selected' : '' }}>SSS</option>
-                            <option value="PhilHealth" {{ $selectedId == 'philhealth' ? 'selected' : '' }}>PhilHealth</option>
-                            <option value="Driver's License" {{ $selectedId == 'drivers' ? 'selected' : '' }}>Driver's License</option>
-                            <option value="PRC" {{ $selectedId == 'prc' ? 'selected' : '' }}>PRC</option>
-                            <option value="Voter's ID" {{ $selectedId == 'voters' ? 'selected' : '' }}>Voter's ID</option>
-                            <option value="PhilSys/National ID" {{ $selectedId == 'voters' ? 'selected' : '' }}>PhilSys/National ID</option>
-                            <option value="other" {{ !in_array($selectedId, ['Passport','GSIS','SSS','PhilHeath','Driver\'s License','PRC','Voter\'s ID','PhilSys/National ID']) && $selectedId !== '' ? 'selected' : '' }}>Other</option>
+                            @php
+                                $selectedId = old('govt_id_type', $data['govt_id_type'] ?? '');
+                                $selectedIdNormalized = strtolower(trim((string) $selectedId));
+                                $knownIdTypes = ['passport', 'gsis', 'sss', 'philhealth', "driver's license", 'prc', "voter's id", 'philsys/national id'];
+                            @endphp
+                            <option value="Passport" {{ $selectedIdNormalized === 'passport' ? 'selected' : '' }}>Passport</option>
+                            <option value="GSIS" {{ $selectedIdNormalized === 'gsis' ? 'selected' : '' }}>GSIS</option>
+                            <option value="SSS" {{ $selectedIdNormalized === 'sss' ? 'selected' : '' }}>SSS</option>
+                            <option value="PhilHealth" {{ $selectedIdNormalized === 'philhealth' ? 'selected' : '' }}>PhilHealth</option>
+                            <option value="Driver's License" {{ $selectedIdNormalized === "driver's license" ? 'selected' : '' }}>Driver's License</option>
+                            <option value="PRC" {{ $selectedIdNormalized === 'prc' ? 'selected' : '' }}>PRC</option>
+                            <option value="Voter's ID" {{ $selectedIdNormalized === "voter's id" ? 'selected' : '' }}>Voter's ID</option>
+                            <option value="PhilSys/National ID" {{ $selectedIdNormalized === 'philsys/national id' ? 'selected' : '' }}>PhilSys/National ID</option>
+                            <option value="other" {{ !in_array($selectedIdNormalized, $knownIdTypes, true) && $selectedIdNormalized !== '' ? 'selected' : '' }}>Other</option>
                         </select>
-                        <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">ID Type</label>
+                        <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">Government Issued ID:</label>
                     </div>
 
                     <!-- If Other, Show Input Field -->
-                    <div id="other-id-wrapper" class="relative {{ !in_array($selectedId, ['passport','gsis','sss','philhealth','drivers','prc','voters']) && $selectedId !== '' ? '' : 'hidden' }}">
+                    <div id="other-id-wrapper" class="relative {{ !in_array($selectedIdNormalized, $knownIdTypes, true) && $selectedIdNormalized !== '' ? '' : 'hidden' }}">
                         <input type="text" id="other_id_input" name="govt_id_other" class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
                             placeholder="Specify other ID type"
                             value="{{ old('govt_id_other', $data['govt_id_other'] ?? '') }}">
@@ -440,14 +444,14 @@
                     <div class="relative">
                         <input type="text" name="govt_id_number" required value="{{ old('govt_id_number', $data['govt_id_number'] ?? '') }}"
                         class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer" placeholder=" ">
-                        <label class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">ID Number</label>
+                        <label class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">ID/License/Passport No.:</label>
                     </div>
 
                     <!-- Date Issued -->
                     <div class="relative">
                         <input type="date" name="govt_id_date_issued" required value="{{ old('govt_id_date_issued', $data['govt_id_date_issued'] ?? '') }}"
                         class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
-                        <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">Date Issued</label>
+                        <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">Date of Issuance</label>
                     </div>
 
                     <!-- Place Issued -->
@@ -511,7 +515,7 @@
             <p class="mb-2">
                 <strong>WARNING:</strong> Any misrepresentation made in the Personal Data Sheet and the Work Experience Sheet shall cause the filing of administrative/criminal case/s against the person concerned.
             </p>
-            <p>CS Form No. 212 (Revised 2017)</p>
+            <p>CS FORM 212 (Revised 2025), Page 4 of 4.</p>
         </footer>
     </main>
     <!--include('partials.loader')-->

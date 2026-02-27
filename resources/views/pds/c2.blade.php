@@ -43,8 +43,8 @@
                                 <th class="text-xs sm:text-sm p-2 sm:p-3">RATING<br>(If Applicable)</th>
                                 <th class="text-xs sm:text-sm p-2 sm:p-3">DATE OF EXAMINATION / CONFERMENT</th>
                                 <th class="text-xs sm:text-sm p-2 sm:p-3">PLACE OF EXAMINATION / CONFERMENT</th>
-                                <th class="text-xs sm:text-sm p-2 sm:p-3">LICENSE NUMBER<br>(if applicable)</th>
-                                <th class="text-xs sm:text-sm p-2 sm:p-3">LICENSE VALIDITY</th>
+                                <th class="text-xs sm:text-sm p-2 sm:p-3">LICENSE<br>(if applicable) NUMBER</th>
+                                <th class="text-xs sm:text-sm p-2 sm:p-3">VALID UNTIL</th>
                                 <th class="rounded-tr-lg text-center text-xs sm:text-sm p-2 sm:p-3">ACTIONS</th>
                             </tr>
                         </thead>
@@ -97,8 +97,8 @@
                     <table id="work-exp-table" class="modern-table w-full min-w-[1000px]">
                         <thead>
                             <tr>
-                                <th class="text-xs sm:text-sm p-2 sm:p-3">28. INCLUSIVE DATES (FROM)</th>
-                                <th class="text-xs sm:text-sm p-2 sm:p-3">INCLUSIVE DATES (TO)</th>
+                                <th class="text-xs sm:text-sm p-2 sm:p-3">28. INCLUSIVE DATES<br>(dd/mm/yyyy) FROM</th>
+                                <th class="text-xs sm:text-sm p-2 sm:p-3">INCLUSIVE DATES<br>(dd/mm/yyyy) TO</th>
                                 <th class="text-xs sm:text-sm p-2 sm:p-3">POSITION TITLE<br>(Write in full/Do not abbreviate)</th>
                                 <th class="text-xs sm:text-sm p-2 sm:p-3">DEPARTMENT / AGENCY / OFFICE / COMPANY<br>(Write in full/Do not abbreviate)</th>
                                 <th class="text-xs sm:text-sm p-2 sm:p-3">MONTHLY SALARY</th>
@@ -134,7 +134,7 @@
             <p class="mb-2">
                 <strong>WARNING:</strong> Any misrepresentation made in the Personal Data Sheet and the Work Experience Sheet shall cause the filing of administrative/criminal case/s against the person concerned.
             </p>
-            <p>CS Form No. 212 (Revised 2017). Read the attached guide to filling out the Personal Data Sheet before accomplishing the form.</p>
+            <p>CS FORM 212 (Revised 2025), Page 2 of 4.</p>
         </footer>
     </main> 
     @endsection
