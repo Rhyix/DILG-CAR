@@ -25,12 +25,33 @@ class RegisterController extends Controller
 
     public function register(Request $request)
     {
-        //info("mail");
-        $request->validate([
-            'name'     => 'required|string|max:255',
-            'email'    => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:6|confirmed',
+        // Support both field naming styles:
+        // first_name/middle_initial/last_name and fname/mname/lname.
+        $firstName = trim((string) ($request->input('first_name') ?? $request->input('fname') ?? ''));
+        $middleInitial = trim((string) ($request->input('middle_initial') ?? $request->input('mname') ?? ''));
+        $lastName = trim((string) ($request->input('last_name') ?? $request->input('lname') ?? ''));
+
+        $request->merge([
+            'first_name' => $firstName,
+            'middle_initial' => $middleInitial,
+            'last_name' => $lastName,
         ]);
+
+        $request->validate([
+            'first_name' => 'required|string|max:255',
+            'middle_initial' => 'nullable|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'password' => 'required|string|min:6|confirmed',
+            'phone_number' => 'nullable|string|max:20',
+            'sex' => 'nullable|string|max:20',
+        ]);
+
+        $fullName = trim(implode(' ', array_filter([
+            $firstName,
+            $middleInitial,
+            $lastName,
+        ], fn ($value) => $value !== '')));
 
         // Generate OTP
         $otp = rand(100000, 999999);
@@ -40,11 +61,16 @@ class RegisterController extends Controller
         // Store registration data temporarily in session
         session([
             'pending_registration' => [
-                'name'      => $request->name,
-                'email'     => $request->email,
-                'password'  => Hash::make($request->password),
-                'otp'       => $otp,
-                'expires_at'=> now()->addMinutes(5), //
+                'name' => $fullName,
+                'first_name' => $firstName,
+                'middle_initial' => $middleInitial,
+                'last_name' => $lastName,
+                'phone_number' => $request->input('phone_number'),
+                'sex' => $request->input('sex'),
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+                'otp' => $otp,
+                'expires_at' => now()->addMinutes(5), //
             ]
         ]);
 
@@ -131,8 +157,13 @@ class RegisterController extends Controller
 
         // OTP correct and not expired, create user
         $user = \App\Models\User::create([
-            'name'     => $data['name'],
-            'email'    => $data['email'],
+            'name' => $data['name'],
+            'first_name' => $data['first_name'] ?? null,
+            'middle_initial' => $data['middle_initial'] ?? null,
+            'last_name' => $data['last_name'] ?? null,
+            'phone_number' => $data['phone_number'] ?? null,
+            'sex' => $data['sex'] ?? null,
+            'email' => $data['email'],
             'password' => $data['password'],
             'email_verified_at' => now(),
         ]);

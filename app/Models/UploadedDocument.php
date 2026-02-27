@@ -40,6 +40,9 @@ class UploadedDocument extends Model
         'mime_type',
         'file_size_8b',
         'status',
+        'revision_requested_count',
+        'revision_requested_at',
+        'revision_submitted_at',
         'remarks',
         'last_modified_by',
     ];

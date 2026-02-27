@@ -50,7 +50,9 @@ class SendApplicantNotificationEmails implements ShouldQueue
                 $this->userMailPayload['qs_result'],
                 $this->userMailPayload['progress_percentage'],
                 $this->userMailPayload['progress_count'],
-                $this->userMailPayload['vacancy_type']
+                $this->userMailPayload['vacancy_type'],
+                $this->userMailPayload['reviewer_name'] ?? null,
+                $this->userMailPayload['compliance_notice_mode'] ?? 'default'
             ));
         } catch (\Throwable $e) {
             Log::error('Applicant overview email failed', [
@@ -87,4 +89,3 @@ class SendApplicantNotificationEmails implements ShouldQueue
         }
     }
 }
-

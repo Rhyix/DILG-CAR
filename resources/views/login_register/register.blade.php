@@ -105,7 +105,12 @@
                 title="Name should contain only letters, spaces, hyphens, or periods (2-50 characters).">
             </div>
           </div>
-          @error('name') <p class="text-red-600 text-sm ml-3 -mt-2">{{ $message }}</p> @enderror
+          @error('first_name') <p class="text-red-600 text-sm ml-3 -mt-2">{{ $message }}</p> @enderror
+          @error('middle_initial') <p class="text-red-600 text-sm ml-3 -mt-2">{{ $message }}</p> @enderror
+          @error('last_name') <p class="text-red-600 text-sm ml-3 -mt-2">{{ $message }}</p> @enderror
+          @error('fname') <p class="text-red-600 text-sm ml-3 -mt-2">{{ $message }}</p> @enderror
+          @error('mname') <p class="text-red-600 text-sm ml-3 -mt-2">{{ $message }}</p> @enderror
+          @error('lname') <p class="text-red-600 text-sm ml-3 -mt-2">{{ $message }}</p> @enderror
 
           <!-- Sex (styled with consistent spacing) -->
           <div class="flex flex-col gap-2">

@@ -35,6 +35,8 @@ class NotifyApplicantOverview extends Mailable
     public $progress_percentage;
     public $progress_count;
     public $vacancy_type;
+    public $reviewer_name;
+    public $compliance_notice_mode;
 
     public function __construct(
         $user_id,
@@ -51,7 +53,9 @@ class NotifyApplicantOverview extends Mailable
         $qs_result = 'Not Qualified',
         $progress_percentage = 0,
         $progress_count = '0/0',
-        $vacancy_type = 'Plantilla'
+        $vacancy_type = 'Plantilla',
+        $reviewer_name = null,
+        $compliance_notice_mode = 'default'
     ) {
         $this->user_id = $user_id;
         $this->vacancy_id = $vacancy_id;
@@ -70,6 +74,8 @@ class NotifyApplicantOverview extends Mailable
         $this->progress_percentage = $progress_percentage;
         $this->progress_count = $progress_count;
         $this->vacancy_type = $vacancy_type;
+        $this->reviewer_name = $reviewer_name;
+        $this->compliance_notice_mode = $compliance_notice_mode;
 
         $this->applicant_name = User::where('id', $user_id)->value('name');
         $this->position_title = JobVacancy::where('vacancy_id', $vacancy_id)->value('position_title');

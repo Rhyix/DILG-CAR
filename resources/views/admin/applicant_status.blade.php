@@ -654,9 +654,15 @@ value="{{ old('deadline_time', $application->deadline_time ? \Carbon\Carbon::par
 
 			if (btnRevision) {
 				const needsRevision = (doc.status === 'Needs Revision' || doc.status === 'Disapproved With Deficiency');
-				btnRevision.disabled = needsRevision;
+				const revisionLocked = !!doc.revision_locked;
+				btnRevision.disabled = needsRevision || revisionLocked;
 				btnRevision.textContent = needsRevision ? 'Needs Revisions' : 'Needs Revisions';
-				if (needsRevision) {
+				if (revisionLocked) {
+					btnRevision.title = doc.revision_lock_reason || 'Needs Revision is currently locked for this document.';
+				} else {
+					btnRevision.removeAttribute('title');
+				}
+				if (needsRevision || revisionLocked) {
 					btnRevision.classList.add('opacity-50', 'cursor-not-allowed', 'bg-red-50');
 					btnRevision.classList.remove('hover:bg-red-50');
 				} else {
@@ -702,6 +708,18 @@ value="{{ old('deadline_time', $application->deadline_time ? \Carbon\Carbon::par
 				alert("Please select a document first.");
 				return;
 			}
+
+			const requestingNeedsRevision = newStatus === 'Needs Revision' || newStatus === 'Disapproved With Deficiency';
+			if (requestingNeedsRevision && currentSelectedDoc.revision_locked) {
+				alert(currentSelectedDoc.revision_lock_reason || 'Needs Revision is currently locked for this document.');
+				return;
+			}
+
+			const previousSnapshot = {
+				status: currentSelectedDoc.status,
+				last_modified_by: currentSelectedDoc.last_modified_by,
+				remarks: currentSelectedDoc.remarks,
+			};
 
 			// Optimistic UI Update
 			updateStatusUI(newStatus);
@@ -787,16 +805,50 @@ value="{{ old('deadline_time', $application->deadline_time ? \Carbon\Carbon::par
 				});
 
 				if (!response.ok) {
-					const errorText = await response.text();
-					console.error("Server Error Details:", errorText);
-					alert("Failed to save status. Server responded with: " + response.status + " " + response.statusText);
+					let errorMessage = "Failed to save status.";
+					try {
+						const errorData = await response.json();
+						if (errorData?.message) {
+							errorMessage = errorData.message;
+						}
+					} catch (e) {
+						errorMessage = "Failed to save status. Server responded with: " + response.status + " " + response.statusText;
+					}
+					console.error("Server Error Details:", errorMessage);
+					alert(errorMessage);
 					throw new Error('Failed to update status');
 				}
 
+				let responseData = {};
+				try {
+					responseData = await response.json();
+				} catch (e) {
+					responseData = {};
+				}
+				if (Object.prototype.hasOwnProperty.call(responseData, 'revision_locked')) {
+					currentSelectedDoc.revision_locked = !!responseData.revision_locked;
+				} else if (requestingNeedsRevision) {
+					currentSelectedDoc.revision_locked = true;
+				}
+				if (Object.prototype.hasOwnProperty.call(responseData, 'revision_lock_reason')) {
+					currentSelectedDoc.revision_lock_reason = responseData.revision_lock_reason || '';
+				} else if (requestingNeedsRevision) {
+					currentSelectedDoc.revision_lock_reason = 'Needs Revision is currently locked for this document.';
+				}
+				if (Object.prototype.hasOwnProperty.call(responseData, 'revision_requested_count')) {
+					currentSelectedDoc.revision_requested_count = responseData.revision_requested_count || 0;
+				}
+				if (Object.prototype.hasOwnProperty.call(responseData, 'revision_submitted_at')) {
+					currentSelectedDoc.revision_submitted_at = responseData.revision_submitted_at || null;
+				}
+				handleDocumentClick(currentSelectedDoc, true);
+
 			} catch (error) {
 				console.error(error);
-				alert("Failed to save status. Please check your connection.");
-				// Revert UI on error (optional, but good practice)
+				currentSelectedDoc.status = previousSnapshot.status;
+				currentSelectedDoc.last_modified_by = previousSnapshot.last_modified_by;
+				currentSelectedDoc.remarks = previousSnapshot.remarks;
+				handleDocumentClick(currentSelectedDoc, true);
 			}
 		}
 

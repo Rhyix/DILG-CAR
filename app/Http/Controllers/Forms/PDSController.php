@@ -1233,22 +1233,43 @@ class PDSController extends Controller
     private function c5StoreFilesToDB(array $files, ?string $vacancyId = null): array
     {
         $supportsVacancyScopedDocs = Schema::hasColumn('uploaded_documents', 'vacancy_id');
+        $supportsRevisionTracking = Schema::hasColumn('uploaded_documents', 'revision_requested_count')
+            && Schema::hasColumn('uploaded_documents', 'revision_submitted_at');
 
         $storedPaths = [];
         foreach ($files as $doc_type => $file) {
 
             $hashed_name = $file->hashName();
             $store_path = $file->store("uploads/pds-files", 'public');
+            if ($supportsVacancyScopedDocs && !empty($vacancyId)) {
+                // Reuse legacy null-vacancy row when present to preserve revision history/state.
+                $document = UploadedDocument::where('user_id', Auth::id())
+                    ->where('document_type', $doc_type)
+                    ->where(function ($query) use ($vacancyId) {
+                        $query->where('vacancy_id', $vacancyId)->orWhereNull('vacancy_id');
+                    })
+                    ->orderByRaw("CASE WHEN vacancy_id = ? THEN 0 ELSE 1 END", [$vacancyId])
+                    ->orderByDesc('updated_at')
+                    ->first();
 
-            $match = [
-                'user_id' => Auth::id(),
-                'document_type' => $doc_type
-            ];
-            if ($supportsVacancyScopedDocs) {
-                $match['vacancy_id'] = $vacancyId;
+                if (!$document) {
+                    $document = UploadedDocument::create([
+                        'user_id' => Auth::id(),
+                        'vacancy_id' => $vacancyId,
+                        'document_type' => $doc_type,
+                    ]);
+                }
+            } else {
+                $match = [
+                    'user_id' => Auth::id(),
+                    'document_type' => $doc_type
+                ];
+                if ($supportsVacancyScopedDocs) {
+                    $match['vacancy_id'] = $vacancyId;
+                }
+
+                $document = UploadedDocument::firstOrCreate($match);
             }
-
-            $document = UploadedDocument::firstOrCreate($match);
 
             // Auto-delete if file_paths don't match and if an item.
             if (
@@ -1268,6 +1289,13 @@ class PDSController extends Controller
                 'status' => 'Pending', // Reset status to Pending on new upload
                 'remarks' => ''      // Clear old remarks
             ];
+            if (
+                $supportsRevisionTracking
+                && (int) ($document->revision_requested_count ?? 0) > 0
+                && empty($document->revision_submitted_at)
+            ) {
+                $updates['revision_submitted_at'] = now();
+            }
             if ($supportsVacancyScopedDocs) {
                 $updates['vacancy_id'] = $vacancyId;
             }
@@ -1281,6 +1309,38 @@ class PDSController extends Controller
             ->log('Store C5 form.');
 
         return $storedPaths;
+    }
+
+    private function isRevisionStatus(?string $status): bool
+    {
+        $normalized = strtolower(trim((string) $status));
+        return in_array($normalized, ['needs revision', 'disapproved with deficiency'], true);
+    }
+
+    private function hasFinalRevisionDisqualification(Applications $application, string $vacancyId): bool
+    {
+        if ($this->isRevisionStatus($application->file_status) && (int) ($application->file_revision_requested_count ?? 0) >= 2) {
+            return true;
+        }
+
+        if (!Schema::hasColumn('uploaded_documents', 'revision_requested_count')) {
+            return false;
+        }
+
+        $supportsVacancyScopedDocs = Schema::hasColumn('uploaded_documents', 'vacancy_id');
+        $docsQuery = UploadedDocument::query()
+            ->where('user_id', $application->user_id)
+            ->where('revision_requested_count', '>=', 2);
+
+        if ($supportsVacancyScopedDocs && $vacancyId !== '') {
+            $docsQuery->where(function ($q) use ($vacancyId) {
+                $q->where('vacancy_id', $vacancyId)
+                    ->orWhereNull('vacancy_id');
+            });
+        }
+
+        $docs = $docsQuery->get(['status']);
+        return $docs->contains(fn($doc) => $this->isRevisionStatus($doc->status));
     }
 
     private function hasUploadedDocumentForType($documents, string $docType): bool
@@ -2416,6 +2476,16 @@ class PDSController extends Controller
             'cert_uploads.*.max' => 'Each file must be 10MB or smaller.',
         ]);
 
+        $application = Applications::where('user_id', $user_id)
+            ->where('vacancy_id', $vacancy_id)
+            ->firstOrFail();
+
+        if ($this->hasFinalRevisionDisqualification($application, (string) $vacancy_id)) {
+            return redirect()->back()->withErrors([
+                'final_revision_block' => 'No further compliance is allowed. Your application is already marked as not qualified after the final revision cycle.',
+            ]);
+        }
+
         $uploaded_files = [];
         $upload_errors = [];
         foreach (UploadedDocument::DOCUMENTS as $doc_type) {
@@ -2443,9 +2513,8 @@ class PDSController extends Controller
 
             //If it's application_letter, store in Applications model
             if ($doc_type === 'application_letter') {
-                $application = Applications::where('user_id', $user_id)
-                    ->where('vacancy_id', $vacancy_id)
-                    ->firstOrFail();
+                $supportsFileRevisionTracking = Schema::hasColumn('applications', 'file_revision_requested_count')
+                    && Schema::hasColumn('applications', 'file_revision_submitted_at');
 
                 // Generate unique stored name
                 $originalName = $file->getClientOriginalName();
@@ -2458,14 +2527,23 @@ class PDSController extends Controller
                 }
 
                 //Update the application record
-                $application->update([
+                $applicationUpdates = [
                     'file_original_name' => $originalName,
                     'file_stored_name' => $storedName,
                     'file_storage_path' => $path,
                     'file_status' => 'Pending', // Reset status
                     'file_remarks' => null, // Reset remarks
                     'file_size_8b' => $file->getSize(),
-                ]);
+                ];
+                if (
+                    $supportsFileRevisionTracking
+                    && (int) ($application->file_revision_requested_count ?? 0) > 0
+                    && empty($application->file_revision_submitted_at)
+                ) {
+                    $applicationUpdates['file_revision_submitted_at'] = now();
+                }
+
+                $application->update($applicationUpdates);
 
                 // *** NEW: Check if application was "Compliance" -> update to "Updated" ***
                 if (ApplicationStatus::equals($application->status, ApplicationStatus::COMPLIANCE)) {
@@ -2512,12 +2590,7 @@ class PDSController extends Controller
             // We need to find the application associated with this user/vacancy if we are in admin context?
             // Actually c5StoreFilesToDB is generic. But here we are in uploadApplicationDocuments
             // which has $user_id and $vacancy_id.
-
-            $application = Applications::where('user_id', $user_id)
-                ->where('vacancy_id', $vacancy_id)
-                ->first();
-
-            if ($application && ApplicationStatus::equals($application->status, ApplicationStatus::COMPLIANCE)) {
+            if (ApplicationStatus::equals($application->status, ApplicationStatus::COMPLIANCE)) {
                 $statusTransitions = app(ApplicationStatusTransitionService::class);
                 if ($statusTransitions->canTransition($application->status, ApplicationStatus::UPDATED->value)) {
                     $application->update(['status' => ApplicationStatus::UPDATED->value]);

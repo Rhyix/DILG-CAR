@@ -6,6 +6,7 @@
   use Carbon\Carbon;
 
   $isPastDeadline = false;
+  $isFinalRevisionDisqualified = (bool) ($isFinalRevisionDisqualified ?? false);
 
   if (!empty($displayDeadlineDate)) {
     $deadlineTime = $displayDeadlineTime ?? '23:59:59';
@@ -63,6 +64,19 @@
                     </div>
                     <button onclick="this.parentElement.remove()"
                       class="text-blue-800 hover:text-red-600 font-bold text-lg">&times;</button>
+                  </div>
+                @endif
+
+                @if($isFinalRevisionDisqualified)
+                  <div class="mb-6 px-4 py-3 bg-red-100 border border-red-400 text-red-800 rounded-lg shadow text-sm font-semibold flex items-start gap-3"
+                    role="alert">
+                    <i data-feather="alert-octagon" class="w-5 h-5 flex-shrink-0 mt-0.5"></i>
+                    <div class="flex-1">
+                      <p class="font-bold mb-1">Application Result</p>
+                      <p class="font-normal">I am sorry to inform you that, you are not qualified for this position. No further compliance is allowed.</p>
+                    </div>
+                    <button onclick="this.parentElement.remove()"
+                      class="text-red-800 hover:text-red-600 font-bold text-lg">&times;</button>
                   </div>
                 @endif
 
@@ -293,6 +307,7 @@
           const requiredDocumentIds = @json($requiredDocumentIds ?? []);
           let requiredDocumentSet = new Set(requiredDocumentIds);
           const isPastDeadline = @json($isPastDeadline);
+          let isFinalRevisionDisqualified = @json($isFinalRevisionDisqualified ?? false);
           let currentSelectedDoc = null;
 
           function isRequiredDocument(docId) {
@@ -340,7 +355,7 @@
             const btn = document.getElementById('upload-new-document-btn');
             if (!btn) return;
 
-            const shouldShow = !!doc && isRevisionStatus(doc.status);
+            const shouldShow = !!doc && isRevisionStatus(doc.status) && !isFinalRevisionDisqualified;
             btn.classList.toggle('hidden', !shouldShow);
             btn.disabled = !shouldShow;
           }
@@ -490,6 +505,7 @@
             const uploadForm = document.getElementById('document-upload-form');
 
             uploadButton?.addEventListener('click', function () {
+              if (isFinalRevisionDisqualified) return;
               if (!currentSelectedDoc || !isRevisionStatus(currentSelectedDoc.status)) return;
               if (!uploadInput) return;
 
@@ -499,6 +515,7 @@
             });
 
             uploadInput?.addEventListener('change', function () {
+              if (isFinalRevisionDisqualified) return;
               if (!uploadInput.files || uploadInput.files.length === 0) return;
               if (!currentSelectedDoc || !isRevisionStatus(currentSelectedDoc.status)) return;
               if (!uploadForm) return;
@@ -533,12 +550,16 @@
                         if (Array.isArray(data.requiredDocumentIds)) {
                             requiredDocumentSet = new Set(data.requiredDocumentIds);
                         }
+                        if (data.application && Object.prototype.hasOwnProperty.call(data.application, 'final_revision_disqualified')) {
+                            isFinalRevisionDisqualified = !!data.application.final_revision_disqualified;
+                        }
 
                         // Update documents array (required first, optional last)
                         documents = sortDocumentsForRequiredPriority(data.documents || documents);
 
                         // Re-render documents with new sorted data
                         renderDocuments(documents);
+                        updateUploadNewButton(currentSelectedDoc);
                     }
                 } catch (error) {
                     console.error('Error in immediate refresh:', error);
@@ -574,12 +595,16 @@
                         if (Array.isArray(data.requiredDocumentIds)) {
                             requiredDocumentSet = new Set(data.requiredDocumentIds);
                         }
+                        if (data.application && Object.prototype.hasOwnProperty.call(data.application, 'final_revision_disqualified')) {
+                            isFinalRevisionDisqualified = !!data.application.final_revision_disqualified;
+                        }
 
                         // Update documents array (required first, optional last)
                         documents = sortDocumentsForRequiredPriority(data.documents || documents);
 
                         // Re-render documents with new sorted data
                         renderDocuments(documents);
+                        updateUploadNewButton(currentSelectedDoc);
                     } else {
                         console.error('Response not ok:', response.statusText);
                     }

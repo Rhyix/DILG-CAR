@@ -985,6 +985,13 @@ class AdminController extends Controller
                 // but usually there's a file_storage_path.
                 // Let's rely on file existence check in previewDocument, but here we just generate the link.
                 $hasFile = !empty($application->file_storage_path);
+                $fileRevisionRequestedCount = (int) ($application->file_revision_requested_count ?? 0);
+                $fileRevisionSubmittedAt = $application->file_revision_submitted_at ?? null;
+                $fileRevisionLockReason = $this->getNeedsRevisionRestrictionReason(
+                    $application,
+                    $fileRevisionRequestedCount,
+                    $fileRevisionSubmittedAt
+                );
 
                 $documents[] = [
                     'id' => 'application_letter',
@@ -996,12 +1003,29 @@ class AdminController extends Controller
                     'original_name' => $application->file_original_name ?? '',
                     'has_file' => $hasFile,
                     'last_modified_by' => $application->file_last_modified_by ?? 'N/A',
+                    'revision_requested_count' => $fileRevisionRequestedCount,
+                    'revision_submitted_at' => $fileRevisionSubmittedAt,
+                    'revision_locked' => !is_null($fileRevisionLockReason),
+                    'revision_lock_reason' => $fileRevisionLockReason,
                     'isBold' => true,
                 ];
             } else {
                 $doc = $this->resolveUploadedDocument($uploadedDocuments, $docType);
                 $hasFile = $doc && !empty($doc->storage_path) && $doc->storage_path !== 'NOINPUT';
                 $status = $doc ? $doc->status : 'Not Submitted';
+                $revisionState = $this->getUploadedDocumentRevisionState(
+                    (int) $user_id,
+                    (string) $application->vacancy_id,
+                    (string) $docType,
+                    $doc
+                );
+                $revisionRequestedCount = (int) ($revisionState['requested_count'] ?? 0);
+                $revisionSubmittedAt = $revisionState['submitted_at'] ?? null;
+                $revisionLockReason = $this->getNeedsRevisionRestrictionReason(
+                    $application,
+                    $revisionRequestedCount,
+                    $revisionSubmittedAt
+                );
                 $documents[] = [
                     'id' => $docType,
                     'name' => self::DOCUMENT_LABELS[$docType] ?? ucwords(str_replace('_', ' ', $docType)),
@@ -1012,6 +1036,10 @@ class AdminController extends Controller
                     'original_name' => $doc->original_name ?? '',
                     'has_file' => $hasFile,
                     'last_modified_by' => $doc->last_modified_by ?? 'N/A',
+                    'revision_requested_count' => $revisionRequestedCount,
+                    'revision_submitted_at' => $revisionSubmittedAt,
+                    'revision_locked' => !is_null($revisionLockReason),
+                    'revision_lock_reason' => $revisionLockReason,
                     'isBold' => true,
                 ];
             }
@@ -1080,6 +1108,149 @@ class AdminController extends Controller
     private function normalizeTrack(?string $track): string
     {
         return strcasecmp((string) $track, 'COS') === 0 ? 'COS' : 'Plantilla';
+    }
+
+    private function hasRevisionDeadlinePassed(?Applications $application): bool
+    {
+        if (!$application || empty($application->deadline_date) || empty($application->deadline_time)) {
+            return false;
+        }
+
+        try {
+            $deadline = Carbon::parse($application->deadline_date . ' ' . $application->deadline_time);
+            return now()->greaterThan($deadline);
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
+    private function getNeedsRevisionRestrictionReason(?Applications $application, int $revisionRequestedCount, ?string $revisionSubmittedAt): ?string
+    {
+        if ($this->hasRevisionDeadlinePassed($application)) {
+            return 'Cannot set Needs Revision because the revision deadline has already passed.';
+        }
+
+        if ($revisionRequestedCount >= 2) {
+            return 'Cannot set Needs Revision again. This application has already exhausted the final revision opportunity.';
+        }
+
+        if ($revisionRequestedCount >= 1 && empty($revisionSubmittedAt)) {
+            return 'Needs Revision is already active for this document. Wait for the applicant to submit a revised file before setting it again.';
+        }
+
+        return null;
+    }
+
+    private function getUploadedDocumentRevisionState(int $userId, string $vacancyId, string $docType, ?UploadedDocument $primaryDoc = null): array
+    {
+        $requestedCount = (int) ($primaryDoc->revision_requested_count ?? 0);
+        $submittedAt = $primaryDoc->revision_submitted_at ?? null;
+        $hadRevisionStatus = in_array(
+            strtolower(trim((string) ($primaryDoc->status ?? ''))),
+            ['needs revision', 'disapproved with deficiency'],
+            true
+        );
+
+        if (!Schema::hasColumn('uploaded_documents', 'revision_requested_count')) {
+            return [
+                'requested_count' => $requestedCount,
+                'submitted_at' => $submittedAt,
+            ];
+        }
+
+        $query = UploadedDocument::query()
+            ->where('user_id', $userId)
+            ->where('document_type', $docType);
+
+        if (Schema::hasColumn('uploaded_documents', 'vacancy_id') && $vacancyId !== '') {
+            $query->where(function ($q) use ($vacancyId) {
+                $q->where('vacancy_id', $vacancyId)
+                    ->orWhereNull('vacancy_id');
+            });
+        }
+
+        $rows = $query->get(['revision_requested_count', 'revision_submitted_at', 'status']);
+        foreach ($rows as $row) {
+            $requestedCount = max($requestedCount, (int) ($row->revision_requested_count ?? 0));
+            if (empty($submittedAt) && !empty($row->revision_submitted_at)) {
+                $submittedAt = $row->revision_submitted_at;
+            }
+            $rowStatus = strtolower(trim((string) ($row->status ?? '')));
+            if (in_array($rowStatus, ['needs revision', 'disapproved with deficiency'], true)) {
+                $hadRevisionStatus = true;
+            }
+        }
+
+        // Backward-compatible fallback for legacy rows that predate revision tracking columns.
+        if ($requestedCount < 1 && $hadRevisionStatus) {
+            $requestedCount = 1;
+        }
+
+        return [
+            'requested_count' => $requestedCount,
+            'submitted_at' => $submittedAt,
+        ];
+    }
+
+    private function markApplicationFileRevisionRequested(Applications $application): void
+    {
+        if (!Schema::hasColumn('applications', 'file_revision_requested_count')) {
+            return;
+        }
+
+        $currentCount = (int) ($application->file_revision_requested_count ?? 0);
+        $nextCount = min(2, max(0, $currentCount) + 1);
+
+        if ($nextCount !== $currentCount) {
+            $application->file_revision_requested_count = $nextCount;
+        }
+
+        if (Schema::hasColumn('applications', 'file_revision_requested_at')) {
+            $application->file_revision_requested_at = now();
+        }
+    }
+
+    private function markUploadedDocumentRevisionRequested(int $userId, string $vacancyId, string $docType): void
+    {
+        if (!Schema::hasColumn('uploaded_documents', 'revision_requested_count')) {
+            return;
+        }
+
+        $query = UploadedDocument::query()
+            ->where('user_id', $userId)
+            ->where('document_type', $docType);
+
+        if (Schema::hasColumn('uploaded_documents', 'vacancy_id') && $vacancyId !== '') {
+            $query->where(function ($q) use ($vacancyId) {
+                $q->where('vacancy_id', $vacancyId)
+                    ->orWhereNull('vacancy_id');
+            });
+        }
+
+        $rows = $query->get();
+        if ($rows->isEmpty()) {
+            return;
+        }
+
+        $currentMaxCount = (int) $rows->max(function ($row) {
+            return (int) ($row->revision_requested_count ?? 0);
+        });
+        $targetCount = min(2, max(0, $currentMaxCount) + 1);
+
+        foreach ($rows as $row) {
+            $dirty = false;
+            if ((int) ($row->revision_requested_count ?? 0) < $targetCount) {
+                $row->revision_requested_count = $targetCount;
+                $dirty = true;
+            }
+            if (Schema::hasColumn('uploaded_documents', 'revision_requested_at')) {
+                $row->revision_requested_at = now();
+                $dirty = true;
+            }
+            if ($dirty) {
+                $row->save();
+            }
+        }
     }
 
     private function sortDocumentsAscending(array $documents): array
@@ -1211,6 +1382,10 @@ class AdminController extends Controller
         $application = Applications::where('user_id', $user_id)
             ->where('vacancy_id', $vacancy_id)
             ->firstOrFail();
+        $supportsAppRevisionTracking = Schema::hasColumn('applications', 'file_revision_requested_count')
+            && Schema::hasColumn('applications', 'file_revision_requested_at');
+        $supportsDocRevisionTracking = Schema::hasColumn('uploaded_documents', 'revision_requested_count')
+            && Schema::hasColumn('uploaded_documents', 'revision_requested_at');
 
         $qsFields = ['qs_education', 'qs_eligibility', 'qs_experience', 'qs_training', 'qs_result'];
         $qsExplicitlyProvided = collect($qsFields)->contains(fn($field) => $request->has($field));
@@ -1273,6 +1448,21 @@ class AdminController extends Controller
         // Application letter status and remarks
         $file_status = $documentStatuses['application_letter'] ?? null;
         $file_remarks = $documentRemarks['application_letter'] ?? null;
+        $isFileNeedsRevision = in_array(strtolower(trim((string) $file_status)), ['needs revision', 'disapproved with deficiency'], true);
+
+        if ($isFileNeedsRevision) {
+            $fileRestrictionReason = $this->getNeedsRevisionRestrictionReason(
+                $application,
+                (int) ($application->file_revision_requested_count ?? 0),
+                $application->file_revision_submitted_at ?? null
+            );
+            if (!is_null($fileRestrictionReason)) {
+                return redirect()->back()->with('error', $fileRestrictionReason)->withInput();
+            }
+            if ($supportsAppRevisionTracking) {
+                $this->markApplicationFileRevisionRequested($application);
+            }
+        }
 
         if ($application->file_status !== $file_status) {
             $changes['application_letter_status'] = [
@@ -1304,6 +1494,23 @@ class AdminController extends Controller
 
             if ($document) {
                 $doc_changes = [];
+                $isDocNeedsRevision = in_array(strtolower(trim((string) $status)), ['needs revision', 'disapproved with deficiency'], true);
+                if ($isDocNeedsRevision) {
+                    $docRevisionState = $this->getUploadedDocumentRevisionState(
+                        (int) $user_id,
+                        (string) $vacancy_id,
+                        (string) $docType,
+                        $document
+                    );
+                    $docRestrictionReason = $this->getNeedsRevisionRestrictionReason(
+                        $application,
+                        (int) ($docRevisionState['requested_count'] ?? 0),
+                        $docRevisionState['submitted_at'] ?? null
+                    );
+                    if (!is_null($docRestrictionReason)) {
+                        return redirect()->back()->with('error', $docRestrictionReason)->withInput();
+                    }
+                }
 
                 if ($document->status !== $status) {
                     $doc_changes['status'] = [
@@ -1325,6 +1532,10 @@ class AdminController extends Controller
                 if (!empty($doc_changes)) {
                     $changes["document_$docType"] = $doc_changes;
                     $document->save();
+                }
+
+                if ($isDocNeedsRevision && $supportsDocRevisionTracking) {
+                    $this->markUploadedDocumentRevisionRequested((int) $user_id, (string) $vacancy_id, (string) $docType);
                 }
             }
         }
@@ -1395,12 +1606,38 @@ class AdminController extends Controller
         $now = now()->timezone('Asia/Manila')->format('M d, Y h:i A');
         $adminName = Auth::guard('admin')->user()->name;
         $lastModifiedStr = "{$adminName} on {$now}";
+        $normalizedStatus = strtolower(trim((string) $status));
+        $isNeedsRevisionStatus = in_array($normalizedStatus, ['needs revision', 'disapproved with deficiency'], true);
+        $supportsAppRevisionTracking = Schema::hasColumn('applications', 'file_revision_requested_count')
+            && Schema::hasColumn('applications', 'file_revision_requested_at')
+            && Schema::hasColumn('applications', 'file_revision_submitted_at');
+        $supportsDocRevisionTracking = Schema::hasColumn('uploaded_documents', 'revision_requested_count')
+            && Schema::hasColumn('uploaded_documents', 'revision_requested_at')
+            && Schema::hasColumn('uploaded_documents', 'revision_submitted_at');
 
         if ($documentType === 'application_letter') {
+            if ($request->has('status') && $isNeedsRevisionStatus) {
+                $restrictionReason = $this->getNeedsRevisionRestrictionReason(
+                    $application,
+                    (int) ($application->file_revision_requested_count ?? 0),
+                    $application->file_revision_submitted_at ?? null
+                );
+                if (!is_null($restrictionReason)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => $restrictionReason,
+                    ], 422);
+                }
+            }
+
             if ($request->has('status'))
                 $application->file_status = $status;
             if ($request->has('remarks'))
                 $application->file_remarks = $remarks;
+
+            if ($request->has('status') && $isNeedsRevisionStatus && $supportsAppRevisionTracking) {
+                $this->markApplicationFileRevisionRequested($application);
+            }
 
             // Update last modified by
             $application->file_last_modified_by = $lastModifiedStr;
@@ -1410,6 +1647,26 @@ class AdminController extends Controller
         } else {
             $uploadedDocuments = $this->loadUploadedDocumentsMap((int) $user_id, (string) $vacancy_id);
             $document = $this->resolveUploadedDocument($uploadedDocuments, $documentType);
+
+            if ($request->has('status') && $isNeedsRevisionStatus) {
+                $revisionState = $this->getUploadedDocumentRevisionState(
+                    (int) $user_id,
+                    (string) $vacancy_id,
+                    (string) $documentType,
+                    $document
+                );
+                $restrictionReason = $this->getNeedsRevisionRestrictionReason(
+                    $application,
+                    (int) ($revisionState['requested_count'] ?? 0),
+                    $revisionState['submitted_at'] ?? null
+                );
+                if (!is_null($restrictionReason)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => $restrictionReason,
+                    ], 422);
+                }
+            }
 
             if ($document) {
                 if ($request->has('status'))
@@ -1428,6 +1685,9 @@ class AdminController extends Controller
                 $document->last_modified_by = $lastModifiedStr;
 
                 $document->save();
+                if ($request->has('status') && $isNeedsRevisionStatus && $supportsDocRevisionTracking) {
+                    $this->markUploadedDocumentRevisionRequested((int) $user_id, (string) $vacancy_id, (string) $documentType);
+                }
             } else {
                 // If document doesn't exist, create a placeholder record so status/remarks can be saved
                 // This handles cases where admin wants to mark a missing document as "Needs Revision" or add remarks
@@ -1445,6 +1705,10 @@ class AdminController extends Controller
                 ];
                 if (Schema::hasColumn('uploaded_documents', 'vacancy_id')) {
                     $createPayload['vacancy_id'] = $vacancy_id;
+                }
+                if ($supportsDocRevisionTracking && $request->has('status') && $isNeedsRevisionStatus) {
+                    $createPayload['revision_requested_count'] = 1;
+                    $createPayload['revision_requested_at'] = now();
                 }
                 UploadedDocument::create($createPayload);
             }
@@ -1478,7 +1742,36 @@ class AdminController extends Controller
             }
         }
 
-        return response()->json(['success' => true]);
+        $revisionRequestedCount = 0;
+        $revisionSubmittedAt = null;
+        if ($documentType === 'application_letter') {
+            $revisionRequestedCount = (int) ($application->file_revision_requested_count ?? 0);
+            $revisionSubmittedAt = $application->file_revision_submitted_at ?? null;
+        } else {
+            $latestDocs = $this->loadUploadedDocumentsMap((int) $user_id, (string) $vacancy_id);
+            $latestDoc = $this->resolveUploadedDocument($latestDocs, $documentType);
+            $revisionState = $this->getUploadedDocumentRevisionState(
+                (int) $user_id,
+                (string) $vacancy_id,
+                (string) $documentType,
+                $latestDoc
+            );
+            $revisionRequestedCount = (int) ($revisionState['requested_count'] ?? 0);
+            $revisionSubmittedAt = $revisionState['submitted_at'] ?? null;
+        }
+        $revisionLockReason = $this->getNeedsRevisionRestrictionReason(
+            $application,
+            $revisionRequestedCount,
+            $revisionSubmittedAt
+        );
+
+        return response()->json([
+            'success' => true,
+            'revision_requested_count' => $revisionRequestedCount,
+            'revision_submitted_at' => $revisionSubmittedAt,
+            'revision_locked' => !is_null($revisionLockReason),
+            'revision_lock_reason' => $revisionLockReason,
+        ]);
     }
 
     /**
@@ -1592,7 +1885,7 @@ class AdminController extends Controller
 
         // --- Logic Check for Application Status Update ---
         $hasNeedsRevision = false;
-        $isQualifiedByQs = strcasecmp((string) ($application->qs_result ?? ''), 'Qualified') === 0;
+        $revisionStatusesNormalized = ['needs revision', 'disapproved with deficiency'];
 
         foreach ($documents as $doc) {
             $status = $doc['status'];
@@ -1609,15 +1902,33 @@ class AdminController extends Controller
             }
         }
 
+        $hasFinalRevisionFailure = collect($documents)->contains(function ($doc) use ($revisionStatusesNormalized) {
+            $status = strtolower(trim((string) ($doc['status'] ?? '')));
+            $requestedCount = (int) ($doc['revision_requested_count'] ?? 0);
+            return in_array($status, $revisionStatusesNormalized, true) && $requestedCount >= 2;
+        });
+
+        if ($hasFinalRevisionFailure) {
+            $application->qs_result = 'Not Qualified';
+            $application->deadline_date = null;
+            $application->deadline_time = null;
+        }
+
+        $isQualifiedByQs = !$hasFinalRevisionFailure
+            && strcasecmp((string) ($application->qs_result ?? ''), 'Qualified') === 0;
+        $complianceNoticeMode = $hasFinalRevisionFailure
+            ? 'disqualified_final'
+            : ($hasNeedsRevision ? 'final_warning' : 'default');
+
         // Logic:
         // 1. If QS result is Qualified -> force Qualified status (used by Qualified tab queries)
-        // 2. Else if any document needs revision -> Status = Compliance
+        // 2. Else if any document needs revision (first cycle only) -> Status = Compliance
         // 3. Otherwise -> keep current status
 
         $statusTransitions = app(ApplicationStatusTransitionService::class);
         if ($isQualifiedByQs) {
             $application->status = ApplicationStatus::QUALIFIED->value;
-        } elseif ($hasNeedsRevision) {
+        } elseif ($hasNeedsRevision && !$hasFinalRevisionFailure) {
             if ($statusTransitions->canTransition($application->status, ApplicationStatus::COMPLIANCE->value)) {
                 $application->status = ApplicationStatus::COMPLIANCE->value;
             }
@@ -1672,14 +1983,18 @@ class AdminController extends Controller
         $messageTitle = 'Application Status Update';
         $messageBody = 'Your application has been reviewed. Please see the updated status.';
         $messageLevel = 'info';
-        if ($isQualifiedByQs) {
+        if ($hasFinalRevisionFailure) {
+            $messageTitle = 'Application Not Qualified';
+            $messageBody = 'I am sorry to inform you that, you are not qualified for this position.';
+            $messageLevel = 'error';
+        } elseif ($hasNeedsRevision) {
+            $messageTitle = 'Final Opportunity to Comply';
+            $messageBody = "This is your final opportunity to comply. Once your document/s are marked as 'Needs Revision' again, you will be considered not qualified and will no longer have the opportunity to comply again.";
+            $messageLevel = 'warning';
+        } elseif ($isQualifiedByQs) {
             $messageTitle = 'Application Qualified';
             $messageBody = 'Your application has been marked as qualified.';
             $messageLevel = 'success';
-        } elseif ($hasNeedsRevision) {
-            $messageTitle = 'Documents Need Revision';
-            $messageBody = 'Some documents require revision. Please review the updates.';
-            $messageLevel = 'warning';
         }
 
         Notification::create([
@@ -1705,6 +2020,7 @@ class AdminController extends Controller
                 'qs_result' => $qsResult,
                 'deadline_date' => $application->deadline_date,
                 'deadline_time' => $application->deadline_time,
+                'compliance_notice_mode' => $complianceNoticeMode,
                 'last_modified_by' => Auth::guard('admin')->user()->name,
                 'notified_at' => now()->toDateTimeString()
             ]
@@ -1758,7 +2074,7 @@ class AdminController extends Controller
             [
                 'user_id' => $user_id,
                 'vacancy_id' => $vacancy_id,
-                'notify_documents_snapshot' => $notifyDocumentsSnapshot,
+                'notify_documents_snapshot' => $userDocumentsSnapshot,
                 'application_remarks' => $application->application_remarks,
                 'place_of_assignment' => $placeOfAssignment,
                 'compensation' => $compensation,
@@ -1768,9 +2084,11 @@ class AdminController extends Controller
                 'qs_experience' => $qsExperience,
                 'qs_training' => $qsTraining,
                 'qs_result' => $qsResult,
+                'compliance_notice_mode' => $complianceNoticeMode,
                 'progress_percentage' => $progressPercentage,
                 'progress_count' => $progressCount,
                 'vacancy_type' => $vacancyType,
+                'reviewer_name' => Auth::guard('admin')->user()->name,
             ],
             $adminMailPayloads
         )->onConnection('database')->afterResponse();

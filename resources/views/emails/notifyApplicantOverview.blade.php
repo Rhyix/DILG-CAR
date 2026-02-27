@@ -38,28 +38,15 @@
       vertical-align: middle;
     }
 
-    .logo-cell {
-      width: 72px;
-      padding-right: 10px;
+    .logo-col {
+      width: 56px;
+      padding-right: 8px;
     }
 
-    .logo-box {
-      width: 64px;
-      height: 64px;
-      border: 1px solid #777777;
-      border-radius: 50%;
-      text-align: center;
-      margin: 0 auto;
-      overflow: hidden;
-      background: #ffffff;
-    }
-
-    .logo-img {
+    .header-logo {
+      width: 50px;
+      height: 50px;
       display: block;
-      width: 100%;
-      height: 100%;
-      border: 0;
-      object-fit: contain;
     }
 
     .office-name {
@@ -241,8 +228,13 @@
       });
 
     $isQualified = strtolower(trim((string) ($qs_result ?? ''))) === 'qualified';
-    $showActionRequirements = (!$isQualified || $hasRevisions);
-    $documentSubmissionStatus = $showActionRequirements ? 'INCOMPLETE' : 'COMPLETE';
+    $noticeMode = strtolower(trim((string) ($compliance_notice_mode ?? 'default')));
+    $isFinalWarning = $noticeMode === 'final_warning';
+    $isFinalDisqualified = $noticeMode === 'disqualified_final';
+    $showActionRequirements = !$isFinalDisqualified && (!$isQualified || $hasRevisions);
+    $documentSubmissionStatus = $isFinalDisqualified
+      ? 'NOT QUALIFIED'
+      : ($showActionRequirements ? 'INCOMPLETE' : 'COMPLETE');
 
     $formatQsValue = function ($value) {
       $normalized = strtolower(trim((string) $value));
@@ -268,24 +260,13 @@
       return strtolower($doc['name']);
     })->values();
 
-    $logoPath = public_path('images/dilg_logo.png');
-    $logoSrc = asset('images/dilg_logo.png');
-    if (isset($message) && is_object($message) && file_exists($logoPath)) {
-      try {
-        $logoSrc = $message->embed($logoPath);
-      } catch (\Throwable $e) {
-        $logoSrc = asset('images/dilg_logo.png');
-      }
-    }
   @endphp
 
   <div class="page">
     <table class="header-table" role="presentation">
       <tr>
-        <td class="logo-cell">
-          <div class="logo-box">
-            <img src="{{ $logoSrc }}" alt="DILG Logo" class="logo-img">
-          </div>
+        <td class="logo-col">
+          <img class="header-logo" src="{{ asset('images/dilg_logo.png') }}" alt="DILG Logo">
         </td>
         <td>
           <p class="office-name">DILG - Cordillera Administrative Region</p>
@@ -318,12 +299,11 @@
         @else
           @foreach($sortedDocuments as $doc)
             @php
-              $mark = '-';
-              if (in_array($doc['status'], $verifiedStatuses, true)) {
-                $mark = '&#10003;';
-              } elseif (in_array($doc['status'], $revisionStatuses, true)) {
-                $mark = '&#10005;';
-              }
+              // ✓ = submitted (any status except 'not submitted')
+              // ✗ = not submitted
+              $mark = ($doc['status'] === '' || $doc['status'] === 'not submitted')
+                ? '&#10005;'
+                : '&#10003;';
 
               $remarksText = $doc['remarks'] !== '' && strtolower($doc['remarks']) !== 'no remarks provided.'
                 ? $doc['remarks']
@@ -375,8 +355,16 @@
         <tr>
           <td class="status-label">{{ $documentSubmissionStatus }}</td>
           <td>
-            @if($showActionRequirements)
+            @if($isFinalDisqualified)
+              <p class="action-text"><strong>I am sorry to inform you that, you are not qualified for this position.</strong></p>
+              @if($displayRemarks !== '')
+                <p class="action-text"><strong>Remarks:</strong> {{ $displayRemarks }}</p>
+              @endif
+            @elseif($showActionRequirements)
               <p class="action-text">Please comply with all deficiencies noted in the checklist above.</p>
+              @if($isFinalWarning)
+                <p class="action-text"><strong>This is your final opportunity to comply. Once your document/s are marked as 'Needs Revision' again, you will be considered not qualified and will no longer have the opportunity to comply again.</strong></p>
+              @endif
               @if($displayDeadline)
                 <p class="action-text"><strong>Submission deadline:</strong> {{ $displayDeadline }}</p>
               @endif
@@ -412,12 +400,12 @@
 
     <table class="sign-table" role="presentation">
       <tr>
-        <td>Reviewed by:</td>
+        <td>Reviewed by: <strong>{{ $reviewer_name ?? '' }}</strong></td>
         <td>Received by or emailed to:</td>
       </tr>
       <tr>
         <td>
-          <div class="sign-line"></div>
+          <div class="sign-line">{{ $reviewer_name ?? '' }}</div>
           <div class="sign-note">Printed name and signature of HR personnel</div>
         </td>
         <td>
@@ -449,4 +437,3 @@
 </body>
 
 </html>
-

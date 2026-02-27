@@ -822,6 +822,7 @@ class JobVacancyController extends Controller
         $lastModifiedAt = $snapshotData['notified_at'] ?? null;
 
         $uploadedDocuments = $this->loadUploadedDocumentsMap((int) $user_id, (string) $vacancy_id);
+        $isFinalRevisionDisqualified = $this->hasFinalRevisionDisqualification($application, $uploadedDocuments);
         $documents = [];
 
         $labelMap = [
@@ -928,6 +929,7 @@ class JobVacancyController extends Controller
             'displayDeadlineDate',
             'displayDeadlineTime',
             'displayApplicationRemarks',
+            'isFinalRevisionDisqualified',
             'user_id',
             'vacancy_id'
         ));
@@ -967,6 +969,7 @@ class JobVacancyController extends Controller
         $snapshotDocumentsById = collect($snapshotData['documents'] ?? [])->keyBy('id');
 
         $uploadedDocuments = $this->loadUploadedDocumentsMap((int) $user_id, (string) $vacancy_id);
+        $isFinalRevisionDisqualified = $this->hasFinalRevisionDisqualification($application, $uploadedDocuments);
         $documents = [];
 
         // Debug: Log uploaded documents count
@@ -1058,11 +1061,34 @@ class JobVacancyController extends Controller
             'requiredDocumentIds' => $requiredDocumentIds,
             'application' => [
                 'status' => $application->status ?? 'Pending',
+                'qs_result' => $application->qs_result ?? null,
                 'file_last_modified_by' => $application->file_last_modified_by ?? null,
                 'deadline_date' => $application->deadline_date ?? null,
                 'deadline_time' => $application->deadline_time ?? null,
+                'final_revision_disqualified' => $isFinalRevisionDisqualified,
             ]
         ]);
+    }
+
+    private function isRevisionStatus(?string $status): bool
+    {
+        $normalized = strtolower(trim((string) $status));
+        return in_array($normalized, ['needs revision', 'disapproved with deficiency'], true);
+    }
+
+    private function hasFinalRevisionDisqualification(Applications $application, $uploadedDocuments): bool
+    {
+        if ($this->isRevisionStatus($application->file_status) && (int) ($application->file_revision_requested_count ?? 0) >= 2) {
+            return true;
+        }
+
+        foreach ($uploadedDocuments as $doc) {
+            if ($this->isRevisionStatus($doc->status) && (int) ($doc->revision_requested_count ?? 0) >= 2) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function resolveUploadedDocument($uploadedDocuments, string $docType): ?UploadedDocument
