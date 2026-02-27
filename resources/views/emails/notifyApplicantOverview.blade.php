@@ -254,24 +254,28 @@
       return strtolower($doc['name']);
     })->values();
 
+    $logoPath = public_path('images/dilg_logo.png');
+    $logoSrc = asset('images/dilg_logo.png');
+
+    if (isset($message) && is_object($message) && method_exists($message, 'embed') && is_file($logoPath)) {
+      try {
+        $logoSrc = $message->embed($logoPath);
+      } catch (\Throwable $e) {
+        $logoSrc = asset('images/dilg_logo.png');
+      }
+    }
+
   @endphp
 
   <div class="page">
     <table class="header-table" role="presentation">
       <tr>
         <td class="logo-col">
-          <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0;padding:0;">
-            <tr>
-              <td style="width:62px;height:62px;background-color:#002C76;border-radius:50%;text-align:center;vertical-align:middle;font-family:Arial,sans-serif;border:3px solid #FCD116;">
-                <div style="line-height:1.1;">
-                  <div style="font-size:9px;color:#FCD116;letter-spacing:1px;">&#9733;&nbsp;&#9728;&nbsp;&#9733;</div>
-                  <div style="font-size:11px;font-weight:900;color:#ffffff;letter-spacing:1px;">DILG</div>
-                  <div style="font-size:7px;color:#CE1126;font-weight:700;letter-spacing:0.5px;">&#9632;&#9632;&#9632;</div>
-                  <div style="font-size:6px;color:#FCD116;letter-spacing:0.3px;">&#9733; &#9733; &#9733;</div>
-                </div>
-              </td>
-            </tr>
-          </table>
+          <img
+            src="{{ $logoSrc }}"
+            alt="DILG Logo"
+            style="width:62px;height:62px;display:block;border-radius:50%;border:3px solid #FCD116;background-color:#002C76;"
+          >
         </td>
         <td>
           <p class="office-name">DILG - Cordillera Administrative Region</p>
