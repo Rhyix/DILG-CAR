@@ -14,6 +14,8 @@ use setasign\Fpdi\Fpdi;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Symfony\Component\Process\Process;
 
 class ExportPDSController
 {
@@ -26,9 +28,14 @@ class ExportPDSController
     private float $xOffset = 0.0;
     private bool $isShortBondTemplate = false;
     private int $currentTemplatePage = 1;
+    private int $clampedCoordinates = 0;
+    private array $clampSamples = [];
 
     public function exportPDS(Request $request)
     {
+        $this->clampedCoordinates = 0;
+        $this->clampSamples = [];
+
         $user = Auth::user(); // Get currently authenticated user
         if (!$user) {
             abort(401);
@@ -118,6 +125,10 @@ class ExportPDSController
         $vwChunks = array_chunk($voluntaryWork->toArray(), 7);
         $lndChunks = array_chunk($learningAndDev->toArray(), 21);
 
+        $skills = [];
+        $distinctions = [];
+        $organizations = [];
+
         if ($otherInfo) {
             $skills = $this->normalizeListData($otherInfo->skill);
             $skillsChunks = array_chunk($skills, 7);
@@ -136,6 +147,41 @@ class ExportPDSController
         $hasVWOverflow = count($vwChunks) > 1;
         $hasLNDOverflow = count($lndChunks) > 1;;
 
+        $excelExport = $this->tryExportViaExcelTemplate(
+            $request,
+            $personalInfo,
+            $familyBackground,
+            $educationalBackground,
+            $civilServiceEligibility->toArray(),
+            $workExperience->toArray(),
+            $voluntaryWork->toArray(),
+            $learningAndDev->toArray(),
+            $otherInfo,
+            $OtherInformation,
+            $residential,
+            $permanent,
+            $children,
+            $vocational,
+            $college,
+            $grad,
+            $skills,
+            $distinctions,
+            $organizations
+        );
+
+        if ($excelExport !== null) {
+            activity()
+                ->causedBy($user)
+                ->event('export')
+                ->withProperties([
+                    'exported_file' => $excelExport['filename'],
+                    'section' => 'Export'
+                ])
+                ->log('Exported Personal Data Sheet (PDS) via Excel template.');
+
+            return $this->respondWithGeneratedPdfPath($request, $excelExport['path'], $excelExport['filename']);
+        }
+
         // ----------------------------
         // Page 1: Personal Info, Address, Family, Education
         // ----------------------------
@@ -145,6 +191,7 @@ class ExportPDSController
         $this->configureCoordinateScale((float) $size['height']);
         $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
         $pdf->useTemplate($templateId);
+        $this->clearLegacyHeaderNote($pdf);
         $this->setFont($pdf, 'Arial', '', 8);
 
         $this->writePersonalInfo($pdf, $personalInfo);
@@ -199,6 +246,7 @@ class ExportPDSController
             $this->currentTemplatePage = 1;
             $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
             $pdf->useTemplate($templateId);
+            $this->clearLegacyHeaderNote($pdf);
 
             $this->setXY($pdf, 163.5, 310.190);
             $pdf->Write(0, Carbon::now()->format('m/d/Y'));
@@ -247,6 +295,7 @@ class ExportPDSController
         $this->currentTemplatePage = 2;
         $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
         $pdf->useTemplate($templateId);
+        $this->clearLegacyHeaderNote($pdf);
 
         // Write first CSE chunk (max 7 rows)
         $this->writeCivilServiceEligibilityChunk($pdf, $cseChunks[0] ?? []);
@@ -284,6 +333,7 @@ class ExportPDSController
             $this->currentTemplatePage = 2;
             $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
             $pdf->useTemplate($templateId);
+            $this->clearLegacyHeaderNote($pdf);
 
             $this->setXY($pdf, 149.352, 310.190);
             $pdf->Write(0, Carbon::now()->format('m/d/Y'));
@@ -302,6 +352,7 @@ class ExportPDSController
             $this->currentTemplatePage = 2;
             $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
             $pdf->useTemplate($templateId);
+            $this->clearLegacyHeaderNote($pdf);
 
             $this->setXY($pdf, 149.352, 310.190);
             $pdf->Write(0, Carbon::now()->format('m/d/Y'));
@@ -316,6 +367,7 @@ class ExportPDSController
         $this->currentTemplatePage = 3;
         $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
         $pdf->useTemplate($templateId);
+        $this->clearLegacyHeaderNote($pdf);
 
         // Write first Voluntary chunk (max 7 rows)
         $this->writeVoluntaryWorkChunk($pdf, $vwChunks[0] ?? []);
@@ -373,6 +425,7 @@ class ExportPDSController
             $this->currentTemplatePage = 3;
             $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
             $pdf->useTemplate($templateId);
+            $this->clearLegacyHeaderNote($pdf);
             $this->setXY($pdf, 161, 305);
             $pdf->Write(0, Carbon::now()->format('m/d/Y'));
 
@@ -405,6 +458,7 @@ class ExportPDSController
         $this->currentTemplatePage = 4;
         $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
         $pdf->useTemplate($templateId);
+        $this->clearLegacyHeaderNote($pdf);
 
         // Write first C4 chunk (max 7 rows)
         $this->WriteC4Information($pdf, $user->id);
@@ -428,6 +482,8 @@ class ExportPDSController
                 'section' => 'Export'
             ])
             ->log('Exported Personal Data Sheet (PDS).');
+
+        $this->logClampDiagnostics();
 
 
         $pdf->SetTitle('Personal Data Sheet');
@@ -472,20 +528,8 @@ class ExportPDSController
         }
 
         $this->yScale = $templateHeight / self::LEGACY_TEMPLATE_HEIGHT_MM;
-
-        // The Annex H-1 exported template keeps legacy X spacing but shifts Y anchors.
-        // Apply a baseline offset so top fields (e.g., name row) land on the proper lines.
         $isShortBondTemplate = $templateHeight < 300;
         $this->isShortBondTemplate = $isShortBondTemplate;
-        if ($isShortBondTemplate) {
-            // Short-bond Annex template already follows the same absolute field grid
-            // for the form body; avoid compressing coordinates.
-            $this->yScale = 1.0;
-            $this->xOffset = 0.0;
-            $this->yOffset = 0.0;
-            $this->fontScale = 1.0;
-            return;
-        }
 
         $this->xOffset = 0.0;
         $this->yOffset = 0.0;
@@ -494,11 +538,7 @@ class ExportPDSController
 
     private function scaleY(float $y): float
     {
-        $scaled = $y * $this->yScale;
-        if ($this->isShortBondTemplate && $scaled > self::SHORT_BOND_TEMPLATE_HEIGHT_MM) {
-            $scaled -= (self::LEGACY_TEMPLATE_HEIGHT_MM - self::SHORT_BOND_TEMPLATE_HEIGHT_MM);
-        }
-        return round($scaled, 3);
+        return round($y * $this->yScale, 3);
     }
 
     private function scaleHeight(float $height): float
@@ -519,30 +559,65 @@ class ExportPDSController
     private function setXY(Fpdi $pdf, float $x, float $y): void
     {
         $targetX = $x + $this->xOffset;
-        if ($this->isShortBondTemplate && $this->currentTemplatePage >= 2) {
-            // Pages 2-4 in the short-bond form have a narrower horizontal grid
-            // than the legacy mapping; compress and shift to align columns.
-            $targetX = ($targetX * 0.895) + 12.8;
+
+        // Short-bond page 1 needs a non-linear calibration versus legacy coordinates:
+        // left-column fields are too far left, and Y anchors drift upward as rows go down.
+        if ($this->isShortBondTemplate && $this->currentTemplatePage === 1) {
+            if ($x < 120.0) {
+                $targetX += 7.0;
+            }
+            $targetY = ($y * 0.87) + 1.2 + $this->yOffset;
+        } elseif ($this->isShortBondTemplate && $this->currentTemplatePage >= 2) {
+            $pageXScale = $this->getPageXScale();
+            $targetX = ($targetX * $pageXScale) + 12.8;
             if ($x <= 120.0) {
                 if ($this->currentTemplatePage === 4) {
                     $targetX += 16.0;
                 } elseif ($this->currentTemplatePage === 2) {
-                    $targetX += 15.0;
+                    $targetX += 16.0;
                 } else {
                     $targetX += 12.0;
                 }
             }
+
+            $targetY = $this->scaleY($y) + $this->yOffset;
+        } else {
+            $targetY = $this->scaleY($y) + $this->yOffset;
         }
-        $targetY = $this->scaleY($y) + $this->yOffset;
-        if ($this->isShortBondTemplate && $this->currentTemplatePage === 4 && $y >= 190.0) {
-            // Page 4 lower sections (references + ID block) sit higher on short-bond layout.
-            $targetY -= 24.0;
-        }
+
         $pageWidth = $pdf->GetPageWidth();
         $pageHeight = $pdf->GetPageHeight();
         $safeX = max(1.5, min($targetX, $pageWidth - 2.5));
         $safeY = max(1.5, min($targetY, $pageHeight - 2.5));
+
+        if (abs($safeX - $targetX) > 0.001 || abs($safeY - $targetY) > 0.001) {
+            $this->clampedCoordinates++;
+            if (count($this->clampSamples) < 8) {
+                $this->clampSamples[] = [
+                    'page' => $this->currentTemplatePage,
+                    'target_x' => round($targetX, 3),
+                    'target_y' => round($targetY, 3),
+                    'safe_x' => round($safeX, 3),
+                    'safe_y' => round($safeY, 3),
+                    'page_width' => round($pageWidth, 3),
+                    'page_height' => round($pageHeight, 3),
+                ];
+            }
+        }
+
         $pdf->SetXY($safeX, $safeY);
+    }
+
+    private function logClampDiagnostics(): void
+    {
+        if ($this->clampedCoordinates <= 0) {
+            return;
+        }
+
+        Log::warning('PDS export coordinate clamping detected.', [
+            'count' => $this->clampedCoordinates,
+            'samples' => $this->clampSamples,
+        ]);
     }
 
     private function normalizeListData($data): array
@@ -585,26 +660,61 @@ class ExportPDSController
         }));
     }
 
+    private function valueOrNa($value): string
+    {
+        if ($value === null) {
+            return 'N/A';
+        }
+
+        $text = trim((string) $value);
+        if ($text === '' || strtolower($text) === 'null') {
+            return 'N/A';
+        }
+
+        return $text;
+    }
+
+    private function dateOrNa($value, string $format = 'm/d/Y'): string
+    {
+        $text = trim((string) ($value ?? ''));
+        if ($text === '' || strtolower($text) === 'null') {
+            return 'N/A';
+        }
+
+        try {
+            return Carbon::parse($text)->format($format);
+        } catch (\Throwable $e) {
+            return $text;
+        }
+    }
+
 
     private function writePersonalInfo($pdf, $info)
     {
         // CS ID No
-        $this->writeFittedAt($pdf, (string) ($info?->cs_id_no ?? ''), 165, 35.5, 35);
+        $this->writeFittedAt($pdf, $this->valueOrNa($info?->cs_id_no), 165, 35.5, 35);
 
         // Names
-        $this->writeFittedAt($pdf, (string) ($info?->surname ?? ''), 41.5, 45.5, 78);
+        $this->writeFittedAt($pdf, $this->valueOrNa($info?->surname), 41.5, 45.5, 78);
 
-        $this->writeFittedAt($pdf, (string) ($info?->first_name ?? ''), 41.5, 52, 78);
+        $this->writeFittedAt($pdf, $this->valueOrNa($info?->first_name), 41.5, 52, 78);
 
-        $this->writeFittedAt($pdf, (string) ($info?->middle_name ?? ''), 41.5, 58, 78);
+        $this->writeFittedAt($pdf, $this->valueOrNa($info?->middle_name), 41.5, 58, 78);
 
-        $this->writeFittedAt($pdf, (string) ($info?->name_extension ?? ''), 165.2, 53, 40);
+        $this->writeFittedAt($pdf, $this->valueOrNa($info?->name_extension), 165.2, 53, 40);
 
         // Birth
-        $this->setXY($pdf, 41.5, 66);
-        $pdf->Write(0, !empty($info?->date_of_birth) ? Carbon::parse($info->date_of_birth)->format('m/d/Y') : 'N/A');
+        $this->writeFittedAt(
+            $pdf,
+            $this->dateOrNa($info?->date_of_birth),
+            41.5,
+            62.2,
+            34,
+            8.0,
+            5.0
+        );
 
-        $this->writeFittedAt($pdf, (string) ($info?->place_of_birth ?? ''), 41.5, 75, 78);
+        $this->writeFittedAt($pdf, $this->valueOrNa($info?->place_of_birth), 41.5, 75, 78);
 
         // Sex
         if ($info?->sex == 'male')
@@ -636,27 +746,24 @@ class ExportPDSController
         $this->markCheckbox($pdf, $civilStatusX, $civilStatusY);
 
         // Physical
-        $this->setXY($pdf, 41.5, 101.5);
-        $pdf->Write(0, $info?->height ?? 'N/A');
+        $this->writeFittedAt($pdf, $this->valueOrNa($info?->height), 41.5, 101.5, 30, 8.0, 5.0);
 
-        $this->setXY($pdf, 41.5, 108.5);
-        $pdf->Write(0, $info?->weight ?? 'N/A');
+        $this->writeFittedAt($pdf, $this->valueOrNa($info?->weight), 41.5, 108.5, 30, 8.0, 5.0);
 
-        $this->setXY($pdf, 41.5, 115);
-        $pdf->Write(0, $info?->blood_type ?? 'N/A');
+        $this->writeFittedAt($pdf, $this->valueOrNa($info?->blood_type), 41.5, 115, 30, 8.0, 5.0);
 
         // IDs
-        $this->writeFittedAt($pdf, (string) ($info?->gsis_id_no ?? ''), 41.5, 122, 78);
+        $this->writeFittedAt($pdf, $this->valueOrNa($info?->gsis_id_no), 41.5, 122, 78);
 
-        $this->writeFittedAt($pdf, (string) ($info?->pagibig_id_no ?? ''), 41.5, 129, 78);
+        $this->writeFittedAt($pdf, $this->valueOrNa($info?->pagibig_id_no), 41.5, 129, 78);
 
-        $this->writeFittedAt($pdf, (string) ($info?->philhealth_no ?? ''), 41.5, 136, 78);
+        $this->writeFittedAt($pdf, $this->valueOrNa($info?->philhealth_no), 41.5, 136, 78);
 
-        $this->writeFittedAt($pdf, (string) ($info?->sss_id_no ?? ''), 41.5, 143, 78);
+        $this->writeFittedAt($pdf, $this->valueOrNa($info?->sss_id_no), 41.5, 143, 78);
 
-        $this->writeFittedAt($pdf, (string) ($info?->tin_no ?? ''), 41.5, 150, 78);
+        $this->writeFittedAt($pdf, $this->valueOrNa($info?->tin_no), 41.5, 150, 78);
 
-        $this->writeFittedAt($pdf, (string) ($info?->agency_employee_no ?? ''), 41.5, 156.5, 78);
+        $this->writeFittedAt($pdf, $this->valueOrNa($info?->agency_employee_no), 41.5, 156.5, 78);
 
         // Citizenship
         if ($info?->citizenship == 'Filipino')
@@ -677,84 +784,69 @@ class ExportPDSController
             $this->markCheckbox($pdf, 180.5, 68.5);
         }
 
-        $this->writeFittedAt($pdf, (string) ($info?->dual_country ?? ''), 140.5, 81, 52);
+        $this->writeFittedAt($pdf, $this->valueOrNa($info?->dual_country), 140.5, 81, 52);
 
-        $this->writeFittedAt($pdf, (string) ($info?->telephone_no ?? ''), 123, 143, 74);
+        $this->writeFittedAt($pdf, $this->valueOrNa($info?->telephone_no), 123, 143, 74);
 
-        $this->writeFittedAt($pdf, (string) ($info?->mobile_no ?? ''), 123, 150, 74);
+        $this->writeFittedAt($pdf, $this->valueOrNa($info?->mobile_no), 123, 150, 74);
 
-        $this->writeFittedAt($pdf, (string) ($info?->email_address ?? ''), 123, 156.5, 74, 7.5, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($info?->email_address), 123, 156.5, 74, 7.5, 5.0);
 
 }
 
 private function writeAddresses($pdf, $residential, $permanent, $writeCentered)
 {
     // Residential Address
-    $writeCentered($pdf, $residential[0] ?? 'N/A', 133, 149, 87); // House Number
-    $writeCentered($pdf, $residential[1] ?? 'N/A', 185, 190, 87); // Street
-    $writeCentered($pdf, $residential[2] ?? 'N/A', 133, 149, 94); // Village/Subdivision
-    $writeCentered($pdf, $residential[3] ?? 'N/A', 185, 190, 94); // Barangay
-    $writeCentered($pdf, $residential[4] ?? 'N/A', 133, 149, 100.5); // City/Municipality
-    $writeCentered($pdf, $residential[5] ?? 'N/A', 185, 190, 100.5); // Province
-    $writeCentered($pdf, $residential[6] ?? 'N/A', 133, 190, 108); // ZIP Code
+    $writeCentered($pdf, $this->valueOrNa($residential[0] ?? null), 133, 149, 87); // House Number
+    $writeCentered($pdf, $this->valueOrNa($residential[1] ?? null), 185, 190, 87); // Street
+    $writeCentered($pdf, $this->valueOrNa($residential[2] ?? null), 133, 149, 94); // Village/Subdivision
+    $writeCentered($pdf, $this->valueOrNa($residential[3] ?? null), 185, 190, 94); // Barangay
+    $writeCentered($pdf, $this->valueOrNa($residential[4] ?? null), 133, 149, 100.5); // City/Municipality
+    $writeCentered($pdf, $this->valueOrNa($residential[5] ?? null), 185, 190, 100.5); // Province
+    $writeCentered($pdf, $this->valueOrNa($residential[6] ?? null), 133, 190, 108); // ZIP Code
 
     // Permanent Address
-    $writeCentered($pdf, $permanent[0] ?? 'N/A', 133, 149, 114); // House Number
-    $writeCentered($pdf, $permanent[1] ?? 'N/A', 185, 190, 114); // Street
-    $writeCentered($pdf, $permanent[2] ?? 'N/A', 133, 149, 120.5); // Village/Subdivision
-    $writeCentered($pdf, $permanent[3] ?? 'N/A', 185, 190, 120.5); // Barangay
-    $writeCentered($pdf, $permanent[4] ?? 'N/A', 133, 149, 127.5); // City/Municipality
-    $writeCentered($pdf, $permanent[5] ?? 'N/A', 185, 190, 127.5); // Province
-    $writeCentered($pdf, $permanent[6] ?? 'N/A', 133, 190, 135.5); // ZIP Code
+    $writeCentered($pdf, $this->valueOrNa($permanent[0] ?? null), 133, 149, 114); // House Number
+    $writeCentered($pdf, $this->valueOrNa($permanent[1] ?? null), 185, 190, 114); // Street
+    $writeCentered($pdf, $this->valueOrNa($permanent[2] ?? null), 133, 149, 120.5); // Village/Subdivision
+    $writeCentered($pdf, $this->valueOrNa($permanent[3] ?? null), 185, 190, 120.5); // Barangay
+    $writeCentered($pdf, $this->valueOrNa($permanent[4] ?? null), 133, 149, 127.5); // City/Municipality
+    $writeCentered($pdf, $this->valueOrNa($permanent[5] ?? null), 185, 190, 127.5); // Province
+    $writeCentered($pdf, $this->valueOrNa($permanent[6] ?? null), 133, 190, 135.5); // ZIP Code
 
 }
 
 private function writeFamilyBackground($pdf, $family)
 {
-    $this->setXY($pdf, 41.5, 167.5);
-    $pdf->Write(0, $family?->spouse_surname ?? 'N/A');
+    $this->writeFittedAt($pdf, $this->valueOrNa($family?->spouse_surname), 41.5, 167.5, 49);
 
-    $this->setXY($pdf, 41.5, 173.5);
-    $pdf->Write(0, $family?->spouse_first_name ?? 'N/A');
+    $this->writeFittedAt($pdf, $this->valueOrNa($family?->spouse_first_name), 41.5, 173.5, 49);
 
-    $this->setXY($pdf, 41.5, 179.5);
-    $pdf->Write(0, $family?->spouse_middle_name ?? 'N/A');
+    $this->writeFittedAt($pdf, $this->valueOrNa($family?->spouse_middle_name), 41.5, 179.5, 49);
 
-    $this->setXY($pdf, 93, 174.2);
-    $pdf->Write(0, $family?->spouse_name_extension ?? 'N/A');
+    $this->writeFittedAt($pdf, $this->valueOrNa($family?->spouse_name_extension), 93, 174.2, 28, 7.0, 5.0);
 
-    $this->setXY($pdf, 41.5, 185);
-    $pdf->Write(0, $family?->spouse_occupation ?? 'N/A');
+    $this->writeFittedAt($pdf, $this->valueOrNa($family?->spouse_occupation), 41.5, 185, 79);
 
-    $this->setXY($pdf, 41.5, 190.2);
-    $pdf->Write(0, $family?->spouse_employer ?? 'N/A');
+    $this->writeFittedAt($pdf, $this->valueOrNa($family?->spouse_employer), 41.5, 190.2, 79);
 
-    $this->setXY($pdf, 41.5, 196.2);
-    $pdf->Write(0, $family?->spouse_business_address ?? 'N/A');
+    $this->writeFittedAt($pdf, $this->valueOrNa($family?->spouse_business_address), 41.5, 196.2, 79, 7.0, 5.0);
 
-    $this->setXY($pdf, 41.5, 202.2);
-    $pdf->Write(0, $family?->spouse_telephone ?? 'N/A');
+    $this->writeFittedAt($pdf, $this->valueOrNa($family?->spouse_telephone), 41.5, 202.2, 79);
 
-    $this->setXY($pdf, 41.5, 208.2);
-    $pdf->Write(0, $family?->father_surname ?? 'N/A');
+    $this->writeFittedAt($pdf, $this->valueOrNa($family?->father_surname), 41.5, 208.2, 49);
 
-    $this->setXY($pdf, 41.5, 213.8);
-    $pdf->Write(0, $family?->father_first_name ?? 'N/A');
+    $this->writeFittedAt($pdf, $this->valueOrNa($family?->father_first_name), 41.5, 213.8, 49);
 
-    $this->setXY($pdf, 93, 215);
-    $pdf->Write(0, $family?->father_name_extension ?? 'N/A');
+    $this->writeFittedAt($pdf, $this->valueOrNa($family?->father_name_extension), 93, 215, 28, 7.0, 5.0);
 
-    $this->setXY($pdf, 41.5, 219.9);
-    $pdf->Write(0, $family?->father_middle_name ?? 'N/A');
+    $this->writeFittedAt($pdf, $this->valueOrNa($family?->father_middle_name), 41.5, 219.9, 79);
 
-    $this->setXY($pdf, 41.5, 231.2);
-    $pdf->Write(0, $family?->mother_maiden_surname ?? 'N/A');
+    $this->writeFittedAt($pdf, $this->valueOrNa($family?->mother_maiden_surname), 41.5, 231.2, 79);
 
-    $this->setXY($pdf, 41.5, 237.2);
-    $pdf->Write(0, $family?->mother_maiden_first_name ?? 'N/A');
+    $this->writeFittedAt($pdf, $this->valueOrNa($family?->mother_maiden_first_name), 41.5, 237.2, 79);
 
-    $this->setXY($pdf, 41.5, 243.2);
-    $pdf->Write(0, $family?->mother_maiden_middle_name ?? 'N/A');
+    $this->writeFittedAt($pdf, $this->valueOrNa($family?->mother_maiden_middle_name), 41.5, 243.2, 79);
 
 }
 
@@ -776,8 +868,7 @@ private function writeChildrenChunk($pdf, $chunk)
 
     // If all are empty, write N/A in the name column only
     if ($isEmpty) {
-        $this->setXY($pdf, $startX_name, $startY);
-        $pdf->Write(0, 'N/A');
+        $this->writeFittedAt($pdf, 'N/A', $startX_name, $startY, 58, 7.5, 5.0);
         return;
     }
 
@@ -786,11 +877,17 @@ private function writeChildrenChunk($pdf, $chunk)
     {
         $currentY = $startY + ($index * $lineHeight);
 
-        $this->setXY($pdf, $startX_name, $currentY);
-        $pdf->Write(0, $child['name'] ?? '');
+        $this->writeFittedAt($pdf, $this->valueOrNa($child['name'] ?? null), $startX_name, $currentY, 58, 7.5, 5.0);
 
-        $this->setXY($pdf, $startX_birthdate, $currentY);
-        $pdf->Write(0, !empty($child['dob']) ? Carbon::parse($child['dob'])->format('m/d/Y') : '');
+        $this->writeFittedAt(
+            $pdf,
+            $this->dateOrNa($child['dob'] ?? null),
+            $startX_birthdate,
+            $currentY,
+            22,
+            7.0,
+            5.0
+        );
     }
 }
 
@@ -806,42 +903,15 @@ private function writeEducationalBackground($pdf, $education)
                    !empty($education?->elem_academic_honors);
 
     if (!$hasElemData) {
-        $this->setXY($pdf, 41.5, 267);
-        $pdf->Write(0, 'N/A');
+        $this->writeFittedAt($pdf, 'N/A', 41.5, 267, 49, 8.0, 5.0);
     } else {
-        $this->writeWrapped($pdf, $education?->elem_school ?? '', 49, 41.5, 267, 265, 6, 3);
-        $this->writeWrapped($pdf, $education?->elem_basic ?? '', 45, 91, 267, 264, 6, 2);
-        $this->writeWrapped($pdf, !empty($education?->elem_from) ? Carbon::parse($education?->elem_from)->format('m/Y') : '', 20, 138, 267, 264, 8, 2);
-        $this->writeWrapped($pdf, !empty($education?->elem_to) ? Carbon::parse($education?->elem_to)->format('m/Y') : '', 20, 150, 267, 264, 8, 2);
-        $this->setXY($pdf, 163.5, 267);
-        $pdf->Write(0, $education?->elem_earned ?? 'N/A');
-        $this->setXY($pdf, 183, 267);
-        $pdf->Write(0, $education?->elem_year_graduated ?? 'N/A');
-
-        $this->setFont($pdf, 'Arial', '', 4);
-
-        // Set parameters
-        $text =  $education?->jhs_academic_honors ?? 'N/A';
-        $maxWidth = 7; // Width to fit the text in
-        $fontSize = 4;
-        $lineHeight = 2;
-
-        // Calculate the string width
-        $stringWidth = $pdf->GetStringWidth($text);
-
-        // Check if it fits in one line
-        if ($stringWidth <= $maxWidth) {
-            // It fits in one line, write directly
-            $this->setFont($pdf, 'Arial', '', $fontSize);
-            $this->setXY($pdf, 197, 267);
-            $pdf->Cell($maxWidth, $this->scaleHeight($lineHeight), $text, 0, 0);
-        } else {
-            // It doesn't fit, wrap text
-            $this->writeWrapped($pdf, $text, $maxWidth, 197, 275, 265.2, $fontSize, $lineHeight);
-        }
-
-        // Reset font to 8pt
-        $this->setFont($pdf, 'Arial', '', 8);
+        $this->writeFittedAt($pdf, $this->valueOrNa($education?->elem_school), 41.5, 267, 48, 6.5, 4.5);
+        $this->writeFittedAt($pdf, $this->valueOrNa($education?->elem_basic), 91, 267, 45, 6.5, 4.5);
+        $this->writeCenteredFitted($pdf, $this->dateOrNa($education?->elem_from, 'm/Y'), 138, 150, 267);
+        $this->writeCenteredFitted($pdf, $this->dateOrNa($education?->elem_to, 'm/Y'), 150, 163.5, 267);
+        $this->writeFittedAt($pdf, $this->valueOrNa($education?->elem_earned), 163.5, 267, 18, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($education?->elem_year_graduated), 183, 267, 12, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($education?->elem_academic_honors), 197, 267, 7, 4.8, 4.0);
     }
 
     // === Junior High Section ===
@@ -854,42 +924,15 @@ private function writeEducationalBackground($pdf, $education)
                   !empty($education?->jhs_academic_honors);
 
     if (!$hasJHSData) {
-        $this->setXY($pdf, 41.5, 276);
-        $pdf->Write(0, 'N/A');
+        $this->writeFittedAt($pdf, 'N/A', 41.5, 276, 49, 8.0, 5.0);
     } else {
-        $this->writeWrapped($pdf, $education?->jhs_school ?? '', 50, 41.5, 275, 273, 6, 3);
-        $this->writeWrapped($pdf, $education?->jhs_basic ?? '', 45, 91, 275, 271.7, 6, 2);
-        $this->writeWrapped($pdf, !empty($education?->jhs_from) ? Carbon::parse($education?->jhs_from)->format('m/Y') : '', 20, 138, 275, 271.2, 8, 2);
-        $this->writeWrapped($pdf, !empty($education?->jhs_to) ? Carbon::parse($education?->jhs_to)->format('m/Y') : '', 20, 150, 275, 271.2, 8, 2);
-        $this->setXY($pdf, 163.5, 275);
-        $pdf->Write(0, $education?->jhs_earned ?? 'N/A');
-        $this->setXY($pdf, 183, 275);
-        $pdf->Write(0, $education?->jhs_year_graduated ?? 'N/A');
-        
-        $this->setFont($pdf, 'Arial', '', 4);
-
-        // Set parameters
-        $text =  $education?->jhs_academic_honors ?? 'N/A';
-        $maxWidth = 7; // Width to fit the text in
-        $fontSize = 4;
-        $lineHeight = 2;
-
-        // Calculate the string width
-        $stringWidth = $pdf->GetStringWidth($text);
-
-        // Check if it fits in one line
-        if ($stringWidth <= $maxWidth) {
-            // It fits in one line, write directly
-            $this->setFont($pdf, 'Arial', '', $fontSize);
-            $this->setXY($pdf, 197, 275);
-            $pdf->Cell($maxWidth, $this->scaleHeight($lineHeight), $text, 0, 0);
-        } else {
-            // It doesn't fit, wrap text
-            $this->writeWrapped($pdf, $text, $maxWidth, 197, 275, 273.2, $fontSize, $lineHeight);
-        }
-
-        // Reset font to 8pt
-        $this->setFont($pdf, 'Arial', '', 8);
+        $this->writeFittedAt($pdf, $this->valueOrNa($education?->jhs_school), 41.5, 275, 48, 6.5, 4.5);
+        $this->writeFittedAt($pdf, $this->valueOrNa($education?->jhs_basic), 91, 275, 45, 6.5, 4.5);
+        $this->writeCenteredFitted($pdf, $this->dateOrNa($education?->jhs_from, 'm/Y'), 138, 150, 275);
+        $this->writeCenteredFitted($pdf, $this->dateOrNa($education?->jhs_to, 'm/Y'), 150, 163.5, 275);
+        $this->writeFittedAt($pdf, $this->valueOrNa($education?->jhs_earned), 163.5, 275, 18, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($education?->jhs_year_graduated), 183, 275, 12, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($education?->jhs_academic_honors), 197, 275, 7, 4.8, 4.0);
     }
 }
 
@@ -903,7 +946,7 @@ private function writeVocationalChunk($pdf, $chunk)
     $startX_earned = 163.5;
     $startX_year_graduated = 183;
     $startX_honors = 195;
-    $startY = 282;
+    $startY = 281.5;
     $lineHeight = 6;
 
     // Check if all vocational inputs are empty
@@ -925,8 +968,7 @@ private function writeVocationalChunk($pdf, $chunk)
 
     // If all are empty, write N/A once in the school column
     if ($isEmpty) {
-        $this->setXY($pdf, $startX_school, $startY);
-        $pdf->Write(0, 'N/A');
+        $this->writeFittedAt($pdf, 'N/A', $startX_school, $startY, 50, 8.0, 5.0);
         return;
     }
 
@@ -935,46 +977,18 @@ private function writeVocationalChunk($pdf, $chunk)
     {
         $currentY = $startY + ($index * $lineHeight);
 
-        $this->setXY($pdf, $startX_school, $currentY);
-        $this->writeWrapped($pdf, $voc['school'] ?? '', 50, $startX_school, $currentY, $currentY-1, 6, 3);
+        $this->writeFittedAt($pdf, $this->valueOrNa($voc['school'] ?? null), $startX_school, $currentY, 48, 6.5, 4.5);
 
-        $this->setXY($pdf, $startX_basic, $currentY);
-        $this->writeWrapped($pdf, $voc['basic'] ?? '', 50, $startX_basic, $currentY, $currentY-1, 6, 3);
+        $this->writeFittedAt($pdf, $this->valueOrNa($voc['basic'] ?? null), $startX_basic, $currentY, 45, 6.5, 4.5);
 
-        $this->writeWrapped($pdf, !empty($voc['from'] ?? '') ? Carbon::parse($voc['from'])->format('m/Y') : '', 20, $startX_from, $currentY, $currentY-1, 8, 2);
-        $this->writeWrapped($pdf, !empty($voc['to'] ?? '') ? Carbon::parse($voc['to'])->format('m/Y') : '', 20, $startX_to, $currentY, $currentY-1, 8, 2);
+        $this->writeCenteredFitted($pdf, $this->dateOrNa($voc['from'] ?? null, 'm/Y'), $startX_from, $startX_to, $currentY);
+        $this->writeCenteredFitted($pdf, $this->dateOrNa($voc['to'] ?? null, 'm/Y'), $startX_to, $startX_earned, $currentY);
 
-        $this->setXY($pdf, $startX_earned, $currentY);
-        $pdf->Write(0, $voc['earned'] ?? 'N/A');
+        $this->writeFittedAt($pdf, $this->valueOrNa($voc['earned'] ?? null), $startX_earned, $currentY, 18, 7.0, 5.0);
 
-        $this->setXY($pdf, $startX_year_graduated, $currentY);
-        $pdf->Write(0, $voc['year_graduated'] ?? 'N/A');
+        $this->writeFittedAt($pdf, $this->valueOrNa($voc['year_graduated'] ?? null), $startX_year_graduated, $currentY, 12, 7.0, 5.0);
 
-        
-        $this->setFont($pdf, 'Arial', '', 4);
-
-        // Set parameters
-        $text = $voc['academic_honors'] ?? 'N/A';
-        $maxWidth =7; // Width to fit the text in
-        $fontSize = 4;
-        $lineHeight = 2;
-
-        // Calculate the string width
-        $stringWidth = $pdf->GetStringWidth($text);
-
-        // Check if it fits in one line
-        if ($stringWidth <= $maxWidth) {
-            // It fits in one line, write directly
-            $this->setFont($pdf, 'Arial', '', $fontSize);
-            $this->setXY($pdf, $startX_honors, $currentY-1);
-            $pdf->Cell($maxWidth, $this->scaleHeight($lineHeight), $text, 0, 0);
-        } else {
-            // It doesn't fit, wrap text
-            $this->writeWrapped($pdf, $text, $maxWidth, $startX_honors, $currentY, $currentY - 1.5, $fontSize, $lineHeight);
-        }
-
-        // Reset font to 8pt
-        $this->setFont($pdf, 'Arial', '', 8);
+        $this->writeFittedAt($pdf, $this->valueOrNa($voc['academic_honors'] ?? null), $startX_honors, $currentY - 0.6, 7, 4.8, 4.0);
     }
 }
 
@@ -988,7 +1002,7 @@ private function writeCollegeChunk($pdf, $chunk)
     $startX_earned = 163.5;
     $startX_year_graduated = 183;
     $startX_honors = 197;
-    $startY = 291;
+    $startY = 288.7;
     $lineHeight = 6;
 
     // Check if all college entries are empty
@@ -1010,8 +1024,7 @@ private function writeCollegeChunk($pdf, $chunk)
 
     // If all are empty, write N/A in school column only
     if ($isEmpty) {
-        $this->setXY($pdf, $startX_school, $startY);
-        $pdf->Write(0, 'N/A');
+        $this->writeFittedAt($pdf, 'N/A', $startX_school, $startY, 50, 8.0, 5.0);
         return;
     }
 
@@ -1020,45 +1033,18 @@ private function writeCollegeChunk($pdf, $chunk)
     {
         $currentY = $startY + ((int)$index * $lineHeight);
 
-        $this->setXY($pdf, $startX_school, $currentY);
-        $this->writeWrapped($pdf, $college['school'] ?? '', 50, $startX_school, $currentY, $currentY-1, 6, 3);
+        $this->writeFittedAt($pdf, $this->valueOrNa($college['school'] ?? null), $startX_school, $currentY, 48, 6.5, 4.5);
 
-        $this->setXY($pdf, $startX_basic, $currentY);
-        $this->writeWrapped($pdf, $college['basic'] ?? '', 50, $startX_basic, $currentY, $currentY-1, 6, 3);
+        $this->writeFittedAt($pdf, $this->valueOrNa($college['basic'] ?? null), $startX_basic, $currentY, 45, 6.5, 4.5);
 
-        $this->writeWrapped($pdf, !empty($college['from'] ?? '') ? Carbon::parse($college['from'])->format('m/Y') : '', 20, $startX_from, $currentY, $currentY-1, 8, 2);
-        $this->writeWrapped($pdf, !empty($college['to'] ?? '') ? Carbon::parse($college['to'])->format('m/Y') : '', 20, $startX_to, $currentY, $currentY-1, 8, 2);
+        $this->writeCenteredFitted($pdf, $this->dateOrNa($college['from'] ?? null, 'm/Y'), $startX_from, $startX_to, $currentY);
+        $this->writeCenteredFitted($pdf, $this->dateOrNa($college['to'] ?? null, 'm/Y'), $startX_to, $startX_earned, $currentY);
 
-        $this->setXY($pdf, $startX_earned, $currentY);
-        $pdf->Write(0, $college['earned'] ?? 'N/A');
+        $this->writeFittedAt($pdf, $this->valueOrNa($college['earned'] ?? null), $startX_earned, $currentY, 18, 7.0, 5.0);
 
-        $this->setXY($pdf, $startX_year_graduated, $currentY);
-        $pdf->Write(0, $college['year_graduated'] ?? 'N/A');
+        $this->writeFittedAt($pdf, $this->valueOrNa($college['year_graduated'] ?? null), $startX_year_graduated, $currentY, 12, 7.0, 5.0);
 
-        $this->setFont($pdf, 'Arial', '', 4);
-
-        // Set parameters
-        $text = $college['academic_honors'] ?? 'N/A';
-        $maxWidth = 7; // Width to fit the text in
-        $fontSize = 4;
-        $lineHeight = 2;
-
-        // Calculate the string width
-        $stringWidth = $pdf->GetStringWidth($text);
-
-        // Check if it fits in one line
-        if ($stringWidth <= $maxWidth) {
-            // It fits in one line, write directly
-            $this->setFont($pdf, 'Arial', '', $fontSize);
-            $this->setXY($pdf, $startX_honors, $currentY-1);
-            $pdf->Cell($maxWidth, $this->scaleHeight($lineHeight), $text, 0, 0);
-        } else {
-            // It doesn't fit, wrap text
-            $this->writeWrapped($pdf, $text, $maxWidth, $startX_honors, $currentY, $currentY - 1.5, $fontSize, $lineHeight);
-        }
-
-        // Reset font to 8pt
-        $this->setFont($pdf, 'Arial', '', 8);
+        $this->writeFittedAt($pdf, $this->valueOrNa($college['academic_honors'] ?? null), $startX_honors, $currentY - 0.6, 7, 4.8, 4.0);
 
     }
 }
@@ -1073,7 +1059,7 @@ private function writeGraduateChunk($pdf, $chunk)
     $startX_earned = 163.5;
     $startX_year_graduated = 183;
     $startX_honors = 195;
-    $startY = 298;
+    $startY = 296.0;
     $lineHeight = 6;
 
     // Check if all grad entries are empty
@@ -1095,8 +1081,7 @@ private function writeGraduateChunk($pdf, $chunk)
 
     // If all are empty, write N/A in school column only
     if ($isEmpty) {
-        $this->setXY($pdf, $startX_school, $startY);
-        $pdf->Write(0, 'N/A');
+        $this->writeFittedAt($pdf, 'N/A', $startX_school, $startY, 50, 8.0, 5.0);
         return;
     }
 
@@ -1105,46 +1090,18 @@ private function writeGraduateChunk($pdf, $chunk)
     {
         $currentY = $startY + ($index * $lineHeight);
 
-        $this->setXY($pdf, $startX_school, $currentY);
-        $this->writeWrapped($pdf, $grad['school'] ?? '', 50, $startX_school, $currentY, $currentY-1, 6, 3);
+        $this->writeFittedAt($pdf, $this->valueOrNa($grad['school'] ?? null), $startX_school, $currentY, 48, 6.5, 4.5);
 
-        $this->setXY($pdf, $startX_basic, $currentY);
-        $this->writeWrapped($pdf, $grad['basic'] ?? '', 50, $startX_basic, $currentY, $currentY-1, 6, 3);
+        $this->writeFittedAt($pdf, $this->valueOrNa($grad['basic'] ?? null), $startX_basic, $currentY, 45, 6.5, 4.5);
 
-        $this->writeWrapped($pdf, !empty($grad['from'] ?? '') ? Carbon::parse($grad['from'])->format('m/Y') : '', 20, $startX_from, $currentY, $currentY-1, 8, 2);
-        $this->writeWrapped($pdf, !empty($grad['to'] ?? '') ? Carbon::parse($grad['to'])->format('m/Y') : '', 20, $startX_to, $currentY, $currentY-1, 8, 2);
+        $this->writeCenteredFitted($pdf, $this->dateOrNa($grad['from'] ?? null, 'm/Y'), $startX_from, $startX_to, $currentY);
+        $this->writeCenteredFitted($pdf, $this->dateOrNa($grad['to'] ?? null, 'm/Y'), $startX_to, $startX_earned, $currentY);
 
-        $this->setXY($pdf, $startX_earned, $currentY);
-        $pdf->Write(0, $grad['earned'] ?? 'N/A');
+        $this->writeFittedAt($pdf, $this->valueOrNa($grad['earned'] ?? null), $startX_earned, $currentY, 18, 7.0, 5.0);
 
-        $this->setXY($pdf, $startX_year_graduated, $currentY);
-        $pdf->Write(0, $grad['year_graduated'] ?? 'N/A');
+        $this->writeFittedAt($pdf, $this->valueOrNa($grad['year_graduated'] ?? null), $startX_year_graduated, $currentY, 12, 7.0, 5.0);
 
-
-        $this->setFont($pdf, 'Arial', '', 4);
-
-        // Set parameters
-        $text = $grad['academic_honors'] ?? 'N/A';
-        $maxWidth = 7; // Width to fit the text in
-        $fontSize = 4;
-        $lineHeight = 2;
-
-        // Calculate the string width
-        $stringWidth = $pdf->GetStringWidth($text);
-
-        // Check if it fits in one line
-        if ($stringWidth <= $maxWidth) {
-            // It fits in one line, write directly
-            $this->setFont($pdf, 'Arial', '', $fontSize);
-            $this->setXY($pdf, $startX_honors, $currentY-1);
-            $pdf->Cell($maxWidth, $this->scaleHeight($lineHeight), $text, 0, 0);
-        } else {
-            // It doesn't fit, wrap text
-            $this->writeWrapped($pdf, $text, $maxWidth, $startX_honors, $currentY, $currentY - 1.5, $fontSize, $lineHeight);
-        }
-
-        // Reset font to 8pt
-        $this->setFont($pdf, 'Arial', '', 8);
+        $this->writeFittedAt($pdf, $this->valueOrNa($grad['academic_honors'] ?? null), $startX_honors, $currentY - 0.6, 7, 4.8, 4.0);
     }
 }
 
@@ -1191,28 +1148,38 @@ private function writeCivilServiceEligibilityChunk($pdf, $chunk)
         $currentY = $startY + ($index * $rowHeight);
 
         // Career service
-        $this->writeWrapped($pdf, $cse['cs_eligibility_career'] ?? '', 60, $startX_career, $currentY, $currentY - 0.5, 8, 3);
+        $this->writeWrapped($pdf, $this->valueOrNa($cse['cs_eligibility_career'] ?? null), 60, $startX_career, $currentY, $currentY - 0.5, 8, 3);
 
         // Rating
-        $this->setXY($pdf, $startX_rating, $currentY);
-        $pdf->Write(0, $cse['cs_eligibility_rating'] ?? '');
+        $this->writeCenteredFitted($pdf, $this->valueOrNa($cse['cs_eligibility_rating'] ?? null), $startX_rating, $startX_date, $currentY);
 
         // Date of examination
-        $this->setXY($pdf, $startX_date, $currentY);
-        $pdf->Write(0, !empty($cse['cs_eligibility_date']) ? Carbon::parse($cse['cs_eligibility_date'])->format('m-d-Y') : '');
+        $this->writeFittedAt(
+            $pdf,
+            $this->dateOrNa($cse['cs_eligibility_date'] ?? null),
+            $startX_date,
+            $currentY,
+            23,
+            7.0,
+            4.5
+        );
 
         // Place of examination
-        $this->setXY($pdf, $startX_place, $currentY);
-        $pdf->Write(0, $cse['cs_eligibility_place'] ?? '');
+        $this->writeFittedAt($pdf, $this->valueOrNa($cse['cs_eligibility_place'] ?? null), $startX_place, $currentY, 59, 7.0, 4.5);
 
         // License number
-        $this->setFont($pdf, 'Arial', '', 6.5);
-        $this->setXY($pdf, $startX_license, $currentY);
-        $pdf->Write(0, $cse['cs_eligibility_license'] ?? '');
+        $this->writeFittedAt($pdf, $this->valueOrNa($cse['cs_eligibility_license'] ?? null), $startX_license, $currentY, 13, 6.5, 4.5);
 
         // Validity date
-        $this->setXY($pdf, $startX_validity, $currentY);
-        $pdf->Write(0, !empty($cse['cs_eligibility_validity']) ? Carbon::parse($cse['cs_eligibility_validity'])->format('m-d-Y') : '');
+        $this->writeFittedAt(
+            $pdf,
+            $this->dateOrNa($cse['cs_eligibility_validity'] ?? null),
+            $startX_validity,
+            $currentY,
+            13,
+            6.0,
+            4.5
+        );
 
         // Reset font size
         $this->setFont($pdf, 'Arial', '', 8);
@@ -1264,27 +1231,43 @@ private function writeWorkExperienceChunk($pdf, $chunk)
     foreach ($chunk as $index => $we) {
         $currentY = $startY + ($index * $rowHeight);
 
-        $this->setXY($pdf, $x_from, $currentY);
-        $pdf->Write(0, !empty($we['work_exp_from']) ? Carbon::parse($we['work_exp_from'])->format('m/d/Y') : '');
+        $this->writeFittedAt(
+            $pdf,
+            $this->dateOrNa($we['work_exp_from'] ?? null),
+            $x_from,
+            $currentY,
+            16.5,
+            6.5,
+            4.5
+        );
 
-        $this->setXY($pdf, $x_to, $currentY);
-        $pdf->Write(0, !empty($we['work_exp_to']) ? Carbon::parse($we['work_exp_to'])->format('m/d/Y') : '');
+        $this->writeFittedAt(
+            $pdf,
+            $this->dateOrNa($we['work_exp_to'] ?? null),
+            $x_to,
+            $currentY,
+            17.5,
+            6.5,
+            4.5
+        );
 
-        $this->setXY($pdf, $x_position, $currentY);
-        $pdf->Write(0, $we['work_exp_position'] ?? '');
+        $this->writeFittedAt($pdf, $this->valueOrNa($we['work_exp_position'] ?? null), $x_position, $currentY, 53, 7.0, 5.0);
 
-        $this->writeWrapped($pdf, $we['work_exp_department'] ?? '', 55, $x_agency, $currentY, $currentY - 1.5, 6, 2);
+        $this->writeWrapped($pdf, $this->valueOrNa($we['work_exp_department'] ?? null), 55, $x_agency, $currentY, $currentY - 1.5, 6, 2);
 
-        $this->setXY($pdf, $x_salary, $currentY);
-        $pdf->Write(0, $we['work_exp_salary'] ?? '');
+        $this->writeFittedAt($pdf, $this->valueOrNa($we['work_exp_salary'] ?? null), $x_salary, $currentY, 16.8, 7.0, 4.5);
 
-        $this->setXY($pdf, $x_grade, $currentY);
-        $pdf->Write(0, $we['work_exp_grade'] ?? '');
+        $this->writeFittedAt($pdf, $this->valueOrNa($we['work_exp_grade'] ?? null), $x_grade, $currentY, 10.5, 6.5, 4.5);
 
-        $this->writeWrapped($pdf, $we['work_exp_status'] ?? '', 20, $x_status, $currentY, $currentY - 1.5, 6, 2);
+        $this->writeFittedAt($pdf, $this->valueOrNa($we['work_exp_status'] ?? null), $x_status, $currentY, 20.5, 6.5, 4.5);
 
-        $this->setXY($pdf, $x_gov, $currentY);
-        $pdf->Write(0, isset($we['work_exp_govt_service']) ? ($we['work_exp_govt_service'] ? 'Y' : 'N') : '');
+        $this->writeCenteredFitted(
+            $pdf,
+            isset($we['work_exp_govt_service']) ? ($we['work_exp_govt_service'] ? 'Y' : 'N') : 'N/A',
+            $x_gov,
+            205.8,
+            $currentY
+        );
     }
 }
 
@@ -1327,18 +1310,18 @@ private function writeVoluntaryWorkChunk($pdf, $chunk)
     foreach ($chunk as $index => $vw) {
         $currentY = $startY + ($index * $rowHeight);
 
-        $this->writeWrapped($pdf, $vw['voluntary_org'] ?? '', 115, $x_org, $currentY, $currentY - 1, 6, 2);
+        $this->writeWrapped($pdf, $this->valueOrNa($vw['voluntary_org'] ?? null), 115, $x_org, $currentY, $currentY - 1, 6, 2);
 
         $this->setXY($pdf, $x_from, $currentY);
-        $pdf->Write(0, !empty($vw['voluntary_from']) ? Carbon::parse($vw['voluntary_from'])->format('m/d/Y') : '');
+        $pdf->Write(0, $this->dateOrNa($vw['voluntary_from'] ?? null));
 
         $this->setXY($pdf, $x_to, $currentY);
-        $pdf->Write(0, !empty($vw['voluntary_to']) ? Carbon::parse($vw['voluntary_to'])->format('m/d/Y') : '');
+        $pdf->Write(0, $this->dateOrNa($vw['voluntary_to'] ?? null));
 
         $this->setXY($pdf, $x_hours, $currentY);
-        $pdf->Write(0, $vw['voluntary_hours'] ?? '');
+        $pdf->Write(0, $this->valueOrNa($vw['voluntary_hours'] ?? null));
 
-        $this->writeWrapped($pdf, $vw['voluntary_position'] ?? '', 60, $x_position, $currentY, $currentY - 1, 7, 3);
+        $this->writeWrapped($pdf, $this->valueOrNa($vw['voluntary_position'] ?? null), 60, $x_position, $currentY, $currentY - 1, 7, 3);
     }
 }
 
@@ -1382,21 +1365,21 @@ private function writeLearningAndDevelopmentChunk($pdf, $chunk)
     foreach ($chunk as $index => $lnd) {
         $currentY = $startY + ($index * $rowHeight);
 
-        $this->writeWrapped($pdf, $lnd['learning_title'] ?? '', 105, $x_title, $currentY, $currentY - 1, 6, 2);
+        $this->writeWrapped($pdf, $this->valueOrNa($lnd['learning_title'] ?? null), 105, $x_title, $currentY, $currentY - 1, 6, 2);
 
         $this->setXY($pdf, $x_type, $currentY);
-        $pdf->Write(0, $lnd['learning_type'] ?? '');
+        $pdf->Write(0, $this->valueOrNa($lnd['learning_type'] ?? null));
 
         $this->setXY($pdf, $x_from, $currentY);
-        $pdf->Write(0, !empty($lnd['learning_from']) ? Carbon::parse($lnd['learning_from'])->format('m/d/Y') : '');
+        $pdf->Write(0, $this->dateOrNa($lnd['learning_from'] ?? null));
 
         $this->setXY($pdf, $x_to, $currentY);
-        $pdf->Write(0, !empty($lnd['learning_to']) ? Carbon::parse($lnd['learning_to'])->format('m/d/Y') : '');
+        $pdf->Write(0, $this->dateOrNa($lnd['learning_to'] ?? null));
 
         $this->setXY($pdf, $x_hours, $currentY);
-        $pdf->Write(0, $lnd['learning_hours'] ?? '');
+        $pdf->Write(0, $this->valueOrNa($lnd['learning_hours'] ?? null));
 
-        $this->writeWrapped($pdf, $lnd['learning_conducted'] ?? '', 47.3, $x_conducted, $currentY, $currentY - 1, 6, 2);
+        $this->writeWrapped($pdf, $this->valueOrNa($lnd['learning_conducted'] ?? null), 47.3, $x_conducted, $currentY, $currentY - 1, 6, 2);
     }
 }
 
@@ -1559,18 +1542,18 @@ private function WriteC4Information($pdf, $userId)
         $this->setFont($pdf, 'Arial', '', 8);
 
         // Detail fields
-        $this->setXY($pdf, 141.224, 40.3);  $pdf->Write(0, $info['fourth_degree'][1]  ?? '');
-        $this->setXY($pdf, 141.224, 56);    $pdf->Write(0, $info['guilty'][1] ?? '');
-        $this->setXY($pdf, 163, 73);        $pdf->Write(0, $info['charged'][1] ?? '');
-        $this->setXY($pdf, 163, 77.5);      $pdf->Write(0, $info['charged'][2] ?? '');
-        $this->setXY($pdf, 141.224, 94);    $pdf->Write(0, $info['convicted'][1] ?? '');
-        $this->setXY($pdf, 141.224, 108);   $pdf->Write(0, $info['separated'][1] ?? '');
-        $this->setXY($pdf, 163, 119);       $pdf->Write(0, $info['candidate'][1] ?? '');
-        $this->setXY($pdf, 163, 130);       $pdf->Write(0, $info['resigned'][1] ?? '');
-        $this->setXY($pdf, 141.224, 145.5); $pdf->Write(0, $info['immigrant'][1] ?? '');
-        $this->setXY($pdf, 177, 165.5);     $pdf->Write(0, $info['indigenous'][1] ?? '');
-        $this->setXY($pdf, 177, 174);       $pdf->Write(0, $info['disability'][1] ?? '');
-        $this->setXY($pdf, 177, 182);       $pdf->Write(0, $info['solo_parent'][1] ?? '');
+        $this->writeFittedAt($pdf, (string) ($info['fourth_degree'][1] ?? ''), 141.224, 40.3, 56, 7.0, 5.0);
+        $this->writeFittedAt($pdf, (string) ($info['guilty'][1] ?? ''), 141.224, 56, 56, 7.0, 5.0);
+        $this->writeFittedAt($pdf, (string) ($info['charged'][1] ?? ''), 163, 73, 40, 7.0, 5.0);
+        $this->writeFittedAt($pdf, (string) ($info['charged'][2] ?? ''), 163, 77.5, 40, 7.0, 5.0);
+        $this->writeFittedAt($pdf, (string) ($info['convicted'][1] ?? ''), 141.224, 94, 56, 7.0, 5.0);
+        $this->writeFittedAt($pdf, (string) ($info['separated'][1] ?? ''), 141.224, 108, 56, 7.0, 5.0);
+        $this->writeFittedAt($pdf, (string) ($info['candidate'][1] ?? ''), 163, 119, 40, 7.0, 5.0);
+        $this->writeFittedAt($pdf, (string) ($info['resigned'][1] ?? ''), 163, 130, 40, 7.0, 5.0);
+        $this->writeFittedAt($pdf, (string) ($info['immigrant'][1] ?? ''), 141.224, 145.5, 62, 7.0, 5.0);
+        $this->writeFittedAt($pdf, (string) ($info['indigenous'][1] ?? ''), 177, 165.5, 26, 6.5, 4.5);
+        $this->writeFittedAt($pdf, (string) ($info['disability'][1] ?? ''), 177, 174, 26, 6.5, 4.5);
+        $this->writeFittedAt($pdf, (string) ($info['solo_parent'][1] ?? ''), 177, 182, 26, 6.5, 4.5);
 
         // Reference table
         $x_name = 5.145;
@@ -1581,17 +1564,21 @@ private function WriteC4Information($pdf, $userId)
         foreach ($info['references'] as $i => $ref) {
             if ($i >= count($y_refs)) break;
             $y = $y_refs[$i];
-            $this->writeFittedAt($pdf, (string) ($ref['name'] ?? ''), $x_name, $y, 76, 7.5, 5.0);
-            $this->writeWrapped($pdf, $ref['address'] ?? '', 50, $x_address, $y, $y - 1.5, 6, 2);
-            $this->writeFittedAt($pdf, (string) ($ref['tel'] ?? ''), $x_telno, $y, 24, 7.5, 5.0);
+            $this->writeFittedAt($pdf, $this->valueOrNa($ref['name'] ?? null), $x_name, $y, 76, 7.5, 5.0);
+            $this->writeWrapped($pdf, $this->valueOrNa($ref['address'] ?? null), 50, $x_address, $y, $y - 1.5, 6, 2);
+            $this->writeFittedAt($pdf, $this->valueOrNa($ref['tel'] ?? null), $x_telno, $y, 24, 7.5, 5.0);
         }
 
         // ID Section
-        $this->writeFittedAt($pdf, (string) ($info['govt_id'] ?? ''), 31, 258.3, 58, 7.5, 5.0); // Only govt ID type
-        $this->writeFittedAt($pdf, (string) ($info['other_id'] ?? ''), 31, 265, 58, 7.5, 5.0); // Govt ID number only
+        $this->writeFittedAt($pdf, $this->valueOrNa($info['govt_id'] ?? null), 31, 258.3, 58, 7.5, 5.0); // Only govt ID type
+        $this->writeFittedAt($pdf, $this->valueOrNa($info['other_id'] ?? null), 31, 265, 58, 7.5, 5.0); // Govt ID number only
 
-        $formattedIssuedDate = $info['issue_date'] ? Carbon::parse($info['issue_date'])->format('m/d/Y') : '';
-        $this->writeFittedAt($pdf, trim(($info['issue_place'] ?? '') . ' | ' . $formattedIssuedDate), 31, 271.9, 86, 7.0, 5.0);
+        $issuePlace = trim((string) ($info['issue_place'] ?? ''));
+        $issuedDate = $this->dateOrNa($info['issue_date'] ?? null);
+        $issuedText = $issuePlace === ''
+            ? $issuedDate
+            : trim($issuePlace . ' | ' . ($issuedDate === 'N/A' ? '' : $issuedDate), " |\t\n\r\0\x0B");
+        $this->writeFittedAt($pdf, $this->valueOrNa($issuedText), 31, 271.9, 86, 7.0, 5.0);
     }
 
 
@@ -1606,14 +1593,60 @@ private function getWriteCentered()
 
 private function markCheckbox($pdf, float $x, float $y): void
 {
-    $this->setFont($pdf, 'Arial', 'B', 6.5);
-    $this->setXY($pdf, $x + 0.8, $y + 0.3);
+    $isPage4 = $this->currentTemplatePage === 4;
+    if ($isPage4) {
+        // Draw a geometric "X" so page 4 checkboxes stay centered regardless of font metrics.
+        $this->setXY($pdf, $x + 0.35, $y + 0.25);
+        $x1 = $pdf->GetX();
+        $y1 = $pdf->GetY();
+
+        $this->setXY($pdf, $x + 1.45, $y + 1.35);
+        $x2 = $pdf->GetX();
+        $y2 = $pdf->GetY();
+
+        $this->setXY($pdf, $x + 1.45, $y + 0.25);
+        $x3 = $pdf->GetX();
+        $y3 = $pdf->GetY();
+
+        $this->setXY($pdf, $x + 0.35, $y + 1.35);
+        $x4 = $pdf->GetX();
+        $y4 = $pdf->GetY();
+
+        $pdf->SetDrawColor(0, 0, 0);
+        $pdf->SetLineWidth(0.25);
+        $pdf->Line($x1, $y1, $x2, $y2);
+        $pdf->Line($x3, $y3, $x4, $y4);
+        return;
+    }
+
+    $fontSize = 5.8;
+    $xOffset = 0.30;
+    $yOffset = 0.00;
+
+    $this->setFont($pdf, 'Arial', 'B', $fontSize);
+    $this->setXY($pdf, $x + $xOffset, $y + $yOffset);
     $pdf->Write(0, 'X');
     $this->setFont($pdf, 'Arial', '', 8);
 }
 
+private function clearLegacyHeaderNote(Fpdi $pdf): void
+{
+    // Disabled: user requested no white cover on the "CS Form No. 212 Revised 2025" label.
+}
+
+private function getPageXScale(): float
+{
+    return ($this->isShortBondTemplate && $this->currentTemplatePage >= 2) ? 0.895 : 1.0;
+}
+
+private function getEffectiveMaxWidth(float $maxWidth): float
+{
+    return max(1.0, $maxWidth * $this->getPageXScale());
+}
+
 private function fitTextToWidth($pdf, string $text, float $maxWidth, float $baseSize = 8.0, float $minSize = 5.0): array
 {
+    $effectiveMaxWidth = $this->getEffectiveMaxWidth($maxWidth);
     $display = trim($text);
     if ($display === '') {
         return ['', $baseSize, 0.0];
@@ -1622,13 +1655,13 @@ private function fitTextToWidth($pdf, string $text, float $maxWidth, float $base
     for ($size = $baseSize; $size >= $minSize; $size -= 0.5) {
         $this->setFont($pdf, 'Arial', '', $size);
         $width = $pdf->GetStringWidth($display);
-        if ($width <= $maxWidth) {
+        if ($width <= $effectiveMaxWidth) {
             return [$display, $size, $width];
         }
     }
 
     $this->setFont($pdf, 'Arial', '', $minSize);
-    $display = $this->truncateToWidth($pdf, $display, $maxWidth);
+    $display = $this->truncateToWidth($pdf, $display, $effectiveMaxWidth);
     return [$display, $minSize, $pdf->GetStringWidth($display)];
 }
 
@@ -1658,7 +1691,10 @@ private function writeCenteredFitted($pdf, string $text, float $startX, float $e
 {
     $maxWidth = max(1.0, ($endX - $startX) - 0.5);
     [$display, $size, $width] = $this->fitTextToWidth($pdf, $text, $maxWidth, 8.0, 5.0);
-    $centerX = $startX + ((($endX - $startX) - $width) / 2);
+    $pageXScale = $this->getPageXScale();
+    $usableWidth = $this->getEffectiveMaxWidth($endX - $startX);
+    $leftPadding = max(0.0, (($usableWidth - $width) / 2) / $pageXScale);
+    $centerX = $startX + $leftPadding;
     $this->setXY($pdf, $centerX, $y);
     $pdf->Write(0, $display);
     $this->setFont($pdf, 'Arial', '', 8);
@@ -1680,6 +1716,7 @@ private function writeWrapped($pdf, $text, $maxWidth, $x, $ySingle, $yMultiple, 
     if ($text === '') {
         return;
     }
+    $maxWidth = $this->getEffectiveMaxWidth((float) $maxWidth);
 
     $minFont = 5.0;
     $targetLines = 3;
@@ -1770,6 +1807,734 @@ private function splitTextByWidth($pdf, string $text, float $maxWidth): array
     }
 
     return $lines;
+}
+
+private function tryExportViaExcelTemplate(
+    Request $request,
+    $personalInfo,
+    $familyBackground,
+    $educationalBackground,
+    array $civilServiceRows,
+    array $workExperienceRows,
+    array $voluntaryRows,
+    array $lndRows,
+    $otherInfo,
+    $miscInfo,
+    array $residential,
+    array $permanent,
+    array $children,
+    array $vocational,
+    array $college,
+    array $grad,
+    array $skills,
+    array $distinctions,
+    array $organizations
+): ?array {
+    $excelTemplate = base_path('ANNEX H-1 - CS Form No. 212 Revised 2025 - Personal Data Sheet.xlsx');
+    if (!file_exists($excelTemplate)) {
+        return null;
+    }
+
+    try {
+        $tempDir = storage_path('app/temp');
+        if (!is_dir($tempDir)) {
+            @mkdir($tempDir, 0775, true);
+        }
+
+        $token = bin2hex(random_bytes(8));
+        $jsonPath = $tempDir . DIRECTORY_SEPARATOR . "pds_excel_map_{$token}.json";
+
+        $cellMap = $this->buildExcelCellMap(
+            $personalInfo,
+            $familyBackground,
+            $educationalBackground,
+            $civilServiceRows,
+            $workExperienceRows,
+            $voluntaryRows,
+            $lndRows,
+            $miscInfo,
+            $residential,
+            $permanent,
+            $children,
+            $vocational,
+            $college,
+            $grad,
+            $skills,
+            $distinctions,
+            $organizations
+        );
+        file_put_contents($jsonPath, json_encode($cellMap, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+
+        $timestamp = date('Y-m-d_His');
+        $filename = "ExportPDS_{$timestamp}.pdf";
+        $outputPdf = storage_path("app/public/{$filename}");
+
+        $ok = $this->runExcelPdfExport($excelTemplate, $jsonPath, $outputPdf);
+        @unlink($jsonPath);
+        if (!$ok || !file_exists($outputPdf)) {
+            return null;
+        }
+
+        return [
+            'path' => $outputPdf,
+            'filename' => $filename,
+        ];
+    } catch (\Throwable $e) {
+        Log::warning('Excel template PDS export failed; falling back to FPDI.', [
+            'error' => $e->getMessage(),
+        ]);
+        return null;
+    }
+}
+
+private function runExcelPdfExport(string $templateXlsx, string $jsonPath, string $outputPdf): bool
+{
+    $powershell = 'C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe';
+    $scriptPath = base_path('scripts/export_excel_to_pdf.ps1');
+    if (!file_exists($powershell) || !file_exists($scriptPath) || !file_exists($templateXlsx) || !file_exists($jsonPath)) {
+        return false;
+    }
+
+    try {
+        $process = new Process([
+            $powershell,
+            '-NoProfile',
+            '-ExecutionPolicy',
+            'Bypass',
+            '-File',
+            $scriptPath,
+            '-TemplateXlsx',
+            $templateXlsx,
+            '-DataJson',
+            $jsonPath,
+            '-OutputPdf',
+            $outputPdf,
+        ]);
+        $process->setTimeout(180);
+        $process->run();
+
+        if (!$process->isSuccessful()) {
+            Log::warning('Excel PDF export process failed.', [
+                'exit_code' => $process->getExitCode(),
+                'error_output' => $process->getErrorOutput(),
+                'output' => $process->getOutput(),
+            ]);
+            return false;
+        }
+
+        return file_exists($outputPdf) && filesize($outputPdf) > 0;
+    } catch (\Throwable $e) {
+        Log::warning('Excel PDF export invocation error.', [
+            'error' => $e->getMessage(),
+        ]);
+        return false;
+    }
+}
+
+private function respondWithGeneratedPdfPath(Request $request, string $path, string $filename)
+{
+    $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
+    $isMobile = preg_match('/Android|iPhone|iPad|iPod|webOS|BlackBerry|Windows Phone/i', $userAgent);
+    $forceInline = $request->boolean('preview');
+
+    if ($isMobile && !$forceInline) {
+        return redirect()
+            ->route('dashboard_user')
+            ->with('success', 'PDF generated successfully! You may download it from your dashboard.');
+    }
+
+    return response()->file($path, [
+        'Content-Type' => 'application/pdf',
+        'Content-Disposition' => 'inline; filename="' . $filename . '"',
+    ]);
+}
+
+private function buildExcelCellMap(
+    $personalInfo,
+    $familyBackground,
+    $educationalBackground,
+    array $civilServiceRows,
+    array $workExperienceRows,
+    array $voluntaryRows,
+    array $lndRows,
+    $misc,
+    array $residential,
+    array $permanent,
+    array $children,
+    array $vocational,
+    array $college,
+    array $grad,
+    array $skills,
+    array $distinctions,
+    array $organizations
+): array {
+    $map = [
+        'C1' => [],
+        'C2' => [],
+        'C3' => [],
+        'C4' => [],
+    ];
+
+    // C1
+    $this->mapSet($map, 'C1', 'D10', $this->excelValue($personalInfo?->surname));
+    $this->mapSet($map, 'C1', 'D11', $this->excelValue($personalInfo?->first_name));
+    $this->mapSet($map, 'C1', 'D12', $this->excelValue($personalInfo?->middle_name));
+    $this->mapSet($map, 'C1', 'L11', $this->excelValue($personalInfo?->name_extension));
+    $this->mapSet($map, 'C1', 'D13', $this->excelDate($personalInfo?->date_of_birth));
+    $this->mapSet($map, 'C1', 'D15', $this->excelValue($personalInfo?->place_of_birth));
+    $this->mapSet($map, 'C1', 'D16', $this->excelTitle($personalInfo?->sex));
+    $this->mapSet($map, 'C1', 'D17', $this->excelTitle($personalInfo?->civil_status));
+    $this->mapSet($map, 'C1', 'J13', $this->excelValue($personalInfo?->citizenship));
+    $this->mapSet($map, 'C1', 'L15', $this->excelValue($personalInfo?->dual_country));
+
+    $this->mapSet($map, 'C1', 'D22', $this->excelValue($personalInfo?->height));
+    $this->mapSet($map, 'C1', 'D24', $this->excelValue($personalInfo?->weight));
+    $this->mapSet($map, 'C1', 'D25', $this->excelValue($personalInfo?->blood_type));
+    $this->mapSet($map, 'C1', 'D27', $this->excelValue($personalInfo?->gsis_id_no));
+    $this->mapSet($map, 'C1', 'D29', $this->excelValue($personalInfo?->pagibig_id_no));
+    $this->mapSet($map, 'C1', 'D31', $this->excelValue($personalInfo?->philhealth_no));
+    $this->mapSet($map, 'C1', 'D32', $this->excelValue($personalInfo?->sss_id_no));
+    $this->mapSet($map, 'C1', 'D33', $this->excelValue($personalInfo?->tin_no));
+    $this->mapSet($map, 'C1', 'D34', $this->excelValue($personalInfo?->agency_employee_no));
+
+    $this->mapSet($map, 'C1', 'I18', $this->excelValue($residential[0] ?? ''));
+    $this->mapSet($map, 'C1', 'L18', $this->excelValue($residential[1] ?? ''));
+    $this->mapSet($map, 'C1', 'I21', $this->excelValue($residential[2] ?? ''));
+    $this->mapSet($map, 'C1', 'L21', $this->excelValue($residential[3] ?? ''));
+    $this->mapSet($map, 'C1', 'I23', $this->excelValue($residential[4] ?? ''));
+    $this->mapSet($map, 'C1', 'L23', $this->excelValue($residential[5] ?? ''));
+    $this->mapSet($map, 'C1', 'I24', $this->excelValue($residential[6] ?? ''));
+
+    $this->mapSet($map, 'C1', 'I26', $this->excelValue($permanent[0] ?? ''));
+    $this->mapSet($map, 'C1', 'L26', $this->excelValue($permanent[1] ?? ''));
+    $this->mapSet($map, 'C1', 'I28', $this->excelValue($permanent[2] ?? ''));
+    $this->mapSet($map, 'C1', 'L28', $this->excelValue($permanent[3] ?? ''));
+    $this->mapSet($map, 'C1', 'I30', $this->excelValue($permanent[4] ?? ''));
+    $this->mapSet($map, 'C1', 'L30', $this->excelValue($permanent[5] ?? ''));
+    $this->mapSet($map, 'C1', 'I31', $this->excelValue($permanent[6] ?? ''));
+    $this->mapSet($map, 'C1', 'I32', $this->excelValue($personalInfo?->telephone_no));
+    $this->mapSet($map, 'C1', 'I33', $this->excelValue($personalInfo?->mobile_no));
+    $this->mapSet($map, 'C1', 'I34', $this->excelValue($personalInfo?->email_address));
+
+    $this->mapSet($map, 'C1', 'D36', $this->excelValue($familyBackground?->spouse_surname));
+    $this->mapSet($map, 'C1', 'D37', $this->excelValue($familyBackground?->spouse_first_name));
+    $this->mapSet($map, 'C1', 'G37', $this->excelValue($familyBackground?->spouse_name_extension));
+    $this->mapSet($map, 'C1', 'D38', $this->excelValue($familyBackground?->spouse_middle_name));
+    $this->mapSet($map, 'C1', 'D39', $this->excelValue($familyBackground?->spouse_occupation));
+    $this->mapSet($map, 'C1', 'D40', $this->excelValue($familyBackground?->spouse_employer));
+    $this->mapSet($map, 'C1', 'D41', $this->excelValue($familyBackground?->spouse_business_address));
+    $this->mapSet($map, 'C1', 'D42', $this->excelValue($familyBackground?->spouse_telephone));
+    $this->mapSet($map, 'C1', 'D43', $this->excelValue($familyBackground?->father_surname));
+    $this->mapSet($map, 'C1', 'D44', $this->excelValue($familyBackground?->father_first_name));
+    $this->mapSet($map, 'C1', 'G44', $this->excelValue($familyBackground?->father_name_extension));
+    $this->mapSet($map, 'C1', 'D45', $this->excelValue($familyBackground?->father_middle_name));
+    $this->mapSet($map, 'C1', 'D47', $this->excelValue($familyBackground?->mother_maiden_surname));
+    $this->mapSet($map, 'C1', 'D48', $this->excelValue($familyBackground?->mother_maiden_first_name));
+    $this->mapSet($map, 'C1', 'D49', $this->excelValue($familyBackground?->mother_maiden_middle_name));
+
+    for ($i = 0; $i < 12; $i++) {
+        $row = 37 + $i;
+        $child = $children[$i] ?? [];
+        $this->mapSet($map, 'C1', "I{$row}", $this->excelValue($child['name'] ?? ''));
+        $this->mapSet($map, 'C1', "M{$row}", $this->excelDate($child['dob'] ?? null));
+    }
+
+    $voc = $vocational[0] ?? [];
+    $col = $college[0] ?? [];
+    $grd = $grad[0] ?? [];
+    $this->mapSet($map, 'C1', 'D54', $this->excelValue($educationalBackground?->elem_school));
+    $this->mapSet($map, 'C1', 'G54', $this->excelValue($educationalBackground?->elem_basic));
+    $this->mapSet($map, 'C1', 'J54', $this->excelDateMonthYear($educationalBackground?->elem_from));
+    $this->mapSet($map, 'C1', 'K54', $this->excelDateMonthYear($educationalBackground?->elem_to));
+    $this->mapSet($map, 'C1', 'L54', $this->excelValue($educationalBackground?->elem_earned));
+    $this->mapSet($map, 'C1', 'M54', $this->excelValue($educationalBackground?->elem_year_graduated));
+    $this->mapSet($map, 'C1', 'N54', $this->excelValue($educationalBackground?->elem_academic_honors));
+
+    $this->mapSet($map, 'C1', 'D55', $this->excelValue($educationalBackground?->jhs_school));
+    $this->mapSet($map, 'C1', 'G55', $this->excelValue($educationalBackground?->jhs_basic));
+    $this->mapSet($map, 'C1', 'J55', $this->excelDateMonthYear($educationalBackground?->jhs_from));
+    $this->mapSet($map, 'C1', 'K55', $this->excelDateMonthYear($educationalBackground?->jhs_to));
+    $this->mapSet($map, 'C1', 'L55', $this->excelValue($educationalBackground?->jhs_earned));
+    $this->mapSet($map, 'C1', 'M55', $this->excelValue($educationalBackground?->jhs_year_graduated));
+    $this->mapSet($map, 'C1', 'N55', $this->excelValue($educationalBackground?->jhs_academic_honors));
+
+    $this->mapSet($map, 'C1', 'D56', $this->excelValue($voc['school'] ?? ''));
+    $this->mapSet($map, 'C1', 'G56', $this->excelValue($voc['basic'] ?? ''));
+    $this->mapSet($map, 'C1', 'J56', $this->excelDateMonthYear($voc['from'] ?? null));
+    $this->mapSet($map, 'C1', 'K56', $this->excelDateMonthYear($voc['to'] ?? null));
+    $this->mapSet($map, 'C1', 'L56', $this->excelValue($voc['earned'] ?? ''));
+    $this->mapSet($map, 'C1', 'M56', $this->excelValue($voc['year_graduated'] ?? ''));
+    $this->mapSet($map, 'C1', 'N56', $this->excelValue($voc['academic_honors'] ?? ''));
+
+    $this->mapSet($map, 'C1', 'D57', $this->excelValue($col['school'] ?? ''));
+    $this->mapSet($map, 'C1', 'G57', $this->excelValue($col['basic'] ?? ''));
+    $this->mapSet($map, 'C1', 'J57', $this->excelDateMonthYear($col['from'] ?? null));
+    $this->mapSet($map, 'C1', 'K57', $this->excelDateMonthYear($col['to'] ?? null));
+    $this->mapSet($map, 'C1', 'L57', $this->excelValue($col['earned'] ?? ''));
+    $this->mapSet($map, 'C1', 'M57', $this->excelValue($col['year_graduated'] ?? ''));
+    $this->mapSet($map, 'C1', 'N57', $this->excelValue($col['academic_honors'] ?? ''));
+
+    $this->mapSet($map, 'C1', 'D58', $this->excelValue($grd['school'] ?? ''));
+    $this->mapSet($map, 'C1', 'G58', $this->excelValue($grd['basic'] ?? ''));
+    $this->mapSet($map, 'C1', 'J58', $this->excelDateMonthYear($grd['from'] ?? null));
+    $this->mapSet($map, 'C1', 'K58', $this->excelDateMonthYear($grd['to'] ?? null));
+    $this->mapSet($map, 'C1', 'L58', $this->excelValue($grd['earned'] ?? ''));
+    $this->mapSet($map, 'C1', 'M58', $this->excelValue($grd['year_graduated'] ?? ''));
+    $this->mapSet($map, 'C1', 'N58', $this->excelValue($grd['academic_honors'] ?? ''));
+    $this->mapSet($map, 'C1', 'J60', Carbon::now()->format('m/d/Y'));
+
+    // C2
+    $cse = array_slice($civilServiceRows, 0, 7);
+    foreach ($cse as $i => $row) {
+        $excelRow = 5 + $i;
+        $this->mapSet($map, 'C2', "B{$excelRow}", $this->excelValue($row['cs_eligibility_career'] ?? ''));
+        $this->mapSet($map, 'C2', "F{$excelRow}", $this->excelValue($row['cs_eligibility_rating'] ?? ''));
+        $this->mapSet($map, 'C2', "G{$excelRow}", $this->excelDate($row['cs_eligibility_date'] ?? null));
+        $this->mapSet($map, 'C2', "I{$excelRow}", $this->excelValue($row['cs_eligibility_place'] ?? ''));
+        $this->mapSet($map, 'C2', "J{$excelRow}", $this->excelValue($row['cs_eligibility_license'] ?? ''));
+        $this->mapSet($map, 'C2', "K{$excelRow}", $this->excelDate($row['cs_eligibility_validity'] ?? null));
+    }
+    if (empty($cse)) {
+        $this->mapSet($map, 'C2', 'B5', 'N/A');
+    }
+
+    $we = array_slice($workExperienceRows, 0, 28);
+    foreach ($we as $i => $row) {
+        $excelRow = 18 + $i;
+        $this->mapSet($map, 'C2', "A{$excelRow}", $this->excelDate($row['work_exp_from'] ?? null));
+        $this->mapSet($map, 'C2', "C{$excelRow}", $this->excelDate($row['work_exp_to'] ?? null));
+        $this->mapSet($map, 'C2', "D{$excelRow}", $this->excelValue($row['work_exp_position'] ?? ''));
+        $this->mapSet($map, 'C2', "G{$excelRow}", $this->excelValue($row['work_exp_department'] ?? ''));
+        $this->mapSet($map, 'C2', "J{$excelRow}", $this->excelValue($row['work_exp_status'] ?? ''));
+        $this->mapSet($map, 'C2', "K{$excelRow}", isset($row['work_exp_govt_service']) ? ($row['work_exp_govt_service'] ? 'Y' : 'N') : '');
+    }
+    if (empty($we)) {
+        $this->mapSet($map, 'C2', 'D18', 'N/A');
+    }
+    $this->mapSet($map, 'C2', 'I47', Carbon::now()->format('m/d/Y'));
+
+    // C3
+    $vw = array_slice($voluntaryRows, 0, 7);
+    foreach ($vw as $i => $row) {
+        $excelRow = 6 + $i;
+        $this->mapSet($map, 'C3', "B{$excelRow}", $this->excelValue($row['voluntary_org'] ?? ''));
+        $this->mapSet($map, 'C3', "E{$excelRow}", $this->excelDate($row['voluntary_from'] ?? null));
+        $this->mapSet($map, 'C3', "F{$excelRow}", $this->excelDate($row['voluntary_to'] ?? null));
+        $this->mapSet($map, 'C3', "G{$excelRow}", $this->excelValue($row['voluntary_hours'] ?? ''));
+        $this->mapSet($map, 'C3', "H{$excelRow}", $this->excelValue($row['voluntary_position'] ?? ''));
+    }
+    if (empty($vw)) {
+        $this->mapSet($map, 'C3', 'B6', 'N/A');
+    }
+
+    $lnd = array_slice($lndRows, 0, 21);
+    foreach ($lnd as $i => $row) {
+        $excelRow = 18 + $i;
+        $this->mapSet($map, 'C3', "B{$excelRow}", $this->excelValue($row['learning_title'] ?? ''));
+        $this->mapSet($map, 'C3', "E{$excelRow}", $this->excelDate($row['learning_from'] ?? null));
+        $this->mapSet($map, 'C3', "F{$excelRow}", $this->excelDate($row['learning_to'] ?? null));
+        $this->mapSet($map, 'C3', "G{$excelRow}", $this->excelValue($row['learning_hours'] ?? ''));
+        $this->mapSet($map, 'C3', "H{$excelRow}", $this->excelValue($row['learning_type'] ?? ''));
+        $this->mapSet($map, 'C3', "I{$excelRow}", $this->excelValue($row['learning_conducted'] ?? ''));
+    }
+    if (empty($lnd)) {
+        $this->mapSet($map, 'C3', 'B18', 'N/A');
+    }
+
+    for ($i = 0; $i < 7; $i++) {
+        $row = 42 + $i;
+        $this->mapSet($map, 'C3', "B{$row}", $this->excelValue($skills[$i] ?? ''));
+        $this->mapSet($map, 'C3', "C{$row}", $this->excelValue($distinctions[$i] ?? ''));
+        $this->mapSet($map, 'C3', "I{$row}", $this->excelValue($organizations[$i] ?? ''));
+    }
+    if (empty($skills) && empty($distinctions) && empty($organizations)) {
+        $this->mapSet($map, 'C3', 'B42', 'N/A');
+        $this->mapSet($map, 'C3', 'C42', 'N/A');
+        $this->mapSet($map, 'C3', 'I42', 'N/A');
+    }
+    $this->mapSet($map, 'C3', 'G50', Carbon::now()->format('m/d/Y'));
+
+    // C4
+    if ($misc) {
+        $criminalDetailsRaw = (string) ($misc->criminal_35_b ?? '');
+        $criminalDetails = explode(',', $criminalDetailsRaw);
+        $dateFiledRaw = trim((string) ($criminalDetails[0] ?? ''));
+        $caseStatusRaw = isset($criminalDetails[1]) ? trim((string) implode(',', array_slice($criminalDetails, 1))) : '';
+
+        $this->setExcelQuestionMap($map, 'C4', 'I6', 'K6', strtolower((string) ($misc->related_34_a ?? 'no')) !== 'no');
+        $this->setExcelQuestionMap($map, 'C4', 'I8', 'K8', strtolower((string) ($misc->related_34_b ?? 'no')) !== 'no');
+        $this->setExcelQuestionMap($map, 'C4', 'I13', 'K13', strtolower((string) ($misc->guilty_35_a ?? 'no')) !== 'no');
+        $this->setExcelQuestionMap($map, 'C4', 'I18', 'K18', strtolower($criminalDetailsRaw) !== 'no' && trim($criminalDetailsRaw) !== '');
+        $this->setExcelQuestionMap($map, 'C4', 'I23', 'K23', strtolower((string) ($misc->convicted_36 ?? 'no')) !== 'no');
+        $this->setExcelQuestionMap($map, 'C4', 'I27', 'K27', strtolower((string) ($misc->separated_37 ?? 'no')) !== 'no');
+        $this->setExcelQuestionMap($map, 'C4', 'I31', 'K31', strtolower((string) ($misc->candidate_38 ?? 'no')) !== 'no');
+        $this->setExcelQuestionMap($map, 'C4', 'I34', 'K34', strtolower((string) ($misc->resigned_38_b ?? 'no')) !== 'no');
+        $this->setExcelQuestionMap($map, 'C4', 'I37', 'K37', strtolower((string) ($misc->immigrant_39 ?? 'no')) !== 'no');
+        $this->setExcelQuestionMap($map, 'C4', 'I43', 'K43', strtolower((string) ($misc->indigenous_40_a ?? 'no')) !== 'no');
+        $this->setExcelQuestionMap($map, 'C4', 'I45', 'K45', strtolower((string) ($misc->pwd_40_b ?? 'no')) !== 'no');
+        $this->setExcelQuestionMap($map, 'C4', 'I47', 'K47', strtolower((string) ($misc->solo_parent_40_c ?? 'no')) !== 'no');
+
+        $this->mapSet($map, 'C4', 'G10', $this->excelDetail($misc->related_34_b));
+        $this->mapSet($map, 'C4', 'G14', $this->excelDetail($misc->guilty_35_a));
+        $this->mapSet($map, 'C4', 'H20', $this->excelDate($dateFiledRaw));
+        $this->mapSet($map, 'C4', 'G21', $this->excelValue($caseStatusRaw));
+        $this->mapSet($map, 'C4', 'G24', $this->excelDetail($misc->convicted_36));
+        $this->mapSet($map, 'C4', 'G28', $this->excelDetail($misc->separated_37));
+        $this->mapSet($map, 'C4', 'G32', $this->excelDetail($misc->candidate_38));
+        $this->mapSet($map, 'C4', 'G35', $this->excelDetail($misc->resigned_38_b));
+        $this->mapSet($map, 'C4', 'G38', $this->excelDetail($misc->immigrant_39));
+        $this->mapSet($map, 'C4', 'G44', $this->excelDetail($misc->indigenous_40_a));
+        $this->mapSet($map, 'C4', 'G46', $this->excelDetail($misc->pwd_40_b));
+        $this->mapSet($map, 'C4', 'G48', $this->excelDetail($misc->solo_parent_40_c));
+
+        $this->mapSet($map, 'C4', 'A52', $this->excelValue($misc->ref1_name));
+        $this->mapSet($map, 'C4', 'F52', $this->excelValue($misc->ref1_address));
+        $this->mapSet($map, 'C4', 'G52', $this->excelValue($misc->ref1_tel));
+        $this->mapSet($map, 'C4', 'A53', $this->excelValue($misc->ref2_name));
+        $this->mapSet($map, 'C4', 'F53', $this->excelValue($misc->ref2_address));
+        $this->mapSet($map, 'C4', 'G53', $this->excelValue($misc->ref2_tel));
+        $this->mapSet($map, 'C4', 'A54', $this->excelValue($misc->ref3_name));
+        $this->mapSet($map, 'C4', 'F54', $this->excelValue($misc->ref3_address));
+        $this->mapSet($map, 'C4', 'G54', $this->excelValue($misc->ref3_tel));
+
+        $this->mapSet($map, 'C4', 'B61', $this->excelValue($misc->govt_id_type));
+        $this->mapSet($map, 'C4', 'B62', $this->excelValue($misc->govt_id_number));
+        $this->mapSet($map, 'C4', 'B64', trim($this->excelValue($misc->govt_id_place_issued) . ' | ' . $this->excelDate($misc->govt_id_date_issued)));
+        $this->mapSet($map, 'C4', 'F65', Carbon::now()->format('m/d/Y'));
+    }
+
+    return $map;
+}
+
+private function mapSet(array &$map, string $sheet, string $cell, string $value): void
+{
+    if ($value === '') {
+        return;
+    }
+    $map[$sheet][$cell] = $value;
+}
+
+private function setExcelQuestionMap(array &$map, string $sheet, string $yesCell, string $noCell, bool $yes): void
+{
+    $map[$sheet][$yesCell] = $yes ? 'X' : '';
+    $map[$sheet][$noCell] = $yes ? '' : 'X';
+}
+
+private function fillExcelC1(
+    $sheet,
+    $personalInfo,
+    $familyBackground,
+    $educationalBackground,
+    array $residential,
+    array $permanent,
+    array $children,
+    array $vocational,
+    array $college,
+    array $grad
+): void {
+    $sheet->setCellValue('D10', $this->excelValue($personalInfo?->surname));
+    $sheet->setCellValue('D11', $this->excelValue($personalInfo?->first_name));
+    $sheet->setCellValue('D12', $this->excelValue($personalInfo?->middle_name));
+    $sheet->setCellValue('L11', $this->excelValue($personalInfo?->name_extension));
+    $sheet->setCellValue('D13', $this->excelDate($personalInfo?->date_of_birth));
+    $sheet->setCellValue('D15', $this->excelValue($personalInfo?->place_of_birth));
+    $sheet->setCellValue('D16', $this->excelTitle($personalInfo?->sex));
+    $sheet->setCellValue('D17', $this->excelTitle($personalInfo?->civil_status));
+    $sheet->setCellValue('J13', $this->excelValue($personalInfo?->citizenship));
+    $sheet->setCellValue('L15', $this->excelValue($personalInfo?->dual_country));
+
+    $sheet->setCellValue('D22', $this->excelValue($personalInfo?->height));
+    $sheet->setCellValue('D24', $this->excelValue($personalInfo?->weight));
+    $sheet->setCellValue('D25', $this->excelValue($personalInfo?->blood_type));
+    $sheet->setCellValue('D27', $this->excelValue($personalInfo?->gsis_id_no));
+    $sheet->setCellValue('D29', $this->excelValue($personalInfo?->pagibig_id_no));
+    $sheet->setCellValue('D31', $this->excelValue($personalInfo?->philhealth_no));
+    $sheet->setCellValue('D32', $this->excelValue($personalInfo?->sss_id_no));
+    $sheet->setCellValue('D33', $this->excelValue($personalInfo?->tin_no));
+    $sheet->setCellValue('D34', $this->excelValue($personalInfo?->agency_employee_no));
+
+    $sheet->setCellValue('I18', $this->excelValue($residential[0] ?? ''));
+    $sheet->setCellValue('L18', $this->excelValue($residential[1] ?? ''));
+    $sheet->setCellValue('I21', $this->excelValue($residential[2] ?? ''));
+    $sheet->setCellValue('L21', $this->excelValue($residential[3] ?? ''));
+    $sheet->setCellValue('I23', $this->excelValue($residential[4] ?? ''));
+    $sheet->setCellValue('L23', $this->excelValue($residential[5] ?? ''));
+    $sheet->setCellValue('I24', $this->excelValue($residential[6] ?? ''));
+
+    $sheet->setCellValue('I26', $this->excelValue($permanent[0] ?? ''));
+    $sheet->setCellValue('L26', $this->excelValue($permanent[1] ?? ''));
+    $sheet->setCellValue('I28', $this->excelValue($permanent[2] ?? ''));
+    $sheet->setCellValue('L28', $this->excelValue($permanent[3] ?? ''));
+    $sheet->setCellValue('I30', $this->excelValue($permanent[4] ?? ''));
+    $sheet->setCellValue('L30', $this->excelValue($permanent[5] ?? ''));
+    $sheet->setCellValue('I31', $this->excelValue($permanent[6] ?? ''));
+    $sheet->setCellValue('I32', $this->excelValue($personalInfo?->telephone_no));
+    $sheet->setCellValue('I33', $this->excelValue($personalInfo?->mobile_no));
+    $sheet->setCellValue('I34', $this->excelValue($personalInfo?->email_address));
+
+    $sheet->setCellValue('D36', $this->excelValue($familyBackground?->spouse_surname));
+    $sheet->setCellValue('D37', $this->excelValue($familyBackground?->spouse_first_name));
+    $sheet->setCellValue('G37', $this->excelValue($familyBackground?->spouse_name_extension));
+    $sheet->setCellValue('D38', $this->excelValue($familyBackground?->spouse_middle_name));
+    $sheet->setCellValue('D39', $this->excelValue($familyBackground?->spouse_occupation));
+    $sheet->setCellValue('D40', $this->excelValue($familyBackground?->spouse_employer));
+    $sheet->setCellValue('D41', $this->excelValue($familyBackground?->spouse_business_address));
+    $sheet->setCellValue('D42', $this->excelValue($familyBackground?->spouse_telephone));
+    $sheet->setCellValue('D43', $this->excelValue($familyBackground?->father_surname));
+    $sheet->setCellValue('D44', $this->excelValue($familyBackground?->father_first_name));
+    $sheet->setCellValue('G44', $this->excelValue($familyBackground?->father_name_extension));
+    $sheet->setCellValue('D45', $this->excelValue($familyBackground?->father_middle_name));
+    $sheet->setCellValue('D47', $this->excelValue($familyBackground?->mother_maiden_surname));
+    $sheet->setCellValue('D48', $this->excelValue($familyBackground?->mother_maiden_first_name));
+    $sheet->setCellValue('D49', $this->excelValue($familyBackground?->mother_maiden_middle_name));
+
+    for ($i = 0; $i < 12; $i++) {
+        $row = 37 + $i;
+        $child = $children[$i] ?? [];
+        $sheet->setCellValue("I{$row}", $this->excelValue($child['name'] ?? ''));
+        $sheet->setCellValue("M{$row}", $this->excelDate($child['dob'] ?? null));
+    }
+
+    $voc = $vocational[0] ?? [];
+    $col = $college[0] ?? [];
+    $grd = $grad[0] ?? [];
+
+    $sheet->setCellValue('D54', $this->excelValue($educationalBackground?->elem_school));
+    $sheet->setCellValue('G54', $this->excelValue($educationalBackground?->elem_basic));
+    $sheet->setCellValue('J54', $this->excelDateMonthYear($educationalBackground?->elem_from));
+    $sheet->setCellValue('K54', $this->excelDateMonthYear($educationalBackground?->elem_to));
+    $sheet->setCellValue('L54', $this->excelValue($educationalBackground?->elem_earned));
+    $sheet->setCellValue('M54', $this->excelValue($educationalBackground?->elem_year_graduated));
+    $sheet->setCellValue('N54', $this->excelValue($educationalBackground?->elem_academic_honors));
+
+    $sheet->setCellValue('D55', $this->excelValue($educationalBackground?->jhs_school));
+    $sheet->setCellValue('G55', $this->excelValue($educationalBackground?->jhs_basic));
+    $sheet->setCellValue('J55', $this->excelDateMonthYear($educationalBackground?->jhs_from));
+    $sheet->setCellValue('K55', $this->excelDateMonthYear($educationalBackground?->jhs_to));
+    $sheet->setCellValue('L55', $this->excelValue($educationalBackground?->jhs_earned));
+    $sheet->setCellValue('M55', $this->excelValue($educationalBackground?->jhs_year_graduated));
+    $sheet->setCellValue('N55', $this->excelValue($educationalBackground?->jhs_academic_honors));
+
+    $sheet->setCellValue('D56', $this->excelValue($voc['school'] ?? ''));
+    $sheet->setCellValue('G56', $this->excelValue($voc['basic'] ?? ''));
+    $sheet->setCellValue('J56', $this->excelDateMonthYear($voc['from'] ?? null));
+    $sheet->setCellValue('K56', $this->excelDateMonthYear($voc['to'] ?? null));
+    $sheet->setCellValue('L56', $this->excelValue($voc['earned'] ?? ''));
+    $sheet->setCellValue('M56', $this->excelValue($voc['year_graduated'] ?? ''));
+    $sheet->setCellValue('N56', $this->excelValue($voc['academic_honors'] ?? ''));
+
+    $sheet->setCellValue('D57', $this->excelValue($col['school'] ?? ''));
+    $sheet->setCellValue('G57', $this->excelValue($col['basic'] ?? ''));
+    $sheet->setCellValue('J57', $this->excelDateMonthYear($col['from'] ?? null));
+    $sheet->setCellValue('K57', $this->excelDateMonthYear($col['to'] ?? null));
+    $sheet->setCellValue('L57', $this->excelValue($col['earned'] ?? ''));
+    $sheet->setCellValue('M57', $this->excelValue($col['year_graduated'] ?? ''));
+    $sheet->setCellValue('N57', $this->excelValue($col['academic_honors'] ?? ''));
+
+    $sheet->setCellValue('D58', $this->excelValue($grd['school'] ?? ''));
+    $sheet->setCellValue('G58', $this->excelValue($grd['basic'] ?? ''));
+    $sheet->setCellValue('J58', $this->excelDateMonthYear($grd['from'] ?? null));
+    $sheet->setCellValue('K58', $this->excelDateMonthYear($grd['to'] ?? null));
+    $sheet->setCellValue('L58', $this->excelValue($grd['earned'] ?? ''));
+    $sheet->setCellValue('M58', $this->excelValue($grd['year_graduated'] ?? ''));
+    $sheet->setCellValue('N58', $this->excelValue($grd['academic_honors'] ?? ''));
+
+    $sheet->setCellValue('J60', Carbon::now()->format('m/d/Y'));
+}
+
+private function fillExcelC2($sheet, array $civilServiceRows, array $workExperienceRows): void
+{
+    $cse = array_slice($civilServiceRows, 0, 7);
+    foreach ($cse as $i => $row) {
+        $excelRow = 5 + $i;
+        $sheet->setCellValue("B{$excelRow}", $this->excelValue($row['cs_eligibility_career'] ?? ''));
+        $sheet->setCellValue("F{$excelRow}", $this->excelValue($row['cs_eligibility_rating'] ?? ''));
+        $sheet->setCellValue("G{$excelRow}", $this->excelDate($row['cs_eligibility_date'] ?? null));
+        $sheet->setCellValue("I{$excelRow}", $this->excelValue($row['cs_eligibility_place'] ?? ''));
+        $sheet->setCellValue("J{$excelRow}", $this->excelValue($row['cs_eligibility_license'] ?? ''));
+        $sheet->setCellValue("K{$excelRow}", $this->excelDate($row['cs_eligibility_validity'] ?? null));
+    }
+    if (empty($cse)) {
+        $sheet->setCellValue('B5', 'N/A');
+    }
+
+    $we = array_slice($workExperienceRows, 0, 28);
+    foreach ($we as $i => $row) {
+        $excelRow = 18 + $i;
+        $sheet->setCellValue("A{$excelRow}", $this->excelDate($row['work_exp_from'] ?? null));
+        $sheet->setCellValue("C{$excelRow}", $this->excelDate($row['work_exp_to'] ?? null));
+        $sheet->setCellValue("D{$excelRow}", $this->excelValue($row['work_exp_position'] ?? ''));
+        $sheet->setCellValue("G{$excelRow}", $this->excelValue($row['work_exp_department'] ?? ''));
+        $sheet->setCellValue("J{$excelRow}", $this->excelValue($row['work_exp_status'] ?? ''));
+        $sheet->setCellValue("K{$excelRow}", isset($row['work_exp_govt_service']) ? ($row['work_exp_govt_service'] ? 'Y' : 'N') : '');
+    }
+    if (empty($we)) {
+        $sheet->setCellValue('D18', 'N/A');
+    }
+
+    $sheet->setCellValue('I47', Carbon::now()->format('m/d/Y'));
+}
+
+private function fillExcelC3($sheet, array $voluntaryRows, array $lndRows, array $skills, array $distinctions, array $organizations): void
+{
+    $vw = array_slice($voluntaryRows, 0, 7);
+    foreach ($vw as $i => $row) {
+        $excelRow = 6 + $i;
+        $sheet->setCellValue("B{$excelRow}", $this->excelValue($row['voluntary_org'] ?? ''));
+        $sheet->setCellValue("E{$excelRow}", $this->excelDate($row['voluntary_from'] ?? null));
+        $sheet->setCellValue("F{$excelRow}", $this->excelDate($row['voluntary_to'] ?? null));
+        $sheet->setCellValue("G{$excelRow}", $this->excelValue($row['voluntary_hours'] ?? ''));
+        $sheet->setCellValue("H{$excelRow}", $this->excelValue($row['voluntary_position'] ?? ''));
+    }
+    if (empty($vw)) {
+        $sheet->setCellValue('B6', 'N/A');
+    }
+
+    $lnd = array_slice($lndRows, 0, 21);
+    foreach ($lnd as $i => $row) {
+        $excelRow = 18 + $i;
+        $sheet->setCellValue("B{$excelRow}", $this->excelValue($row['learning_title'] ?? ''));
+        $sheet->setCellValue("E{$excelRow}", $this->excelDate($row['learning_from'] ?? null));
+        $sheet->setCellValue("F{$excelRow}", $this->excelDate($row['learning_to'] ?? null));
+        $sheet->setCellValue("G{$excelRow}", $this->excelValue($row['learning_hours'] ?? ''));
+        $sheet->setCellValue("H{$excelRow}", $this->excelValue($row['learning_type'] ?? ''));
+        $sheet->setCellValue("I{$excelRow}", $this->excelValue($row['learning_conducted'] ?? ''));
+    }
+    if (empty($lnd)) {
+        $sheet->setCellValue('B18', 'N/A');
+    }
+
+    for ($i = 0; $i < 7; $i++) {
+        $row = 42 + $i;
+        $sheet->setCellValue("B{$row}", $this->excelValue($skills[$i] ?? ''));
+        $sheet->setCellValue("C{$row}", $this->excelValue($distinctions[$i] ?? ''));
+        $sheet->setCellValue("I{$row}", $this->excelValue($organizations[$i] ?? ''));
+    }
+    if (empty($skills) && empty($distinctions) && empty($organizations)) {
+        $sheet->setCellValue('B42', 'N/A');
+        $sheet->setCellValue('C42', 'N/A');
+        $sheet->setCellValue('I42', 'N/A');
+    }
+
+    $sheet->setCellValue('G50', Carbon::now()->format('m/d/Y'));
+}
+
+private function fillExcelC4($sheet, $misc): void
+{
+    if (!$misc) {
+        return;
+    }
+
+    $criminalDetailsRaw = (string) ($misc->criminal_35_b ?? '');
+    $criminalDetails = explode(',', $criminalDetailsRaw);
+    $dateFiledRaw = trim((string) ($criminalDetails[0] ?? ''));
+    $caseStatusRaw = isset($criminalDetails[1]) ? trim((string) implode(',', array_slice($criminalDetails, 1))) : '';
+
+    $this->setExcelQuestion($sheet, 'I6', 'K6', strtolower((string) ($misc->related_34_a ?? 'no')) !== 'no');
+    $this->setExcelQuestion($sheet, 'I8', 'K8', strtolower((string) ($misc->related_34_b ?? 'no')) !== 'no');
+    $this->setExcelQuestion($sheet, 'I13', 'K13', strtolower((string) ($misc->guilty_35_a ?? 'no')) !== 'no');
+    $this->setExcelQuestion($sheet, 'I18', 'K18', strtolower($criminalDetailsRaw) !== 'no' && trim($criminalDetailsRaw) !== '');
+    $this->setExcelQuestion($sheet, 'I23', 'K23', strtolower((string) ($misc->convicted_36 ?? 'no')) !== 'no');
+    $this->setExcelQuestion($sheet, 'I27', 'K27', strtolower((string) ($misc->separated_37 ?? 'no')) !== 'no');
+    $this->setExcelQuestion($sheet, 'I31', 'K31', strtolower((string) ($misc->candidate_38 ?? 'no')) !== 'no');
+    $this->setExcelQuestion($sheet, 'I34', 'K34', strtolower((string) ($misc->resigned_38_b ?? 'no')) !== 'no');
+    $this->setExcelQuestion($sheet, 'I37', 'K37', strtolower((string) ($misc->immigrant_39 ?? 'no')) !== 'no');
+    $this->setExcelQuestion($sheet, 'I43', 'K43', strtolower((string) ($misc->indigenous_40_a ?? 'no')) !== 'no');
+    $this->setExcelQuestion($sheet, 'I45', 'K45', strtolower((string) ($misc->pwd_40_b ?? 'no')) !== 'no');
+    $this->setExcelQuestion($sheet, 'I47', 'K47', strtolower((string) ($misc->solo_parent_40_c ?? 'no')) !== 'no');
+
+    $sheet->setCellValue('G10', $this->excelValue($misc->related_34_b));
+    $sheet->setCellValue('G14', $this->excelValue($misc->guilty_35_a));
+    $sheet->setCellValue('H20', $this->excelDate($dateFiledRaw));
+    $sheet->setCellValue('G21', $this->excelValue($caseStatusRaw));
+    $sheet->setCellValue('G24', $this->excelValue($misc->convicted_36));
+    $sheet->setCellValue('G28', $this->excelValue($misc->separated_37));
+    $sheet->setCellValue('G32', $this->excelValue($misc->candidate_38));
+    $sheet->setCellValue('G35', $this->excelValue($misc->resigned_38_b));
+    $sheet->setCellValue('G38', $this->excelValue($misc->immigrant_39));
+    $sheet->setCellValue('G44', $this->excelValue($misc->indigenous_40_a));
+    $sheet->setCellValue('G46', $this->excelValue($misc->pwd_40_b));
+    $sheet->setCellValue('G48', $this->excelValue($misc->solo_parent_40_c));
+
+    $sheet->setCellValue('A52', $this->excelValue($misc->ref1_name));
+    $sheet->setCellValue('F52', $this->excelValue($misc->ref1_address));
+    $sheet->setCellValue('G52', $this->excelValue($misc->ref1_tel));
+    $sheet->setCellValue('A53', $this->excelValue($misc->ref2_name));
+    $sheet->setCellValue('F53', $this->excelValue($misc->ref2_address));
+    $sheet->setCellValue('G53', $this->excelValue($misc->ref2_tel));
+    $sheet->setCellValue('A54', $this->excelValue($misc->ref3_name));
+    $sheet->setCellValue('F54', $this->excelValue($misc->ref3_address));
+    $sheet->setCellValue('G54', $this->excelValue($misc->ref3_tel));
+
+    $sheet->setCellValue('B61', $this->excelValue($misc->govt_id_type));
+    $sheet->setCellValue('B62', $this->excelValue($misc->govt_id_number));
+    $sheet->setCellValue('B64', trim($this->excelValue($misc->govt_id_place_issued) . ' | ' . $this->excelDate($misc->govt_id_date_issued)));
+    $sheet->setCellValue('F65', Carbon::now()->format('m/d/Y'));
+}
+
+private function setExcelQuestion($sheet, string $yesCell, string $noCell, bool $yes): void
+{
+    $sheet->setCellValue($yesCell, $yes ? 'X' : '');
+    $sheet->setCellValue($noCell, $yes ? '' : 'X');
+}
+
+private function excelValue($value): string
+{
+    if ($value === null) {
+        return '';
+    }
+    $text = trim((string) $value);
+    return $text === '' ? '' : $text;
+}
+
+private function excelDetail($value): string
+{
+    $text = $this->excelValue($value);
+    if ($text === '') {
+        return '';
+    }
+
+    $lower = strtolower($text);
+    if ($lower === 'no' || $lower === 'n/a' || $lower === 'na') {
+        return '';
+    }
+
+    return $text;
+}
+
+private function excelTitle($value): string
+{
+    $text = strtolower($this->excelValue($value));
+    if ($text === '') {
+        return '';
+    }
+    return ucwords(str_replace('_', ' ', $text));
+}
+
+private function excelDate($value): string
+{
+    $raw = $this->excelValue($value);
+    if ($raw === '') {
+        return '';
+    }
+    try {
+        return Carbon::parse($raw)->format('m/d/Y');
+    } catch (\Throwable $e) {
+        return $raw;
+    }
+}
+
+private function excelDateMonthYear($value): string
+{
+    $raw = $this->excelValue($value);
+    if ($raw === '') {
+        return '';
+    }
+    try {
+        return Carbon::parse($raw)->format('m/Y');
+    } catch (\Throwable $e) {
+        return $raw;
+    }
 }
 
 }
