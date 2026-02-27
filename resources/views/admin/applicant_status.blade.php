@@ -452,8 +452,16 @@ value="{{ old('deadline_time', $application->deadline_time ? \Carbon\Carbon::par
 
 		function getDocumentLabelHtml(doc) {
 			const label = escapeHtml(doc?.text || doc?.name || '');
-			const requiredStar = isRequiredDocument(doc?.id) ? '<span class="text-red-600 font-extrabold ml-1">*</span>' : '';
-			return `${label}${requiredStar}`;
+			const docId = doc?.id || '';
+			let suffix = '<span class="text-blue-500 font-semibold ml-1">(if any)</span>';
+
+			if (docId === 'pqe_result') {
+				suffix = '<span class="text-blue-500 font-semibold ml-1">(if taken and passed)</span>';
+			} else if (isRequiredDocument(docId)) {
+				suffix = '<span class="text-red-600 font-semibold ml-1">(required)</span>';
+			}
+
+			return `${label} ${suffix}`;
 		}
 
 		function sortDocumentsForRequiredPriority(docList) {
@@ -470,22 +478,8 @@ value="{{ old('deadline_time', $application->deadline_time ? \Carbon\Carbon::par
 			});
 		}
 
-		function isSubmittedDocument(doc) {
-			if (!doc) return false;
-			const hasFile = !!doc.has_file;
-			const status = doc.status || 'Not Submitted';
-			if (doc.id === 'application_letter') {
-				return hasFile && status !== 'Not Submitted';
-			}
-			return hasFile;
-		}
-
 		function getNotifyDocuments(docList) {
-			const filtered = (docList || []).filter(doc => {
-				if (isRequiredDocument(doc?.id)) return true;
-				return isSubmittedDocument(doc);
-			});
-			return sortDocumentsForRequiredPriority(filtered);
+			return sortDocumentsForRequiredPriority(docList || []);
 		}
 
 		document.addEventListener('DOMContentLoaded', function () {

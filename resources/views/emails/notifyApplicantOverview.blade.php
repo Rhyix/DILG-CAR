@@ -7,18 +7,20 @@
   <style>
     body {
       margin: 0;
-      padding: 24px 12px;
-      background: #f2f2f2;
+      padding: 0;
+      background: #ffffff;
       font-family: "Times New Roman", Times, serif;
       color: #111111;
     }
 
     .page {
-      max-width: 840px;
-      margin: 0 auto;
+      width: 100%;
+      max-width: none;
+      margin: 0;
       background: #ffffff;
       border: 1px solid #444444;
       padding: 18px 18px 22px;
+      box-sizing: border-box;
     }
 
     .header-table,
@@ -29,6 +31,7 @@
     .details-table {
       width: 100%;
       border-collapse: collapse;
+      table-layout: fixed;
     }
 
     .header-table td {
@@ -256,7 +259,7 @@
     $qsEligibilityValue = $formatQsValue($qs_eligibility ?? 'no');
     $qsExperienceValue = $formatQsValue($qs_experience ?? 'no');
     $qsTrainingValue = $formatQsValue($qs_training ?? 'no');
-    $overallQsMark = $isQualified ? 'YES (✓)' : 'NO (✕)';
+    $overallQsMark = $isQualified ? 'YES (&#10003;)' : 'NO (&#10005;)';
 
     $displayDeadline = !empty($deadline) && $deadline !== 'No deadline set' ? $deadline : null;
     $displayRemarks = trim((string) ($application_remarks ?? ''));
@@ -303,7 +306,7 @@
       <thead>
         <tr>
           <th>Required Documents</th>
-          <th class="mark-col">(✓ or ✕)</th>
+          <th class="mark-col">(&#10003; or &#10005;)</th>
           <th class="remarks-col">Remarks</th>
         </tr>
       </thead>
@@ -317,9 +320,9 @@
             @php
               $mark = '-';
               if (in_array($doc['status'], $verifiedStatuses, true)) {
-                $mark = '✓';
+                $mark = '&#10003;';
               } elseif (in_array($doc['status'], $revisionStatuses, true)) {
-                $mark = '✕';
+                $mark = '&#10005;';
               }
 
               $remarksText = $doc['remarks'] !== '' && strtolower($doc['remarks']) !== 'no remarks provided.'
@@ -328,7 +331,7 @@
             @endphp
             <tr>
               <td>{{ $doc['name'] }}</td>
-              <td class="center"><strong>{{ $mark }}</strong></td>
+              <td class="center"><strong>{!! $mark !!}</strong></td>
               <td>{{ $remarksText }}</td>
             </tr>
           @endforeach
@@ -356,7 +359,7 @@
           <td class="center">{{ $qsEligibilityValue }}</td>
           <td class="center">{{ $qsExperienceValue }}</td>
           <td class="center">{{ $qsTrainingValue }}</td>
-          <td class="center">{{ $overallQsMark }}</td>
+          <td class="center">{!! $overallQsMark !!}</td>
         </tr>
       </tbody>
     </table>
@@ -446,3 +449,4 @@
 </body>
 
 </html>
+
