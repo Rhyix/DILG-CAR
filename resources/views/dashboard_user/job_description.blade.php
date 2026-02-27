@@ -133,7 +133,7 @@
         </section>
 
         <!-- Confirm Application Modal -->
-        <div id="confirmApplyModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden">
+        <div id="confirmApplyModal" class="fixed inset-0 z-[1200] flex items-center justify-center bg-black/55 backdrop-blur-md hidden px-4 py-6">
             <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
                 <h2 class="text-lg font-semibold text-[#002C76] mb-3">Submit Application</h2>
                 <p class="text-sm text-gray-700 mb-6">
@@ -151,7 +151,7 @@
         </div>
 
         <!-- Complete PDS First Modal -->
-        <div id="pdsRequiredModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden">
+        <div id="pdsRequiredModal" class="fixed inset-0 z-[1200] flex items-center justify-center bg-black/55 backdrop-blur-md hidden px-4 py-6">
             <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
                 <h2 class="text-lg font-semibold text-[#002C76] mb-4">Complete Personal Data Sheet First</h2>
                 <p class="text-sm text-gray-700 mb-6">
@@ -170,7 +170,7 @@
         </div>
 
         <!-- Required Documents Preview Modal -->
-        <div id="requiredDocsModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden">
+        <div id="requiredDocsModal" class="fixed inset-0 z-[1200] flex items-center justify-center bg-black/60 backdrop-blur-md hidden px-4 py-6">
             <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-0 overflow-hidden">
                 <div class="bg-[#0D2B70] px-6 py-4">
                     <h2 class="text-lg font-semibold text-white">
@@ -243,7 +243,7 @@
         </div>
 
         <!-- Document Track Mismatch Modal -->
-        <div id="docTrackMismatchModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden">
+        <div id="docTrackMismatchModal" class="fixed inset-0 z-[1200] flex items-center justify-center bg-black/60 backdrop-blur-md hidden px-4 py-6">
             <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
                 <h2 class="text-lg font-semibold text-[#002C76] mb-4">Required Documents Mismatch</h2>
                 <p class="text-sm text-gray-700 mb-6">
@@ -388,63 +388,61 @@
 @endsection
 
 <script>
+    function openModal(id) {
+        document.getElementById(id).classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+    }
+
     function openApplyModal() {
         const hasIncompletePds = @json($hasIncompletePdsForApply);
-        if (hasIncompletePds) {
-            document.getElementById('pdsRequiredModal').classList.remove('hidden');
-            return;
-        }
+        if (hasIncompletePds) { openModal('pdsRequiredModal'); return; }
 
         const hasMissingRequiredDocs = @json($hasMissingRequiredDocsForModal);
-        if (hasMissingRequiredDocs) {
-            document.getElementById('requiredDocsModal').classList.remove('hidden');
-            return;
-        }
+        if (hasMissingRequiredDocs) { openModal('requiredDocsModal'); return; }
 
         const hasDocTrackMismatch = @json($hasDocTrackMismatch);
-        if (hasDocTrackMismatch) {
-            document.getElementById('docTrackMismatchModal').classList.remove('hidden');
-            return;
-        }
+        if (hasDocTrackMismatch) { openModal('docTrackMismatchModal'); return; }
 
-        document.getElementById('confirmApplyModal').classList.remove('hidden');
+        openModal('confirmApplyModal');
     }
 
-    function closeConfirmApplyModal() {
-        document.getElementById('confirmApplyModal').classList.add('hidden');
-    }
-
-    function closePdsRequiredModal() {
-        document.getElementById('pdsRequiredModal').classList.add('hidden');
-    }
-
-    function closeRequiredDocsModal() {
-        document.getElementById('requiredDocsModal').classList.add('hidden');
-    }
-
-    function closeDocTrackMismatchModal() {
-        document.getElementById('docTrackMismatchModal').classList.add('hidden');
-    }
+    function closeConfirmApplyModal()      { closeModal('confirmApplyModal'); }
+    function closePdsRequiredModal()       { closeModal('pdsRequiredModal'); }
+    function closeRequiredDocsModal()      { closeModal('requiredDocsModal'); }
+    function closeDocTrackMismatchModal()  { closeModal('docTrackMismatchModal'); }
 
     // Re-initialize Feather Icons
     document.addEventListener('DOMContentLoaded', function() {
+        const modalIds = ['confirmApplyModal', 'pdsRequiredModal', 'requiredDocsModal', 'docTrackMismatchModal'];
+        modalIds.forEach((id) => {
+            const modal = document.getElementById(id);
+            if (modal && modal.parentElement !== document.body) {
+                document.body.appendChild(modal);
+            }
+        });
+
         if (typeof feather !== 'undefined') {
             feather.replace();
         }
 
         const showPdsRequiredModalOnLoad = @json($showPdsRequiredModalOnLoad);
         if (showPdsRequiredModalOnLoad) {
-            document.getElementById('pdsRequiredModal').classList.remove('hidden');
+            openModal('pdsRequiredModal');
         }
 
         const showRequiredDocsModalOnLoad = @json($showRequiredDocsModalOnLoad);
         if (showRequiredDocsModalOnLoad) {
-            document.getElementById('requiredDocsModal').classList.remove('hidden');
+            openModal('requiredDocsModal');
         }
 
         const showMismatchModalOnLoad = @json($showMismatchModalOnLoad);
         if (showMismatchModalOnLoad) {
-            document.getElementById('docTrackMismatchModal').classList.remove('hidden');
+            openModal('docTrackMismatchModal');
         }
     });
 </script>

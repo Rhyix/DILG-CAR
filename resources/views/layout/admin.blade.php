@@ -110,6 +110,12 @@
     @stack('styles')
 </head>
 
+@php
+    $lockScreenScroll = request()->routeIs('vacancies_management')
+        || request()->routeIs('applications_list')
+        || request()->routeIs('admin_exam_management');
+@endphp
+
 <body class="bg-[#F1F6FC] h-screen font-sans font-montserrat text-gray-900 overflow-hidden">
 
     <!-- App Container: Sidebar + Content -->
@@ -213,7 +219,7 @@
 
             <!-- Main Content Scrollable -->
             <main id="page-shell"
-                class="page-enter flex-1 overflow-y-auto px-6 sm:px-8 md:px-10 pb-6 sm:pb-8 md:pb-10 pt-0 relative scroll-smooth">
+                class="page-enter flex-1 {{ $lockScreenScroll ? 'overflow-hidden pb-0' : 'overflow-y-auto pb-6 sm:pb-8 md:pb-10' }} px-6 sm:px-8 md:px-10 pt-0 relative scroll-smooth">
                 @yield('content')
             </main>
         </div>

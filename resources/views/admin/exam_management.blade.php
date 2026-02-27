@@ -2,7 +2,7 @@
 @section('title', 'DILG - Admin Exam Management')
 @section('content')
 
-<main class="w-full h-[calc(98vh-6rem)] flex flex-col space-y-6 overflow-hidden">
+<main class="w-full h-full min-h-0 flex flex-col space-y-6 overflow-hidden">
     @php
         $isViewerMode = (bool) ($isViewer ?? ((Auth::guard('admin')->user()->role ?? null) === 'viewer'));
     @endphp

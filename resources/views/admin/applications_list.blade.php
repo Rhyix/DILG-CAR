@@ -2,7 +2,7 @@
 @section('title', 'DILG - Applications List')
 @section('content')
 
-    <main class="w-full h-[calc(100vh-6rem)] flex flex-col space-y-4 overflow-hidden">
+    <main class="w-full h-full min-h-0 flex flex-col space-y-4 overflow-hidden">
 
         <!-- Header with back arrow and title -->
         <section class="flex-none flex items-center space-x-4 max-w-full">
@@ -41,7 +41,7 @@
         </div>
 
         <!-- Table Container -->
-        <div class="flex flex-col border border-[#0D2B70] h-full rounded-2xl overflow-hidden">
+        <div class="flex-1 min-h-0 flex flex-col border border-[#0D2B70] rounded-2xl overflow-hidden">
             <!-- HEADER - Fixed outside scrollable area -->
             <div class="bg-[#0D2B70] text-white rounded-t-xl flex-none">
                 <table class="w-full text-left border-separate table-fixed">
