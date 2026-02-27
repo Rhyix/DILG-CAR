@@ -12,8 +12,9 @@
     $containerClass = $notification->read_at ? 'bg-white hover:bg-gray-50' : 'bg-blue-50/30 hover:bg-blue-50/60';
 @endphp
 
-<div class="p-4 transition-colors cursor-pointer border-l-4 {{ $notification->read_at ? 'border-transparent' : 'border-blue-600' }} {{ $containerClass }} w-full relative group"
-    data-id="{{ $notification->id }}">
+<div class="js-notification-item p-4 transition-colors cursor-pointer border-l-4 {{ $notification->read_at ? 'border-transparent' : 'border-blue-600' }} {{ $containerClass }} w-full relative group"
+    data-id="{{ $notification->id }}"
+    data-link="{{ $notification->data['action_url'] ?? $notification->data['link'] ?? '' }}">
 
     <div class="flex gap-3">
         <!-- Icon -->

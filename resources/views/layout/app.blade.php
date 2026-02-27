@@ -218,8 +218,39 @@
                         class="flex items-center gap-2 p-2 rounded hover:bg-gray-100">
                         @php
                             $u = Auth::user();
-                            $avatar = $u->avatar_path ? asset('storage/' . $u->avatar_path) : null;
-                            $initials = collect(explode(' ', $u->name))->map(fn($p) => mb_substr($p, 0, 1))->join('');
+                            $u?->loadMissing('personalInformation');
+                            $personalInfo = $u?->personalInformation;
+                            $isGoogleSignup = $u ? \Illuminate\Support\Facades\Hash::check('google-oauth', (string) $u->password) : false;
+
+                            $hasPdsName = $personalInfo && collect([
+                                $personalInfo->first_name,
+                                $personalInfo->middle_name,
+                                $personalInfo->surname,
+                                $personalInfo->name_extension,
+                            ])->filter(fn($value) => filled($value))->isNotEmpty();
+
+                            $middleInitial = filled($personalInfo?->middle_name)
+                                ? mb_substr(trim($personalInfo->middle_name), 0, 1) . '.'
+                                : '';
+                            $pdsNameParts = array_filter([
+                                trim($personalInfo?->first_name ?? ''),
+                                $middleInitial,
+                                trim($personalInfo?->surname ?? ''),
+                                trim($personalInfo?->name_extension ?? ''),
+                            ], fn($part) => $part !== '');
+                            $pdsName = $pdsNameParts ? trim(implode(' ', $pdsNameParts)) : null;
+
+                            $displayName = $hasPdsName
+                                ? ($pdsName ?: 'N/A')
+                                : ($isGoogleSignup ? 'N/A' : ($u?->name ?: 'N/A'));
+
+                            $avatar = $u?->avatar_path ? asset('storage/' . $u->avatar_path) : null;
+                            $initialsSource = $displayName !== 'N/A' ? $displayName : 'N A';
+                            $initials = collect(preg_split('/\s+/', trim($initialsSource)))
+                                ->filter()
+                                ->map(fn($p) => mb_substr($p, 0, 1))
+                                ->join('');
+                            $initials = $initials !== '' ? $initials : 'NA';
                         @endphp
                         @if($avatar)
                             <img src="{{ $avatar }}" alt="Avatar" class="w-8 h-8 rounded-full object-cover">
@@ -228,7 +259,7 @@
                                 class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">
                                 {{ $initials }}</div>
                         @endif
-                        <span class="text-sm font-semibold">{{ $u->name }}</span>
+                        <span class="text-sm font-semibold">{{ $displayName }}</span>
                         <i data-feather="chevron-down" class="w-4 h-4"></i>
                     </button>
                     <div id="profileMenu"
@@ -304,13 +335,20 @@
                         </div>
                     `;
 
-                    item.addEventListener('click', () => {
-                        fetch("{{ url('/notifications') }}/" + n.id + "/read", {
-                            method: 'POST',
-                            headers: {
-                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                            }
-                        }).finally(() => fetchCount());
+                    item.addEventListener('click', async () => {
+                        try {
+                            await fetch("{{ url('/notifications') }}/" + n.id + "/read", {
+                                method: 'POST',
+                                headers: {
+                                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                                },
+                                keepalive: true
+                            });
+                        } catch (e) {
+                            // Ignore and allow navigation
+                        } finally {
+                            fetchCount();
+                        }
 
                         if (n?.data?.action_url || n?.data?.link) {
                             window.location.href = n.data.action_url || n.data.link;

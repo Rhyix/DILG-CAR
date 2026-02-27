@@ -15,14 +15,8 @@ class NotificationController extends Controller
                 ->where(function ($q) {
                     $q->where('notifiable_id', Auth::guard('admin')->id())
                         ->orWhereNull('notifiable_id');
-                })
-                ->where(function ($q) {
-                    $q->where('data->category', 'document_verification')
-                        ->orWhere('data->category', 'exam_lifecycle')
-                        ->orWhere('data->category', 'exam_questions')
-                        ->orWhere('data->category', 'account_approval');
                 });
-        } elseif (Auth::check()) {
+        } elseif (Auth::guard('web')->check()) {
             return Notification::where('notifiable_type', 'App\Models\User')
                 ->where('notifiable_id', Auth::id());
         }
@@ -43,7 +37,30 @@ class NotificationController extends Controller
     // Index method
     public function index()
     {
-        return view('notifications.index');
+        if (Auth::guard('admin')->check()) {
+            return redirect()->route('admin.notifications.index');
+        }
+
+        $query = $this->getQuery();
+        $notifications = $query ? $query->latest()->paginate(20) : collect();
+
+        return view('notifications.index', [
+            'notifications' => $notifications,
+        ]);
+    }
+
+    public function adminIndex()
+    {
+        if (!Auth::guard('admin')->check()) {
+            return redirect()->route('notifications.index');
+        }
+
+        $query = $this->getQuery();
+        $notifications = $query ? $query->latest()->paginate(20) : collect();
+
+        return view('notifications.admin_index', [
+            'notifications' => $notifications,
+        ]);
     }
 
     // Fetch latest notifications
@@ -68,7 +85,10 @@ class NotificationController extends Controller
         if (!$query)
             return response()->json(['success' => false], 403);
 
-        $query->whereNull('read_at')->update(['read_at' => now()]);
+        $query->whereNull('read_at')->update([
+            'read_at' => now(),
+            'updated_at' => now(),
+        ]);
 
         return response()->json(['success' => true]);
     }
@@ -76,33 +96,26 @@ class NotificationController extends Controller
     // Mark individual notification as read
     public function markAsRead($id)
     {
-        $notification = Notification::find($id);
+        $query = $this->getQuery();
+        if (!$query) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
 
+        $notification = $query->whereKey($id)->first();
         if (!$notification) {
             return response()->json(['success' => false, 'message' => 'Notification not found'], 404);
         }
 
-        // Security Check
-        $authorized = false;
-        if (Auth::guard('admin')->check()) {
-            if (
-                $notification->notifiable_type === 'App\Models\Admin' &&
-                ($notification->notifiable_id == Auth::guard('admin')->id() || $notification->notifiable_id === null)
-            ) {
-                $authorized = true;
-            }
-        } elseif (Auth::check()) {
-            if ($notification->notifiable_type === 'App\Models\User' && $notification->notifiable_id == Auth::id()) {
-                $authorized = true;
-            }
-        }
-
-        if ($authorized) {
-            $notification->update(['read_at' => now()]);
+        if ($notification->read_at) {
             return response()->json(['success' => true]);
         }
 
-        return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        $notification->forceFill([
+            'read_at' => now(),
+            'updated_at' => now(),
+        ])->save();
+
+        return response()->json(['success' => true]);
     }
 
     // Clear all notifications

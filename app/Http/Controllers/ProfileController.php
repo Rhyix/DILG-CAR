@@ -31,7 +31,15 @@ class ProfileController extends Controller
 
     public function accountSettings()
     {
-        return view('profile.account_settings', ['user' => Auth::user()]);
+        $user = Auth::user();
+        $user->loadMissing(['profile', 'personalInformation']);
+        $isGoogleSignup = Hash::check('google-oauth', (string) $user->password);
+
+        return view('profile.account_settings', [
+            'user' => $user,
+            'personalInfo' => $user->personalInformation,
+            'isGoogleSignup' => $isGoogleSignup,
+        ]);
     }
 
     public function update(UpdateProfileRequest $request)

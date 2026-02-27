@@ -17,6 +17,16 @@ use Illuminate\Support\Facades\Auth;
 
 class ExportPDSController
 {
+    private const LEGACY_TEMPLATE_HEIGHT_MM = 330.2;
+    private const SHORT_BOND_TEMPLATE_HEIGHT_MM = 279.4;
+
+    private float $yScale = 1.0;
+    private float $yOffset = 0.0;
+    private float $fontScale = 1.0;
+    private float $xOffset = 0.0;
+    private bool $isShortBondTemplate = false;
+    private int $currentTemplatePage = 1;
+
     public function exportPDS(Request $request)
     {
         $user = Auth::user(); // Get currently authenticated user
@@ -55,7 +65,12 @@ class ExportPDSController
 
         // Creating PDF File from template
         $pdf = new Fpdi();
-        $templatePath = resource_path('templates/PDS_fixed_V9.pdf');
+        // Keep absolute-positioned template writing from triggering automatic blank pages.
+        $pdf->SetAutoPageBreak(false, 0);
+        $templatePath = resource_path('templates/PDS_2025_from_xlsx.pdf');
+        if (!file_exists($templatePath)) {
+            $templatePath = resource_path('templates/PDS_fixed_V9.pdf');
+        }
         $pageCount = $pdf->setSourceFile($templatePath);
 
         // Separates Residential and Permanent Address Information
@@ -125,23 +140,24 @@ class ExportPDSController
         // Page 1: Personal Info, Address, Family, Education
         // ----------------------------
         $templateId = $pdf->importPage(1);
+        $this->currentTemplatePage = 1;
         $size = $pdf->getTemplateSize($templateId);
+        $this->configureCoordinateScale((float) $size['height']);
         $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
         $pdf->useTemplate($templateId);
-        $pdf->SetFont('Arial', '', 8);
+        $this->setFont($pdf, 'Arial', '', 8);
 
         $this->writePersonalInfo($pdf, $personalInfo);
         $this->writeAddresses($pdf, $residential, $permanent, $this->getWriteCentered());
         $this->writeFamilyBackground($pdf, $familyBackground);
         $this->writeEducationalBackground($pdf, $educationalBackground);
-        $this->stampRevisedHeader($pdf);
 
         $this->writeCollegeChunk($pdf, $collegeChunks[0] ?? []);
         $this->writeVocationalChunk($pdf, $vocationalChunks[0] ?? []);
         $this->writeGraduateChunk($pdf, $gradChunks[0] ?? []);
         $this->writeChildrenChunk($pdf, $childrenChunks[0] ?? []);
 
-        $pdf->SetXY(163.5, 310.190);
+        $this->setXY($pdf, 163.5, 310.190);
         $pdf->Write(0, Carbon::now()->format('m/d/Y'));
 
 
@@ -151,20 +167,19 @@ class ExportPDSController
 
         // Write CONTINUED indicator for children if overflow exists
         if ($childrenHasOverflow) {
-            $pdf->SetFont('Arial', 'B', 8);
-            $pdf->SetXY(122, 242);
+            $this->setFont($pdf, 'Arial', 'B', 8);
+            $this->setXY($pdf, 122, 242);
             $pdf->Write(0, "CONTINUED");
-            $pdf->SetFont('Arial', '', 8);
+            $this->setFont($pdf, 'Arial', '', 8);
         }
 
         // Write CONTINUED indicator for school chunks if overflow exists
         if ($schoolHasOverflow) {
-            $pdf->SetFont('Arial', 'B', 8);
-            $pdf->SetXY(43, 310);
+            $this->setFont($pdf, 'Arial', 'B', 8);
+            $this->setXY($pdf, 43, 310);
             $pdf->Write(0, "CONTINUED");
-            $pdf->SetFont('Arial', '', 8);
+            $this->setFont($pdf, 'Arial', '', 8);
         }
-        $this->stampRevisedFooter($pdf);
 
         // ----------------------------
         // Overflow Pages: Children, Vocational, College, Graduate overflow
@@ -181,27 +196,27 @@ class ExportPDSController
         // Loop through each overflow chunk beyond the first page
         for ($i = 1; $i < $maxChunks; $i++) {
             $templateId = $pdf->importPage(1); // Reuse Page 1 template
+            $this->currentTemplatePage = 1;
             $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
             $pdf->useTemplate($templateId);
 
-            $pdf->SetXY(163.5, 310.190);
+            $this->setXY($pdf, 163.5, 310.190);
             $pdf->Write(0, Carbon::now()->format('m/d/Y'));
 
-            $pdf->SetFont('Arial', '', 8);
+            $this->setFont($pdf, 'Arial', '', 8);
 
             // Write only the name parts for identification on overflow pages
-            $pdf->SetXY(41.5, 45.5);
+            $this->setXY($pdf, 41.5, 45.5);
             $pdf->Write(0, $personalInfo->surname);
 
-            $pdf->SetXY(41.5, 52);
+            $this->setXY($pdf, 41.5, 52);
             $pdf->Write(0, $personalInfo->first_name);
 
-            $pdf->SetXY(41.5, 58);
+            $this->setXY($pdf, 41.5, 58);
             $pdf->Write(0, $personalInfo->middle_name);
 
-            $pdf->SetXY(165.2, 53);
+            $this->setXY($pdf, 165.2, 53);
             $pdf->Write(0, $personalInfo->name_extension);
-            $this->stampRevisedHeader($pdf);
 
             // Write children overflow chunk if exists
             if (isset($childrenChunks[$i])) {
@@ -222,7 +237,6 @@ class ExportPDSController
             if (isset($gradChunks[$i])) {
                 $this->writeGraduateChunk($pdf, $gradChunks[$i]);
             }
-            $this->stampRevisedFooter($pdf);
         }
 
         // ----------------------------
@@ -230,6 +244,7 @@ class ExportPDSController
         // ----------------------------
 
         $templateId = $pdf->importPage(2);
+        $this->currentTemplatePage = 2;
         $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
         $pdf->useTemplate($templateId);
 
@@ -245,32 +260,32 @@ class ExportPDSController
         $weHasOverflow = count($weChunks) > 1;
 
         if ($cseHasOverflow) {
-            $pdf->SetFont('Arial', 'B', 8);
-            $pdf->SetXY(8, 80.5); // adjust XY for CSE continued placement
+            $this->setFont($pdf, 'Arial', 'B', 8);
+            $this->setXY($pdf, 8, 80.5); // adjust XY for CSE continued placement
             $pdf->Write(0, "CONTINUED");
-            $pdf->SetFont('Arial', '', 8);
+            $this->setFont($pdf, 'Arial', '', 8);
         }
 
         if ($weHasOverflow) {
-            $pdf->SetFont('Arial', 'B', 8);
-            $pdf->SetXY(8, 308.5); // adjust XY for WE continued placement
+            $this->setFont($pdf, 'Arial', 'B', 8);
+            $this->setXY($pdf, 8, 308.5); // adjust XY for WE continued placement
             $pdf->Write(0, "CONTINUED");
-            $pdf->SetFont('Arial', '', 8);
+            $this->setFont($pdf, 'Arial', '', 8);
         }
 
-        $pdf->SetXY(149.352, 310.190);
+        $this->setXY($pdf, 149.352, 310.190);
         $pdf->Write(0, Carbon::now()->format('m/d/Y'));
-        $this->stampRevisedFooter($pdf);
         // ----------------------------
         // Overflow Pages: CSE overflow + WE overflow
         // ----------------------------
 
         // Handle CSE overflow pages
         for ($i = 1; $i < count($cseChunks); $i++) {
+            $this->currentTemplatePage = 2;
             $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
             $pdf->useTemplate($templateId);
 
-            $pdf->SetXY(149.352, 310.190);
+            $this->setXY($pdf, 149.352, 310.190);
             $pdf->Write(0, Carbon::now()->format('m/d/Y'));
             $this->writeCivilServiceEligibilityChunk($pdf, $cseChunks[$i]);
 
@@ -279,19 +294,18 @@ class ExportPDSController
                 $this->writeWorkExperienceChunk($pdf, $weChunks[$i]);
                 unset($weChunks[$i]); // Mark as written
             }
-            $this->stampRevisedFooter($pdf);
         }
 
         // Handle remaining WE overflow pages
         foreach ($weChunks as $index => $chunk) {
             if ($index == 0) continue; // Already written first WE chunk on Page 2
+            $this->currentTemplatePage = 2;
             $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
             $pdf->useTemplate($templateId);
 
-            $pdf->SetXY(149.352, 310.190);
+            $this->setXY($pdf, 149.352, 310.190);
             $pdf->Write(0, Carbon::now()->format('m/d/Y'));
             $this->writeWorkExperienceChunk($pdf, $chunk);
-            $this->stampRevisedFooter($pdf);
         }
 
         // ----------------------------
@@ -299,6 +313,7 @@ class ExportPDSController
         // ----------------------------
 
         $templateId = $pdf->importPage(3);
+        $this->currentTemplatePage = 3;
         $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
         $pdf->useTemplate($templateId);
 
@@ -324,26 +339,25 @@ class ExportPDSController
         $organizationsHasOverflow = count($organizationsChunks) > 1;
 
         if ($vwHasOverflow) {
-            $pdf->SetFont('Arial', 'B', 8);
-            $pdf->SetXY(8, 77.5); // adjust as needed for Voluntary Work
+            $this->setFont($pdf, 'Arial', 'B', 8);
+            $this->setXY($pdf, 8, 77.5); // adjust as needed for Voluntary Work
             $pdf->Write(0, "CONTINUED");
-            $pdf->SetFont('Arial', '', 8);
+            $this->setFont($pdf, 'Arial', '', 8);
         }
 
         if ($lndHasOverflow) {
-            $pdf->SetFont('Arial', 'B', 8);
-            $pdf->SetXY(8, 235); // adjust as needed for L&D
+            $this->setFont($pdf, 'Arial', 'B', 8);
+            $this->setXY($pdf, 8, 235); // adjust as needed for L&D
             $pdf->Write(0, "CONTINUED");
-            $pdf->SetFont('Arial', '', 8);
+            $this->setFont($pdf, 'Arial', '', 8);
         }
 
         if ($skillsHasOverflow || $distinctionsHasOverflow || $organizationsHasOverflow) {
-            $pdf->SetFont('Arial', 'B', 8);
-            $pdf->SetXY(8, 299); // adjust as needed for Other Information
+            $this->setFont($pdf, 'Arial', 'B', 8);
+            $this->setXY($pdf, 8, 299); // adjust as needed for Other Information
             $pdf->Write(0, "CONTINUED");
-            $pdf->SetFont('Arial', '', 8);
+            $this->setFont($pdf, 'Arial', '', 8);
         }
-        $this->stampRevisedFooter($pdf);
 
         // ----------------------------
         // Overflow Pages: Page 3 logic for remaining chunks
@@ -356,9 +370,10 @@ class ExportPDSController
             count($distinctionsChunks),
             count($organizationsChunks)
         ); $i++) {
+            $this->currentTemplatePage = 3;
             $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
             $pdf->useTemplate($templateId);
-            $pdf->SetXY(161, 305);
+            $this->setXY($pdf, 161, 305);
             $pdf->Write(0, Carbon::now()->format('m/d/Y'));
 
             // Write Voluntary Work chunk if exists
@@ -380,27 +395,22 @@ class ExportPDSController
             if ($skillsChunk || $distinctionsChunk || $organizationsChunk) {
                 $this->writeOtherInformation($pdf, $skillsChunk, $distinctionsChunk, $organizationsChunk);
             }
-            $this->stampRevisedFooter($pdf);
         }
-
-        $pdf->SetXY(161, 305);
-        $pdf->Write(0, Carbon::now()->format('m/d/Y'));
-        $this->stampRevisedFooter($pdf);
 
         // ----------------------------
         // Page 4: Other Information
         // ----------------------------
 
         $templateId = $pdf->importPage(4);
+        $this->currentTemplatePage = 4;
         $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
         $pdf->useTemplate($templateId);
 
         // Write first C4 chunk (max 7 rows)
         $this->WriteC4Information($pdf, $user->id);
 
-        $pdf->SetXY(113, 270);
+        $this->setXY($pdf, 113, 270);
         $pdf->Write(0, Carbon::now()->format('m/d/Y'));
-        $this->stampRevisedFooter($pdf);
 
         // C4 has no overflow data so no need for overflow page
 
@@ -450,29 +460,89 @@ class ExportPDSController
         exit;
     }
 
-    private function stampRevisedFooter(Fpdi $pdf): void
+    private function configureCoordinateScale(float $templateHeight): void
     {
-        // Mask template footer revision text and enforce current revision label.
-        $pdf->SetFillColor(255, 255, 255);
-        $pdf->Rect(5, 318.0, 95, 6.0, 'F');
-        $pdf->SetTextColor(0, 0, 0);
-        $pdf->SetFont('Arial', '', 8);
-        $pdf->SetXY(7, 321.5);
-        $pdf->Write(0, 'CS FORM 212 (Revised 2025)');
+        if ($templateHeight <= 0) {
+            $this->yScale = 1.0;
+            $this->yOffset = 0.0;
+            $this->fontScale = 1.0;
+            $this->xOffset = 0.0;
+            $this->isShortBondTemplate = false;
+            return;
+        }
+
+        $this->yScale = $templateHeight / self::LEGACY_TEMPLATE_HEIGHT_MM;
+
+        // The Annex H-1 exported template keeps legacy X spacing but shifts Y anchors.
+        // Apply a baseline offset so top fields (e.g., name row) land on the proper lines.
+        $isShortBondTemplate = $templateHeight < 300;
+        $this->isShortBondTemplate = $isShortBondTemplate;
+        if ($isShortBondTemplate) {
+            // Short-bond Annex template already follows the same absolute field grid
+            // for the form body; avoid compressing coordinates.
+            $this->yScale = 1.0;
+            $this->xOffset = 0.0;
+            $this->yOffset = 0.0;
+            $this->fontScale = 1.0;
+            return;
+        }
+
+        $this->xOffset = 0.0;
+        $this->yOffset = 0.0;
+        $this->fontScale = 1.0;
     }
 
-    private function stampRevisedHeader(Fpdi $pdf): void
+    private function scaleY(float $y): float
     {
-        // Replace the top-left revision label on page 1 template.
-        $pdf->SetFillColor(255, 255, 255);
-        $pdf->Rect(5, 8.5, 32, 8.5, 'F');
-        $pdf->SetTextColor(0, 0, 0);
-        $pdf->SetFont('Arial', 'B', 9);
-        $pdf->SetXY(7, 11.5);
-        $pdf->Write(0, 'CS Form No. 212');
-        $pdf->SetFont('Arial', 'I', 8);
-        $pdf->SetXY(7, 15.3);
-        $pdf->Write(0, 'Revised 2025');
+        $scaled = $y * $this->yScale;
+        if ($this->isShortBondTemplate && $scaled > self::SHORT_BOND_TEMPLATE_HEIGHT_MM) {
+            $scaled -= (self::LEGACY_TEMPLATE_HEIGHT_MM - self::SHORT_BOND_TEMPLATE_HEIGHT_MM);
+        }
+        return round($scaled, 3);
+    }
+
+    private function scaleHeight(float $height): float
+    {
+        return round($height * $this->yScale, 3);
+    }
+
+    private function scaleFont(float $size): float
+    {
+        return max(4.5, round($size * $this->fontScale, 2));
+    }
+
+    private function setFont(Fpdi $pdf, string $family, string $style, float $size): void
+    {
+        $pdf->SetFont($family, $style, $this->scaleFont($size));
+    }
+
+    private function setXY(Fpdi $pdf, float $x, float $y): void
+    {
+        $targetX = $x + $this->xOffset;
+        if ($this->isShortBondTemplate && $this->currentTemplatePage >= 2) {
+            // Pages 2-4 in the short-bond form have a narrower horizontal grid
+            // than the legacy mapping; compress and shift to align columns.
+            $targetX = ($targetX * 0.895) + 12.8;
+            if ($x <= 120.0) {
+                if ($this->currentTemplatePage === 4) {
+                    $targetX += 16.0;
+                } elseif ($this->currentTemplatePage === 2) {
+                    $targetX += 15.0;
+                } else {
+                    $targetX += 12.0;
+                }
+            }
+        }
+        $targetY = $this->scaleY($y) + $this->yOffset;
+        if ($this->isShortBondTemplate && $this->currentTemplatePage === 4 && $y >= 190.0) {
+            // Page 4 lower sections (references + ID block) sit higher on short-bond layout.
+            $targetY -= 24.0;
+        }
+        $pageWidth = $pdf->GetPageWidth();
+        $pageHeight = $pdf->GetPageHeight();
+        $safeX = max(1.5, min($targetX, $pageWidth - 2.5));
+        $safeY = max(1.5, min($targetY, $pageHeight - 2.5));
+        $pdf->SetXY($safeX, $safeY);
     }
 
     private function normalizeListData($data): array
@@ -519,121 +589,101 @@ class ExportPDSController
     private function writePersonalInfo($pdf, $info)
     {
         // CS ID No
-        $pdf->SetXY(165, 35.5);
-        $pdf->Write(0, $info?->cs_id_no ?? '');
+        $this->writeFittedAt($pdf, (string) ($info?->cs_id_no ?? ''), 165, 35.5, 35);
 
         // Names
-        $pdf->SetXY(41.5, 45.5);
-        $pdf->Write(0, $info?->surname ?? 'N/A');
+        $this->writeFittedAt($pdf, (string) ($info?->surname ?? ''), 41.5, 45.5, 78);
 
-        $pdf->SetXY(41.5, 52);
-        $pdf->Write(0, $info?->first_name ?? 'N/A');
+        $this->writeFittedAt($pdf, (string) ($info?->first_name ?? ''), 41.5, 52, 78);
 
-        $pdf->SetXY(41.5, 58);
-        $pdf->Write(0, $info?->middle_name ?? 'N/A');
+        $this->writeFittedAt($pdf, (string) ($info?->middle_name ?? ''), 41.5, 58, 78);
 
-        $pdf->SetXY(165.2, 53);
-        $pdf->Write(0, $info?->name_extension ?? 'N/A');
+        $this->writeFittedAt($pdf, (string) ($info?->name_extension ?? ''), 165.2, 53, 40);
 
         // Birth
-        $pdf->SetXY(41.5, 66);
+        $this->setXY($pdf, 41.5, 66);
         $pdf->Write(0, !empty($info?->date_of_birth) ? Carbon::parse($info->date_of_birth)->format('m/d/Y') : 'N/A');
 
-        $pdf->SetXY(41.5, 75);
-        $pdf->Write(0, $info?->place_of_birth ?? 'N/A');
+        $this->writeFittedAt($pdf, (string) ($info?->place_of_birth ?? ''), 41.5, 75, 78);
 
         // Sex
         if ($info?->sex == 'male')
         {
-            $pdf->SetXY(43, 81);
-            $pdf->Write(0, '/' ?? '');
+            $this->markCheckbox($pdf, 43, 81);
         }
         elseif ($info?->sex == 'female')
         {
-            $pdf->SetXY(73, 81);
-            $pdf->Write(0, '/' ?? '');
+            $this->markCheckbox($pdf, 73, 81);
         }
 
         // Civil Status
+        $civilStatusX = 43;
+        $civilStatusY = 94;
         switch ($info?->civil_status ?? '')
         {
-            case 'single' : $pdf->SetXY(43, 87);
+            case 'single' : $civilStatusX = 43; $civilStatusY = 87;
                 break;
-            case 'married' : $pdf->SetXY(73, 87);
+            case 'married' : $civilStatusX = 73; $civilStatusY = 87;
                 break;
-            case 'widowed' : $pdf->SetXY(43, 90.7);
+            case 'widowed' : $civilStatusX = 43; $civilStatusY = 90.7;
                 break;
-            case 'separated' : $pdf->SetXY(73, 90.7);
+            case 'separated' : $civilStatusX = 73; $civilStatusY = 90.7;
                 break;
             default:
-                $pdf->SetXY(43, 94);
+                $civilStatusX = 43; $civilStatusY = 94;
             break;
             }
-        $pdf->Write(0, '/');
+        $this->markCheckbox($pdf, $civilStatusX, $civilStatusY);
 
         // Physical
-        $pdf->SetXY(41.5, 101.5);
+        $this->setXY($pdf, 41.5, 101.5);
         $pdf->Write(0, $info?->height ?? 'N/A');
 
-        $pdf->SetXY(41.5, 108.5);
+        $this->setXY($pdf, 41.5, 108.5);
         $pdf->Write(0, $info?->weight ?? 'N/A');
 
-        $pdf->SetXY(41.5, 115);
+        $this->setXY($pdf, 41.5, 115);
         $pdf->Write(0, $info?->blood_type ?? 'N/A');
 
         // IDs
-        $pdf->SetXY(41.5, 122);
-        $pdf->Write(0, $info?->gsis_id_no ?? 'N/A');
+        $this->writeFittedAt($pdf, (string) ($info?->gsis_id_no ?? ''), 41.5, 122, 78);
 
-        $pdf->SetXY(41.5, 129);
-        $pdf->Write(0, $info?->pagibig_id_no ?? 'N/A');
+        $this->writeFittedAt($pdf, (string) ($info?->pagibig_id_no ?? ''), 41.5, 129, 78);
 
-        $pdf->SetXY(41.5, 136);
-        $pdf->Write(0, $info?->philhealth_no ?? 'N/A');
+        $this->writeFittedAt($pdf, (string) ($info?->philhealth_no ?? ''), 41.5, 136, 78);
 
-        $pdf->SetXY(41.5, 143);
-        $pdf->Write(0, $info?->sss_id_no ?? 'N/A');
+        $this->writeFittedAt($pdf, (string) ($info?->sss_id_no ?? ''), 41.5, 143, 78);
 
-        $pdf->SetXY(41.5, 150);
-        $pdf->Write(0, $info?->tin_no ?? 'N/A');
+        $this->writeFittedAt($pdf, (string) ($info?->tin_no ?? ''), 41.5, 150, 78);
 
-        $pdf->SetXY(41.5, 156.5);
-        $pdf->Write(0, $info?->agency_employee_no ?? 'N/A');
+        $this->writeFittedAt($pdf, (string) ($info?->agency_employee_no ?? ''), 41.5, 156.5, 78);
 
         // Citizenship
         if ($info?->citizenship == 'Filipino')
         {
-            $pdf->SetXY(140.5, 65);
-            $pdf->Write(0, '/' ?? '');
+            $this->markCheckbox($pdf, 140.5, 65);
         }
         elseif ($info?->citizenship == 'Dual Citizenship')
         {
-            $pdf->SetXY(159, 65);
-            $pdf->Write(0, '/' ?? '');
+            $this->markCheckbox($pdf, 159, 65);
         }
 
         if ($info?->dual_type == 'By birth')
         {
-            $pdf->SetXY(164.5, 68.5);
-            $pdf->Write(0, '/' ?? '');
+            $this->markCheckbox($pdf, 164.5, 68.5);
         }
         elseif ($info?->dual_type == 'By naturalization')
         {
-            $pdf->SetXY(180.5, 68.5);
-            $pdf->Write(0, '/' ?? '');
+            $this->markCheckbox($pdf, 180.5, 68.5);
         }
 
-        $pdf->SetXY(140.5, 81);
-        $pdf->Write(0, $info?->dual_country ?? '');
+        $this->writeFittedAt($pdf, (string) ($info?->dual_country ?? ''), 140.5, 81, 52);
 
-        $pdf->SetXY(123, 143);
-        $pdf->Write(0, $info?->telephone_no ?? 'N/A');
+        $this->writeFittedAt($pdf, (string) ($info?->telephone_no ?? ''), 123, 143, 74);
 
-        $pdf->SetXY(123, 150);
-        $pdf->Write(0, $info?->mobile_no ?? 'N/A');
+        $this->writeFittedAt($pdf, (string) ($info?->mobile_no ?? ''), 123, 150, 74);
 
-        $pdf->SetXY(123, 156.5);
-        $pdf->Write(0, $info?->email_address ?? 'N/A');
+        $this->writeFittedAt($pdf, (string) ($info?->email_address ?? ''), 123, 156.5, 74, 7.5, 5.0);
 
 }
 
@@ -661,49 +711,49 @@ private function writeAddresses($pdf, $residential, $permanent, $writeCentered)
 
 private function writeFamilyBackground($pdf, $family)
 {
-    $pdf->SetXY(41.5, 167.5);
+    $this->setXY($pdf, 41.5, 167.5);
     $pdf->Write(0, $family?->spouse_surname ?? 'N/A');
 
-    $pdf->SetXY(41.5, 173.5);
+    $this->setXY($pdf, 41.5, 173.5);
     $pdf->Write(0, $family?->spouse_first_name ?? 'N/A');
 
-    $pdf->SetXY(41.5, 179.5);
+    $this->setXY($pdf, 41.5, 179.5);
     $pdf->Write(0, $family?->spouse_middle_name ?? 'N/A');
 
-    $pdf->SetXY(93, 174.2);
+    $this->setXY($pdf, 93, 174.2);
     $pdf->Write(0, $family?->spouse_name_extension ?? 'N/A');
 
-    $pdf->SetXY(41.5, 185);
+    $this->setXY($pdf, 41.5, 185);
     $pdf->Write(0, $family?->spouse_occupation ?? 'N/A');
 
-    $pdf->SetXY(41.5, 190.2);
+    $this->setXY($pdf, 41.5, 190.2);
     $pdf->Write(0, $family?->spouse_employer ?? 'N/A');
 
-    $pdf->SetXY(41.5, 196.2);
+    $this->setXY($pdf, 41.5, 196.2);
     $pdf->Write(0, $family?->spouse_business_address ?? 'N/A');
 
-    $pdf->SetXY(41.5, 202.2);
+    $this->setXY($pdf, 41.5, 202.2);
     $pdf->Write(0, $family?->spouse_telephone ?? 'N/A');
 
-    $pdf->SetXY(41.5, 208.2);
+    $this->setXY($pdf, 41.5, 208.2);
     $pdf->Write(0, $family?->father_surname ?? 'N/A');
 
-    $pdf->SetXY(41.5, 213.8);
+    $this->setXY($pdf, 41.5, 213.8);
     $pdf->Write(0, $family?->father_first_name ?? 'N/A');
 
-    $pdf->SetXY(93, 215);
+    $this->setXY($pdf, 93, 215);
     $pdf->Write(0, $family?->father_name_extension ?? 'N/A');
 
-    $pdf->SetXY(41.5, 219.9);
+    $this->setXY($pdf, 41.5, 219.9);
     $pdf->Write(0, $family?->father_middle_name ?? 'N/A');
 
-    $pdf->SetXY(41.5, 231.2);
+    $this->setXY($pdf, 41.5, 231.2);
     $pdf->Write(0, $family?->mother_maiden_surname ?? 'N/A');
 
-    $pdf->SetXY(41.5, 237.2);
+    $this->setXY($pdf, 41.5, 237.2);
     $pdf->Write(0, $family?->mother_maiden_first_name ?? 'N/A');
 
-    $pdf->SetXY(41.5, 243.2);
+    $this->setXY($pdf, 41.5, 243.2);
     $pdf->Write(0, $family?->mother_maiden_middle_name ?? 'N/A');
 
 }
@@ -726,7 +776,7 @@ private function writeChildrenChunk($pdf, $chunk)
 
     // If all are empty, write N/A in the name column only
     if ($isEmpty) {
-        $pdf->SetXY($startX_name, $startY);
+        $this->setXY($pdf, $startX_name, $startY);
         $pdf->Write(0, 'N/A');
         return;
     }
@@ -736,10 +786,10 @@ private function writeChildrenChunk($pdf, $chunk)
     {
         $currentY = $startY + ($index * $lineHeight);
 
-        $pdf->SetXY($startX_name, $currentY);
+        $this->setXY($pdf, $startX_name, $currentY);
         $pdf->Write(0, $child['name'] ?? '');
 
-        $pdf->SetXY($startX_birthdate, $currentY);
+        $this->setXY($pdf, $startX_birthdate, $currentY);
         $pdf->Write(0, !empty($child['dob']) ? Carbon::parse($child['dob'])->format('m/d/Y') : '');
     }
 }
@@ -756,19 +806,19 @@ private function writeEducationalBackground($pdf, $education)
                    !empty($education?->elem_academic_honors);
 
     if (!$hasElemData) {
-        $pdf->SetXY(41.5, 267);
+        $this->setXY($pdf, 41.5, 267);
         $pdf->Write(0, 'N/A');
     } else {
         $this->writeWrapped($pdf, $education?->elem_school ?? '', 49, 41.5, 267, 265, 6, 3);
         $this->writeWrapped($pdf, $education?->elem_basic ?? '', 45, 91, 267, 264, 6, 2);
         $this->writeWrapped($pdf, !empty($education?->elem_from) ? Carbon::parse($education?->elem_from)->format('m/Y') : '', 20, 138, 267, 264, 8, 2);
         $this->writeWrapped($pdf, !empty($education?->elem_to) ? Carbon::parse($education?->elem_to)->format('m/Y') : '', 20, 150, 267, 264, 8, 2);
-        $pdf->SetXY(163.5, 267);
+        $this->setXY($pdf, 163.5, 267);
         $pdf->Write(0, $education?->elem_earned ?? 'N/A');
-        $pdf->SetXY(183, 267);
+        $this->setXY($pdf, 183, 267);
         $pdf->Write(0, $education?->elem_year_graduated ?? 'N/A');
 
-        $pdf->SetFont('Arial', '', 4);
+        $this->setFont($pdf, 'Arial', '', 4);
 
         // Set parameters
         $text =  $education?->jhs_academic_honors ?? 'N/A';
@@ -782,16 +832,16 @@ private function writeEducationalBackground($pdf, $education)
         // Check if it fits in one line
         if ($stringWidth <= $maxWidth) {
             // It fits in one line, write directly
-            $pdf->SetFont('Arial', '', $fontSize);
-            $pdf->SetXY(197, 267);
-            $pdf->Cell($maxWidth, $lineHeight, $text, 0, 0);
+            $this->setFont($pdf, 'Arial', '', $fontSize);
+            $this->setXY($pdf, 197, 267);
+            $pdf->Cell($maxWidth, $this->scaleHeight($lineHeight), $text, 0, 0);
         } else {
             // It doesn't fit, wrap text
             $this->writeWrapped($pdf, $text, $maxWidth, 197, 275, 265.2, $fontSize, $lineHeight);
         }
 
         // Reset font to 8pt
-        $pdf->SetFont('Arial', '', 8);
+        $this->setFont($pdf, 'Arial', '', 8);
     }
 
     // === Junior High Section ===
@@ -804,19 +854,19 @@ private function writeEducationalBackground($pdf, $education)
                   !empty($education?->jhs_academic_honors);
 
     if (!$hasJHSData) {
-        $pdf->SetXY(41.5, 276);
+        $this->setXY($pdf, 41.5, 276);
         $pdf->Write(0, 'N/A');
     } else {
         $this->writeWrapped($pdf, $education?->jhs_school ?? '', 50, 41.5, 275, 273, 6, 3);
         $this->writeWrapped($pdf, $education?->jhs_basic ?? '', 45, 91, 275, 271.7, 6, 2);
         $this->writeWrapped($pdf, !empty($education?->jhs_from) ? Carbon::parse($education?->jhs_from)->format('m/Y') : '', 20, 138, 275, 271.2, 8, 2);
         $this->writeWrapped($pdf, !empty($education?->jhs_to) ? Carbon::parse($education?->jhs_to)->format('m/Y') : '', 20, 150, 275, 271.2, 8, 2);
-        $pdf->SetXY(163.5, 275);
+        $this->setXY($pdf, 163.5, 275);
         $pdf->Write(0, $education?->jhs_earned ?? 'N/A');
-        $pdf->SetXY(183, 275);
+        $this->setXY($pdf, 183, 275);
         $pdf->Write(0, $education?->jhs_year_graduated ?? 'N/A');
         
-        $pdf->SetFont('Arial', '', 4);
+        $this->setFont($pdf, 'Arial', '', 4);
 
         // Set parameters
         $text =  $education?->jhs_academic_honors ?? 'N/A';
@@ -830,16 +880,16 @@ private function writeEducationalBackground($pdf, $education)
         // Check if it fits in one line
         if ($stringWidth <= $maxWidth) {
             // It fits in one line, write directly
-            $pdf->SetFont('Arial', '', $fontSize);
-            $pdf->SetXY(197, 275);
-            $pdf->Cell($maxWidth, $lineHeight, $text, 0, 0);
+            $this->setFont($pdf, 'Arial', '', $fontSize);
+            $this->setXY($pdf, 197, 275);
+            $pdf->Cell($maxWidth, $this->scaleHeight($lineHeight), $text, 0, 0);
         } else {
             // It doesn't fit, wrap text
             $this->writeWrapped($pdf, $text, $maxWidth, 197, 275, 273.2, $fontSize, $lineHeight);
         }
 
         // Reset font to 8pt
-        $pdf->SetFont('Arial', '', 8);
+        $this->setFont($pdf, 'Arial', '', 8);
     }
 }
 
@@ -875,7 +925,7 @@ private function writeVocationalChunk($pdf, $chunk)
 
     // If all are empty, write N/A once in the school column
     if ($isEmpty) {
-        $pdf->SetXY($startX_school, $startY);
+        $this->setXY($pdf, $startX_school, $startY);
         $pdf->Write(0, 'N/A');
         return;
     }
@@ -885,23 +935,23 @@ private function writeVocationalChunk($pdf, $chunk)
     {
         $currentY = $startY + ($index * $lineHeight);
 
-        $pdf->SetXY($startX_school, $currentY);
+        $this->setXY($pdf, $startX_school, $currentY);
         $this->writeWrapped($pdf, $voc['school'] ?? '', 50, $startX_school, $currentY, $currentY-1, 6, 3);
 
-        $pdf->SetXY($startX_basic, $currentY);
+        $this->setXY($pdf, $startX_basic, $currentY);
         $this->writeWrapped($pdf, $voc['basic'] ?? '', 50, $startX_basic, $currentY, $currentY-1, 6, 3);
 
         $this->writeWrapped($pdf, !empty($voc['from'] ?? '') ? Carbon::parse($voc['from'])->format('m/Y') : '', 20, $startX_from, $currentY, $currentY-1, 8, 2);
         $this->writeWrapped($pdf, !empty($voc['to'] ?? '') ? Carbon::parse($voc['to'])->format('m/Y') : '', 20, $startX_to, $currentY, $currentY-1, 8, 2);
 
-        $pdf->SetXY($startX_earned, $currentY);
+        $this->setXY($pdf, $startX_earned, $currentY);
         $pdf->Write(0, $voc['earned'] ?? 'N/A');
 
-        $pdf->SetXY($startX_year_graduated, $currentY);
+        $this->setXY($pdf, $startX_year_graduated, $currentY);
         $pdf->Write(0, $voc['year_graduated'] ?? 'N/A');
 
         
-        $pdf->SetFont('Arial', '', 4);
+        $this->setFont($pdf, 'Arial', '', 4);
 
         // Set parameters
         $text = $voc['academic_honors'] ?? 'N/A';
@@ -915,16 +965,16 @@ private function writeVocationalChunk($pdf, $chunk)
         // Check if it fits in one line
         if ($stringWidth <= $maxWidth) {
             // It fits in one line, write directly
-            $pdf->SetFont('Arial', '', $fontSize);
-            $pdf->SetXY($startX_honors, $currentY-1);
-            $pdf->Cell($maxWidth, $lineHeight, $text, 0, 0);
+            $this->setFont($pdf, 'Arial', '', $fontSize);
+            $this->setXY($pdf, $startX_honors, $currentY-1);
+            $pdf->Cell($maxWidth, $this->scaleHeight($lineHeight), $text, 0, 0);
         } else {
             // It doesn't fit, wrap text
             $this->writeWrapped($pdf, $text, $maxWidth, $startX_honors, $currentY, $currentY - 1.5, $fontSize, $lineHeight);
         }
 
         // Reset font to 8pt
-        $pdf->SetFont('Arial', '', 8);
+        $this->setFont($pdf, 'Arial', '', 8);
     }
 }
 
@@ -960,7 +1010,7 @@ private function writeCollegeChunk($pdf, $chunk)
 
     // If all are empty, write N/A in school column only
     if ($isEmpty) {
-        $pdf->SetXY($startX_school, $startY);
+        $this->setXY($pdf, $startX_school, $startY);
         $pdf->Write(0, 'N/A');
         return;
     }
@@ -970,22 +1020,22 @@ private function writeCollegeChunk($pdf, $chunk)
     {
         $currentY = $startY + ((int)$index * $lineHeight);
 
-        $pdf->SetXY($startX_school, $currentY);
+        $this->setXY($pdf, $startX_school, $currentY);
         $this->writeWrapped($pdf, $college['school'] ?? '', 50, $startX_school, $currentY, $currentY-1, 6, 3);
 
-        $pdf->SetXY($startX_basic, $currentY);
+        $this->setXY($pdf, $startX_basic, $currentY);
         $this->writeWrapped($pdf, $college['basic'] ?? '', 50, $startX_basic, $currentY, $currentY-1, 6, 3);
 
         $this->writeWrapped($pdf, !empty($college['from'] ?? '') ? Carbon::parse($college['from'])->format('m/Y') : '', 20, $startX_from, $currentY, $currentY-1, 8, 2);
         $this->writeWrapped($pdf, !empty($college['to'] ?? '') ? Carbon::parse($college['to'])->format('m/Y') : '', 20, $startX_to, $currentY, $currentY-1, 8, 2);
 
-        $pdf->SetXY($startX_earned, $currentY);
+        $this->setXY($pdf, $startX_earned, $currentY);
         $pdf->Write(0, $college['earned'] ?? 'N/A');
 
-        $pdf->SetXY($startX_year_graduated, $currentY);
+        $this->setXY($pdf, $startX_year_graduated, $currentY);
         $pdf->Write(0, $college['year_graduated'] ?? 'N/A');
 
-        $pdf->SetFont('Arial', '', 4);
+        $this->setFont($pdf, 'Arial', '', 4);
 
         // Set parameters
         $text = $college['academic_honors'] ?? 'N/A';
@@ -999,16 +1049,16 @@ private function writeCollegeChunk($pdf, $chunk)
         // Check if it fits in one line
         if ($stringWidth <= $maxWidth) {
             // It fits in one line, write directly
-            $pdf->SetFont('Arial', '', $fontSize);
-            $pdf->SetXY($startX_honors, $currentY-1);
-            $pdf->Cell($maxWidth, $lineHeight, $text, 0, 0);
+            $this->setFont($pdf, 'Arial', '', $fontSize);
+            $this->setXY($pdf, $startX_honors, $currentY-1);
+            $pdf->Cell($maxWidth, $this->scaleHeight($lineHeight), $text, 0, 0);
         } else {
             // It doesn't fit, wrap text
             $this->writeWrapped($pdf, $text, $maxWidth, $startX_honors, $currentY, $currentY - 1.5, $fontSize, $lineHeight);
         }
 
         // Reset font to 8pt
-        $pdf->SetFont('Arial', '', 8);
+        $this->setFont($pdf, 'Arial', '', 8);
 
     }
 }
@@ -1045,7 +1095,7 @@ private function writeGraduateChunk($pdf, $chunk)
 
     // If all are empty, write N/A in school column only
     if ($isEmpty) {
-        $pdf->SetXY($startX_school, $startY);
+        $this->setXY($pdf, $startX_school, $startY);
         $pdf->Write(0, 'N/A');
         return;
     }
@@ -1055,23 +1105,23 @@ private function writeGraduateChunk($pdf, $chunk)
     {
         $currentY = $startY + ($index * $lineHeight);
 
-        $pdf->SetXY($startX_school, $currentY);
+        $this->setXY($pdf, $startX_school, $currentY);
         $this->writeWrapped($pdf, $grad['school'] ?? '', 50, $startX_school, $currentY, $currentY-1, 6, 3);
 
-        $pdf->SetXY($startX_basic, $currentY);
+        $this->setXY($pdf, $startX_basic, $currentY);
         $this->writeWrapped($pdf, $grad['basic'] ?? '', 50, $startX_basic, $currentY, $currentY-1, 6, 3);
 
         $this->writeWrapped($pdf, !empty($grad['from'] ?? '') ? Carbon::parse($grad['from'])->format('m/Y') : '', 20, $startX_from, $currentY, $currentY-1, 8, 2);
         $this->writeWrapped($pdf, !empty($grad['to'] ?? '') ? Carbon::parse($grad['to'])->format('m/Y') : '', 20, $startX_to, $currentY, $currentY-1, 8, 2);
 
-        $pdf->SetXY($startX_earned, $currentY);
+        $this->setXY($pdf, $startX_earned, $currentY);
         $pdf->Write(0, $grad['earned'] ?? 'N/A');
 
-        $pdf->SetXY($startX_year_graduated, $currentY);
+        $this->setXY($pdf, $startX_year_graduated, $currentY);
         $pdf->Write(0, $grad['year_graduated'] ?? 'N/A');
 
 
-        $pdf->SetFont('Arial', '', 4);
+        $this->setFont($pdf, 'Arial', '', 4);
 
         // Set parameters
         $text = $grad['academic_honors'] ?? 'N/A';
@@ -1085,16 +1135,16 @@ private function writeGraduateChunk($pdf, $chunk)
         // Check if it fits in one line
         if ($stringWidth <= $maxWidth) {
             // It fits in one line, write directly
-            $pdf->SetFont('Arial', '', $fontSize);
-            $pdf->SetXY($startX_honors, $currentY-1);
-            $pdf->Cell($maxWidth, $lineHeight, $text, 0, 0);
+            $this->setFont($pdf, 'Arial', '', $fontSize);
+            $this->setXY($pdf, $startX_honors, $currentY-1);
+            $pdf->Cell($maxWidth, $this->scaleHeight($lineHeight), $text, 0, 0);
         } else {
             // It doesn't fit, wrap text
             $this->writeWrapped($pdf, $text, $maxWidth, $startX_honors, $currentY, $currentY - 1.5, $fontSize, $lineHeight);
         }
 
         // Reset font to 8pt
-        $pdf->SetFont('Arial', '', 8);
+        $this->setFont($pdf, 'Arial', '', 8);
     }
 }
 
@@ -1131,7 +1181,7 @@ private function writeCivilServiceEligibilityChunk($pdf, $chunk)
 
     // If all fields are empty, write N/A in career field only
     if ($isEmpty) {
-        $pdf->SetXY($startX_career, $startY);
+        $this->setXY($pdf, $startX_career, $startY);
         $pdf->Write(0, 'N/A');
         return;
     }
@@ -1144,28 +1194,28 @@ private function writeCivilServiceEligibilityChunk($pdf, $chunk)
         $this->writeWrapped($pdf, $cse['cs_eligibility_career'] ?? '', 60, $startX_career, $currentY, $currentY - 0.5, 8, 3);
 
         // Rating
-        $pdf->SetXY($startX_rating, $currentY);
+        $this->setXY($pdf, $startX_rating, $currentY);
         $pdf->Write(0, $cse['cs_eligibility_rating'] ?? '');
 
         // Date of examination
-        $pdf->SetXY($startX_date, $currentY);
+        $this->setXY($pdf, $startX_date, $currentY);
         $pdf->Write(0, !empty($cse['cs_eligibility_date']) ? Carbon::parse($cse['cs_eligibility_date'])->format('m-d-Y') : '');
 
         // Place of examination
-        $pdf->SetXY($startX_place, $currentY);
+        $this->setXY($pdf, $startX_place, $currentY);
         $pdf->Write(0, $cse['cs_eligibility_place'] ?? '');
 
         // License number
-        $pdf->SetFont('Arial', '', 6.5);
-        $pdf->SetXY($startX_license, $currentY);
+        $this->setFont($pdf, 'Arial', '', 6.5);
+        $this->setXY($pdf, $startX_license, $currentY);
         $pdf->Write(0, $cse['cs_eligibility_license'] ?? '');
 
         // Validity date
-        $pdf->SetXY($startX_validity, $currentY);
+        $this->setXY($pdf, $startX_validity, $currentY);
         $pdf->Write(0, !empty($cse['cs_eligibility_validity']) ? Carbon::parse($cse['cs_eligibility_validity'])->format('m-d-Y') : '');
 
         // Reset font size
-        $pdf->SetFont('Arial', '', 8);
+        $this->setFont($pdf, 'Arial', '', 8);
     }
 }
 
@@ -1205,7 +1255,7 @@ private function writeWorkExperienceChunk($pdf, $chunk)
 
     // If all are empty, write N/A in the position field only
     if ($isEmpty) {
-        $pdf->SetXY($x_position, $startY);
+        $this->setXY($pdf, $x_position, $startY);
         $pdf->Write(0, 'N/A');
         return;
     }
@@ -1214,26 +1264,26 @@ private function writeWorkExperienceChunk($pdf, $chunk)
     foreach ($chunk as $index => $we) {
         $currentY = $startY + ($index * $rowHeight);
 
-        $pdf->SetXY($x_from, $currentY);
+        $this->setXY($pdf, $x_from, $currentY);
         $pdf->Write(0, !empty($we['work_exp_from']) ? Carbon::parse($we['work_exp_from'])->format('m/d/Y') : '');
 
-        $pdf->SetXY($x_to, $currentY);
+        $this->setXY($pdf, $x_to, $currentY);
         $pdf->Write(0, !empty($we['work_exp_to']) ? Carbon::parse($we['work_exp_to'])->format('m/d/Y') : '');
 
-        $pdf->SetXY($x_position, $currentY);
+        $this->setXY($pdf, $x_position, $currentY);
         $pdf->Write(0, $we['work_exp_position'] ?? '');
 
         $this->writeWrapped($pdf, $we['work_exp_department'] ?? '', 55, $x_agency, $currentY, $currentY - 1.5, 6, 2);
 
-        $pdf->SetXY($x_salary, $currentY);
+        $this->setXY($pdf, $x_salary, $currentY);
         $pdf->Write(0, $we['work_exp_salary'] ?? '');
 
-        $pdf->SetXY($x_grade, $currentY);
+        $this->setXY($pdf, $x_grade, $currentY);
         $pdf->Write(0, $we['work_exp_grade'] ?? '');
 
         $this->writeWrapped($pdf, $we['work_exp_status'] ?? '', 20, $x_status, $currentY, $currentY - 1.5, 6, 2);
 
-        $pdf->SetXY($x_gov, $currentY);
+        $this->setXY($pdf, $x_gov, $currentY);
         $pdf->Write(0, isset($we['work_exp_govt_service']) ? ($we['work_exp_govt_service'] ? 'Y' : 'N') : '');
     }
 }
@@ -1268,7 +1318,7 @@ private function writeVoluntaryWorkChunk($pdf, $chunk)
 
     // If all fields are empty, write "N/A" in organization column only
     if ($isEmpty) {
-        $pdf->SetXY($x_org, $startY);
+        $this->setXY($pdf, $x_org, $startY);
         $pdf->Write(0, 'N/A');
         return;
     }
@@ -1279,13 +1329,13 @@ private function writeVoluntaryWorkChunk($pdf, $chunk)
 
         $this->writeWrapped($pdf, $vw['voluntary_org'] ?? '', 115, $x_org, $currentY, $currentY - 1, 6, 2);
 
-        $pdf->SetXY($x_from, $currentY);
+        $this->setXY($pdf, $x_from, $currentY);
         $pdf->Write(0, !empty($vw['voluntary_from']) ? Carbon::parse($vw['voluntary_from'])->format('m/d/Y') : '');
 
-        $pdf->SetXY($x_to, $currentY);
+        $this->setXY($pdf, $x_to, $currentY);
         $pdf->Write(0, !empty($vw['voluntary_to']) ? Carbon::parse($vw['voluntary_to'])->format('m/d/Y') : '');
 
-        $pdf->SetXY($x_hours, $currentY);
+        $this->setXY($pdf, $x_hours, $currentY);
         $pdf->Write(0, $vw['voluntary_hours'] ?? '');
 
         $this->writeWrapped($pdf, $vw['voluntary_position'] ?? '', 60, $x_position, $currentY, $currentY - 1, 7, 3);
@@ -1323,7 +1373,7 @@ private function writeLearningAndDevelopmentChunk($pdf, $chunk)
 
     // If all fields are empty, write N/A in the learning_title column only
     if ($isEmpty) {
-        $pdf->SetXY($x_title, $startY);
+        $this->setXY($pdf, $x_title, $startY);
         $pdf->Write(0, 'N/A');
         return;
     }
@@ -1334,16 +1384,16 @@ private function writeLearningAndDevelopmentChunk($pdf, $chunk)
 
         $this->writeWrapped($pdf, $lnd['learning_title'] ?? '', 105, $x_title, $currentY, $currentY - 1, 6, 2);
 
-        $pdf->SetXY($x_type, $currentY);
+        $this->setXY($pdf, $x_type, $currentY);
         $pdf->Write(0, $lnd['learning_type'] ?? '');
 
-        $pdf->SetXY($x_from, $currentY);
+        $this->setXY($pdf, $x_from, $currentY);
         $pdf->Write(0, !empty($lnd['learning_from']) ? Carbon::parse($lnd['learning_from'])->format('m/d/Y') : '');
 
-        $pdf->SetXY($x_to, $currentY);
+        $this->setXY($pdf, $x_to, $currentY);
         $pdf->Write(0, !empty($lnd['learning_to']) ? Carbon::parse($lnd['learning_to'])->format('m/d/Y') : '');
 
-        $pdf->SetXY($x_hours, $currentY);
+        $this->setXY($pdf, $x_hours, $currentY);
         $pdf->Write(0, $lnd['learning_hours'] ?? '');
 
         $this->writeWrapped($pdf, $lnd['learning_conducted'] ?? '', 47.3, $x_conducted, $currentY, $currentY - 1, 6, 2);
@@ -1369,11 +1419,11 @@ private function writeOtherInformation($pdf, $skills, $distinctions, $organizati
         empty(array_filter($distinctions)) &&
         empty(array_filter($organizations))
     ) {
-        $pdf->SetXY($x_skill, $startY);
+        $this->setXY($pdf, $x_skill, $startY);
         $pdf->Write(0, 'N/A');
-        $pdf->SetXY($x_distinction, $startY);
+        $this->setXY($pdf, $x_distinction, $startY);
         $pdf->Write(0, 'N/A');
-        $pdf->SetXY($x_org, $startY);
+        $this->setXY($pdf, $x_org, $startY);
         $pdf->Write(0, 'N/A');
         return;
     }
@@ -1386,7 +1436,7 @@ private function writeOtherInformation($pdf, $skills, $distinctions, $organizati
     // Write non-empty skills
     foreach ($skills as $skill) {
         if (trim($skill) !== '') {
-            $pdf->SetXY($x_skill, $y_skill);
+            $this->setXY($pdf, $x_skill, $y_skill);
             $this->writeWrapped($pdf, $skill, 30, $x_skill, $y_skill, $y_skill - 1, 6, 3);
             $y_skill += $rowHeight;
         }
@@ -1395,7 +1445,7 @@ private function writeOtherInformation($pdf, $skills, $distinctions, $organizati
     // Write non-empty distinctions
     foreach ($distinctions as $distinction) {
         if (trim($distinction) !== '') {
-            $pdf->SetXY($x_distinction, $y_distinction);
+            $this->setXY($pdf, $x_distinction, $y_distinction);
             $this->writeWrapped($pdf, $distinction, 30, $x_distinction, $y_distinction, $y_distinction - 1, 6, 3);
             $y_distinction += $rowHeight;
         }
@@ -1404,7 +1454,7 @@ private function writeOtherInformation($pdf, $skills, $distinctions, $organizati
     // Write non-empty organizations
     foreach ($organizations as $organization) {
         if (trim($organization) !== '') {
-            $pdf->SetXY($x_org, $y_org);
+            $this->setXY($pdf, $x_org, $y_org);
             $this->writeWrapped($pdf, $organization, 55, $x_org, $y_org, $y_org - 1, 6, 2);
             $y_org += $rowHeight;
         }
@@ -1503,25 +1553,24 @@ private function WriteC4Information($pdf, $userId)
                 $answer = $info[$key][0];
                 $pos = $coord[strtolower($answer)];
             }
-            $pdf->SetXY($pos[0], $pos[1]);
-            $pdf->Write(0, '/');
+            $this->markCheckbox($pdf, $pos[0], $pos[1]);
         }
 
-        $pdf->SetFont('Arial', '', 8);
+        $this->setFont($pdf, 'Arial', '', 8);
 
         // Detail fields
-        $pdf->SetXY(141.224, 40.3);  $pdf->Write(0, $info['fourth_degree'][1]  ?? '');
-        $pdf->SetXY(141.224, 56);    $pdf->Write(0, $info['guilty'][1] ?? '');
-        $pdf->SetXY(163, 73);        $pdf->Write(0, $info['charged'][1] ?? '');
-        $pdf->SetXY(163, 77.5);      $pdf->Write(0, $info['charged'][2] ?? '');
-        $pdf->SetXY(141.224, 94);    $pdf->Write(0, $info['convicted'][1] ?? '');
-        $pdf->SetXY(141.224, 108);   $pdf->Write(0, $info['separated'][1] ?? '');
-        $pdf->SetXY(163, 119);       $pdf->Write(0, $info['candidate'][1] ?? '');
-        $pdf->SetXY(163, 130);       $pdf->Write(0, $info['resigned'][1] ?? '');
-        $pdf->SetXY(141.224, 145.5); $pdf->Write(0, $info['immigrant'][1] ?? '');
-        $pdf->SetXY(177, 165.5);     $pdf->Write(0, $info['indigenous'][1] ?? '');
-        $pdf->SetXY(177, 174);       $pdf->Write(0, $info['disability'][1] ?? '');
-        $pdf->SetXY(177, 182);       $pdf->Write(0, $info['solo_parent'][1] ?? '');
+        $this->setXY($pdf, 141.224, 40.3);  $pdf->Write(0, $info['fourth_degree'][1]  ?? '');
+        $this->setXY($pdf, 141.224, 56);    $pdf->Write(0, $info['guilty'][1] ?? '');
+        $this->setXY($pdf, 163, 73);        $pdf->Write(0, $info['charged'][1] ?? '');
+        $this->setXY($pdf, 163, 77.5);      $pdf->Write(0, $info['charged'][2] ?? '');
+        $this->setXY($pdf, 141.224, 94);    $pdf->Write(0, $info['convicted'][1] ?? '');
+        $this->setXY($pdf, 141.224, 108);   $pdf->Write(0, $info['separated'][1] ?? '');
+        $this->setXY($pdf, 163, 119);       $pdf->Write(0, $info['candidate'][1] ?? '');
+        $this->setXY($pdf, 163, 130);       $pdf->Write(0, $info['resigned'][1] ?? '');
+        $this->setXY($pdf, 141.224, 145.5); $pdf->Write(0, $info['immigrant'][1] ?? '');
+        $this->setXY($pdf, 177, 165.5);     $pdf->Write(0, $info['indigenous'][1] ?? '');
+        $this->setXY($pdf, 177, 174);       $pdf->Write(0, $info['disability'][1] ?? '');
+        $this->setXY($pdf, 177, 182);       $pdf->Write(0, $info['solo_parent'][1] ?? '');
 
         // Reference table
         $x_name = 5.145;
@@ -1532,21 +1581,17 @@ private function WriteC4Information($pdf, $userId)
         foreach ($info['references'] as $i => $ref) {
             if ($i >= count($y_refs)) break;
             $y = $y_refs[$i];
-            $pdf->SetXY($x_name, $y);    $pdf->Write(0, $ref['name'] ?? '');
+            $this->writeFittedAt($pdf, (string) ($ref['name'] ?? ''), $x_name, $y, 76, 7.5, 5.0);
             $this->writeWrapped($pdf, $ref['address'] ?? '', 50, $x_address, $y, $y - 1.5, 6, 2);
-            $pdf->SetXY($x_telno, $y);   $pdf->Write(0, $ref['tel'] ?? '');
+            $this->writeFittedAt($pdf, (string) ($ref['tel'] ?? ''), $x_telno, $y, 24, 7.5, 5.0);
         }
 
         // ID Section
-        $pdf->SetXY(31, 258.3);
-        $pdf->Write(0, $info['govt_id'] ?? ''); // Only govt ID type
-
-        $pdf->SetXY(31, 265);
-        $pdf->Write(0, $info['other_id'] ?? ''); // Now shows govt_id_number only
+        $this->writeFittedAt($pdf, (string) ($info['govt_id'] ?? ''), 31, 258.3, 58, 7.5, 5.0); // Only govt ID type
+        $this->writeFittedAt($pdf, (string) ($info['other_id'] ?? ''), 31, 265, 58, 7.5, 5.0); // Govt ID number only
 
         $formattedIssuedDate = $info['issue_date'] ? Carbon::parse($info['issue_date'])->format('m/d/Y') : '';
-        $pdf->SetXY(31, 271.9);
-        $pdf->Write(0, $info['issue_place'] . ' | ' . $formattedIssuedDate ?? '');
+        $this->writeFittedAt($pdf, trim(($info['issue_place'] ?? '') . ' | ' . $formattedIssuedDate), 31, 271.9, 86, 7.0, 5.0);
     }
 
 
@@ -1555,53 +1600,176 @@ private function getWriteCentered()
 {
     return function ($pdf, $text, $startX, $endX, $y)
     {
-        $textWidth = $pdf->GetStringWidth($text);
-        $centerX = $startX + (($endX - $startX) - $textWidth) / 2;
-        $pdf->SetXY($centerX, $y);
-        $pdf->Write(0, $text);
+        $this->writeCenteredFitted($pdf, (string) $text, (float) $startX, (float) $endX, (float) $y);
     };
+}
+
+private function markCheckbox($pdf, float $x, float $y): void
+{
+    $this->setFont($pdf, 'Arial', 'B', 6.5);
+    $this->setXY($pdf, $x + 0.8, $y + 0.3);
+    $pdf->Write(0, 'X');
+    $this->setFont($pdf, 'Arial', '', 8);
+}
+
+private function fitTextToWidth($pdf, string $text, float $maxWidth, float $baseSize = 8.0, float $minSize = 5.0): array
+{
+    $display = trim($text);
+    if ($display === '') {
+        return ['', $baseSize, 0.0];
+    }
+
+    for ($size = $baseSize; $size >= $minSize; $size -= 0.5) {
+        $this->setFont($pdf, 'Arial', '', $size);
+        $width = $pdf->GetStringWidth($display);
+        if ($width <= $maxWidth) {
+            return [$display, $size, $width];
+        }
+    }
+
+    $this->setFont($pdf, 'Arial', '', $minSize);
+    $display = $this->truncateToWidth($pdf, $display, $maxWidth);
+    return [$display, $minSize, $pdf->GetStringWidth($display)];
+}
+
+private function truncateToWidth($pdf, string $text, float $maxWidth): string
+{
+    $candidate = trim($text);
+    if ($candidate === '') {
+        return '';
+    }
+    if ($pdf->GetStringWidth($candidate) <= $maxWidth) {
+        return $candidate;
+    }
+
+    $ellipsis = '...';
+    while (mb_strlen($candidate) > 1) {
+        $candidate = rtrim(mb_substr($candidate, 0, mb_strlen($candidate) - 1));
+        $trial = $candidate . $ellipsis;
+        if ($pdf->GetStringWidth($trial) <= $maxWidth) {
+            return $trial;
+        }
+    }
+
+    return $ellipsis;
+}
+
+private function writeCenteredFitted($pdf, string $text, float $startX, float $endX, float $y): void
+{
+    $maxWidth = max(1.0, ($endX - $startX) - 0.5);
+    [$display, $size, $width] = $this->fitTextToWidth($pdf, $text, $maxWidth, 8.0, 5.0);
+    $centerX = $startX + ((($endX - $startX) - $width) / 2);
+    $this->setXY($pdf, $centerX, $y);
+    $pdf->Write(0, $display);
+    $this->setFont($pdf, 'Arial', '', 8);
+}
+
+private function writeFittedAt($pdf, string $text, float $x, float $y, float $maxWidth, float $baseSize = 8.0, float $minSize = 5.0): void
+{
+    [$display, $size, $_width] = $this->fitTextToWidth($pdf, $text, $maxWidth, $baseSize, $minSize);
+    $this->setFont($pdf, 'Arial', '', $size);
+    $this->setXY($pdf, $x, $y);
+    $pdf->Write(0, $display);
+    $this->setFont($pdf, 'Arial', '', 8);
 }
 
 
 private function writeWrapped($pdf, $text, $maxWidth, $x, $ySingle, $yMultiple, $font_size, $lineHeight)
 {
-    $words = explode(' ', $text);
-    $currentLine = '';
+    $text = trim((string) $text);
+    if ($text === '') {
+        return;
+    }
+
+    $minFont = 5.0;
+    $targetLines = 3;
+
+    // Try full single-line size first.
+    $this->setFont($pdf, 'Arial', '', 8);
+    if ($pdf->GetStringWidth($text) <= $maxWidth) {
+        $this->setXY($pdf, $x, $ySingle);
+        $pdf->Write(0, $text);
+        $this->setFont($pdf, 'Arial', '', 8);
+        return;
+    }
+
+    $chosenLines = [];
+    $chosenSize = max($minFont, (float) $font_size);
+    for ($size = max($minFont, (float) $font_size); $size >= $minFont; $size -= 0.5) {
+        $this->setFont($pdf, 'Arial', '', $size);
+        $lines = $this->splitTextByWidth($pdf, $text, $maxWidth);
+        if (count($lines) <= $targetLines) {
+            $chosenLines = $lines;
+            $chosenSize = $size;
+            break;
+        }
+        $chosenLines = $lines;
+        $chosenSize = $size;
+    }
+
+    if (count($chosenLines) > $targetLines) {
+        $chosenLines = array_slice($chosenLines, 0, $targetLines);
+        $last = rtrim((string) end($chosenLines));
+        $last = preg_replace('/[\\s\\.]+$/', '', $last);
+        $chosenLines[$targetLines - 1] = $last . '...';
+    }
+
+    $this->setFont($pdf, 'Arial', '', $chosenSize);
+    $currentY = count($chosenLines) === 1 ? $ySingle : $yMultiple;
+    $effectiveLineHeight = count($chosenLines) > 2 ? ($lineHeight * 0.9) : $lineHeight;
+
+    foreach ($chosenLines as $line) {
+        $this->setXY($pdf, $x, $currentY);
+        $pdf->Write(0, $line);
+        $currentY += $effectiveLineHeight;
+    }
+
+    $this->setFont($pdf, 'Arial', '', 8);
+}
+
+private function splitTextByWidth($pdf, string $text, float $maxWidth): array
+{
+    $words = preg_split('/\\s+/', trim($text)) ?: [];
     $lines = [];
+    $currentLine = '';
 
     foreach ($words as $word) {
-        $testLine = trim($currentLine . ' ' . $word);
-        $testWidth = $pdf->GetStringWidth($testLine);
+        $candidate = $currentLine === '' ? $word : ($currentLine . ' ' . $word);
+        if ($pdf->GetStringWidth($candidate) <= $maxWidth) {
+            $currentLine = $candidate;
+            continue;
+        }
 
-        if ($testWidth > $maxWidth && $currentLine !== '') {
+        if ($currentLine !== '') {
             $lines[] = $currentLine;
-            $currentLine = $word;
+            $currentLine = '';
+        }
+
+        // Hard-wrap oversized single tokens.
+        if ($pdf->GetStringWidth($word) > $maxWidth) {
+            $buffer = '';
+            foreach (str_split($word) as $char) {
+                $next = $buffer . $char;
+                if ($pdf->GetStringWidth($next) <= $maxWidth) {
+                    $buffer = $next;
+                } else {
+                    if ($buffer !== '') {
+                        $lines[] = $buffer;
+                    }
+                    $buffer = $char;
+                }
+            }
+            $currentLine = $buffer;
         } else {
-            $currentLine = $testLine;
+            $currentLine = $word;
         }
     }
 
-    // Add the last line
     if ($currentLine !== '') {
         $lines[] = $currentLine;
     }
 
-    // Determine font size based on number of lines
-    if (count($lines) == 1) {
-        $pdf->SetFont('Arial', '', 8);
-        $currentY = $ySingle;
-    } else {
-        $pdf->SetFont('Arial', '', $font_size);
-        $currentY = $yMultiple;
-    }
-
-    // Write lines
-    foreach ($lines as $line) {
-        $pdf->SetXY($x, $currentY);
-        $pdf->Write(0, $line);
-        $currentY += $lineHeight;
-    }
-    $pdf->SetFont('Arial', '', 8);
+    return $lines;
 }
 
 }

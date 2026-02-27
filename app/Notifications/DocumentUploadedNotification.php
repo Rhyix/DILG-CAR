@@ -2,16 +2,12 @@
 
 namespace App\Notifications;
 
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Log;
 
-class DocumentUploadedNotification extends Notification implements ShouldQueue
+class DocumentUploadedNotification extends Notification
 {
-    use Queueable;
-
     private $applicantName;
     private $documentTypes;
     private $uploadTimestamp;
@@ -47,7 +43,7 @@ class DocumentUploadedNotification extends Notification implements ShouldQueue
         if (method_exists($notifiable, 'wantsNotification') && !$notifiable->wantsNotification('document_uploaded')) {
             return [];
         }
-        return ['mail', 'database'];
+        return ['database'];
     }
 
     /**

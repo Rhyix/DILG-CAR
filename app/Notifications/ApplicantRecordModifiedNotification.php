@@ -2,16 +2,12 @@
 
 namespace App\Notifications;
 
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Log;
 
-class ApplicantRecordModifiedNotification extends Notification implements ShouldQueue
+class ApplicantRecordModifiedNotification extends Notification
 {
-    use Queueable;
-
     private $modifierName;
     private $applicantName;
     private $changes; // Array or string description of changes

@@ -526,7 +526,7 @@ Route::middleware([ViewerAccess::class, 'admin.ability:admin.exam.monitor'])->gr
 });
 
 // =========================
-// Shared Notification Routes (User & Admin)
+// Notifications
 // =========================
 Route::middleware(['auth:web,admin'])->group(function () {
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
@@ -535,6 +535,10 @@ Route::middleware(['auth:web,admin'])->group(function () {
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
     Route::post('/notifications/mark-all', [NotificationController::class, 'markAll'])->name('notifications.mark_all');
     Route::post('/notifications/cleanup', [NotificationController::class, 'cleanup'])->name('notifications.cleanup');
+});
+
+Route::middleware(['auth:admin', RedirectIfNotAdmin::class])->group(function () {
+    Route::get('/admin/notifications', [NotificationController::class, 'adminIndex'])->name('admin.notifications.index');
 });
 
 // ==================================================================================================

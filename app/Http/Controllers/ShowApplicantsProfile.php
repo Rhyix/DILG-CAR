@@ -6,6 +6,7 @@ use App\Enums\ApplicationStatus;
 use App\Models\Applications;
 use App\Models\PersonalInformation;
 use App\Models\JobVacancy;
+use App\Models\UploadedDocument;
 use App\Models\AdminVacancyAccess;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -13,6 +14,11 @@ use Illuminate\Support\Facades\Schema;
 
 class ShowApplicantsProfile extends Controller
 {
+    private const REVISION_STATUSES = [
+        'needs revision',
+        'disapproved with deficiency',
+    ];
+
     private function complianceStageStatuses(): array
     {
         return ApplicationStatus::complianceStages();
@@ -94,6 +100,130 @@ class ShowApplicantsProfile extends Controller
             ->where('vacancy_id', $vacancyId)
             ->whereRaw('UPPER(vacancy_type) = ?', ['COS'])
             ->exists();
+    }
+
+    private function normalizeStatus(?string $value): string
+    {
+        return strtolower(trim((string) $value));
+    }
+
+    private function buildRevisionLookup($applications, string $vacancyId): array
+    {
+        $userIds = $applications->pluck('user_id')->filter()->unique()->values();
+        if ($userIds->isEmpty()) {
+            return [];
+        }
+
+        $query = UploadedDocument::query()
+            ->whereIn('user_id', $userIds)
+            ->whereRaw('LOWER(TRIM(status)) IN (?, ?)', self::REVISION_STATUSES);
+
+        if (Schema::hasColumn('uploaded_documents', 'vacancy_id')) {
+            $query->where(function ($sub) use ($vacancyId) {
+                $sub->where('vacancy_id', $vacancyId)
+                    ->orWhereNull('vacancy_id');
+            });
+        }
+
+        $revisionUserIds = $query->pluck('user_id')->unique()->all();
+
+        return array_fill_keys($revisionUserIds, true);
+    }
+
+    private function determineApplicantStage($application, array $revisionLookup): string
+    {
+        $status = $this->normalizeStatus($application->status ?? '');
+        $qsResult = $this->normalizeStatus($application->qs_result ?? '');
+        $fileStatus = $this->normalizeStatus($application->file_status ?? '');
+
+        $isQualified = $qsResult === 'qualified'
+            || $status === $this->normalizeStatus(ApplicationStatus::QUALIFIED->value)
+            || $status === 'complete';
+
+        if ($isQualified) {
+            return 'qualified';
+        }
+
+        $hasRevision = isset($revisionLookup[$application->user_id])
+            || in_array($fileStatus, self::REVISION_STATUSES, true);
+
+        $complianceStatuses = collect($this->complianceStageStatuses())
+            ->map(fn($value) => $this->normalizeStatus($value))
+            ->all();
+
+        $isComplianceStatus = in_array($status, $complianceStatuses, true) || $status === 'incomplete';
+
+        if ($hasRevision || $isComplianceStatus) {
+            return 'compliance';
+        }
+
+        return 'new';
+    }
+
+    private function partitionApplicantsByStage($applications, string $vacancyId): array
+    {
+        $revisionLookup = $this->buildRevisionLookup($applications, $vacancyId);
+        $stages = [
+            'new' => collect(),
+            'compliance' => collect(),
+            'qualified' => collect(),
+        ];
+
+        foreach ($applications as $application) {
+            $stage = $this->determineApplicantStage($application, $revisionLookup);
+            $stages[$stage]->push($application);
+        }
+
+        return $stages;
+    }
+
+    private function formatApplicants($applications)
+    {
+        return $applications->map(function ($application) {
+            $pi = $application->personalInformation;
+            $vacancy = $application->vacancy;
+
+            return [
+                'user_id' => $application->user_id,
+                'vacancy_id' => $application->vacancy_id,
+                'name' => $pi
+                    ? trim("{$pi->first_name} " .
+                        ($pi->middle_name ? strtoupper(substr($pi->middle_name, 0, 1)) . '. ' : '') .
+                        "{$pi->surname} {$pi->name_extension}")
+                    : ($application->user?->name ?? 'N/A'),
+                'job_applied' => $vacancy->position_title ?? 'N/A',
+                'place_of_assignment' => $vacancy->place_of_assignment ?? 'N/A',
+                'status' => $application->status ?? 'N/A',
+            ];
+        });
+    }
+
+    private function filterApplicantsBySearch($applications, string $search)
+    {
+        $needle = strtolower(trim($search));
+        if ($needle === '') {
+            return $applications;
+        }
+
+        return $applications->filter(function ($application) use ($needle) {
+            $pi = $application->personalInformation;
+            $nameParts = [
+                $pi?->first_name,
+                $pi?->middle_name,
+                $pi?->surname,
+                $pi?->name_extension,
+                $application->user?->name,
+            ];
+            $haystack = strtolower(trim(implode(' ', array_filter($nameParts))));
+            return $haystack !== '' && str_contains($haystack, $needle);
+        });
+    }
+
+    private function sortApplicantsByDate($applications, string $sortOrder)
+    {
+        return $sortOrder === 'oldest'
+            ? $applications->sortBy('created_at')
+            : $applications->sortByDesc('created_at');
     }
 
     public function index(Request $request, $vacancy_id)
@@ -284,10 +414,17 @@ class ShowApplicantsProfile extends Controller
                 $q->statusEquals(ApplicationStatus::PENDING->value);
             },
             'applications as compliance_count' => function ($q) {
-                $q->statusIn($this->complianceStageStatuses());
+                $q->where(function ($sub) {
+                    $sub->statusIn($this->complianceStageStatuses())
+                        ->orWhereRaw('LOWER(TRIM(status)) = ?', ['incomplete']);
+                });
             },
             'applications as qualified_count' => function ($q) {
-                $q->statusEquals(ApplicationStatus::QUALIFIED->value);
+                $q->where(function ($sub) {
+                    $sub->statusEquals(ApplicationStatus::QUALIFIED->value)
+                        ->orWhereRaw('LOWER(TRIM(status)) = ?', ['complete'])
+                        ->orWhereRaw('LOWER(TRIM(qs_result)) = ?', ['qualified']);
+                });
             },
         ])
             ->orderByRaw("CASE WHEN LOWER(status) = 'open' THEN 1 WHEN LOWER(status) = 'closed' THEN 2 ELSE 99 END")
@@ -409,83 +546,20 @@ class ShowApplicantsProfile extends Controller
                 ->with('error', 'Access denied. This COS vacancy is not assigned to your account.');
         }
 
-        // Get new applicants (Pending status)
-        $newApplications = Applications::with(['vacancy', 'personalInformation', 'user'])
+        $applications = Applications::with(['vacancy', 'personalInformation', 'user'])
             ->where('vacancy_id', $vacancy_id)
-            ->statusEquals(ApplicationStatus::PENDING->value)
             ->orderByDesc('created_at')
             ->get();
 
-        // Get compliance applicants
-        $complianceApplications = Applications::with(['vacancy', 'personalInformation', 'user'])
-            ->where('vacancy_id', $vacancy_id)
-            ->statusIn($this->complianceStageStatuses())
-            ->orderByDesc('created_at')
-            ->get();
+        $partitioned = $this->partitionApplicantsByStage($applications, (string) $vacancy_id);
 
-        // Get qualified applicants
-        $qualifiedApplications = Applications::with(['vacancy', 'personalInformation', 'user'])
-            ->where('vacancy_id', $vacancy_id)
-            ->statusEquals(ApplicationStatus::QUALIFIED->value)
-            ->orderByDesc('created_at')
-            ->get();
+        $newApplications = $partitioned['new']->sortByDesc('created_at');
+        $complianceApplications = $partitioned['compliance']->sortByDesc('created_at');
+        $qualifiedApplications = $partitioned['qualified']->sortByDesc('created_at');
 
-        // Format new applicants
-        $formattedNewApplicants = $newApplications->map(function ($application) {
-            $pi = $application->personalInformation;
-            $vacancy = $application->vacancy;
-
-            return [
-                'user_id' => $application->user_id,
-                'vacancy_id' => $application->vacancy_id,
-                'name' => $pi
-                    ? trim("{$pi->first_name} " .
-                        ($pi->middle_name ? strtoupper(substr($pi->middle_name, 0, 1)) . '. ' : '') .
-                        "{$pi->surname} {$pi->name_extension}")
-                    : ($application->user?->name ?? 'N/A'),
-                'job_applied' => $vacancy->position_title ?? 'N/A',
-                'place_of_assignment' => $vacancy->place_of_assignment ?? 'N/A',
-                'status' => $application->status ?? 'N/A',
-            ];
-        });
-
-        // Format compliance applicants
-        $formattedComplianceApplicants = $complianceApplications->map(function ($application) {
-            $pi = $application->personalInformation;
-            $vacancy = $application->vacancy;
-
-            return [
-                'user_id' => $application->user_id,
-                'vacancy_id' => $application->vacancy_id,
-                'name' => $pi
-                    ? trim("{$pi->first_name} " .
-                        ($pi->middle_name ? strtoupper(substr($pi->middle_name, 0, 1)) . '. ' : '') .
-                        "{$pi->surname} {$pi->name_extension}")
-                    : ($application->user?->name ?? 'N/A'),
-                'job_applied' => $vacancy->position_title ?? 'N/A',
-                'place_of_assignment' => $vacancy->place_of_assignment ?? 'N/A',
-                'status' => $application->status ?? 'N/A',
-            ];
-        });
-
-        // Format qualified applicants
-        $formattedQualifiedApplicants = $qualifiedApplications->map(function ($application) {
-            $pi = $application->personalInformation;
-            $vacancy = $application->vacancy;
-
-            return [
-                'user_id' => $application->user_id,
-                'vacancy_id' => $application->vacancy_id,
-                'name' => $pi
-                    ? trim("{$pi->first_name} " .
-                        ($pi->middle_name ? strtoupper(substr($pi->middle_name, 0, 1)) . '. ' : '') .
-                        "{$pi->surname} {$pi->name_extension}")
-                    : ($application->user?->name ?? 'N/A'),
-                'job_applied' => $vacancy->position_title ?? 'N/A',
-                'place_of_assignment' => $vacancy->place_of_assignment ?? 'N/A',
-                'status' => $application->status ?? 'N/A',
-            ];
-        });
+        $formattedNewApplicants = $this->formatApplicants($newApplications);
+        $formattedComplianceApplicants = $this->formatApplicants($complianceApplications);
+        $formattedQualifiedApplicants = $this->formatApplicants($qualifiedApplications);
 
         // Fetch vacancy info for header
         $vacancyInfo = JobVacancy::select('position_title', 'vacancy_type', 'place_of_assignment')
@@ -516,47 +590,17 @@ class ShowApplicantsProfile extends Controller
             return response()->view('partials.manage_new_applicants_list', ['applicants' => collect()]);
         }
 
-        $query = Applications::with(['vacancy', 'personalInformation', 'user'])
+        $applications = Applications::with(['vacancy', 'personalInformation', 'user'])
             ->where('vacancy_id', $vacancyId)
-            ->statusEquals(ApplicationStatus::PENDING->value);
+            ->get();
 
-        // Apply search filter
-        if (!empty($search)) {
-            $query->whereHas('personalInformation', function ($q) use ($search) {
-                $q->where('first_name', 'LIKE', '%' . $search . '%')
-                    ->orWhere('surname', 'LIKE', '%' . $search . '%')
-                    ->orWhere('middle_name', 'LIKE', '%' . $search . '%');
-            });
-        }
+        $partitioned = $this->partitionApplicantsByStage($applications, (string) $vacancyId);
+        $filtered = $this->filterApplicantsBySearch($partitioned['new'], (string) $search);
+        $sorted = $this->sortApplicantsByDate($filtered, (string) $sortOrder)->values();
 
-        // Apply sort order
-        if ($sortOrder === 'oldest') {
-            $query->orderBy('created_at', 'asc');
-        } else {
-            $query->orderBy('created_at', 'desc');
-        }
-
-        $applications = $query->get();
-
-        $formattedApplications = $applications->map(function ($application) {
-            $pi = $application->personalInformation;
-            $vacancy = $application->vacancy;
-
-            return [
-                'user_id' => $application->user_id,
-                'vacancy_id' => $application->vacancy_id,
-                'name' => $pi
-                    ? trim("{$pi->first_name} " .
-                        ($pi->middle_name ? strtoupper(substr($pi->middle_name, 0, 1)) . '. ' : '') .
-                        "{$pi->surname} {$pi->name_extension}")
-                    : ($application->user?->name ?? 'N/A'),
-                'job_applied' => $vacancy->position_title ?? 'N/A',
-                'place_of_assignment' => $vacancy->place_of_assignment ?? 'N/A',
-                'status' => $application->status ?? 'N/A',
-            ];
-        });
-
-        return response()->view('partials.manage_new_applicants_list', ['applicants' => $formattedApplications]);
+        return response()->view('partials.manage_new_applicants_list', [
+            'applicants' => $this->formatApplicants($sorted)
+        ]);
     }
 
     public function ajaxFilterComplianceApplicants(Request $request)
@@ -569,94 +613,41 @@ class ShowApplicantsProfile extends Controller
             return response()->view('partials.manage_new_applicants_list', ['applicants' => collect()]);
         }
 
-        $query = Applications::with(['vacancy', 'personalInformation', 'user'])
+        $applications = Applications::with(['vacancy', 'personalInformation', 'user'])
             ->where('vacancy_id', $vacancyId)
-            ->statusIn($this->complianceStageStatuses());
+            ->get();
 
-        // Apply search filter
-        if (!empty($search)) {
-            $query->whereHas('personalInformation', function ($q) use ($search) {
-                $q->where('first_name', 'LIKE', '%' . $search . '%')
-                    ->orWhere('surname', 'LIKE', '%' . $search . '%')
-                    ->orWhere('middle_name', 'LIKE', '%' . $search . '%');
-            });
-        }
+        $partitioned = $this->partitionApplicantsByStage($applications, (string) $vacancyId);
+        $filtered = $this->filterApplicantsBySearch($partitioned['compliance'], (string) $search);
+        $sorted = $this->sortApplicantsByDate($filtered, (string) $sortOrder)->values();
 
-        // Apply sort order
-        if ($sortOrder === 'oldest') {
-            $query->orderBy('created_at', 'asc');
-        } else {
-            $query->orderBy('created_at', 'desc');
-        }
-
-        $applications = $query->get();
-
-        $formattedApplications = $applications->map(function ($application) {
-            $pi = $application->personalInformation;
-            $vacancy = $application->vacancy;
-
-            return [
-                'user_id' => $application->user_id,
-                'vacancy_id' => $application->vacancy_id,
-                'name' => $pi
-                    ? trim("{$pi->first_name} " .
-                        ($pi->middle_name ? strtoupper(substr($pi->middle_name, 0, 1)) . '. ' : '') .
-                        "{$pi->surname} {$pi->name_extension}")
-                    : ($application->user?->name ?? 'N/A'),
-                'job_applied' => $vacancy->position_title ?? 'N/A',
-                'place_of_assignment' => $vacancy->place_of_assignment ?? 'N/A',
-                'status' => $application->status ?? 'N/A',
-            ];
-        });
-
-        // Use same partial as new applicants since structure is similar
-        return response()->view('partials.manage_new_applicants_list', ['applicants' => $formattedApplications]);
+        return response()->view('partials.manage_new_applicants_list', [
+            'applicants' => $this->formatApplicants($sorted)
+        ]);
     }
 
     public function ajaxFilterQualifiedApplicants(Request $request)
     {
         $vacancyId = $request->input('vacancy_id');
         $search = $request->input('search');
+        $sortOrder = $request->input('sort_order', 'latest');
         // $status filter removed as we only show Qualified here
 
         if (!$this->hrDivisionCanAccessVacancy((string) $vacancyId)) {
-            return response()->view('partials.manage_reviewed_applicants_list', ['applicants' => collect()]);
+            return response()->view('partials.manage_qualified_applicants_list', ['applicants' => collect()]);
         }
 
-        $query = Applications::with(['vacancy', 'personalInformation', 'user'])
+        $applications = Applications::with(['vacancy', 'personalInformation', 'user'])
             ->where('vacancy_id', $vacancyId)
-            ->statusEquals(ApplicationStatus::QUALIFIED->value);
+            ->get();
 
-        // Apply search filter
-        if (!empty($search)) {
-            $query->whereHas('personalInformation', function ($q) use ($search) {
-                $q->where('first_name', 'LIKE', '%' . $search . '%')
-                    ->orWhere('surname', 'LIKE', '%' . $search . '%')
-                    ->orWhere('middle_name', 'LIKE', '%' . $search . '%');
-            });
-        }
+        $partitioned = $this->partitionApplicantsByStage($applications, (string) $vacancyId);
+        $filtered = $this->filterApplicantsBySearch($partitioned['qualified'], (string) $search);
+        $sorted = $this->sortApplicantsByDate($filtered, (string) $sortOrder)->values();
 
-        $applications = $query->orderByDesc('created_at')->get();
-
-        $formattedApplications = $applications->map(function ($application) {
-            $pi = $application->personalInformation;
-            $vacancy = $application->vacancy;
-
-            return [
-                'user_id' => $application->user_id,
-                'vacancy_id' => $application->vacancy_id,
-                'name' => $pi
-                    ? trim("{$pi->first_name} " .
-                        ($pi->middle_name ? strtoupper(substr($pi->middle_name, 0, 1)) . '. ' : '') .
-                        "{$pi->surname} {$pi->name_extension}")
-                    : ($application->user?->name ?? 'N/A'),
-                'job_applied' => $vacancy->position_title ?? 'N/A',
-                'place_of_assignment' => $vacancy->place_of_assignment ?? 'N/A',
-                'status' => $application->status ?? 'N/A',
-            ];
-        });
-
-        return response()->view('partials.manage_reviewed_applicants_list', ['applicants' => $formattedApplications]);
+        return response()->view('partials.manage_qualified_applicants_list', [
+            'applicants' => $this->formatApplicants($sorted)
+        ]);
     }
 
 }

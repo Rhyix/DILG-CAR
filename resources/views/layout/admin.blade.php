@@ -189,7 +189,7 @@
                             <ul id="notifList" class="max-h-[420px] overflow-y-auto divide-y divide-slate-100 scrollbar-thin"></ul>
 
                             <div class="px-4 py-3 bg-white border-t border-slate-100 text-center">
-                                <a href="{{ route('notifications.index') }}"
+                                <a href="{{ route('admin.notifications.index') }}"
                                     class="text-xs font-bold text-[#0D2B70] hover:text-blue-700 hover:underline">
                                     View Full History
                                 </a>
@@ -381,10 +381,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     try {
                         await fetch(`/notifications/${n.id}/read`, {
                             method: 'POST',
-                            headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content }
+                            headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content },
+                            keepalive: true
                         });
-                        fetchCount();
                     } catch (_) {}
+
+                    fetchCount();
 
                     const targetUrl = n?.data?.action_url || n?.data?.link;
                     if (targetUrl) window.location.href = targetUrl;

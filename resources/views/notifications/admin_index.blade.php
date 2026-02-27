@@ -1,10 +1,10 @@
-@extends('layout.app')
-@section('title','Notifications')
+@extends('layout.admin')
+@section('title', 'Notifications')
 @section('content')
-<div class="max-w-3xl mx-auto bg-white rounded-xl shadow p-6">
+<div class="max-w-4xl mx-auto bg-white rounded-xl shadow p-6 font-montserrat">
     <div class="flex items-center justify-between mb-4">
-        <h1 class="text-2xl font-bold">Notifications</h1>
-        <a href="{{ route('dashboard_user') }}" class="text-sm font-semibold text-[#0D2B70] hover:underline">Back to Dashboard</a>
+        <h1 class="text-2xl font-bold text-[#0D2B70]">Notifications</h1>
+        <a href="{{ route('dashboard_admin') }}" class="text-sm font-semibold text-[#0D2B70] hover:underline">Back to Dashboard</a>
     </div>
     <ul class="space-y-2">
         @forelse($notifications as $notification)
