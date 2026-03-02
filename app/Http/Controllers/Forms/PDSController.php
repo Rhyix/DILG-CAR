@@ -1218,6 +1218,225 @@ class PDSController extends Controller
         //dd($all_user_miscInfo_data);
     }
 
+    private function resolveAutosaveCount($countValue, int $fallback = 0): int
+    {
+        if (is_array($countValue)) {
+            $countValue = end($countValue);
+        }
+
+        if (!is_numeric($countValue)) {
+            return max(0, $fallback);
+        }
+
+        return max(0, (int) $countValue);
+    }
+
+    private function hasAutosaveRowData(array $row, array $excludeKeys = []): bool
+    {
+        foreach ($row as $key => $value) {
+            if (in_array($key, $excludeKeys, true)) {
+                continue;
+            }
+            if ($value !== null && $value !== '') {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public function autosaveDraft(Request $request, string $section)
+    {
+        $section = strtolower(trim($section));
+
+        switch ($section) {
+            case 'c1': {
+                $existing = session('form.c1', []);
+                if (!is_array($existing)) {
+                    $existing = [];
+                }
+                $incoming = $request->except('_token');
+                if (!is_array($incoming)) {
+                    $incoming = [];
+                }
+                session(['form.c1' => array_merge($existing, $incoming)]);
+                break;
+            }
+
+            case 'c2': {
+                $workIds = (array) $request->input('work_exp_id', []);
+                $workFrom = (array) $request->input('work_exp_from', []);
+                $workTo = (array) $request->input('work_exp_to', []);
+                $workPosition = (array) $request->input('work_exp_position', []);
+                $workDepartment = (array) $request->input('work_exp_department', []);
+                $workSalary = (array) $request->input('work_exp_salary', []);
+                $workGrade = (array) $request->input('work_exp_grade', []);
+                $workStatus = (array) $request->input('work_exp_status', []);
+                $workGov = (array) $request->input('work_exp_govt_service', []);
+
+                $workCount = $this->resolveAutosaveCount(
+                    $request->input('work_exp_count'),
+                    count($workFrom)
+                );
+
+                $allWexData = [];
+                for ($i = 0; $i < $workCount; $i++) {
+                    $row = [
+                        'id' => $workIds[$i] ?? null,
+                        'user_id' => Auth::id(),
+                        'work_exp_from' => trim(strip_tags((string) ($workFrom[$i] ?? ''))),
+                        'work_exp_to' => trim(strip_tags((string) ($workTo[$i] ?? ''))),
+                        'work_exp_position' => trim(strip_tags((string) ($workPosition[$i] ?? ''))),
+                        'work_exp_department' => trim(strip_tags((string) ($workDepartment[$i] ?? ''))),
+                        'work_exp_salary' => trim(strip_tags((string) ($workSalary[$i] ?? ''))),
+                        'work_exp_grade' => trim(strip_tags((string) ($workGrade[$i] ?? ''))),
+                        'work_exp_status' => trim(strip_tags((string) ($workStatus[$i] ?? ''))),
+                        'work_exp_govt_service' => trim(strip_tags((string) ($workGov[$i] ?? ''))),
+                    ];
+
+                    if ($this->hasAutosaveRowData($row, ['id', 'user_id'])) {
+                        $allWexData[] = $row;
+                    }
+                }
+
+                $csIds = (array) $request->input('cs_eligibility_id', []);
+                $csCareer = (array) $request->input('cs_eligibility_career', []);
+                $csRating = (array) $request->input('cs_eligibility_rating', []);
+                $csDate = (array) $request->input('cs_eligibility_date', []);
+                $csPlace = (array) $request->input('cs_eligibility_place', []);
+                $csLicense = (array) $request->input('cs_eligibility_license', []);
+                $csValidity = (array) $request->input('cs_eligibility_validity', []);
+
+                $civilCount = $this->resolveAutosaveCount(
+                    $request->input('civil_service_count'),
+                    count($csCareer)
+                );
+
+                $allCsData = [];
+                for ($i = 0; $i < $civilCount; $i++) {
+                    $row = [
+                        'id' => $csIds[$i] ?? null,
+                        'user_id' => Auth::id(),
+                        'cs_eligibility_career' => trim(strip_tags((string) ($csCareer[$i] ?? ''))),
+                        'cs_eligibility_rating' => trim(strip_tags((string) ($csRating[$i] ?? ''))),
+                        'cs_eligibility_date' => trim(strip_tags((string) ($csDate[$i] ?? ''))),
+                        'cs_eligibility_place' => trim(strip_tags((string) ($csPlace[$i] ?? ''))),
+                        'cs_eligibility_license' => trim(strip_tags((string) ($csLicense[$i] ?? ''))),
+                        'cs_eligibility_validity' => trim(strip_tags((string) ($csValidity[$i] ?? ''))),
+                    ];
+
+                    if ($this->hasAutosaveRowData($row, ['id', 'user_id'])) {
+                        $allCsData[] = $row;
+                    }
+                }
+
+                session([
+                    'form.c2' => [
+                        'all_user_work_exps' => $allWexData,
+                        'all_user_civil_service_eligibility' => $allCsData,
+                    ],
+                ]);
+                break;
+            }
+
+            case 'c3': {
+                $entryCountLearning = $this->resolveAutosaveCount($request->input('learning_entry_count'));
+                $entryCountVoluntary = $this->resolveAutosaveCount($request->input('voluntary_work_count'));
+
+                $dataLearning = [];
+                for ($i = 1; $i <= $entryCountLearning; $i++) {
+                    $row = [
+                        'learning_title' => trim((string) $request->input("learning_title_$i", '')),
+                        'learning_type' => trim((string) $request->input("learning_type_$i", '')),
+                        'learning_from' => trim((string) $request->input("learning_from_$i", '')),
+                        'learning_to' => trim((string) $request->input("learning_to_$i", '')),
+                        'learning_hours' => trim((string) $request->input("learning_hours_$i", '')),
+                        'learning_conducted' => trim((string) $request->input("learning_conducted_$i", '')),
+                    ];
+                    if ($this->hasAutosaveRowData($row)) {
+                        $dataLearning[] = $row;
+                    }
+                }
+
+                $dataVoluntary = [];
+                for ($i = 1; $i <= $entryCountVoluntary; $i++) {
+                    $row = [
+                        'voluntary_org' => trim((string) $request->input("voluntary_org_$i", '')),
+                        'voluntary_from' => trim((string) $request->input("voluntary_from_$i", '')),
+                        'voluntary_to' => trim((string) $request->input("voluntary_to_$i", '')),
+                        'voluntary_hours' => trim((string) $request->input("voluntary_hours_$i", '')),
+                        'voluntary_position' => trim((string) $request->input("voluntary_position_$i", '')),
+                    ];
+                    if ($this->hasAutosaveRowData($row)) {
+                        $dataVoluntary[] = $row;
+                    }
+                }
+
+                $skills = $request->input('skills', []);
+                $distinctions = $request->input('distinctions', []);
+                $organizations = $request->input('organizations', []);
+
+                if (!is_array($skills)) {
+                    $skills = [$skills];
+                }
+                if (!is_array($distinctions)) {
+                    $distinctions = [$distinctions];
+                }
+                if (!is_array($organizations)) {
+                    $organizations = [$organizations];
+                }
+
+                $skills = array_values(array_filter($skills, fn($v) => $v !== null && $v !== ''));
+                $distinctions = array_values(array_filter($distinctions, fn($v) => $v !== null && $v !== ''));
+                $organizations = array_values(array_filter($organizations, fn($v) => $v !== null && $v !== ''));
+
+                session([
+                    'data_learning' => $dataLearning,
+                    'data_voluntary' => $dataVoluntary,
+                    'data_otherInfo' => [
+                        'skill' => $skills,
+                        'distinction' => $distinctions,
+                        'organization' => $organizations,
+                        'user_id' => Auth::id(),
+                    ],
+                ]);
+                break;
+            }
+
+            case 'c4': {
+                $existing = session('form.c4', []);
+                if (!is_array($existing)) {
+                    $existing = [];
+                }
+                $incoming = $request->except('_token');
+                if (!is_array($incoming)) {
+                    $incoming = [];
+                }
+
+                $criminalDetails = $request->input('criminal_35_b_details');
+                if (is_array($criminalDetails)) {
+                    $incoming['criminal_35_b_array'] = $criminalDetails;
+                }
+
+                session(['form.c4' => array_merge($existing, $incoming)]);
+                break;
+            }
+
+            default:
+                return response()->json([
+                    'ok' => false,
+                    'message' => 'Unsupported autosave section.',
+                ], 422);
+        }
+
+        \App\Models\User::query()->whereKey(Auth::id())->update(['updated_at' => now()]);
+
+        return response()->json([
+            'ok' => true,
+            'section' => $section,
+            'saved_at' => now()->toIso8601String(),
+        ]);
+    }
+
     // END C4 CONTROLLER
     // ==============================================================================
 
