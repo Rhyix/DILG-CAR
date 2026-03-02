@@ -22,18 +22,17 @@
               }" id="workSheet">
 
       <div class="text-center mb-6">
-        <h2 class="text-2xl md:text-3xl font-bold text-[#002C76]">Work Experience Sheet</h2>
-        <p class="text-sm md:text-base text-gray-500 mt-2">List your most relevant experience, starting from your latest
-          role.</p>
+        <p class="text-xs md:text-sm italic text-slate-700">Attachment to CS Form No. 212</p>
+        <h2 class="text-2xl md:text-3xl font-bold text-[#002C76]">WORK EXPERIENCE SHEET</h2>
       </div>
 
-      <section class="bg-slate-50 border border-slate-200 rounded-xl p-4 md:p-5 mb-8 text-sm text-gray-600">
-        <div class="font-semibold text-slate-700 mb-2">Quick guide</div>
-        <ul class="list-disc pl-5 space-y-1">
-          <li>Add one entry per role.</li>
-          <li>Mark a role as present if it is ongoing.</li>
-          <li>Use short, clear accomplishments and duties.</li>
-        </ul>
+      <section class="bg-slate-50 border border-slate-200 rounded-xl p-4 md:p-5 mb-8 text-sm text-gray-700">
+        <div class="font-semibold text-slate-800 mb-2">Instructions:</div>
+        <ol class="list-decimal pl-5 space-y-1">
+          <li>Include only the work experiences relevant to the position being applied to.</li>
+          <li>The duration should include start and finish dates, if known month in abbreviated form, if known, and year in full. For the current position, use the word Present. Work experience should be listed from most recent first.</li>
+        </ol>
+        <p class="mt-2 text-xs md:text-sm"><span class="font-semibold underline">Sample:</span> If applying to Supervising Administrative Officer (Human Resource Management Officer IV)</p>
       </section>
 
       <template x-for="(entry, index) in entries" :key="index">
@@ -89,7 +88,7 @@
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-2">Office/Unit</label>
+                <label class="block text-xs font-semibold text-slate-600 mb-2">Name of Office/Unit</label>
                 <input :readonly="!entry.isDisplayed" required :name="'entries[' + index + '][office]'" type="text"
                   class="h-11 w-full border border-slate-200 rounded-lg px-3 py-2" x-model="entry.office"
                   placeholder="Office or unit">
@@ -101,7 +100,7 @@
                   placeholder="Supervisor name">
               </div>
               <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-2">Agency/Location</label>
+                <label class="block text-xs font-semibold text-slate-600 mb-2">Name of Agency/Organization and Location</label>
                 <input :readonly="!entry.isDisplayed" required :name="'entries[' + index + '][agency]'" type="text"
                   class="h-11 w-full border border-slate-200 rounded-lg px-3 py-2" x-model="entry.agency"
                   placeholder="Agency or location">
@@ -110,7 +109,7 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-2">Accomplishments</label>
+                <label class="block text-xs font-semibold text-slate-600 mb-2">List of Accomplishments and Contributions (if any)</label>
                 <template x-for="(accomp, accIndex) in entry.accomplishments" :key="accIndex">
                   <div class="flex gap-2 mb-2">
                     <input :readonly="!entry.isDisplayed" required
@@ -130,7 +129,7 @@
               </div>
 
               <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-2">Duties</label>
+                <label class="block text-xs font-semibold text-slate-600 mb-2">Summary of Actual Duties</label>
                 <template x-for="(duty, dutyIndex) in entry.duties" :key="dutyIndex">
                   <div class="flex gap-2 mb-2">
                     <input :readonly="!entry.isDisplayed" required
@@ -159,6 +158,13 @@
           class="bg-[#002C76] text-white font-semibold px-4 py-2 rounded-lg hover:bg-blue-800 w-full sm:w-auto">
           + Add work entry
         </button>
+      </div>
+
+      <div class="mt-8 pt-6 border-t border-slate-200">
+        <div class="max-w-md ml-auto text-center text-slate-700">
+          <div class="border-t border-slate-600 pt-1 text-sm">(Signature over Printed Name of Employee/Applicant)</div>
+          <div class="mt-6 text-left text-sm">Date: ____________________</div>
+        </div>
       </div>
     </main>
 

@@ -9,6 +9,7 @@ use PhpOffice\PhpWord\Element\Text;
 use PhpOffice\PhpWord\SimpleType\Jc;
 use PhpOffice\PhpWord\Style\Font;
 use App\Models\WorkExpSheet;
+use App\Models\WorkExperience;
 use App\Models\PersonalInformation;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
@@ -22,10 +23,10 @@ class ExportWESController extends Controller
 
         // Get full name for signature
         $personalInfo = PersonalInformation::where('user_id', $user->id)->first();
-        $firstName = $personalInfo->first_name ?? '';
-        $middleName = $personalInfo->middle_name ?? '';
-        $surname = $personalInfo->surname ?? '';
-        $extension = $personalInfo->name_extension ?? '';
+        $firstName = $personalInfo->first_name ?? ($user->first_name ?? '');
+        $middleName = $personalInfo->middle_name ?? ($user->middle_name ?? ($user->middle_initial ?? ''));
+        $surname = $personalInfo->surname ?? ($user->last_name ?? '');
+        $extension = $personalInfo->name_extension ?? ($user->name_extension ?? '');
 
         // Get middle initial with dot (e.g., 'J.')
         $middleInitial = $middleName ? strtoupper(mb_substr($middleName, 0, 1)) . '.' : '';
@@ -35,9 +36,12 @@ class ExportWESController extends Controller
         if (!empty($extension)) {
             $fullName .= ', ' . strtoupper($extension);
         }
+        if (trim($fullName) === '') {
+            $fullName = strtoupper($user->name ?? 'N/A');
+        }
 
         // Load Word template
-        $templatePath = resource_path('templates/work_experience_template.docx');
+        $templatePath = public_path('templates/WES_Template.docx');
         $templateProcessor = new TemplateProcessor($templatePath);
 
         // Insert into placeholder ${name} in the Word template
@@ -50,6 +54,39 @@ class ExportWESController extends Controller
             ->where('isDisplayed', true)
             ->orderByDesc('start_date')
             ->get();
+
+        if ($experiences->isEmpty()) {
+            $experiences = WorkExperience::where('user_id', $user->id)
+                ->orderByDesc('work_exp_from')
+                ->get()
+                ->map(function ($row) {
+                    return (object) [
+                        'start_date' => $row->work_exp_from,
+                        'end_date' => $row->work_exp_to,
+                        'position' => $row->work_exp_position,
+                        'office' => $row->work_exp_department,
+                        'supervisor' => '',
+                        'agency' => $row->work_exp_department,
+                        'accomplishments' => ['None specified'],
+                        'duties' => ['None specified'],
+                    ];
+                });
+        }
+
+        if ($experiences->isEmpty()) {
+            $experiences = collect([
+                (object) [
+                    'start_date' => null,
+                    'end_date' => null,
+                    'position' => 'N/A',
+                    'office' => 'N/A',
+                    'supervisor' => 'N/A',
+                    'agency' => 'N/A',
+                    'accomplishments' => ['N/A'],
+                    'duties' => ['N/A'],
+                ],
+            ]);
+        }
 
         $templateProcessor->cloneBlock('experience', $experiences->count(), true, true);
 
@@ -68,22 +105,23 @@ class ExportWESController extends Controller
             $templateProcessor->setValue("duties#{$idx}", $this->formatList($exp->duties));
         }
 
-        // Save and return the document
-        $outputPath = storage_path("app/public/WorkExperienceSheet.docx");
+        // Save and return the document with timestamped filename
+        $timestamp = now()->format('Ymd_His');
+        $outputFilename = "WorkExperienceSheet_{$timestamp}.docx";
+        $outputPath = storage_path("app/public/{$outputFilename}");
         $templateProcessor->saveAs($outputPath);
 
         activity()
             ->causedBy($user)
             ->event('export')
             ->withProperties([
-                'exported_file' => 'WorkExperienceSheet.docx',
+                'exported_file' => $outputFilename,
                 'entries_count' => $experiences->count(),
                 'section' => 'Export'
             ])
             ->log('Exported Work Experience Sheet.');
 
-        return response()->download($outputPath)->deleteFileAfterSend(true);
-        return redirect()->back()->with('success', 'Saved')->with('after_action', $request->input('after_action'));
+        return response()->download($outputPath, $outputFilename)->deleteFileAfterSend(true);
 
     }
 
