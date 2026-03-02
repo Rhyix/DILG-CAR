@@ -1,7 +1,7 @@
 <div class="mb-6">
     <h3 class="text-lg font-semibold text-gray-700 mb-4 flex items-center">
         <span class="material-icons text-sm mr-2 text-blue-500">child_care</span>
-        23. CHILDREN INFORMATION
+        23. NAME OF CHILDREN (Write full name and list all)
     </h3>
     
     @foreach ($children as $index => $child)
@@ -15,7 +15,7 @@
                     class="flex items-center justify-center w-8 h-8 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full transition-all duration-200"
                     title="Remove Child"
                 >
-                    <span class="text-lg">✕</span>
+                    <span class="text-lg">x</span>
                 </button>
             </div>
             
@@ -33,7 +33,7 @@
                 </div>
                 <!-- Date of Birth -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-500 mb-1">DATE OF BIRTH</label>
+                    <label class="block text-sm font-medium text-gray-500 mb-1">DATE OF BIRTH (dd/mm/yyyy)</label>
                     <input
                         name="children[{{ $index }}][dob]"
                         type="text"

@@ -326,7 +326,7 @@
                 </p>
 
                 <!-- Spouse Information -->
-                <div class="mb-6 sm:mb-8" x-show="civilStatus !== 'single'" x-cloak>
+                <div class="mb-6 sm:mb-8">
                     <h3 class="text-base sm:text-lg font-semibold text-gray-700 mb-4 flex items-center">
                         <span class="material-icons text-sm mr-2 text-blue-500">favorite</span>
                         22. Spouse Information
@@ -364,7 +364,7 @@
                         </div>
                         <div class="relative">
                             <input type="tel" style="-moz-appearance: textfield; -webkit-appearance: textfield;" pattern="^0\d{9,10}$" maxlength="11" id="spouse_telephone" name="spouse_telephone" value="{{ old('spouse_telephone', session('form.c1.spouse_telephone')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                            <label for="spouse_telephone" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Mobile No./Telephone No.</label>
+                            <label for="spouse_telephone" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Telephone No.</label>
                         </div>
                     </div>
                 </div>
@@ -426,7 +426,7 @@
 
                 <!-- Elementary -->
                 <div class="mb-6">
-                    <h3 class="text-base sm:text-lg font-semibold text-gray-700 mb-4">ELEMENTARY EDUCATION</h3>
+                    <h3 class="text-base sm:text-lg font-semibold text-gray-700 mb-4">ELEMENTARY</h3>
                     <div class="mobile-stack md:grid md:grid-cols-4 gap-4 sm:gap-6">
                         <div class="relative">
                             <input required type="text" id="elem_from" name="elem_from" value="{{ old('elem_from', session('form.c1.elem_from')) }}" class="edu-date w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base">
@@ -444,9 +444,13 @@
                             <input required type="text" id="elem_school" name="elem_school" value="{{ old('elem_school', session('form.c1.elem_school')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
                             <label for="elem_school" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">School Name*</label>
                         </div>
-                        <div class="relative md:col-span-2">
-                            <input pattern="\d{4}" maxlength="4" type="text" inputmode="numeric" required id="elem_year_graduated" name="elem_year_graduated" value="{{ old('elem_year_graduated', session('form.c1.elem_year_graduated')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                            <label for="elem_year_graduated" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Year Graduated*</label>
+                        <div class="relative md:col-span-1">
+                            <input type="text" id="elem_earned" name="elem_earned" value="{{ old('elem_earned', session('form.c1.elem_earned')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
+                            <label for="elem_earned" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-xs sm:text-sm">Highest Level/Units Earned (if not graduated)</label>
+                        </div>
+                        <div class="relative md:col-span-1">
+                            <input pattern="\d{4}" maxlength="4" type="text" inputmode="numeric" id="elem_year_graduated" name="elem_year_graduated" value="{{ old('elem_year_graduated', session('form.c1.elem_year_graduated')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
+                            <label for="elem_year_graduated" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Year Graduated</label>
                         </div>
                         <div class="relative md:col-span-2">
                             <input type="text" id="elem_academic_honors" name="elem_academic_honors" value="{{ old('elem_academic_honors', session('form.c1.elem_academic_honors')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
@@ -455,9 +459,9 @@
                     </div>
                 </div>
 
-                <!-- High School-->
+                <!-- Secondary -->
                 <div class="mb-6">
-                    <h3 class="text-base sm:text-lg font-semibold text-gray-700 mb-4">HIGH SCHOOL</h3>
+                    <h3 class="text-base sm:text-lg font-semibold text-gray-700 mb-4">SECONDARY</h3>
                     <div class="mobile-stack md:grid md:grid-cols-4 gap-4 sm:gap-6">
                         <div class="relative">
                             <input required type="text" id="jhs_from" name="jhs_from" value="{{ old('jhs_from', session('form.c1.jhs_from')) }}" class="edu-date w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base">
@@ -468,16 +472,20 @@
                             <label for="jhs_to" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">To*</label>
                         </div>
                         <div class="relative md:col-span-2">
-                            <input type="text" id="jhs_basic" name="jhs_basic" value="" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
+                            <input type="text" id="jhs_basic" name="jhs_basic" value="{{ old('jhs_basic', session('form.c1.jhs_basic', 'SECONDARY')) }}" readonly placeholder=" " class="text-gray-500 floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
                             <label for="jhs_basic" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Basic Education/Degree/Course</label>
                         </div>
                         <div class="relative md:col-span-4">
                             <input required type="text" id="jhs_school" name="jhs_school" value="{{ old('jhs_school', session('form.c1.jhs_school')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
                             <label for="jhs_school" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">School Name*</label>
                         </div>
-                        <div class="relative md:col-span-2">
-                            <input required pattern="\d{4}" maxlength="4" type="text" inputmode="numeric" id="jhs_year_graduated" name="jhs_year_graduated" value="{{ old('jhs_year_graduated', session('form.c1.jhs_year_graduated')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                            <label for="jhs_year_graduated" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Year Graduated*</label>
+                        <div class="relative md:col-span-1">
+                            <input type="text" id="jhs_earned" name="jhs_earned" value="{{ old('jhs_earned', session('form.c1.jhs_earned')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
+                            <label for="jhs_earned" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-xs sm:text-sm">Highest Level/Units Earned (if not graduated)</label>
+                        </div>
+                        <div class="relative md:col-span-1">
+                            <input pattern="\d{4}" maxlength="4" type="text" inputmode="numeric" id="jhs_year_graduated" name="jhs_year_graduated" value="{{ old('jhs_year_graduated', session('form.c1.jhs_year_graduated')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
+                            <label for="jhs_year_graduated" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Year Graduated</label>
                         </div>
                         <div class="relative md:col-span-2">
                             <input type="text" id="jhs_academic_honors" name="jhs_academic_honors" value="{{ old('jhs_academic_honors', session('form.c1.jhs_academic_honors')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
