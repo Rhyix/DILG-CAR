@@ -73,18 +73,16 @@
     <thead>
       <tr>
         <th style="width: 15%;">Inclusive Dates<br>(mm/dd/yyyy)<br>From - To</th>
-        <th style="width: 20%;">Position Title<br>(Do not abbreviate)</th>
-        <th style="width: 25%;">Department/Agency/Office/Company<br>(Do not abbreviate)</th>
-        <th style="width: 10%;">Monthly Salary</th>
-        <th style="width: 15%;">Salary/Job/Pay Grade (if applicable) & Step Increment</th>
-        <th style="width: 10%;">Status of Appointment</th>
-        <th style="width: 5%;">Gov’t<br>Service<br>(Y/N)</th>
+        <th style="width: 25%;">Position Title<br>(Do not abbreviate)</th>
+        <th style="width: 32%;">Department/Agency/Office/Company<br>(Do not abbreviate)</th>
+        <th style="width: 18%;">Status of Appointment</th>
+        <th style="width: 10%;">Gov’t<br>Service<br>(Y/N)</th>
       </tr>
     </thead>
     <tbody>
       <!-- Example Row: duplicate for more entries -->
       <tr>
-        <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+        <td></td><td></td><td></td><td></td><td></td>
       </tr>
     </tbody>
   </table>

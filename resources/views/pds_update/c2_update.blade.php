@@ -229,8 +229,6 @@
                             <th>Inclusive Dates (To)</th>
                             <th>Position Title</th>
                             <th>Department / Agency / Office / Company</th>
-                            <th>Monthly Salary</th>
-                            <th>Salary Grade</th>
                             <th>Status</th>
                             <th>Gov't Service</th>
                             <th class="rounded-tr-lg text-center">Actions</th>
@@ -411,12 +409,6 @@
                     </td>
                     <td>
                         <input type="text" name="work_exp_department[]" placeholder="Department/Agency" class="form-input" required />
-                    </td>
-                    <td>
-                        <input type="number" name="work_exp_salary[]" placeholder="Monthly Salary" class="form-input" required />
-                    </td>
-                    <td>
-                        <input type="text" name="work_exp_grade[]" placeholder="e.g. 12-3" class="form-input" />
                     </td>
                     <td>
                         <select name="work_exp_status[]" class="form-input" required>

@@ -101,8 +101,6 @@
                                 <th class="text-xs sm:text-sm p-2 sm:p-3">INCLUSIVE DATES<br>(dd/mm/yyyy) TO</th>
                                 <th class="text-xs sm:text-sm p-2 sm:p-3">POSITION TITLE<br>(Write in full/Do not abbreviate)</th>
                                 <th class="text-xs sm:text-sm p-2 sm:p-3">DEPARTMENT / AGENCY / OFFICE / COMPANY<br>(Write in full/Do not abbreviate)</th>
-                                <th class="text-xs sm:text-sm p-2 sm:p-3">MONTHLY SALARY</th>
-                                <th class="text-xs sm:text-sm p-2 sm:p-3">SALARY/ JOB/ PAY GRADE (if applicable)& STEP  (Format "00-0")/ INCREMENT</th>
                                 <th class="text-xs sm:text-sm p-2 sm:p-3">STATUS OF APPOINTMENT</th>
                                 <th class="text-xs sm:text-sm p-2 sm:p-3">GOV'T SERVICE<br>(Y/ N)</th>
                                 <th class="rounded-tr-lg text-center text-xs sm:text-sm p-2 sm:p-3">ACTIONS</th>
@@ -269,8 +267,6 @@
                     all_user_work_exps[i]['work_exp_to'],
                     all_user_work_exps[i]['work_exp_position'],
                     all_user_work_exps[i]['work_exp_department'],
-                    all_user_work_exps[i]['work_exp_salary'],
-                    all_user_work_exps[i]['work_exp_grade'],
                     all_user_work_exps[i]['work_exp_status'],
                     all_user_work_exps[i]['work_exp_govt_service']
                 )
@@ -375,8 +371,6 @@
                 work_exp_to = null,
                 work_exp_position = null,
                 work_exp_department = null,
-                work_exp_salary = null,
-                work_exp_grade = null,
                 work_exp_status = null,
                 work_exp_govt_service = null
             ) {
@@ -403,12 +397,6 @@
                     </td>
                     <td>
                         <input type="text" name="work_exp_department[]" placeholder="Department/Agency" class="form-input" required value="${(!is_new) ? work_exp_department : ''}"/>
-                    </td>
-                    <td>
-                        <input type="number" name="work_exp_salary[]" placeholder="Monthly Salary" class="form-input" required value="${(!is_new) ? work_exp_salary : ''}"/>
-                    </td>
-                    <td>
-                        <input type="text" name="work_exp_grade[]" placeholder="e.g. 12-3" class="form-input" required value="${(!is_new) ? work_exp_grade : ''}"/>
                     </td>
                     <td>
                         <select name="work_exp_status[]" class="form-input" required >

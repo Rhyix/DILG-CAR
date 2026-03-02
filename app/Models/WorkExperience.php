@@ -16,8 +16,6 @@ class WorkExperience extends Model
         'work_exp_to',
         'work_exp_position',
         'work_exp_department',
-        'work_exp_salary',
-        'work_exp_grade',
         'work_exp_status',
         'work_exp_govt_service'
     ];

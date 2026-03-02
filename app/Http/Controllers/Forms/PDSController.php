@@ -590,8 +590,6 @@ class PDSController extends Controller
                 'work_exp_to' => trim(strip_tags($c2_form_data['work_exp_to'][$i])),
                 'work_exp_position' => trim(strip_tags($c2_form_data['work_exp_position'][$i])),
                 'work_exp_department' => trim(strip_tags($c2_form_data['work_exp_department'][$i])),
-                'work_exp_salary' => trim(strip_tags($c2_form_data['work_exp_salary'][$i])),
-                'work_exp_grade' => trim(strip_tags($c2_form_data['work_exp_grade'][$i])),
                 'work_exp_status' => trim(strip_tags($c2_form_data['work_exp_status'][$i])),
                 'work_exp_govt_service' => trim(strip_tags($c2_form_data['work_exp_govt_service'][$i]))
             ];
@@ -1272,8 +1270,6 @@ class PDSController extends Controller
                 $workTo = (array) $request->input('work_exp_to', []);
                 $workPosition = (array) $request->input('work_exp_position', []);
                 $workDepartment = (array) $request->input('work_exp_department', []);
-                $workSalary = (array) $request->input('work_exp_salary', []);
-                $workGrade = (array) $request->input('work_exp_grade', []);
                 $workStatus = (array) $request->input('work_exp_status', []);
                 $workGov = (array) $request->input('work_exp_govt_service', []);
 
@@ -1291,8 +1287,6 @@ class PDSController extends Controller
                         'work_exp_to' => trim(strip_tags((string) ($workTo[$i] ?? ''))),
                         'work_exp_position' => trim(strip_tags((string) ($workPosition[$i] ?? ''))),
                         'work_exp_department' => trim(strip_tags((string) ($workDepartment[$i] ?? ''))),
-                        'work_exp_salary' => trim(strip_tags((string) ($workSalary[$i] ?? ''))),
-                        'work_exp_grade' => trim(strip_tags((string) ($workGrade[$i] ?? ''))),
                         'work_exp_status' => trim(strip_tags((string) ($workStatus[$i] ?? ''))),
                         'work_exp_govt_service' => trim(strip_tags((string) ($workGov[$i] ?? ''))),
                     ];
