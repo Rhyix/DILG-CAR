@@ -2237,6 +2237,11 @@ class PDSController extends Controller
                 //********************************
                 //* +++++ Work Experience
                 //*******************************
+                $stripAuditColumns = function (array $row): array {
+                    unset($row['id'], $row['created_at'], $row['updated_at'], $row['deleted_at']);
+                    return $row;
+                };
+
                 $c2_form_data = session('form.c2');
                 if (isset($c2_form_data['all_user_work_exps'])) {
                     $user_all_wex_data = $c2_form_data['all_user_work_exps'];
@@ -2244,12 +2249,16 @@ class PDSController extends Controller
                     WorkExperience::where('user_id', Auth::id())->delete();
 
                     for ($i = 0; $i < count($user_all_wex_data); $i++) {
-                        // if(array_key_exists('id'))
-                        //$user_all_wex_data[$i]['id'] = ($user_all_wex_data[$i]['id'] == "null") ? null : $user_all_wex_data[$i]['id'];
-                        //$user_all_wex_data[$i]['id'] = $user_all_wex_data[$i]['id'] ?? null;
-                        //dd($user_all_wex_data['id']);
-                        unset($user_all_wex_data[$i]['id']); // Remove 'id' key
-                        WorkExperience::upsert($user_all_wex_data[$i], 'id');
+                        $workRow = is_array($user_all_wex_data[$i]) ? $stripAuditColumns($user_all_wex_data[$i]) : [];
+                        if (empty($workRow)) {
+                            continue;
+                        }
+
+                        $workRow['user_id'] = Auth::id();
+                        $workRow['work_exp_from'] = $this->normalizeDateForDatabase($workRow['work_exp_from'] ?? null);
+                        $workRow['work_exp_to'] = $this->normalizeDateForDatabase($workRow['work_exp_to'] ?? null);
+
+                        WorkExperience::upsert($workRow, 'id');
                     }
                 }
 
@@ -2261,8 +2270,16 @@ class PDSController extends Controller
 
                     CivilServiceEligibility::where('user_id', Auth::id())->delete();
                     for ($i = 0; $i < sizeof($user_all_cs_data); $i++) {
-                        unset($user_all_cs_data[$i]['id']); // Remove 'id' key
-                        CivilServiceEligibility::upsert($user_all_cs_data[$i], 'id');
+                        $civilServiceRow = is_array($user_all_cs_data[$i]) ? $stripAuditColumns($user_all_cs_data[$i]) : [];
+                        if (empty($civilServiceRow)) {
+                            continue;
+                        }
+
+                        $civilServiceRow['user_id'] = Auth::id();
+                        $civilServiceRow['cs_eligibility_date'] = $this->normalizeDateForDatabase($civilServiceRow['cs_eligibility_date'] ?? null);
+                        $civilServiceRow['cs_eligibility_validity'] = $this->normalizeDateForDatabase($civilServiceRow['cs_eligibility_validity'] ?? null);
+
+                        CivilServiceEligibility::upsert($civilServiceRow, 'id');
                     }
                 }
 
@@ -2272,6 +2289,19 @@ class PDSController extends Controller
                 //dd(session('data_learning'));
 
                 if (!empty($c3_learning_and_development_data)) {
+                    foreach ($c3_learning_and_development_data as $idx => $row) {
+                        if (!is_array($row)) {
+                            unset($c3_learning_and_development_data[$idx]);
+                            continue;
+                        }
+                        $row = $stripAuditColumns($row);
+                        $row['user_id'] = Auth::id();
+                        $row['learning_from'] = $this->normalizeDateForDatabase($row['learning_from'] ?? null);
+                        $row['learning_to'] = $this->normalizeDateForDatabase($row['learning_to'] ?? null);
+                        $c3_learning_and_development_data[$idx] = $row;
+                    }
+                    $c3_learning_and_development_data = array_values($c3_learning_and_development_data);
+
                     LearningAndDevelopment::where('user_id', Auth::id())->delete();
                     LearningAndDevelopment::upsert(
                         $c3_learning_and_development_data,
@@ -2283,6 +2313,19 @@ class PDSController extends Controller
                 //VOLUNTARY WORK
                 $c3_voluntary_data = session('data_voluntary');
                 if (!empty($c3_voluntary_data)) {
+                    foreach ($c3_voluntary_data as $idx => $row) {
+                        if (!is_array($row)) {
+                            unset($c3_voluntary_data[$idx]);
+                            continue;
+                        }
+                        $row = $stripAuditColumns($row);
+                        $row['user_id'] = Auth::id();
+                        $row['voluntary_from'] = $this->normalizeDateForDatabase($row['voluntary_from'] ?? null);
+                        $row['voluntary_to'] = $this->normalizeDateForDatabase($row['voluntary_to'] ?? null);
+                        $c3_voluntary_data[$idx] = $row;
+                    }
+                    $c3_voluntary_data = array_values($c3_voluntary_data);
+
                     VoluntaryWork::where('user_id', Auth::id())->delete();
                     VoluntaryWork::upsert(
                         $c3_voluntary_data,
