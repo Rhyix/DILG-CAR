@@ -591,30 +591,57 @@
     const pageKey = 'pds:' + userStorageKey + ':' + window.location.pathname.toLowerCase();
     let savedState = {};
     try { savedState = JSON.parse(sessionStorage.getItem(pageKey) || '{}'); } catch(e) {}
-    const perProvinceName = savedState.per_province ?? "{{ old('per_province', session('form.c1.per_province')) }}";
-    const perCityName = savedState.per_city ?? "{{ old('per_city', session('form.c1.per_city')) }}";
-    const perBrgyName = savedState.per_brgy ?? "{{ old('per_brgy', session('form.c1.per_brgy')) }}";
-    const resProvinceName = savedState.res_province ?? "{{ old('res_province', session('form.c1.res_province')) }}";
-    const resCityName = savedState.res_city ?? "{{ old('res_city', session('form.c1.res_city')) }}";
-    const resBrgyName = savedState.res_brgy ?? "{{ old('res_brgy', session('form.c1.res_brgy')) }}";
-    // Do not persist free-text address fields in browser storage.
-    ['per_zipcode','res_zipcode'].forEach(id=>{
+    function readState(){ try { return JSON.parse(sessionStorage.getItem(pageKey) || '{}'); } catch(e){ return {}; } }
+    function writeState(k, v){
+        const s = readState();
+        if (typeof v === 'string' && v.trim() === '') {
+            delete s[k];
+        } else if (v === null || v === undefined) {
+            delete s[k];
+        } else {
+            s[k] = v;
+        }
+        try { sessionStorage.setItem(pageKey, JSON.stringify(s)); } catch(e){}
+    }
+    function stateOrFallback(key, fallback) {
+        const v = savedState[key];
+        if (v === undefined || v === null) return fallback;
+        if (typeof v === 'string' && v.trim() === '') return fallback;
+        return String(v);
+    }
+
+    const perProvinceName = stateOrFallback('per_province', "{{ old('per_province', session('form.c1.per_province')) }}");
+    const perCityName = stateOrFallback('per_city', "{{ old('per_city', session('form.c1.per_city')) }}");
+    const perBrgyName = stateOrFallback('per_brgy', "{{ old('per_brgy', session('form.c1.per_brgy')) }}");
+    const resProvinceName = stateOrFallback('res_province', "{{ old('res_province', session('form.c1.res_province')) }}");
+    const resCityName = stateOrFallback('res_city', "{{ old('res_city', session('form.c1.res_city')) }}");
+    const resBrgyName = stateOrFallback('res_brgy', "{{ old('res_brgy', session('form.c1.res_brgy')) }}");
+
+    [
+        'per_zipcode',
+        'res_zipcode',
+        'per_house_no',
+        'per_street',
+        'per_sub_vil',
+        'res_house_no',
+        'res_street',
+        'res_sub_vil'
+    ].forEach(id=>{
         const el = document.getElementById(id);
         if (!el) return;
-        if (savedState[id] !== undefined && savedState[id] !== null) {
+        if (
+            savedState[id] !== undefined
+            && savedState[id] !== null
+            && String(savedState[id]).trim() !== ''
+        ) {
             el.value = String(savedState[id]);
         }
         const handler = () => {
-            let s = {};
-            try { s = JSON.parse(sessionStorage.getItem(pageKey) || '{}'); } catch(e) {}
-            s[id] = el.value;
-            try { sessionStorage.setItem(pageKey, JSON.stringify(s)); } catch(e) {}
+            writeState(id, el.value);
         };
         el.addEventListener('input', handler);
         el.addEventListener('change', handler);
     });
-    function readState(){ try { return JSON.parse(sessionStorage.getItem(pageKey) || '{}'); } catch(e){ return {}; } }
-    function writeState(k, v){ const s = readState(); s[k] = v; try { sessionStorage.setItem(pageKey, JSON.stringify(s)); } catch(e){} }
     function setRadio(name, val){
         if (!val) return;
         const target = document.querySelector('input[name="'+name+'"][value="'+val+'"]');
@@ -639,8 +666,9 @@
     hookRadio('dual_type');
     const dualCountry = document.getElementById('dual_country');
     if (dualCountry){
-        if (savedState.dual_country !== undefined && savedState.dual_country !== null){
-            dualCountry.value = String(savedState.dual_country);
+        const dualCountryPreset = stateOrFallback('dual_country', "{{ old('dual_country', session('form.c1.dual_country')) }}");
+        if (dualCountryPreset){
+            dualCountry.value = dualCountryPreset;
         }
         const handler = ()=> writeState('dual_country', dualCountry.value);
         dualCountry.addEventListener('input', handler);
@@ -785,6 +813,10 @@
         document.querySelector('#per_house_no').value = document.querySelector('#res_house_no').value;
         document.querySelector('#per_street').value = document.querySelector('#res_street').value;
         document.querySelector('#per_sub_vil').value = document.querySelector('#res_sub_vil').value;
+        ['per_house_no', 'per_street', 'per_sub_vil'].forEach(id => {
+            const input = document.getElementById(id);
+            if (input) input.dispatchEvent(new Event('change'));
+        });
         perProvince.value = resProvince.value;
         perProvince.dispatchEvent(new Event('change'));
         setTimeout(() => {
@@ -792,6 +824,7 @@
             perCity.dispatchEvent(new Event('change'));
             setTimeout(() => {
                 perBrgy.value = resBrgy.value;
+                perBrgy.dispatchEvent(new Event('change'));
                 const resZip = document.querySelector('#res_zipcode');
                 const perZip = document.querySelector('#per_zipcode');
                 if (resZip && perZip) {

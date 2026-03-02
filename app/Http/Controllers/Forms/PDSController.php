@@ -1260,6 +1260,40 @@ class PDSController extends Controller
                 if (!is_array($incoming)) {
                     $incoming = [];
                 }
+
+                // Prevent transient blank autosave payloads from wiping address fields.
+                $addressKeys = [
+                    'res_house_no',
+                    'res_street',
+                    'res_sub_vil',
+                    'res_brgy',
+                    'res_city',
+                    'res_province',
+                    'res_zipcode',
+                    'per_house_no',
+                    'per_street',
+                    'per_sub_vil',
+                    'per_brgy',
+                    'per_city',
+                    'per_province',
+                    'per_zipcode',
+                ];
+                foreach ($addressKeys as $key) {
+                    if (!array_key_exists($key, $incoming)) {
+                        continue;
+                    }
+                    $incomingValue = $incoming[$key];
+                    $existingValue = $existing[$key] ?? null;
+                    if (
+                        is_string($incomingValue)
+                        && trim($incomingValue) === ''
+                        && is_string($existingValue)
+                        && trim($existingValue) !== ''
+                    ) {
+                        unset($incoming[$key]);
+                    }
+                }
+
                 session(['form.c1' => array_merge($existing, $incoming)]);
                 break;
             }

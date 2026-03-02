@@ -38,7 +38,7 @@ class ExportPDSController
             return 310.190;
         }
 
-        return $this->currentTemplatePage === 1 ? 310.190 : 273.2;
+        return $this->currentTemplatePage === 1 ? 310.190 : 320.8;
     }
 
     public function exportPDS(Request $request)
@@ -200,9 +200,9 @@ class ExportPDSController
         // ----------------------------
         $templateId = $pdf->importPage(1);
         $this->currentTemplatePage = 1;
-        $size = $pdf->getTemplateSize($templateId);
-        $this->configureCoordinateScale((float) $size['height']);
-        $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
+        $page1Size = $pdf->getTemplateSize($templateId);
+        $this->configureCoordinateScale((float) $page1Size['height']);
+        $pdf->AddPage($page1Size['orientation'], [$page1Size['width'], $page1Size['height']]);
         $pdf->useTemplate($templateId);
         $this->clearLegacyHeaderNote($pdf);
         $this->setFont($pdf, 'Arial', '', 8);
@@ -257,7 +257,7 @@ class ExportPDSController
         for ($i = 1; $i < $maxChunks; $i++) {
             $templateId = $pdf->importPage(1); // Reuse Page 1 template
             $this->currentTemplatePage = 1;
-            $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
+            $pdf->AddPage($page1Size['orientation'], [$page1Size['width'], $page1Size['height']]);
             $pdf->useTemplate($templateId);
             $this->clearLegacyHeaderNote($pdf);
 
@@ -306,7 +306,9 @@ class ExportPDSController
 
         $templateId = $pdf->importPage(2);
         $this->currentTemplatePage = 2;
-        $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
+        $page2Size = $pdf->getTemplateSize($templateId);
+        $this->configureCoordinateScale((float) $page2Size['height']);
+        $pdf->AddPage($page2Size['orientation'], [$page2Size['width'], $page2Size['height']]);
         $pdf->useTemplate($templateId);
         $this->clearLegacyHeaderNote($pdf);
 
@@ -335,7 +337,7 @@ class ExportPDSController
             $this->setFont($pdf, 'Arial', '', 8);
         }
 
-        $this->setXY($pdf, 149.352, $this->getFooterDateY());
+        $this->setXY($pdf, 160, $this->getFooterDateY());
         $pdf->Write(0, Carbon::now()->format('m/d/Y'));
         // ----------------------------
         // Overflow Pages: CSE overflow + WE overflow
@@ -344,11 +346,11 @@ class ExportPDSController
         // Handle CSE overflow pages
         for ($i = 1; $i < count($cseChunks); $i++) {
             $this->currentTemplatePage = 2;
-            $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
+            $pdf->AddPage($page2Size['orientation'], [$page2Size['width'], $page2Size['height']]);
             $pdf->useTemplate($templateId);
             $this->clearLegacyHeaderNote($pdf);
 
-            $this->setXY($pdf, 149.352, $this->getFooterDateY());
+            $this->setXY($pdf, 160, $this->getFooterDateY());
             $pdf->Write(0, Carbon::now()->format('m/d/Y'));
             $this->writeCivilServiceEligibilityChunk($pdf, $cseChunks[$i]);
 
@@ -363,11 +365,11 @@ class ExportPDSController
         foreach ($weChunks as $index => $chunk) {
             if ($index == 0) continue; // Already written first WE chunk on Page 2
             $this->currentTemplatePage = 2;
-            $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
+            $pdf->AddPage($page2Size['orientation'], [$page2Size['width'], $page2Size['height']]);
             $pdf->useTemplate($templateId);
             $this->clearLegacyHeaderNote($pdf);
 
-            $this->setXY($pdf, 149.352, $this->getFooterDateY());
+            $this->setXY($pdf, 160, $this->getFooterDateY());
             $pdf->Write(0, Carbon::now()->format('m/d/Y'));
             $this->writeWorkExperienceChunk($pdf, $chunk);
         }
@@ -378,7 +380,9 @@ class ExportPDSController
 
         $templateId = $pdf->importPage(3);
         $this->currentTemplatePage = 3;
-        $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
+        $page3Size = $pdf->getTemplateSize($templateId);
+        $this->configureCoordinateScale((float) $page3Size['height']);
+        $pdf->AddPage($page3Size['orientation'], [$page3Size['width'], $page3Size['height']]);
         $pdf->useTemplate($templateId);
         $this->clearLegacyHeaderNote($pdf);
 
@@ -436,7 +440,7 @@ class ExportPDSController
             count($organizationsChunks)
         ); $i++) {
             $this->currentTemplatePage = 3;
-            $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
+            $pdf->AddPage($page3Size['orientation'], [$page3Size['width'], $page3Size['height']]);
             $pdf->useTemplate($templateId);
             $this->clearLegacyHeaderNote($pdf);
             $this->setXY($pdf, 161, $this->isShortBondTemplate ? 273.2 : 305);
@@ -469,7 +473,9 @@ class ExportPDSController
 
         $templateId = $pdf->importPage(4);
         $this->currentTemplatePage = 4;
-        $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
+        $page4Size = $pdf->getTemplateSize($templateId);
+        $this->configureCoordinateScale((float) $page4Size['height']);
+        $pdf->AddPage($page4Size['orientation'], [$page4Size['width'], $page4Size['height']]);
         $pdf->useTemplate($templateId);
         $this->clearLegacyHeaderNote($pdf);
 
@@ -753,33 +759,33 @@ class ExportPDSController
         $this->writeFittedAt(
             $pdf,
             $this->dateOrNa($info?->date_of_birth),
-            41.5,
-            62.2,
+            48,
+            66,
             34,
             8.0,
             5.0
         );
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($info?->place_of_birth), 41.5, 75, 78);
+        $this->writeFittedAt($pdf, $this->valueOrNa($info?->place_of_birth), 41.5, 75, 65);
 
         // Sex
         $sex = $this->normalizedValue($info?->sex);
         if ($sex === 'male') {
             $this->markCheckbox($pdf, 44, 80);
         } elseif ($sex === 'female') {
-            $this->markCheckbox($pdf, 73, 81);
+            $this->markCheckbox($pdf, 69.7, 80);
         }
 
         // Civil Status
         $civilStatus = $this->normalizedValue($info?->civil_status);
         $civilStatusCoords = [
             'single' => [44, 86],
-            'married' => [73, 87],
-            'widowed' => [43, 90.7],
-            'separated' => [73, 90.7],
-            'other' => [43, 94],
-            'other/s' => [43, 94],
-            'others' => [43, 94],
+            'married' => [69.7, 86],
+            'widowed' => [44, 89.5],
+            'separated' => [69.7, 90],
+            'other' => [44, 94],
+            'other/s' => [44, 94],
+            'others' => [44, 94],
         ];
         if ($civilStatus !== '') {
             $coords = $civilStatusCoords[$civilStatus] ?? $civilStatusCoords['other'];
@@ -810,13 +816,13 @@ class ExportPDSController
         if ($this->valueMatches($info?->citizenship, 'Filipino')) {
             $this->markCheckbox($pdf, 135, 64.5);
         } elseif ($this->valueMatches($info?->citizenship, 'Dual Citizenship', 'Dual')) {
-            $this->markCheckbox($pdf, 159, 65);
+            $this->markCheckbox($pdf, 151.5, 64.4);
         }
 
         if ($this->valueMatches($info?->dual_type, 'By Birth', 'By birth', 'Birth', 'By_Birth')) {
-            $this->markCheckbox($pdf, 164.5, 68.5);
+            $this->markCheckbox($pdf, 156.4, 68.5);
         } elseif ($this->valueMatches($info?->dual_type, 'By Naturalization', 'By naturalization', 'Naturalization', 'By_Naturalization')) {
-            $this->markCheckbox($pdf, 180.5, 68.5);
+            $this->markCheckbox($pdf, 170, 68.6);
         }
 
         $this->writeFittedAt($pdf, $this->valueOrNa($info?->dual_country), 140.5, 81, 52);
@@ -832,22 +838,22 @@ class ExportPDSController
 private function writeAddresses($pdf, $residential, $permanent, $writeCentered)
 {
     // Residential Address
-    $writeCentered($pdf, $this->valueOrNa($residential[0] ?? null), 133, 149, 87); // House Number
-    $writeCentered($pdf, $this->valueOrNa($residential[1] ?? null), 185, 190, 87); // Street
-    $writeCentered($pdf, $this->valueOrNa($residential[2] ?? null), 133, 149, 94); // Village/Subdivision
-    $writeCentered($pdf, $this->valueOrNa($residential[3] ?? null), 185, 190, 94); // Barangay
-    $writeCentered($pdf, $this->valueOrNa($residential[4] ?? null), 133, 149, 100.5); // City/Municipality
-    $writeCentered($pdf, $this->valueOrNa($residential[5] ?? null), 185, 190, 100.5); // Province
-    $writeCentered($pdf, $this->valueOrNa($residential[6] ?? null), 133, 190, 108); // ZIP Code
+    $writeCentered($pdf, $this->valueOrNa($residential[0] ?? null), 130, 140, 87); // House Number
+    $writeCentered($pdf, $this->valueOrNa($residential[1] ?? null), 150, 200, 87); // Street
+    $writeCentered($pdf, $this->valueOrNa($residential[2] ?? null), 125, 149, 94); // Village/Subdivision
+    $writeCentered($pdf, $this->valueOrNa($residential[3] ?? null), 135, 217, 94); // Barangay
+    $writeCentered($pdf, $this->valueOrNa($residential[4] ?? null), 130, 145, 100.5); // City/Municipality
+    $writeCentered($pdf, $this->valueOrNa($residential[5] ?? null), 130, 217, 100.5); // Province
+    $writeCentered($pdf, $this->valueOrNa($residential[6] ?? null), 130, 190, 108); // ZIP Code
 
     // Permanent Address
-    $writeCentered($pdf, $this->valueOrNa($permanent[0] ?? null), 133, 149, 114); // House Number
-    $writeCentered($pdf, $this->valueOrNa($permanent[1] ?? null), 185, 190, 114); // Street
-    $writeCentered($pdf, $this->valueOrNa($permanent[2] ?? null), 133, 149, 120.5); // Village/Subdivision
-    $writeCentered($pdf, $this->valueOrNa($permanent[3] ?? null), 185, 190, 120.5); // Barangay
-    $writeCentered($pdf, $this->valueOrNa($permanent[4] ?? null), 133, 149, 127.5); // City/Municipality
-    $writeCentered($pdf, $this->valueOrNa($permanent[5] ?? null), 185, 190, 127.5); // Province
-    $writeCentered($pdf, $this->valueOrNa($permanent[6] ?? null), 133, 190, 135.5); // ZIP Code
+    $writeCentered($pdf, $this->valueOrNa($permanent[0] ?? null), 130, 140, 113); // House Number
+    $writeCentered($pdf, $this->valueOrNa($permanent[1] ?? null), 150, 200, 113); // Street
+    $writeCentered($pdf, $this->valueOrNa($permanent[2] ?? null), 125, 149, 120.5); // Village/Subdivision
+    $writeCentered($pdf, $this->valueOrNa($permanent[3] ?? null), 135, 217, 120.5); // Barangay
+    $writeCentered($pdf, $this->valueOrNa($permanent[4] ?? null), 130, 145, 127.5); // City/Municipality
+    $writeCentered($pdf, $this->valueOrNa($permanent[5] ?? null), 130, 217, 127.5); // Province
+    $writeCentered($pdf, $this->valueOrNa($permanent[6] ?? null), 130   , 190, 135.5); // ZIP Code
 
 }
 
@@ -859,7 +865,7 @@ private function writeFamilyBackground($pdf, $family)
 
     $this->writeFittedAt($pdf, $this->valueOrNa($family?->spouse_middle_name), 41.5, 179.5, 49);
 
-    $this->writeFittedAt($pdf, $this->valueOrNa($family?->spouse_name_extension), 93, 174.2, 28, 7.0, 5.0);
+    $this->writeFittedAt($pdf, $this->valueOrNa($family?->spouse_name_extension), 93, 173, 28, 7.0, 5.0);
 
     $this->writeFittedAt($pdf, $this->valueOrNa($family?->spouse_occupation), 41.5, 185, 79);
 
@@ -873,7 +879,7 @@ private function writeFamilyBackground($pdf, $family)
 
     $this->writeFittedAt($pdf, $this->valueOrNa($family?->father_first_name), 41.5, 213.8, 49);
 
-    $this->writeFittedAt($pdf, $this->valueOrNa($family?->father_name_extension), 93, 215, 28, 7.0, 5.0);
+    $this->writeFittedAt($pdf, $this->valueOrNa($family?->father_name_extension), 93, 214, 28, 7.0, 5.0);
 
     $this->writeFittedAt($pdf, $this->valueOrNa($family?->father_middle_name), 41.5, 219.9, 79);
 
@@ -1194,7 +1200,7 @@ private function writeCivilServiceEligibilityChunk($pdf, $chunk)
         $currentY = $startY + ($index * $rowHeight);
 
         // Career service
-        $this->writeWrapped($pdf, $this->valueOrNa($cse['cs_eligibility_career'] ?? null), 60, $startX_career, $currentY, $currentY - 0.5, 8, 3);
+        $this->writeWrapped($pdf, $this->valueOrNa($cse['cs_eligibility_career'] ?? null), 60, $startX_career, $currentY, $currentY - 0.5, 7, 3);
 
         // Rating
         $this->writeFittedAt($pdf, $this->valueOrNa($cse['cs_eligibility_rating'] ?? null), 90, 26, 23, 8.0, 5.0);
@@ -1502,18 +1508,18 @@ private function WriteC4Information($pdf, $userId)
         ];
 
         $checkboxes = [
-            'third_degree'  => ['yes' => [138, 25.3], 'no' => [159.7, 25.3]],
-            'fourth_degree' => ['yes' => [138, 30.7], 'no' => [159.7, 30.7]],
-            'guilty'        => ['yes' => [137.5, 46.9],   'no' => [159.8, 47]],
-            'charged'       => ['yes' => [137.3, 63.8], 'no' => [160.8, 63.8]],
-            'convicted'     => ['yes' => [137, 84.7], 'no' => [161.8, 84.7]],
-            'separated'     => ['yes' => [137, 101.1],'no' => [162.3, 101.1]],
-            'candidate'     => ['yes' => [137.4, 115],    'no' => [164.3, 115]],
-            'resigned'      => ['yes' => [137.5, 125.3],'no' => [164.4, 125.3]],
-            'immigrant'     => ['yes' => [137.2, 137],    'no' => [164.3, 137]],
-            'indigenous'    => ['yes' => [137.2, 161.5],  'no' => [164.8, 161.5]],
-            'disability'    => ['yes' => [137.2, 169.8],  'no' => [164.8, 169.8]],
-            'solo_parent'   => ['yes' => [137.2, 178.8],  'no' => [164.8, 178.8]],
+            'third_degree'  => ['yes' => [138, 26], 'no' => [158.7, 26]],
+            'fourth_degree' => ['yes' => [138, 31.5], 'no' => [159, 32]],
+            'guilty'        => ['yes' => [137.5, 47.8],   'no' => [159.5, 48]],
+            'charged'       => ['yes' => [137.3, 64.8], 'no' => [160.7, 65]],
+            'convicted'     => ['yes' => [137.2, 86], 'no' => [161.6, 86]],
+            'separated'     => ['yes' => [137, 102.3],'no' => [161.5, 102.7]],
+            'candidate'     => ['yes' => [137.4, 116.3],    'no' => [163, 116.7]],
+            'resigned'      => ['yes' => [138, 126.5],'no' => [163.5, 126.6]],
+            'immigrant'     => ['yes' => [137.2, 139],    'no' => [163.5, 138.7]],
+            'indigenous'    => ['yes' => [137.4, 167],  'no' => [164, 167]],
+            'disability'    => ['yes' => [137.3, 175.5],  'no' => [164, 175.8]],
+            'solo_parent'   => ['yes' => [137.4, 184.8],  'no' => [164, 185]],
         ];
 
         foreach ($checkboxes as $key => $coord) {
@@ -1529,18 +1535,18 @@ private function WriteC4Information($pdf, $userId)
         $this->setFont($pdf, 'Arial', '', 8);
 
         // Detail fields
-        $this->writeFittedAt($pdf, (string) ($info['fourth_degree'][1] ?? ''), 141.224, 40.3, 56, 7.0, 5.0);
-        $this->writeFittedAt($pdf, (string) ($info['guilty'][1] ?? ''), 141.224, 56, 56, 7.0, 5.0);
-        $this->writeFittedAt($pdf, (string) ($info['charged'][1] ?? ''), 163, 73, 40, 7.0, 5.0);
-        $this->writeFittedAt($pdf, (string) ($info['charged'][2] ?? ''), 163, 77.5, 40, 7.0, 5.0);
-        $this->writeFittedAt($pdf, (string) ($info['convicted'][1] ?? ''), 141.224, 94, 56, 7.0, 5.0);
-        $this->writeFittedAt($pdf, (string) ($info['separated'][1] ?? ''), 141.224, 108, 56, 7.0, 5.0);
-        $this->writeFittedAt($pdf, (string) ($info['candidate'][1] ?? ''), 163, 119, 40, 7.0, 5.0);
-        $this->writeFittedAt($pdf, (string) ($info['resigned'][1] ?? ''), 163, 130, 40, 7.0, 5.0);
-        $this->writeFittedAt($pdf, (string) ($info['immigrant'][1] ?? ''), 141.224, 145.5, 62, 7.0, 5.0);
-        $this->writeFittedAt($pdf, (string) ($info['indigenous'][1] ?? ''), 177, 165.5, 26, 6.5, 4.5);
-        $this->writeFittedAt($pdf, (string) ($info['disability'][1] ?? ''), 177, 174, 26, 6.5, 4.5);
-        $this->writeFittedAt($pdf, (string) ($info['solo_parent'][1] ?? ''), 177, 182, 26, 6.5, 4.5);
+        $this->writeFittedAt($pdf, (string) ($info['fourth_degree'][1] ?? ''), 141.224, 42.5, 56, 7.0, 5.0);
+        $this->writeFittedAt($pdf, (string) ($info['guilty'][1] ?? ''), 141.224, 58.5, 56, 7.0, 5.0);
+        $this->writeFittedAt($pdf, (string) ($info['charged'][1] ?? ''), 163, 75.5, 40, 7.0, 5.0);
+        $this->writeFittedAt($pdf, (string) ($info['charged'][2] ?? ''), 163, 79.5, 40, 7.0, 5.0);
+        $this->writeFittedAt($pdf, (string) ($info['convicted'][1] ?? ''), 141.224, 96.5, 56, 7.0, 5.0);
+        $this->writeFittedAt($pdf, (string) ($info['separated'][1] ?? ''), 141.224, 110.5, 56, 7.0, 5.0);
+        $this->writeFittedAt($pdf, (string) ($info['candidate'][1] ?? ''), 163, 122, 40, 7.0, 5.0);
+        $this->writeFittedAt($pdf, (string) ($info['resigned'][1] ?? ''), 163, 132.5, 40, 7.0, 5.0);
+        $this->writeFittedAt($pdf, (string) ($info['immigrant'][1] ?? ''), 141.224, 147.5, 62, 7.0, 5.0);
+        $this->writeFittedAt($pdf, (string) ($info['indigenous'][1] ?? ''), 177, 172, 26, 6.5, 4.5);
+        $this->writeFittedAt($pdf, (string) ($info['disability'][1] ?? ''), 177, 180.5, 26, 6.5, 4.5);
+        $this->writeFittedAt($pdf, (string) ($info['solo_parent'][1] ?? ''), 177, 188.5, 26, 6.5, 4.5);
 
         // Reference table
         $x_name = 8.0;
@@ -1557,15 +1563,15 @@ private function WriteC4Information($pdf, $userId)
         }
 
         // ID Section
-        $this->writeFittedAt($pdf, $this->valueOrNa($info['govt_id'] ?? null), 31, 268.0, 58, 7.0, 5.0); // Govt ID type
-        $this->writeFittedAt($pdf, $this->valueOrNa($info['other_id'] ?? null), 31, 273.5, 58, 7.0, 5.0); // Govt ID number
+        $this->writeFittedAt($pdf, $this->valueOrNa($info['govt_id'] ?? null), 33, 268.0, 58, 7.0, 5.0); // Govt ID type
+        $this->writeFittedAt($pdf, $this->valueOrNa($info['other_id'] ?? null), 35, 274, 58, 7.0, 5.0); // Govt ID number
 
         $issuePlace = trim((string) ($info['issue_place'] ?? ''));
         $issuedDate = $this->dateOrNa($info['issue_date'] ?? null);
         $issuedText = $issuePlace === ''
             ? $issuedDate
             : trim($issuePlace . ' | ' . ($issuedDate === 'N/A' ? '' : $issuedDate), " |\t\n\r\0\x0B");
-        $this->writeFittedAt($pdf, $this->valueOrNa($issuedText), 31, 278.8, 86, 6.0, 4.6);
+        $this->writeFittedAt($pdf, $this->valueOrNa($issuedText), 33, 281.5, 86, 6.0, 4.6);
 
         // Leave oath/signature/thumbmark placeholders blank when data is unavailable.
     }
