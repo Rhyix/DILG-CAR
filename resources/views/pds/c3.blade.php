@@ -624,3 +624,70 @@
         form.requestSubmit();
     }
 </script>
+<script>
+    (function () {
+        const form = document.getElementById('learning-form');
+        if (!form) return;
+
+        const autosaveUrl = @json(route('pds.autosave', ['section' => 'c3']));
+        const AUTOSAVE_INTERVAL_MS = 30000;
+        let isDirty = false;
+        let isSubmitting = false;
+        let inFlight = false;
+        let queued = false;
+
+        const markDirty = () => { isDirty = true; };
+        form.addEventListener('input', markDirty);
+        form.addEventListener('change', markDirty);
+        form.addEventListener('click', (event) => {
+            if (event.target.closest('#add-learning-btn, #add-voluntary-btn, .remove-entry, .add-skill, .add-distinction, .add-organization, .remove-field')) {
+                markDirty();
+            }
+        });
+        form.addEventListener('submit', () => { isSubmitting = true; });
+
+        async function saveDraft(force = false) {
+            if (isSubmitting) return;
+            if (!force && !isDirty) return;
+            if (inFlight) {
+                queued = true;
+                return;
+            }
+
+            inFlight = true;
+            try {
+                const formData = new FormData(form);
+                const response = await fetch(autosaveUrl, {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                if (response.ok) {
+                    isDirty = false;
+                }
+            } catch (error) {
+                // Ignore autosave failures silently; normal submit remains available.
+            } finally {
+                inFlight = false;
+                if (queued) {
+                    queued = false;
+                    saveDraft(true);
+                }
+            }
+        }
+
+        setInterval(() => saveDraft(false), AUTOSAVE_INTERVAL_MS);
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden && isDirty) {
+                saveDraft(true);
+            }
+        });
+
+        window.addEventListener('beforeunload', () => {
+            if (!isDirty || isSubmitting || !navigator.sendBeacon) return;
+            const formData = new FormData(form);
+            navigator.sendBeacon(autosaveUrl, formData);
+        });
+    })();
+</script>

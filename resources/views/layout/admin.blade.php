@@ -118,6 +118,14 @@
 
 <body class="bg-[#F1F6FC] h-screen font-sans font-montserrat text-gray-900 overflow-hidden">
 
+    <!-- Full-page loader overlay -->
+    <div id="loader" class="hidden fixed inset-0 z-[9999] bg-[#F1F6FC]/80 backdrop-blur-sm flex items-center justify-center">
+        <div class="flex flex-col items-center gap-4">
+            <div class="w-14 h-14 rounded-full border-4 border-[#002C76]/20 border-t-[#002C76] animate-spin"></div>
+            <span class="text-sm font-semibold text-[#002C76] tracking-wide">Loading...</span>
+        </div>
+    </div>
+
     <!-- App Container: Sidebar + Content -->
     <div class="flex h-screen w-full overflow-hidden">
 
