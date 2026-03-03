@@ -30,6 +30,7 @@ use App\Http\Middleware\ApplicantsAccess;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\BackupRestoreController;
+use App\Http\Controllers\PsgcController;
 use App\Http\Controllers\VacancyTitleController;
 
 use App\Events\PackageSent;
@@ -323,6 +324,17 @@ Route::middleware(['auth', BlockIfAdmin::class])->group(function () {
     // ==================================================================================================
     // PDS ROUTES
     // ==================================================================================================
+    Route::get('/psgc/provinces', [PsgcController::class, 'provinces'])->name('pds.psgc.provinces');
+    Route::get('/psgc/provinces/{provinceCode}/cities-municipalities', [PsgcController::class, 'citiesMunicipalities'])
+        ->where('provinceCode', '[0-9]{10}')
+        ->name('pds.psgc.cities_municipalities');
+    Route::get('/psgc/cities-municipalities/{cityCode}/barangays', [PsgcController::class, 'barangays'])
+        ->where('cityCode', '[0-9]{10}')
+        ->name('pds.psgc.barangays');
+    Route::get('/psgc/cities-municipalities/{cityCode}', [PsgcController::class, 'cityMunicipality'])
+        ->where('cityCode', '[0-9]{10}')
+        ->name('pds.psgc.city_municipality');
+
     Route::get('/pds/c1', [Forms\PDSController::class, 'c1DisplayForm'])->name('display_c1');
     Route::post('/pds/submit_c1/{go_to}', [Forms\PDSController::class, 'c1UpdateFormSession'])->name('submit_c1');
     Route::post('/pds/import-c1-excel', [Forms\PDSController::class, 'importC1Excel'])->name('pds.import_c1_excel');
