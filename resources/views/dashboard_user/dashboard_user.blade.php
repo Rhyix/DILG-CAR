@@ -188,8 +188,9 @@
                     </div>
                     <div class="divide-y divide-gray-100">
                         @forelse($recentNotifications as $notif)
-                            <div class="p-4 hover:bg-gray-50 transition cursor-pointer {{ $notif->read_at ? '' : 'bg-blue-50/40' }}"
-                                onclick="window.location.href='{{ isset($notif->data['action_url']) ? $notif->data['action_url'] : '#' }}'">
+                            <div
+                                class="js-recent-notification p-4 hover:bg-gray-50 transition cursor-pointer {{ $notif->read_at ? '' : 'bg-blue-50/40' }}"
+                                data-link="{{ $notif->data['action_url'] ?? $notif->data['link'] ?? '' }}">
                                 <div class="flex justify-between items-start gap-2">
                                     <div class="flex-1">
                                         <p
@@ -300,8 +301,19 @@
     </div>
 @endsection
 
-@section('scripts')
+@push('scripts')
     <script>
-        feather.replace();
+        document.addEventListener('DOMContentLoaded', () => {
+            feather.replace();
+
+            const normalizeNotificationUrl = window.normalizeNotificationUrl || ((targetUrl) => targetUrl || '');
+            document.querySelectorAll('.js-recent-notification').forEach((item) => {
+                item.addEventListener('click', () => {
+                    const targetUrl = item.dataset.link;
+                    if (!targetUrl) return;
+                    window.location.href = normalizeNotificationUrl(targetUrl);
+                });
+            });
+        });
     </script>
-@endsection
+@endpush

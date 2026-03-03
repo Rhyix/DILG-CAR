@@ -4,7 +4,7 @@
 <div class="max-w-4xl mx-auto bg-white rounded-xl shadow p-6 font-montserrat">
     <div class="flex items-center justify-between mb-4">
         <h1 class="text-2xl font-bold text-[#0D2B70]">Notifications</h1>
-        <a href="{{ route('dashboard_admin') }}" class="text-sm font-semibold text-[#0D2B70] hover:underline">Back to Dashboard</a>
+        <a href="{{ route('dashboard_admin', [], false) }}" class="text-sm font-semibold text-[#0D2B70] hover:underline">Back to Dashboard</a>
     </div>
     <ul class="space-y-2">
         @forelse($notifications as $notification)
@@ -24,6 +24,18 @@
     document.addEventListener('DOMContentLoaded', () => {
         const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
         const items = document.querySelectorAll('.js-notification-item');
+        const normalizeNotificationUrl = (targetUrl) => {
+            if (!targetUrl) return '';
+            try {
+                const parsed = new URL(targetUrl, window.location.origin);
+                if (parsed.origin !== window.location.origin) {
+                    return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+                }
+                return parsed.href;
+            } catch (_) {
+                return targetUrl;
+            }
+        };
 
         items.forEach((item) => {
             item.addEventListener('click', async () => {
@@ -41,7 +53,7 @@
                 }
 
                 if (link) {
-                    window.location.href = link;
+                    window.location.href = normalizeNotificationUrl(link);
                 }
             });
         });

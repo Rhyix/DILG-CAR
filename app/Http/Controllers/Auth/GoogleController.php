@@ -9,21 +9,36 @@ use Laravel\Socialite\Facades\Socialite;
 
 class GoogleController extends Controller
 {
-    private function resolveGoogleRedirectUrl(): string
+    private function resolveGoogleRedirectUrl(Request $request): string
     {
         $configuredRedirect = (string) config('services.google.redirect', '');
         $defaultPath = '/auth/google/callback';
 
-        if ($configuredRedirect === '') {
-            return url($defaultPath);
+        if ($configuredRedirect !== '') {
+            $parsed = parse_url($configuredRedirect);
+
+            // If redirect URI in .env is absolute, use it as canonical callback URL.
+            if (($parsed['scheme'] ?? null) && ($parsed['host'] ?? null)) {
+                $host = $parsed['host'] === '0.0.0.0' ? '127.0.0.1' : $parsed['host'];
+                $port = isset($parsed['port']) ? ':' . $parsed['port'] : '';
+                $path = $parsed['path'] ?? $defaultPath;
+                $query = isset($parsed['query']) ? ('?' . $parsed['query']) : '';
+
+                return "{$parsed['scheme']}://{$host}{$port}{$path}{$query}";
+            }
+
+            $path = $parsed['path'] ?? $defaultPath;
+            $query = isset($parsed['query']) ? ('?' . $parsed['query']) : '';
+            return url($path . $query);
         }
 
-        $parsed = parse_url($configuredRedirect);
-        $path = $parsed['path'] ?? $defaultPath;
-        $query = isset($parsed['query']) ? ('?' . $parsed['query']) : '';
+        $host = $request->getHost() === '0.0.0.0' ? '127.0.0.1' : $request->getHost();
+        $port = (int) $request->getPort();
+        $scheme = $request->getScheme();
+        $isDefaultPort = ($scheme === 'http' && $port === 80) || ($scheme === 'https' && $port === 443);
+        $portSuffix = $isDefaultPort ? '' : ':' . $port;
 
-        // Build callback URL using current host to avoid localhost/127.0.0.1 mismatch.
-        return url($path . $query);
+        return "{$scheme}://{$host}{$portSuffix}{$defaultPath}";
     }
 
     private function clearPdsSessionCache(Request $request): void
@@ -38,9 +53,9 @@ class GoogleController extends Controller
         ]);
     }
 
-    public function redirectToGoogle()
+    public function redirectToGoogle(Request $request)
     {
-        $redirectUrl = $this->resolveGoogleRedirectUrl();
+        $redirectUrl = $this->resolveGoogleRedirectUrl($request);
 
         return Socialite::driver('google')
             ->redirectUrl($redirectUrl)
@@ -54,7 +69,7 @@ class GoogleController extends Controller
 
     public function handleGoogleCallback(Request $request)
     {
-        $redirectUrl = $this->resolveGoogleRedirectUrl();
+        $redirectUrl = $this->resolveGoogleRedirectUrl($request);
         $googleUser = Socialite::driver('google')
             ->redirectUrl($redirectUrl)
             ->stateless()

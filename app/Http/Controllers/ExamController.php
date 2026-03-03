@@ -353,7 +353,7 @@ class ExamController extends Controller
                         'user_id' => $application->user_id,
                         'vacancy_id' => $application->vacancy_id,
                         'count' => $application->tab_violations,
-                        'link' => route('admin.view_exam', ['vacancy_id' => $application->vacancy_id, 'user_id' => $application->user_id]),
+                        'link' => route('admin.view_exam', ['vacancy_id' => $application->vacancy_id, 'user_id' => $application->user_id], false),
                     ],
                     'read_at' => null,
                     'created_at' => now(),

@@ -198,7 +198,7 @@
 
                         <!-- Footer -->
                         <div class="px-4 py-3 bg-gray-50 border-t border-gray-100 text-center">
-                            <a href="{{ route('notifications.index') }}"
+                            <a href="{{ route('notifications.index', [], false) }}"
                                 class="text-xs font-bold text-[#0D2B70] hover:text-blue-700 hover:underline">
                                 View Full History
                             </a>
@@ -304,6 +304,20 @@
             const notifMarkAll = document.getElementById('notifMarkAll');
             let page = 1;
             let loading = false;
+            const normalizeNotificationUrl = (targetUrl) => {
+                if (!targetUrl) return '';
+                try {
+                    const parsed = new URL(targetUrl, window.location.origin);
+                    if (parsed.origin !== window.location.origin) {
+                        return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+                    }
+                    return parsed.href;
+                } catch (_) {
+                    return targetUrl;
+                }
+            };
+
+            window.normalizeNotificationUrl = normalizeNotificationUrl;
 
             function renderNotifications(items) {
                 const list = Array.isArray(items) ? items : [];
@@ -337,7 +351,7 @@
 
                     item.addEventListener('click', async () => {
                         try {
-                            await fetch("{{ url('/notifications') }}/" + n.id + "/read", {
+                            await fetch("/notifications/" + n.id + "/read", {
                                 method: 'POST',
                                 headers: {
                                     'X-CSRF-TOKEN': '{{ csrf_token() }}'
@@ -350,8 +364,9 @@
                             fetchCount();
                         }
 
-                        if (n?.data?.action_url || n?.data?.link) {
-                            window.location.href = n.data.action_url || n.data.link;
+                        const targetUrl = n?.data?.action_url || n?.data?.link;
+                        if (targetUrl) {
+                            window.location.href = normalizeNotificationUrl(targetUrl);
                         }
                     });
 
@@ -362,13 +377,13 @@
             }
 
             function fetchCount() {
-                fetch("{{ route('notifications.count') }}", { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                fetch("/notifications/count", { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
                     .then(r => r.json()).then(d => { notifBadge.textContent = d.count; notifBadge.style.display = d.count > 0 ? 'flex' : 'none'; });
             }
             function fetchItems(reset = false) {
                 if (loading) return; loading = true;
                 if (reset) { page = 1; notifList.innerHTML = ''; }
-                fetch("{{ route('notifications.fetch') }}?page=" + page, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                fetch("/notifications/fetch?page=" + page, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
                     .then(r => r.json()).then(d => {
                         renderNotifications(d.data || []);
                         page = d.current_page + 1;
@@ -383,7 +398,7 @@
             });
             notifLoadMore?.addEventListener('click', () => fetchItems(false));
             notifMarkAll?.addEventListener('click', () => {
-                fetch("{{ route('notifications.mark_all') }}", { method: 'POST', headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' } })
+                fetch("/notifications/mark-all", { method: 'POST', headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' } })
                     .then(() => { fetchCount(); notifMenu.classList.add('hidden'); });
             });
             const profileToggle = document.getElementById('profileToggle');

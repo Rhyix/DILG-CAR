@@ -2541,7 +2541,7 @@ class PDSController extends Controller
                     'data' => [
                         'title' => 'New Job Application',
                         'message' => Auth::user()->name . ' submitted an application for ' . $vacancy->position_title . '.',
-                        'link' => route('admin.applicant_status', ['user_id' => Auth::id(), 'vacancy_id' => $vacancyId]),
+                        'link' => route('admin.applicant_status', ['user_id' => Auth::id(), 'vacancy_id' => $vacancyId], false),
                         'section' => 'Application List',
                         'category' => 'document_verification',
                         'user_id' => Auth::id(),
@@ -2857,7 +2857,7 @@ class PDSController extends Controller
                             'data' => [
                                 'title' => 'Applicant Updated Documents',
                                 'message' => 'Applicant ' . Auth::user()->name . ' has updated their documents for review.',
-                                'link' => route('admin.applicant_status', ['user_id' => $user_id, 'vacancy_id' => $vacancy_id]),
+                                'link' => route('admin.applicant_status', ['user_id' => $user_id, 'vacancy_id' => $vacancy_id], false),
                                 'section' => 'Application List',
                                 'user_id' => $user_id,
                                 'vacancy_id' => $vacancy_id,
@@ -2901,7 +2901,7 @@ class PDSController extends Controller
                         'data' => [
                             'title' => 'Applicant Updated Documents',
                             'message' => 'Applicant ' . Auth::user()->name . ' has updated their documents for review.',
-                            'link' => route('admin.applicant_status', ['user_id' => $user_id, 'vacancy_id' => $vacancy_id]),
+                            'link' => route('admin.applicant_status', ['user_id' => $user_id, 'vacancy_id' => $vacancy_id], false),
                             'section' => 'Application List',
                             'user_id' => $user_id,
                             'vacancy_id' => $vacancy_id,

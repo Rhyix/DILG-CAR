@@ -223,7 +223,7 @@
                 'opacity-50 cursor-not-allowed': !(agreed && checkboxChecked),
                 'use-loader flex items-center justify-center gap-3 w-full bg-white border-2 border-yellow-400 text-blue-900 font-bold py-3 rounded-full hover:bg-yellow-100 shadow-md transition transform hover:scale-[1.02] active:scale-[0.98]': true
               }"
-              :href="(agreed && checkboxChecked) ? '{{ route('google.login') }}' : '#'">
+              :href="(agreed && checkboxChecked) ? '{{ route('google.login', [], false) }}' : '#'">
               <img src="{{ asset('images/google-icon.png') }}" alt="Google Icon" class="w-5 h-5">
               Continue with Google
             </a>

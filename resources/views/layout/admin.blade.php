@@ -167,7 +167,7 @@
                             <ul id="notifList" class="max-h-[420px] overflow-y-auto divide-y divide-slate-100 scrollbar-thin"></ul>
 
                             <div class="px-4 py-3 bg-white border-t border-slate-100 text-center">
-                                <a href="{{ route('admin.notifications.index') }}"
+                                <a href="{{ route('admin.notifications.index', [], false) }}"
                                     class="text-xs font-bold text-[#0D2B70] hover:text-blue-700 hover:underline">
                                     View Full History
                                 </a>
@@ -276,6 +276,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const notifList = document.getElementById('notifList');
         const notifMarkAll = document.getElementById('notifMarkAll');
         let loading = false;
+        const normalizeNotificationUrl = (targetUrl) => {
+            if (!targetUrl) return '';
+            try {
+                const parsed = new URL(targetUrl, window.location.origin);
+                if (parsed.origin !== window.location.origin) {
+                    return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+                }
+                return parsed.href;
+            } catch (_) {
+                return targetUrl;
+            }
+        };
+
+        window.normalizeNotificationUrl = normalizeNotificationUrl;
 
         const iconMap = {
             success: 'check',
@@ -360,7 +374,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     fetchCount();
 
                     const targetUrl = n?.data?.action_url || n?.data?.link;
-                    if (targetUrl) window.location.href = targetUrl;
+                    if (targetUrl) window.location.href = normalizeNotificationUrl(targetUrl);
                 });
 
                 notifList.appendChild(li);

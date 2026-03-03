@@ -59,11 +59,11 @@ class ProcessAdminActivityNotification implements ShouldQueue
         }
 
         if ($userId && $vacancyId) {
-            $link = route('admin.applicant_status', ['user_id' => $userId, 'vacancy_id' => $vacancyId]);
+            $link = route('admin.applicant_status', ['user_id' => $userId, 'vacancy_id' => $vacancyId], false);
         } elseif ($vacancyId && in_array($section, ['Exam Management', 'Application List', 'Job Vacancy'], true)) {
-            $link = route('admin.manage_exam', ['vacancy_id' => $vacancyId]);
+            $link = route('admin.manage_exam', ['vacancy_id' => $vacancyId], false);
         } elseif ($section === 'System Users Management') {
-            $link = route('admin_account_management');
+            $link = route('admin_account_management', [], false);
         }
 
         $category = $this->resolveCategory($activity, (string) $section);
@@ -79,9 +79,9 @@ class ProcessAdminActivityNotification implements ShouldQueue
             $notificationLink = $link;
             if ($section === 'System Users Management' && ($admin->role ?? null) !== 'superadmin') {
                 $notificationLink = match ($admin->role ?? null) {
-                    'hr_division' => route('applications_list'),
-                    'viewer' => route('viewer'),
-                    default => route('dashboard_admin'),
+                    'hr_division' => route('applications_list', [], false),
+                    'viewer' => route('viewer', [], false),
+                    default => route('dashboard_admin', [], false),
                 };
             }
 
@@ -159,4 +159,3 @@ class ProcessAdminActivityNotification implements ShouldQueue
         return null;
     }
 }
-

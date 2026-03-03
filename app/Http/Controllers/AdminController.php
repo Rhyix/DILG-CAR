@@ -398,7 +398,7 @@ class AdminController extends Controller
                 'category' => 'account_approval',
                 'title' => 'Account Approved',
                 'message' => 'Your registration has been approved. Assigned role: ' . $roleLabel . '.',
-                'action_url' => route('admin.login'),
+                'action_url' => route('admin.login', [], false),
                 'level' => 'success',
             ],
         ]);
@@ -450,7 +450,7 @@ class AdminController extends Controller
                 'category' => 'account_approval',
                 'title' => 'Account Declined',
                 'message' => 'Your registration request was declined. Please contact the superadmin for details.',
-                'action_url' => route('admin.login'),
+                'action_url' => route('admin.login', [], false),
                 'level' => 'warning',
             ],
         ]);
@@ -2009,7 +2009,7 @@ class AdminController extends Controller
                 'title' => $messageTitle,
                 'message' => $messageBody,
                 'level' => $messageLevel,
-                'action_url' => route('application_status', ['user' => $user_id, 'vacancy' => $vacancy_id]),
+                'action_url' => route('application_status', ['user' => $user_id, 'vacancy' => $vacancy_id], false),
                 'documents' => $notifyDocumentsSnapshot,
                 'application_status' => $application->status,
                 'application_remarks' => $application->application_remarks,
@@ -2051,7 +2051,7 @@ class AdminController extends Controller
                 'data' => [
                     'title' => 'Applicant Notified',
                     'message' => $actorName . ' notified ' . ($applicantName ?: 'Applicant'),
-                    'link' => route('admin.applicant_status', ['user_id' => $user_id, 'vacancy_id' => $vacancy_id]),
+                    'link' => route('admin.applicant_status', ['user_id' => $user_id, 'vacancy_id' => $vacancy_id], false),
                 ]
             ]);
 

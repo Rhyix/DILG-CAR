@@ -764,7 +764,7 @@ class JobVacancyController extends Controller
                 'data' => [
                     'title' => 'New Job Application',
                     'message' => Auth::user()->name . ' submitted an application for ' . $vacancy->position_title . '.',
-                    'link' => route('admin.applicant_status', ['user_id' => Auth::id(), 'vacancy_id' => $vacancy->vacancy_id]),
+                    'link' => route('admin.applicant_status', ['user_id' => Auth::id(), 'vacancy_id' => $vacancy->vacancy_id], false),
                     'section' => 'Application List',
                     'category' => 'document_verification',
                     'user_id' => Auth::id(),

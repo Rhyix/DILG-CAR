@@ -175,7 +175,7 @@ class AdminAuthController extends Controller
                     'category' => 'account_approval',
                     'title' => 'New Employee Registration',
                     'message' => $fullName . ' registered and is awaiting approval.',
-                    'action_url' => route('admin_account_management'),
+                    'action_url' => route('admin_account_management', [], false),
                     'registered_admin_id' => $admin->id,
                     'level' => 'warning',
                 ],
