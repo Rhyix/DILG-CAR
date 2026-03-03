@@ -203,6 +203,9 @@
 						<p class="text-[11px] text-gray-500 mb-2">
 							<span class="text-red-600 font-bold">*</span> Required for {{ $vacancy_type }} vacancy
 						</p>
+						<p class="text-[11px] text-[#002C76] mb-2">
+							Right-click a required document for quick verify.
+						</p>
 						<div class="pr-1">
 							<ul class="text-xs text-gray-700 space-y-1" id="document-list">
 								<!-- Documents will be injected here by JS -->
@@ -852,6 +855,18 @@ value="{{ old('deadline_time', $application->deadline_time ? \Carbon\Carbon::par
 			}
 		}
 
+		async function quickVerifyDocument(doc) {
+			if (!doc) return;
+
+			// Keep preview/header in sync with the item being quick-verified.
+			handleDocumentClick(doc, true);
+
+			const isVerified = doc.status === 'Verified' || doc.status === 'Okay/Confirmed';
+			if (isVerified) return;
+
+			await updateDocumentStatus('Verified');
+		}
+
 		// Auto-save Document Remarks
 		let docRemarksTimeout;
 		document.getElementById('remarks').addEventListener('input', function (e) {
@@ -1168,12 +1183,20 @@ value="{{ old('deadline_time', $application->deadline_time ? \Carbon\Carbon::par
 
 				btn.appendChild(iconWrapper);
 				btn.appendChild(textWrapper);
+				if (isRequiredDocument(doc.id)) {
+					btn.title = 'Right-click to quick verify';
+				}
 
 				// Simple direct click handler on the button itself
 				btn.onclick = function (e) {
 					e.preventDefault();
 					handleDocumentClick(doc);
 				};
+				btn.addEventListener('contextmenu', async function (e) {
+					e.preventDefault();
+					e.stopPropagation();
+					await quickVerifyDocument(doc);
+				});
 
 				li.appendChild(btn);
 				listEl.appendChild(li);
