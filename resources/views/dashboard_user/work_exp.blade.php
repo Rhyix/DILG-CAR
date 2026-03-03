@@ -441,7 +441,7 @@
 @if (session('after_action') === 'download')
 <script>
   window.onload = function () {
-    window.location.href = "{{ route('export.wes') }}";
+    window.location.href = "{{ route('export.wes', ['preview' => 1]) }}";
   };
 </script>
 @endif

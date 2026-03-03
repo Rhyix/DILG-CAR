@@ -7,14 +7,32 @@
             @csrf
             <!-- Personal Information Section -->
             <section class="bg-white rounded-lg sm:rounded-2xl shadow-xl p-4 sm:p-8 animate-slide-in">
+
+                <div class="flex justify-end">
+                <button
+                        type="button"
+                        id="importPdsExcelBtn" 
+                        class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-lg border-2 border-[#002C76] bg-[#002C76] px-4 py-3 text-sm sm:text-base font-montserrat font-semibold text-white shadow-sm transition-all duration-200 hover:border-[#001F5A] hover:bg-[#001F5A] hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#002C76]/30 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:border-[#002C76] disabled:hover:bg-[#002C76] disabled:hover:text-white"
+                    >
+                        <span class="material-icons text-lg sm:text-xl">upload_file</span>
+                        Import from Excel
+                    </button>
+                </div>
+
                 <div class="flex items-center mb-4 sm:mb-6">
                     <span class="material-icons text-blue-600 mr-2 sm:mr-3 text-2xl sm:text-3xl">badge</span>
                     <h2 class="text-lg sm:text-2xl font-bold text-gray-900">I. PERSONAL INFORMATION</h2>
+
+                    
                 </div>
 
                 <p class="text-gray-600 mb-4 sm:mb-6 text-xs sm:text-sm">
                     Print legibly. Tick appropriate boxes and use separate sheet if necessary. Indicate N/A if not applicable. DO NOT ABBREVIATE.
                 </p>
+
+<<<<<<< Updated upstream
+                
+        
 
                 <!-- CS ID Number -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-4 sm:mb-6">
@@ -42,15 +60,17 @@
 
 
 
+=======
+>>>>>>> Stashed changes
                 <!-- Name Fields -->
                 <div class="mobile-stack md:grid md:grid-cols-4 gap-4 sm:gap-6 mb-4 sm:mb-6">
                     <div class="relative rounded-lg">
                         <input type="text" id="surname" name="surname" value="{{ old('surname', session('form.c1.surname')) }}" placeholder=" " required class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                        <label for="surname" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">2. Surname *</label>
+                        <label for="surname" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">1. Surname *</label>
                     </div>
                     <div class="relative">
                         <input type="text" id="first_name" name="first_name" value="{{ old('first_name', session('form.c1.first_name')) }}" placeholder=" " required class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                        <label for="first_name" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">First Name *</label>
+                        <label for="first_name" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">2. First Name *</label>
                     </div>
                     <div class="relative">
                         <input type="text" id="middle_name" name="middle_name" value="{{ old('middle_name', session('form.c1.middle_name')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
@@ -256,7 +276,7 @@
                 </div>
                 <div class="mb-4 w-full flex justify-end">
                     <button type="button" id="copy_res_to_per" 
-                    class="border-2 border-[#002C76] bg-[#002C76] text-white rounded-lg px-4 py-2 text-sm sm:text-base font-montserrat 
+                    class="border-2 border-[#   ] bg-[#002C76] text-white rounded-lg px-4 py-2 text-sm sm:text-base font-montserrat 
                     hover:bg-white hover:text-[#002C76] transition">
                         Copy from Residential Address
                     </button>
@@ -300,12 +320,14 @@
                 </div>
                 <div class="mobile-stack md:grid md:grid-cols-3 gap-4 sm:gap-6">
                     <div class="relative">
-                        <input type="tel" style="-moz-appearance: textfield; -webkit-appearance: textfield;" pattern="^0\d{9,10}$" maxlength="11" id="telephone_no" name="telephone_no" value="{{ old('telephone_no', session('form.c1.telephone_no')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
+                        <input type="tel" style="-moz-appearance: textfield; -webkit-appearance: textfield;" pattern="^(?:0\d{9,10}|\(02\)\s?\d{4}\s?\d{4})$" maxlength="16" id="telephone_no" name="telephone_no" value="{{ old('telephone_no', session('form.c1.telephone_no')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
                         <label for="telephone_no" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">19. TELEPHONE NO.</label>
+                        <p class="mt-1 text-xs text-gray-500">Format: (02) XXXX XXXX</p>
                     </div>
                     <div class="relative">
-                        <input required type="tel" style="-moz-appearance: textfield; -webkit-appearance: textfield;" pattern="^09\d{9}$" maxlength="11" id="mobile_no" name="mobile_no" value="{{ old('mobile_no', session('form.c1.mobile_no')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
+                        <input required type="tel" style="-moz-appearance: textfield; -webkit-appearance: textfield;" pattern="^(?:09\d{9}|9\d{9}|\+63\s?9\d{2}\s?\d{3}\s?\d{4})$" maxlength="16" id="mobile_no" name="mobile_no" value="{{ old('mobile_no', session('form.c1.mobile_no')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
                         <label for="mobile_no" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">20. MOBILE NO. *</label>
+                        <p class="mt-1 text-xs text-gray-500">Format: +63 9XX XXX XXXX</p>
                     </div>
                     <div class="relative">
                         <input required type="email" id="email_address" name="email_address" value="{{ old('email_address', session('form.c1.email_address')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
@@ -327,10 +349,15 @@
 
                 <!-- Spouse Information -->
                 <div class="mb-6 sm:mb-8">
+                    
                     <h3 class="text-base sm:text-lg font-semibold text-gray-700 mb-4 flex items-center">
                         <span class="material-icons text-sm mr-2 text-blue-500">favorite</span>
                         22. Spouse Information
                     </h3>
+                    <label for="single_spouse_na" class="mb-4 inline-flex items-center gap-2 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs sm:text-sm text-blue-800">
+                        <input type="checkbox" id="single_spouse_na" class="h-4 w-4 rounded border-blue-300 text-blue-600 focus:ring-blue-500">
+                        If single, check this to set all spouse fields to N/A.
+                    </label>
                     <div class="mobile-stack md:grid md:grid-cols-4 gap-4 sm:gap-6 mb-4">
                         <div class="relative">
                             <input type="text" id="spouse_surname" name="spouse_surname" value="{{ old('spouse_surname', session('form.c1.spouse_surname')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
@@ -444,17 +471,19 @@
                             <input required type="text" id="elem_school" name="elem_school" value="{{ old('elem_school', session('form.c1.elem_school')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
                             <label for="elem_school" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">School Name*</label>
                         </div>
-                        <div class="relative md:col-span-1">
-                            <input type="text" id="elem_earned" name="elem_earned" value="{{ old('elem_earned', session('form.c1.elem_earned')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                            <label for="elem_earned" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-xs sm:text-sm">Highest Level/Units Earned (if not graduated)</label>
-                        </div>
-                        <div class="relative md:col-span-1">
-                            <input pattern="\d{4}" maxlength="4" type="text" inputmode="numeric" id="elem_year_graduated" name="elem_year_graduated" value="{{ old('elem_year_graduated', session('form.c1.elem_year_graduated')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                            <label for="elem_year_graduated" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Year Graduated</label>
-                        </div>
-                        <div class="relative md:col-span-2">
-                            <input type="text" id="elem_academic_honors" name="elem_academic_honors" value="{{ old('elem_academic_honors', session('form.c1.elem_academic_honors')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                            <label for="elem_academic_honors" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Scholarship/Academic Honors Received</label>
+                        <div class="md:col-span-4 grid grid-cols-1 md:grid-cols-5 gap-4 sm:gap-6">
+                            <div class="relative md:col-span-2">
+                                <input type="text" id="elem_earned" name="elem_earned" value="{{ old('elem_earned', session('form.c1.elem_earned')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
+                                <label for="elem_earned" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-xs sm:text-sm">Highest Level/Units Earned (if not graduated)</label>
+                            </div>
+                            <div class="relative md:col-span-1">
+                                <input pattern="\d{4}" maxlength="4" type="text" inputmode="numeric" id="elem_year_graduated" name="elem_year_graduated" value="{{ old('elem_year_graduated', session('form.c1.elem_year_graduated')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
+                                <label for="elem_year_graduated" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Year Graduated</label>
+                            </div>
+                            <div class="relative md:col-span-2">
+                                <input type="text" id="elem_academic_honors" name="elem_academic_honors" value="{{ old('elem_academic_honors', session('form.c1.elem_academic_honors')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
+                                <label for="elem_academic_honors" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Scholarship/Academic Honors Received</label>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -479,17 +508,19 @@
                             <input required type="text" id="jhs_school" name="jhs_school" value="{{ old('jhs_school', session('form.c1.jhs_school')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
                             <label for="jhs_school" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">School Name*</label>
                         </div>
-                        <div class="relative md:col-span-1">
-                            <input type="text" id="jhs_earned" name="jhs_earned" value="{{ old('jhs_earned', session('form.c1.jhs_earned')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                            <label for="jhs_earned" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-xs sm:text-sm">Highest Level/Units Earned (if not graduated)</label>
-                        </div>
-                        <div class="relative md:col-span-1">
-                            <input pattern="\d{4}" maxlength="4" type="text" inputmode="numeric" id="jhs_year_graduated" name="jhs_year_graduated" value="{{ old('jhs_year_graduated', session('form.c1.jhs_year_graduated')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                            <label for="jhs_year_graduated" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Year Graduated</label>
-                        </div>
-                        <div class="relative md:col-span-2">
-                            <input type="text" id="jhs_academic_honors" name="jhs_academic_honors" value="{{ old('jhs_academic_honors', session('form.c1.jhs_academic_honors')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                            <label for="jhs_academic_honors" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Scholarship/Academic Honors Received</label>
+                        <div class="md:col-span-4 grid grid-cols-1 md:grid-cols-5 gap-4 sm:gap-6">
+                            <div class="relative md:col-span-2">
+                                <input type="text" id="jhs_earned" name="jhs_earned" value="{{ old('jhs_earned', session('form.c1.jhs_earned')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
+                                <label for="jhs_earned" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-xs sm:text-sm">Highest Level/Units Earned (if not graduated)</label>
+                            </div>
+                            <div class="relative md:col-span-1">
+                                <input pattern="\d{4}" maxlength="4" type="text" inputmode="numeric" id="jhs_year_graduated" name="jhs_year_graduated" value="{{ old('jhs_year_graduated', session('form.c1.jhs_year_graduated')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
+                                <label for="jhs_year_graduated" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Year Graduated</label>
+                            </div>
+                            <div class="relative md:col-span-2">
+                                <input type="text" id="jhs_academic_honors" name="jhs_academic_honors" value="{{ old('jhs_academic_honors', session('form.c1.jhs_academic_honors')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
+                                <label for="jhs_academic_honors" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Scholarship/Academic Honors Received</label>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -531,20 +562,13 @@
             <!-- Navigation -->
             <div class="flex flex-col sm:flex-row justify-between items-center mt-6 sm:mt-8 gap-4">
                 <div class="w-full sm:w-auto flex flex-col sm:flex-row gap-3">
-                    <button
-                        type="button"
-                        id="importPdsExcelBtn"
-                        class="w-full sm:w-auto px-4 sm:px-6 py-3 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-700 transition-colors duration-200 flex items-center justify-center text-sm sm:text-base"
-                    >
-                        <span class="material-icons mr-2 text-lg sm:text-xl">upload_file</span>
-                        Import from Excel
-                    </button>
+                    
                     <input type="file" id="pdsExcelFileInput" class="hidden" accept=".xlsx,.xls">
                 </div>
-                <button type="button" onclick="window.location.href='{{ route('dashboard_user') }}'" class="use-loader w-full sm:w-auto px-4 sm:px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors duration-200 flex items-center justify-center text-sm sm:text-base">
+                {{-- <button type="button" onclick="window.location.href='{{ route('dashboard_user') }}'" class="use-loader w-full sm:w-auto px-4 sm:px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors duration-200 flex items-center justify-center text-sm sm:text-base">
                     <span class="material-icons mr-2 text-lg sm:text-xl">home</span>
                     Dashboard
-                </button>
+                </button> --}}
                 <button type="submit" class="w-full sm:w-auto px-4 sm:px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors duration-200 flex items-center justify-center text-sm sm:text-base">
                     Next
                     <span class="material-icons ml-2 text-lg sm:text-xl">arrow_forward</span>
@@ -587,7 +611,7 @@
         const observer = new MutationObserver(initChildDates);
         observer.observe(document.body, { childList: true, subtree: true });
     });
-    const api = 'https://psgc.cloud/api';
+    const psgcApiBase = @json(url('/psgc'));
     const perProvince = document.querySelector('#per_province');
     const perCity = document.querySelector('#per_city');
     const perBrgy = document.querySelector('#per_brgy');
@@ -652,11 +676,66 @@
         };
         el.addEventListener('input', handler);
         el.addEventListener('change', handler);
+        if (id === 'per_zipcode' || id === 'res_zipcode') {
+            el.dataset.autoFilled = (el.readOnly && el.value) ? '1' : '0';
+            el.addEventListener('input', () => {
+                if (!el.readOnly) {
+                    el.dataset.autoFilled = '0';
+                }
+            });
+        }
     });
     function setRadio(name, val){
         if (!val) return;
         const target = document.querySelector('input[name="'+name+'"][value="'+val+'"]');
         if (target) { target.checked = true; target.dispatchEvent(new Event('change')); }
+    }
+    function onlyDigits(value) {
+        return String(value || '').replace(/\D+/g, '');
+    }
+    function enforceTelephoneInputLimit() {
+        const input = document.getElementById('telephone_no');
+        if (!input) return;
+        const hadFormatting = /[()\s]/.test(input.value);
+        const digits = onlyDigits(input.value).slice(0, 10);
+        if (!hadFormatting) {
+            input.value = digits;
+            return;
+        }
+
+        let formatted = '';
+        if (digits.length > 0) {
+            formatted = '(' + digits.slice(0, 2);
+            if (digits.length >= 2) formatted += ')';
+            if (digits.length > 2) formatted += ' ' + digits.slice(2, 6);
+            if (digits.length > 6) formatted += ' ' + digits.slice(6, 10);
+        }
+        input.value = formatted.trim();
+    }
+    function enforceMobileInputLimit() {
+        const input = document.getElementById('mobile_no');
+        if (!input) return;
+
+        const raw = String(input.value || '');
+        const isIntl = /^\s*\+63/.test(raw);
+        let digits = onlyDigits(raw);
+
+        if (isIntl) {
+            if (digits.startsWith('63')) digits = digits.slice(2);
+            if (digits.startsWith('0')) digits = digits.slice(1);
+            digits = digits.slice(0, 10);
+
+            let formatted = '+63';
+            if (digits.length > 0) formatted += ' ' + digits.slice(0, 3);
+            if (digits.length > 3) formatted += ' ' + digits.slice(3, 6);
+            if (digits.length > 6) formatted += ' ' + digits.slice(6, 10);
+            input.value = formatted;
+            return;
+        }
+
+        if (digits.startsWith('63')) digits = digits.slice(2);
+        if (digits.startsWith('0')) digits = digits.slice(1);
+        input.value = digits.slice(0, 10);
     }
     function hookRadio(name){
         document.querySelectorAll('input[name="'+name+'"]').forEach(r=>{
@@ -685,6 +764,36 @@
         dualCountry.addEventListener('input', handler);
         dualCountry.addEventListener('change', handler);
     }
+    const telephoneInput = document.getElementById('telephone_no');
+    if (telephoneInput) {
+        enforceTelephoneInputLimit();
+        telephoneInput.addEventListener('input', enforceTelephoneInputLimit);
+    }
+    const mobileInput = document.getElementById('mobile_no');
+    if (mobileInput) {
+        enforceMobileInputLimit();
+        mobileInput.addEventListener('input', enforceMobileInputLimit);
+    }
+    function normalizePlaceText(value) {
+        return String(value || '')
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/\bcity of\b/g, 'city')
+            .replace(/\bmunicipality of\b/g, 'municipality')
+            .replace(/\bmun\.?\b/g, 'municipality')
+            .replace(/\bbrgy\.?\b/g, 'barangay')
+            .replace(/[^a-z0-9]/g, '');
+    }
+    function resolvePreselectText(items, textKey, preselectText) {
+        const raw = String(preselectText || '').trim();
+        if (!raw) return null;
+        const exact = items.find(i => String(i[textKey] || '').trim().toLowerCase() === raw.toLowerCase());
+        if (exact) return String(exact[textKey]);
+        const normalizedTarget = normalizePlaceText(raw);
+        const normalized = items.find(i => normalizePlaceText(i[textKey]) === normalizedTarget);
+        return normalized ? String(normalized[textKey]) : null;
+    }
     function setOptions(select, items, textKey, valueKey, preselectText) {
         select.innerHTML = '';
         const ph = document.createElement('option');
@@ -694,12 +803,15 @@
         ph.selected = true;
         select.appendChild(ph);
         select._list = items;
+        const resolvedPreselect = resolvePreselectText(items, textKey, preselectText);
         items.forEach(i => {
             const opt = document.createElement('option');
             opt.value = i[textKey];
             opt.textContent = i[textKey];
             opt.dataset.code = i[valueKey];
-            if (preselectText && i[textKey] === preselectText) opt.selected = true;
+            if (resolvedPreselect && i[textKey] === resolvedPreselect) {
+                opt.selected = true;
+            }
             select.appendChild(opt);
         });
     }
@@ -707,24 +819,77 @@
         const opt = select.options[select.selectedIndex];
         return opt ? opt.dataset.code : '';
     }
-    function loadProvinces(select, preselectText, onDone) {
-        fetch(api + '/provinces').then(r => r.json()).then(data => {
-            setOptions(select, data, 'name', 'code', preselectText);
-            if (onDone) onDone(data.find(p => p.name === preselectText)?.code || getSelectedCode(select));
+    function setSelectByCode(select, code) {
+        if (!select || !code) return false;
+        const targetCode = String(code);
+        const option = Array.from(select.options || []).find(opt => String(opt.dataset.code || '') === targetCode);
+        if (!option) return false;
+        select.value = option.value;
+        return true;
+    }
+    function waitForSelectOptionCode(select, code, timeoutMs = 5000, intervalMs = 100) {
+        if (!select || !code) return Promise.resolve(false);
+        const targetCode = String(code);
+        const startedAt = Date.now();
+        return new Promise(resolve => {
+            const timer = setInterval(() => {
+                const hasOption = Array.from(select.options || []).some(opt => String(opt.dataset.code || '') === targetCode);
+                if (hasOption) {
+                    clearInterval(timer);
+                    resolve(true);
+                    return;
+                }
+                if (Date.now() - startedAt >= timeoutMs) {
+                    clearInterval(timer);
+                    resolve(false);
+                }
+            }, intervalMs);
         });
+    }
+    function loadProvinces(select, preselectText, onDone) {
+        fetch(psgcApiBase + '/provinces')
+            .then(r => r.ok ? r.json() : Promise.reject())
+            .then(data => {
+                setOptions(select, data, 'name', 'code', preselectText);
+                if (onDone) onDone(data.find(p => p.name === preselectText)?.code || getSelectedCode(select));
+            })
+            .catch(() => {
+                setOptions(select, [], 'name', 'code', null);
+                if (onDone) onDone('');
+            });
     }
     function loadCities(provinceCode, select, preselectText, onDone) {
-        if (!provinceCode) { setOptions(select, [], 'name', 'code', null); return; }
-        fetch(api + '/provinces/' + provinceCode + '/cities-municipalities').then(r => r.json()).then(data => {
-            setOptions(select, data, 'name', 'code', preselectText);
-            if (onDone) onDone(data.find(c => c.name === preselectText)?.code || getSelectedCode(select));
-        });
+        if (!provinceCode) {
+            setOptions(select, [], 'name', 'code', null);
+            if (onDone) onDone('');
+            return;
+        }
+
+        fetch(psgcApiBase + '/provinces/' + encodeURIComponent(provinceCode) + '/cities-municipalities')
+            .then(r => r.ok ? r.json() : Promise.reject())
+            .then(data => {
+                setOptions(select, data, 'name', 'code', preselectText);
+                if (onDone) onDone(data.find(c => c.name === preselectText)?.code || getSelectedCode(select));
+            })
+            .catch(() => {
+                setOptions(select, [], 'name', 'code', null);
+                if (onDone) onDone('');
+            });
     }
     function loadBarangays(cityCode, select, preselectText) {
-        if (!cityCode) { setOptions(select, [], 'name', 'code', null); return; }
-        fetch(api + '/cities-municipalities/' + cityCode + '/barangays').then(r => r.json()).then(data => {
-            setOptions(select, data, 'name', 'code', preselectText);
-        });
+        if (!cityCode) {
+            setOptions(select, [], 'name', 'code', null);
+            return;
+        }
+
+        fetch(psgcApiBase + '/cities-municipalities/' + encodeURIComponent(cityCode) + '/barangays')
+            .then(r => r.ok ? r.json() : Promise.reject())
+            .then(data => {
+                setOptions(select, data, 'name', 'code', preselectText);
+            })
+            .catch(() => {
+                setOptions(select, [], 'name', 'code', null);
+            });
     }
     loadProvinces(perProvince, perProvinceName, (provCode) => {
         loadCities(provCode, perCity, perCityName, (cityCode) => {
@@ -753,11 +918,7 @@
         // Clear dependent field from state
         writeState('per_brgy', '');
         loadBarangays(code, perBrgy, null); 
-        // Only set zip if field is empty
-        const perZipInput = document.querySelector('#per_zipcode');
-        if (perZipInput && (!perZipInput.value || perZipInput.value.trim() === '')) {
-            setZipByCityCode(code, 'per_zipcode'); 
-        }
+        setZipByCityCode(code, 'per_zipcode');
     });
     perBrgy.addEventListener('change', e => {
         writeState('per_brgy', perBrgy.value);
@@ -778,10 +939,7 @@
         // Clear dependent field from state
         writeState('res_brgy', '');
         loadBarangays(code, resBrgy, null); 
-        const resZipInput = document.querySelector('#res_zipcode');
-        if (resZipInput && (!resZipInput.value || resZipInput.value.trim() === '')) {
-            setZipByCityCode(code, 'res_zipcode'); 
-        }
+        setZipByCityCode(code, 'res_zipcode');
     });
     resBrgy.addEventListener('change', e => {
         writeState('res_brgy', resBrgy.value);
@@ -790,37 +948,68 @@
         if (!cityCode) return;
         const zipInput = document.querySelector('#' + zipInputId);
         if (!zipInput) return;
-        
-        // Don't overwrite if user has already entered a value
-        if (zipInput.value && zipInput.value.trim() !== '') {
+
+        const currentValue = (zipInput.value || '').trim();
+        const wasAutoFilled = zipInput.dataset.autoFilled === '1';
+        if (currentValue !== '' && !wasAutoFilled) {
             return;
         }
-        
-        fetch(api + '/cities-municipalities/' + cityCode)
+
+        const zipRequestToken = `${Date.now()}-${Math.random()}`;
+        zipInput.dataset.zipRequestToken = zipRequestToken;
+
+        fetch(psgcApiBase + '/cities-municipalities/' + encodeURIComponent(cityCode))
             .then(r => r.ok ? r.json() : Promise.reject())
             .then(obj => {
-                let zip = (obj && obj.zip_code) ? String(obj.zip_code) : '';
-                if (!zip || zip === 'null') {
-                    return fetch(api + '/cities/' + cityCode)
-                        .then(r => r.ok ? r.json() : Promise.reject())
-                        .then(c => (c && c.zip_code) ? String(c.zip_code) : '')
-                        .catch(() => fetch(api + '/municipalities/' + cityCode)
-                            .then(r => r.ok ? r.json() : Promise.reject())
-                            .then(m => (m && m.zip_code) ? String(m.zip_code) : '')
-                            .catch(() => ''));
-                }
-                return zip;
+                return (obj && obj.zip_code) ? String(obj.zip_code).trim() : '';
             })
             .then(zip => {
+                if (zipInput.dataset.zipRequestToken !== zipRequestToken) {
+                    return;
+                }
+
+                const latestValue = (zipInput.value || '').trim();
+                const latestAutoFilled = zipInput.dataset.autoFilled === '1';
+                if (latestValue !== '' && !latestAutoFilled) {
+                    return;
+                }
+
                 if (zip && zip.trim() !== '') {
                     zipInput.value = zip;
                     zipInput.readOnly = true;
+                    zipInput.dataset.autoFilled = '1';
+                    zipInput.dispatchEvent(new Event('change'));
+                    return;
+                }
+
+                if (wasAutoFilled) {
+                    zipInput.value = '';
                     zipInput.dispatchEvent(new Event('change'));
                 }
+
+                zipInput.readOnly = false;
+                zipInput.dataset.autoFilled = '0';
             })
-            .catch(() => {});
+            .catch(() => {
+                if (zipInput.dataset.zipRequestToken !== zipRequestToken) {
+                    return;
+                }
+
+                const latestValue = (zipInput.value || '').trim();
+                const latestAutoFilled = zipInput.dataset.autoFilled === '1';
+                if (latestValue !== '' && !latestAutoFilled) {
+                    return;
+                }
+
+                if (wasAutoFilled) {
+                    zipInput.value = '';
+                    zipInput.dispatchEvent(new Event('change'));
+                }
+                zipInput.readOnly = false;
+                zipInput.dataset.autoFilled = '0';
+            });
     }
-    document.querySelector('#copy_res_to_per').addEventListener('click', () => {
+    document.querySelector('#copy_res_to_per').addEventListener('click', async () => {
         document.querySelector('#per_house_no').value = document.querySelector('#res_house_no').value;
         document.querySelector('#per_street').value = document.querySelector('#res_street').value;
         document.querySelector('#per_sub_vil').value = document.querySelector('#res_sub_vil').value;
@@ -828,24 +1017,46 @@
             const input = document.getElementById(id);
             if (input) input.dispatchEvent(new Event('change'));
         });
-        perProvince.value = resProvince.value;
-        perProvince.dispatchEvent(new Event('change'));
-        setTimeout(() => {
-            perCity.value = resCity.value;
-            perCity.dispatchEvent(new Event('change'));
-            setTimeout(() => {
+
+        const resProvinceCode = getSelectedCode(resProvince);
+        const resCityCode = getSelectedCode(resCity);
+        const resBrgyCode = getSelectedCode(resBrgy);
+
+        if (resProvinceCode && setSelectByCode(perProvince, resProvinceCode)) {
+            perProvince.dispatchEvent(new Event('change'));
+        } else {
+            perProvince.value = resProvince.value;
+            perProvince.dispatchEvent(new Event('change'));
+        }
+
+        if (resCityCode) {
+            const hasCity = await waitForSelectOptionCode(perCity, resCityCode);
+            if (hasCity && setSelectByCode(perCity, resCityCode)) {
+                perCity.dispatchEvent(new Event('change'));
+            } else {
+                perCity.value = resCity.value;
+                perCity.dispatchEvent(new Event('change'));
+            }
+        }
+
+        if (resBrgyCode) {
+            const hasBrgy = await waitForSelectOptionCode(perBrgy, resBrgyCode);
+            if (hasBrgy && setSelectByCode(perBrgy, resBrgyCode)) {
+                perBrgy.dispatchEvent(new Event('change'));
+            } else {
                 perBrgy.value = resBrgy.value;
                 perBrgy.dispatchEvent(new Event('change'));
-                const resZip = document.querySelector('#res_zipcode');
-                const perZip = document.querySelector('#per_zipcode');
-                if (resZip && perZip) {
-                    perZip.value = resZip.value;
-                    perZip.readOnly = resZip.readOnly;
-                    // Trigger change event to save in session storage
-                    perZip.dispatchEvent(new Event('change'));
-                }
-            }, 400);
-        }, 400);
+            }
+        }
+
+        const resZip = document.querySelector('#res_zipcode');
+        const perZip = document.querySelector('#per_zipcode');
+        if (resZip && perZip) {
+            perZip.value = resZip.value;
+            perZip.readOnly = resZip.readOnly;
+            perZip.dataset.autoFilled = resZip.dataset.autoFilled || (resZip.readOnly ? '1' : '0');
+            perZip.dispatchEvent(new Event('change'));
+        }
     });
     document.addEventListener('DOMContentLoaded', function () {
         function val(id) {
@@ -1049,6 +1260,108 @@
     });
 </script>
 <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const singleCheckbox = document.getElementById('single_spouse_na');
+        const civilStatus = document.getElementById('civil_status');
+        const spouseFieldIds = [
+            'spouse_surname',
+            'spouse_first_name',
+            'spouse_middle_name',
+            'spouse_name_extension',
+            'spouse_occupation',
+            'spouse_employer',
+            'spouse_business_address',
+            'spouse_telephone'
+        ];
+
+        if (!singleCheckbox) return;
+
+        const spouseFields = spouseFieldIds
+            .map((id) => document.getElementById(id))
+            .filter(Boolean);
+
+        if (!spouseFields.length) return;
+
+        const dispatchFieldEvents = (field) => {
+            field.dispatchEvent(new Event('input', { bubbles: true }));
+            field.dispatchEvent(new Event('change', { bubbles: true }));
+        };
+
+        const setReadonlyStyle = (field, isReadonly) => {
+            field.readOnly = isReadonly;
+            field.classList.toggle('bg-gray-100', isReadonly);
+            field.classList.toggle('cursor-not-allowed', isReadonly);
+        };
+
+        const toggleSingleState = (checked) => {
+            spouseFields.forEach((field) => {
+                if (checked) {
+                    if (field.dataset.prevValue === undefined) {
+                        const currentValue = String(field.value || '').trim();
+                        field.dataset.prevValue = currentValue.toUpperCase() === 'N/A' ? '' : field.value;
+                    }
+
+                    if (field.id === 'spouse_telephone' && field.dataset.prevPattern === undefined) {
+                        field.dataset.prevPattern = field.getAttribute('pattern') || '';
+                    }
+
+                    field.value = 'N/A';
+                    setReadonlyStyle(field, true);
+
+                    if (field.id === 'spouse_telephone') {
+                        field.removeAttribute('pattern');
+                    }
+                } else {
+                    const previousValue = field.dataset.prevValue ?? '';
+                    if (String(field.value || '').trim().toUpperCase() === 'N/A') {
+                        field.value = previousValue;
+                    }
+
+                    setReadonlyStyle(field, false);
+
+                    if (field.id === 'spouse_telephone') {
+                        const prevPattern = field.dataset.prevPattern ?? '';
+                        if (prevPattern) {
+                            field.setAttribute('pattern', prevPattern);
+                        } else {
+                            field.removeAttribute('pattern');
+                        }
+                    }
+
+                    delete field.dataset.prevValue;
+                    delete field.dataset.prevPattern;
+                }
+
+                dispatchFieldEvents(field);
+            });
+        };
+
+        singleCheckbox.addEventListener('change', () => {
+            if (singleCheckbox.checked && civilStatus && civilStatus.value !== 'single') {
+                civilStatus.value = 'single';
+                civilStatus.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+
+            toggleSingleState(singleCheckbox.checked);
+        });
+
+        civilStatus?.addEventListener('change', () => {
+            if (civilStatus.value !== 'single' && singleCheckbox.checked) {
+                singleCheckbox.checked = false;
+                toggleSingleState(false);
+            }
+        });
+
+        const civilStatusIsSingle = (civilStatus?.value || '').toLowerCase() === 'single';
+        const spouseAlreadyNa = spouseFields.every((field) => String(field.value || '').trim().toUpperCase() === 'N/A');
+
+        if (civilStatusIsSingle && spouseAlreadyNa) {
+            singleCheckbox.checked = true;
+            toggleSingleState(true);
+        }
+    });
+</script>
+<script>
     (function () {
         const form = document.getElementById('myForm');
         if (!form) return;
@@ -1124,8 +1437,8 @@
             importBtn.classList.toggle('opacity-60', loading);
             importBtn.classList.toggle('cursor-not-allowed', loading);
             importBtn.innerHTML = loading
-                ? '<span class="material-icons mr-2 text-lg sm:text-xl animate-spin">autorenew</span>Importing...'
-                : '<span class="material-icons mr-2 text-lg sm:text-xl">upload_file</span>Import from Excel';
+                ? '<span class="material-icons text-lg sm:text-xl animate-spin">autorenew</span>Importing...'
+                : '<span class="material-icons text-lg sm:text-xl">upload_file</span>Import from Excel';
         };
 
         const notify = (message, type = 'error') => {

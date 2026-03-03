@@ -133,6 +133,129 @@ class PDSController extends Controller
         return $value;
     }
 
+<<<<<<< Updated upstream
+    private function normalizeTelephoneInput(?string $value): ?string
+    {
+        $value = is_string($value) ? trim($value) : $value;
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $digits = preg_replace('/\D+/', '', $value);
+        if ($digits === null || $digits === '') {
+            return $value;
+        }
+
+        // Convert international PH prefixes to local 0-prefixed format.
+        if (str_starts_with($digits, '63') && strlen($digits) >= 11) {
+            $digits = '0' . substr($digits, 2);
+        }
+
+        return $digits;
+    }
+
+    private function normalizeMobileInput(?string $value): ?string
+    {
+        $value = is_string($value) ? trim($value) : $value;
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $digits = preg_replace('/\D+/', '', $value);
+        if ($digits === null || $digits === '') {
+            return $value;
+        }
+
+        // Accept +63 9XX XXX XXXX and normalize to 09XXXXXXXXX.
+        if (str_starts_with($digits, '63') && strlen($digits) === 12) {
+            $digits = '0' . substr($digits, 2);
+        } elseif (str_starts_with($digits, '9') && strlen($digits) === 10) {
+            $digits = '0' . $digits;
+        }
+
+        return $digits;
+=======
+    private function isBlankProfileValue($value): bool
+    {
+        $text = trim((string) ($value ?? ''));
+        if ($text === '') {
+            return true;
+        }
+
+        $upper = strtoupper($text);
+        return $upper === 'NOINPUT' || $upper === 'NULL';
+    }
+
+    private function parseFullNameForPds(string $fullName): array
+    {
+        $clean = trim((string) preg_replace('/\s+/', ' ', str_replace(',', ' ', $fullName)));
+        if ($clean === '') {
+            return [
+                'first_name' => '',
+                'middle_name' => '',
+                'surname' => '',
+                'name_extension' => '',
+            ];
+        }
+
+        $tokens = preg_split('/\s+/', $clean, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        if (empty($tokens)) {
+            return [
+                'first_name' => '',
+                'middle_name' => '',
+                'surname' => '',
+                'name_extension' => '',
+            ];
+        }
+
+        $extension = '';
+        $suffixes = ['JR', 'JR.', 'SR', 'SR.', 'II', 'III', 'IV', 'V'];
+        $lastToken = strtoupper((string) end($tokens));
+        if (in_array($lastToken, $suffixes, true)) {
+            $extension = array_pop($tokens) ?? '';
+        }
+
+        if (count($tokens) === 1) {
+            return [
+                'first_name' => $tokens[0],
+                'middle_name' => '',
+                'surname' => '',
+                'name_extension' => $extension,
+            ];
+        }
+
+        $firstName = array_shift($tokens) ?? '';
+        $surname = array_pop($tokens) ?? '';
+        $middleName = implode(' ', $tokens);
+
+        return [
+            'first_name' => $firstName,
+            'middle_name' => $middleName,
+            'surname' => $surname,
+            'name_extension' => $extension,
+        ];
+    }
+
+    private function getAccountNameFallback($user): array
+    {
+        $fallback = [
+            'surname' => trim((string) ($user->last_name ?? '')),
+            'first_name' => trim((string) ($user->first_name ?? '')),
+            'middle_name' => trim((string) ($user->middle_name ?? ($user->middle_initial ?? ''))),
+            'name_extension' => trim((string) ($user->name_extension ?? '')),
+        ];
+
+        $parsed = $this->parseFullNameForPds(trim((string) ($user->name ?? '')));
+        foreach (['surname', 'first_name', 'middle_name', 'name_extension'] as $field) {
+            if ($this->isBlankProfileValue($fallback[$field] ?? null) && !$this->isBlankProfileValue($parsed[$field] ?? null)) {
+                $fallback[$field] = $parsed[$field];
+            }
+        }
+
+        return $fallback;
+>>>>>>> Stashed changes
+    }
+
     /**
      * Updates the C1 session data based on the database .If there is no data on the database,
      * the function should return an empty array.
@@ -214,6 +337,17 @@ class PDSController extends Controller
                 }
             }
         }
+
+        // Fallback to logged-in account profile (including Google name) when PDS name fields are empty.
+        if ($current_user) {
+            $accountName = $this->getAccountNameFallback($current_user);
+            foreach (['surname', 'first_name', 'middle_name', 'name_extension'] as $field) {
+                if ($this->isBlankProfileValue($c1_full_info[$field] ?? null) && !$this->isBlankProfileValue($accountName[$field] ?? null)) {
+                    $c1_full_info[$field] = $accountName[$field];
+                }
+            }
+        }
+
         return $c1_full_info;
     }
 
@@ -229,6 +363,21 @@ class PDSController extends Controller
         // If form in session already exists then no need to retireve data from the database.
         if (!session()->has('form.c1')) {
             session(['form.c1' => $this->c1GetFormFromDB()]);
+        } else {
+            $formC1 = session('form.c1', []);
+            $accountName = $this->getAccountNameFallback(Auth::user());
+            $updated = false;
+
+            foreach (['surname', 'first_name', 'middle_name', 'name_extension'] as $field) {
+                if ($this->isBlankProfileValue($formC1[$field] ?? null) && !$this->isBlankProfileValue($accountName[$field] ?? null)) {
+                    $formC1[$field] = $accountName[$field];
+                    $updated = true;
+                }
+            }
+
+            if ($updated) {
+                session(['form.c1' => $formC1]);
+            }
         }
         $vocational_schools = session('form.c1.vocational', []);
         $college_schools = session('form.c1.college', []);
@@ -289,6 +438,11 @@ class PDSController extends Controller
     public function c1UpdateFormSession(Request $request, $go_to)
     {
         //dd($request->all());
+        $request->merge([
+            'telephone_no' => $this->normalizeTelephoneInput($request->input('telephone_no')),
+            'mobile_no' => $this->normalizeMobileInput($request->input('mobile_no')),
+        ]);
+
         // get key-value pairs only for fields that need validation.
         $c1_form_data_valid = $request->validate([
             'surname' => 'required|max:255|string',

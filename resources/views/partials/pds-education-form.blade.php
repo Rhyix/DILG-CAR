@@ -209,45 +209,45 @@
                                 </label>
                             </div>
 
-                            <!-- Units Earned -->
-                            <div class="relative md:col-span-2">
-                                <input type="text" 
-                                       name="{{ $education_type }}[{{ $index }}][earned]" 
-                                       value="{{ old($education_type.'.'.$index.'.earned', $data['earned'] ?? '') }}" 
-                                       placeholder=" " 
-                                       class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base"
-                                       {{ $education_type == 'college' ? 'required' : '' }}>
-                                <label class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">
-                                    Units Earned{{ $education_type == 'college' ? '*' : '' }}
-                                </label>
-                            </div>
+                            <!-- Units Earned / Year Graduated / Academic Honors -->
+                            <div class="md:col-span-4 grid grid-cols-1 md:grid-cols-5 gap-4 sm:gap-6">
+                                <div class="relative md:col-span-2">
+                                    <input type="text" 
+                                           name="{{ $education_type }}[{{ $index }}][earned]" 
+                                           value="{{ old($education_type.'.'.$index.'.earned', $data['earned'] ?? '') }}" 
+                                           placeholder=" " 
+                                           class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base"
+                                           {{ $education_type == 'college' ? 'required' : '' }}>
+                                    <label class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-xs sm:text-sm">
+                                        Highest Level/Units Earned (if not graduated){{ $education_type == 'college' ? '*' : '' }}
+                                    </label>
+                                </div>
 
-                            <!-- Year Graduated -->
-                            <div class="relative md:col-span-2">
-                                <input type="text" 
-                                       pattern="\d{4}" 
-                                       maxlength="4" 
-                                       inputmode="numeric"
-                                       name="{{ $education_type }}[{{ $index }}][year_graduated]" 
-                                       value="{{ old($education_type.'.'.$index.'.year_graduated', $data['year_graduated'] ?? '') }}" 
-                                       placeholder=" " 
-                                       class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base"
-                                       {{ $education_type == 'college' ? 'required' : '' }}>
-                                <label class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">
-                                    Year Graduated{{ $education_type == 'college' ? '*' : '' }}
-                                </label>
-                            </div>
+                                <div class="relative md:col-span-1">
+                                    <input type="text" 
+                                           pattern="\d{4}" 
+                                           maxlength="4" 
+                                           inputmode="numeric"
+                                           name="{{ $education_type }}[{{ $index }}][year_graduated]" 
+                                           value="{{ old($education_type.'.'.$index.'.year_graduated', $data['year_graduated'] ?? '') }}" 
+                                           placeholder=" " 
+                                           class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base"
+                                           {{ $education_type == 'college' ? 'required' : '' }}>
+                                    <label class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">
+                                        Year Graduated{{ $education_type == 'college' ? '*' : '' }}
+                                    </label>
+                                </div>
 
-                            <!-- Academic Honors -->
-                            <div class="relative md:col-span-4">
-                                <input type="text" 
-                                       name="{{ $education_type }}[{{ $index }}][academic_honors]" 
-                                       value="{{ old($education_type.'.'.$index.'.academic_honors', $data['academic_honors'] ?? '') }}" 
-                                       placeholder=" " 
-                                       class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                                <label class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-xs sm:text-base">
-    Scholarship/Academic Honors Received
-</label>
+                                <div class="relative md:col-span-2">
+                                    <input type="text" 
+                                           name="{{ $education_type }}[{{ $index }}][academic_honors]" 
+                                           value="{{ old($education_type.'.'.$index.'.academic_honors', $data['academic_honors'] ?? '') }}" 
+                                           placeholder=" " 
+                                           class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
+                                    <label class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-xs sm:text-base">
+                                        Scholarship/Academic Honors Received
+                                    </label>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -318,45 +318,45 @@
                             </label>
                         </div>
 
-                        <!-- Units Earned -->
-                        <div class="relative md:col-span-2">
-                            <input type="text" 
-                                   name="{{ $education_type }}[__INDEX__][earned]" 
-                                   value="" 
-                                   placeholder=" " 
-                                   class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base"
-                                   {{ $education_type == 'college' ? 'required' : '' }}>
-                            <label class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">
-                                Units Earned{{ $education_type == 'college' ? '*' : '' }}
-                            </label>
-                        </div>
+                        <!-- Units Earned / Year Graduated / Academic Honors -->
+                        <div class="md:col-span-4 grid grid-cols-1 md:grid-cols-5 gap-4 sm:gap-6">
+                            <div class="relative md:col-span-2">
+                                <input type="text" 
+                                       name="{{ $education_type }}[__INDEX__][earned]" 
+                                       value="" 
+                                       placeholder=" " 
+                                       class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base"
+                                       {{ $education_type == 'college' ? 'required' : '' }}>
+                                <label class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-xs sm:text-sm">
+                                    Highest Level/Units Earned (if not graduated){{ $education_type == 'college' ? '*' : '' }}
+                                </label>
+                            </div>
 
-                        <!-- Year Graduated -->
-                        <div class="relative md:col-span-2">
-                            <input type="text" 
-                                   pattern="\d{4}" 
-                                   maxlength="4" 
-                                   inputmode="numeric"
-                                   name="{{ $education_type }}[__INDEX__][year_graduated]" 
-                                   value="" 
-                                   placeholder=" " 
-                                   class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base"
-                                   {{ $education_type == 'college' ? 'required' : '' }}>
-                            <label class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">
-                                Year Graduated{{ $education_type == 'college' ? '*' : '' }}
-                            </label>
-                        </div>
+                            <div class="relative md:col-span-1">
+                                <input type="text" 
+                                       pattern="\d{4}" 
+                                       maxlength="4" 
+                                       inputmode="numeric"
+                                       name="{{ $education_type }}[__INDEX__][year_graduated]" 
+                                       value="" 
+                                       placeholder=" " 
+                                       class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base"
+                                       {{ $education_type == 'college' ? 'required' : '' }}>
+                                <label class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">
+                                    Year Graduated{{ $education_type == 'college' ? '*' : '' }}
+                                </label>
+                            </div>
 
-                        <!-- Academic Honors -->
-                        <div class="relative md:col-span-4">
-                            <input type="text" 
-                                   name="{{ $education_type }}[__INDEX__][academic_honors]" 
-                                   value="" 
-                                   placeholder=" " 
-                                   class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                            <label class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">
-                                Scholarship/Academic Honors Received
-                            </label>
+                            <div class="relative md:col-span-2">
+                                <input type="text" 
+                                       name="{{ $education_type }}[__INDEX__][academic_honors]" 
+                                       value="" 
+                                       placeholder=" " 
+                                       class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
+                                <label class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">
+                                    Scholarship/Academic Honors Received
+                                </label>
+                            </div>
                         </div>
                     </div>
                 </div>
