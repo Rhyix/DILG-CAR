@@ -25,6 +25,8 @@ use App\Models\CivilServiceEligibility;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 use App\Services\ApplicationStatusTransitionService;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 
 class PDSController extends Controller
 {
@@ -238,6 +240,43 @@ class PDSController extends Controller
         */
         // dd($vocational_schools);
         return view('pds.pds', compact('vocational_schools', 'college_schools', 'grad_schools'));
+    }
+
+    public function importC1Excel(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'pds_excel' => 'required|file|mimes:xlsx,xls|max:10240',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Please upload a valid Excel file (.xlsx or .xls) up to 10MB.',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        try {
+            $payload = $this->extractC1DataFromExcel($request->file('pds_excel')->getRealPath());
+
+            return response()->json([
+                'message' => 'Excel file imported. Please review all fields before proceeding.',
+                'data' => $payload['data'],
+                'warnings' => $payload['warnings'],
+            ]);
+        } catch (\RuntimeException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+            ], 422);
+        } catch (\Throwable $e) {
+            Log::error('Failed to import C1 Excel.', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'message' => 'Unable to process the uploaded Excel file. Please try again with the official template.',
+            ], 500);
+        }
     }
 
 
@@ -493,6 +532,300 @@ class PDSController extends Controller
             $routeParams['simple'] = 1;
         }
         return redirect()->route($go_to, $routeParams);
+    }
+
+    private function extractC1DataFromExcel(string $uploadedPath): array
+    {
+        $uploadedSpreadsheet = IOFactory::load($uploadedPath);
+        $uploadedSheet = $uploadedSpreadsheet->getSheetByName('C1');
+
+        if (!$uploadedSheet) {
+            throw new \RuntimeException('Incompatible file: Sheet "C1" was not found.');
+        }
+
+        $markerCells = [
+            'A3' => 'PERSONAL DATA SHEET',
+            'A9' => 'I. PERSONAL INFORMATION',
+            'A35' => 'II.  FAMILY BACKGROUND',
+        ];
+
+        foreach ($markerCells as $cell => $expected) {
+            $actual = $this->normalizedExcelText((string) $uploadedSheet->getCell($cell)->getFormattedValue());
+            if ($actual !== $this->normalizedExcelText($expected)) {
+                throw new \RuntimeException('Incompatible file: please upload the official CS Form No. 212 Revised 2025 Excel template.');
+            }
+        }
+
+        $cellToFieldMap = [
+            'D10' => 'surname',
+            'D11' => 'first_name',
+            'D12' => 'middle_name',
+            'L11' => 'name_extension',
+            'D15' => 'place_of_birth',
+            'L15' => 'dual_country',
+            'D22' => 'height',
+            'D24' => 'weight',
+            'D25' => 'blood_type',
+            'D27' => 'gsis_id_no',
+            'D29' => 'pagibig_id_no',
+            'D31' => 'philhealth_no',
+            'D32' => 'sss_id_no',
+            'D33' => 'tin_no',
+            'D34' => 'agency_employee_no',
+            'I18' => 'res_house_no',
+            'L18' => 'res_street',
+            'I21' => 'res_sub_vil',
+            'L21' => 'res_brgy',
+            'I23' => 'res_city',
+            'L23' => 'res_province',
+            'I24' => 'res_zipcode',
+            'I26' => 'per_house_no',
+            'L26' => 'per_street',
+            'I28' => 'per_sub_vil',
+            'L28' => 'per_brgy',
+            'I30' => 'per_city',
+            'L30' => 'per_province',
+            'I31' => 'per_zipcode',
+            'I32' => 'telephone_no',
+            'I33' => 'mobile_no',
+            'I34' => 'email_address',
+            'D36' => 'spouse_surname',
+            'D37' => 'spouse_first_name',
+            'G37' => 'spouse_name_extension',
+            'D38' => 'spouse_middle_name',
+            'D39' => 'spouse_occupation',
+            'D40' => 'spouse_employer',
+            'D41' => 'spouse_business_address',
+            'D42' => 'spouse_telephone',
+            'D43' => 'father_surname',
+            'D44' => 'father_first_name',
+            'G44' => 'father_name_extension',
+            'D45' => 'father_middle_name',
+            'D47' => 'mother_maiden_surname',
+            'D48' => 'mother_maiden_first_name',
+            'D49' => 'mother_maiden_middle_name',
+            'D54' => 'elem_school',
+            'G54' => 'elem_basic',
+            'L54' => 'elem_earned',
+            'M54' => 'elem_year_graduated',
+            'N54' => 'elem_academic_honors',
+            'D55' => 'jhs_school',
+            'G55' => 'jhs_basic',
+            'L55' => 'jhs_earned',
+            'M55' => 'jhs_year_graduated',
+            'N55' => 'jhs_academic_honors',
+        ];
+
+        $fields = [];
+        foreach ($cellToFieldMap as $cell => $field) {
+            $fields[$field] = $this->readCellText($uploadedSheet, $cell);
+        }
+
+        $fields['date_of_birth'] = $this->readCellDate($uploadedSheet, 'D13', false);
+        $fields['elem_from'] = $this->readCellDate($uploadedSheet, 'J54', true);
+        $fields['elem_to'] = $this->readCellDate($uploadedSheet, 'K54', true);
+        $fields['jhs_from'] = $this->readCellDate($uploadedSheet, 'J55', true);
+        $fields['jhs_to'] = $this->readCellDate($uploadedSheet, 'K55', true);
+
+        $fields['sex'] = $this->normalizeSex($this->readCellText($uploadedSheet, 'D16'));
+        $fields['civil_status'] = $this->normalizeCivilStatus($this->readCellText($uploadedSheet, 'D17'));
+        $fields['citizenship'] = $this->normalizeCitizenship($this->readCellText($uploadedSheet, 'J13'));
+        $fields['blood_type'] = strtoupper(trim((string) ($fields['blood_type'] ?? '')));
+
+        if ($fields['citizenship'] !== 'Dual Citizenship') {
+            $fields['dual_type'] = '';
+            $fields['dual_country'] = '';
+        }
+
+        $children = [];
+        for ($i = 0; $i < 12; $i++) {
+            $row = 37 + $i;
+            $name = $this->readCellText($uploadedSheet, "I{$row}");
+            $dob = $this->readCellDate($uploadedSheet, "M{$row}", false);
+            if ($name !== '' || $dob !== '') {
+                $children[] = [
+                    'name' => $name,
+                    'dob' => $dob,
+                ];
+            }
+        }
+
+        $vocationalRow = [
+            'from' => $this->readCellDate($uploadedSheet, 'J56', true),
+            'to' => $this->readCellDate($uploadedSheet, 'K56', true),
+            'school' => $this->readCellText($uploadedSheet, 'D56'),
+            'basic' => $this->readCellText($uploadedSheet, 'G56'),
+            'earned' => $this->readCellText($uploadedSheet, 'L56'),
+            'year_graduated' => $this->readCellText($uploadedSheet, 'M56'),
+            'academic_honors' => $this->readCellText($uploadedSheet, 'N56'),
+        ];
+        $collegeRow = [
+            'from' => $this->readCellDate($uploadedSheet, 'J57', true),
+            'to' => $this->readCellDate($uploadedSheet, 'K57', true),
+            'school' => $this->readCellText($uploadedSheet, 'D57'),
+            'basic' => $this->readCellText($uploadedSheet, 'G57'),
+            'earned' => $this->readCellText($uploadedSheet, 'L57'),
+            'year_graduated' => $this->readCellText($uploadedSheet, 'M57'),
+            'academic_honors' => $this->readCellText($uploadedSheet, 'N57'),
+        ];
+        $gradRow = [
+            'from' => $this->readCellDate($uploadedSheet, 'J58', true),
+            'to' => $this->readCellDate($uploadedSheet, 'K58', true),
+            'school' => $this->readCellText($uploadedSheet, 'D58'),
+            'basic' => $this->readCellText($uploadedSheet, 'G58'),
+            'earned' => $this->readCellText($uploadedSheet, 'L58'),
+            'year_graduated' => $this->readCellText($uploadedSheet, 'M58'),
+            'academic_honors' => $this->readCellText($uploadedSheet, 'N58'),
+        ];
+
+        $warnings = [];
+        if (($fields['citizenship'] ?? '') === 'Dual Citizenship') {
+            $warnings[] = 'Dual citizenship type (By Birth / By Naturalization) is not available in the Excel template and must be selected manually.';
+        }
+
+        return [
+            'data' => [
+                'fields' => $fields,
+                'children' => $children,
+                'vocational' => $this->rowHasData($vocationalRow) ? [$vocationalRow] : [],
+                'college' => $this->rowHasData($collegeRow) ? [$collegeRow] : [],
+                'grad' => $this->rowHasData($gradRow) ? [$gradRow] : [],
+            ],
+            'warnings' => $warnings,
+        ];
+    }
+
+    private function readCellText($sheet, string $cell): string
+    {
+        $uploaded = trim((string) $sheet->getCell($cell)->getFormattedValue());
+        return $this->sanitizeExtractedText($uploaded);
+    }
+
+    private function readCellDate($sheet, string $cell, bool $monthYearOnly): string
+    {
+        $uploadedCell = $sheet->getCell($cell);
+        $uploadedFormatted = trim((string) $uploadedCell->getFormattedValue());
+        if ($uploadedFormatted === '') {
+            return '';
+        }
+
+        $raw = $uploadedCell->getValue();
+
+        try {
+            if (is_numeric($raw)) {
+                $date = ExcelDate::excelToDateTimeObject((float) $raw);
+                return $monthYearOnly ? $date->format('01-m-Y') : $date->format('d-m-Y');
+            }
+
+            $asText = trim((string) $raw);
+            if ($asText === '') {
+                return '';
+            }
+
+            $formats = $monthYearOnly
+                ? ['m/Y', 'm-Y', 'Y-m', 'd/m/Y', 'd-m-Y', 'm/d/Y', 'Y-m-d']
+                : ['d/m/Y', 'd-m-Y', 'm/d/Y', 'Y-m-d', 'm/Y', 'm-Y', 'Y-m'];
+
+            foreach ($formats as $format) {
+                try {
+                    $dt = Carbon::createFromFormat($format, $asText);
+                    if ($dt !== false) {
+                        return $monthYearOnly
+                            ? $dt->startOfMonth()->format('d-m-Y')
+                            : $dt->format('d-m-Y');
+                    }
+                } catch (\Throwable $e) {
+                }
+            }
+
+            $parsed = Carbon::parse($asText);
+            return $monthYearOnly
+                ? $parsed->startOfMonth()->format('d-m-Y')
+                : $parsed->format('d-m-Y');
+        } catch (\Throwable $e) {
+            return $monthYearOnly ? '' : '';
+        }
+    }
+
+    private function sanitizeExtractedText(string $value): string
+    {
+        $text = trim($value);
+        if ($text === '') {
+            return '';
+        }
+
+        $placeholders = [
+            'House/Block/Lot No.',
+            'Street',
+            'Subdivision/Village',
+            'Barangay',
+            'City/Municipality',
+            'Province',
+            'ZIP Code',
+        ];
+
+        foreach ($placeholders as $placeholder) {
+            if (strcasecmp($text, $placeholder) === 0) {
+                return '';
+            }
+        }
+
+        return $text;
+    }
+
+    private function normalizeSex(string $value): string
+    {
+        $normalized = strtolower(trim($value));
+        if (str_starts_with($normalized, 'm')) {
+            return 'male';
+        }
+        if (str_starts_with($normalized, 'f')) {
+            return 'female';
+        }
+        return '';
+    }
+
+    private function normalizeCivilStatus(string $value): string
+    {
+        $normalized = strtolower(trim($value));
+        return match ($normalized) {
+            'single' => 'single',
+            'married' => 'married',
+            'widowed' => 'widowed',
+            'separated', 'seperated' => 'separated',
+            'other', 'others', 'other/s' => 'other',
+            default => '',
+        };
+    }
+
+    private function normalizeCitizenship(string $value): string
+    {
+        $normalized = strtolower(trim($value));
+        if ($normalized === '') {
+            return '';
+        }
+        if (str_contains($normalized, 'dual')) {
+            return 'Dual Citizenship';
+        }
+        if (str_contains($normalized, 'filipino')) {
+            return 'Filipino';
+        }
+        return '';
+    }
+
+    private function normalizedExcelText(string $value): string
+    {
+        return preg_replace('/\s+/', ' ', strtoupper(trim($value))) ?? '';
+    }
+
+    private function rowHasData(array $row): bool
+    {
+        foreach ($row as $value) {
+            if (trim((string) $value) !== '') {
+                return true;
+            }
+        }
+        return false;
     }
 
 

@@ -325,6 +325,7 @@ Route::middleware(['auth', BlockIfAdmin::class])->group(function () {
     // ==================================================================================================
     Route::get('/pds/c1', [Forms\PDSController::class, 'c1DisplayForm'])->name('display_c1');
     Route::post('/pds/submit_c1/{go_to}', [Forms\PDSController::class, 'c1UpdateFormSession'])->name('submit_c1');
+    Route::post('/pds/import-c1-excel', [Forms\PDSController::class, 'importC1Excel'])->name('pds.import_c1_excel');
     Route::post('/pds/autosave/{section}', [Forms\PDSController::class, 'autosaveDraft'])->name('pds.autosave');
 
     Route::get('/pds/c2', [Forms\PDSController::class, 'c2DisplayForm'])->name('display_c2');

@@ -530,6 +530,17 @@
 
             <!-- Navigation -->
             <div class="flex flex-col sm:flex-row justify-between items-center mt-6 sm:mt-8 gap-4">
+                <div class="w-full sm:w-auto flex flex-col sm:flex-row gap-3">
+                    <button
+                        type="button"
+                        id="importPdsExcelBtn"
+                        class="w-full sm:w-auto px-4 sm:px-6 py-3 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-700 transition-colors duration-200 flex items-center justify-center text-sm sm:text-base"
+                    >
+                        <span class="material-icons mr-2 text-lg sm:text-xl">upload_file</span>
+                        Import from Excel
+                    </button>
+                    <input type="file" id="pdsExcelFileInput" class="hidden" accept=".xlsx,.xls">
+                </div>
                 <button type="button" onclick="window.location.href='{{ route('dashboard_user') }}'" class="use-loader w-full sm:w-auto px-4 sm:px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors duration-200 flex items-center justify-center text-sm sm:text-base">
                     <span class="material-icons mr-2 text-lg sm:text-xl">home</span>
                     Dashboard
@@ -1096,6 +1107,287 @@
             if (!isDirty || isSubmitting || !navigator.sendBeacon) return;
             const formData = new FormData(form);
             navigator.sendBeacon(autosaveUrl, formData);
+        });
+    })();
+</script>
+<script>
+    (function () {
+        const importBtn = document.getElementById('importPdsExcelBtn');
+        const fileInput = document.getElementById('pdsExcelFileInput');
+        const form = document.getElementById('myForm');
+        if (!importBtn || !fileInput || !form) return;
+
+        const importUrl = @json(route('pds.import_c1_excel'));
+
+        const setButtonLoading = (loading) => {
+            importBtn.disabled = loading;
+            importBtn.classList.toggle('opacity-60', loading);
+            importBtn.classList.toggle('cursor-not-allowed', loading);
+            importBtn.innerHTML = loading
+                ? '<span class="material-icons mr-2 text-lg sm:text-xl animate-spin">autorenew</span>Importing...'
+                : '<span class="material-icons mr-2 text-lg sm:text-xl">upload_file</span>Import from Excel';
+        };
+
+        const notify = (message, type = 'error') => {
+            if (typeof showNotification === 'function') {
+                showNotification(message, type);
+                return;
+            }
+            alert(message);
+        };
+
+        const dispatchInputEvents = (element) => {
+            if (!element) return;
+            element.dispatchEvent(new Event('input', { bubbles: true }));
+            element.dispatchEvent(new Event('change', { bubbles: true }));
+        };
+
+        const setByName = (name, value) => {
+            const field = form.querySelector(`[name="${name}"]`);
+            if (!field) return;
+            field.value = value ?? '';
+            dispatchInputEvents(field);
+        };
+
+        const setRadio = (name, value) => {
+            const radios = form.querySelectorAll(`input[name="${name}"]`);
+            let hasMatch = false;
+            radios.forEach((radio) => {
+                const shouldCheck = value && String(radio.value).toLowerCase() === String(value).toLowerCase();
+                radio.checked = shouldCheck;
+                if (radio.checked) {
+                    hasMatch = true;
+                    dispatchInputEvents(radio);
+                }
+            });
+            if (!hasMatch && radios.length > 0) {
+                dispatchInputEvents(radios[0]);
+            }
+        };
+
+        const waitFor = async (check, timeoutMs = 8000, intervalMs = 120) => {
+            const started = Date.now();
+            while (Date.now() - started < timeoutMs) {
+                if (check()) return true;
+                await new Promise((resolve) => setTimeout(resolve, intervalMs));
+            }
+            return false;
+        };
+
+        const normalizePlaceText = (value) => {
+            return String(value || '')
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/\bcity of\b/g, 'city')
+                .replace(/\bmunicipality of\b/g, 'municipality')
+                .replace(/\bmun\.?\b/g, 'municipality')
+                .replace(/\bbrgy\.?\b/g, 'barangay')
+                .replace(/[^a-z0-9]/g, '');
+        };
+
+        const findBestSelectOption = (select, targetValue) => {
+            const raw = String(targetValue || '').trim();
+            if (!raw) return null;
+
+            const options = Array.from(select.options).filter((opt) => opt.value && String(opt.value).trim() !== '');
+            if (!options.length) return null;
+
+            const exact = options.find((opt) => String(opt.value).trim().toLowerCase() === raw.toLowerCase());
+            if (exact) return exact;
+
+            const normalizedTarget = normalizePlaceText(raw);
+            const normalizedExact = options.find((opt) => normalizePlaceText(opt.value) === normalizedTarget);
+            if (normalizedExact) return normalizedExact;
+
+            let best = null;
+            let bestScore = 0;
+            options.forEach((opt) => {
+                const nv = normalizePlaceText(opt.value);
+                if (!nv || !normalizedTarget) return;
+
+                let score = 0;
+                if (nv.includes(normalizedTarget) || normalizedTarget.includes(nv)) {
+                    score = Math.min(nv.length, normalizedTarget.length);
+                } else {
+                    const targetTokens = normalizedTarget.match(/[a-z0-9]+/g) || [];
+                    const valueTokens = nv.match(/[a-z0-9]+/g) || [];
+                    const tokenHits = targetTokens.filter((t) => valueTokens.includes(t)).length;
+                    score = tokenHits;
+                }
+
+                if (score > bestScore) {
+                    bestScore = score;
+                    best = opt;
+                }
+            });
+
+            return bestScore > 0 ? best : null;
+        };
+
+        const waitAndSetSelect = async (id, value) => {
+            if (!value) return;
+            const select = document.getElementById(id);
+            if (!select) return;
+            const ok = await waitFor(() => select.options.length > 1);
+            if (!ok) return;
+            const matched = findBestSelectOption(select, value);
+            if (!matched) return;
+            select.value = matched.value;
+            dispatchInputEvents(select);
+        };
+
+        const applyAddress = async (prefix, values) => {
+            setByName(`${prefix}_house_no`, values.house_no || '');
+            setByName(`${prefix}_street`, values.street || '');
+            setByName(`${prefix}_sub_vil`, values.sub_vil || '');
+
+            await waitAndSetSelect(`${prefix}_province`, values.province || '');
+            await waitAndSetSelect(`${prefix}_city`, values.city || '');
+            await waitAndSetSelect(`${prefix}_brgy`, values.brgy || '');
+            setByName(`${prefix}_zipcode`, values.zipcode || '');
+        };
+
+        const getAddChildButton = () => {
+            return Array.from(document.querySelectorAll('button')).find((btn) => btn.textContent.includes('Add Another Child')) || null;
+        };
+
+        const ensureChildRows = async (targetCount) => {
+            if (targetCount <= 0) return;
+            const addBtn = getAddChildButton();
+            if (!addBtn) return;
+
+            const countRows = () => form.querySelectorAll('input[name^="children"][name$="[name]"]').length;
+            while (countRows() < targetCount) {
+                addBtn.click();
+                await waitFor(() => countRows() >= targetCount, 3000, 100);
+            }
+        };
+
+        const fillChildren = async (children) => {
+            if (!Array.isArray(children)) return;
+            await ensureChildRows(children.length);
+
+            const nameInputs = Array.from(form.querySelectorAll('input[name^="children"][name$="[name]"]'));
+            const dobInputs = Array.from(form.querySelectorAll('input[name^="children"][name$="[dob]"]'));
+
+            nameInputs.forEach((input) => {
+                input.value = '';
+                dispatchInputEvents(input);
+            });
+            dobInputs.forEach((input) => {
+                input.value = '';
+                dispatchInputEvents(input);
+            });
+
+            children.forEach((child, index) => {
+                if (nameInputs[index]) {
+                    nameInputs[index].value = child?.name || '';
+                    dispatchInputEvents(nameInputs[index]);
+                }
+                if (dobInputs[index]) {
+                    dobInputs[index].value = child?.dob || '';
+                    dispatchInputEvents(dobInputs[index]);
+                }
+            });
+        };
+
+        const fillEducationRow = (type, rowData) => {
+            const row = Array.isArray(rowData) ? rowData[0] : null;
+            const values = row || { from: '', to: '', school: '', basic: '', earned: '', year_graduated: '', academic_honors: '' };
+            setByName(`${type}[0][from]`, values.from || '');
+            setByName(`${type}[0][to]`, values.to || '');
+            setByName(`${type}[0][school]`, values.school || '');
+            setByName(`${type}[0][basic]`, values.basic || '');
+            setByName(`${type}[0][earned]`, values.earned || '');
+            setByName(`${type}[0][year_graduated]`, values.year_graduated || '');
+            setByName(`${type}[0][academic_honors]`, values.academic_honors || '');
+        };
+
+        const applyPayload = async (payload) => {
+            const fields = payload?.fields || {};
+            Object.entries(fields).forEach(([name, value]) => {
+                if (['sex', 'civil_status', 'citizenship', 'dual_type'].includes(name)) return;
+                setByName(name, value);
+            });
+
+            setRadio('sex', fields.sex || '');
+            setByName('civil_status', fields.civil_status || '');
+            setRadio('citizenship', fields.citizenship || '');
+            setRadio('dual_type', fields.dual_type || '');
+
+            await applyAddress('res', {
+                house_no: fields.res_house_no,
+                street: fields.res_street,
+                sub_vil: fields.res_sub_vil,
+                brgy: fields.res_brgy,
+                city: fields.res_city,
+                province: fields.res_province,
+                zipcode: fields.res_zipcode,
+            });
+            await applyAddress('per', {
+                house_no: fields.per_house_no,
+                street: fields.per_street,
+                sub_vil: fields.per_sub_vil,
+                brgy: fields.per_brgy,
+                city: fields.per_city,
+                province: fields.per_province,
+                zipcode: fields.per_zipcode,
+            });
+
+            await fillChildren(payload.children || []);
+            fillEducationRow('vocational', payload.vocational || []);
+            fillEducationRow('college', payload.college || []);
+            fillEducationRow('grad', payload.grad || []);
+        };
+
+        importBtn.addEventListener('click', () => fileInput.click());
+
+        fileInput.addEventListener('change', async () => {
+            const file = fileInput.files?.[0];
+            if (!file) return;
+
+            const isExcel = /\.(xlsx|xls)$/i.test(file.name);
+            if (!isExcel) {
+                notify('Please select a valid Excel file (.xlsx or .xls).', 'error');
+                fileInput.value = '';
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('pds_excel', file);
+
+            const csrf = form.querySelector('input[name="_token"]')?.value || '';
+            setButtonLoading(true);
+
+            try {
+                const response = await fetch(importUrl, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRF-TOKEN': csrf,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                });
+
+                const result = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    notify(result.message || 'Import failed. Please verify the file and try again.', 'error');
+                    return;
+                }
+
+                await applyPayload(result.data || {});
+                notify(result.message || 'Excel imported successfully.', 'success');
+
+                if (Array.isArray(result.warnings)) {
+                    result.warnings.forEach((warning) => notify(warning, 'warning'));
+                }
+            } catch (error) {
+                notify('Import failed due to a network or server error. Please try again.', 'error');
+            } finally {
+                setButtonLoading(false);
+                fileInput.value = '';
+            }
         });
     })();
 </script>
