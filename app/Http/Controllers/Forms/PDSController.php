@@ -133,6 +133,48 @@ class PDSController extends Controller
         return $value;
     }
 
+    private function normalizeTelephoneInput(?string $value): ?string
+    {
+        $value = is_string($value) ? trim($value) : $value;
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $digits = preg_replace('/\D+/', '', $value);
+        if ($digits === null || $digits === '') {
+            return $value;
+        }
+
+        // Convert international PH prefixes to local 0-prefixed format.
+        if (str_starts_with($digits, '63') && strlen($digits) >= 11) {
+            $digits = '0' . substr($digits, 2);
+        }
+
+        return $digits;
+    }
+
+    private function normalizeMobileInput(?string $value): ?string
+    {
+        $value = is_string($value) ? trim($value) : $value;
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $digits = preg_replace('/\D+/', '', $value);
+        if ($digits === null || $digits === '') {
+            return $value;
+        }
+
+        // Accept +63 9XX XXX XXXX and normalize to 09XXXXXXXXX.
+        if (str_starts_with($digits, '63') && strlen($digits) === 12) {
+            $digits = '0' . substr($digits, 2);
+        } elseif (str_starts_with($digits, '9') && strlen($digits) === 10) {
+            $digits = '0' . $digits;
+        }
+
+        return $digits;
+    }
+
     /**
      * Updates the C1 session data based on the database .If there is no data on the database,
      * the function should return an empty array.
@@ -289,6 +331,11 @@ class PDSController extends Controller
     public function c1UpdateFormSession(Request $request, $go_to)
     {
         //dd($request->all());
+        $request->merge([
+            'telephone_no' => $this->normalizeTelephoneInput($request->input('telephone_no')),
+            'mobile_no' => $this->normalizeMobileInput($request->input('mobile_no')),
+        ]);
+
         // get key-value pairs only for fields that need validation.
         $c1_form_data_valid = $request->validate([
             'surname' => 'required|max:255|string',
