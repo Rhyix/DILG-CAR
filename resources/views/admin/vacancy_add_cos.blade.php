@@ -215,7 +215,6 @@
         <div class="flex flex-col items-end">
             <span id="form-error-msg" class="text-red-600 text-xs mb-1 hidden">Please fill in all fields.</span>
             <button
-                @click.prevent="$dispatch('open-cos-save-confirm')" 
                 id="vacancy-save-btn" type="button" disabled class="opacity-50 cursor-not-allowed border-2 border-[#0D2B70] hover:bg-[#0D2B70] hover:text-white 
             text-[#0D2B70] px-4 py-2 rounded-md flex items-center gap-2 transition-all duration-200">
                 <span id="save-icon">
@@ -398,6 +397,16 @@ document.addEventListener('DOMContentLoaded', () => {
     checkAllFieldsFilled();
 });
 
+// Open save confirmation modal from save button click.
+document.addEventListener('DOMContentLoaded', () => {
+    const saveBtn = document.getElementById('vacancy-save-btn');
+    if (!saveBtn) return;
+    saveBtn.addEventListener('click', () => {
+        if (saveBtn.disabled) return;
+        window.dispatchEvent(new CustomEvent('open-cos-save-confirm'));
+    });
+});
+
 // Validate and submit on confirm
 window.addEventListener('confirm-cos-save', () => {
     const form = document.getElementById('vacancy-form');
@@ -405,7 +414,7 @@ window.addEventListener('confirm-cos-save', () => {
     const show = (el, msg) => { if(el){ el.textContent = msg; el.classList.remove('hidden'); } };
     const hide = (el) => { if(el){ el.textContent = ''; el.classList.add('hidden'); } };
     // Fields
-    const positionTitle = document.getElementById('position_title');
+    const positionTitle = document.getElementById('position_title_select');
     const closingDate = document.getElementById('closing_date');
     const place = document.getElementById('place_of_assignment');
     const monthlySalary = document.getElementById('monthly_salary');
@@ -417,7 +426,7 @@ window.addEventListener('confirm-cos-save', () => {
     // Reset
     [eTitle,eClosing,ePlace,eSalary].forEach(hide);
     // Validate basics
-    if (!positionTitle.value.trim()) { errors.push('Position title is required.'); show(eTitle, 'Position title is required.'); }
+    if (!positionTitle || !positionTitle.value.trim()) { errors.push('Position title is required.'); show(eTitle, 'Position title is required.'); }
     if (!closingDate.value) { errors.push('Deadline is required.'); show(eClosing, 'Deadline of application is required.'); }
     if (!place.value) { errors.push('Place of assignment is required.'); show(ePlace, 'Place of assignment is required.'); }
     // Salary checks

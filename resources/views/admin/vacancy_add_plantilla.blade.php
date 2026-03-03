@@ -247,7 +247,7 @@
         </button>
         <div class="flex flex-col items-end">
             <span id="form-error-msg" class="text-red-600 text-xs mb-1 hidden">Please fill in all fields.</span>
-            <button id="vacancy-save-btn" type="button" @click.prevent="$dispatch('open-plantilla-save-confirm')" disabled class="opacity-50 cursor-not-allowed border-2 border-[#0D2B70] hover:bg-[#0D2B70] hover:text-white 
+            <button id="vacancy-save-btn" type="button" disabled class="opacity-50 cursor-not-allowed border-2 border-[#0D2B70] hover:bg-[#0D2B70] hover:text-white 
             text-[#0D2B70] px-4 py-2 rounded-md flex items-center gap-2 transition-all duration-200">
                 <span id="save-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -456,6 +456,16 @@ document.addEventListener('DOMContentLoaded', () => {
     checkAllFieldsFilled();
 });
 
+// Open save confirmation modal from save button click.
+document.addEventListener('DOMContentLoaded', () => {
+    const saveBtn = document.getElementById('vacancy-save-btn');
+    if (!saveBtn) return;
+    saveBtn.addEventListener('click', () => {
+        if (saveBtn.disabled) return;
+        window.dispatchEvent(new CustomEvent('open-plantilla-save-confirm'));
+    });
+});
+
 // Validate and submit on confirm
 window.addEventListener('confirm-plantilla-save', () => {
     const form = document.getElementById('plantillaForm');
@@ -463,7 +473,7 @@ window.addEventListener('confirm-plantilla-save', () => {
     const show = (el, msg) => { if(el){ el.textContent = msg; el.classList.remove('hidden'); } };
     const hide = (el) => { if(el){ el.textContent = ''; el.classList.add('hidden'); } };
     // Fields
-    const positionTitle = document.getElementById('position_title');
+    const positionTitle = document.getElementById('position_title_select');
     const closingDate = document.getElementById('closing_date');
     const place = document.getElementById('place_of_assignment');
     const monthlySalary = document.getElementById('monthly_salary');
@@ -475,7 +485,7 @@ window.addEventListener('confirm-plantilla-save', () => {
     // Reset
     [eTitle,eClosing,ePlace,eSalary].forEach(hide);
     // Validate basics
-    if (!positionTitle.value.trim()) { errors.push('Position title is required.'); show(eTitle, 'Position title is required.'); }
+    if (!positionTitle || !positionTitle.value.trim()) { errors.push('Position title is required.'); show(eTitle, 'Position title is required.'); }
     if (!closingDate.value) { errors.push('Deadline is required.'); show(eClosing, 'Deadline of application is required.'); }
     if (!place.value) { errors.push('Place of assignment is required.'); show(ePlace, 'Place of assignment is required.'); }
     // Salary checks
