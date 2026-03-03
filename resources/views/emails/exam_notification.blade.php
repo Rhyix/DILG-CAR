@@ -93,8 +93,7 @@
 
 <body>
     <div class="email-container">
-        <div class="email-header">
-            <h1>📝 Exam Notification</h1>
+        <div class="email-header">            <img src="{{ asset('images/dilg_logo.png') }}" alt="DILG Logo" style="width:64px;height:64px;object-fit:contain;display:block;margin:0 auto 12px auto;border-radius:4px;">            <h1>📝 Exam Notification</h1>
         </div>
 
         <div class="email-body">

@@ -72,7 +72,7 @@
             @endif
 
             @if(in_array($adminRole, ['superadmin', 'admin'], true))
-                <div x-data="{ submenuOpen: {{ (request()->routeIs('admin_activity_log') || request()->routeIs('signatories.*') || request()->routeIs('admin.reports.index') || request()->routeIs('admin.backup.index') || request()->routeIs('admin.vacancy_titles.*')) ? 'true' : 'false' }} }" class="relative">
+                <div x-data="{ submenuOpen: {{ (request()->routeIs('admin_activity_log') || request()->routeIs('signatories.*') || request()->routeIs('admin.reports.index') || request()->routeIs('admin.backup.index') || request()->routeIs('admin.positions.*') || request()->routeIs('admin.vacancy_titles.*')) ? 'true' : 'false' }} }" class="relative">
                     <button @click="submenuOpen = !submenuOpen"
                         class="w-full group flex items-center justify-between rounded-md px-4 py-2 text-sm font-bold transition-all duration-200 text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md">
                         <div class="flex items-center">
@@ -100,6 +100,13 @@
                                 <span class="ml-3">VACANCY TITLES</span>
                             </a>
                         @endif
+
+                        <a href="{{ route('admin.positions.index') }}" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200 {{ request()->routeIs('admin.positions.*')
+                                ? 'bg-[#002C76] text-white shadow-md'
+                                : 'text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md' }}">
+                            <i class="fa-solid fa-layer-group w-5 h-5 flex-shrink-0 ml-2"></i>
+                            <span class="ml-3">POSITIONS</span>
+                        </a>
 
                         <a href="{{ route('admin_activity_log') }}" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200
                                 {{ request()->routeIs('admin_activity_log')

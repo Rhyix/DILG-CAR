@@ -479,7 +479,16 @@ value="{{ old('deadline_time', $application->deadline_time ? \Carbon\Carbon::par
 		}
 
 		function getNotifyDocuments(docList) {
-			return sortDocumentsForRequiredPriority(docList || []);
+			// Only include documents that were actually uploaded by the applicant
+			const uploaded = (docList || []).filter(doc => {
+				const status = (doc.status || '').trim();
+				// Exclude documents that were never submitted / have no file
+				if (status === 'Not Submitted') return false;
+				// Also exclude if there is no preview URL (no file on record)
+				if (!doc.preview || doc.preview === '') return false;
+				return true;
+			});
+			return sortDocumentsForRequiredPriority(uploaded);
 		}
 
 		document.addEventListener('DOMContentLoaded', function () {

@@ -111,6 +111,7 @@
   <div class="container">
     <!-- Header -->
     <div class="header">
+      <img class="logo" src="{{ asset('images/dilg_logo.png') }}" alt="DILG Logo" style="object-fit:contain;">
       <div class="title-text">
         <h2>DILG - CAR<br>Recruitment Selection and Placement Portal</h2>
       </div>

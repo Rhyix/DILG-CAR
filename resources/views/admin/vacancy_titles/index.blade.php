@@ -27,7 +27,15 @@
             </div>
             <div>
                 <label class="block text-sm font-semibold text-gray-700">Salary Grade/Pay Grade<span class="text-red-600">*</span></label>
-                <input type="text" name="salary_grade" required class="w-full border border-gray-300 rounded px-3 py-2" placeholder="e.g., SG-18" value="{{ old('salary_grade') }}">
+                <div class="flex rounded border border-gray-300 overflow-hidden focus-within:ring-2 focus-within:ring-[#0D2B70]">
+                    <span class="inline-flex items-center px-3 bg-gray-100 text-gray-600 font-semibold border-r border-gray-300 select-none">SG-</span>
+                    <input type="number" id="sg_number_create" min="1" max="99" required
+                        class="w-full px-3 py-2 focus:outline-none"
+                        placeholder="18"
+                        value="{{ old('salary_grade') ? preg_replace('/^SG-/i', '', old('salary_grade')) : '' }}"
+                        oninput="document.getElementById('salary_grade_hidden').value = this.value ? 'SG-' + this.value : ''">
+                </div>
+                <input type="hidden" id="salary_grade_hidden" name="salary_grade" value="{{ old('salary_grade') }}">
             </div>
             <div>
                 <label class="block text-sm font-semibold text-gray-700">Monthly Salary<span class="text-red-600">*</span></label>
@@ -92,7 +100,14 @@
         </div>
         <div>
           <label class="block text-sm font-semibold text-gray-700">Salary Grade/Pay Grade<span class="text-red-600">*</span></label>
-          <input id="edit_salary_grade" type="text" name="salary_grade" required class="w-full border border-gray-300 rounded px-3 py-2">
+          <div class="flex rounded border border-gray-300 overflow-hidden focus-within:ring-2 focus-within:ring-[#0D2B70]">
+              <span class="inline-flex items-center px-3 bg-gray-100 text-gray-600 font-semibold border-r border-gray-300 select-none">SG-</span>
+              <input type="number" id="edit_salary_grade" min="1" max="99" required
+                  class="w-full px-3 py-2 focus:outline-none"
+                  placeholder="18"
+                  oninput="document.getElementById('edit_salary_grade_hidden').value = this.value ? 'SG-' + this.value : ''">
+          </div>
+          <input type="hidden" id="edit_salary_grade_hidden" name="salary_grade">
         </div>
         <div>
           <label class="block text-sm font-semibold text-gray-700">Monthly Salary<span class="text-red-600">*</span></label>
@@ -111,7 +126,9 @@
 function openEdit(id, title, sg, salary) {
   document.getElementById('editForm').action = "{{ url('/admin/utilities/vacancy-titles') }}/" + id;
   document.getElementById('edit_position_title').value = title;
-  document.getElementById('edit_salary_grade').value = sg || '';
+  const sgNum = (sg || '').replace(/^SG-/i, '');
+  document.getElementById('edit_salary_grade').value = sgNum;
+  document.getElementById('edit_salary_grade_hidden').value = sg || '';
   document.getElementById('edit_monthly_salary').value = salary || 0;
   document.getElementById('editModal').classList.remove('hidden');
   document.getElementById('editModal').classList.add('flex');
@@ -122,4 +139,3 @@ function closeEdit() {
 }
 </script>
 @endsection
-
