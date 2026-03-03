@@ -13,11 +13,12 @@ use App\Models\WorkExperience;
 use App\Models\PersonalInformation;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 
 
 class ExportWESController extends Controller
 {
-    public function exportWES()
+    public function exportWES(Request $request)
     {
         $user = Auth::user();
 
@@ -120,6 +121,13 @@ class ExportWESController extends Controller
                 'section' => 'Export'
             ])
             ->log('Exported Work Experience Sheet.');
+
+        if ($request->boolean('preview')) {
+            return response()->file($outputPath, [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'Content-Disposition' => 'inline; filename="' . $outputFilename . '"',
+            ])->deleteFileAfterSend(true);
+        }
 
         return response()->download($outputPath, $outputFilename)->deleteFileAfterSend(true);
 

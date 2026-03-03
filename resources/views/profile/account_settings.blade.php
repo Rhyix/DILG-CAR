@@ -9,6 +9,8 @@
         $passwordErrors = collect($passwordErrorKeys)->flatMap(fn($key) => $errors->get($key))->all();
         $openEditModal = !empty($editErrors);
         $openPasswordModal = !empty($passwordErrors);
+        $galleryItems = $galleryItems ?? collect();
+        $documentTypeOptions = $documentTypeOptions ?? [];
     @endphp
 
     <main class="mx-auto w-full max-w-5xl px-4 pb-8 sm:px-8"
@@ -28,6 +30,12 @@
         @if (session('password_success'))
             <div class="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
                 {{ session('password_success') }}
+            </div>
+        @endif
+
+        @if (session('document_gallery_success'))
+            <div class="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                {{ session('document_gallery_success') }}
             </div>
         @endif
 
@@ -135,6 +143,117 @@
                     class="rounded-xl bg-slate-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-900">
                     Reset Password
                 </button>
+            </div>
+        </section>
+
+        @php
+            $formatGalleryBytes = function ($bytes) {
+                $size = (float) ($bytes ?? 0);
+                if ($size < 1024) {
+                    return (int) $size . ' B';
+                }
+                if ($size < 1048576) {
+                    return number_format($size / 1024, 2) . ' KB';
+                }
+                return number_format($size / 1048576, 2) . ' MB';
+            };
+        @endphp
+
+        <section class="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <!-- <div class="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                    <h2 class="text-lg font-bold text-[#0D2B70]">Document Gallery</h2>
+                    <p class="mt-1 text-sm text-slate-500">Store documents here so you can quickly reuse them later.</p>
+                </div>
+                <span class="inline-flex rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
+                    Reusable Files
+                </span>
+            </div> -->
+
+            <form method="POST" action="{{ route('profile.document_gallery.store') }}" enctype="multipart/form-data"
+                class="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                @csrf
+                <div class="grid gap-3 md:grid-cols-[1fr,1fr,auto]">
+                    <div>
+                        <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">Document Type (Optional)</label>
+                        <select name="document_type"
+                            class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20">
+                            <option value="" {{ old('document_type') === null || old('document_type') === '' ? 'selected' : '' }}>General / Unclassified</option>
+                            @foreach ($documentTypeOptions as $docType)
+                                <option value="{{ $docType }}" {{ old('document_type') === $docType ? 'selected' : '' }}>
+                                    {{ ucwords(str_replace('_', ' ', $docType)) }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">Upload File</label>
+                        <input type="file" name="gallery_document" accept=".pdf,.jpg,.jpeg,.png" required
+                            class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700">
+                    </div>
+                    <div class="flex items-end">
+                        <button type="submit"
+                            class="w-full rounded-xl bg-[#0D2B70] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0A2259] md:w-auto">
+                            Save to Gallery
+                        </button>
+                    </div>
+                </div>
+                <p class="mt-2 text-xs text-slate-500">Allowed files: PDF, JPG, JPEG, PNG. Max size: 10MB.</p>
+                @error('gallery_document')
+                    <p class="mt-2 text-sm text-rose-600">{{ $message }}</p>
+                @enderror
+                @error('document_type')
+                    <p class="mt-2 text-sm text-rose-600">{{ $message }}</p>
+                @enderror
+            </form>
+
+            <div class="mt-4">
+                @if ($galleryItems->isEmpty())
+                    <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
+                        No saved documents yet. Upload files above to build your reusable document gallery.
+                    </div>
+                @else
+                    <div class="grid gap-3 md:grid-cols-2">
+                        @foreach ($galleryItems as $item)
+                            <article class="rounded-xl border border-slate-200 bg-white p-4">
+                                <div class="flex items-start justify-between gap-3">
+                                    <div class="min-w-0">
+                                        <p class="truncate text-sm font-semibold text-slate-800">{{ $item->original_name }}</p>
+                                        <p class="mt-1 text-xs text-slate-500">
+                                            {{ $item->document_type ? ucwords(str_replace('_', ' ', $item->document_type)) : 'General / Unclassified' }}
+                                        </p>
+                                        <p class="mt-1 text-xs text-slate-500">
+                                            {{ $formatGalleryBytes($item->file_size_8b) }} • {{ optional($item->created_at)->format('M d, Y h:i A') }}
+                                        </p>
+                                    </div>
+                                    <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-semibold uppercase text-slate-600">
+                                        {{ strtoupper(pathinfo((string) $item->original_name, PATHINFO_EXTENSION) ?: 'FILE') }}
+                                    </span>
+                                </div>
+
+                                <div class="mt-3 flex flex-wrap items-center gap-2">
+                                    <a href="{{ route('profile.document_gallery.preview', $item->id) }}" target="_blank" rel="noopener"
+                                        class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50">
+                                        Preview
+                                    </a>
+                                    <a href="{{ route('profile.document_gallery.download', $item->id) }}"
+                                        class="rounded-lg border border-blue-300 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-100">
+                                        Download
+                                    </a>
+                                    <form method="POST" action="{{ route('profile.document_gallery.delete', $item->id) }}">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit"
+                                            onclick="return confirm('Delete this saved document?')"
+                                            class="rounded-lg border border-rose-300 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-100">
+                                            Delete
+                                        </button>
+                                    </form>
+                                </div>
+                            </article>
+                        @endforeach
+                    </div>
+                @endif
             </div>
         </section>
 

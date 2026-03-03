@@ -146,7 +146,7 @@
                             <i data-feather="file-text" class="w-4 h-4 stroke-[3] flex-shrink-0"></i>
                             <span class="ml-3">PERSONAL DATA SHEET</span>
                         </a>
-                        <a href="{{ route('export.wes') }}"
+                        <a href="{{ route('export.wes', ['preview' => 1]) }}" target="_blank" rel="noopener"
                             class="flex items-center rounded-md px-3 py-2 text-sm font-semibold transition text-[#002C76] hover:text-white hover:bg-[#002C76]">
                             <i data-feather="file" class="w-4 h-4 stroke-[3] flex-shrink-0"></i>
                             <span class="ml-3">WORK EXPERIENCE SHEET</span>

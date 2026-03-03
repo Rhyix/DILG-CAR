@@ -235,7 +235,7 @@
                         Cancel
                     </button>
                     <button type="button" onclick="window.location.href='{{ $requiredDocsRedirectUrlForModal }}'" class="use-loader px-4 py-2 bg-[#0D2B70] text-white rounded-lg hover:bg-[#0A245D]">
-                        Confirm and Go to Upload PDF
+                        Continue to Apply
                     </button>
                 </div>
                 </div>

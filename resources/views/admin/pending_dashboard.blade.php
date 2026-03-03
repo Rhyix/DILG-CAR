@@ -7,6 +7,7 @@
     <title>Account Pending Approval</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/alpinejs" defer></script>
     <style>
         body {
             font-family: 'Montserrat', sans-serif;
@@ -59,9 +60,9 @@
                             Keep this page open or login again later to check your approval status.
                         </div>
 
-                        <form action="{{ route('admin.logout') }}" method="POST" class="mt-6">
+                        <form id="pendingAdminLogoutForm" action="{{ route('admin.logout') }}" method="POST" class="mt-6">
                             @csrf
-                            <button type="submit" class="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100">
+                            <button type="button" @click.prevent="$dispatch('open-pending-logout-confirm')" class="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100">
                                 Logout
                             </button>
                         </form>
@@ -83,5 +84,15 @@
             </button>
         </div>
     </div>
+
+    <x-confirm-modal title="Confirm Logout" message="Are you sure you want to logout?"
+        event="open-pending-logout-confirm" confirm="confirm-pending-logout" />
+
+    <script>
+        window.addEventListener('confirm-pending-logout', () => {
+            const logoutForm = document.getElementById('pendingAdminLogoutForm');
+            if (logoutForm) logoutForm.submit();
+        });
+    </script>
 </body>
 </html>

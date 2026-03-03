@@ -123,11 +123,21 @@
                                         <i class="fa-solid fa-lock"></i>
                                     </span>
                                     <input
+                                        id="admin-password"
                                         type="password"
                                         name="password"
                                         required
-                                        class="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-700 outline-none transition focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20"
+                                        class="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-10 pr-10 text-sm text-slate-700 outline-none transition focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20"
                                     >
+                                    <button
+                                        type="button"
+                                        onclick="toggleAdminPassword()"
+                                        class="absolute inset-y-0 right-3 flex items-center text-slate-400 hover:text-slate-600"
+                                        tabindex="-1"
+                                        aria-label="Toggle password visibility"
+                                    >
+                                        <i id="admin-password-icon" class="fa-solid fa-eye"></i>
+                                    </button>
                                 </div>
                             </div>
 
@@ -389,6 +399,18 @@
                 openRegisterModal();
             }
         });
+
+        function toggleAdminPassword() {
+            const input = document.getElementById('admin-password');
+            const icon  = document.getElementById('admin-password-icon');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.replace('fa-eye', 'fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.replace('fa-eye-slash', 'fa-eye');
+            }
+        }
     </script>
 </body>
 </html>

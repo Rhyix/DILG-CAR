@@ -30,6 +30,7 @@
                     Print legibly. Tick appropriate boxes and use separate sheet if necessary. Indicate N/A if not applicable. DO NOT ABBREVIATE.
                 </p>
 
+<<<<<<< Updated upstream
                 
         
 
@@ -59,15 +60,17 @@
 
 
 
+=======
+>>>>>>> Stashed changes
                 <!-- Name Fields -->
                 <div class="mobile-stack md:grid md:grid-cols-4 gap-4 sm:gap-6 mb-4 sm:mb-6">
                     <div class="relative rounded-lg">
                         <input type="text" id="surname" name="surname" value="{{ old('surname', session('form.c1.surname')) }}" placeholder=" " required class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                        <label for="surname" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">2. Surname *</label>
+                        <label for="surname" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">1. Surname *</label>
                     </div>
                     <div class="relative">
                         <input type="text" id="first_name" name="first_name" value="{{ old('first_name', session('form.c1.first_name')) }}" placeholder=" " required class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                        <label for="first_name" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">First Name *</label>
+                        <label for="first_name" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">2. First Name *</label>
                     </div>
                     <div class="relative">
                         <input type="text" id="middle_name" name="middle_name" value="{{ old('middle_name', session('form.c1.middle_name')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
@@ -273,7 +276,7 @@
                 </div>
                 <div class="mb-4 w-full flex justify-end">
                     <button type="button" id="copy_res_to_per" 
-                    class="border-2 border-[#002C76] bg-[#002C76] text-white rounded-lg px-4 py-2 text-sm sm:text-base font-montserrat 
+                    class="border-2 border-[#   ] bg-[#002C76] text-white rounded-lg px-4 py-2 text-sm sm:text-base font-montserrat 
                     hover:bg-white hover:text-[#002C76] transition">
                         Copy from Residential Address
                     </button>
@@ -346,10 +349,15 @@
 
                 <!-- Spouse Information -->
                 <div class="mb-6 sm:mb-8">
+                    
                     <h3 class="text-base sm:text-lg font-semibold text-gray-700 mb-4 flex items-center">
                         <span class="material-icons text-sm mr-2 text-blue-500">favorite</span>
                         22. Spouse Information
                     </h3>
+                    <label for="single_spouse_na" class="mb-4 inline-flex items-center gap-2 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs sm:text-sm text-blue-800">
+                        <input type="checkbox" id="single_spouse_na" class="h-4 w-4 rounded border-blue-300 text-blue-600 focus:ring-blue-500">
+                        If single, check this to set all spouse fields to N/A.
+                    </label>
                     <div class="mobile-stack md:grid md:grid-cols-4 gap-4 sm:gap-6 mb-4">
                         <div class="relative">
                             <input type="text" id="spouse_surname" name="spouse_surname" value="{{ old('spouse_surname', session('form.c1.spouse_surname')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
@@ -463,17 +471,19 @@
                             <input required type="text" id="elem_school" name="elem_school" value="{{ old('elem_school', session('form.c1.elem_school')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
                             <label for="elem_school" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">School Name*</label>
                         </div>
-                        <div class="relative md:col-span-1">
-                            <input type="text" id="elem_earned" name="elem_earned" value="{{ old('elem_earned', session('form.c1.elem_earned')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                            <label for="elem_earned" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-xs sm:text-sm">Highest Level/Units Earned (if not graduated)</label>
-                        </div>
-                        <div class="relative md:col-span-1">
-                            <input pattern="\d{4}" maxlength="4" type="text" inputmode="numeric" id="elem_year_graduated" name="elem_year_graduated" value="{{ old('elem_year_graduated', session('form.c1.elem_year_graduated')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                            <label for="elem_year_graduated" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Year Graduated</label>
-                        </div>
-                        <div class="relative md:col-span-2">
-                            <input type="text" id="elem_academic_honors" name="elem_academic_honors" value="{{ old('elem_academic_honors', session('form.c1.elem_academic_honors')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                            <label for="elem_academic_honors" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Scholarship/Academic Honors Received</label>
+                        <div class="md:col-span-4 grid grid-cols-1 md:grid-cols-5 gap-4 sm:gap-6">
+                            <div class="relative md:col-span-2">
+                                <input type="text" id="elem_earned" name="elem_earned" value="{{ old('elem_earned', session('form.c1.elem_earned')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
+                                <label for="elem_earned" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-xs sm:text-sm">Highest Level/Units Earned (if not graduated)</label>
+                            </div>
+                            <div class="relative md:col-span-1">
+                                <input pattern="\d{4}" maxlength="4" type="text" inputmode="numeric" id="elem_year_graduated" name="elem_year_graduated" value="{{ old('elem_year_graduated', session('form.c1.elem_year_graduated')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
+                                <label for="elem_year_graduated" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Year Graduated</label>
+                            </div>
+                            <div class="relative md:col-span-2">
+                                <input type="text" id="elem_academic_honors" name="elem_academic_honors" value="{{ old('elem_academic_honors', session('form.c1.elem_academic_honors')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
+                                <label for="elem_academic_honors" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Scholarship/Academic Honors Received</label>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -498,17 +508,19 @@
                             <input required type="text" id="jhs_school" name="jhs_school" value="{{ old('jhs_school', session('form.c1.jhs_school')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
                             <label for="jhs_school" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">School Name*</label>
                         </div>
-                        <div class="relative md:col-span-1">
-                            <input type="text" id="jhs_earned" name="jhs_earned" value="{{ old('jhs_earned', session('form.c1.jhs_earned')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                            <label for="jhs_earned" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-xs sm:text-sm">Highest Level/Units Earned (if not graduated)</label>
-                        </div>
-                        <div class="relative md:col-span-1">
-                            <input pattern="\d{4}" maxlength="4" type="text" inputmode="numeric" id="jhs_year_graduated" name="jhs_year_graduated" value="{{ old('jhs_year_graduated', session('form.c1.jhs_year_graduated')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                            <label for="jhs_year_graduated" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Year Graduated</label>
-                        </div>
-                        <div class="relative md:col-span-2">
-                            <input type="text" id="jhs_academic_honors" name="jhs_academic_honors" value="{{ old('jhs_academic_honors', session('form.c1.jhs_academic_honors')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                            <label for="jhs_academic_honors" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Scholarship/Academic Honors Received</label>
+                        <div class="md:col-span-4 grid grid-cols-1 md:grid-cols-5 gap-4 sm:gap-6">
+                            <div class="relative md:col-span-2">
+                                <input type="text" id="jhs_earned" name="jhs_earned" value="{{ old('jhs_earned', session('form.c1.jhs_earned')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
+                                <label for="jhs_earned" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-xs sm:text-sm">Highest Level/Units Earned (if not graduated)</label>
+                            </div>
+                            <div class="relative md:col-span-1">
+                                <input pattern="\d{4}" maxlength="4" type="text" inputmode="numeric" id="jhs_year_graduated" name="jhs_year_graduated" value="{{ old('jhs_year_graduated', session('form.c1.jhs_year_graduated')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
+                                <label for="jhs_year_graduated" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Year Graduated</label>
+                            </div>
+                            <div class="relative md:col-span-2">
+                                <input type="text" id="jhs_academic_honors" name="jhs_academic_honors" value="{{ old('jhs_academic_honors', session('form.c1.jhs_academic_honors')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
+                                <label for="jhs_academic_honors" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Scholarship/Academic Honors Received</label>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1245,6 +1257,108 @@
             }
         });
         updatePreviewBtn();
+    });
+</script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const singleCheckbox = document.getElementById('single_spouse_na');
+        const civilStatus = document.getElementById('civil_status');
+        const spouseFieldIds = [
+            'spouse_surname',
+            'spouse_first_name',
+            'spouse_middle_name',
+            'spouse_name_extension',
+            'spouse_occupation',
+            'spouse_employer',
+            'spouse_business_address',
+            'spouse_telephone'
+        ];
+
+        if (!singleCheckbox) return;
+
+        const spouseFields = spouseFieldIds
+            .map((id) => document.getElementById(id))
+            .filter(Boolean);
+
+        if (!spouseFields.length) return;
+
+        const dispatchFieldEvents = (field) => {
+            field.dispatchEvent(new Event('input', { bubbles: true }));
+            field.dispatchEvent(new Event('change', { bubbles: true }));
+        };
+
+        const setReadonlyStyle = (field, isReadonly) => {
+            field.readOnly = isReadonly;
+            field.classList.toggle('bg-gray-100', isReadonly);
+            field.classList.toggle('cursor-not-allowed', isReadonly);
+        };
+
+        const toggleSingleState = (checked) => {
+            spouseFields.forEach((field) => {
+                if (checked) {
+                    if (field.dataset.prevValue === undefined) {
+                        const currentValue = String(field.value || '').trim();
+                        field.dataset.prevValue = currentValue.toUpperCase() === 'N/A' ? '' : field.value;
+                    }
+
+                    if (field.id === 'spouse_telephone' && field.dataset.prevPattern === undefined) {
+                        field.dataset.prevPattern = field.getAttribute('pattern') || '';
+                    }
+
+                    field.value = 'N/A';
+                    setReadonlyStyle(field, true);
+
+                    if (field.id === 'spouse_telephone') {
+                        field.removeAttribute('pattern');
+                    }
+                } else {
+                    const previousValue = field.dataset.prevValue ?? '';
+                    if (String(field.value || '').trim().toUpperCase() === 'N/A') {
+                        field.value = previousValue;
+                    }
+
+                    setReadonlyStyle(field, false);
+
+                    if (field.id === 'spouse_telephone') {
+                        const prevPattern = field.dataset.prevPattern ?? '';
+                        if (prevPattern) {
+                            field.setAttribute('pattern', prevPattern);
+                        } else {
+                            field.removeAttribute('pattern');
+                        }
+                    }
+
+                    delete field.dataset.prevValue;
+                    delete field.dataset.prevPattern;
+                }
+
+                dispatchFieldEvents(field);
+            });
+        };
+
+        singleCheckbox.addEventListener('change', () => {
+            if (singleCheckbox.checked && civilStatus && civilStatus.value !== 'single') {
+                civilStatus.value = 'single';
+                civilStatus.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+
+            toggleSingleState(singleCheckbox.checked);
+        });
+
+        civilStatus?.addEventListener('change', () => {
+            if (civilStatus.value !== 'single' && singleCheckbox.checked) {
+                singleCheckbox.checked = false;
+                toggleSingleState(false);
+            }
+        });
+
+        const civilStatusIsSingle = (civilStatus?.value || '').toLowerCase() === 'single';
+        const spouseAlreadyNa = spouseFields.every((field) => String(field.value || '').trim().toUpperCase() === 'N/A');
+
+        if (civilStatusIsSingle && spouseAlreadyNa) {
+            singleCheckbox.checked = true;
+            toggleSingleState(true);
+        }
     });
 </script>
 <script>

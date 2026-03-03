@@ -59,6 +59,7 @@ class GoogleController extends Controller
 
         return Socialite::driver('google')
             ->redirectUrl($redirectUrl)
+            ->setHttpClient(new \GuzzleHttp\Client(['verify' => false]))
             ->with([
                 'response_type' => 'code',
                 'access_type' => 'offline',
@@ -72,6 +73,7 @@ class GoogleController extends Controller
         $redirectUrl = $this->resolveGoogleRedirectUrl($request);
         $googleUser = Socialite::driver('google')
             ->redirectUrl($redirectUrl)
+            ->setHttpClient(new \GuzzleHttp\Client(['verify' => false]))
             ->stateless()
             ->user();
 

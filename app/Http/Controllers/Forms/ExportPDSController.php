@@ -479,6 +479,12 @@ class ExportPDSController
         $pdf->useTemplate($templateId);
         $this->clearLegacyHeaderNote($pdf);
 
+        // Cover red instructional text on download (they're baked into the template)
+        $isDownload = $request->boolean('download');
+        if ($isDownload) {
+            $this->coverSignatureRedText($pdf);
+        }
+
         // Write first C4 chunk (max 7 rows)
         $this->WriteC4Information($pdf, $user->id);
 
@@ -516,7 +522,11 @@ class ExportPDSController
 
         $forceInline = $request->boolean('preview');
 
-        if ($isMobile && !$forceInline) {
+        if ($isDownload) {
+            // Download as attachment — red text already covered above
+            $pdf->Output($filename, 'D');
+            exit;
+        } elseif ($isMobile && !$forceInline) {
             // Save the PDF temporarily
             $tempPath = storage_path("app/public/{$filename}");
             $pdf->Output($tempPath, 'F');
@@ -944,12 +954,12 @@ private function writeEducationalBackground($pdf, $education)
                    !empty($education?->elem_academic_honors);
 
     if (!$hasElemData) {
-        $this->writeFittedAt($pdf, 'N/A', 41.5, 267, 49, 8.0, 5.0);
+        $this->writeFittedAt($pdf, 'N/A', 41.5, 267, 49, 7.0, 5.0);
     } else {
         $this->writeFittedAt($pdf, $this->valueOrNa($education?->elem_school), 41.5, 267, 48, 6.5, 4.5);
-        $this->writeFittedAt($pdf, $this->valueOrNa($education?->elem_basic), 91, 267, 45, 6.5, 4.5);
-        $this->writeCenteredFitted($pdf, $this->dateOrNa($education?->elem_from, 'm/Y'), 123, 150, 267);
-        $this->writeCenteredFitted($pdf, $this->dateOrNa($education?->elem_to, 'm/Y'), 132, 163.5, 267);
+        $this->writeFittedAt($pdf, $this->valueOrNa($education?->elem_basic), 85, 267, 45, 6.5, 4.5);
+        $this->writeFittedAt($pdf, $this->dateOrNa($education?->elem_from, 'm/Y'), 132, 267, 27, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->dateOrNa($education?->elem_to, 'm/Y'), 143, 267, 31.5, 7.0, 5.0);
         $this->writeFittedAt($pdf, $this->valueOrNa($education?->elem_earned), 159, 267, 18, 7.0, 5.0);
         $this->writeFittedAt($pdf, $this->valueOrNa($education?->elem_year_graduated), 173, 267, 12, 7.0, 5.0);
         $this->writeFittedAt($pdf, $this->valueOrNa($education?->elem_academic_honors), 189, 267, 10.2, 4.8, 3.8);
@@ -968,9 +978,9 @@ private function writeEducationalBackground($pdf, $education)
         $this->writeFittedAt($pdf, 'N/A', 41.5, 276, 49, 8.0, 5.0);
     } else {
         $this->writeFittedAt($pdf, $this->valueOrNa($education?->jhs_school), 41.5, 275, 48, 6.5, 4.5);
-        $this->writeFittedAt($pdf, $this->valueOrNa($education?->jhs_basic), 91, 275, 45, 6.5, 4.5);
-        $this->writeCenteredFitted($pdf, $this->dateOrNa($education?->jhs_from, 'm/Y'), 123, 150, 275);
-        $this->writeCenteredFitted($pdf, $this->dateOrNa($education?->jhs_to, 'm/Y'), 132, 163.5, 275);
+        $this->writeFittedAt($pdf, $this->valueOrNa($education?->jhs_basic), 85, 275, 45, 6.5, 4.5);
+        $this->writeFittedAt($pdf, $this->dateOrNa($education?->jhs_from, 'm/Y'), 132, 275, 27, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->dateOrNa($education?->jhs_to, 'm/Y'), 143, 275, 31.5, 7.0, 5.0);
         $this->writeFittedAt($pdf, $this->valueOrNa($education?->jhs_earned), 159, 275, 18, 7.0, 5.0);
         $this->writeFittedAt($pdf, $this->valueOrNa($education?->jhs_year_graduated), 173, 275, 12, 7.0, 5.0);
         $this->writeFittedAt($pdf, $this->valueOrNa($education?->jhs_academic_honors), 189, 275, 10.2, 4.8, 3.8);
@@ -1020,16 +1030,16 @@ private function writeVocationalChunk($pdf, $chunk)
 
         $this->writeFittedAt($pdf, $this->valueOrNa($voc['school'] ?? null), $startX_school, $currentY, 48, 6.5, 4.5);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($voc['basic'] ?? null), $startX_basic, $currentY, 45, 6.5, 4.5);
+        $this->writeFittedAt($pdf, $this->valueOrNa($voc['basic'] ?? null), 85, $currentY, 45, 6.5, 4.5);
 
-        $this->writeCenteredFitted($pdf, $this->dateOrNa($voc['from'] ?? null, 'm/Y'), 123, 150, $currentY);
-        $this->writeCenteredFitted($pdf, $this->dateOrNa($voc['to'] ?? null, 'm/Y'), 132, 163.5, $currentY);
+        $this->writeFittedAt($pdf, $this->dateOrNa($voc['from'] ?? null, 'm/Y'), 132, $currentY, 27, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->dateOrNa($voc['to'] ?? null, 'm/Y'), 143, $currentY, 31.5, 7.0, 5.0);
 
         $this->writeFittedAt($pdf, $this->valueOrNa($voc['earned'] ?? null),  159, 282, 18, 7.0, 5.0);
 
         $this->writeFittedAt($pdf, $this->valueOrNa($voc['year_graduated'] ?? null), 173, 282,  12, 7.0, 5.0);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($voc['academic_honors'] ?? null), 187, 282, 8);
+        $this->writeFittedAt($pdf, $this->valueOrNa($voc['academic_honors'] ?? null), 187, 282, 8, 8.0, 5.0);
     }
 }
 
@@ -1072,18 +1082,18 @@ private function writeCollegeChunk($pdf, $chunk)
     {
         $currentY = $startY + ((int)$index * $lineHeight);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($college['school'] ?? null), $startX_school, $currentY, 48, 6.5, 4.5);
+        $this->writeFittedAt($pdf, $this->valueOrNa($college['school'] ?? null), $startX_school, 290, 48, 6.5, 4.5);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($college['basic'] ?? null), $startX_basic, $currentY, 45, 6.5, 4.5);
+        $this->writeFittedAt($pdf, $this->valueOrNa($college['basic'] ?? null), 85, 290, 45, 6.5, 4.5);
 
-        $this->writeCenteredFitted($pdf, $this->dateOrNa($college['from'] ?? null, 'm/Y'), 123, 150, $currentY);
-        $this->writeCenteredFitted($pdf, $this->dateOrNa($college['to'] ?? null, 'm/Y'), 132, 163.5, $currentY);
+        $this->writeFittedAt($pdf, $this->dateOrNa($college['from'] ?? null, 'm/Y'), 132, 290, 27, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->dateOrNa($college['to'] ?? null, 'm/Y'), 143, 290, 31.5, 7.0, 5.0);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($college['earned'] ?? null), 159, 289, 18, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($college['earned'] ?? null), 159, 290, 18, 7.0, 5.0);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($college['year_graduated'] ?? null), 173, 289, 12, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($college['year_graduated'] ?? null), 173, 290, 12, 7.0, 5.0);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($college['academic_honors'] ?? null), 189, 289, 10.2, 4.8, 3.8);
+        $this->writeFittedAt($pdf, $this->valueOrNa($college['academic_honors'] ?? null), 189, 290, 10.2, 4.8, 3.8);
 
     }
 }
@@ -1129,13 +1139,13 @@ private function writeGraduateChunk($pdf, $chunk)
     {
         $currentY = $startY + ($index * $lineHeight);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($grad['school'] ?? null), $startX_school, $currentY, 48, 6.5, 4.5);
+        $this->writeFittedAt($pdf, $this->valueOrNa($grad['school'] ?? null), $startX_school, 298, 48, 6.5, 4.5);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($grad['basic'] ?? null), $startX_basic, $currentY, 45, 6.5, 4.5);
+        $this->writeFittedAt($pdf, $this->valueOrNa($grad['basic'] ?? null), 85, 298, 45, 6.5, 4.5);
 
-        $this->writeFittedAt($pdf, $this->dateOrNa($grad['from'] ?? null, 'm/Y'), 131.5, 298, 11);
+        $this->writeFittedAt($pdf, $this->dateOrNa($grad['from'] ?? null, 'm/Y'), 132, 298, 11, 7.0, 5.0);
 
-        $this->writeFittedAt($pdf, $this->dateOrNa($grad['to'] ?? null, 'm/Y'), 142.5, 298, 11);
+        $this->writeFittedAt($pdf, $this->dateOrNa($grad['to'] ?? null, 'm/Y'), 143, 298, 11, 7.0, 5.0);
 
         $this->writeFittedAt($pdf, $this->valueOrNa($grad['earned'] ?? null), 159, 298, 18, 7.0, 5.0);
 
@@ -1576,6 +1586,39 @@ private function WriteC4Information($pdf, $userId)
         // Leave oath/signature/thumbmark placeholders blank when data is unavailable.
     }
 
+
+/**
+ * Paints white rectangles over the red instructional signature/oath text
+ * that is baked into the page-4 PDF template. Only called for downloads.
+ * Adjust Y values here if the template is ever replaced.
+ */
+private function coverSignatureRedText(Fpdi $pdf): void
+{
+    $pdf->SetFillColor(255, 255, 255);
+    $pdf->SetDrawColor(255, 255, 255);
+
+    // Helper: scale Y then paint a white filled rect (no border)
+    $whiteRect = function (float $x, float $y, float $w, float $h) use ($pdf): void {
+        $scaledY = $this->scaleY($y);
+        $pdf->Rect($x, $scaledY, $w, $this->scaleHeight($h), 'F');
+    };
+
+    // 1. Upper narrow signature-indicator box
+    //    "(wet signature/e-signature/digital certificate)"
+    $whiteRect(109.0, 234.5, 95.0, 5.5);
+
+    // 2. Main signature box red text (above the date/sign lines)
+    //    "(wet signature/e-signature/digital certificate)"
+    $whiteRect(109.0, 247.5, 95.0, 5.5);
+
+    // 3. Person Administering Oath box red text
+    //    "(wet signature/e-signature/digital certificate except for notary public)"
+    $whiteRect(7.0, 288.5, 155.0, 5.5);
+
+    // Restore draw color to black for subsequent writes
+    $pdf->SetDrawColor(0, 0, 0);
+    $pdf->SetFillColor(0, 0, 0);
+}
 
 // Move writeCentered to class method for cleaner passing
 private function getWriteCentered()
