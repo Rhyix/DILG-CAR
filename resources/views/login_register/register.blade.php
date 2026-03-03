@@ -83,15 +83,15 @@
                 title="Name should contain only letters, spaces, hyphens, or periods (2-50 characters).">
             </div>  
 
-            <!-- Middle Initial -->
+            <!-- Middle Name -->
             <div class="relative">
               <span class="absolute inset-y-0 left-4 flex items-center">
                 <i class="fas fa-font text-yellow-400"></i>
               </span>
               <input type="text" name="middle_initial" placeholder="Enter Middle Name" value="{{ old('middle_initial') }}" required
                 class="w-full bg-white border border-blue-400 rounded-full pl-12 pr-4 py-3 outline-none text-blue-900 placeholder:text-blue-800/60 focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
-                pattern="^[A-Za-z\.]{1,3}$"
-                title="Middle initial should contain only 1 letter (optional period allowed).">
+                pattern="^[A-Za-z\s\-\.]{2,50}$"
+                title="Middle name should contain only letters, spaces, hyphens, or periods (2-50 characters).">
             </div>
 
             <!-- Last Name -->
@@ -137,7 +137,11 @@
             <input type="text" name="phone_number" placeholder="Enter Contact Number" value="{{ old('phone_number') }}" required
               class="w-full bg-white border border-blue-400 rounded-full pl-12 pr-4 py-3 outline-none text-blue-900 placeholder:text-blue-800/60 focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
               pattern="^09[0-9]{9}$"
-              title="Contact number must be 11 digits long and start with 09.">
+              title="Contact number must be 11 digits long and start with 09."
+              inputmode="numeric"
+              oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+              maxlength="11"
+            >
           </div>
 
           <!-- Email (styled exactly like login email field) -->
