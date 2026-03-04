@@ -84,11 +84,7 @@ class NotifyApplicantOverview extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'DILG-CAR Application Document Status Overview',
-            from: new Address(
-                config('mail.from.address') ?: 'noreply@dilgcar.local',
-                config('mail.from.name') ?: 'DILG-CAR'
-            )
+            subject: 'DILG-CAR Application Document Status Overview'
         );
     }
 
@@ -96,6 +92,7 @@ class NotifyApplicantOverview extends Mailable
     {
         return new Content(
             view: 'emails.notifyApplicantOverview',
+            text: 'emails.notifyApplicantOverview_plain',
         );
     }
 

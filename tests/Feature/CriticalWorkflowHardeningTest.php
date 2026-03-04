@@ -36,7 +36,7 @@ class CriticalWorkflowHardeningTest extends TestCase
         $this->post(route('login'), [
             'email' => 'case.user@example.com',
             'password' => 'CaseSensitive123!',
-        ])->assertRedirect(route('dashboard'));
+        ])->assertRedirect(route('dashboard_user'));
 
         $this->assertAuthenticatedAs($user);
     }
@@ -154,4 +154,3 @@ class CriticalWorkflowHardeningTest extends TestCase
         ]);
     }
 }
-
