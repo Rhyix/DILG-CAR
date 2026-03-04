@@ -160,7 +160,6 @@
                                 </div>
                             @else
                                 <div class="flex items-center gap-3">
-<<<<<<< Updated upstream
                                     <label
                                         for="{{ $inputId }}"
                                         class="cert-upload-area inline-flex items-center justify-center border border-gray-300 p-1 rounded cursor-pointer"
@@ -169,38 +168,6 @@
                                             {{ $hasExisting ? 'check_circle' : 'cloud_upload' }}
                                         </span>
                                     </label>
-=======
-                                    @if($hasExisting && $existingPreviewUrl)
-                                        <a
-                                            href="{{ $existingPreviewUrl }}"
-                                            target="_blank"
-                                            rel="noopener"
-                                            class="cert-upload-area inline-flex items-center justify-center border border-green-300 bg-green-50 p-1 rounded cursor-pointer"
-                                            title="View existing document"
-                                        >
-                                            <span class="material-icons text-5xl text-green-600">description</span>
-                                        </a>
-                                    @else
-                                        <label
-                                            for="{{ $inputId }}"
-                                            class="cert-upload-area inline-flex items-center justify-center border border-gray-300 p-1 rounded cursor-pointer"
-                                            title="{{ $hasExisting ? 'Existing document is ready' : 'Upload document' }}"
-                                        >
-                                            <span class="material-icons text-5xl {{ $hasExisting ? 'text-green-600' : 'text-blue-500' }}">
-                                                {{ $hasExisting ? 'description' : 'upload_file' }}
-                                            </span>
-                                        </label>
-                                    @endif
-
-                                    <button
-                                        type="button"
-                                        class="reuse-upload-trigger inline-flex items-center px-3 py-2 rounded-md border border-blue-300 bg-blue-50 text-blue-700 text-xs font-semibold hover:bg-blue-100 transition-colors"
-                                        data-input-id="{{ $inputId }}"
-                                    >
-                                        {{ $hasExisting ? 'Change Document' : 'Upload Document' }}
-                                    </button>
-
->>>>>>> Stashed changes
                                     <input
                                         type="file"
                                         id="{{ $inputId }}"
@@ -413,15 +380,15 @@
             if (hasSelectedFile) {
                 label.classList.add('bg-green-100', 'border-green-400');
                 icon.textContent = 'upload_file';
-                icon.classList.remove('text-blue-500');
-                icon.classList.add('text-green-600');
+                icon.classList.remove('text-blue-400');
+                icon.classList.add('text-green-500');
                 return;
             }
 
             label.classList.remove('bg-green-100', 'border-green-400');
-            icon.textContent = hasExisting ? 'description' : 'upload_file';
-            icon.classList.remove('text-green-600', 'text-blue-500');
-            icon.classList.add(hasExisting ? 'text-green-600' : 'text-blue-500');
+            icon.textContent = hasExisting ? 'check_circle' : 'cloud_upload';
+            icon.classList.remove('text-green-500', 'text-blue-400');
+            icon.classList.add(hasExisting ? 'text-green-500' : 'text-blue-400');
         };
 
         document.querySelectorAll('.doc-upload-input').forEach((input) => {

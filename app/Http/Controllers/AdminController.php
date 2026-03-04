@@ -9,7 +9,6 @@ use App\Models\Vacancy;
 use App\Models\ExamDetail;
 use App\Models\JobVacancy;
 use App\Models\Applications;
-use App\Models\DocumentGalleryItem;
 use App\Models\Notification;
 use App\Models\UploadedDocument;
 use App\Models\AdminVacancyAccess;
@@ -26,7 +25,6 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Spatie\Activitylog\Models\Activity;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
 
@@ -1014,26 +1012,15 @@ class AdminController extends Controller
             } else {
                 $doc = $this->resolveUploadedDocument($uploadedDocuments, $docType);
                 $hasFile = $doc && !empty($doc->storage_path) && $doc->storage_path !== 'NOINPUT';
-                $supportsVacancyScopedDocs = Schema::hasColumn('uploaded_documents', 'vacancy_id');
-                $isFetchedFromAnotherVacancy = $doc
-                    && $supportsVacancyScopedDocs
-                    && !empty((string) ($application->vacancy_id ?? ''))
-                    && (string) ($doc->vacancy_id ?? '') !== (string) $application->vacancy_id;
-                $status = $doc
-                    ? ($isFetchedFromAnotherVacancy ? 'Pending' : $doc->status)
-                    : 'Not Submitted';
+                $status = $doc ? $doc->status : 'Not Submitted';
                 $revisionState = $this->getUploadedDocumentRevisionState(
                     (int) $user_id,
                     (string) $application->vacancy_id,
                     (string) $docType,
                     $doc
                 );
-                $revisionRequestedCount = $isFetchedFromAnotherVacancy
-                    ? 0
-                    : (int) ($revisionState['requested_count'] ?? 0);
-                $revisionSubmittedAt = $isFetchedFromAnotherVacancy
-                    ? null
-                    : ($revisionState['submitted_at'] ?? null);
+                $revisionRequestedCount = (int) ($revisionState['requested_count'] ?? 0);
+                $revisionSubmittedAt = $revisionState['submitted_at'] ?? null;
                 $revisionLockReason = $this->getNeedsRevisionRestrictionReason(
                     $application,
                     $revisionRequestedCount,
@@ -1045,14 +1032,10 @@ class AdminController extends Controller
                     'text' => self::DOCUMENT_LABELS[$docType] ?? ucwords(str_replace('_', ' ', $docType)),
                     'status' => $status,
                     'preview' => route('admin.preview_document', ['user_id' => $user_id, 'vacancy_id' => $application->vacancy_id, 'document_type' => $docType]),
-                    'remarks' => $doc
-                        ? ($isFetchedFromAnotherVacancy ? '' : ($doc->remarks ?: ''))
-                        : '',
+                    'remarks' => $doc ? ($doc->remarks ?: '') : '',
                     'original_name' => $doc->original_name ?? '',
                     'has_file' => $hasFile,
-                    'last_modified_by' => $isFetchedFromAnotherVacancy
-                        ? 'Fetched from applicant gallery'
-                        : ($doc->last_modified_by ?? 'N/A'),
+                    'last_modified_by' => $doc->last_modified_by ?? 'N/A',
                     'revision_requested_count' => $revisionRequestedCount,
                     'revision_submitted_at' => $revisionSubmittedAt,
                     'revision_locked' => !is_null($revisionLockReason),
@@ -1085,67 +1068,25 @@ class AdminController extends Controller
         $docsQuery = UploadedDocument::where('user_id', $userId);
         if ($supportsVacancyScopedDocs) {
             if (!empty($vacancyId)) {
-                // Priority order:
-                // 1) Current vacancy docs
-                // 2) Legacy/global docs (vacancy_id = null)
-                // 3) Docs from other vacancies (reused fallback)
-                $docsQuery->orderByRaw(
-                    "CASE WHEN vacancy_id = ? THEN 0 WHEN vacancy_id IS NULL THEN 1 ELSE 2 END",
-                    [(string) $vacancyId]
-                );
+                // Backward compatibility:
+                // include legacy documents with null vacancy_id, but prioritize exact vacancy match.
+                $docsQuery->where(function ($query) use ($vacancyId) {
+                    $query->where('vacancy_id', $vacancyId)
+                        ->orWhereNull('vacancy_id');
+                });
+                $docsQuery->orderByRaw("CASE WHEN vacancy_id = ? THEN 0 ELSE 1 END", [$vacancyId]);
             } else {
-                $docsQuery->orderByRaw('CASE WHEN vacancy_id IS NULL THEN 0 ELSE 1 END');
+                $docsQuery->whereNull('vacancy_id');
             }
         }
 
         $docs = $docsQuery
-            // Prefer records with an actual file so placeholders do not hide uploaded docs.
-            ->orderByRaw("CASE WHEN storage_path IS NULL OR storage_path = '' OR storage_path = 'NOINPUT' THEN 1 ELSE 0 END")
             ->orderByDesc('updated_at')
             ->get();
 
-        $documents = $docs
+        return $docs
             ->unique('document_type')
             ->keyBy('document_type');
-
-        return $this->mergeGalleryDocumentsIntoUploadedMap($documents, $userId, $vacancyId);
-    }
-
-    private function mergeGalleryDocumentsIntoUploadedMap(Collection $documents, int $userId, ?string $vacancyId): Collection
-    {
-        if (!Schema::hasTable('document_gallery_items')) {
-            return $documents;
-        }
-
-        $galleryItems = DocumentGalleryItem::where('user_id', $userId)
-            ->whereNotNull('document_type')
-            ->where('document_type', '!=', '')
-            ->whereNotNull('storage_path')
-            ->where('storage_path', '!=', 'NOINPUT')
-            ->orderByDesc('updated_at')
-            ->get();
-
-        foreach ($galleryItems as $item) {
-            $docType = trim((string) ($item->document_type ?? ''));
-            if ($docType === '' || $documents->has($docType)) {
-                continue;
-            }
-
-            $documents->put($docType, new UploadedDocument([
-                'user_id' => $userId,
-                'vacancy_id' => $vacancyId,
-                'document_type' => $docType,
-                'original_name' => (string) ($item->original_name ?? ''),
-                'stored_name' => (string) ($item->stored_name ?? ''),
-                'storage_path' => (string) ($item->storage_path ?? ''),
-                'mime_type' => (string) ($item->mime_type ?? 'application/pdf'),
-                'file_size_8b' => (int) ($item->file_size_8b ?? 0),
-                'status' => 'Pending',
-                'remarks' => '',
-            ]));
-        }
-
-        return $documents;
     }
 
     private function getRequiredDocsByTrack(): array
@@ -1673,7 +1614,6 @@ class AdminController extends Controller
         $supportsDocRevisionTracking = Schema::hasColumn('uploaded_documents', 'revision_requested_count')
             && Schema::hasColumn('uploaded_documents', 'revision_requested_at')
             && Schema::hasColumn('uploaded_documents', 'revision_submitted_at');
-        $supportsVacancyScopedDocs = Schema::hasColumn('uploaded_documents', 'vacancy_id');
 
         if ($documentType === 'application_letter') {
             if ($request->has('status') && $isNeedsRevisionStatus) {
@@ -1707,44 +1647,6 @@ class AdminController extends Controller
         } else {
             $uploadedDocuments = $this->loadUploadedDocumentsMap((int) $user_id, (string) $vacancy_id);
             $document = $this->resolveUploadedDocument($uploadedDocuments, $documentType);
-            if (
-                $document
-                && $supportsVacancyScopedDocs
-                && (string) $document->vacancy_id !== (string) $vacancy_id
-            ) {
-                // Keep status changes scoped to the current vacancy by copying the file reference
-                // into a vacancy-specific row before applying verify/revision updates.
-                $targetDocument = UploadedDocument::where('user_id', (int) $user_id)
-                    ->where('vacancy_id', (string) $vacancy_id)
-                    ->where('document_type', (string) $documentType)
-                    ->orderByDesc('updated_at')
-                    ->first();
-
-                if ($targetDocument) {
-                    $targetDocument->original_name = $document->original_name;
-                    $targetDocument->stored_name = $document->stored_name;
-                    $targetDocument->storage_path = $document->storage_path;
-                    $targetDocument->mime_type = $document->mime_type;
-                    $targetDocument->file_size_8b = $document->file_size_8b;
-                    $targetDocument->last_modified_by = $lastModifiedStr;
-                    $targetDocument->save();
-                    $document = $targetDocument;
-                } else {
-                    $document = UploadedDocument::create([
-                        'user_id' => (int) $user_id,
-                        'vacancy_id' => (string) $vacancy_id,
-                        'document_type' => (string) $documentType,
-                        'original_name' => $document->original_name,
-                        'stored_name' => $document->stored_name,
-                        'storage_path' => $document->storage_path,
-                        'mime_type' => $document->mime_type,
-                        'file_size_8b' => (int) ($document->file_size_8b ?? 0),
-                        'status' => 'Pending',
-                        'remarks' => '',
-                        'last_modified_by' => $lastModifiedStr,
-                    ]);
-                }
-            }
 
             if ($request->has('status') && $isNeedsRevisionStatus) {
                 $revisionState = $this->getUploadedDocumentRevisionState(
