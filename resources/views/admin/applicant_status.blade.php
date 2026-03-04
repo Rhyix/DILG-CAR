@@ -196,27 +196,18 @@
 				<div class="flex flex-col lg:flex-row gap-4">
 					<!-- Left Side Panel - Required Documents -->
 					<section aria-label="Required Documents Panel"
-						class="w-full lg:w-72 flex-none bg-white rounded-lg border border-gray-300 p-3 shadow-lg flex flex-col">
-						<h2 class="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide flex-none">Required
-							Documents
-						</h2>
-						<p class="text-[11px] text-gray-500 mb-2">
-							<span class="text-red-600 font-bold">*</span> Required for {{ $vacancy_type }} vacancy
-						</p>
-<<<<<<< HEAD
-<<<<<<< HEAD
-						<p class="text-[11px] text-[#002C76] mb-2">
-							Right-click a required document for quick verify.
-						</p>
-=======
->>>>>>> parent of c952f1c (Exam Notification, PDS Uploading Documents,)
-=======
->>>>>>> parent of c952f1c (Exam Notification, PDS Uploading Documents,)
-						<div class="pr-1">
-							<ul class="text-xs text-gray-700 space-y-1" id="document-list">
-								<!-- Documents will be injected here by JS -->
-							</ul>
-						</div>
+					class="w-full lg:w-72 flex-none bg-white rounded-lg border border-gray-300 p-3 shadow-lg flex flex-col">
+					<h2 class="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide flex-none">Required
+						Documents
+					</h2>
+					<p class="text-[11px] text-gray-500 mb-2">
+						<span class="text-red-600 font-bold">*</span> Required for {{ $vacancy_type }} vacancy
+					</p>
+					<div class="pr-1">
+						<ul class="text-xs text-gray-700 space-y-1" id="document-list">
+							<!-- Documents will be injected here by JS -->
+						</ul>
+					</div>
 					</section>
 
 					<!-- MIDDLE - Document Preview -->
@@ -1217,17 +1208,6 @@ value="{{ old('deadline_time', $application->deadline_time ? \Carbon\Carbon::par
 
 				btn.appendChild(iconWrapper);
 				btn.appendChild(textWrapper);
-<<<<<<< HEAD
-<<<<<<< HEAD
-				if (isRequiredDocument(doc.id)) {
-					btn.title = 'Right-click to quick verify';
-				}
-=======
->>>>>>> parent of c952f1c (Exam Notification, PDS Uploading Documents,)
-=======
->>>>>>> parent of c952f1c (Exam Notification, PDS Uploading Documents,)
-
-				// Simple direct click handler on the button itself
 				btn.onclick = function (e) {
 					e.preventDefault();
 					handleDocumentClick(doc);
