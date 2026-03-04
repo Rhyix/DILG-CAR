@@ -451,6 +451,36 @@
             updateHiddenEntryCount_voluntary();
         }
 
+        function bindDateRangeValidation(entryEl, prefix) {
+            if (!entryEl) return;
+            const fromInput = entryEl.querySelector(`input[name^="${prefix}_from_"]`);
+            const toInput = entryEl.querySelector(`input[name^="${prefix}_to_"]`);
+            if (!fromInput || !toInput) return;
+
+            const validate = () => {
+                const fromVal = (fromInput.value || '').trim();
+                const toVal = (toInput.value || '').trim();
+
+                if (fromVal) {
+                    toInput.min = fromVal;
+                } else {
+                    toInput.removeAttribute('min');
+                }
+
+                if (fromVal && toVal && toVal < fromVal) {
+                    toInput.setCustomValidity('The "To" date must not be earlier than the "From" date.');
+                } else {
+                    toInput.setCustomValidity('');
+                }
+            };
+
+            fromInput.addEventListener('change', validate);
+            fromInput.addEventListener('input', validate);
+            toInput.addEventListener('change', validate);
+            toInput.addEventListener('input', validate);
+            validate();
+        }
+
         const learningData = @json($data_learning);
         function addLearningEntry(data = null) {
             const rowCount = learningContainer.children.length + 1;
@@ -515,6 +545,8 @@
 </div>
                 `;
             learningContainer.insertAdjacentHTML('beforeend', entryHtml);
+            const newEntry = learningContainer.lastElementChild;
+            bindDateRangeValidation(newEntry, 'learning');
             //learningEmpty.style.display = 'none';
             if (learningEmpty) learningEmpty.style.display = 'none';
             updateEntryCount(); // TODO [CHEKCED]
@@ -577,6 +609,8 @@
 </div>
                 `;
             voluntaryContainer.insertAdjacentHTML('beforeend', entryHtml);
+            const newEntry = voluntaryContainer.lastElementChild;
+            bindDateRangeValidation(newEntry, 'voluntary');
             //voluntaryEmpty.style.display = 'none';
             if (voluntaryEmpty) voluntaryEmpty.style.display = 'none';
             updateEntryCount();
@@ -585,6 +619,9 @@
         if (Array.isArray(voluntaryData) && voluntaryData.length > 0) {
             voluntaryData.forEach(entry => addVoluntaryEntry(entry));
         }
+
+        learningContainer.querySelectorAll('.entry-card').forEach(entry => bindDateRangeValidation(entry, 'learning'));
+        voluntaryContainer.querySelectorAll('.entry-card').forEach(entry => bindDateRangeValidation(entry, 'voluntary'));
 
 
 
