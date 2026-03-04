@@ -210,6 +210,18 @@
 					</div>
 					</section>
 
+					<div id="document-context-menu"
+						class="fixed hidden z-[1200] w-44 bg-white border border-gray-200 rounded-md shadow-xl overflow-hidden">
+						<button id="context-action-verify" type="button"
+							class="w-full text-left px-3 py-2 text-xs text-[#00730A] hover:bg-green-50 transition-colors">
+							Verify
+						</button>
+						<button id="context-action-revision" type="button"
+							class="w-full text-left px-3 py-2 text-xs text-[#BC0000] hover:bg-red-50 transition-colors">
+							Needs Revision
+						</button>
+					</div>
+
 					<!-- MIDDLE - Document Preview -->
 					<section aria-label="Document Preview"
 						class="flex-1 bg-white rounded-xl border border-gray-300 shadow-lg p-6 flex flex-col min-w-0 min-h-[800px]">
@@ -565,6 +577,97 @@ value="{{ old('deadline_time', $application->deadline_time ? \Carbon\Carbon::par
 		const btnRevision = document.getElementById('btn-revision');
 		const docPreview = document.getElementById('doc-preview');
 		const previewLoader = document.getElementById('preview-loader');
+		const documentContextMenu = document.getElementById('document-context-menu');
+		const contextVerifyButton = document.getElementById('context-action-verify');
+		const contextRevisionButton = document.getElementById('context-action-revision');
+		let contextMenuDocId = null;
+
+		// Keep context menu attached to body for correct fixed positioning.
+		if (documentContextMenu && documentContextMenu.parentElement !== document.body) {
+			document.body.appendChild(documentContextMenu);
+		}
+
+		function closeDocumentContextMenu() {
+			if (!documentContextMenu) return;
+			documentContextMenu.classList.add('hidden');
+			contextMenuDocId = null;
+		}
+
+		function getDocumentById(docId) {
+			return (documents || []).find(doc => String(doc?.id) === String(docId)) || null;
+		}
+
+		function toggleContextActionDisabled(button, disabled, enabledClass, disabledClass) {
+			if (!button) return;
+			button.disabled = !!disabled;
+			button.classList.toggle('opacity-50', !!disabled);
+			button.classList.toggle('cursor-not-allowed', !!disabled);
+			button.classList.toggle(enabledClass, !disabled);
+			button.classList.toggle(disabledClass, !!disabled);
+		}
+
+		function executeContextDocumentAction(targetStatus) {
+			if (!contextMenuDocId) return;
+			const selectedDoc = getDocumentById(contextMenuDocId);
+			if (!selectedDoc) {
+				closeDocumentContextMenu();
+				alert('Unable to find the selected document.');
+				return;
+			}
+
+			handleDocumentClick(selectedDoc, true);
+			closeDocumentContextMenu();
+			updateDocumentStatus(targetStatus);
+		}
+
+		function openDocumentContextMenu(event, doc) {
+			if (!documentContextMenu || !doc) return;
+
+			event.preventDefault();
+			event.stopPropagation();
+
+			const selectedDoc = getDocumentById(doc.id) || doc;
+			handleDocumentClick(selectedDoc, true);
+			contextMenuDocId = selectedDoc.id;
+
+			const isVerified = selectedDoc.status === 'Verified' || selectedDoc.status === 'Okay/Confirmed';
+			const needsRevision = selectedDoc.status === 'Needs Revision' || selectedDoc.status === 'Disapproved With Deficiency';
+			const revisionLocked = !!selectedDoc.revision_locked;
+
+			toggleContextActionDisabled(contextVerifyButton, isVerified, 'hover:bg-green-50', 'bg-green-50');
+			toggleContextActionDisabled(contextRevisionButton, needsRevision || revisionLocked, 'hover:bg-red-50', 'bg-red-50');
+			if (contextRevisionButton) {
+				if (revisionLocked) {
+					contextRevisionButton.title = selectedDoc.revision_lock_reason || 'Needs Revision is currently locked for this document.';
+				} else {
+					contextRevisionButton.removeAttribute('title');
+				}
+			}
+
+			documentContextMenu.classList.remove('hidden');
+			documentContextMenu.style.left = '0px';
+			documentContextMenu.style.top = '0px';
+
+			const menuWidth = documentContextMenu.offsetWidth || 176;
+			const menuHeight = documentContextMenu.offsetHeight || 80;
+			const viewportPadding = 8;
+
+			let left = Number.isFinite(event.clientX) ? event.clientX + 8 : viewportPadding;
+			let top = Number.isFinite(event.clientY) ? event.clientY - 6 : viewportPadding;
+
+			if (left + menuWidth + viewportPadding > window.innerWidth) {
+				left = Math.max(viewportPadding, window.innerWidth - menuWidth - viewportPadding);
+			}
+			if (top + menuHeight + viewportPadding > window.innerHeight) {
+				top = Math.max(viewportPadding, window.innerHeight - menuHeight - viewportPadding);
+			}
+			if (top < viewportPadding) {
+				top = viewportPadding;
+			}
+
+			documentContextMenu.style.left = `${left}px`;
+			documentContextMenu.style.top = `${top}px`;
+		}
 
 		// Setup Button Listeners once
 		if (btnVerify) {
@@ -579,6 +682,33 @@ value="{{ old('deadline_time', $application->deadline_time ? \Carbon\Carbon::par
 				if (currentSelectedDoc) updateDocumentStatus('Needs Revision');
 			};
 		}
+		if (contextVerifyButton) {
+			contextVerifyButton.onclick = (e) => {
+				e.preventDefault();
+				executeContextDocumentAction('Verified');
+			};
+		}
+		if (contextRevisionButton) {
+			contextRevisionButton.onclick = (e) => {
+				e.preventDefault();
+				executeContextDocumentAction('Needs Revision');
+			};
+		}
+		document.addEventListener('click', (event) => {
+			if (!documentContextMenu || documentContextMenu.classList.contains('hidden')) return;
+			if (!documentContextMenu.contains(event.target)) {
+				closeDocumentContextMenu();
+			}
+		});
+		document.addEventListener('scroll', () => {
+			closeDocumentContextMenu();
+		}, true);
+		window.addEventListener('resize', closeDocumentContextMenu);
+		document.addEventListener('keydown', (event) => {
+			if (event.key === 'Escape') {
+				closeDocumentContextMenu();
+			}
+		});
 
 		// Helper for status icon
 		function getStatusIcon(status) {
@@ -601,6 +731,8 @@ value="{{ old('deadline_time', $application->deadline_time ? \Carbon\Carbon::par
 		}
 
 		function handleDocumentClick(doc, force = false) {
+			closeDocumentContextMenu();
+
 			// Prevent re-clicking same doc to avoid reload
 			if (!force && currentSelectedDoc && currentSelectedDoc.id === doc.id) return;
 
@@ -717,6 +849,8 @@ value="{{ old('deadline_time', $application->deadline_time ? \Carbon\Carbon::par
 				alert("Please select a document first.");
 				return;
 			}
+
+			closeDocumentContextMenu();
 
 			const requestingNeedsRevision = newStatus === 'Needs Revision' || newStatus === 'Disapproved With Deficiency';
 			if (requestingNeedsRevision && currentSelectedDoc.revision_locked) {
@@ -1213,9 +1347,7 @@ value="{{ old('deadline_time', $application->deadline_time ? \Carbon\Carbon::par
 					handleDocumentClick(doc);
 				};
 				btn.addEventListener('contextmenu', async function (e) {
-					e.preventDefault();
-					e.stopPropagation();
-					await quickVerifyDocument(doc);
+					openDocumentContextMenu(e, doc);
 				});
 
 				li.appendChild(btn);

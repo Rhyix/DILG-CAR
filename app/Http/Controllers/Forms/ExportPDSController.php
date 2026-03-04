@@ -1495,139 +1495,163 @@ private function WriteC4Information($pdf, $userId)
     $misc = MiscInfos::where('user_id', $userId)->first();
 
     if ($misc && $misc->photo_upload) {
-    $photoPath = storage_path('app/public/' . $misc->photo_upload);
-
-    if (file_exists($photoPath)) {
-        $pdf->Image($photoPath, 169.32, 194.15, 33.6, 37.32); // You can fine-tune position and size
+        $photoPath = storage_path('app/public/' . $misc->photo_upload);
+        if (file_exists($photoPath)) {
+            $pdf->Image($photoPath, 169.32, 194.15, 33.6, 37.32);
+        }
     }
-}
 
     // Leave photo box blank when no uploaded photo is available.
-
-    if (!$misc) return;
-
-    $criminalDetailsRaw = $misc->criminal_35_b ?? '';
-    $criminalDetails = explode(',', $criminalDetailsRaw);
-
-    $dateFiledRaw = trim($criminalDetails[0] ?? '');
-    $caseStatusRaw = isset($criminalDetails[1]) ? implode(',', array_slice($criminalDetails, 1)) : ''; // In case the status contains commas
-
-    $dateFiled = '';
-    try {
-        if ($dateFiledRaw && strtolower($dateFiledRaw) !== 'no') {
-            $dateFiled = Carbon::parse($dateFiledRaw)->format('m/d/Y');
-        }
-    } catch (\Exception $e) {
-        $dateFiled = '';
+    if (!$misc) {
+        return;
     }
 
+    $criminalCase = $this->parseCriminal35B($misc);
 
-        if ($dateFiledRaw && strtolower($dateFiledRaw) !== 'no') {
-            try {
-                $dateFiled = Carbon::parse($dateFiledRaw)->format('m/d/Y');
-            } catch (\Exception $e) {
-                $dateFiled = ''; // or log the error if needed
-            }
+    $checkboxStates = [
+        'third_degree' => $this->hasAffirmativeSelection($misc->related_34_a),
+        'fourth_degree' => $this->hasAffirmativeSelection($misc->related_34_b),
+        'guilty' => $this->hasAffirmativeSelection($misc->guilty_35_a),
+        'charged' => $criminalCase['has_case'],
+        'convicted' => $this->hasAffirmativeSelection($misc->convicted_36),
+        'separated' => $this->hasAffirmativeSelection($misc->separated_37),
+        'candidate' => $this->hasAffirmativeSelection($misc->candidate_38),
+        'resigned' => $this->hasAffirmativeSelection($misc->resigned_38_b),
+        'immigrant' => $this->hasAffirmativeSelection($misc->immigrant_39),
+        'indigenous' => $this->hasAffirmativeSelection($misc->indigenous_40_a),
+        'disability' => $this->hasAffirmativeSelection($misc->pwd_40_b),
+        'solo_parent' => $this->hasAffirmativeSelection($misc->solo_parent_40_c),
+    ];
+
+    // Checkboxes sa may pinakababa
+    $checkboxes = [
+        'third_degree' => ['yes' => [139.5, 24.4], 'no' => [165, 26]],
+        'fourth_degree' => ['yes' => [139.5, 30], 'no' => [159, 32]],
+        'guilty' => ['yes' => [138.7, 46], 'no' => [159.5, 48]],
+        'convicted' => ['yes' => [138.7, 83.5], 'no' => [161.6, 86]],
+        'charged' => ['yes' => [138.7, 62.5], 'no' => [160.7, 65]],
+        'separated' => ['yes' => [138.7, 99.5], 'no' => [161.5, 102.7]],
+        'candidate' => ['yes' => [138.7, 113], 'no' => [163, 116.7]],
+        'resigned' => ['yes' => [139.5, 123], 'no' => [163.5, 126.6]],
+        'immigrant' => ['yes' => [138.7, 135], 'no' => [163.5, 138.7]],
+        'indigenous' => ['yes' => [138.7, 163], 'no' => [164, 167]],
+        'disability' => ['yes' => [138.7, 171], 'no' => [164, 175.8]],
+        'solo_parent' => ['yes' => [138.7, 180.4], 'no' => [164, 185]],
+    ];
+
+    foreach ($checkboxes as $key => $coord) {
+        $answer = ($checkboxStates[$key] ?? false) ? 'yes' : 'no';
+        if (!isset($coord[$answer])) {
+            continue;
         }
+        [$x, $y] = $coord[$answer];
+        $this->markCheckbox($pdf, (float) $x, (float) $y);
+    }
 
-        $info = [
-            'third_degree'         => $misc->related_34_a,
-            'fourth_degree'        => strtolower($misc->related_34_b) === 'no' ? ['No', ''] : ['Yes', $misc->related_34_b],
-            'guilty'               => strtolower($misc->guilty_35_a) === 'no' ? ['No', ''] : ['Yes', $misc->guilty_35_a],
-            'charged' => strtolower($criminalDetailsRaw) === 'no'
-                                ? ['No', '', '']
-                                : ['Yes', $dateFiled, $caseStatusRaw],
-            'convicted'            => strtolower($misc->convicted_36) === 'no' ? ['No', ''] : ['Yes', $misc->convicted_36],
-            'separated'            => strtolower($misc->separated_37) === 'no' ? ['No', ''] : ['Yes', $misc->separated_37],
-            'candidate'            => strtolower($misc->candidate_38) === 'no' ? ['No', ''] : ['Yes', $misc->candidate_38],
-            'resigned'             => strtolower($misc->resigned_38_b) === 'no' ? ['No', ''] : ['Yes', $misc->resigned_38_b],
-            'immigrant'            => strtolower($misc->immigrant_39) === 'no' ? ['No', ''] : ['Yes', $misc->immigrant_39],
-            'indigenous'           => strtolower($misc->indigenous_40_a) === 'no' ? ['No', ''] : ['Yes', $misc->indigenous_40_a],
-            'disability'           => strtolower($misc->pwd_40_b) === 'no' ? ['No', ''] : ['Yes', $misc->pwd_40_b],
-            'solo_parent'          => strtolower($misc->solo_parent_40_c) === 'no' ? ['No', ''] : ['Yes', $misc->solo_parent_40_c],
+    $this->setFont($pdf, 'Arial', '', 8);
 
-            // References
-            'references' => [
-                ['name' => $misc->ref1_name, 'address' => $misc->ref1_address, 'tel' => $misc->ref1_tel],
-                ['name' => $misc->ref2_name, 'address' => $misc->ref2_address, 'tel' => $misc->ref2_tel],
-                ['name' => $misc->ref3_name, 'address' => $misc->ref3_address, 'tel' => $misc->ref3_tel],
-            ],
+    // Detail fields
+    $this->writeFittedAt($pdf, $this->affirmativeDetail($misc->related_34_b), 141.224, 40, 56, 7.0, 5.0);
+    $this->writeFittedAt($pdf, $this->affirmativeDetail($misc->guilty_35_a), 141.224, 56, 56, 7.0, 5.0);
+    $this->writeFittedAt($pdf, $criminalCase['date'], 163, 73, 40, 7.0, 5.0);
+    $this->writeFittedAt($pdf, $criminalCase['status'], 163, 77, 40, 7.0, 5.0);
+    $this->writeFittedAt($pdf, $this->affirmativeDetail($misc->convicted_36), 141.224, 120, 56, 7.0, 5.0);
+    $this->writeFittedAt($pdf, $this->affirmativeDetail($misc->separated_37), 141.224, 93.5, 56, 7.0, 5.0);
+    $this->writeFittedAt($pdf, $this->affirmativeDetail($misc->candidate_38), 166, 100, 40, 7.0, 5.0);
+    $this->writeFittedAt($pdf, $this->affirmativeDetail($misc->resigned_38_b), 163, 129, 40, 7.0, 5.0);
+    $this->writeFittedAt($pdf, $this->affirmativeDetail($misc->immigrant_39), 141.224, 144, 62, 7.0, 5.0);
+    $this->writeFittedAt($pdf, $this->affirmativeDetail($misc->indigenous_40_a), 177, 168, 26, 6.5, 4.5);
+    $this->writeFittedAt($pdf, $this->affirmativeDetail($misc->pwd_40_b), 177, 177, 26, 6.5, 4.5);
+    $this->writeFittedAt($pdf, $this->affirmativeDetail($misc->solo_parent_40_c), 177, 185, 26, 6.5, 4.5);
 
-            // IDs
-            'govt_id'    => $misc->govt_id_type ?? '',
-            'other_id'   => $misc->govt_id_number ?? '',
-            'issue_place'=> $misc->govt_id_place_issued ?? '',
-            'issue_date' => $misc->govt_id_date_issued ?? '',
+    // Reference table
+    $x_name = 8.0;
+    $x_address = 87.0;
+    $x_telno = 132.0;
+    $y_refs = [209.0, 218.5, 228.0];
+    $references = [
+        ['name' => $misc->ref1_name, 'address' => $misc->ref1_address, 'tel' => $misc->ref1_tel],
+        ['name' => $misc->ref2_name, 'address' => $misc->ref2_address, 'tel' => $misc->ref2_tel],
+        ['name' => $misc->ref3_name, 'address' => $misc->ref3_address, 'tel' => $misc->ref3_tel],
+    ];
+
+    foreach ($references as $i => $ref) {
+        if ($i >= count($y_refs)) {
+            break;
+        }
+        $y = $y_refs[$i];
+        $this->writeFittedAt($pdf, $this->valueOrNa($ref['name'] ?? null), $x_name, $y, 74, 8.0, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($ref['address'] ?? null), $x_address, $y, 49, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($ref['tel'] ?? null), $x_telno, $y, 14, 6.5, 5.0);
+    }
+
+    // ID Section
+    $this->writeFittedAt($pdf, $this->valueOrNa($misc->govt_id_type ?? null), 33, 268.0, 58, 7.0, 5.0);
+    $this->writeFittedAt($pdf, $this->valueOrNa($misc->govt_id_number ?? null), 35, 274, 58, 7.0, 5.0);
+
+    $issuePlace = trim($this->normalizeScalarText($misc->govt_id_place_issued ?? ''));
+    $issuedDate = $this->dateOrNa($misc->govt_id_date_issued ?? null);
+    $issuedText = $issuePlace === ''
+        ? $issuedDate
+        : trim($issuePlace . ' | ' . ($issuedDate === 'N/A' ? '' : $issuedDate), " |\t\n\r\0\x0B");
+    $this->writeFittedAt($pdf, $this->valueOrNa($issuedText), 33, 281.5, 86, 6.0, 4.6);
+
+    // Leave oath/signature/thumbmark placeholders blank when data is unavailable.
+}
+
+private function hasAffirmativeSelection($value): bool
+{
+    $normalized = $this->normalizedValue($value);
+    if ($normalized === '') {
+        return false;
+    }
+
+    return !in_array($normalized, ['no', 'n', '0', 'false', 'null', 'n/a', 'na'], true);
+}
+
+private function affirmativeDetail($value): string
+{
+    if (!$this->hasAffirmativeSelection($value)) {
+        return '';
+    }
+
+    return $this->normalizeScalarText($value);
+}
+
+private function parseCriminal35B($misc): array
+{
+    $raw = $this->normalizeScalarText($misc->criminal_35_b ?? '');
+    if (!$this->hasAffirmativeSelection($raw)) {
+        return [
+            'has_case' => false,
+            'date' => '',
+            'status' => '',
         ];
+    }
 
-        $checkboxes = [
-            'third_degree'  => ['yes' => [139.5, 24.4], 'no' => [165, 26]],
-            'fourth_degree' => ['yes' => [139.5, 30], 'no' => [159, 32]],
-            'guilty'        => ['yes' => [138.7, 46],   'no' => [159.5, 48]],
-            'convicted'     => ['yes' => [138.7, 83.5], 'no' => [161.6, 86]],
-            'charged'       => ['yes' => [138.7, 62.5], 'no' => [160.7, 65]],
-            'separated'     => ['yes' => [138.7, 99.5],'no' => [161.5, 102.7]],
-            'candidate'     => ['yes' => [138.7, 113],    'no' => [163, 116.7]],
-            'resigned'      => ['yes' => [139.5, 123],'no' => [163.5, 126.6]],
-            'immigrant'     => ['yes' => [138.7, 135],    'no' => [163.5, 138.7]],
-            'indigenous'    => ['yes' => [138.7, 163],  'no' => [164, 167]],
-            'disability'    => ['yes' => [138.7, 171],  'no' => [164, 175.8]],
-            'solo_parent'   => ['yes' => [138.7, 180.4],  'no' => [164, 185]],
-        ];
+    $parts = explode(',', $raw);
+    $dateRaw = trim((string) ($parts[0] ?? ''));
+    $statusRaw = isset($parts[1]) ? trim((string) implode(',', array_slice($parts, 1))) : '';
 
-        foreach ($checkboxes as $key => $coord) {
-            if ($key === 'third_degree') {
-                $pos = $coord[strtolower($info[$key])];
+    $dateText = '';
+    if ($dateRaw !== '' && !$this->valueMatches($dateRaw, 'no', 'n', 'n/a', 'na', 'null')) {
+        try {
+            $dateText = Carbon::parse($dateRaw)->format('m/d/Y');
+        } catch (\Throwable $e) {
+            if ($statusRaw === '') {
+                $statusRaw = $dateRaw;
             } else {
-                $answer = $info[$key][0];
-                $pos = $coord[strtolower($answer)];
+                $dateText = $dateRaw;
             }
-            $this->markCheckbox($pdf, $pos[0], $pos[1]);
         }
-
-        $this->setFont($pdf, 'Arial', '', 8);
-
-        // Detail fields
-        $this->writeFittedAt($pdf, (string) ($info['fourth_degree'][1] ?? ''), 141.224, 40, 56, 7.0, 5.0);
-        $this->writeFittedAt($pdf, (string) ($info['guilty'][1] ?? ''), 141.224, 56, 56, 7.0, 5.0);
-        $this->writeFittedAt($pdf, (string) ($info['charged'][1] ?? ''), 163, 73, 40, 7.0, 5.0);
-        $this->writeFittedAt($pdf, (string) ($info['charged'][2] ?? ''), 163, 77, 40, 7.0, 5.0);
-        $this->writeFittedAt($pdf, (string) ($info['convicted'][1] ?? ''), 141.224, 120, 56, 7.0, 5.0);
-        $this->writeFittedAt($pdf, (string) ($info['separated'][1] ?? ''), 141.224, 93.5, 56, 7.0, 5.0);
-        $this->writeFittedAt($pdf, (string) ($info['candidate'][1] ?? ''), 166, 100, 40, 7.0, 5.0);
-        $this->writeFittedAt($pdf, (string) ($info['resigned'][1] ?? ''), 163, 129, 40, 7.0, 5.0);
-        $this->writeFittedAt($pdf, (string) ($info['immigrant'][1] ?? ''), 141.224, 144, 62, 7.0, 5.0);
-        $this->writeFittedAt($pdf, (string) ($info['indigenous'][1] ?? ''), 177, 168, 26, 6.5, 4.5);
-        $this->writeFittedAt($pdf, (string) ($info['disability'][1] ?? ''), 177, 177, 26, 6.5, 4.5);
-        $this->writeFittedAt($pdf, (string) ($info['solo_parent'][1] ?? ''), 177, 185, 26, 6.5, 4.5);
-
-        // Reference table
-        $x_name = 8.0;
-        $x_address = 87.0;
-        $x_telno = 132.0;
-        $y_refs = [209.0, 218.5, 228.0];
-
-        foreach ($info['references'] as $i => $ref) {
-            if ($i >= count($y_refs)) break;
-            $y = $y_refs[$i];
-            $this->writeFittedAt($pdf, $this->valueOrNa($ref['name'] ?? null), $x_name, $y, 74, 8.0, 5.0);
-            $this->writeFittedAt($pdf, $this->valueOrNa($ref['address'] ?? null), $x_address, $y, 49, 7.0, 5.0);
-            $this->writeFittedAt($pdf, $this->valueOrNa($ref['tel'] ?? null), $x_telno, $y, 14, 6.5, 5.0);
-        }
-
-        // ID Section
-        $this->writeFittedAt($pdf, $this->valueOrNa($info['govt_id'] ?? null), 33, 268.0, 58, 7.0, 5.0); // Govt ID type
-        $this->writeFittedAt($pdf, $this->valueOrNa($info['other_id'] ?? null), 35, 274, 58, 7.0, 5.0); // Govt ID number
-
-        $issuePlace = trim((string) ($info['issue_place'] ?? ''));
-        $issuedDate = $this->dateOrNa($info['issue_date'] ?? null);
-        $issuedText = $issuePlace === ''
-            ? $issuedDate
-            : trim($issuePlace . ' | ' . ($issuedDate === 'N/A' ? '' : $issuedDate), " |\t\n\r\0\x0B");
-        $this->writeFittedAt($pdf, $this->valueOrNa($issuedText), 33, 281.5, 86, 6.0, 4.6);
-
-        // Leave oath/signature/thumbmark placeholders blank when data is unavailable.
     }
+
+    return [
+        'has_case' => true,
+        'date' => $dateText,
+        'status' => $statusRaw,
+    ];
+}
 
 
 /**
