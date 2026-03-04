@@ -1581,6 +1581,11 @@
                 if (Array.isArray(result.warnings)) {
                     result.warnings.forEach((warning) => notify(warning, 'warning'));
                 }
+
+                if (result.missing_report && result.missing_report.missing_in_excel_template) {
+                    notify('Import coverage report is available. Some sections/fields (e.g., WES) are not in the Annex H-1 Excel template.', 'warning');
+                    console.info('PDS Excel import coverage report:', result.missing_report);
+                }
             } catch (error) {
                 notify('Import failed due to a network or server error. Please try again.', 'error');
             } finally {
