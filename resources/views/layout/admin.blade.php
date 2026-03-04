@@ -111,9 +111,10 @@
 </head>
 
 @php
-    $lockScreenScroll = request()->routeIs('vacancies_management')
+$lockScreenScroll = request()->routeIs('vacancies_management')
         || request()->routeIs('applications_list')
         || request()->routeIs('admin_exam_management')
+        || request()->routeIs('admin.manage_exam')
         || request()->routeIs('admin.positions.*');
 @endphp
 

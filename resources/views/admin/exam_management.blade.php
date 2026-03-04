@@ -13,86 +13,13 @@
         </h1>
     </section>
 
-    <div class="flex flex-1 min-h-0 overflow-hidden flex-col gap-4 lg:flex-row">
-        <!-- TABLE -->
-        <div class="order-2 w-full min-w-0 flex-1 flex flex-col min-h-0 overflow-hidden rounded-xl border border-[#0D2B70] lg:order-1 lg:basis-[70%]">
-            <div class="flex-none bg-[#0D2B70] text-white">
-                <table class="w-full text-left border-collapse table-fixed">
-                    <thead class="bg-[#0D2B70] text-white sticky top-0 z-10">
-                    <tr>
-                        <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider w-[15%]">Vacancy ID</th>
-                        <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider w-[35%]">Job Title</th>
-                        <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider w-[20%]">Job Type</th>
-                        <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider w-[15%]">Status</th>
-                        <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider w-[15%]">Action</th>
-                    </tr>
-                </thead>
-                </table>
-            </div>
-            <div class="flex-1 overflow-auto">
-                <table class="w-full text-left border-collapse table-fixed">
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        @foreach ($vacancies as $vacancy)
-                        <tr class="hover:bg-blue-50 transition-colors duration-200">
-                            <td class="py-4 px-6 text-center text-[#0D2B70] font-semibold w-[15%]">
-                                {{ $vacancy->vacancy_id }}
-                            </td>
-                            <td class="py-4 px-6 text-center text-[#0D2B70] font-medium w-[35%]">
-                                {{ $vacancy->position_title }}
-                            </td>
-                            <td class="py-4 px-6 text-center text-[#0D2B70] w-[20%]">
-                                {{ $vacancy->vacancy_type }}
-                            </td>
-                            <td class="py-4 px-6 text-center w-[15%]">
-                                @php
-                                    $statusClass = 'bg-gray-100 text-gray-800 border border-gray-400';
-                                    $statusText  = 'Not Scheduled';
-                                    $isOngoing   = false;
-    
-                                    if ($vacancy->exam_status === 'Scheduled') {
-                                        $statusClass = 'bg-blue-100 text-blue-800 border border-blue-400';
-                                        $statusText  = 'Exam Scheduled';
-                                    } elseif ($vacancy->exam_status === 'Ongoing') {
-                                        $statusClass = 'bg-yellow-100 text-yellow-800 border border-yellow-400';
-                                        $statusText  = 'Exam in Progress';
-                                        $isOngoing   = true;
-                                    } elseif ($vacancy->exam_status === 'Completed') {
-                                        $statusClass = 'bg-green-100 text-green-800 border border-green-400';
-                                        $statusText  = 'Exam Completed';
-                                    }
-                                @endphp
-                                <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold {{ $statusClass }}">
-                                    @if($isOngoing)
-                                        <span class="relative flex h-2 w-2">
-                                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
-                                            <span class="relative inline-flex rounded-full h-2 w-2 bg-yellow-500"></span>
-                                        </span>
-                                    @endif
-                                    <span>{{ $statusText }}</span>
-                                </span>
-                            </td>
-                            <td class="py-4 px-6 text-center w-[15%]">
-                                <button onclick="window.location.href='{{ route('admin.manage_exam', $vacancy->vacancy_id) }}'" 
-                                        class="text-[#0D2B70] border border-[#0D2B70] font-bold py-2 px-6 rounded-md text-sm
-                                        transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
-                                        hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md"
-                                >
-                                    {{ $isViewerMode ? 'Monitor' : 'Manage' }}
-                                </button>
-                            </td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
+    <div class="flex flex-1 min-h-0 overflow-hidden flex-col gap-4">
         <!-- search, filters, and exam library button -->
-        <section class="order-1 mt-1 flex w-full min-w-0 flex-row rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:order-2 lg:basis-[30%]">
+        <section class="flex-none mt-1 w-full rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:p-5">
             <form onsubmit="return false;" class="relative w-full no-spinner" data-loading-handled="1">
-                <div class="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between lg:flex-col lg:items-stretch lg:justify-start xl:flex-row xl:items-end xl:justify-between">
-                    <div class="flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end lg:flex-col xl:flex-row xl:items-end">
-                        <div class="relative w-full lg:max-w-md">
+                <div class="flex w-full flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                    <div class="grid w-full gap-3 md:grid-cols-4">
+                        <div class="relative md:col-span-2">
                             <label for="examIdFilter" class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                                 Search
                             </label>
@@ -125,49 +52,48 @@
                                     d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
                             </svg>
                         </div>
-    
-                        <div class="grid w-full gap-3 sm:grid-cols-2 xl:w-auto xl:min-w-[370px]">
-                            <div>
-                                <label for="jobTypeFilter" class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                                    Job Type
-                                </label>
-                                <select id="jobTypeFilter"
-                                        {{ $isViewerMode ? 'disabled' : '' }}
-                                        class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 shadow-sm outline-none transition focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20">
-                                    @if($isViewerMode)
-                                        <option value="" selected>All</option>
-                                    @else
-                                        <option value="">All</option>
-                                        <option value="COS">COS</option>
-                                        <option value="Plantilla">Plantilla</option>
-                                    @endif
-                                </select>
-                            </div>
-                            <div>
-                                <label for="examStatusFilter" class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                                    Status
-                                </label>
-                                <select id="examStatusFilter"
-                                        {{ $isViewerMode ? 'disabled' : '' }}
-                                        class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 shadow-sm outline-none transition focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20">
-                                    @if($isViewerMode)
-                                        <option value="Ongoing" selected>Ongoing</option>
-                                    @else
-                                        <option value="">All</option>
-                                        <option value="Unscheduled">Unscheduled</option>
-                                        <option value="Scheduled">Scheduled</option>
-                                        <option value="Ongoing">Ongoing</option>
-                                        <option value="Completed">Completed</option>
-                                    @endif
-                                </select>
-                            </div>
+
+                        <div>
+                            <label for="jobTypeFilter" class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                                Job Type
+                            </label>
+                            <select id="jobTypeFilter"
+                                    {{ $isViewerMode ? 'disabled' : '' }}
+                                    class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 shadow-sm outline-none transition focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20">
+                                @if($isViewerMode)
+                                    <option value="" selected>All</option>
+                                @else
+                                    <option value="">All</option>
+                                    <option value="COS">COS</option>
+                                    <option value="Plantilla">Plantilla</option>
+                                @endif
+                            </select>
+                        </div>
+
+                        <div>
+                            <label for="examStatusFilter" class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                                Status
+                            </label>
+                            <select id="examStatusFilter"
+                                    {{ $isViewerMode ? 'disabled' : '' }}
+                                    class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 shadow-sm outline-none transition focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20">
+                                @if($isViewerMode)
+                                    <option value="Ongoing" selected>Ongoing</option>
+                                @else
+                                    <option value="">All</option>
+                                    <option value="Unscheduled">Unscheduled</option>
+                                    <option value="Scheduled">Scheduled</option>
+                                    <option value="Ongoing">Ongoing</option>
+                                    <option value="Completed">Completed</option>
+                                @endif
+                            </select>
                         </div>
                     </div>
-    
+
                     @if(!$isViewerMode)
-                        <div class="shrink-0">
+                        <div class="shrink-0 lg:pl-2">
                             <button onclick="window.location.href='{{ route('admin.exam_library') }}'" type="button"
-                                class="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#0D2B70] bg-white px-5 py-2.5 text-sm font-semibold text-[#0D2B70] shadow-sm transition hover:bg-[#0D2B70] hover:text-white">
+                                class="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#0D2B70] bg-white px-5 py-2.5 text-sm font-semibold text-[#0D2B70] shadow-sm transition hover:bg-[#0D2B70] hover:text-white lg:min-w-[160px]">
                                 Exam Library
                             </button>
                         </div>
@@ -175,6 +101,79 @@
                 </div>
             </form>
         </section>
+
+        <!-- TABLE -->
+        <div class="mb-4 w-full min-w-0 flex-1 flex flex-col min-h-0 overflow-hidden rounded-xl border border-[#0D2B70]">
+            <div class="flex-none bg-[#0D2B70] text-white">
+                <table class="w-full text-left border-collapse table-fixed">
+                    <thead class="bg-[#0D2B70] text-white sticky top-0 z-10">
+                    <tr>
+                        <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider w-[15%]">Vacancy ID</th>
+                        <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider w-[35%]">Job Title</th>
+                        <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider w-[20%]">Job Type</th>
+                        <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider w-[15%]">Status</th>
+                        <th class="py-4 px-6 text-center font-bold uppercase text-sm tracking-wider w-[15%]">Action</th>
+                    </tr>
+                </thead>
+                </table>
+            </div>
+            <div class="flex-1 overflow-auto">
+                <table class="w-full text-left border-collapse table-fixed">
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        @foreach ($vacancies as $vacancy)
+                        <tr class="hover:bg-blue-50 transition-colors duration-200">
+                            <td class=" px-6 text-center text-[#0D2B70] font-semibold w-[15%]">
+                                {{ $vacancy->vacancy_id }}
+                            </td>
+                            <td class=" px-6 text-center text-[#0D2B70] font-medium w-[35%]">
+                                {{ $vacancy->position_title }}
+                            </td>
+                            <td class=" px-6 text-center text-[#0D2B70] w-[20%]">
+                                {{ $vacancy->vacancy_type }}
+                            </td>
+                            <td class=" px-6 text-center w-[15%]">
+                                @php
+                                    $statusClass = 'bg-gray-100 text-gray-800 border border-gray-400';
+                                    $statusText  = 'Not Scheduled';
+                                    $isOngoing   = false;
+    
+                                    if ($vacancy->exam_status === 'Scheduled') {
+                                        $statusClass = 'bg-blue-100 text-blue-800 border border-blue-400';
+                                        $statusText  = 'Exam Scheduled';
+                                    } elseif ($vacancy->exam_status === 'Ongoing') {
+                                        $statusClass = 'bg-yellow-100 text-yellow-800 border border-yellow-400';
+                                        $statusText  = 'Exam in Progress';
+                                        $isOngoing   = true;
+                                    } elseif ($vacancy->exam_status === 'Completed') {
+                                        $statusClass = 'bg-green-100 text-green-800 border border-green-400';
+                                        $statusText  = 'Exam Completed';
+                                    }
+                                @endphp
+                                <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold {{ $statusClass }}">
+                                    @if($isOngoing)
+                                        <span class="relative flex h-2 w-2">
+                                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
+                                            <span class="relative inline-flex rounded-full h-2 w-2 bg-yellow-500"></span>
+                                        </span>
+                                    @endif
+                                    <span>{{ $statusText }}</span>
+                                </span>
+                            </td>
+                            <td class=" px-6 text-center w-[15%]">
+                                <button onclick="window.location.href='{{ route('admin.manage_exam', $vacancy->vacancy_id) }}'" 
+                                        class="text-[#0D2B70] border border-[#0D2B70] font-bold py-2 px-6 rounded-md text-sm
+                                        transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
+                                        hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md"
+                                >
+                                    {{ $isViewerMode ? 'Monitor' : 'Manage' }}
+                                </button>
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
     <script>
