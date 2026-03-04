@@ -1848,15 +1848,9 @@ class AdminController extends Controller
             ->firstOrFail();
 
         // Update Deadline and QS data if provided in request
-        $request->merge([
-            'deadline_date' => ($request->input('deadline_date') === '' ? null : $request->input('deadline_date')),
-            'deadline_time' => ($request->input('deadline_time') === '' ? null : $request->input('deadline_time')),
-        ]);
-
         $validatedData = $request->validate([
-            'deadline_enabled' => 'nullable|boolean',
             'deadline_date' => 'nullable|date',
-            'deadline_time' => 'nullable|date_format:H:i',
+            'deadline_time' => 'nullable',
             'qs_education' => 'nullable|string',
             'qs_eligibility' => 'nullable|string',
             'qs_experience' => 'nullable|string',
@@ -1864,22 +1858,11 @@ class AdminController extends Controller
             'qs_result' => 'nullable|string',
         ]);
 
-        $deadlineEnabled = !array_key_exists('deadline_enabled', $validatedData)
-            || (bool) $validatedData['deadline_enabled'];
-        if (!$deadlineEnabled) {
-            $application->deadline_date = null;
-            $application->deadline_time = null;
-        } else {
-            if ($request->exists('deadline_date')) {
-                $application->deadline_date = !empty($validatedData['deadline_date'])
-                    ? $validatedData['deadline_date']
-                    : null;
-            }
-            if ($request->exists('deadline_time')) {
-                $application->deadline_time = $validatedData['deadline_time']
-                    ? date('H:i', strtotime($validatedData['deadline_time']))
-                    : null;
-            }
+        if ($request->has('deadline_date')) {
+            $application->deadline_date = $validatedData['deadline_date'];
+        }
+        if ($request->has('deadline_time')) {
+            $application->deadline_time = $validatedData['deadline_time'] ? date('H:i', strtotime($validatedData['deadline_time'])) : null;
         }
 
         foreach (['qs_education', 'qs_eligibility', 'qs_experience', 'qs_training', 'qs_result'] as $field) {

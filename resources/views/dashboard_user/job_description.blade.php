@@ -401,8 +401,13 @@
         const hasIncompletePds = @json($hasIncompletePdsForApply);
         if (hasIncompletePds) { openModal('pdsRequiredModal'); return; }
 
-        // Always redirect to document review/upload page before final application submit.
-        window.location.href = @json($requiredDocsRedirectUrlForModal);
+        const hasMissingRequiredDocs = @json($hasMissingRequiredDocsForModal);
+        if (hasMissingRequiredDocs) { openModal('requiredDocsModal'); return; }
+
+        const hasDocTrackMismatch = @json($hasDocTrackMismatch);
+        if (hasDocTrackMismatch) { openModal('docTrackMismatchModal'); return; }
+
+        openModal('confirmApplyModal');
     }
 
     function closeConfirmApplyModal()      { closeModal('confirmApplyModal'); }

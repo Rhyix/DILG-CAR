@@ -1561,18 +1561,18 @@ private function WriteC4Information($pdf, $userId)
         ];
 
         $checkboxes = [
-            'third_degree'  => ['yes' => [138, 26], 'no' => [158.7, 26]],
-            'fourth_degree' => ['yes' => [138, 31.5], 'no' => [159, 32]],
-            'guilty'        => ['yes' => [137.5, 47.8],   'no' => [159.5, 48]],
-            'charged'       => ['yes' => [137.3, 64.8], 'no' => [160.7, 65]],
-            'convicted'     => ['yes' => [137.2, 86], 'no' => [161.6, 86]],
-            'separated'     => ['yes' => [137, 102.3],'no' => [161.5, 102.7]],
-            'candidate'     => ['yes' => [137.4, 116.3],    'no' => [163, 116.7]],
-            'resigned'      => ['yes' => [138, 126.5],'no' => [163.5, 126.6]],
-            'immigrant'     => ['yes' => [137.2, 139],    'no' => [163.5, 138.7]],
-            'indigenous'    => ['yes' => [137.4, 167],  'no' => [164, 167]],
-            'disability'    => ['yes' => [137.3, 175.5],  'no' => [164, 175.8]],
-            'solo_parent'   => ['yes' => [137.4, 184.8],  'no' => [164, 185]],
+            'third_degree'  => ['yes' => [139.5, 24.4], 'no' => [165, 26]],
+            'fourth_degree' => ['yes' => [139.5, 30], 'no' => [159, 32]],
+            'guilty'        => ['yes' => [138.7, 46],   'no' => [159.5, 48]],
+            'convicted'     => ['yes' => [138.7, 83.5], 'no' => [161.6, 86]],
+            'charged'       => ['yes' => [138.7, 62.5], 'no' => [160.7, 65]],
+            'separated'     => ['yes' => [138.7, 99.5],'no' => [161.5, 102.7]],
+            'candidate'     => ['yes' => [138.7, 113],    'no' => [163, 116.7]],
+            'resigned'      => ['yes' => [139.5, 123],'no' => [163.5, 126.6]],
+            'immigrant'     => ['yes' => [138.7, 135],    'no' => [163.5, 138.7]],
+            'indigenous'    => ['yes' => [138.7, 163],  'no' => [164, 167]],
+            'disability'    => ['yes' => [138.7, 171],  'no' => [164, 175.8]],
+            'solo_parent'   => ['yes' => [138.7, 180.4],  'no' => [164, 185]],
         ];
 
         foreach ($checkboxes as $key => $coord) {
@@ -1588,18 +1588,18 @@ private function WriteC4Information($pdf, $userId)
         $this->setFont($pdf, 'Arial', '', 8);
 
         // Detail fields
-        $this->writeFittedAt($pdf, (string) ($info['fourth_degree'][1] ?? ''), 141.224, 42.5, 56, 7.0, 5.0);
-        $this->writeFittedAt($pdf, (string) ($info['guilty'][1] ?? ''), 141.224, 58.5, 56, 7.0, 5.0);
-        $this->writeFittedAt($pdf, (string) ($info['charged'][1] ?? ''), 163, 75.5, 40, 7.0, 5.0);
-        $this->writeFittedAt($pdf, (string) ($info['charged'][2] ?? ''), 163, 79.5, 40, 7.0, 5.0);
-        $this->writeFittedAt($pdf, (string) ($info['convicted'][1] ?? ''), 141.224, 96.5, 56, 7.0, 5.0);
-        $this->writeFittedAt($pdf, (string) ($info['separated'][1] ?? ''), 141.224, 110.5, 56, 7.0, 5.0);
-        $this->writeFittedAt($pdf, (string) ($info['candidate'][1] ?? ''), 163, 122, 40, 7.0, 5.0);
-        $this->writeFittedAt($pdf, (string) ($info['resigned'][1] ?? ''), 163, 132.5, 40, 7.0, 5.0);
-        $this->writeFittedAt($pdf, (string) ($info['immigrant'][1] ?? ''), 141.224, 147.5, 62, 7.0, 5.0);
-        $this->writeFittedAt($pdf, (string) ($info['indigenous'][1] ?? ''), 177, 172, 26, 6.5, 4.5);
-        $this->writeFittedAt($pdf, (string) ($info['disability'][1] ?? ''), 177, 180.5, 26, 6.5, 4.5);
-        $this->writeFittedAt($pdf, (string) ($info['solo_parent'][1] ?? ''), 177, 188.5, 26, 6.5, 4.5);
+        $this->writeFittedAt($pdf, (string) ($info['fourth_degree'][1] ?? ''), 141.224, 40, 56, 7.0, 5.0);
+        $this->writeFittedAt($pdf, (string) ($info['guilty'][1] ?? ''), 141.224, 56, 56, 7.0, 5.0);
+        $this->writeFittedAt($pdf, (string) ($info['charged'][1] ?? ''), 163, 73, 40, 7.0, 5.0);
+        $this->writeFittedAt($pdf, (string) ($info['charged'][2] ?? ''), 163, 77, 40, 7.0, 5.0);
+        $this->writeFittedAt($pdf, (string) ($info['convicted'][1] ?? ''), 141.224, 120, 56, 7.0, 5.0);
+        $this->writeFittedAt($pdf, (string) ($info['separated'][1] ?? ''), 141.224, 93.5, 56, 7.0, 5.0);
+        $this->writeFittedAt($pdf, (string) ($info['candidate'][1] ?? ''), 166, 100, 40, 7.0, 5.0);
+        $this->writeFittedAt($pdf, (string) ($info['resigned'][1] ?? ''), 163, 129, 40, 7.0, 5.0);
+        $this->writeFittedAt($pdf, (string) ($info['immigrant'][1] ?? ''), 141.224, 144, 62, 7.0, 5.0);
+        $this->writeFittedAt($pdf, (string) ($info['indigenous'][1] ?? ''), 177, 168, 26, 6.5, 4.5);
+        $this->writeFittedAt($pdf, (string) ($info['disability'][1] ?? ''), 177, 177, 26, 6.5, 4.5);
+        $this->writeFittedAt($pdf, (string) ($info['solo_parent'][1] ?? ''), 177, 185, 26, 6.5, 4.5);
 
         // Reference table
         $x_name = 8.0;
