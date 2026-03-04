@@ -59,9 +59,13 @@
                 <div class="flex items-center justify-between mb-6">
                     <h2 class="text-2xl font-bold text-gray-900">Supporting Documents</h2>
                 </div>
-                @if($requiresFreshUpload && !$hasFreshUploadForVacancy)
+                @if($isApplicationFlow)
                     <div class="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
-                        Fresh upload required for this job application. Please upload the required documents again before continuing.
+                        @if($hasFreshUploadForVacancy)
+                            All required documents for this vacancy are already available from your previous uploads. Upload only files you want to update.
+                        @else
+                            Previously uploaded documents are detected automatically. Upload only the required documents that are still missing for this vacancy.
+                        @endif
                     </div>
                 @endif
                 <p class="text-base font-semibold text-gray-900 mb-6">

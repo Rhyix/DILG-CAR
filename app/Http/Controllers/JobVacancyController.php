@@ -363,7 +363,6 @@ class JobVacancyController extends Controller
             'redirectUrl' => route('display_c5', [
                 'doc_track' => $normalizedVacancyTrack,
                 'vacancy_id' => $vacancy->vacancy_id,
-                'fresh_upload' => 1,
             ]),
         ];
         $requiredDocsModalState = [
@@ -373,7 +372,6 @@ class JobVacancyController extends Controller
             'redirectUrl' => route('display_c5', [
                 'doc_track' => $normalizedVacancyTrack,
                 'vacancy_id' => $vacancy->vacancy_id,
-                'fresh_upload' => 1,
             ]),
         ];
 
@@ -700,17 +698,61 @@ class JobVacancyController extends Controller
                 ]);
         }
 
+        $requiredDocumentIds = $this->getRequiredDocumentIdsForVacancyType((string) $vacancy->vacancy_type);
+        $this->seedVacancyDocumentsFromReusableUploads(
+            (int) Auth::id(),
+            (string) $vacancy->vacancy_id,
+            $requiredDocumentIds
+        );
+
         $supportsVacancyScopedDocs = Schema::hasColumn('uploaded_documents', 'vacancy_id');
         $applicationLetterDocQuery = UploadedDocument::where('user_id', Auth::id())
             ->where('document_type', 'application_letter')
             ->whereNotNull('storage_path')
             ->where('storage_path', '!=', 'NOINPUT');
         if ($supportsVacancyScopedDocs) {
-            $applicationLetterDocQuery->where('vacancy_id', $vacancy->vacancy_id);
+            $applicationLetterDocQuery->orderByRaw(
+                "CASE WHEN vacancy_id = ? THEN 0 WHEN vacancy_id IS NULL THEN 1 ELSE 2 END",
+                [(string) $vacancy->vacancy_id]
+            );
         }
         $applicationLetterDoc = $applicationLetterDocQuery
             ->latest('updated_at')
             ->first();
+
+        if (!$applicationLetterDoc) {
+            $latestApplicationLetter = Applications::where('user_id', Auth::id())
+                ->whereNotNull('file_storage_path')
+                ->latest('updated_at')
+                ->first();
+
+            if ($latestApplicationLetter) {
+                $applicationLetterDoc = UploadedDocument::updateOrCreate(
+                    $supportsVacancyScopedDocs
+                        ? [
+                            'user_id' => Auth::id(),
+                            'vacancy_id' => (string) $vacancy->vacancy_id,
+                            'document_type' => 'application_letter',
+                        ]
+                        : [
+                            'user_id' => Auth::id(),
+                            'document_type' => 'application_letter',
+                        ],
+                    [
+                        'original_name' => (string) ($latestApplicationLetter->file_original_name
+                            ?: basename((string) $latestApplicationLetter->file_storage_path)),
+                        'stored_name' => (string) ($latestApplicationLetter->file_stored_name
+                            ?: basename((string) $latestApplicationLetter->file_storage_path)),
+                        'storage_path' => (string) $latestApplicationLetter->file_storage_path,
+                        'mime_type' => 'application/pdf',
+                        'file_size_8b' => (int) ($latestApplicationLetter->file_size_8b ?? 0),
+                        'status' => 'Pending',
+                        'remarks' => '',
+                        'last_modified_by' => Auth::user()?->name ?? 'System',
+                    ]
+                );
+            }
+        }
 
         if (!$applicationLetterDoc) {
             Log::info('Apply blocked: application letter not found in UploadedDocument', [
@@ -724,6 +766,17 @@ class JobVacancyController extends Controller
                     'redirect_url' => $requiredDocsModalState['redirectUrl'],
                     'preview_docs' => $requiredDocsModalState['previewDocs'],
                 ]);
+        }
+
+        if (
+            $supportsVacancyScopedDocs
+            && (string) ($applicationLetterDoc->vacancy_id ?? '') !== (string) $vacancy->vacancy_id
+        ) {
+            $applicationLetterDoc = $this->upsertVacancyDocumentFromSource(
+                $applicationLetterDoc,
+                (string) $vacancy->vacancy_id,
+                'application_letter'
+            );
         }
 
 
@@ -1127,6 +1180,108 @@ class JobVacancyController extends Controller
             ->keyBy('document_type');
     }
 
+    private function loadReusableUploadedDocumentsMap(int $userId, ?string $vacancyId = null)
+    {
+        $supportsVacancyScopedDocs = Schema::hasColumn('uploaded_documents', 'vacancy_id');
+
+        $docsQuery = UploadedDocument::where('user_id', $userId)
+            ->whereNotNull('storage_path')
+            ->where('storage_path', '!=', 'NOINPUT');
+
+        if ($supportsVacancyScopedDocs && !empty($vacancyId)) {
+            $docsQuery->orderByRaw(
+                "CASE WHEN vacancy_id = ? THEN 0 WHEN vacancy_id IS NULL THEN 1 ELSE 2 END",
+                [(string) $vacancyId]
+            );
+        } elseif ($supportsVacancyScopedDocs) {
+            $docsQuery->orderByRaw('CASE WHEN vacancy_id IS NULL THEN 0 ELSE 1 END');
+        }
+
+        $docs = $docsQuery
+            ->orderByDesc('updated_at')
+            ->get();
+
+        return $docs
+            ->unique('document_type')
+            ->keyBy('document_type');
+    }
+
+    private function hasStoredUploadedDocument($uploadedDocuments, string $docType): bool
+    {
+        $doc = $this->resolveUploadedDocument($uploadedDocuments, $docType);
+        return $doc && !empty($doc->storage_path) && $doc->storage_path !== 'NOINPUT';
+    }
+
+    private function seedVacancyDocumentsFromReusableUploads(int $userId, string $vacancyId, array $requiredDocs): void
+    {
+        if (
+            empty($vacancyId)
+            || empty($requiredDocs)
+            || !Schema::hasColumn('uploaded_documents', 'vacancy_id')
+        ) {
+            return;
+        }
+
+        $vacancyDocs = UploadedDocument::where('user_id', $userId)
+            ->where('vacancy_id', $vacancyId)
+            ->whereNotNull('storage_path')
+            ->where('storage_path', '!=', 'NOINPUT')
+            ->orderByDesc('updated_at')
+            ->get()
+            ->unique('document_type')
+            ->keyBy('document_type');
+
+        $reusableDocs = $this->loadReusableUploadedDocumentsMap($userId, $vacancyId);
+
+        foreach ($requiredDocs as $docType) {
+            if ($this->hasStoredUploadedDocument($vacancyDocs, (string) $docType)) {
+                continue;
+            }
+
+            $sourceDoc = $this->resolveUploadedDocument($reusableDocs, (string) $docType);
+            if (!$sourceDoc || empty($sourceDoc->storage_path) || $sourceDoc->storage_path === 'NOINPUT') {
+                continue;
+            }
+
+            $seeded = $this->upsertVacancyDocumentFromSource($sourceDoc, $vacancyId, (string) $docType);
+            $vacancyDocs->put((string) $docType, $seeded);
+        }
+    }
+
+    private function upsertVacancyDocumentFromSource(
+        UploadedDocument $source,
+        string $vacancyId,
+        string $targetDocType
+    ): UploadedDocument {
+        $destination = UploadedDocument::where('user_id', (int) $source->user_id)
+            ->where('vacancy_id', $vacancyId)
+            ->where('document_type', $targetDocType)
+            ->orderByDesc('updated_at')
+            ->first();
+
+        $payload = [
+            'original_name' => $source->original_name,
+            'stored_name' => $source->stored_name,
+            'storage_path' => $source->storage_path,
+            'mime_type' => $source->mime_type,
+            'file_size_8b' => $source->file_size_8b,
+            'status' => 'Pending',
+            'remarks' => '',
+            'last_modified_by' => Auth::user()?->name ?? 'System',
+        ];
+
+        if ($destination) {
+            $destination->update($payload);
+            return $destination;
+        }
+
+        return UploadedDocument::create(array_merge($payload, [
+            'user_id' => (int) $source->user_id,
+            'vacancy_id' => $vacancyId,
+            'document_type' => $targetDocType,
+        ]));
+    }
+
     private function getRequiredDocumentIdsForVacancyType(?string $vacancyType): array
     {
         $vacancyTrack = $this->normalizeTrack($vacancyType);
@@ -1205,39 +1360,12 @@ class JobVacancyController extends Controller
         return strcasecmp((string) $track, 'COS') === 0 ? 'COS' : 'Plantilla';
     }
 
-    private function hasVacancyDocumentUploadForApply(int $userId, ?string $vacancyId): bool
-    {
-        if (!$vacancyId) {
-            return false;
-        }
-
-        $vacancyUploads = session('vacancy_doc_uploads', []);
-        $entry = $vacancyUploads[$vacancyId] ?? null;
-        $hasSessionMarker = is_array($entry)
-            && ((int) ($entry['user_id'] ?? 0) === $userId)
-            && !empty($entry['uploaded_at']);
-        if ($hasSessionMarker) {
-            return true;
-        }
-
-        if (Schema::hasColumn('uploaded_documents', 'vacancy_id')) {
-            return UploadedDocument::where('user_id', $userId)
-                ->where('vacancy_id', $vacancyId)
-                ->whereNotNull('storage_path')
-                ->where('storage_path', '!=', 'NOINPUT')
-                ->exists();
-        }
-
-        return false;
-    }
-
     private function getRequiredDocsModalState(int $userId, ?string $vacancyType, ?string $vacancyId = null): array
     {
         $vacancyTrack = $this->normalizeTrack($vacancyType);
         $requiredDocsByTrack = $this->getRequiredDocsByTrack();
         $requiredDocs = $requiredDocsByTrack[$vacancyTrack] ?? [];
         $documentLabels = $this->getDocumentLabelMap();
-        $hasFreshUploadForVacancy = $this->hasVacancyDocumentUploadForApply($userId, $vacancyId);
 
         $previewDocs = array_map(function (string $docType) use ($documentLabels) {
             return [
@@ -1246,43 +1374,18 @@ class JobVacancyController extends Controller
             ];
         }, $requiredDocs);
 
-        $hasMissing = true;
-        if ($vacancyId) {
-            if (Schema::hasColumn('uploaded_documents', 'vacancy_id')) {
-                $uploadedDocuments = $this->loadUploadedDocumentsMap($userId, $vacancyId);
-                $hasApplicationLetterInApplications = Applications::where('user_id', $userId)
-                    ->where('vacancy_id', $vacancyId)
-                    ->whereNotNull('file_storage_path')
-                    ->exists();
+        $uploadedDocuments = $this->loadReusableUploadedDocumentsMap($userId, $vacancyId);
+        $hasApplicationLetterInApplications = Applications::where('user_id', $userId)
+            ->whereNotNull('file_storage_path')
+            ->exists();
 
-                $hasMissing = collect($requiredDocs)->contains(function (string $docType) use ($uploadedDocuments, $hasApplicationLetterInApplications) {
-                    if ($docType === 'application_letter' && $hasApplicationLetterInApplications) {
-                        return false;
-                    }
-
-                    $doc = $this->resolveUploadedDocument($uploadedDocuments, $docType);
-                    return !($doc && !empty($doc->storage_path) && $doc->storage_path !== 'NOINPUT');
-                });
-            } else {
-                // Legacy fallback: session marker based freshness when vacancy-scoped docs are unavailable.
-                $hasMissing = !$hasFreshUploadForVacancy;
+        $hasMissing = collect($requiredDocs)->contains(function (string $docType) use ($uploadedDocuments, $hasApplicationLetterInApplications) {
+            if ($docType === 'application_letter' && $hasApplicationLetterInApplications) {
+                return false;
             }
-        } else {
-            // Fallback behavior when vacancy context is not present.
-            $uploadedDocuments = UploadedDocument::where('user_id', $userId)->get()->keyBy('document_type');
-            $hasApplicationLetterInApplications = Applications::where('user_id', $userId)
-                ->whereNotNull('file_storage_path')
-                ->exists();
 
-            $hasMissing = collect($requiredDocs)->contains(function (string $docType) use ($uploadedDocuments, $hasApplicationLetterInApplications) {
-                if ($docType === 'application_letter' && $hasApplicationLetterInApplications) {
-                    return false;
-                }
-
-                $doc = $this->resolveUploadedDocument($uploadedDocuments, $docType);
-                return !($doc && !empty($doc->storage_path) && $doc->storage_path !== 'NOINPUT');
-            });
-        }
+            return !$this->hasStoredUploadedDocument($uploadedDocuments, $docType);
+        });
 
         return [
             'hasMissing' => $hasMissing,
@@ -1291,7 +1394,6 @@ class JobVacancyController extends Controller
             'redirectUrl' => route('display_c5', [
                 'doc_track' => $vacancyTrack,
                 'vacancy_id' => $vacancyId,
-                'fresh_upload' => 1,
             ]),
         ];
     }
@@ -1299,7 +1401,11 @@ class JobVacancyController extends Controller
     private function getTrackCompletenessByUser(int $userId): array
     {
         $requiredDocsByTrack = $this->getRequiredDocsByTrack();
-        $uploadedDocuments = UploadedDocument::where('user_id', $userId)->get()->keyBy('document_type');
+        $uploadedDocuments = UploadedDocument::where('user_id', $userId)
+            ->orderByDesc('updated_at')
+            ->get()
+            ->unique('document_type')
+            ->keyBy('document_type');
         $hasApplicationLetter = Applications::where('user_id', $userId)
             ->whereNotNull('file_storage_path')
             ->exists();
@@ -1338,7 +1444,6 @@ class JobVacancyController extends Controller
             'redirectUrl' => route('display_c5', [
                 'doc_track' => $vacancyTrack,
                 'vacancy_id' => $vacancyId,
-                'fresh_upload' => 1,
             ]),
         ];
     }

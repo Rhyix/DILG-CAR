@@ -37,7 +37,6 @@
             ?? route('display_c5', [
                 'doc_track' => $vacancyTrackForModal,
                 'vacancy_id' => $vacancy->vacancy_id,
-                'fresh_upload' => 1,
             ]);
         $requiredDocsTrackForModal = $vacancyTrackForModal;
         $requiredDocsRedirectUrlForModal = $docUploadRedirectUrlForModal;
@@ -183,7 +182,8 @@
 
                 <div class="p-6">
                 <p class="text-sm text-gray-700 mb-4">
-                    Each job application requires a fresh document submission.
+                    Previously uploaded required documents are reused automatically for your next applications.
+                    Upload only the required documents that are still missing for this vacancy.
                 </p>
 
                 <p class="text-sm text-red-700 mb-4 flex items-start gap-2">
@@ -192,9 +192,8 @@
                     </svg>
                     <span>
                         <span class="font-medium">Note:</span> 
-                        You will only be given a single opportunity to comply the required documents. 
-                        Make sure to upload all the required documents in one go. If you fail to upload the required documents now, 
-                        you will not be able to apply for this vacancy.
+                        Make sure all required documents are available before applying.
+                        Upload any missing required document now to continue your application.
                     </span>
                 </p>
 

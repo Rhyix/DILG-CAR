@@ -250,9 +250,14 @@
     $displayDeadline = !empty($deadline) && $deadline !== 'No deadline set' ? $deadline : null;
     $displayRemarks = trim((string) ($application_remarks ?? ''));
 
-    $sortedDocuments = $normalizedDocuments->sortBy(function ($doc) {
-      return strtolower($doc['name']);
-    })->values();
+    $sortedDocuments = $normalizedDocuments
+      ->filter(function ($doc) {
+        // Only include documents the applicant actually uploaded (exclude not submitted / empty)
+        return $doc['status'] !== '' && $doc['status'] !== 'not submitted';
+      })
+      ->sortBy(function ($doc) {
+        return strtolower($doc['name']);
+      })->values();
 
     $logoPath = public_path('images/dilg_logo.png');
     $logoSrc = asset('images/dilg_logo.png');
@@ -292,42 +297,6 @@
       position.
     </p>
 
-    <table class="receipt-table" role="presentation">
-      <thead>
-        <tr>
-          <th>Required Documents</th>
-          <th class="mark-col">(&#10003; or &#10005;)</th>
-          <th class="remarks-col">Remarks</th>
-        </tr>
-      </thead>
-      <tbody>
-        @if($sortedDocuments->isEmpty())
-          <tr>
-            <td colspan="3" class="center">No document records available.</td>
-          </tr>
-        @else
-          @foreach($sortedDocuments as $doc)
-            @php
-              // ✓ = submitted (any status except 'not submitted')
-              // ✗ = not submitted
-              $mark = ($doc['status'] === '' || $doc['status'] === 'not submitted')
-                ? '&#10005;'
-                : '&#10003;';
-
-              $remarksText = $doc['remarks'] !== '' && strtolower($doc['remarks']) !== 'no remarks provided.'
-                ? $doc['remarks']
-                : '-';
-            @endphp
-            <tr>
-              <td>{{ $doc['name'] }}</td>
-              <td class="center"><strong>{!! $mark !!}</strong></td>
-              <td>{{ $remarksText }}</td>
-            </tr>
-          @endforeach
-        @endif
-      </tbody>
-    </table>
-
     <p class="section-label">
       Is the applicant qualified and has met the required Qualification Standard (QS) of position on:
     </p>
@@ -350,6 +319,40 @@
           <td class="center">{{ $qsTrainingValue }}</td>
           <td class="center">{!! $overallQsMark !!}</td>
         </tr>
+      </tbody>
+    </table>
+
+    <table class="receipt-table" role="presentation" style="margin-top:12px;">
+      <thead>
+        <tr>
+          <th>Submitted Documents</th>
+          <th class="mark-col">(&#10003; or &#10005;)</th>
+          <th class="remarks-col">Remarks</th>
+        </tr>
+      </thead>
+      <tbody>
+        @if($sortedDocuments->isEmpty())
+          <tr>
+            <td colspan="3" class="center">No documents submitted.</td>
+          </tr>
+        @else
+          @foreach($sortedDocuments as $doc)
+            @php
+              $isVerified = in_array($doc['status'], $verifiedStatuses, true);
+              $needsRevision = in_array($doc['status'], $revisionStatuses, true);
+              $mark = $isVerified ? '&#10003;' : '&#10005;';
+              $markColor = $isVerified ? '#16a34a' : '#dc2626';
+              $remarksText = $doc['remarks'] !== '' && strtolower($doc['remarks']) !== 'no remarks provided.'
+                ? $doc['remarks']
+                : '-';
+            @endphp
+            <tr>
+              <td>{{ $doc['name'] }}</td>
+              <td class="center"><strong style="color: {{ $markColor }};">{!! $mark !!}</strong></td>
+              <td>{{ $remarksText }}</td>
+            </tr>
+          @endforeach
+        @endif
       </tbody>
     </table>
 

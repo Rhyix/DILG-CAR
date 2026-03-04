@@ -44,12 +44,13 @@ class SendExamNotification implements ShouldQueue
             $examDetail = ExamDetail::find($this->examId);
 
             if (!$user || !$vacancy || !$examDetail) {
-                Log::error("SendExamNotification: Missing data", [
+                $context = [
                     'user_id' => $this->userId,
                     'vacancy_id' => $this->vacancyId,
                     'exam_id' => $this->examId
-                ]);
-                return;
+                ];
+                Log::error("SendExamNotification: Missing data", $context);
+                throw new \RuntimeException('Unable to send exam notification due to missing data.');
             }
 
             // Generate exam link with token
@@ -58,18 +59,35 @@ class SendExamNotification implements ShouldQueue
                 ->first();
 
             $token = $application ? $application->exam_token : null;
+            if (empty($token)) {
+                throw new \RuntimeException('Exam token not found for applicant.');
+            }
             $examLink = route('user.exam_lobby', ['vacancy_id' => $this->vacancyId, 'token' => $token]);
 
             // Send email using the exam schedule link template
+            $fromAddress = (string) config('mail.from.address');
+            $fromName = (string) config('mail.from.name', 'DILG-CAR Recruitment');
+            $replyToAddress = filter_var((string) $this->senderEmail, FILTER_VALIDATE_EMAIL)
+                ? (string) $this->senderEmail
+                : null;
+
             Mail::send('emails.exam_sched_link', [
                 'user' => $user,
                 'vacancy' => $vacancy,
                 'exam' => $examDetail,
                 'join_link' => $examLink,
-            ], function ($message) use ($user, $vacancy) {
+            ], function ($message) use ($user, $vacancy, $fromAddress, $fromName, $replyToAddress) {
                 $message->to($user->email, $user->name)
-                    ->subject('Examination Schedule - ' . $vacancy->position_title)
-                    ->from($this->senderEmail, 'DILG-CAR Recruitment');
+                    ->subject('Examination Schedule - ' . $vacancy->position_title);
+
+                // Use configured mail sender for better SMTP compatibility.
+                if ($fromAddress !== '') {
+                    $message->from($fromAddress, $fromName);
+                }
+
+                if ($replyToAddress) {
+                    $message->replyTo($replyToAddress);
+                }
             });
 
             Log::info("Exam notification sent successfully", [

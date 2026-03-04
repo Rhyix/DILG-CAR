@@ -44,6 +44,15 @@
                 <p class="text-gray-700 text-lg mb-4">Schedule to be announced</p>
                 @endif
 
+                @php
+                    $displayExamineeName = $examineeName ?? (auth()->user()->name ?? 'Examinee');
+                    $displayExamineeNumber = $examineeNumber ?? strtoupper('EXM-' . substr(hash('sha256', ($vacancy_id ?? 'UNKNOWN') . '-' . (auth()->id() ?? '0')), 0, 8));
+                @endphp
+                <div class="mt-2 mb-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-left">
+                    <p class="text-sm text-gray-700"><span class="font-semibold text-[#002C76]">Examinee:</span> {{ $displayExamineeName }}</p>
+                    <p class="text-sm text-gray-700"><span class="font-semibold text-[#002C76]">Examinee No.:</span> {{ $displayExamineeNumber }}</p>
+                </div>
+
                 <div id="waitingMessage" class="mt-6 flex items-center gap-2">
                     <div class="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
                     <p class="text-lg text-gray-600">Waiting for the Admin to start the exam.</p>

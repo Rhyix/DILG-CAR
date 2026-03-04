@@ -567,7 +567,7 @@
         })
         .then(data => {
             if(data.success) {
-                alert("Exam links sent successfully to all applicants!");
+                alert(data.message || "Exam links sent successfully.");
                 // Mark links as sent on client and update Start Exam state
                 linkSentClient = true;
                 updateStartButtonState();
@@ -747,7 +747,7 @@
                 
                 let msg = "Exam details saved successfully!";
                 if (data.notified) {
-                    msg += " Applicants have been notified.";
+                    msg += " " + (data.notify_message || "Applicants have been notified.");
                 }
                 alert(msg);
                 
