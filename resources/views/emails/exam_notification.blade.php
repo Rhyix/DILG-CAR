@@ -93,7 +93,12 @@
 
 <body>
     <div class="email-container">
-        <div class="email-header">            <img src="{{ asset('images/dilg_logo.png') }}" alt="DILG Logo" style="width:64px;height:64px;object-fit:contain;display:block;margin:0 auto 12px auto;border-radius:4px;">            <h1>📝 Exam Notification</h1>
+        <div class="email-header">
+            @php $logoPath = public_path('images/dilg_logo.png'); @endphp
+            @if(isset($message) && is_file($logoPath))
+                <img src="{{ $message->embed($logoPath) }}" alt="DILG Logo" style="width:64px;height:64px;object-fit:contain;display:block;margin:0 auto 12px auto;border-radius:50%;border:3px solid #FCD116;background-color:#002C76;">
+            @endif
+            <h1>📝 Exam Notification</h1>
         </div>
 
         <div class="email-body">
