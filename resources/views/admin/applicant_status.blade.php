@@ -204,9 +204,12 @@
 							<span class="text-red-600 font-bold">*</span> Required for {{ $vacancy_type }} vacancy
 						</p>
 <<<<<<< HEAD
+<<<<<<< HEAD
 						<p class="text-[11px] text-[#002C76] mb-2">
 							Right-click a required document for quick verify.
 						</p>
+=======
+>>>>>>> parent of c952f1c (Exam Notification, PDS Uploading Documents,)
 =======
 >>>>>>> parent of c952f1c (Exam Notification, PDS Uploading Documents,)
 						<div class="pr-1">
@@ -1215,9 +1218,12 @@ value="{{ old('deadline_time', $application->deadline_time ? \Carbon\Carbon::par
 				btn.appendChild(iconWrapper);
 				btn.appendChild(textWrapper);
 <<<<<<< HEAD
+<<<<<<< HEAD
 				if (isRequiredDocument(doc.id)) {
 					btn.title = 'Right-click to quick verify';
 				}
+=======
+>>>>>>> parent of c952f1c (Exam Notification, PDS Uploading Documents,)
 =======
 >>>>>>> parent of c952f1c (Exam Notification, PDS Uploading Documents,)
 
