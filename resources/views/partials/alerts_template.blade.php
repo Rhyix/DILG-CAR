@@ -73,21 +73,22 @@
                 x-transition:leave="ease-in duration-150"
                 x-transition:leave-start="opacity-100"
                 x-transition:leave-end="opacity-0"
-                class="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/55 px-4 py-6 backdrop-blur-sm"
+                class="fixed inset-0 z-[10000] overflow-y-auto bg-slate-900/55 backdrop-blur-sm"
                 style="display: none;"
                 @keydown.escape.window="showModal = false"
             >
                 <div class="absolute inset-0" @click="showModal = false" aria-hidden="true"></div>
 
-                <div
-                    class="relative w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
-                    x-transition:enter="ease-out duration-200"
-                    x-transition:enter-start="opacity-0 translate-y-2 scale-[0.98]"
-                    x-transition:enter-end="opacity-100 translate-y-0 scale-100"
-                    x-transition:leave="ease-in duration-150"
-                    x-transition:leave-start="opacity-100 translate-y-0 scale-100"
-                    x-transition:leave-end="opacity-0 translate-y-2 scale-[0.98]"
-                >
+                <div class="relative flex min-h-full w-full items-center justify-center px-4 py-6">
+                    <div
+                        class="relative w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+                        x-transition:enter="ease-out duration-200"
+                        x-transition:enter-start="opacity-0 translate-y-2 scale-[0.98]"
+                        x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                        x-transition:leave="ease-in duration-150"
+                        x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+                        x-transition:leave-end="opacity-0 translate-y-2 scale-[0.98]"
+                    >
                     <button
                         type="button"
                         @click="showModal = false"
@@ -131,6 +132,7 @@
                         @endif
 
                         {!! $content !!}
+                    </div>
                     </div>
                 </div>
             </div>
