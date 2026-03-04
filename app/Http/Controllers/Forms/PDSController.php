@@ -377,8 +377,8 @@ class PDSController extends Controller
             'telephone_no' => 'nullable|regex:/^0\d{9,10}$/', // example: 0281234567, 0322123456
             'mobile_no' => 'required|regex:/^09\d{9}$/', // example: +639171234567
             'email_address' => 'required|email:rfc',
-            'height' => 'required|integer|max:999',
-            'weight' => 'required|integer|max:999',
+            'height' => 'required|numeric|max:999',
+            'weight' => 'required|numeric|max:999',
             'res_zipcode' => 'nullable|string|max:4',
             'per_zipcode' => 'nullable|string|max:4',
             'elem_from' => 'required|date_format:d-m-Y',

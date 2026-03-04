@@ -1,8 +1,45 @@
 @extends('layout.pds_layout')
 @section('title', 'PDS - Personal Data Sheet')
 @section('content')
+    <style>
+        .pds-responsive-font {
+            --pds-font-body: clamp(0.88rem, 0.82rem + 0.22vw, 1rem);
+            --pds-font-label: clamp(0.8rem, 0.75rem + 0.2vw, 0.94rem);
+            --pds-font-heading: clamp(1.1rem, 0.98rem + 0.9vw, 1.65rem);
+            --pds-font-subheading: clamp(0.98rem, 0.9rem + 0.45vw, 1.2rem);
+            --pds-font-meta: clamp(0.76rem, 0.72rem + 0.2vw, 0.9rem);
+        }
+
+        .pds-responsive-font :is(input, select, textarea, button) {
+            font-size: var(--pds-font-body) !important;
+            line-height: 1.35;
+        }
+
+        .pds-responsive-font label.floating-label {
+            font-size: var(--pds-font-label) !important;
+        }
+
+        .pds-responsive-font label:not(.floating-label) {
+            font-size: var(--pds-font-body) !important;
+        }
+
+        .pds-responsive-font h2 {
+            font-size: var(--pds-font-heading) !important;
+            line-height: 1.2;
+        }
+
+        .pds-responsive-font h3 {
+            font-size: var(--pds-font-subheading) !important;
+            line-height: 1.25;
+        }
+
+        .pds-responsive-font p {
+            font-size: var(--pds-font-meta) !important;
+            line-height: 1.45;
+        }
+    </style>
     <!-- Main Content -->
-    <main class="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-8 mb-20 sm:mb-0" style="padding-top: 0px;">
+    <main class="pds-responsive-font max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-8 mb-20 sm:mb-0" style="padding-top: 0px;">
         <form id="myForm" class="space-y-4 sm:space-y-8" action="/pds/submit_c1/display_c2" method="POST" x-data="{ civilStatus: '{{ old('civil_status', session('form.c1.civil_status')) }}' }">
             @csrf
             <!-- Personal Information Section -->
@@ -63,11 +100,11 @@
                 <div class="mobile-stack md:grid md:grid-cols-4 gap-4 sm:gap-6 mb-4 sm:mb-6">
                     <div class="relative rounded-lg">
                         <input type="text" id="surname" name="surname" value="{{ old('surname', session('form.c1.surname')) }}" placeholder=" " required class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                        <label for="surname" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">2. Surname *</label>
+                        <label for="surname" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">2. Surname <span class="text-red-500">*</span></label>
                     </div>
                     <div class="relative">
                         <input type="text" id="first_name" name="first_name" value="{{ old('first_name', session('form.c1.first_name')) }}" placeholder=" " required class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                        <label for="first_name" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">First Name *</label>
+                        <label for="first_name" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">First Name <span class="text-red-500">*</span></label>
                     </div>
                     <div class="relative">
                         <input type="text" id="middle_name" name="middle_name" value="{{ old('middle_name', session('form.c1.middle_name')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
@@ -83,15 +120,15 @@
                 <div class="mobile-stack md:grid md:grid-cols-4 gap-4 rounded-lg p-4 sm:gap-6 mb-4 sm:mb-6">
                     <div class="relative">
                         <input type="text" id="date_of_birth" name="date_of_birth" value="{{ old('date_of_birth', session('form.c1.date_of_birth')) }}" required class="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base">
-                        <label for="date_of_birth" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">3. DATE OF BIRTH *</label>
-                        <label for="date_of_birth" class="absolute -top-2 left-3 bg-white px-1 text-xs text-gray-600 ml-[50%]">(dd/mm/yyyy) </label>
+                        <label for="date_of_birth" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">3. DATE OF BIRTH <span class="text-red-500">*</span></label>
+                        <!-- <label for="date_of_birth" class="absolute -top-2 left-3 bg-white px-1 text-xs text-gray-600 ml-[50%]">(dd/mm/yyyy) </label> -->
                     </div>
                     <div class="relative md:col-span-2">
                         <input type="text" id="place_of_birth" name="place_of_birth" value="{{ old('place_of_birth', session('form.c1.place_of_birth')) }}" placeholder=" " required class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                        <label for="place_of_birth" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">4. Place of Birth *</label>
+                        <label for="place_of_birth" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">4. Place of Birth <span class="text-red-500">*</span></label>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">5. SEX AT BIRTH *</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">5. SEX AT BIRTH <span class="text-red-500">*</span></label>
                         <div class="flex space-x-4 sm:space-x-6">
                             <label class="flex items-center cursor-pointer hover:text-blue-600 transition-colors text-sm sm:text-base">
                                 <input type="radio" name="sex" value="male" {{ old('sex', session('form.c1.sex')) == 'male' ? 'checked' : '' }} class="mr-2 text-blue-600 focus:ring-blue-500" required>
@@ -116,16 +153,16 @@
                             <option value="separated"{{ old('civil_status', session('form.c1.civil_status')) == 'separated' ? 'selected' : '' }}>Separated</option>
                             <option value="other"{{ old('civil_status', session('form.c1.civil_status')) == 'other' ? 'selected' : '' }}>Other/s</option>
                         </select>
-                        <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">6. Civil Status *</label>
+                        <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">6. Civil Status <span class="text-red-500">*</span></label>
                     </div>
                     <!-- Physical Info -->
                     <div class="relative">
                         <input type="number" style="-moz-appearance: textfield; -webkit-appearance: textfield;" required step="0.01" id="height" name="height" value="{{ old('height', session('form.c1.height')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                        <label for="height" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">7. HEIGHT (m) *</label>
+                        <label for="height" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">7. HEIGHT (m) <span class="text-red-500">*</span></label>
                     </div>
                     <div class="relative">
                         <input type="number" style="-moz-appearance: textfield; -webkit-appearance: textfield;" required step="0.1" id="weight" name="weight" value="{{ old('weight', session('form.c1.weight')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                        <label for="weight" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">8. Weight (kg)*</label>
+                        <label for="weight" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">8. Weight (kg) <span class="text-red-500">*</span></label>
                     </div>
                     <div class="relative">
                         @php
@@ -141,7 +178,7 @@
                                 <option value="{{ $blood }}" selected>{{ $blood }}</option>
                             @endif
                         </select>
-                        <label for="blood_type" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">9. Blood Type*</label>
+                        <label for="blood_type" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">9. Blood Type<span class="text-red-500">*</span></label>
                     </div>
                 </div>
 
@@ -176,7 +213,7 @@
                 <!-- Additional Personal Info -->
                 <div class="mobile-stack md:grid md:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
                     <div x-data="{ citizenship: '{{ old('citizenship', session('form.c1.citizenship')) }}', dualType: '{{ old('dual_type', session('form.c1.dual_type')) }}' }" class="space-y-4">
-                        <label class="block text-gray-700 font-medium mb-2 text-sm sm:text-base">16. CITIZENSHIP *</label>
+                        <label class="block text-gray-700 font-medium mb-2 text-sm sm:text-base">16. CITIZENSHIP <span class="text-red-500">*</span></label>
 
                         <!-- Primary citizenship options -->
                         <div class="flex flex-col sm:flex-row gap-2">
@@ -248,19 +285,19 @@
                     </div>
                     <div class="relative">
                         <select required id="res_province" name="res_province" class="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all appearance-none bg-white text-sm sm:text-base"></select>
-                        <label for="res_province" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">Province*</label>
+                        <label for="res_province" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">Province <span class="text-red-500">*</span></label>
                     </div>
                     <div class="relative">
                         <select required id="res_city" name="res_city" class="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all appearance-none bg-white text-sm sm:text-base"></select>
-                        <label for="res_city" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">City/Municipality*</label>
+                        <label for="res_city" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">City/Municipality <span class="text-red-500">*</span></label>
                     </div>
                     <div class="relative">
                         <select required id="res_brgy" name="res_brgy" class="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all appearance-none bg-white text-sm sm:text-base"></select>
-                        <label for="res_brgy" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">Barangay*</label>
+                        <label for="res_brgy" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">Barangay <span class="text-red-500">*</span></label>
                     </div>
                     <div class="relative">
                         <input pattern="\d{4}" maxlength="4" type="text" inputmode="numeric" required id="res_zipcode" name="res_zipcode" value="{{ old('res_zipcode', session('form.c1.res_zipcode')) }}" placeholder="" class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                        <label for="res_zipcode" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">ZIP Code*</label>
+                        <label for="res_zipcode" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">ZIP Code <span class="text-red-500">*</span></label>
                     </div>
                 </div>
             </section>
@@ -293,19 +330,19 @@
                     </div>
                     <div class="relative">
                         <select required id="per_province" name="per_province" class="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all appearance-none bg-white text-sm sm:text-base"></select>
-                        <label for="per_province" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">Province*</label>
+                        <label for="per_province" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">Province<span class="text-red-500">*</span></label>
                     </div>
                     <div class="relative">
                         <select required id="per_city" name="per_city" class="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all appearance-none bg-white text-sm sm:text-base"></select>
-                        <label for="per_city" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">City/Municipality*</label>
+                        <label for="per_city" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">City/Municipality<span class="text-red-500">*</span></label>
                     </div>
                     <div class="relative">
                         <select required id="per_brgy" name="per_brgy" class="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all appearance-none bg-white text-sm sm:text-base"></select>
-                        <label for="per_brgy" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">Barangay*</label>
+                        <label for="per_brgy" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">Barangay<span class="text-red-500">*</span></label>
                     </div>
                     <div class="relative">
                         <input pattern="\d{4}" maxlength="4" type="text" inputmode="numeric" required id="per_zipcode" name="per_zipcode" value="{{ old('per_zipcode', session('form.c1.per_zipcode')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                        <label for="per_zipcode" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">ZIP Code*</label>
+                        <label for="per_zipcode" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">ZIP Code<span class="text-red-500">*</span></label>
                     </div>
                 </div>
             </section>
@@ -322,13 +359,17 @@
                         <p class="mt-1 text-xs text-gray-500">Format: (02) XXXX XXXX</p>
                     </div>
                     <div class="relative">
-                        <input required type="tel" style="-moz-appearance: textfield; -webkit-appearance: textfield;" pattern="^(?:09\d{9}|9\d{9}|\+63\s?9\d{2}\s?\d{3}\s?\d{4})$" maxlength="16" id="mobile_no" name="mobile_no" value="{{ old('mobile_no', session('form.c1.mobile_no')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                        <label for="mobile_no" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">20. MOBILE NO. *</label>
-                        <p class="mt-1 text-xs text-gray-500">Format: +63 9XX XXX XXXX</p>
+                        <input required type="tel" style="-moz-appearance: textfield; -webkit-appearance: textfield;" maxlength="13" id="mobile_no" name="mobile_no" value="{{ old('mobile_no', session('form.c1.mobile_no')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base"
+                            pattern="^09\d{2}\s\d{3}\s\d{4}$"
+                            inputmode="numeric"
+
+                        >
+                        <label for="mobile_no" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">20. MOBILE NO. <span class="text-red-500">*</span></label>
+                        <p class="mt-1 text-xs text-gray-500">Format: 09XX XXX XXXX</p>
                     </div>
                     <div class="relative">
-                        <input required type="email" id="email_address" name="email_address" value="{{ old('email_address', session('form.c1.email_address')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                        <label for="email_address" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">21. E-MAIL ADDRESS (if any) *</label>
+                        <input type="email" id="email_address" name="email_address" value="{{ old('email_address', session('form.c1.email_address')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
+                        <label for="email_address" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">21. E-MAIL ADDRESS (if any)</label>
                     </div>
                 </div>
             </section>
@@ -422,11 +463,11 @@
                     <div class="mobile-stack md:grid md:grid-cols-3 gap-4 sm:gap-6">
                         <div class="relative">
                             <input required type="text" id="mother_maiden_surname" name="mother_maiden_surname" value="{{ old('mother_maiden_surname', session('form.c1.mother_maiden_surname')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                            <label for="mother_maiden_surname" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">25. Mother's Maiden Surname*</label>
+                            <label for="mother_maiden_surname" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">25. Mother's Maiden Surname<span class="text-red-500">*</span></label>
                         </div>
                         <div class="relative">
                             <input required type="text" id="mother_maiden_first_name" name="mother_maiden_first_name" value="{{ old('mother_maiden_first_name', session('form.c1.mother_maiden_first_name')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                            <label for="mother_maiden_first_name" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Mother's First Name*</label>
+                            <label for="mother_maiden_first_name" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Mother's First Name<span class="text-red-500">*</span></label>
                         </div>
                         <div class="relative">
                             <input type="text" id="mother_maiden_middle_name" name="mother_maiden_middle_name" value="{{ old('mother_maiden_middle_name', session('form.c1.mother_maiden_middle_name')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
@@ -447,29 +488,29 @@
                 <div class="mb-6">
                     <h3 class="text-base sm:text-lg font-semibold text-gray-700 mb-4">ELEMENTARY</h3>
                     <div class="mobile-stack md:grid md:grid-cols-4 gap-4 sm:gap-6">
-                        <div class="relative">
-                            <input required type="text" id="elem_from" name="elem_from" value="{{ old('elem_from', session('form.c1.elem_from')) }}" class="edu-date w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base">
-                            <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">From*</label>
-                        </div>
-                        <div class="relative">
-                            <input required type="text" id="elem_to" name="elem_to" value="{{ old('elem_to', session('form.c1.elem_to')) }}" class="edu-date w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base">
-                            <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">To*</label>
+                        <div class="relative md:col-span-2">
+                            <input required type="text" id="elem_school" name="elem_school" value="{{ old('elem_school', session('form.c1.elem_school')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
+                            <label for="elem_school" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">School Name<span class="text-red-500">*</span></label>
                         </div>
                         <div class="relative md:col-span-2">
                             <input type="text" id="elem_basic" name="elem_basic" value="PRIMARY" readonly placeholder=" " class="text-gray-500 floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
                             <label for="elem_basic" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Basic Education/Degree/Course</label>
                         </div>
-                        <div class="relative md:col-span-4">
-                            <input required type="text" id="elem_school" name="elem_school" value="{{ old('elem_school', session('form.c1.elem_school')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                            <label for="elem_school" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">School Name*</label>
+                        <div class="relative">
+                            <input required type="text" id="elem_from" name="elem_from" value="{{ old('elem_from', session('form.c1.elem_from')) }}" class="edu-date w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base">
+                            <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">From<span class="text-red-500">*</span></label>
                         </div>
-                        <div class="relative md:col-span-1">
-                            <input type="text" id="elem_earned" name="elem_earned" value="{{ old('elem_earned', session('form.c1.elem_earned')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                            <label for="elem_earned" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-xs sm:text-sm">Highest Level/Units Earned (if not graduated)</label>
+                        <div class="relative">
+                            <input required type="text" id="elem_to" name="elem_to" value="{{ old('elem_to', session('form.c1.elem_to')) }}" class="edu-date w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base">
+                            <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">To<span class="text-red-500">*</span></label>
                         </div>
-                        <div class="relative md:col-span-1">
+                        <div class="relative md:col-span-2">
                             <input pattern="\d{4}" maxlength="4" type="text" inputmode="numeric" id="elem_year_graduated" name="elem_year_graduated" value="{{ old('elem_year_graduated', session('form.c1.elem_year_graduated')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
                             <label for="elem_year_graduated" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Year Graduated</label>
+                        </div>
+                        <div class="relative md:col-span-2">
+                            <input type="text" id="elem_earned" name="elem_earned" value="{{ old('elem_earned', session('form.c1.elem_earned')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
+                            <label for="elem_earned" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-xs sm:text-sm">Highest Level/Units Earned (if not graduated)</label>
                         </div>
                         <div class="relative md:col-span-2">
                             <input type="text" id="elem_academic_honors" name="elem_academic_honors" value="{{ old('elem_academic_honors', session('form.c1.elem_academic_honors')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
@@ -482,30 +523,32 @@
                 <div class="mb-6">
                     <h3 class="text-base sm:text-lg font-semibold text-gray-700 mb-4">SECONDARY</h3>
                     <div class="mobile-stack md:grid md:grid-cols-4 gap-4 sm:gap-6">
-                        <div class="relative">
-                            <input required type="text" id="jhs_from" name="jhs_from" value="{{ old('jhs_from', session('form.c1.jhs_from')) }}" class="edu-date w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base">
-                            <label for="jhs_from" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">From*</label>
-                        </div>
-                        <div class="relative">
-                            <input required type="text" id="jhs_to" name="jhs_to" value="{{ old('jhs_to', session('form.c1.jhs_to')) }}" class="edu-date w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base">
-                            <label for="jhs_to" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">To*</label>
+                        <div class="relative md:col-span-2">
+                            <input required type="text" id="jhs_school" name="jhs_school" value="{{ old('jhs_school', session('form.c1.jhs_school')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
+                            <label for="jhs_school" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">School Name<span class="text-red-500">*</span></label>
                         </div>
                         <div class="relative md:col-span-2">
                             <input type="text" id="jhs_basic" name="jhs_basic" value="{{ old('jhs_basic', session('form.c1.jhs_basic', 'SECONDARY')) }}" readonly placeholder=" " class="text-gray-500 floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
                             <label for="jhs_basic" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Basic Education/Degree/Course</label>
                         </div>
-                        <div class="relative md:col-span-4">
-                            <input required type="text" id="jhs_school" name="jhs_school" value="{{ old('jhs_school', session('form.c1.jhs_school')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                            <label for="jhs_school" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">School Name*</label>
+                        <div class="relative">
+                            <input required type="text" id="jhs_from" name="jhs_from" value="{{ old('jhs_from', session('form.c1.jhs_from')) }}" class="edu-date w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base">
+                            <label for="jhs_from" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">From<span class="text-red-500">*</span></label>
                         </div>
-                        <div class="relative md:col-span-1">
-                            <input type="text" id="jhs_earned" name="jhs_earned" value="{{ old('jhs_earned', session('form.c1.jhs_earned')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                            <label for="jhs_earned" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-xs sm:text-sm">Highest Level/Units Earned (if not graduated)</label>
+                        <div class="relative">
+                            <input required type="text" id="jhs_to" name="jhs_to" value="{{ old('jhs_to', session('form.c1.jhs_to')) }}" class="edu-date w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base">
+                            <label for="jhs_to" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">To<span class="text-red-500">*</span></label>
                         </div>
-                        <div class="relative md:col-span-1">
+                        <div class="relative md:col-span-2">
                             <input pattern="\d{4}" maxlength="4" type="text" inputmode="numeric" id="jhs_year_graduated" name="jhs_year_graduated" value="{{ old('jhs_year_graduated', session('form.c1.jhs_year_graduated')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
                             <label for="jhs_year_graduated" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Year Graduated</label>
                         </div>
+
+                        <div class="relative md:col-span-2">
+                            <input type="text" id="jhs_earned" name="jhs_earned" value="{{ old('jhs_earned', session('form.c1.jhs_earned')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
+                            <label for="jhs_earned" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-xs sm:text-sm">Highest Level/Units Earned (if not graduated)</label>
+                        </div>
+
                         <div class="relative md:col-span-2">
                             <input type="text" id="jhs_academic_honors" name="jhs_academic_honors" value="{{ old('jhs_academic_honors', session('form.c1.jhs_academic_honors')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
                             <label for="jhs_academic_honors" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Scholarship/Academic Honors Received</label>
@@ -516,28 +559,28 @@
                 <!-- Vocational / Trade Course Placeholder -->
                 <div class="mb-6">
                     @include('partials.pds-education-form', [
-    'education_type' => 'vocational',
-    'education_type_meta' => ['title' => 'Vocational / Trade Course'],
-    'education_data' => $vocational_schools
-])
+                        'education_type' => 'vocational',
+                        'education_type_meta' => ['title' => 'Vocational / Trade Course'],
+                        'education_data' => $vocational_schools
+                    ])
                 </div>
 
                 <!-- College Placeholder -->
                 <div class="mb-6">
                     @include('partials.pds-education-form', [
-    'education_type' => 'college',
-    'education_type_meta' => ['title' => 'College'],
-    'education_data' => $college_schools
-])
+                        'education_type' => 'college',
+                        'education_type_meta' => ['title' => 'College'],
+                        'education_data' => $college_schools
+                    ])
                 </div>
 
                 <!-- Graduate Studies Placeholder -->
                 <div class="mb-6">
-                   @include('partials.pds-education-form', [
-    'education_type' => 'grad',
-    'education_type_meta' => ['title' => 'Graduate Studies'],
-    'education_data' => $grad_schools
-])
+                @include('partials.pds-education-form', [
+                        'education_type' => 'grad',
+                        'education_type_meta' => ['title' => 'Graduate Studies'],
+                        'education_data' => $grad_schools
+                    ])
                 </div>
                 <!-- <div class="mt-4 sm:mt-6 flex justify-end">
                     <button type="button" id="pdsPreviewBtn" disabled class="px-4 sm:px-6 py-3 bg-gray-400 text-white rounded-lg font-semibold cursor-not-allowed opacity-60 transition-colors duration-200 flex items-center gap-2">
@@ -606,6 +649,56 @@
     const resProvince = document.querySelector('#res_province');
     const resCity = document.querySelector('#res_city');
     const resBrgy = document.querySelector('#res_brgy');
+    const PSGC_CACHE_KEY = 'psgc:c1:v1';
+    const PSGC_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+    const psgcClientCache = {
+        provinces: null,
+        citiesByProvince: new Map(),
+        barangaysByCity: new Map(),
+        cityByCode: new Map(),
+    };
+    function hydratePsgcClientCache() {
+        try {
+            const raw = sessionStorage.getItem(PSGC_CACHE_KEY);
+            if (!raw) return;
+            const parsed = JSON.parse(raw);
+            if (!parsed || typeof parsed !== 'object') return;
+            const savedAt = Number(parsed.savedAt || 0);
+            if (!savedAt || (Date.now() - savedAt) > PSGC_CACHE_TTL_MS) {
+                sessionStorage.removeItem(PSGC_CACHE_KEY);
+                return;
+            }
+            if (Array.isArray(parsed.provinces)) psgcClientCache.provinces = parsed.provinces;
+            if (parsed.citiesByProvince && typeof parsed.citiesByProvince === 'object') {
+                Object.entries(parsed.citiesByProvince).forEach(([k, v]) => {
+                    if (Array.isArray(v)) psgcClientCache.citiesByProvince.set(String(k), v);
+                });
+            }
+            if (parsed.barangaysByCity && typeof parsed.barangaysByCity === 'object') {
+                Object.entries(parsed.barangaysByCity).forEach(([k, v]) => {
+                    if (Array.isArray(v)) psgcClientCache.barangaysByCity.set(String(k), v);
+                });
+            }
+            if (parsed.cityByCode && typeof parsed.cityByCode === 'object') {
+                Object.entries(parsed.cityByCode).forEach(([k, v]) => {
+                    psgcClientCache.cityByCode.set(String(k), String(v || ''));
+                });
+            }
+        } catch (e) {}
+    }
+    function persistPsgcClientCache() {
+        try {
+            const payload = {
+                savedAt: Date.now(),
+                provinces: Array.isArray(psgcClientCache.provinces) ? psgcClientCache.provinces : null,
+                citiesByProvince: Object.fromEntries(psgcClientCache.citiesByProvince),
+                barangaysByCity: Object.fromEntries(psgcClientCache.barangaysByCity),
+                cityByCode: Object.fromEntries(psgcClientCache.cityByCode),
+            };
+            sessionStorage.setItem(PSGC_CACHE_KEY, JSON.stringify(payload));
+        } catch (e) {}
+    }
+    hydratePsgcClientCache();
     const userStorageKey = @json(
         auth()->check()
             ? ('uid:' . auth()->id())
@@ -704,26 +797,29 @@
         const input = document.getElementById('mobile_no');
         if (!input) return;
 
-        const raw = String(input.value || '');
-        const isIntl = /^\s*\+63/.test(raw);
-        let digits = onlyDigits(raw);
-
-        if (isIntl) {
-            if (digits.startsWith('63')) digits = digits.slice(2);
-            if (digits.startsWith('0')) digits = digits.slice(1);
-            digits = digits.slice(0, 10);
-
-            let formatted = '+63';
-            if (digits.length > 0) formatted += ' ' + digits.slice(0, 3);
-            if (digits.length > 3) formatted += ' ' + digits.slice(3, 6);
-            if (digits.length > 6) formatted += ' ' + digits.slice(6, 10);
-            input.value = formatted;
+        let digits = onlyDigits(input.value).slice(0, 11);
+        if (digits.length === 0) {
+            input.value = '';
             return;
         }
 
-        if (digits.startsWith('63')) digits = digits.slice(2);
-        if (digits.startsWith('0')) digits = digits.slice(1);
-        input.value = digits.slice(0, 10);
+        if (digits.length >= 1 && digits[0] !== '0') {
+            digits = '0' + digits.slice(1);
+        }
+        if (digits.length >= 2 && digits[1] !== '9') {
+            digits = '09' + digits.slice(2);
+        }
+        if (digits.length === 1) {
+            digits = '0';
+        } else if (digits.length >= 2) {
+            digits = '09' + digits.slice(2);
+        }
+        digits = digits.slice(0, 11);
+
+        let formatted = digits.slice(0, 4);
+        if (digits.length > 4) formatted += ' ' + digits.slice(4, 7);
+        if (digits.length > 7) formatted += ' ' + digits.slice(7, 11);
+        input.value = formatted.trim();
     }
     function hookRadio(name){
         document.querySelectorAll('input[name="'+name+'"]').forEach(r=>{
@@ -773,9 +869,11 @@
             .replace(/\bbrgy\.?\b/g, 'barangay')
             .replace(/[^a-z0-9]/g, '');
     }
-    function resolvePreselectText(items, textKey, preselectText) {
+    function resolvePreselectText(items, textKey, valueKey, preselectText) {
         const raw = String(preselectText || '').trim();
         if (!raw) return null;
+        const byCode = items.find(i => String(i[valueKey] || '').trim() === raw);
+        if (byCode) return String(byCode[textKey]);
         const exact = items.find(i => String(i[textKey] || '').trim().toLowerCase() === raw.toLowerCase());
         if (exact) return String(exact[textKey]);
         const normalizedTarget = normalizePlaceText(raw);
@@ -787,11 +885,10 @@
         const ph = document.createElement('option');
         ph.value = '';
         ph.textContent = 'Select';
-        ph.disabled = true;
         ph.selected = true;
         select.appendChild(ph);
         select._list = items;
-        const resolvedPreselect = resolvePreselectText(items, textKey, preselectText);
+        const resolvedPreselect = resolvePreselectText(items, textKey, valueKey, preselectText);
         items.forEach(i => {
             const opt = document.createElement('option');
             opt.value = i[textKey];
@@ -835,9 +932,18 @@
         });
     }
     function loadProvinces(select, preselectText, onDone) {
+        if (Array.isArray(psgcClientCache.provinces)) {
+            const data = psgcClientCache.provinces;
+            setOptions(select, data, 'name', 'code', preselectText);
+            if (onDone) onDone(data.find(p => p.name === select.value)?.code || getSelectedCode(select));
+            return;
+        }
+
         fetch(psgcApiBase + '/provinces')
             .then(r => r.ok ? r.json() : Promise.reject())
             .then(data => {
+                psgcClientCache.provinces = Array.isArray(data) ? data : [];
+                persistPsgcClientCache();
                 setOptions(select, data, 'name', 'code', preselectText);
                 if (onDone) onDone(data.find(p => p.name === preselectText)?.code || getSelectedCode(select));
             })
@@ -853,9 +959,19 @@
             return;
         }
 
+        const normalizedProvinceCode = String(provinceCode);
+        if (psgcClientCache.citiesByProvince.has(normalizedProvinceCode)) {
+            const data = psgcClientCache.citiesByProvince.get(normalizedProvinceCode) || [];
+            setOptions(select, data, 'name', 'code', preselectText);
+            if (onDone) onDone(data.find(c => c.name === select.value)?.code || getSelectedCode(select));
+            return;
+        }
+
         fetch(psgcApiBase + '/provinces/' + encodeURIComponent(provinceCode) + '/cities-municipalities')
             .then(r => r.ok ? r.json() : Promise.reject())
             .then(data => {
+                psgcClientCache.citiesByProvince.set(normalizedProvinceCode, Array.isArray(data) ? data : []);
+                persistPsgcClientCache();
                 setOptions(select, data, 'name', 'code', preselectText);
                 if (onDone) onDone(data.find(c => c.name === preselectText)?.code || getSelectedCode(select));
             })
@@ -870,9 +986,18 @@
             return;
         }
 
+        const normalizedCityCode = String(cityCode);
+        if (psgcClientCache.barangaysByCity.has(normalizedCityCode)) {
+            const data = psgcClientCache.barangaysByCity.get(normalizedCityCode) || [];
+            setOptions(select, data, 'name', 'code', preselectText);
+            return;
+        }
+
         fetch(psgcApiBase + '/cities-municipalities/' + encodeURIComponent(cityCode) + '/barangays')
             .then(r => r.ok ? r.json() : Promise.reject())
             .then(data => {
+                psgcClientCache.barangaysByCity.set(normalizedCityCode, Array.isArray(data) ? data : []);
+                persistPsgcClientCache();
                 setOptions(select, data, 'name', 'code', preselectText);
             })
             .catch(() => {
@@ -937,14 +1062,30 @@
         const zipInput = document.querySelector('#' + zipInputId);
         if (!zipInput) return;
 
+        const normalizedCityCode = String(cityCode);
         const currentValue = (zipInput.value || '').trim();
         const wasAutoFilled = zipInput.dataset.autoFilled === '1';
-        if (currentValue !== '' && !wasAutoFilled) {
+        const previousCityCode = String(zipInput.dataset.cityCode || '');
+        const cityChanged = previousCityCode !== normalizedCityCode;
+
+        if (!cityChanged && currentValue !== '' && !wasAutoFilled) {
             return;
         }
 
         const zipRequestToken = `${Date.now()}-${Math.random()}`;
         zipInput.dataset.zipRequestToken = zipRequestToken;
+
+        if (psgcClientCache.cityByCode.has(normalizedCityCode)) {
+            const cachedZip = String(psgcClientCache.cityByCode.get(normalizedCityCode) || '').trim();
+            if (cachedZip !== '') {
+                zipInput.value = cachedZip;
+                zipInput.readOnly = true;
+                zipInput.dataset.autoFilled = '1';
+                zipInput.dataset.cityCode = normalizedCityCode;
+                zipInput.dispatchEvent(new Event('change'));
+                return;
+            }
+        }
 
         fetch(psgcApiBase + '/cities-municipalities/' + encodeURIComponent(cityCode))
             .then(r => r.ok ? r.json() : Promise.reject())
@@ -958,25 +1099,29 @@
 
                 const latestValue = (zipInput.value || '').trim();
                 const latestAutoFilled = zipInput.dataset.autoFilled === '1';
-                if (latestValue !== '' && !latestAutoFilled) {
+                if (!cityChanged && latestValue !== '' && !latestAutoFilled) {
                     return;
                 }
 
                 if (zip && zip.trim() !== '') {
+                    psgcClientCache.cityByCode.set(normalizedCityCode, zip);
+                    persistPsgcClientCache();
                     zipInput.value = zip;
                     zipInput.readOnly = true;
                     zipInput.dataset.autoFilled = '1';
+                    zipInput.dataset.cityCode = normalizedCityCode;
                     zipInput.dispatchEvent(new Event('change'));
                     return;
                 }
 
-                if (wasAutoFilled) {
+                if (wasAutoFilled || cityChanged) {
                     zipInput.value = '';
                     zipInput.dispatchEvent(new Event('change'));
                 }
 
                 zipInput.readOnly = false;
                 zipInput.dataset.autoFilled = '0';
+                zipInput.dataset.cityCode = normalizedCityCode;
             })
             .catch(() => {
                 if (zipInput.dataset.zipRequestToken !== zipRequestToken) {
@@ -985,16 +1130,17 @@
 
                 const latestValue = (zipInput.value || '').trim();
                 const latestAutoFilled = zipInput.dataset.autoFilled === '1';
-                if (latestValue !== '' && !latestAutoFilled) {
+                if (!cityChanged && latestValue !== '' && !latestAutoFilled) {
                     return;
                 }
 
-                if (wasAutoFilled) {
+                if (wasAutoFilled || cityChanged) {
                     zipInput.value = '';
                     zipInput.dispatchEvent(new Event('change'));
                 }
                 zipInput.readOnly = false;
                 zipInput.dataset.autoFilled = '0';
+                zipInput.dataset.cityCode = normalizedCityCode;
             });
     }
     document.querySelector('#copy_res_to_per').addEventListener('click', async () => {
@@ -1043,6 +1189,7 @@
             perZip.value = resZip.value;
             perZip.readOnly = resZip.readOnly;
             perZip.dataset.autoFilled = resZip.dataset.autoFilled || (resZip.readOnly ? '1' : '0');
+            perZip.dataset.cityCode = String(getSelectedCode(perCity) || '');
             perZip.dispatchEvent(new Event('change'));
         }
     });
@@ -1231,7 +1378,9 @@
                 populatePreview();
                 const frame = document.getElementById('pdsPdfPreviewFrame');
                 if (frame) {
-                    frame.src = '/export-pds?preview=1&ts=' + Date.now();
+                    const previewSrc = frame.dataset.previewSrc || '/export-pds?preview=1';
+                    const separator = previewSrc.includes('?') ? '&' : '?';
+                    frame.src = previewSrc + separator + 'ts=' + Date.now();
                 }
                 const overlay = document.getElementById('pdsPreviewOverlay');
                 if (overlay) overlay.classList.remove('hidden');
@@ -1609,7 +1758,8 @@
                 <iframe
                     id="pdsPdfPreviewFrame"
                     title="PDS PDF Preview"
-                    src="/export-pds?preview=1"
+                    src="about:blank"
+                    data-preview-src="/export-pds?preview=1"
                     class="w-full h-full"
                 ></iframe>
             </div>

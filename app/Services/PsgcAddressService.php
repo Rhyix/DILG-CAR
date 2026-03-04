@@ -10,6 +10,7 @@ class PsgcAddressService
 {
     private const SOURCE_FILE = 'PSGC-4Q-2025-Publication-Datafile.xlsx';
     private const PSGC_SHEET = 'PSGC';
+    private static ?array $runtimeData = null;
 
     public function provinces(): array
     {
@@ -36,6 +37,10 @@ class PsgcAddressService
 
     private function loadData(): array
     {
+        if (self::$runtimeData !== null) {
+            return self::$runtimeData;
+        }
+
         $path = base_path(self::SOURCE_FILE);
         if (!is_file($path)) {
             throw new RuntimeException('PSGC dataset file not found at project root: ' . self::SOURCE_FILE);
@@ -48,9 +53,17 @@ class PsgcAddressService
         ]);
         $cacheKey = 'psgc.address.data.' . md5($fingerprint);
 
-        return Cache::rememberForever($cacheKey, function () use ($path) {
-            return $this->buildData($path);
-        });
+        try {
+            // Use file cache to avoid oversized DB cache payload failures.
+            self::$runtimeData = Cache::store('file')->rememberForever($cacheKey, function () use ($path) {
+                return $this->buildData($path);
+            });
+            return self::$runtimeData;
+        } catch (\Throwable $e) {
+            // Fallback: keep data in-process so PSGC endpoints still work.
+            self::$runtimeData = $this->buildData($path);
+            return self::$runtimeData;
+        }
     }
 
     private function buildData(string $path): array
@@ -212,4 +225,3 @@ class PsgcAddressService
         return substr($digits, 0, 10);
     }
 }
-
