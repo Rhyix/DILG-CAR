@@ -247,6 +247,20 @@
     $qsTrainingValue = $formatQsValue($qs_training ?? 'no');
     $overallQsMark = $isQualified ? 'YES (&#10003;)' : 'NO (&#10005;)';
 
+    $qsLackingLabels = [];
+    if ($qsEducationValue === 'NO') {
+      $qsLackingLabels[] = 'Education';
+    }
+    if ($qsEligibilityValue === 'NO') {
+      $qsLackingLabels[] = 'Eligibility';
+    }
+    if ($qsExperienceValue === 'NO') {
+      $qsLackingLabels[] = 'Experience';
+    }
+    if ($qsTrainingValue === 'NO') {
+      $qsLackingLabels[] = 'Training';
+    }
+
     $displayDeadline = !empty($deadline) && $deadline !== 'No deadline set' ? $deadline : null;
     $displayRemarks = trim((string) ($application_remarks ?? ''));
 
@@ -379,6 +393,11 @@
               @endif
               @if($displayDeadline)
                 <p class="action-text"><strong>Submission deadline:</strong> {{ $displayDeadline }}</p>
+              @else
+                @if(!empty($qsLackingLabels))
+                  <p class="action-text"><strong>These are the lacking/s you have, you must have these skills or qualifications in order to apply for this position.</strong></p>
+                  <p class="action-text"><strong>Qualification standards not met:</strong> {{ implode(', ', $qsLackingLabels) }}.</p>
+                @endif
               @endif
               @if($displayRemarks !== '')
                 <p class="action-text"><strong>Remarks:</strong> {{ $displayRemarks }}</p>

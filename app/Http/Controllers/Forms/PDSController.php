@@ -11,6 +11,7 @@ use App\Models\MiscInfos;
 
 // Models
 use App\Models\Applications;
+use App\Models\DocumentGalleryItem;
 use Illuminate\Http\Request;
 use App\Models\VoluntaryWork;
 use App\Models\WorkExperience;
@@ -24,6 +25,7 @@ use Illuminate\Support\Facades\DB;
 use App\Models\CivilServiceEligibility;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Collection;
 use App\Services\ApplicationStatusTransitionService;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
@@ -2234,6 +2236,7 @@ class PDSController extends Controller
             }
 
             $document->update($updates);
+            $this->syncUploadedDocumentToGallery($document);
             $storedPaths[] = $store_path;
 
         }
@@ -2242,6 +2245,33 @@ class PDSController extends Controller
             ->log('Store C5 form.');
 
         return $storedPaths;
+    }
+
+    private function syncUploadedDocumentToGallery(UploadedDocument $document): void
+    {
+        if (!Schema::hasTable('document_gallery_items')) {
+            return;
+        }
+
+        $docType = trim((string) ($document->document_type ?? ''));
+        $storagePath = trim((string) ($document->storage_path ?? ''));
+        if ($docType === '' || $storagePath === '' || $storagePath === 'NOINPUT') {
+            return;
+        }
+
+        DocumentGalleryItem::updateOrCreate(
+            [
+                'user_id' => (int) $document->user_id,
+                'document_type' => $docType,
+            ],
+            [
+                'original_name' => (string) ($document->original_name ?: basename($storagePath)),
+                'stored_name' => (string) ($document->stored_name ?: basename($storagePath)),
+                'storage_path' => $storagePath,
+                'mime_type' => (string) ($document->mime_type ?: 'application/pdf'),
+                'file_size_8b' => (int) ($document->file_size_8b ?? 0),
+            ]
+        );
     }
 
     private function isRevisionStatus(?string $status): bool
@@ -2322,11 +2352,70 @@ class PDSController extends Controller
             $query->orderByRaw('CASE WHEN vacancy_id IS NULL THEN 0 ELSE 1 END');
         }
 
-        return $query
+        $documents = $query
             ->orderByDesc('updated_at')
             ->get()
             ->unique('document_type')
             ->keyBy('document_type');
+
+        $documents = $this->mergeGalleryDocumentsIntoReusableMap($documents, $userId, $vacancyId);
+        return $this->applyDocumentTypeAliasesToMap($documents);
+    }
+
+    private function mergeGalleryDocumentsIntoReusableMap(Collection $documents, int $userId, ?string $vacancyId): Collection
+    {
+        if (!Schema::hasTable('document_gallery_items')) {
+            return $documents;
+        }
+
+        $galleryItems = DocumentGalleryItem::where('user_id', $userId)
+            ->whereNotNull('document_type')
+            ->where('document_type', '!=', '')
+            ->whereNotNull('storage_path')
+            ->where('storage_path', '!=', 'NOINPUT')
+            ->orderByDesc('updated_at')
+            ->get();
+
+        foreach ($galleryItems as $item) {
+            $docType = trim((string) ($item->document_type ?? ''));
+            if ($docType === '' || $documents->has($docType)) {
+                continue;
+            }
+
+            $documents->put($docType, new UploadedDocument([
+                'user_id' => $userId,
+                'vacancy_id' => $vacancyId,
+                'document_type' => $docType,
+                'original_name' => (string) ($item->original_name ?? ''),
+                'stored_name' => (string) ($item->stored_name ?? ''),
+                'storage_path' => (string) ($item->storage_path ?? ''),
+                'mime_type' => (string) ($item->mime_type ?? 'application/pdf'),
+                'file_size_8b' => (int) ($item->file_size_8b ?? 0),
+                'status' => 'Pending',
+                'remarks' => '',
+            ]));
+        }
+
+        return $documents;
+    }
+
+    private function applyDocumentTypeAliasesToMap(Collection $documents): Collection
+    {
+        foreach (self::DOCUMENT_TYPE_ALIASES as $canonical => $aliases) {
+            if ($documents->has($canonical)) {
+                continue;
+            }
+
+            foreach ($aliases as $alias) {
+                $aliasDoc = $documents->get($alias);
+                if ($aliasDoc instanceof UploadedDocument && !empty($aliasDoc->storage_path) && $aliasDoc->storage_path !== 'NOINPUT') {
+                    $documents->put($canonical, $aliasDoc);
+                    break;
+                }
+            }
+        }
+
+        return $documents;
     }
 
     private function upsertVacancyDocumentFromSource(

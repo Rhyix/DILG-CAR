@@ -27,6 +27,30 @@ Reviewed by: {{ $reviewer_name ?? 'N/A' }}
   $showActionRequirements = !$isFinalDisqualified && (!$isQualified || $hasRevisions);
   $displayDeadline = !empty($deadline) && $deadline !== 'No deadline set' ? $deadline : null;
   $displayRemarks = trim((string) ($application_remarks ?? ''));
+  $normalizeQs = function ($value) {
+    $normalized = strtolower(trim((string) $value));
+    if (in_array($normalized, ['yes', 'qualified', 'pass', 'passed'], true)) {
+      return 'yes';
+    }
+    if (in_array($normalized, ['na', 'n/a', 'not applicable'], true)) {
+      return 'na';
+    }
+    return 'no';
+  };
+
+  $qsLackings = [];
+  if ($normalizeQs($qs_education ?? 'no') === 'no') {
+    $qsLackings[] = 'Education';
+  }
+  if ($normalizeQs($qs_eligibility ?? 'no') === 'no') {
+    $qsLackings[] = 'Eligibility';
+  }
+  if ($normalizeQs($qs_experience ?? 'no') === 'no') {
+    $qsLackings[] = 'Experience';
+  }
+  if ($normalizeQs($qs_training ?? 'no') === 'no') {
+    $qsLackings[] = 'Training';
+  }
 @endphp
 
 Documents:
@@ -54,6 +78,11 @@ Action Required:
 @endif
 @if($displayDeadline)
 - Submission deadline: {{ $displayDeadline }}
+@else
+@if(!empty($qsLackings))
+- These are the lacking/s you have, you must have these skills or qualifications in order to apply for this position.
+- Qualification standards not met: {{ implode(', ', $qsLackings) }}.
+@endif
 @endif
 @else
 Action Required:

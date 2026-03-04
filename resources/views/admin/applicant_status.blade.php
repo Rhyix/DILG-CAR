@@ -71,7 +71,7 @@
 								Qualification Standards</div>
 							<div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
 								<!-- Overall Result -->
-								<div
+								<!-- <div
 									class="col-span-1 md:col-span-2 flex items-center justify-between bg-blue-50/50 p-4 rounded-lg">
 									<span class="text-sm font-bold text-[#002C76]">Overall Standard</span>
 									<div class="flex items-center gap-4 ml-auto">
@@ -88,7 +88,7 @@
 												{{ old('qs_result', $application->qs_result ?? 'Not Qualified') === 'Not Qualified' ? 'checked' : '' }}> Not Qualified
 										</label>
 									</div>
-								</div>
+								</div> -->
 
 								@php
 									$qsFields = [
@@ -121,6 +121,24 @@
 										</div>
 									</div>
 								@endforeach
+								<div
+									class="col-span-1 md:col-span-2 flex items-center justify-between bg-blue-50/50 p-4 rounded-lg">
+									<span class="text-sm font-bold text-[#002C76]">Overall Standard</span>
+									<div class="flex items-center gap-4 ml-auto">
+										<label
+											class="flex items-center gap-2 cursor-pointer result-radio-grp text-green-700 font-semibold text-sm">
+											<input type="radio" name="qs_result" value="Qualified"
+												class="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 focus:ring-green-500"
+												{{ old('qs_result', $application->qs_result ?? 'Not Qualified') === 'Qualified' ? 'checked' : '' }}> Qualified
+										</label>
+										<label
+											class="flex items-center gap-2 cursor-pointer result-radio-grp text-red-700 font-semibold text-sm">
+											<input type="radio" name="qs_result" value="Not Qualified"
+												class="w-4 h-4 text-red-600 bg-gray-100 border-gray-300 focus:ring-red-500"
+												{{ old('qs_result', $application->qs_result ?? 'Not Qualified') === 'Not Qualified' ? 'checked' : '' }}> Not Qualified
+										</label>
+									</div>
+								</div>
 							</div>
 						</div>
 
@@ -196,19 +214,31 @@
 				<div class="flex flex-col lg:flex-row gap-4">
 					<!-- Left Side Panel - Required Documents -->
 					<section aria-label="Required Documents Panel"
-						class="w-full lg:w-72 flex-none bg-white rounded-lg border border-gray-300 p-3 shadow-lg flex flex-col">
-						<h2 class="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide flex-none">Required
-							Documents
-						</h2>
-						<p class="text-[11px] text-gray-500 mb-2">
-							<span class="text-red-600 font-bold">*</span> Required for {{ $vacancy_type }} vacancy
-						</p>
-						<div class="pr-1">
-							<ul class="text-xs text-gray-700 space-y-1" id="document-list">
-								<!-- Documents will be injected here by JS -->
-							</ul>
-						</div>
+					class="w-full lg:w-72 flex-none bg-white rounded-lg border border-gray-300 p-3 shadow-lg flex flex-col">
+					<h2 class="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide flex-none">Required
+						Documents
+					</h2>
+					<p class="text-[11px] text-gray-500 mb-2">
+						<span class="text-red-600 font-bold">*</span> Required for {{ $vacancy_type }} vacancy
+					</p>
+					<div class="pr-1">
+						<ul class="text-xs text-gray-700 space-y-1" id="document-list">
+							<!-- Documents will be injected here by JS -->
+						</ul>
+					</div>
 					</section>
+
+					<div id="document-context-menu"
+						class="fixed hidden z-[1200] w-44 bg-white border border-gray-200 rounded-md shadow-xl overflow-hidden">
+						<button id="context-action-verify" type="button"
+							class="w-full text-left px-3 py-2 text-xs text-[#00730A] hover:bg-green-50 transition-colors">
+							Verify
+						</button>
+						<button id="context-action-revision" type="button"
+							class="w-full text-left px-3 py-2 text-xs text-[#BC0000] hover:bg-red-50 transition-colors">
+							Needs Revisions
+						</button>
+					</div>
 
 					<!-- MIDDLE - Document Preview -->
 					<section aria-label="Document Preview"
@@ -352,8 +382,18 @@
 						<!-- Hidden by default, toggled via JS -->
 						<div id="notify-action-requirements" class="space-y-8 hidden">
 							<!-- Set Deadline -->
-							<div>
-								<div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Set Deadline
+							<div id="notify-deadline-section">
+								<div class="flex items-center justify-between mb-3">
+									<div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Set Deadline</div>
+									<button
+										type="button"
+										id="clear-deadline-btn"
+										class="inline-flex items-center justify-center w-6 h-6 rounded-full border border-gray-300 text-gray-500 hover:text-red-600 hover:border-red-300 hover:bg-red-50 transition-colors"
+										title="Do not set deadline"
+										aria-label="Do not set deadline"
+									>
+										&times;
+									</button>
 								</div>
 								<div class="flex gap-3">
 									<input type="date" name="deadline_date" id="deadline_date"
@@ -367,6 +407,7 @@ value="{{ old('deadline_time', $application->deadline_time ? \Carbon\Carbon::par
 									<i data-feather="alert-triangle" class="inline w-3 h-3"></i> Deadline passed
 								</div>
 							</div>
+							<div id="no-deadline-lackings-msg" class="text-amber-700 text-xs -mt-4 hidden font-medium"></div>
 
 							<!-- Remarks -->
 							<div>
@@ -491,6 +532,19 @@ value="{{ old('deadline_time', $application->deadline_time ? \Carbon\Carbon::par
 			return sortDocumentsForRequiredPriority(uploaded);
 		}
 
+		let deadlineHiddenByChoice = false;
+
+		function setDeadlineSectionHidden(hidden) {
+			const section = document.getElementById('notify-deadline-section');
+			if (!section) return;
+			section.classList.toggle('hidden', !!hidden);
+		}
+
+		function isDeadlineSectionHidden() {
+			const section = document.getElementById('notify-deadline-section');
+			return !!(section && section.classList.contains('hidden'));
+		}
+
 		document.addEventListener('DOMContentLoaded', function () {
 			documents = sortDocumentsForRequiredPriority(documents);
 
@@ -501,18 +555,32 @@ value="{{ old('deadline_time', $application->deadline_time ? \Carbon\Carbon::par
 
 			// Initialize deadline check
 			checkDeadline();
+			updateNoDeadlineLackingsNotice();
 
 			// Bind events
 			const dateInput = document.querySelector('input[name="deadline_date"]');
 			const timeInput = document.querySelector('input[name="deadline_time"]');
+			const clearDeadlineBtn = document.getElementById('clear-deadline-btn');
 			if (dateInput) dateInput.addEventListener('change', checkDeadline);
 			if (timeInput) timeInput.addEventListener('change', checkDeadline);
+			if (clearDeadlineBtn) {
+				clearDeadlineBtn.addEventListener('click', () => {
+					deadlineHiddenByChoice = true;
+					if (dateInput) dateInput.value = '';
+					if (timeInput) timeInput.value = '';
+					setDeadlineSectionHidden(true);
+					checkDeadline();
+				});
+			}
 
 			// Bind radio change events for QS
 			const qsRadioNames = ['qs_education', 'qs_eligibility', 'qs_experience', 'qs_training'];
 			qsRadioNames.forEach(name => {
 				document.querySelectorAll(`input[name="${name}"]`).forEach(radio => {
-					radio.addEventListener('change', checkOverallQualification);
+					radio.addEventListener('change', () => {
+						checkOverallQualification();
+						updateNoDeadlineLackingsNotice();
+					});
 				});
 			});
 		});
@@ -565,6 +633,111 @@ value="{{ old('deadline_time', $application->deadline_time ? \Carbon\Carbon::par
 		const btnRevision = document.getElementById('btn-revision');
 		const docPreview = document.getElementById('doc-preview');
 		const previewLoader = document.getElementById('preview-loader');
+		const documentContextMenu = document.getElementById('document-context-menu');
+		const contextVerifyButton = document.getElementById('context-action-verify');
+		const contextRevisionButton = document.getElementById('context-action-revision');
+		let contextMenuDocId = null;
+
+		// Keep the custom context menu outside transformed containers so fixed positioning is accurate.
+		if (documentContextMenu && documentContextMenu.parentElement !== document.body) {
+			document.body.appendChild(documentContextMenu);
+		}
+
+		function closeDocumentContextMenu() {
+			if (!documentContextMenu) return;
+			documentContextMenu.classList.add('hidden');
+			contextMenuDocId = null;
+		}
+
+		function getDocumentById(docId) {
+			return (documents || []).find(doc => String(doc?.id) === String(docId)) || null;
+		}
+
+		function executeContextDocumentAction(targetStatus) {
+			if (!contextMenuDocId) return;
+			const selectedDoc = getDocumentById(contextMenuDocId);
+			if (!selectedDoc) {
+				closeDocumentContextMenu();
+				alert('Unable to find the selected document.');
+				return;
+			}
+			handleDocumentClick(selectedDoc, true);
+			closeDocumentContextMenu();
+			updateDocumentStatus(targetStatus);
+		}
+
+		function toggleContextActionDisabled(button, disabled, enabledClass, disabledClass) {
+			if (!button) return;
+			button.disabled = !!disabled;
+			button.classList.toggle('opacity-50', !!disabled);
+			button.classList.toggle('cursor-not-allowed', !!disabled);
+			button.classList.toggle(enabledClass, !disabled);
+			button.classList.toggle(disabledClass, !!disabled);
+		}
+
+		function openDocumentContextMenu(event, doc) {
+			if (!documentContextMenu || !doc) return;
+
+			event.preventDefault();
+			event.stopPropagation();
+
+			const selectedDoc = getDocumentById(doc.id) || doc;
+			handleDocumentClick(selectedDoc, true);
+			contextMenuDocId = selectedDoc.id;
+
+			const isVerified = selectedDoc.status === 'Verified' || selectedDoc.status === 'Okay/Confirmed';
+			const needsRevision = selectedDoc.status === 'Needs Revision' || selectedDoc.status === 'Disapproved With Deficiency';
+			const revisionLocked = !!selectedDoc.revision_locked;
+
+			toggleContextActionDisabled(contextVerifyButton, isVerified, 'hover:bg-green-50', 'bg-green-50');
+			toggleContextActionDisabled(contextRevisionButton, needsRevision || revisionLocked, 'hover:bg-red-50', 'bg-red-50');
+			if (contextRevisionButton) {
+				if (revisionLocked) {
+					contextRevisionButton.title = selectedDoc.revision_lock_reason || 'Needs Revision is currently locked for this document.';
+				} else {
+					contextRevisionButton.removeAttribute('title');
+				}
+			}
+
+			documentContextMenu.classList.remove('hidden');
+			documentContextMenu.style.left = '0px';
+			documentContextMenu.style.top = '0px';
+
+			const menuWidth = documentContextMenu.offsetWidth || 176;
+			const menuHeight = documentContextMenu.offsetHeight || 80;
+			const viewportPadding = 8;
+
+			const clickedRow = event.currentTarget && event.currentTarget.getBoundingClientRect
+				? event.currentTarget.getBoundingClientRect()
+				: null;
+			const hasCursorPoint = Number.isFinite(event.clientX) && Number.isFinite(event.clientY);
+
+			// Show beside the exact clicked document item.
+			let left = clickedRow
+				? (clickedRow.right + 8)
+				: (hasCursorPoint ? event.clientX + 8 : viewportPadding);
+			let top = clickedRow
+				? (clickedRow.top + Math.max((clickedRow.height - menuHeight) / 2, 0))
+				: (hasCursorPoint ? (event.clientY - 6) : viewportPadding);
+
+			// If right side is tight, place it on the left side of the clicked row.
+			if (clickedRow && left + menuWidth + viewportPadding > window.innerWidth) {
+				left = clickedRow.left - menuWidth - 8;
+			}
+
+			if (left + menuWidth + viewportPadding > window.innerWidth) {
+				left = Math.max(viewportPadding, window.innerWidth - menuWidth - viewportPadding);
+			}
+			if (top + menuHeight + viewportPadding > window.innerHeight) {
+				top = Math.max(viewportPadding, window.innerHeight - menuHeight - viewportPadding);
+			}
+			if (top < viewportPadding) {
+				top = viewportPadding;
+			}
+
+			documentContextMenu.style.left = `${left}px`;
+			documentContextMenu.style.top = `${top}px`;
+		}
 
 		// Setup Button Listeners once
 		if (btnVerify) {
@@ -579,6 +752,33 @@ value="{{ old('deadline_time', $application->deadline_time ? \Carbon\Carbon::par
 				if (currentSelectedDoc) updateDocumentStatus('Needs Revision');
 			};
 		}
+		if (contextVerifyButton) {
+			contextVerifyButton.onclick = (e) => {
+				e.preventDefault();
+				executeContextDocumentAction('Verified');
+			};
+		}
+		if (contextRevisionButton) {
+			contextRevisionButton.onclick = (e) => {
+				e.preventDefault();
+				executeContextDocumentAction('Needs Revision');
+			};
+		}
+		document.addEventListener('click', (event) => {
+			if (!documentContextMenu || documentContextMenu.classList.contains('hidden')) return;
+			if (!documentContextMenu.contains(event.target)) {
+				closeDocumentContextMenu();
+			}
+		});
+		document.addEventListener('scroll', () => {
+			closeDocumentContextMenu();
+		}, true);
+		window.addEventListener('resize', closeDocumentContextMenu);
+		document.addEventListener('keydown', (event) => {
+			if (event.key === 'Escape') {
+				closeDocumentContextMenu();
+			}
+		});
 
 		// Helper for status icon
 		function getStatusIcon(status) {
@@ -601,6 +801,8 @@ value="{{ old('deadline_time', $application->deadline_time ? \Carbon\Carbon::par
 		}
 
 		function handleDocumentClick(doc, force = false) {
+			closeDocumentContextMenu();
+
 			// Prevent re-clicking same doc to avoid reload
 			if (!force && currentSelectedDoc && currentSelectedDoc.id === doc.id) return;
 
@@ -717,6 +919,7 @@ value="{{ old('deadline_time', $application->deadline_time ? \Carbon\Carbon::par
 				alert("Please select a document first.");
 				return;
 			}
+			closeDocumentContextMenu();
 
 			const requestingNeedsRevision = newStatus === 'Needs Revision' || newStatus === 'Disapproved With Deficiency';
 			if (requestingNeedsRevision && currentSelectedDoc.revision_locked) {
@@ -972,10 +1175,12 @@ value="{{ old('deadline_time', $application->deadline_time ? \Carbon\Carbon::par
 				// Gather data to save before notifying
 				const dateInput = document.querySelector('input[name="deadline_date"]');
 				const timeInput = document.querySelector('input[name="deadline_time"]');
+				const deadlineEnabled = !isDeadlineSectionHidden();
 
 				const payload = {
-					deadline_date: dateInput ? dateInput.value : null,
-					deadline_time: timeInput ? timeInput.value : null,
+					deadline_enabled: deadlineEnabled ? 1 : 0,
+					deadline_date: deadlineEnabled && dateInput ? (dateInput.value || null) : null,
+					deadline_time: deadlineEnabled && timeInput ? (timeInput.value || null) : null,
 					qs_education: document.querySelector('input[name="qs_education"]:checked')?.value || 'na',
 					qs_eligibility: document.querySelector('input[name="qs_eligibility"]:checked')?.value || 'na',
 					qs_experience: document.querySelector('input[name="qs_experience"]:checked')?.value || 'na',
@@ -1117,6 +1322,13 @@ value="{{ old('deadline_time', $application->deadline_time ? \Carbon\Carbon::par
 					actionReqEl.classList.remove('hidden');
 				}
 			}
+			if (actionReqEl && actionReqEl.classList.contains('hidden')) {
+				setDeadlineSectionHidden(false);
+				deadlineHiddenByChoice = false;
+			} else {
+				setDeadlineSectionHidden(deadlineHiddenByChoice);
+			}
+			updateNoDeadlineLackingsNotice();
 
 			const modal = document.getElementById('notify-modal');
 			const appWrapper = document.getElementById('app-wrapper');
@@ -1156,35 +1368,31 @@ value="{{ old('deadline_time', $application->deadline_time ? \Carbon\Carbon::par
 			docList.forEach(doc => {
 				const li = document.createElement('li');
 				li.id = `doc-item-${doc.id}`;
-				li.className = "mb-1"; // minimal margin
+				li.className = "mb-1";
 
+				const isVerified = doc.status === 'Verified' || doc.status === 'Okay/Confirmed';
+				const needsRevision = doc.status === 'Needs Revision' || doc.status === 'Disapproved With Deficiency';
+				// Wrapper row (right-click anywhere on this row to open actions)
+				const row = document.createElement('div');
+				row.className = 'flex items-center gap-1 rounded-md border border-transparent transition-colors duration-150 hover:bg-gray-50' +
+					(currentSelectedDoc && currentSelectedDoc.id === doc.id ? ' bg-blue-50 ring-1 ring-blue-200' : '');
+				row.oncontextmenu = function (e) {
+					openDocumentContextMenu(e, doc);
+				};
+
+				// Clickable doc label
 				const btn = document.createElement('button');
 				btn.type = "button";
-				// Completely standard block button to avoid stacking context issues
-				btn.className = "w-full text-left p-2 rounded-md hover:bg-gray-100 flex items-start gap-2 transition-colors duration-150 border border-transparent focus:outline-none focus:ring-2 focus:ring-blue-200";
-
+				btn.className = "flex-1 text-left p-2 flex items-start gap-2 focus:outline-none";
 				if (doc.isBold) btn.classList.add('font-bold');
 				if (doc.italic) btn.classList.add('italic');
 
-				// Active state style
-				if (currentSelectedDoc && currentSelectedDoc.id === doc.id) {
-					btn.classList.add("bg-blue-50", "ring-1", "ring-blue-200");
-				}
-
 				let icon = getStatusIcon(doc.status);
-
-				// Setup text color based on status
 				let textColorClass = "text-gray-700";
-
-				if (doc.status === "Verified" || doc.status === "Okay/Confirmed") {
-					textColorClass = "text-[#00730A] font-bold";
-				} else if (doc.status === "Needs Revision" || doc.status === "Disapproved With Deficiency") {
-					textColorClass = "text-[#BC0000] font-bold";
-				} else if (doc.status === "Not Submitted") {
-					textColorClass = "text-gray-400";
-				} else {
-					textColorClass = "text-orange-500 font-medium";
-				}
+				if (isVerified) textColorClass = "text-[#00730A] font-bold";
+				else if (needsRevision) textColorClass = "text-[#BC0000] font-bold";
+				else if (doc.status === "Not Submitted") textColorClass = "text-gray-400";
+				else textColorClass = "text-orange-500 font-medium";
 
 				const iconWrapper = document.createElement('span');
 				iconWrapper.className = "mt-0.5 flex-shrink-0 w-4 h-4 flex items-center justify-center";
@@ -1196,14 +1404,13 @@ value="{{ old('deadline_time', $application->deadline_time ? \Carbon\Carbon::par
 
 				btn.appendChild(iconWrapper);
 				btn.appendChild(textWrapper);
-
-				// Simple direct click handler on the button itself
 				btn.onclick = function (e) {
 					e.preventDefault();
 					handleDocumentClick(doc);
 				};
 
-				li.appendChild(btn);
+				row.appendChild(btn);
+				li.appendChild(row);
 				listEl.appendChild(li);
 			});
 		}
@@ -1239,6 +1446,41 @@ value="{{ old('deadline_time', $application->deadline_time ? \Carbon\Carbon::par
 			// Tooltip updates can be kept simple or removed if not critical
 		}
 
+		function getUnmetQualificationLabels() {
+			const fields = [
+				{ field: 'qs_education', label: 'Education' },
+				{ field: 'qs_eligibility', label: 'Eligibility' },
+				{ field: 'qs_experience', label: 'Experience' },
+				{ field: 'qs_training', label: 'Training' },
+			];
+
+			const unmet = [];
+			fields.forEach(item => {
+				const selected = document.querySelector(`input[name="${item.field}"]:checked`)?.value || '';
+				if (selected === 'no') {
+					unmet.push(item.label);
+				}
+			});
+
+			return unmet;
+		}
+
+		function updateNoDeadlineLackingsNotice() {
+			const messageEl = document.getElementById('no-deadline-lackings-msg');
+			if (!messageEl) return;
+
+			const deadlineHidden = isDeadlineSectionHidden();
+			const unmetLabels = getUnmetQualificationLabels();
+			if (!deadlineHidden || unmetLabels.length === 0) {
+				messageEl.classList.add('hidden');
+				messageEl.textContent = '';
+				return;
+			}
+
+			messageEl.textContent = `These are the lacking/s you have, you must have these skills or qualifications in order to apply for this position. (${unmetLabels.join(', ')})`;
+			messageEl.classList.remove('hidden');
+		}
+
 		// Deadline logic
 		function checkDeadline() {
 			const dateInput = document.querySelector('input[name="deadline_date"]');
@@ -1251,6 +1493,7 @@ value="{{ old('deadline_time', $application->deadline_time ? \Carbon\Carbon::par
 
 			if (!date) {
 				warningDiv.classList.add('hidden');
+				updateNoDeadlineLackingsNotice();
 				return;
 			}
 
@@ -1262,6 +1505,7 @@ value="{{ old('deadline_time', $application->deadline_time ? \Carbon\Carbon::par
 			} else {
 				warningDiv.classList.add('hidden');
 			}
+			updateNoDeadlineLackingsNotice();
 		}
 
 		function goBack() {
