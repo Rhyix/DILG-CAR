@@ -1561,6 +1561,7 @@ private function WriteC4Information($pdf, $userId)
         ];
 
         $checkboxes = [
+<<<<<<< Updated upstream
             'third_degree'  => ['yes' => [139.5, 24.4], 'no' => [165, 26]],
             'fourth_degree' => ['yes' => [139.5, 30], 'no' => [159, 32]],
             'guilty'        => ['yes' => [138.7, 46],   'no' => [159.5, 48]],
@@ -1573,6 +1574,20 @@ private function WriteC4Information($pdf, $userId)
             'indigenous'    => ['yes' => [138.7, 163],  'no' => [164, 167]],
             'disability'    => ['yes' => [138.7, 171],  'no' => [164, 175.8]],
             'solo_parent'   => ['yes' => [138.7, 180.4],  'no' => [164, 185]],
+=======
+            'third_degree'  => ['yes' => [140, 26], 'no' => [158.7, 26]],
+            'fourth_degree' => ['yes' => [138, 31.5], 'no' => [159, 32]],
+            'guilty'        => ['yes' => [137.5, 47.8],   'no' => [159.5, 48]],
+            'charged'       => ['yes' => [137.3, 64.8], 'no' => [160.7, 65]],
+            'convicted'     => ['yes' => [137.2, 86], 'no' => [161.6, 86]],
+            'separated'     => ['yes' => [137, 102.3],'no' => [161.5, 102.7]],
+            'candidate'     => ['yes' => [137.4, 116.3],    'no' => [163, 116.7]],
+            'resigned'      => ['yes' => [138, 126.5],'no' => [163.5, 126.6]],
+            'immigrant'     => ['yes' => [137.2, 139],    'no' => [163.5, 138.7]],
+            'indigenous'    => ['yes' => [137.4, 167],  'no' => [164, 167]],
+            'disability'    => ['yes' => [137.3, 175.5],  'no' => [164, 175.8]],
+            'solo_parent'   => ['yes' => [137.4, 184.8],  'no' => [164, 185]],
+>>>>>>> Stashed changes
         ];
 
         foreach ($checkboxes as $key => $coord) {
