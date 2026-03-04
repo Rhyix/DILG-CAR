@@ -39,8 +39,12 @@
       line-height: 1.3;
     }
     .banner {
-      background-color: #002C76;
-      color: white;
+      /* background-color: #002C76; */
+      display:flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      color: #002C76;
       padding: 15px 30px;
       margin: 15px 15px 0px 15px;
       font-size: 18px;
@@ -107,75 +111,75 @@
     }
   </style>
 </head>
-<body>
-  <div class="container">
-    <!-- Header -->
-    <div class="header">
-      <img class="logo" src="{{ asset('images/dilg_logo.png') }}" alt="DILG Logo" style="object-fit:contain;">
-      <div class="title-text">
-        <h2>DILG - CAR<br>Recruitment Selection and Placement Portal</h2>
-      </div>
-    </div>
+    <body>
+        <div class="container">
+            <!-- Header -->
+            <div class="header">
+            <img class="logo" src="{{ isset($message) ? $message->embed(public_path('images/dilg_logo.png')) : asset('images/dilg_logo.png') }}" alt="DILG Logo" style="object-fit:contain;">
+            <div class="title-text">
+                <h2>DILG - CAR<br>Recruitment Selection and Placement Portal</h2>
+            </div>
+            </div>
 
-    <!-- Banner -->
-    <div class="banner">
-      <img src="https://cdn-icons-png.flaticon.com/512/1827/1827392.png" alt="Schedule Icon" />
-      Examination Schedule
-    </div>
-    <!-- Content -->
-    <div class="content">
-      <p>Hello {{ $user->name ?? 'Applicant' }}!</p>
-      <p>
-        Thank you for your interest in joining our team. We are pleased to inform you that you are scheduled to take an examination as part of your application process. Please find the details below:
-      </p>
+            <!-- Banner -->
+            <div class="banner">
+            <!-- <img src="https://cdn-icons-png.flaticon.com/512/1827/1827392.png" alt="Schedule Icon" /> -->
+                <h1>Examination Access Link</h1>
+            </div>
+            <!-- Content -->
+            <div class="content">
+            <p>Hello {{ $user->name ?? 'Applicant' }}!</p>
+            <p>
+                Thank you for your interest in joining our team. We are pleased to inform you that you are scheduled to take an examination as part of your application process. Please find the details below:
+            </p>
 
-    <div class="exam-details">
-      <h3>{{ $vacancy->position_title ?? '[Position Title]' }}</h3>
-      <table cellpadding="0" cellspacing="0" border="0" width="100%" style="font-size: 15px;">
-        <tr>
-          <td style="font-weight:700; color:#002C63; padding: 4px 0;">Date:</td>
-          <td>{{ $exam->date ?? '[Month Day, Year]' }}</td>
-        </tr>
-        <tr>
-          <td style="font-weight:700; color:#002C63; padding: 4px 0;">Time:</td>
-          <td>{{ $exam->time ?? '[00:00 AM/PM]' }}</td>
-        </tr>
-        <tr>
-          <td style="font-weight:700; color:#002C63; padding: 4px 0;">Venue:</td>
-          <td>
-            {{ $exam->place ?? '[Office Name]' }}
-          </td>
-        </tr>
-      </table>
-    </div>
-      <p>
-        Please ensure that you arrive at the venue at least 15 minutes before the scheduled time. Bring a valid ID and any other required documents.
-      </p>
+            <div class="exam-details">
+            <h3>{{ $vacancy->position_title ?? '[Position Title]' }}</h3>
+            <table cellpadding="0" cellspacing="0" border="0" width="100%" style="font-size: 15px;">
+                <tr>
+                <td style="font-weight:700; color:#002C63; padding: 4px 0;">Date:</td>
+                <td>{{ $exam->date ?? '[Month Day, Year]' }}</td>
+                </tr>
+                <tr>
+                <td style="font-weight:700; color:#002C63; padding: 4px 0;">Time:</td>
+                <td>{{ $exam->time ?? '[00:00 AM/PM]' }}</td>
+                </tr>
+                <tr>
+                <td style="font-weight:700; color:#002C63; padding: 4px 0;">Venue:</td>
+                <td>
+                    {{ $exam->place ?? '[Office Name]' }}
+                </td>
+                </tr>
+            </table>
+            </div>
+            <p>
+                Please ensure that you arrive at the venue at least 15 minutes before the scheduled time. Bring a valid ID and any other required documents.
+            </p>
 
-      <p>
-        The examination will be conducted in person, but you will also need to access it through the link below:
-      </p>
+            <p>
+                The examination will be conducted in person, but you will also need to access it through the link below:
+            </p>
 
-      <a href="{{ $join_link ?? '#' }}" class="join-button">Access Exam Link</a>
+            <a href="{{ $join_link ?? '#' }}" class="join-button">Access Exam Link</a>
 
-      <p class="note" style="margin-top:10px;">
-        Important: The link expires in 2 minutes and can be used once on a single device.
-      </p>
+            <p class="note" style="margin-top:10px;">
+                Important: The link expires in 2 minutes and can be used once on a single device.
+            </p>
 
-      <p class="note">
-         If the button above does not work, please copy and paste this link into your browser:<br>
-        <p class="note" style="word-break: break-all; margin-top: -10px;">{{ $join_link ?? '[exam_link_here]' }} </p>
-      </p>
+            <p class="note">
+                If the button above does not work, please copy and paste this link into your browser:<br>
+                <p class="note" style="word-break: break-all; margin-top: -10px;">{{ $join_link ?? '[exam_link_here]' }} </p>
+            </p>
 
-      <p>
-        If you have any questions or concerns, please feel free to reply to this email.
-      </p>
-      <p>
-        We look forward to seeing you. Thank you.<br>
-        <strong>– DILG-CAR</strong>
-      </p>
-    </div>
-  </div>
-  @include('partials.loader')
-</body>
+            <p>
+                If you have any questions or concerns, please feel free to reply to this email.
+            </p>
+            <p>
+                We look forward to seeing you. Thank you.<br>
+                <strong>– DILG-CAR</strong>
+            </p>
+            </div>
+        </div>
+    @include('partials.loader')
+    </body>
 </html>

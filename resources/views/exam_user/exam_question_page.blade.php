@@ -10,6 +10,18 @@
         -moz-user-select: none;
         -ms-user-select: none;
     }
+    .question-text {
+        user-select: none;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+    }
+    input, textarea, button, label {
+        user-select: auto;
+        -webkit-user-select: auto;
+        -moz-user-select: auto;
+        -ms-user-select: auto;
+    }
 </style>
 @endpush
 
@@ -53,8 +65,16 @@
 @section('content')
 <!-- Original Header -->
 <div class="px-6 mb-6">
-    <h2 class="text-2xl font-bold uppercase text-[#002C76]">Engineer III</h2>
+    @php
+        $displayExamineeName = $examineeName ?? (auth()->user()->name ?? 'Examinee');
+        $displayExamineeNumber = $examineeNumber ?? strtoupper('EXM-' . substr(hash('sha256', ($vacancy_id ?? 'UNKNOWN') . '-' . (auth()->id() ?? '0')), 0, 8));
+    @endphp
+    <h2 class="text-2xl font-bold uppercase text-[#002C76]">{{ $vacancy->position_title ?? 'Examination' }}</h2>
     <p class="uppercase text-sm font-semibold text-gray-700 tracking-wide">Examination</p>
+    <div class="mt-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2.5 max-w-xl">
+        <p class="text-sm text-gray-700"><span class="font-semibold text-[#002C76]">Examinee:</span> {{ $displayExamineeName }}</p>
+        <p class="text-sm text-gray-700"><span class="font-semibold text-[#002C76]">Examinee No.:</span> {{ $displayExamineeNumber }}</p>
+    </div>
 </div>
 
  @if(session('success'))
@@ -145,6 +165,7 @@
         Object.entries(savedAnswers || {}).map(([questionId, value]) => [String(questionId), value ?? ''])
     );
     let switchCount = 0;
+    let justSwitched = false;
     const AUTOSAVE_DEBOUNCE_MS = 900;
     const AUTOSAVE_PERIODIC_MS = 15000;
     let autoSaveInFlight = false;
@@ -320,6 +341,43 @@
     document.addEventListener('contextmenu', e => e.preventDefault());
     ['copy', 'cut', 'paste'].forEach(evt => document.addEventListener(evt, e => e.preventDefault()));
 
+    window.allowFullscreenExit = false;
+
+    function isFullscreenActive() {
+        return !!(document.fullscreenElement || document.webkitFullscreenElement);
+    }
+
+    async function requestExamFullscreen() {
+        if (window.allowFullscreenExit || isFullscreenActive()) return;
+        const root = document.documentElement;
+        try {
+            if (root.requestFullscreen) {
+                await root.requestFullscreen();
+            } else if (root.webkitRequestFullscreen) {
+                root.webkitRequestFullscreen();
+            }
+        } catch (_) {
+            // Some browsers require a user gesture; retry on next interaction.
+        }
+    }
+
+    function enforceFullscreenIfNeeded() {
+        if (!window.allowFullscreenExit && !window.isSubmitting && !isFullscreenActive()) {
+            handleTabSwitch();
+            requestExamFullscreen();
+        }
+    }
+
+    document.addEventListener('fullscreenchange', enforceFullscreenIfNeeded);
+    document.addEventListener('webkitfullscreenchange', enforceFullscreenIfNeeded);
+
+    document.addEventListener('click', requestExamFullscreen, { passive: true });
+    document.addEventListener('keydown', requestExamFullscreen, { passive: true });
+
+    document.addEventListener('DOMContentLoaded', () => {
+        requestExamFullscreen();
+    });
+
 /*
     document.addEventListener('keydown', e => {
         const key = e.key.toLowerCase();
@@ -328,6 +386,22 @@
             key === 'f12') e.preventDefault();
     });
 */
+    document.addEventListener('keydown', e => {
+        const key = (e.key || '').toLowerCase();
+
+        // Keep examinee in exam mode.
+        if (key === 'escape' || key === 'f11' || key === 'printscreen') {
+            e.preventDefault();
+            return;
+        }
+
+        // Block modifier keys and combos in-page.
+        if (e.ctrlKey || e.altKey || e.metaKey || key === 'control' || key === 'alt' || key === 'meta') {
+            e.preventDefault();
+            return;
+        }
+    });
+
     window.allowFocusLoss = false;
     window.isSubmitting = false;
 
@@ -393,6 +467,7 @@
 
         window.isSubmitting = true;
         window.allowFocusLoss = true;
+        window.allowFullscreenExit = true;
         document.getElementById('exam-form').submit();
     }
 
@@ -565,7 +640,7 @@
 
         const number = idx + 1;
         let html = `<p class="text-lg font-semibold text-gray-800">QUESTION ${number} of ${Questions.length}</p>`;
-        html += `<p class="mb-3 text-gray-700">${q.question}</p>`;
+        html += `<p class="mb-3 text-gray-700 question-text">${q.question}</p>`;
 
         if (!q.is_essay) {
             const opts = q.choices;

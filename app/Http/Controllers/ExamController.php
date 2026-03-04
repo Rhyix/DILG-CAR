@@ -944,7 +944,10 @@ class ExamController extends Controller
             ->withProperties(['vacancy_id' => $vacancy_id, 'section' => 'Exam'])
             ->log('Entered exam lobby.');
 
-        return view('exam_user.exam_lobby', compact('vacancy_id', 'examDetail', 'vacancy'));
+        $examineeName = auth()->user()->name ?? 'Examinee';
+        $examineeNumber = strtoupper('EXM-' . substr(hash('sha256', $vacancy_id . '-' . $user_id), 0, 8));
+
+        return view('exam_user.exam_lobby', compact('vacancy_id', 'examDetail', 'vacancy', 'examineeName', 'examineeNumber'));
     }
 
     public function examQuestion(Request $request, $vacancy_id)
@@ -1016,7 +1019,10 @@ class ExamController extends Controller
         $total_seconds = $examDetail->duration * 60;
         $savedAnswers = is_array($application->answers) ? $application->answers : [];
 
-        return view('exam_user.exam_question_page', compact('vacancy_id', 'examItems', 'remaining_seconds', 'vacancy', 'total_seconds', 'savedAnswers'));
+        $examineeName = auth()->user()->name ?? 'Examinee';
+        $examineeNumber = strtoupper('EXM-' . substr(hash('sha256', $vacancy_id . '-' . $user_id), 0, 8));
+
+        return view('exam_user.exam_question_page', compact('vacancy_id', 'examItems', 'remaining_seconds', 'vacancy', 'total_seconds', 'savedAnswers', 'examineeName', 'examineeNumber'));
     }
 
     public function viewExam(Request $request, $vacancy_id, $user_id)
@@ -1678,6 +1684,7 @@ class ExamController extends Controller
     {
         return DB::transaction(function () use ($userIds, $vacancy_id, $examDetail) {
             $sender_email = auth('admin')->user()->email ?? config('mail.from.address');
+            $applicationColumns = array_flip(Schema::getColumnListing('applications'));
             $result = [
                 'sent' => 0,
                 'failed' => 0,
@@ -1700,15 +1707,20 @@ class ExamController extends Controller
                 $token = Str::random(64);
                 $expiresAt = now()->addMinutes(2);
 
-                $application->update([
+                $payload = [
                     'exam_token' => $token,
                     'exam_token_expires_at' => $expiresAt,
                     'link_sent_at' => now(),
-                    'exam_token_used_at' => null,
-                    'exam_token_device_id' => null,
-                    'exam_token_used_ip' => null,
-                    'exam_token_used_ua' => null,
-                ]);
+                ];
+
+                    // Some deployments may not have these tracking columns yet; only update existing columns.
+                foreach (['exam_token_used_at', 'exam_token_device_id', 'exam_token_used_ip', 'exam_token_used_ua'] as $optionalColumn) {
+                    if (isset($applicationColumns[$optionalColumn])) {
+                        $payload[$optionalColumn] = null;
+                    }
+                    }
+
+                    $application->update($payload);
 
                 try {
                     // Send immediately so the endpoint reflects real delivery attempts.
