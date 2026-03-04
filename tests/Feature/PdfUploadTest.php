@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\UploadedDocument;
 use App\Models\JobVacancy;
+use App\Models\Applications;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -40,6 +41,12 @@ class PdfUploadTest extends TestCase
         Storage::fake('public');
         $user = User::factory()->create();
         $vacancy = $this->createVacancy();
+        Applications::create([
+            'user_id' => $user->id,
+            'vacancy_id' => $vacancy->vacancy_id,
+            'status' => 'New',
+            'is_valid' => true,
+        ]);
         $this->actingAs($user);
 
         $file = UploadedFile::fake()->createWithContent('doc.pdf', "%PDF-1.7\n%TEST\n");
@@ -65,6 +72,12 @@ class PdfUploadTest extends TestCase
         Storage::fake('public');
         $user = User::factory()->create();
         $vacancy = $this->createVacancy();
+        Applications::create([
+            'user_id' => $user->id,
+            'vacancy_id' => $vacancy->vacancy_id,
+            'status' => 'New',
+            'is_valid' => true,
+        ]);
         $this->actingAs($user);
 
         $file = UploadedFile::fake()->createWithContent('bad.pdf', 'NOT_A_PDF');
@@ -86,6 +99,12 @@ class PdfUploadTest extends TestCase
         Storage::fake('public');
         $user = User::factory()->create();
         $vacancy = $this->createVacancy();
+        Applications::create([
+            'user_id' => $user->id,
+            'vacancy_id' => $vacancy->vacancy_id,
+            'status' => 'New',
+            'is_valid' => true,
+        ]);
         $this->actingAs($user);
 
         $file = UploadedFile::fake()->create('big.pdf', 10241, 'application/pdf');

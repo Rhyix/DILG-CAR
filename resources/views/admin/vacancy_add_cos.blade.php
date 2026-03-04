@@ -65,6 +65,12 @@
     @if(isset($vacancy))
       @method('PUT')
     @endif
+    @php $formSource = $vacancy ?? ($templateVacancy ?? null); @endphp
+    @if(!isset($vacancy) && isset($templateVacancy))
+      <div class="mb-4 rounded border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-[#0D2B70]">
+        Reusing details from vacancy <span class="font-semibold">{{ $templateVacancy->vacancy_id }}</span>.
+      </div>
+    @endif
 
     <input type="hidden" name="vacancy_type" value="COS">
 
@@ -81,11 +87,11 @@
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div>
         <label class="block">Salary Grade/Pay Grade</label>
-        <input id="salary_grade" type="text" name="salary_grade" value="{{ old('salary_grade', $vacancy->salary_grade ?? '') }}" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10" readonly>
+        <input id="salary_grade" type="text" name="salary_grade" value="{{ old('salary_grade', $formSource?->salary_grade ?? '') }}" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10" readonly>
       </div>
       <div>
         <label class="block">Monthly Salary</label>
-        <input id="monthly_salary" required type="number" step="0.01" min="0" max="1000000" inputmode="decimal" name="monthly_salary" value="{{ old('monthly_salary', $vacancy->monthly_salary ?? '') }}" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10" readonly>
+        <input id="monthly_salary" required type="number" step="0.01" min="0" max="1000000" inputmode="decimal" name="monthly_salary" value="{{ old('monthly_salary', $formSource?->monthly_salary ?? '') }}" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10" readonly>
         <p id="monthly_salary_error" class="text-red-600 text-sm mt-1 hidden"></p>
       </div>
     </div>
@@ -98,7 +104,7 @@
                 id="closing_date"
                 type="date"
                 name="closing_date"
-                value="{{ old('closing_date', isset($vacancy->closing_date) ? \Carbon\Carbon::parse($vacancy->closing_date)->format('Y-m-d') : '') }}"
+                value="{{ old('closing_date', isset($formSource) && !empty($formSource->closing_date) ? \Carbon\Carbon::parse($formSource->closing_date)->format('Y-m-d') : '') }}"
                 placeholder="Select deadline"
                 class="w-full border-2 border-[#002C76] rounded px-2 py-2 h-10">
             <p id="closing_date_error" class="text-red-600 text-sm mt-1 hidden">Deadline of application is required.</p>
@@ -109,9 +115,9 @@
         <div class="w-full">
             <label class="block">Place of Assignment</label>
             <select id="place_of_assignment" name="place_of_assignment" required class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10">
-            <option disabled {{ old('place_of_assignment', $vacancy->place_of_assignment ?? '') == '' ? 'selected' : '' }}>Place of Assignment</option>
-            @foreach(['DILG-CAR Regional Office','Apayao Provincial Office','Abra Provincial Office','Mountain Province Provincial Office','Ifugao Provincial Office','Kalinga Provincial Office','Benguet Provincial Office','Baguio City Office'] as $place)
-                <option value="{{ $place }}" {{ old('place_of_assignment', $vacancy->place_of_assignment ?? '') == $place ? 'selected' : '' }}>{{ $place }}</option>
+            <option disabled {{ old('place_of_assignment', $formSource?->place_of_assignment ?? '') == '' ? 'selected' : '' }}>Place of Assignment</option>
+            @foreach(['DILG-CAR','DILG-CAR Regional Office','Apayao Provincial Office','Abra Provincial Office','Mountain Province Provincial Office','Ifugao Provincial Office','Kalinga Provincial Office','Benguet Provincial Office','Baguio City Office'] as $place)
+                <option value="{{ $place }}" {{ old('place_of_assignment', $formSource?->place_of_assignment ?? '') == $place ? 'selected' : '' }}>{{ $place }}</option>
             @endforeach
             </select>
             <p id="place_of_assignment_error" class="text-red-600 text-sm mt-1 hidden">Place of assignment is required.</p>
@@ -129,19 +135,19 @@
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
         <div class="w-full">
             <label class="block font-bold">Education</label>
-            <input type="text" name="qualification_education" value="{{ old('qualification_education', $vacancy->qualification_education ?? '') }}" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10">
+            <input type="text" name="qualification_education" value="{{ old('qualification_education', $formSource?->qualification_education ?? '') }}" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10">
         </div>
         <div class="w-full">
             <label class="block font-bold">Training</label>
-            <input type="text" name="qualification_training" value="{{ old('qualification_training', $vacancy->qualification_training ?? '') }}" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10">
+            <input type="text" name="qualification_training" value="{{ old('qualification_training', $formSource?->qualification_training ?? '') }}" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10">
         </div>
         <div class="w-full">
             <label class="block font-bold">Experience</label>
-            <input type="text" name="qualification_experience" value="{{ old('qualification_experience', $vacancy->qualification_experience ?? '') }}" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10">
+            <input type="text" name="qualification_experience" value="{{ old('qualification_experience', $formSource?->qualification_experience ?? '') }}" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10">
         </div>
         <div class="w-full">
             <label class="block font-bold">Eligibility</label>
-            <input type="text" name="qualification_eligibility" value="{{ old('qualification_eligibility', $vacancy->qualification_eligibility ?? '') }}" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10">
+            <input type="text" name="qualification_eligibility" value="{{ old('qualification_eligibility', $formSource?->qualification_eligibility ?? '') }}" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10">
         </div>
     </div>
 
@@ -150,13 +156,13 @@
     <!-- Deliverables, Scope, Duration -->
     <!-- Deliverables, Scope, Duration -->
     <h2 class="font-bold mt-6">EXPECTED OUTPUT/DELIVERABLES AND SCHEDULE OF SUBMISSION</h2>
-    <textarea name="expected_output" rows="3" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1">{{ old('expected_output', $vacancy->expected_output ?? '') }}</textarea>
+    <textarea name="expected_output" rows="3" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1">{{ old('expected_output', $formSource?->expected_output ?? '') }}</textarea>
 
     <h2 class="font-bold mt-6">SCOPE OF WORK</h2>
-    <textarea name="scope_of_work" rows="3" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1">{{ old('scope_of_work', $vacancy->scope_of_work ?? '') }}</textarea>
+    <textarea name="scope_of_work" rows="3" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1">{{ old('scope_of_work', $formSource?->scope_of_work ?? '') }}</textarea>
 
     <h2 class="font-bold mt-6">DURATION OF WORK</h2>
-    <textarea name="duration_of_work" rows="2" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1">{{ old('duration_of_work', $vacancy->duration_of_work ?? '') }}</textarea>
+    <textarea name="duration_of_work" rows="2" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1">{{ old('duration_of_work', $formSource?->duration_of_work ?? '') }}</textarea>
 
     <!-- Submission Details -->
     <h2 class="font-bold mt-6">INTERESTED APPLICANTS MUST SUBMIT THEIR APPLICATION TO:</h2>
@@ -173,7 +179,7 @@
                             data-designation="{{ $signatory->designation }}"
                             data-office="{{ $signatory->office }}"
                             data-office_address="{{ $signatory->office_address }}"
-                            {{ old('to_person', $vacancy->to_person ?? '') === ($signatory->first_name . ' ' . $signatory->middle_name . ' ' . $signatory->last_name) ? 'selected' : '' }}>
+                            {{ old('to_person', $formSource?->to_person ?? '') === ($signatory->first_name . ' ' . $signatory->middle_name . ' ' . $signatory->last_name) ? 'selected' : '' }}>
                             {{ $signatory->first_name }} {{ $signatory->middle_name }} {{ $signatory->last_name }}
                         </option>
                     @empty
@@ -184,17 +190,17 @@
 
             <div>
                 <label class="block">Designation</label>
-                <input type="text" id="to_position" name="to_position" value="{{ old('to_position', $vacancy->to_position ?? '') }}" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10" readonly>
+                <input type="text" id="to_position" name="to_position" value="{{ old('to_position', $formSource?->to_position ?? '') }}" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10" readonly>
             </div>
         </div>
         <div class="flex flex-col">
             <div>
                 <label class="block">Office</label>
-                <input type="text" id="to_office" name="to_office" value="{{ old('to_office', $vacancy->to_office ?? '') }}" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10" readonly>
+                <input type="text" id="to_office" name="to_office" value="{{ old('to_office', $formSource?->to_office ?? '') }}" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10" readonly>
             </div>
             <div>
                 <label class="block">Office Address</label>
-                <input type="text" id="to_office_address" name="to_office_address" value="{{ old('to_office_address', $vacancy->to_office_address ?? '') }}" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10" readonly>
+                <input type="text" id="to_office_address" name="to_office_address" value="{{ old('to_office_address', $formSource?->to_office_address ?? '') }}" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10" readonly>
             </div>
         </div>
     </div>
@@ -478,7 +484,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const data = await res.json();
     if (data.success) {
       const opts = data.data || [];
-      const current = "{{ old('position_title', $vacancy->position_title ?? '') }}";
+      const current = "{{ old('position_title', $formSource?->position_title ?? '') }}";
       opts.forEach(o => {
         const opt = document.createElement('option');
         opt.value = o.position_title;

@@ -2,9 +2,9 @@
 @section('title', 'DILG - Manage Exam')
 @section('content')
 
-<main class="w-full mx-auto flex flex-col space-y-4 overflow-hidden px-4 lg:px-0">
+<main class="w-full h-full min-h-0 mx-auto flex flex-col gap-2 overflow-hidden px-4 lg:px-0">
     <!-- header -->
-    <section class="flex-none flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 max-w-full border-b border-[#0D2B70] pb-4">
+    <section class="flex-none flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 max-w-full border-b border-[#0D2B70] pb-2">
         <div class="flex items-center gap-4">
             <button aria-label="Back" onclick="window.location.href='{{ route('admin_exam_management') }}'" class="use-loader group">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-[#0D2B70] hover:opacity-80 transition" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
@@ -89,9 +89,9 @@
     </section>  
 
     <!-- OLD SCHEDULE -->
-    <section class="flex-none rounded-xl shadow-sm">
+    <section class="flex-none rounded-xl">
         <!-- Top Row: Info and Buttons -->
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 mb-2">
             <!-- Left Info -->
             <div class="text-sm text-[#002C76] font-montserrat">
                 <span class="text-xl md:text-2xl lg:text-3xl font-semibold">
@@ -124,11 +124,11 @@
         </div>
 
         <!-- horizontal rule -->
-        <div class="border-t border-gray-300 my-4"></div>
+        <div class="border-t border-gray-300 my-2"></div>
 
     </section>
 
-    <div class="flex-1 flex flex-col lg:flex-row min-h-0 gap-6 pb-4 overflow-hidden pt-2">
+    <div class="flex-1 flex flex-col lg:flex-row min-h-0 gap-4 overflow-hidden pt-1">
         
         <!-- LEFT COLUMN: Tabs + Content (70% width) -->
         <div class="w-full lg:w-[70%] flex flex-col min-h-0 border-r border-gray-200 pr-4">
@@ -151,7 +151,7 @@
             
             <!-- Tab Content: Qualified Applicants -->
             <div id="content-qualified" class="tab-content flex-1 flex flex-col min-h-0 overflow-hidden">
-                <div class="flex-none flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+                <div class="flex-none flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
                     <!-- Search Bar -->
                     <form onsubmit="return false;" class="relative w-full max-w-xs">
                         <input id="searchInputQualified" type="search" placeholder="Search applicants" aria-label="Search"
@@ -181,31 +181,32 @@
                         <table class="w-full text-left border-collapse">
                             <thead class="bg-[#0D2B70] text-white sticky top-0 z-10">
                                 <tr>
-                                    <th class="py-4 px-4 font-normal w-12">
+                                    <th class="py-3 px-4 font-normal w-12">
                                         <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)"
                                             class="w-4 h-4 rounded border-gray-300 text-[#0D2B70] focus:ring-[#0D2B70] cursor-pointer">
                                     </th>
-                                    <th class="py-4 px-6 font-normal">Name</th>
-                                    <th class="py-4 px-6 font-normal">Email</th>
-                                    <th class="py-4 px-6 font-normal">Application Date</th>
-                                    <th class="py-4 px-6 font-normal text-center">Notification Status</th>
-                                    <th class="py-4 px-6 font-normal text-center">Actions</th>
+                                    <th class="py-3 px-6 font-normal">Name</th>
+                                    <th class="py-3 px-6 font-normal">Email</th>
+                                    <th class="py-3 px-6 font-normal">Application Date</th>
+                                    <th class="py-3 px-6 font-normal text-center">Notification Status</th>
+                                    <th class="py-3 px-6 font-normal text-center">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="qualified-applicants-list" class="divide-y divide-[#0D2B70]">
                                 @forelse ($qualifiedApplicants as $applicant)
                                     <tr class="text-[#0D2B70] select-none hover:bg-blue-50 transition-colors duration-200">
-                                        <td class="py-4 px-4">
+                                        <td class="py-2.5 px-4">
                                             <input type="checkbox" name="applicant_ids[]" value="{{ $applicant['id'] }}"
                                                 data-user-id="{{ $applicant['user_id'] }}"
                                                 data-link-sent="{{ $applicant['link_sent'] ? '1' : '0' }}"
                                                 onchange="updateSelectedCount()"
                                                 class="applicant-checkbox w-4 h-4 rounded border-gray-300 text-[#0D2B70] focus:ring-[#0D2B70] cursor-pointer">
                                         </td>
-                                        <td class="py-4 px-6 font-semibold">{{ $applicant['name'] }}</td>
-                                        <td class="py-4 px-6">{{ $applicant['email'] }}</td>
-                                        <td class="py-4 px-6">{{ $applicant['application_date'] }}</td>
-                                        <td class="py-4 px-6 text-center">
+                                        <td class="py-2.5 px-6 font-semibold">{{ $applicant['name'] }}</td>
+                                        <!-- <td class="py-2.5 px-6">{{ $applicant['email'] }}</td> -->
+                                        <td class="py-2.5 px-6 max-w-[200px] truncate"> {{ $applicant['email'] }}</td>
+                                        <td class="py-2.5 px-6">{{ $applicant['application_date'] }}</td>
+                                        <td class="py-2.5 px-6 text-center">
                                             @if($applicant['is_read'])
                                                 <span class="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 flex items-center justify-center gap-1"
                                                     title="Confirmed: {{ \Carbon\Carbon::parse($applicant['read_at'])->format('M d, Y h:i A') }}">
@@ -224,7 +225,7 @@
                                                 </span>
                                             @endif
                                         </td>
-                                        <td class="py-4 px-6 text-center">
+                                        <td class="py-2.5 px-6 text-center">
                                             <a
                                                 href="{{ route('admin.applicant_status', ['user_id' => $applicant['user_id'], 'vacancy_id' => $applicant['vacancy_id']]) }}"
                                                 target="_blank"
@@ -259,11 +260,11 @@
                     <table class="w-full text-left border-collapse">
                         <thead class="bg-[#0D2B70] text-white">
                             <tr>
-                                <th class="py-3 px-3 md:py-4 md:px-6 text-left text-xs md:text-sm tracking-wider w-[25%] md:w-[25%]">Name</th>
-                                <th class="py-3 px-3 md:py-4 md:px-6 text-center text-xs md:text-sm tracking-wider w-[15%] md:w-[15%]">MC</th>
-                                <th class="py-3 px-3 md:py-4 md:px-6 text-center text-xs md:text-sm tracking-wider w-[15%] md:w-[15%]">Essay</th>
-                                <th class="py-3 px-3 md:py-4 md:px-6 text-center text-xs md:text-sm tracking-wider w-[20%]">Status</th>
-                                <th class="py-3 px-3 md:py-4 md:px-6 text-center text-xs md:text-sm tracking-wider w-[25%]">Action</th>
+                                <th class="py-2.5 px-3 md:py-3 md:px-6 text-left text-xs md:text-sm tracking-wider w-[25%] md:w-[25%]">Name</th>
+                                <th class="py-2.5 px-3 md:py-3 md:px-6 text-center text-xs md:text-sm tracking-wider w-[15%] md:w-[15%]">MC</th>
+                                <th class="py-2.5 px-3 md:py-3 md:px-6 text-center text-xs md:text-sm tracking-wider w-[15%] md:w-[15%]">Essay</th>
+                                <th class="py-2.5 px-3 md:py-3 md:px-6 text-center text-xs md:text-sm tracking-wider w-[20%]">Status</th>
+                                <th class="py-2.5 px-3 md:py-3 md:px-6 text-center text-xs md:text-sm tracking-wider w-[25%]">Action</th>
                             </tr>
                         </thead>
                     </table>
@@ -286,22 +287,22 @@
                                 @foreach ($participants as $index => $p)
                                 <tr class="hover:bg-blue-50 transition-colors duration-200">
                                     <!-- Name -->
-                                    <td class="py-3 px-3 md:py-4 md:px-6 text-[#0D2B70] font-semibold text-xs md:text-sm w-[25%] md:w-[25%]">
+                                    <td class="py-2.5 px-3 md:py-3 md:px-6 text-[#0D2B70] font-semibold text-xs md:text-sm w-[25%] md:w-[25%]">
                                         {{ $user_name[$index] ?? 'Unknown User' }}
                                     </td>
 
                                     <!-- MC Score -->
-                                    <td class="py-3 px-3 md:py-4 md:px-6 text-center text-[#0D2B70] font-medium text-xs md:text-sm w-[15%] md:w-[15%]">
+                                    <td class="py-2.5 px-3 md:py-3 md:px-6 text-center text-[#0D2B70] font-medium text-xs md:text-sm w-[15%] md:w-[15%]">
                                         {{ $p->mc_score_str ?? '-' }}
                                     </td>
 
                                     <!-- Essay Score -->
-                                    <td class="py-3 px-3 md:py-4 md:px-6 text-center text-[#0D2B70] font-medium text-xs md:text-sm w-[15%] md:w-[15%]">
+                                    <td class="py-2.5 px-3 md:py-3 md:px-6 text-center text-[#0D2B70] font-medium text-xs md:text-sm w-[15%] md:w-[15%]">
                                         {{ $p->essay_score_str ?? '-' }}
                                     </td>
 
                                     <!-- Status -->
-                                    <td class="py-3 px-3 md:py-4 md:px-6 text-center w-[20%]">
+                                    <td class="py-2.5 px-3 md:py-3 md:px-6 text-center w-[20%]">
                                         <div class="inline-flex items-center gap-1 md:gap-2 text-[#0D2B70] font-medium text-xs md:text-sm">
                                             @php
                                                 $statusColors = [
@@ -320,7 +321,7 @@
                                     </td>
 
                                     <!-- Action Button -->
-                                     <td class="py-3 px-3 md:py-4 md:px-6 text-center w-[25%]">
+                                     <td class="py-2.5 px-3 md:py-3 md:px-6 text-center w-[25%]">
                                         <a href="{{ route('admin.view_exam', ['vacancy_id' => $p->vacancy_id, 'user_id' => $p->user_id]) }}" target="_blank"
                                             class="text-[#0D2B70] border border-[#0D2B70] font-bold py-1.5 px-3 md:py-2 md:px-6 rounded-md text-xs md:text-sm
                                                 transition-all duration-150 ease-[cubic-bezier(0.4,0,0.2,1)]
@@ -358,8 +359,8 @@
 
         <!--     scheduling form, buttons -->
         <!-- RIGHT COLUMN: Scheduling form -->
-        <div class="w-full lg:w-[30%] lg:min-w-[320px] flex flex-col mt-4 lg:mt-0 pl-2">
-            <form id="examDetailsForm" class="flex flex-col h-full justify-between pb-2">
+        <div class="w-full lg:w-[30%] lg:min-w-[320px] flex flex-col mt-4 lg:mt-0 pl-2 min-h-0">
+            <form id="examDetailsForm" class="flex flex-col h-full justify-between">
             @csrf
             
             <!-- PANEL 1: SCHEDULE EXAM (Default Visible) -->
@@ -379,22 +380,24 @@
                         placeholder="Enter venue" />
                 </div>
 
-                <!-- DATE -->
-                <div class="flex flex-col">
-                    <label for="date" class="text-[#0D2B70] font-bold text-xs mb-1">Date <span class="text-red-500">*</span></label>
-                    <input type="date" id="date" name="date" required
-                        value="{{ $examDetails->date ?? '' }}"
-                        {{ ($isExamActive || $isExamCompleted || ($examDetails && $examDetails->details_saved)) ? 'disabled' : '' }}
-                        class="w-full px-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-[#0D2B70] disabled:bg-gray-100" />
-                </div>
-
-                <!-- TIME (Start) -->
-                <div class="flex flex-col">
-                    <label for="time" class="text-[#0D2B70] font-bold text-xs mb-1">Time <span class="text-red-500">*</span></label>
-                    <input class="font-sm h-full" type="time" id="time" name="time" required
-                        value="{{ $examDetails->time ?? '' }}"
-                        {{ ($isExamActive || $isExamCompleted || ($examDetails && $examDetails->details_saved)) ? 'disabled' : '' }}
-                        class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-[#0D2B70] disabled:bg-gray-100" />
+                <div class="grid grid-cols-2 gap-2">
+                    <!-- DATE -->
+                    <div class="flex flex-col">
+                        <label for="date" class="text-[#0D2B70] font-bold text-xs mb-1">Date <span class="text-red-500">*</span></label>
+                        <input type="date" id="date" name="date" required
+                            value="{{ $examDetails->date ?? '' }}"
+                            {{ ($isExamActive || $isExamCompleted || ($examDetails && $examDetails->details_saved)) ? 'disabled' : '' }}
+                            class="w-full px-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-[#0D2B70] disabled:bg-gray-100" />
+                    </div>
+    
+                    <!-- TIME (Start) -->
+                    <div class="flex flex-col">
+                        <label for="time" class="text-[#0D2B70] font-bold text-xs mb-1">Time <span class="text-red-500">*</span></label>
+                        <input class="font-sm h-full" type="time" id="time" name="time" required
+                            value="{{ $examDetails->time ?? '' }}"
+                            {{ ($isExamActive || $isExamCompleted || ($examDetails && $examDetails->details_saved)) ? 'disabled' : '' }}
+                            class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-[#0D2B70] disabled:bg-gray-100" />
+                    </div>
                 </div>
 
                 <!-- MESSAGE (New Field) -->
@@ -450,7 +453,7 @@
                     <div class="flex flex-col">
                         <label class="text-[#0D2B70] font-bold text-xs mb-1">Start</label>
                         <input type="text" id="monitor_start" readonly
-                            value="{{ $examDetails->time ?? '--:--' }}"
+                            value="{{ !empty($examDetails->time) ? \Carbon\Carbon::createFromFormat('H:i:s', strlen($examDetails->time) === 5 ? $examDetails->time . ':00' : $examDetails->time)->format('g:i A') : '--:--' }}"
                             class="w-full px-3 py-1.5 border border-gray-300 rounded text-sm bg-gray-100 text-gray-600 cursor-not-allowed" />
                         <p class="text-[10px] text-red-500 mt-0.5">*start field is autofilled*</p>
                     </div>
@@ -981,7 +984,23 @@
         const monitorStart = document.getElementById('monitor_start');
         const monitorEnd = document.getElementById('monitor_end');
 
-        if (timeInput && monitorStart) monitorStart.value = timeInput.value || '--:--';
+        if (timeInput && monitorStart) {
+            const value = timeInput.value;
+            if (!value) {
+                monitorStart.value = '--:--';
+            } else {
+                const parts = value.split(':');
+                const hour = parseInt(parts[0], 10);
+                const minute = parts[1] ?? '00';
+                if (Number.isNaN(hour)) {
+                    monitorStart.value = value;
+                } else {
+                    const suffix = hour >= 12 ? 'PM' : 'AM';
+                    const hour12 = (hour % 12) || 12;
+                    monitorStart.value = `${hour12}:${minute} ${suffix}`;
+                }
+            }
+        }
         if (timeEndInput && monitorEnd) monitorEnd.value = timeEndInput.value || '';
     }
 
@@ -1144,17 +1163,17 @@
 
         tbody.innerHTML = applicants.map(app => `
             <tr class="text-[#0D2B70] select-none hover:bg-blue-50 transition-colors duration-200">
-                <td class="py-4 px-4">
+                <td class="py-2.5 px-4">
                     <input type="checkbox" name="applicant_ids[]" value="${app.id}"
                         data-user-id="${app.user_id}"
                         data-link-sent="${app.link_sent ? '1' : '0'}"
                         onchange="updateSelectedCount()"
                         class="applicant-checkbox w-4 h-4 rounded border-gray-300 text-[#0D2B70] focus:ring-[#0D2B70] cursor-pointer">
                 </td>
-                <td class="py-4 px-6 font-semibold">${app.name}</td>
-                <td class="py-4 px-6">${app.email}</td>
-                <td class="py-4 px-6">${app.application_date}</td>
-                <td class="py-4 px-6 text-center">
+                <td class="py-2.5 px-6 font-semibold">${app.name}</td>
+                <td class="py-2.5 px-6">${app.email}</td>
+                <td class="py-2.5 px-6">${app.application_date}</td>
+                <td class="py-2.5 px-6 text-center">
                     ${app.is_read ? 
                         `<span class="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 flex items-center justify-center gap-1" title="Confirmed">
                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
@@ -1169,7 +1188,7 @@
                         )
                     }
                 </td>
-                <td class="py-4 px-6 text-center">
+                <td class="py-2.5 px-6 text-center">
                     <button
                         onclick="window.location.href='/admin/applicant_status/${app.user_id}/${app.vacancy_id}'"
                         class="text-[#0D2B70] border border-[#0D2B70] font-bold py-1 px-4 rounded-md text-sm transition-all duration-300 hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md flex items-center gap-2 mx-auto">
@@ -1260,22 +1279,22 @@
         tbody.innerHTML = participants.map(p => `
             <tr class="hover:bg-blue-50 transition-colors duration-200">
                 <!-- Name -->
-                <td class="py-3 px-3 md:py-4 md:px-6 text-[#0D2B70] font-semibold text-xs md:text-sm w-[25%] md:w-[25%]">
+                <td class="py-2.5 px-3 md:py-3 md:px-6 text-[#0D2B70] font-semibold text-xs md:text-sm w-[25%] md:w-[25%]">
                     ${p.name}
                 </td>
 
                 <!-- MC Score -->
-                <td class="py-3 px-3 md:py-4 md:px-6 text-center text-[#0D2B70] font-medium text-xs md:text-sm w-[15%] md:w-[15%]">
+                <td class="py-2.5 px-3 md:py-3 md:px-6 text-center text-[#0D2B70] font-medium text-xs md:text-sm w-[15%] md:w-[15%]">
                     ${p.mc_score}
                 </td>
 
                 <!-- Essay Score -->
-                <td class="py-3 px-3 md:py-4 md:px-6 text-center text-[#0D2B70] font-medium text-xs md:text-sm w-[15%] md:w-[15%]">
+                <td class="py-2.5 px-3 md:py-3 md:px-6 text-center text-[#0D2B70] font-medium text-xs md:text-sm w-[15%] md:w-[15%]">
                     ${p.essay_score}
                 </td>
 
                 <!-- Status -->
-                <td class="py-3 px-3 md:py-4 md:px-6 text-center w-[20%]">
+                <td class="py-2.5 px-3 md:py-3 md:px-6 text-center w-[20%]">
                     <div class="inline-flex items-center gap-1 md:gap-2 text-[#0D2B70] font-medium text-xs md:text-sm">
                         <i class="fa-solid fa-circle text-xs" style="color: ${p.status_color}"></i>
                         <span class="capitalize">${p.status}</span>
@@ -1283,7 +1302,7 @@
                 </td>
 
                 <!-- Action Button -->
-                <td class="py-3 px-3 md:py-4 md:px-6 text-center w-[25%]">
+                <td class="py-2.5 px-3 md:py-3 md:px-6 text-center w-[25%]">
                      <button onclick="window.location.href='/admin/exam_management/${p.vacancy_id}/view_exam/${p.user_id}'"
                         class="text-[#0D2B70] border border-[#0D2B70] font-bold py-1.5 px-3 md:py-2 md:px-6 rounded-md text-xs md:text-sm
                             transition-all duration-150 ease-[cubic-bezier(0.4,0,0.2,1)]

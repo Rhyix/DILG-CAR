@@ -32,6 +32,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\BackupRestoreController;
 use App\Http\Controllers\PsgcController;
 use App\Http\Controllers\VacancyTitleController;
+use App\Http\Controllers\PositionUtilityController;
 
 use App\Events\PackageSent;
 use Illuminate\Support\Facades\Storage;
@@ -419,13 +420,23 @@ Route::middleware([RedirectIfNotAdmin::class])->group(function () {
         Route::get('/admin/search', [AdminController::class, 'search'])->name('admin.search');
     });
 
-    Route::get('/admin/vacancies_management/add/plantilla', function () {
+    Route::get('/admin/vacancies_management/add/plantilla', function (\Illuminate\Http\Request $request) {
         $signatories = \App\Models\Signatory::all();
-        return view('admin.vacancy_add_plantilla', compact('signatories'));
+        $templateVacancy = null;
+        $reuseVacancyId = trim((string) $request->query('reuse', ''));
+        if ($reuseVacancyId !== '') {
+            $templateVacancy = \App\Models\JobVacancy::where('vacancy_id', $reuseVacancyId)->first();
+        }
+        return view('admin.vacancy_add_plantilla', compact('signatories', 'templateVacancy'));
     })->name('addplantilla');
-    Route::get('/admin/vacancies_management/add/cos', function () {
+    Route::get('/admin/vacancies_management/add/cos', function (\Illuminate\Http\Request $request) {
         $signatories = \App\Models\Signatory::all();
-        return view('admin.vacancy_add_cos', compact('signatories'));
+        $templateVacancy = null;
+        $reuseVacancyId = trim((string) $request->query('reuse', ''));
+        if ($reuseVacancyId !== '') {
+            $templateVacancy = \App\Models\JobVacancy::where('vacancy_id', $reuseVacancyId)->first();
+        }
+        return view('admin.vacancy_add_cos', compact('signatories', 'templateVacancy'));
     })->name('addcos');
 
     Route::post('/admin/vacancies_management/add/cos/store', [JobVacancyController::class, 'storeVacancy'])->name('vacancies.store');
@@ -449,6 +460,7 @@ Route::middleware([RedirectIfNotAdmin::class])->group(function () {
     Route::get('/admin/utilities/reports', [App\Http\Controllers\ReportController::class, 'index'])->name('admin.reports.index');
     Route::get('/admin/utilities/reports/data', [App\Http\Controllers\ReportController::class, 'getData'])->name('admin.reports.data');
     Route::get('/admin/utilities/reports/export', [App\Http\Controllers\ReportController::class, 'export'])->name('admin.reports.export');
+    Route::get('/admin/utilities/positions', [PositionUtilityController::class, 'index'])->name('admin.positions.index');
 
     Route::middleware([EnsureSuperadmin::class])->group(function () {
         Route::get('/admin/utilities/backup-restore', [BackupRestoreController::class, 'index'])->name('admin.backup.index');

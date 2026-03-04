@@ -300,10 +300,34 @@ class PDSController extends Controller
         try {
             $payload = $this->extractC1DataFromExcel($request->file('pds_excel')->getRealPath());
 
+            $existingC1 = session('form.c1', []);
+            if (!is_array($existingC1)) {
+                $existingC1 = [];
+            }
+
+            session([
+                'form.c1' => array_merge(
+                    $existingC1,
+                    $payload['c1']['fields'],
+                    [
+                        'children' => $payload['c1']['children'],
+                        'vocational' => $payload['c1']['vocational'],
+                        'college' => $payload['c1']['college'],
+                        'grad' => $payload['c1']['grad'],
+                    ]
+                ),
+                'form.c2' => $payload['c2'],
+                'data_learning' => $payload['c3']['data_learning'],
+                'data_voluntary' => $payload['c3']['data_voluntary'],
+                'data_otherInfo' => $payload['c3']['data_otherInfo'],
+                'form.c4' => $payload['c4'],
+            ]);
+
             return response()->json([
-                'message' => 'Excel file imported. Please review all fields before proceeding.',
-                'data' => $payload['data'],
+                'message' => 'Excel file imported for C1-C4. Please review all fields before proceeding.',
+                'data' => $payload['c1'],
                 'warnings' => $payload['warnings'],
+                'missing_report' => $payload['missing_report'],
             ]);
         } catch (\RuntimeException $e) {
             return response()->json([
@@ -583,11 +607,14 @@ class PDSController extends Controller
 
     private function extractC1DataFromExcel(string $uploadedPath): array
     {
-        $uploadedSpreadsheet = IOFactory::load($uploadedPath);
-        $uploadedSheet = $uploadedSpreadsheet->getSheetByName('C1');
+        $spreadsheet = IOFactory::load($uploadedPath);
+        $c1Sheet = $spreadsheet->getSheetByName('C1');
+        $c2Sheet = $spreadsheet->getSheetByName('C2');
+        $c3Sheet = $spreadsheet->getSheetByName('C3');
+        $c4Sheet = $spreadsheet->getSheetByName('C4');
 
-        if (!$uploadedSheet) {
-            throw new \RuntimeException('Incompatible file: Sheet "C1" was not found.');
+        if (!$c1Sheet || !$c2Sheet || !$c3Sheet || !$c4Sheet) {
+            throw new \RuntimeException('Incompatible file: expected sheets C1, C2, C3, and C4 were not found.');
         }
 
         $markerCells = [
@@ -595,203 +622,375 @@ class PDSController extends Controller
             'A9' => 'I. PERSONAL INFORMATION',
             'A35' => 'II.  FAMILY BACKGROUND',
         ];
-
         foreach ($markerCells as $cell => $expected) {
-            $actual = $this->normalizedExcelText((string) $uploadedSheet->getCell($cell)->getFormattedValue());
+            $actual = $this->normalizedExcelText((string) $c1Sheet->getCell($cell)->getFormattedValue());
             if ($actual !== $this->normalizedExcelText($expected)) {
                 throw new \RuntimeException('Incompatible file: please upload the official CS Form No. 212 Revised 2025 Excel template.');
             }
         }
 
         $cellToFieldMap = [
-            'D10' => 'surname',
-            'D11' => 'first_name',
-            'D12' => 'middle_name',
-            'L11' => 'name_extension',
-            'D15' => 'place_of_birth',
-            'L15' => 'dual_country',
-            'D22' => 'height',
-            'D24' => 'weight',
-            'D25' => 'blood_type',
-            'D27' => 'gsis_id_no',
-            'D29' => 'pagibig_id_no',
-            'D31' => 'philhealth_no',
-            'D32' => 'sss_id_no',
-            'D33' => 'tin_no',
-            'D34' => 'agency_employee_no',
-            'I18' => 'res_house_no',
-            'L18' => 'res_street',
-            'I21' => 'res_sub_vil',
-            'L21' => 'res_brgy',
-            'I23' => 'res_city',
-            'L23' => 'res_province',
-            'I24' => 'res_zipcode',
-            'I26' => 'per_house_no',
-            'L26' => 'per_street',
-            'I28' => 'per_sub_vil',
-            'L28' => 'per_brgy',
-            'I30' => 'per_city',
-            'L30' => 'per_province',
-            'I31' => 'per_zipcode',
-            'I32' => 'telephone_no',
-            'I33' => 'mobile_no',
-            'I34' => 'email_address',
-            'D36' => 'spouse_surname',
-            'D37' => 'spouse_first_name',
-            'G37' => 'spouse_name_extension',
-            'D38' => 'spouse_middle_name',
-            'D39' => 'spouse_occupation',
-            'D40' => 'spouse_employer',
-            'D41' => 'spouse_business_address',
-            'D42' => 'spouse_telephone',
-            'D43' => 'father_surname',
-            'D44' => 'father_first_name',
-            'G44' => 'father_name_extension',
-            'D45' => 'father_middle_name',
-            'D47' => 'mother_maiden_surname',
-            'D48' => 'mother_maiden_first_name',
-            'D49' => 'mother_maiden_middle_name',
-            'D54' => 'elem_school',
-            'G54' => 'elem_basic',
-            'L54' => 'elem_earned',
-            'M54' => 'elem_year_graduated',
-            'N54' => 'elem_academic_honors',
-            'D55' => 'jhs_school',
-            'G55' => 'jhs_basic',
-            'L55' => 'jhs_earned',
-            'M55' => 'jhs_year_graduated',
-            'N55' => 'jhs_academic_honors',
+            'D10' => 'surname', 'D11' => 'first_name', 'D12' => 'middle_name', 'L11' => 'name_extension',
+            'D15' => 'place_of_birth', 'L15' => 'dual_country', 'D22' => 'height', 'D24' => 'weight',
+            'D25' => 'blood_type', 'D27' => 'gsis_id_no', 'D29' => 'pagibig_id_no', 'D31' => 'philhealth_no',
+            'D32' => 'sss_id_no', 'D33' => 'tin_no', 'D34' => 'agency_employee_no', 'I18' => 'res_house_no',
+            'L18' => 'res_street', 'I21' => 'res_sub_vil', 'L21' => 'res_brgy', 'I23' => 'res_city',
+            'L23' => 'res_province', 'I24' => 'res_zipcode', 'I26' => 'per_house_no', 'L26' => 'per_street',
+            'I28' => 'per_sub_vil', 'L28' => 'per_brgy', 'I30' => 'per_city', 'L30' => 'per_province',
+            'I31' => 'per_zipcode', 'I32' => 'telephone_no', 'I33' => 'mobile_no', 'I34' => 'email_address',
+            'D36' => 'spouse_surname', 'D37' => 'spouse_first_name', 'G37' => 'spouse_name_extension',
+            'D38' => 'spouse_middle_name', 'D39' => 'spouse_occupation', 'D40' => 'spouse_employer',
+            'D41' => 'spouse_business_address', 'D42' => 'spouse_telephone', 'D43' => 'father_surname',
+            'D44' => 'father_first_name', 'G44' => 'father_name_extension', 'D45' => 'father_middle_name',
+            'D47' => 'mother_maiden_surname', 'D48' => 'mother_maiden_first_name', 'D49' => 'mother_maiden_middle_name',
+            'D54' => 'elem_school', 'G54' => 'elem_basic', 'L54' => 'elem_earned', 'M54' => 'elem_year_graduated',
+            'N54' => 'elem_academic_honors', 'D55' => 'jhs_school', 'G55' => 'jhs_basic', 'L55' => 'jhs_earned',
+            'M55' => 'jhs_year_graduated', 'N55' => 'jhs_academic_honors',
         ];
 
         $fields = [];
         foreach ($cellToFieldMap as $cell => $field) {
-            $fields[$field] = $this->readCellText($uploadedSheet, $cell);
+            $fields[$field] = $this->readCellText($c1Sheet, $cell);
         }
-
-        $fields['date_of_birth'] = $this->readCellDate($uploadedSheet, 'D13', false);
-        $fields['elem_from'] = $this->readCellDate($uploadedSheet, 'J54', true);
-        $fields['elem_to'] = $this->readCellDate($uploadedSheet, 'K54', true);
-        $fields['jhs_from'] = $this->readCellDate($uploadedSheet, 'J55', true);
-        $fields['jhs_to'] = $this->readCellDate($uploadedSheet, 'K55', true);
-
-        $fields['sex'] = $this->normalizeSex($this->readCellText($uploadedSheet, 'D16'));
-        $fields['civil_status'] = $this->normalizeCivilStatus($this->readCellText($uploadedSheet, 'D17'));
-        $fields['citizenship'] = $this->normalizeCitizenship($this->readCellText($uploadedSheet, 'J13'));
+        $fields['date_of_birth'] = $this->readCellDate($c1Sheet, 'D13', 'd-m-Y');
+        $fields['elem_from'] = $this->readCellDate($c1Sheet, 'J54', 'd-m-Y', true);
+        $fields['elem_to'] = $this->readCellDate($c1Sheet, 'K54', 'd-m-Y', true);
+        $fields['jhs_from'] = $this->readCellDate($c1Sheet, 'J55', 'd-m-Y', true);
+        $fields['jhs_to'] = $this->readCellDate($c1Sheet, 'K55', 'd-m-Y', true);
+        $fields['sex'] = $this->normalizeSex($this->readCellText($c1Sheet, 'D16'));
+        $fields['civil_status'] = $this->normalizeCivilStatus($this->readCellText($c1Sheet, 'D17'));
+        $fields['citizenship'] = $this->normalizeCitizenship($this->readCellText($c1Sheet, 'J13'));
         $fields['blood_type'] = strtoupper(trim((string) ($fields['blood_type'] ?? '')));
-
+        $fields['dual_type'] = '';
         if ($fields['citizenship'] !== 'Dual Citizenship') {
-            $fields['dual_type'] = '';
             $fields['dual_country'] = '';
         }
 
         $children = [];
         for ($i = 0; $i < 12; $i++) {
             $row = 37 + $i;
-            $name = $this->readCellText($uploadedSheet, "I{$row}");
-            $dob = $this->readCellDate($uploadedSheet, "M{$row}", false);
+            $name = $this->readCellText($c1Sheet, "I{$row}");
+            $dob = $this->readCellDate($c1Sheet, "M{$row}", 'd-m-Y');
             if ($name !== '' || $dob !== '') {
-                $children[] = [
-                    'name' => $name,
-                    'dob' => $dob,
-                ];
+                $children[] = ['name' => $name, 'dob' => $dob];
             }
         }
 
         $vocationalRow = [
-            'from' => $this->readCellDate($uploadedSheet, 'J56', true),
-            'to' => $this->readCellDate($uploadedSheet, 'K56', true),
-            'school' => $this->readCellText($uploadedSheet, 'D56'),
-            'basic' => $this->readCellText($uploadedSheet, 'G56'),
-            'earned' => $this->readCellText($uploadedSheet, 'L56'),
-            'year_graduated' => $this->readCellText($uploadedSheet, 'M56'),
-            'academic_honors' => $this->readCellText($uploadedSheet, 'N56'),
+            'from' => $this->readCellDate($c1Sheet, 'J56', 'd-m-Y', true),
+            'to' => $this->readCellDate($c1Sheet, 'K56', 'd-m-Y', true),
+            'school' => $this->readCellText($c1Sheet, 'D56'),
+            'basic' => $this->readCellText($c1Sheet, 'G56'),
+            'earned' => $this->readCellText($c1Sheet, 'L56'),
+            'year_graduated' => $this->readCellText($c1Sheet, 'M56'),
+            'academic_honors' => $this->readCellText($c1Sheet, 'N56'),
         ];
         $collegeRow = [
-            'from' => $this->readCellDate($uploadedSheet, 'J57', true),
-            'to' => $this->readCellDate($uploadedSheet, 'K57', true),
-            'school' => $this->readCellText($uploadedSheet, 'D57'),
-            'basic' => $this->readCellText($uploadedSheet, 'G57'),
-            'earned' => $this->readCellText($uploadedSheet, 'L57'),
-            'year_graduated' => $this->readCellText($uploadedSheet, 'M57'),
-            'academic_honors' => $this->readCellText($uploadedSheet, 'N57'),
+            'from' => $this->readCellDate($c1Sheet, 'J57', 'd-m-Y', true),
+            'to' => $this->readCellDate($c1Sheet, 'K57', 'd-m-Y', true),
+            'school' => $this->readCellText($c1Sheet, 'D57'),
+            'basic' => $this->readCellText($c1Sheet, 'G57'),
+            'earned' => $this->readCellText($c1Sheet, 'L57'),
+            'year_graduated' => $this->readCellText($c1Sheet, 'M57'),
+            'academic_honors' => $this->readCellText($c1Sheet, 'N57'),
         ];
         $gradRow = [
-            'from' => $this->readCellDate($uploadedSheet, 'J58', true),
-            'to' => $this->readCellDate($uploadedSheet, 'K58', true),
-            'school' => $this->readCellText($uploadedSheet, 'D58'),
-            'basic' => $this->readCellText($uploadedSheet, 'G58'),
-            'earned' => $this->readCellText($uploadedSheet, 'L58'),
-            'year_graduated' => $this->readCellText($uploadedSheet, 'M58'),
-            'academic_honors' => $this->readCellText($uploadedSheet, 'N58'),
+            'from' => $this->readCellDate($c1Sheet, 'J58', 'd-m-Y', true),
+            'to' => $this->readCellDate($c1Sheet, 'K58', 'd-m-Y', true),
+            'school' => $this->readCellText($c1Sheet, 'D58'),
+            'basic' => $this->readCellText($c1Sheet, 'G58'),
+            'earned' => $this->readCellText($c1Sheet, 'L58'),
+            'year_graduated' => $this->readCellText($c1Sheet, 'M58'),
+            'academic_honors' => $this->readCellText($c1Sheet, 'N58'),
+        ];
+
+        $allCivilService = [];
+        for ($i = 0; $i < 7; $i++) {
+            $row = 5 + $i;
+            $entry = [
+                'user_id' => Auth::id(),
+                'cs_eligibility_career' => $this->readCellText($c2Sheet, "B{$row}"),
+                'cs_eligibility_rating' => $this->readCellText($c2Sheet, "F{$row}"),
+                'cs_eligibility_date' => $this->readCellDate($c2Sheet, "G{$row}", 'Y-m-d'),
+                'cs_eligibility_place' => $this->readCellText($c2Sheet, "I{$row}"),
+                'cs_eligibility_license' => $this->readCellText($c2Sheet, "J{$row}"),
+                'cs_eligibility_validity' => $this->readCellDate($c2Sheet, "K{$row}", 'Y-m-d'),
+            ];
+            if ($this->rowHasData($entry, ['user_id'])) {
+                $allCivilService[] = $entry;
+            }
+        }
+
+        $allWorkExp = [];
+        for ($i = 0; $i < 28; $i++) {
+            $row = 18 + $i;
+            $entry = [
+                'user_id' => Auth::id(),
+                'work_exp_from' => $this->readCellDate($c2Sheet, "A{$row}", 'Y-m-d'),
+                'work_exp_to' => $this->readCellDate($c2Sheet, "C{$row}", 'Y-m-d'),
+                'work_exp_position' => $this->readCellText($c2Sheet, "D{$row}"),
+                'work_exp_department' => $this->readCellText($c2Sheet, "G{$row}"),
+                'work_exp_status' => $this->normalizeWorkStatus($this->readCellText($c2Sheet, "J{$row}")),
+                'work_exp_govt_service' => $this->normalizeGovServiceFlag($this->readCellText($c2Sheet, "K{$row}")),
+            ];
+            if ($this->rowHasData($entry, ['user_id'])) {
+                $allWorkExp[] = $entry;
+            }
+        }
+
+        $dataVoluntary = [];
+        for ($i = 0; $i < 7; $i++) {
+            $row = 6 + $i;
+            $entry = [
+                'voluntary_org' => $this->readCellText($c3Sheet, "B{$row}"),
+                'voluntary_from' => $this->readCellDate($c3Sheet, "E{$row}", 'Y-m-d'),
+                'voluntary_to' => $this->readCellDate($c3Sheet, "F{$row}", 'Y-m-d'),
+                'voluntary_hours' => $this->readCellText($c3Sheet, "G{$row}"),
+                'voluntary_position' => $this->readCellText($c3Sheet, "H{$row}"),
+                'user_id' => Auth::id(),
+            ];
+            if ($this->rowHasData($entry, ['user_id'])) {
+                $dataVoluntary[] = $entry;
+            }
+        }
+
+        $dataLearning = [];
+        for ($i = 0; $i < 21; $i++) {
+            $row = 18 + $i;
+            $entry = [
+                'learning_title' => $this->readCellText($c3Sheet, "B{$row}"),
+                'learning_from' => $this->readCellDate($c3Sheet, "E{$row}", 'Y-m-d'),
+                'learning_to' => $this->readCellDate($c3Sheet, "F{$row}", 'Y-m-d'),
+                'learning_hours' => $this->readCellText($c3Sheet, "G{$row}"),
+                'learning_type' => $this->readCellText($c3Sheet, "H{$row}"),
+                'learning_conducted' => $this->readCellText($c3Sheet, "I{$row}"),
+                'user_id' => Auth::id(),
+            ];
+            if ($this->rowHasData($entry, ['user_id'])) {
+                $dataLearning[] = $entry;
+            }
+        }
+
+        $skills = [];
+        $distinctions = [];
+        $organizations = [];
+        for ($i = 0; $i < 7; $i++) {
+            $row = 42 + $i;
+            $skill = $this->readCellText($c3Sheet, "B{$row}");
+            $dist = $this->readCellText($c3Sheet, "C{$row}");
+            $org = $this->readCellText($c3Sheet, "I{$row}");
+            if ($skill !== '') {
+                $skills[] = $skill;
+            }
+            if ($dist !== '') {
+                $distinctions[] = $dist;
+            }
+            if ($org !== '') {
+                $organizations[] = $org;
+            }
+        }
+
+        $related34A = $this->readYesNo($c4Sheet, 'I6', 'K6');
+        $related34B = $this->readYesNo($c4Sheet, 'I8', 'K8', 'G10');
+        $guilty35A = $this->readYesNo($c4Sheet, 'I13', 'K13', 'G14');
+        $criminal35B = $this->readYesNo($c4Sheet, 'I18', 'K18');
+        $convicted36 = $this->readYesNo($c4Sheet, 'I23', 'K23', 'G24');
+        $separated37 = $this->readYesNo($c4Sheet, 'I27', 'K27', 'G28');
+        $candidate38 = $this->readYesNo($c4Sheet, 'I31', 'K31', 'G32');
+        $resigned38B = $this->readYesNo($c4Sheet, 'I34', 'K34', 'G35');
+        $immigrant39 = $this->readYesNo($c4Sheet, 'I37', 'K37', 'G38');
+        $indigenous40A = $this->readYesNo($c4Sheet, 'I43', 'K43', 'G44');
+        $pwd40B = $this->readYesNo($c4Sheet, 'I45', 'K45', 'G46');
+        $soloParent40C = $this->readYesNo($c4Sheet, 'I47', 'K47', 'G48');
+
+        $criminalDate = $this->readCellDate($c4Sheet, 'H20', 'Y-m-d');
+        $criminalStatus = $this->readCellText($c4Sheet, 'G21');
+        $criminal35BValue = 'no';
+        $criminal35BArray = ['date' => '', 'status' => ''];
+        if ($criminal35B === 'yes') {
+            $criminal35BValue = trim($criminalDate . ',' . $criminalStatus, ',');
+            $criminal35BArray = ['date' => $criminalDate, 'status' => $criminalStatus];
+        }
+
+        $govtType = $this->normalizeGovtIdType($this->readCellText($c4Sheet, 'B61'));
+        $govtPlaceAndDate = $this->readCellText($c4Sheet, 'B64');
+        $govtPlaceIssued = '';
+        $govtDateIssued = '';
+        if ($govtPlaceAndDate !== '') {
+            $parts = array_map('trim', explode('|', $govtPlaceAndDate, 2));
+            if (count($parts) === 2) {
+                $govtPlaceIssued = $parts[0];
+                $govtDateIssued = $this->normalizeDateString($parts[1], 'Y-m-d');
+            } else {
+                $govtPlaceIssued = $govtPlaceAndDate;
+            }
+        }
+
+        $c4Data = [
+            'related_34_a' => $related34A,
+            'related_34_b' => $related34B === 'yes' ? $this->readCellText($c4Sheet, 'G10') : 'no',
+            'guilty_35_a' => $guilty35A === 'yes' ? $this->readCellText($c4Sheet, 'G14') : 'no',
+            'criminal_35_b' => $criminal35BValue,
+            'criminal_35_b_array' => $criminal35BArray,
+            'convicted_36' => $convicted36 === 'yes' ? $this->readCellText($c4Sheet, 'G24') : 'no',
+            'separated_37' => $separated37 === 'yes' ? $this->readCellText($c4Sheet, 'G28') : 'no',
+            'candidate_38' => $candidate38 === 'yes' ? $this->readCellText($c4Sheet, 'G32') : 'no',
+            'resigned_38_b' => $resigned38B === 'yes' ? $this->readCellText($c4Sheet, 'G35') : 'no',
+            'immigrant_39' => $immigrant39 === 'yes' ? $this->readCellText($c4Sheet, 'G38') : 'no',
+            'indigenous_40_a' => $indigenous40A === 'yes' ? $this->readCellText($c4Sheet, 'G44') : 'no',
+            'pwd_40_b' => $pwd40B === 'yes' ? $this->readCellText($c4Sheet, 'G46') : 'no',
+            'solo_parent_40_c' => $soloParent40C === 'yes' ? $this->readCellText($c4Sheet, 'G48') : 'no',
+            'ref1_name' => $this->readCellText($c4Sheet, 'A52'),
+            'ref1_tel' => $this->readCellText($c4Sheet, 'G52'),
+            'ref1_address' => $this->readCellText($c4Sheet, 'F52'),
+            'ref2_name' => $this->readCellText($c4Sheet, 'A53'),
+            'ref2_tel' => $this->readCellText($c4Sheet, 'G53'),
+            'ref2_address' => $this->readCellText($c4Sheet, 'F53'),
+            'ref3_name' => $this->readCellText($c4Sheet, 'A54'),
+            'ref3_tel' => $this->readCellText($c4Sheet, 'G54'),
+            'ref3_address' => $this->readCellText($c4Sheet, 'F54'),
+            'govt_id_type' => $govtType['type'],
+            'govt_id_other' => $govtType['other'],
+            'govt_id_number' => $this->readCellText($c4Sheet, 'B62'),
+            'govt_id_date_issued' => $govtDateIssued,
+            'govt_id_place_issued' => $govtPlaceIssued,
+            'photo_upload' => null,
         ];
 
         $warnings = [];
         if (($fields['citizenship'] ?? '') === 'Dual Citizenship') {
             $warnings[] = 'Dual citizenship type (By Birth / By Naturalization) is not available in the Excel template and must be selected manually.';
         }
+        if (empty($dataLearning) && empty($dataVoluntary) && empty($skills) && empty($distinctions) && empty($organizations)) {
+            $warnings[] = 'C3 sheet appears to have no importable entries.';
+        }
 
         return [
-            'data' => [
+            'c1' => [
                 'fields' => $fields,
                 'children' => $children,
                 'vocational' => $this->rowHasData($vocationalRow) ? [$vocationalRow] : [],
                 'college' => $this->rowHasData($collegeRow) ? [$collegeRow] : [],
                 'grad' => $this->rowHasData($gradRow) ? [$gradRow] : [],
             ],
+            'c2' => [
+                'all_user_work_exps' => $allWorkExp,
+                'all_user_civil_service_eligibility' => $allCivilService,
+            ],
+            'c3' => [
+                'data_learning' => $dataLearning,
+                'data_voluntary' => $dataVoluntary,
+                'data_otherInfo' => [
+                    'skill' => $skills,
+                    'distinction' => $distinctions,
+                    'organization' => $organizations,
+                    'user_id' => Auth::id(),
+                ],
+            ],
+            'c4' => $c4Data,
             'warnings' => $warnings,
+            'missing_report' => $this->buildExcelCoverageReport(),
         ];
     }
 
     private function readCellText($sheet, string $cell): string
     {
-        $uploaded = trim((string) $sheet->getCell($cell)->getFormattedValue());
-        return $this->sanitizeExtractedText($uploaded);
+        return $this->sanitizeExtractedText(trim((string) $sheet->getCell($cell)->getFormattedValue()));
     }
 
-    private function readCellDate($sheet, string $cell, bool $monthYearOnly): string
+    private function readCellDate($sheet, string $cell, string $outputFormat = 'd-m-Y', bool $monthYearOnly = false): string
     {
         $uploadedCell = $sheet->getCell($cell);
-        $uploadedFormatted = trim((string) $uploadedCell->getFormattedValue());
-        if ($uploadedFormatted === '') {
+        $raw = $uploadedCell->getValue();
+        $asText = trim((string) $uploadedCell->getFormattedValue());
+        if ($asText === '' && ($raw === null || $raw === '')) {
             return '';
         }
-
-        $raw = $uploadedCell->getValue();
 
         try {
             if (is_numeric($raw)) {
                 $date = ExcelDate::excelToDateTimeObject((float) $raw);
-                return $monthYearOnly ? $date->format('01-m-Y') : $date->format('d-m-Y');
+                if ($monthYearOnly) {
+                    $date->modify('first day of this month');
+                }
+                return $date->format($outputFormat);
             }
 
-            $asText = trim((string) $raw);
-            if ($asText === '') {
+            $candidate = trim((string) $raw);
+            if ($candidate === '') {
                 return '';
             }
 
-            $formats = $monthYearOnly
-                ? ['m/Y', 'm-Y', 'Y-m', 'd/m/Y', 'd-m-Y', 'm/d/Y', 'Y-m-d']
-                : ['d/m/Y', 'd-m-Y', 'm/d/Y', 'Y-m-d', 'm/Y', 'm-Y', 'Y-m'];
-
-            foreach ($formats as $format) {
-                try {
-                    $dt = Carbon::createFromFormat($format, $asText);
-                    if ($dt !== false) {
-                        return $monthYearOnly
-                            ? $dt->startOfMonth()->format('d-m-Y')
-                            : $dt->format('d-m-Y');
-                    }
-                } catch (\Throwable $e) {
-                }
-            }
-
-            $parsed = Carbon::parse($asText);
-            return $monthYearOnly
-                ? $parsed->startOfMonth()->format('d-m-Y')
-                : $parsed->format('d-m-Y');
+            return $this->normalizeDateString($candidate, $outputFormat, $monthYearOnly);
         } catch (\Throwable $e) {
-            return $monthYearOnly ? '' : '';
+            return '';
         }
+    }
+
+    private function normalizeDateString(string $value, string $outputFormat = 'd-m-Y', bool $monthYearOnly = false): string
+    {
+        $candidate = trim($value);
+        if ($candidate === '') {
+            return '';
+        }
+
+        $formats = ['d/m/Y', 'd-m-Y', 'm/d/Y', 'Y-m-d', 'm/Y', 'm-Y', 'Y-m'];
+        foreach ($formats as $format) {
+            try {
+                $dt = Carbon::createFromFormat($format, $candidate);
+                if ($dt !== false) {
+                    if ($monthYearOnly || in_array($format, ['m/Y', 'm-Y', 'Y-m'], true)) {
+                        $dt->startOfMonth();
+                    }
+                    return $dt->format($outputFormat);
+                }
+            } catch (\Throwable $e) {
+            }
+        }
+
+        try {
+            $dt = Carbon::parse($candidate);
+            if ($monthYearOnly) {
+                $dt->startOfMonth();
+            }
+            return $dt->format($outputFormat);
+        } catch (\Throwable $e) {
+            return '';
+        }
+    }
+
+    private function readYesNo($sheet, string $yesCell, string $noCell, ?string $detailCell = null): string
+    {
+        $yesRaw = $this->normalizedExcelText((string) $sheet->getCell($yesCell)->getFormattedValue());
+        $noRaw = $this->normalizedExcelText((string) $sheet->getCell($noCell)->getFormattedValue());
+
+        $yesMarked = $this->isMarkedCellValue($yesRaw);
+        $noMarked = $this->isMarkedCellValue($noRaw);
+
+        if ($yesMarked && !$noMarked) {
+            return 'yes';
+        }
+        if ($noMarked && !$yesMarked) {
+            return 'no';
+        }
+
+        if ($detailCell) {
+            $detail = $this->readCellText($sheet, $detailCell);
+            if ($detail !== '') {
+                return 'yes';
+            }
+        }
+
+        return 'no';
+    }
+
+    private function isMarkedCellValue(string $value): bool
+    {
+        $trimmed = trim($value);
+        if ($trimmed === '') {
+            return false;
+        }
+        return in_array($trimmed, ['X', '/', 'YES', 'TRUE', '1'], true);
     }
 
     private function sanitizeExtractedText(string $value): string
@@ -809,12 +1008,25 @@ class PDSController extends Controller
             'City/Municipality',
             'Province',
             'ZIP Code',
+            'Government Issued ID:',
+            'ID/License/Passport No.:',
+            'Date/Place of Issuance:',
+            'Date Filed:',
+            'Status of Case/s:',
+            'If YES, give details:',
+            'If YES, please specify:',
+            'If YES, please specify ID No:',
+            'If YES, give details (country):',
         ];
 
         foreach ($placeholders as $placeholder) {
             if (strcasecmp($text, $placeholder) === 0) {
                 return '';
             }
+        }
+
+        if (preg_match('/^If YES, give details/i', $text)) {
+            return '';
         }
 
         return $text;
@@ -865,14 +1077,104 @@ class PDSController extends Controller
         return preg_replace('/\s+/', ' ', strtoupper(trim($value))) ?? '';
     }
 
-    private function rowHasData(array $row): bool
+    private function rowHasData(array $row, array $excludeKeys = []): bool
     {
-        foreach ($row as $value) {
+        foreach ($row as $key => $value) {
+            if (in_array($key, $excludeKeys, true)) {
+                continue;
+            }
             if (trim((string) $value) !== '') {
                 return true;
             }
         }
         return false;
+    }
+
+    private function normalizeWorkStatus(string $value): string
+    {
+        $normalized = strtolower(trim($value));
+        return match ($normalized) {
+            'permanent' => 'Permanent',
+            'temporary' => 'Temporary',
+            'casual' => 'Casual',
+            'contractual' => 'Contractual',
+            default => '',
+        };
+    }
+
+    private function normalizeGovServiceFlag(string $value): string
+    {
+        $normalized = strtolower(trim($value));
+        if (in_array($normalized, ['y', 'yes', 'true', '1'], true)) {
+            return 'Y';
+        }
+        if (in_array($normalized, ['n', 'no', 'false', '0'], true)) {
+            return 'N';
+        }
+        return '';
+    }
+
+    private function normalizeGovtIdType(string $value): array
+    {
+        $raw = trim($value);
+        $normalized = strtolower($raw);
+
+        $map = [
+            'passport' => 'Passport',
+            'gsis' => 'GSIS',
+            'sss' => 'SSS',
+            'philhealth' => 'PhilHealth',
+            "driver's license" => "Driver's License",
+            'drivers license' => "Driver's License",
+            'prc' => 'PRC',
+            "voter's id" => "Voter's ID",
+            'voters id' => "Voter's ID",
+            'philsys/national id' => 'PhilSys/National ID',
+            'philsys national id' => 'PhilSys/National ID',
+            'national id' => 'PhilSys/National ID',
+        ];
+
+        if (isset($map[$normalized])) {
+            return ['type' => $map[$normalized], 'other' => ''];
+        }
+
+        if ($raw === '') {
+            return ['type' => '', 'other' => ''];
+        }
+
+        return ['type' => 'other', 'other' => $raw];
+    }
+
+    private function buildExcelCoverageReport(): array
+    {
+        return [
+            'mapped_sections' => ['c1', 'c2', 'c3', 'c4'],
+            'missing_in_excel_template' => [
+                'c1' => [
+                    'cs_id_no (CSC use only)',
+                    'dual_type (By Birth / By Naturalization)',
+                ],
+                'c2' => [],
+                'c3' => [],
+                'c4' => ['photo_upload'],
+                'wes' => [
+                    'entries[*].start_date',
+                    'entries[*].end_date',
+                    'entries[*].position',
+                    'entries[*].office',
+                    'entries[*].supervisor',
+                    'entries[*].agency',
+                    'entries[*].accomplishments[*]',
+                    'entries[*].duties[*]',
+                    'entries[*].isDisplayed',
+                ],
+            ],
+            'notes' => [
+                'WES is not part of ANNEX H-1 workbook and cannot be auto-populated from this file.',
+                'Only first 7 voluntary/skills rows and first 21 L&D rows are supported by the Excel template.',
+                'Only first 7 civil service rows and first 28 work experience rows are supported by the Excel template.',
+            ],
+        ];
     }
 
 

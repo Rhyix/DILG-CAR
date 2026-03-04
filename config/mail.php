@@ -1,5 +1,10 @@
 <?php
 
+$fromAddress = env('MAIL_FROM_ADDRESS', 'hello@example.com');
+$fallbackLocalDomain = str_contains($fromAddress, '@')
+    ? ltrim(strrchr($fromAddress, '@'), '@')
+    : parse_url(env('APP_URL', 'http://localhost'), PHP_URL_HOST);
+
 return [
 
     /*
@@ -46,7 +51,7 @@ return [
             'username' => env('MAIL_USERNAME'),
             'password' => env('MAIL_PASSWORD'),
             'timeout' => null,
-            'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url(env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
+            'local_domain' => env('MAIL_EHLO_DOMAIN', $fallbackLocalDomain),
         ],
 
         'ses' => [
