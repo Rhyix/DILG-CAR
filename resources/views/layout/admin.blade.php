@@ -129,7 +129,7 @@ $lockScreenScroll = request()->routeIs('vacancies_management')
     </div>
 
     <!-- App Container: Sidebar + Content -->
-    <div class="flex h-screen w-full overflow-hidden">
+    <div id="app-wrapper" class="flex h-screen w-full overflow-hidden">
 
         <div class="lg:hidden">
             @include('partials.mobile-sidebar-admin')

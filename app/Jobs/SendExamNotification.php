@@ -44,12 +44,13 @@ class SendExamNotification implements ShouldQueue
             $examDetail = ExamDetail::find($this->examId);
 
             if (!$user || !$vacancy || !$examDetail) {
-                Log::error("SendExamNotification: Missing data", [
+                $context = [
                     'user_id' => $this->userId,
                     'vacancy_id' => $this->vacancyId,
                     'exam_id' => $this->examId
-                ]);
-                return;
+                ];
+                Log::error("SendExamNotification: Missing data", $context);
+                throw new \RuntimeException('Unable to send exam notification due to missing data.');
             }
 
             // Generate exam link with token
@@ -58,6 +59,9 @@ class SendExamNotification implements ShouldQueue
                 ->first();
 
             $token = $application ? $application->exam_token : null;
+            if (empty($token)) {
+                throw new \RuntimeException('Exam token not found for applicant.');
+            }
             $examLink = route('user.exam_lobby', ['vacancy_id' => $this->vacancyId, 'token' => $token]);
 
             // Send email using the exam schedule link template

@@ -3,7 +3,7 @@
 @section('title', 'Application Status')
 
 @section('content')
-	<div class="space-y-6"> <!-- Main container with spacing -->
+	<div id="page-content" class="space-y-6"> <!-- Main container with spacing -->
 		<div class="bg-white p-6 rounded-xl shadow-lg mx-auto font-montserrat">
 			@if (session('success'))
 				<div class="mb-6 px-4 py-3 bg-green-100 border border-green-400 text-green-800 rounded-lg shadow text-sm font-semibold flex items-center justify-between"
@@ -297,14 +297,14 @@
 
 	</div>
 
-	<div id="notify-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden">
-		<div class="bg-white rounded-lg shadow-xl max-w-3xl w-full mx-4">
-			<div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+	<div id="notify-modal" class="fixed inset-0 z-[9998] flex items-center justify-center bg-black/50 hidden">
+		<div class="bg-white rounded-lg shadow-2xl w-full h-full md:w-[95%] md:h-[95%] md:rounded-xl flex flex-col">
+			<div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center flex-none">
 				<h3 class="text-lg font-semibold text-gray-800">Notify Applicant Overview</h3>
 				<button type="button" onclick="closeNotifyModal()"
 					class="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
 			</div>
-			<div class="px-8 py-6 max-h-[75vh] overflow-y-auto">
+			<div class="px-8 py-6 overflow-y-auto flex-1">
 				<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
 					<!-- Left Column -->
 					<div class="space-y-8">
@@ -414,7 +414,7 @@ value="{{ old('deadline_time', $application->deadline_time ? \Carbon\Carbon::par
 					</table>
 				</div>
 			</div>
-			<div class="px-6 py-3 border-t border-gray-200 flex justify-end gap-3">
+			<div class="px-6 py-3 border-t border-gray-200 flex justify-end gap-3 flex-none">
 				<button type="button" onclick="closeNotifyModal()"
 					class="px-4 py-2 text-xs font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50">
 					Cancel
@@ -1119,12 +1119,31 @@ value="{{ old('deadline_time', $application->deadline_time ? \Carbon\Carbon::par
 			}
 
 			const modal = document.getElementById('notify-modal');
-			if (modal) modal.classList.remove('hidden');
+			const appWrapper = document.getElementById('app-wrapper');
+			if (modal) {
+				// Move modal to body so it sits above the blurred wrapper
+				document.body.appendChild(modal);
+				modal.classList.remove('hidden');
+			}
+			if (appWrapper) {
+				appWrapper.style.filter = 'blur(6px)';
+				appWrapper.style.transition = 'filter 0.2s ease';
+				appWrapper.style.pointerEvents = 'none';
+				appWrapper.style.userSelect = 'none';
+			}
 		}
 
 		function closeNotifyModal() {
 			const modal = document.getElementById('notify-modal');
-			if (modal) modal.classList.add('hidden');
+			const appWrapper = document.getElementById('app-wrapper');
+			if (modal) {
+				modal.classList.add('hidden');
+			}
+			if (appWrapper) {
+				appWrapper.style.filter = '';
+				appWrapper.style.pointerEvents = '';
+				appWrapper.style.userSelect = '';
+			}
 		}
 
 

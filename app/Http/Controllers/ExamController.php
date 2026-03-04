@@ -1456,7 +1456,20 @@ class ExamController extends Controller
 
             $userIds = $participants->pluck('user_id')->toArray();
 
-            $this->sendRefinedNotifications($userIds, $vacancy_id, $examDetail);
+            $notificationResult = $this->sendRefinedNotifications($userIds, $vacancy_id, $examDetail);
+            $sentCount = (int) ($notificationResult['sent'] ?? 0);
+            $failedCount = (int) ($notificationResult['failed'] ?? 0);
+            $skippedCount = (int) ($notificationResult['skipped'] ?? 0);
+
+            if ($sentCount === 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No exam links were sent. Please check applicant emails and mail configuration.',
+                    'sent_count' => 0,
+                    'failed_count' => $failedCount,
+                    'skipped_count' => $skippedCount,
+                ], 500);
+            }
 
             // Update exam details as notified
             $examDetail->update([
@@ -1468,14 +1481,28 @@ class ExamController extends Controller
             activity()
                 ->causedBy(auth('admin')->user())
                 ->event('notify')
-                ->withProperties(['vacancy_id' => $vacancy_id, 'section' => 'Exam Management'])
-                ->log('Queued exam notifications for all applicants.');
+                ->withProperties([
+                    'vacancy_id' => $vacancy_id,
+                    'sent_count' => $sentCount,
+                    'failed_count' => $failedCount,
+                    'skipped_count' => $skippedCount,
+                    'section' => 'Exam Management',
+                ])
+                ->log('Sent exam notifications for applicants.');
+
+            $message = $failedCount > 0 || $skippedCount > 0
+                ? "{$sentCount} applicant(s) notified; {$failedCount} failed, {$skippedCount} skipped."
+                : "{$sentCount} applicant(s) notified successfully.";
 
             return response()->json([
                 'success' => true,
                 'notified_at' => now()->format('Y-m-d H:i:s'),
                 'link_sent_at' => now()->format('Y-m-d H:i:s'),
-                'message' => 'Notifications sent successfully.'
+                'sent_count' => $sentCount,
+                'failed_count' => $failedCount,
+                'skipped_count' => $skippedCount,
+                'partial' => ($failedCount > 0 || $skippedCount > 0),
+                'message' => $message
             ]);
 
         } catch (\Exception $e) {
@@ -1507,11 +1534,38 @@ class ExamController extends Controller
                 return response()->json(['success' => false, 'message' => 'No participants found for this vacancy.']);
             }
 
+            $sentCount = 0;
+            $failedCount = 0;
+            $skippedCount = 0;
             foreach ($participants as $app) {
                 $user = User::find($app->user_id);
-                if ($user) {
-                    \Mail::to($user->email)->queue(new NotifyApplicantMail($vacancy_id, $user->id, $examDetail->id));
+                if (!$user || empty($user->email)) {
+                    $skippedCount++;
+                    continue;
                 }
+
+                try {
+                    Mail::to($user->email)->sendNow(new NotifyApplicantMail($vacancy_id, $user->id, $examDetail->id));
+                    $sentCount++;
+                } catch (\Throwable $mailException) {
+                    $failedCount++;
+                    Log::error('Schedule email send failed', [
+                        'vacancy_id' => $vacancy_id,
+                        'user_id' => $user->id,
+                        'email' => $user->email,
+                        'error' => $mailException->getMessage(),
+                    ]);
+                }
+            }
+
+            if ($sentCount === 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No schedule emails were sent. Please check applicant emails and mail configuration.',
+                    'sent_count' => 0,
+                    'failed_count' => $failedCount,
+                    'skipped_count' => $skippedCount,
+                ], 500);
             }
 
             $examDetail->update([
@@ -1521,13 +1575,27 @@ class ExamController extends Controller
             activity()
                 ->causedBy(auth('admin')->user())
                 ->event('notify_schedule')
-                ->withProperties(['vacancy_id' => $vacancy_id, 'section' => 'Exam Management'])
-                ->log('Queued exam schedule notifications for all applicants.');
+                ->withProperties([
+                    'vacancy_id' => $vacancy_id,
+                    'sent_count' => $sentCount,
+                    'failed_count' => $failedCount,
+                    'skipped_count' => $skippedCount,
+                    'section' => 'Exam Management',
+                ])
+                ->log('Sent exam schedule notifications for applicants.');
+
+            $message = $failedCount > 0 || $skippedCount > 0
+                ? "Exam schedule emails sent to {$sentCount} applicant(s); {$failedCount} failed, {$skippedCount} skipped."
+                : "Exam schedule emails sent to {$sentCount} applicant(s).";
 
             return response()->json([
                 'success' => true,
                 'notified_at' => now()->format('Y-m-d H:i:s'),
-                'message' => 'Exam schedule notifications sent successfully.'
+                'sent_count' => $sentCount,
+                'failed_count' => $failedCount,
+                'skipped_count' => $skippedCount,
+                'partial' => ($failedCount > 0 || $skippedCount > 0),
+                'message' => $message
             ]);
         } catch (\Exception $e) {
             Log::error("Error notifying applicants (schedule): " . $e->getMessage());
@@ -1560,17 +1628,44 @@ class ExamController extends Controller
                 ], 400);
             }
 
-            $count = $this->sendRefinedNotifications($userIds, $vacancy_id, $examDetail);
+            $notificationResult = $this->sendRefinedNotifications($userIds, $vacancy_id, $examDetail);
+            $sentCount = (int) ($notificationResult['sent'] ?? 0);
+            $failedCount = (int) ($notificationResult['failed'] ?? 0);
+            $skippedCount = (int) ($notificationResult['skipped'] ?? 0);
+
+            if ($sentCount === 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No exam links were sent to selected applicants.',
+                    'sent_count' => 0,
+                    'failed_count' => $failedCount,
+                    'skipped_count' => $skippedCount,
+                ], 500);
+            }
 
             activity()
                 ->causedBy(auth('admin')->user())
                 ->event('notify_selected')
-                ->withProperties(['vacancy_id' => $vacancy_id, 'count' => $count, 'section' => 'Exam Management'])
-                ->log('Queued exam notifications for selected applicants.');
+                ->withProperties([
+                    'vacancy_id' => $vacancy_id,
+                    'sent_count' => $sentCount,
+                    'failed_count' => $failedCount,
+                    'skipped_count' => $skippedCount,
+                    'section' => 'Exam Management',
+                ])
+                ->log('Sent exam notifications for selected applicants.');
+
+            $message = $failedCount > 0 || $skippedCount > 0
+                ? "{$sentCount} applicant(s) notified; {$failedCount} failed, {$skippedCount} skipped."
+                : "{$sentCount} applicants notified successfully.";
 
             return response()->json([
                 'success' => true,
-                'message' => "$count applicants notified successfully."
+                'sent_count' => $sentCount,
+                'failed_count' => $failedCount,
+                'skipped_count' => $skippedCount,
+                'partial' => ($failedCount > 0 || $skippedCount > 0),
+                'message' => $message
             ]);
 
         } catch (\Exception $e) {
@@ -1583,7 +1678,11 @@ class ExamController extends Controller
     {
         return DB::transaction(function () use ($userIds, $vacancy_id, $examDetail) {
             $sender_email = auth('admin')->user()->email ?? config('mail.from.address');
-            $count = 0;
+            $result = [
+                'sent' => 0,
+                'failed' => 0,
+                'skipped' => 0,
+            ];
 
             foreach ($userIds as $user_id) {
                 // Find application
@@ -1592,28 +1691,39 @@ class ExamController extends Controller
                     ->lockForUpdate()
                     ->first();
 
-                if ($application) {
-                    // Generate Token if not exists or expired (though we might just regenerate always for new link sending)
-                    $token = Str::random(64);
+                if (!$application) {
+                    $result['skipped']++;
+                    continue;
+                }
 
-                    $expiresAt = now()->addMinutes(2);
+                // Generate token for this send.
+                $token = Str::random(64);
+                $expiresAt = now()->addMinutes(2);
 
-                    $application->update([
-                        'exam_token' => $token,
-                        'exam_token_expires_at' => $expiresAt,
-                        'link_sent_at' => now(),
-                        'exam_token_used_at' => null,
-                        'exam_token_device_id' => null,
-                        'exam_token_used_ip' => null,
-                        'exam_token_used_ua' => null,
+                $application->update([
+                    'exam_token' => $token,
+                    'exam_token_expires_at' => $expiresAt,
+                    'link_sent_at' => now(),
+                    'exam_token_used_at' => null,
+                    'exam_token_device_id' => null,
+                    'exam_token_used_ip' => null,
+                    'exam_token_used_ua' => null,
+                ]);
+
+                try {
+                    // Send immediately so the endpoint reflects real delivery attempts.
+                    SendExamNotification::dispatchSync($vacancy_id, $user_id, $examDetail->id, $sender_email);
+                    $result['sent']++;
+                } catch (\Throwable $sendException) {
+                    $result['failed']++;
+                    Log::error('Failed to send exam link notification', [
+                        'vacancy_id' => $vacancy_id,
+                        'user_id' => $user_id,
+                        'error' => $sendException->getMessage(),
                     ]);
-
-                    // Dispatch Job
-                    SendExamNotification::dispatch($vacancy_id, $user_id, $examDetail->id, $sender_email);
-                    $count++;
                 }
             }
-            return $count;
+            return $result;
         });
     }
 
@@ -1647,6 +1757,10 @@ class ExamController extends Controller
 
             $notified = false;
             $notified_at = null;
+            $notifyMessage = null;
+            $sentCount = 0;
+            $failedCount = 0;
+            $skippedCount = 0;
 
             if ($request->boolean('notify')) {
                 Log::info('Calling notifyApplicantsSchedule', ['vacancy_id' => $vacancy_id]);
@@ -1658,6 +1772,10 @@ class ExamController extends Controller
                     $examDetails->refresh();
                     $notified = true;
                     $notified_at = $examDetails->notified_at;
+                    $notifyMessage = $responseData['message'] ?? null;
+                    $sentCount = (int) ($responseData['sent_count'] ?? 0);
+                    $failedCount = (int) ($responseData['failed_count'] ?? 0);
+                    $skippedCount = (int) ($responseData['skipped_count'] ?? 0);
                     Log::info('Schedule notifications sent successfully', ['vacancy_id' => $vacancy_id]);
                 } else {
                     Log::error('Schedule notification failed', ['vacancy_id' => $vacancy_id, 'response' => $responseData]);
@@ -1681,7 +1799,11 @@ class ExamController extends Controller
                 'message' => 'Exam details saved.',
                 'examDetails' => $examDetails,
                 'notified' => $notified,
-                'notified_at' => $notified_at
+                'notified_at' => $notified_at,
+                'notify_message' => $notifyMessage,
+                'sent_count' => $sentCount,
+                'failed_count' => $failedCount,
+                'skipped_count' => $skippedCount,
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             Log::error('Validation error in saveExamDetails', ['errors' => $e->errors()]);
