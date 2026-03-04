@@ -15,6 +15,10 @@
         -webkit-user-select: none;
         -moz-user-select: none;
         -ms-user-select: none;
+        -webkit-touch-callout: none;
+    }
+    .exam-protected .question-text {
+        pointer-events: auto;
     }
     input, textarea, button, label {
         user-select: auto;
@@ -145,6 +149,9 @@
     <div id="saveNotification" class="hidden text-green-600 text-sm font-semibold transition-opacity duration-300">
         Answers restored from your latest autosave.
     </div>
+    <div id="examWarningNotification" class="hidden mt-2 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
+        Warning: Suspicious activity detected.
+    </div>
 </div>
 
 <script>
@@ -165,7 +172,6 @@
         Object.entries(savedAnswers || {}).map(([questionId, value]) => [String(questionId), value ?? ''])
     );
     let switchCount = 0;
-    let justSwitched = false;
     const AUTOSAVE_DEBOUNCE_MS = 900;
     const AUTOSAVE_PERIODIC_MS = 15000;
     let autoSaveInFlight = false;
@@ -338,117 +344,308 @@
         };
     }
 
-    document.addEventListener('contextmenu', e => e.preventDefault());
-    ['copy', 'cut', 'paste'].forEach(evt => document.addEventListener(evt, e => e.preventDefault()));
-
-    window.allowFullscreenExit = false;
-
-    function isFullscreenActive() {
-        return !!(document.fullscreenElement || document.webkitFullscreenElement);
-    }
-
-    async function requestExamFullscreen() {
-        if (window.allowFullscreenExit || isFullscreenActive()) return;
-        const root = document.documentElement;
-        try {
-            if (root.requestFullscreen) {
-                await root.requestFullscreen();
-            } else if (root.webkitRequestFullscreen) {
-                root.webkitRequestFullscreen();
-            }
-        } catch (_) {
-            // Some browsers require a user gesture; retry on next interaction.
-        }
-    }
-
-    function enforceFullscreenIfNeeded() {
-        if (!window.allowFullscreenExit && !window.isSubmitting && !isFullscreenActive()) {
-            handleTabSwitch();
-            requestExamFullscreen();
-        }
-    }
-
-    document.addEventListener('fullscreenchange', enforceFullscreenIfNeeded);
-    document.addEventListener('webkitfullscreenchange', enforceFullscreenIfNeeded);
-
-    document.addEventListener('click', requestExamFullscreen, { passive: true });
-    document.addEventListener('keydown', requestExamFullscreen, { passive: true });
-
-    document.addEventListener('DOMContentLoaded', () => {
-        requestExamFullscreen();
-    });
-
-/*
-    document.addEventListener('keydown', e => {
-        const key = e.key.toLowerCase();
-        if ((e.ctrlKey || e.metaKey) && ['c', 'u', 'x', 's', 'a'].includes(key) ||
-            e.ctrlKey && e.shiftKey && ['i', 'j'].includes(key) ||
-            key === 'f12') e.preventDefault();
-    });
-*/
-    document.addEventListener('keydown', e => {
-        const key = (e.key || '').toLowerCase();
-
-        // Keep examinee in exam mode.
-        if (key === 'escape' || key === 'f11' || key === 'printscreen') {
-            e.preventDefault();
-            return;
-        }
-
-        // Block modifier keys and combos in-page.
-        if (e.ctrlKey || e.altKey || e.metaKey || key === 'control' || key === 'alt' || key === 'meta') {
-            e.preventDefault();
-            return;
-        }
-    });
-
     window.allowFocusLoss = false;
     window.isSubmitting = false;
+    window.allowFullscreenExit = false;
 
-    document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'hidden' && !window.allowFocusLoss && !window.isSubmitting) {
-            justSwitched = true;
+    const antiCheat = (() => {
+        const MAX_GENERIC_VIOLATIONS = 12;
+        const warningEl = document.getElementById('examWarningNotification');
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+        let active = false;
+        let warningTimeout = null;
+        let genericViolations = 0;
+        const tabSwitchEvents = [];
+        let hiddenAt = null;
+        let violationCounter = 0;
+        let lastWidth = window.innerWidth;
+        let lastHeight = window.innerHeight;
+        let resizeIgnoreUntil = 0;
+        let devtoolsInterval = null;
+        let lastDevtoolsWarningAt = 0;
+
+        function isExamActive() {
+            return active && !window.allowFocusLoss && !window.isSubmitting;
         }
-    });
 
-    window.addEventListener('focus', () => {
-        if (justSwitched) {
-            justSwitched = false;
-            handleTabSwitch();
+        function showWarning(message) {
+            if (!warningEl) return;
+            warningEl.textContent = message;
+            warningEl.classList.remove('hidden');
+            if (warningTimeout) clearTimeout(warningTimeout);
+            warningTimeout = setTimeout(() => warningEl.classList.add('hidden'), 3200);
         }
-    });
 
-    function handleTabSwitch() {
-        switchCount++;
-        alert(`⚠️ Warning ${switchCount}: Please stay on the exam page.`);
+        function isFullscreenActive() {
+            return !!(document.fullscreenElement || document.webkitFullscreenElement);
+        }
 
-        const endedAt = new Date();
-        const startedAt = window.__tabHiddenAt || endedAt;
-        const durationSeconds = Math.max(0, Math.round((endedAt.getTime() - startedAt.getTime()) / 1000));
+        async function requestExamFullscreen() {
+            if (!isExamActive() || isFullscreenActive()) return;
+            const root = document.documentElement;
+            try {
+                resizeIgnoreUntil = Date.now() + 1500;
+                if (root.requestFullscreen) {
+                    await root.requestFullscreen();
+                } else if (root.webkitRequestFullscreen) {
+                    root.webkitRequestFullscreen();
+                }
+            } catch (_) {
+                // Browser may require user gesture; listeners will retry.
+            }
+        }
 
-        fetch('/log-switch', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-            },
-            body: JSON.stringify({
-                type: 'tab-switch',
-                count: switchCount,
-                time: endedAt.toISOString(),
-                vacancy_id: '{{ $vacancy_id }}',
-                started_at: startedAt.toISOString(),
-                ended_at: endedAt.toISOString(),
-                duration_seconds: durationSeconds
-            })
-        });
+        function logViolation(type, payload = {}) {
+            const now = new Date();
+            violationCounter += 1;
+            fetch('/log-switch', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken
+                },
+                body: JSON.stringify({
+                    type,
+                    count: violationCounter,
+                    time: now.toISOString(),
+                    vacancy_id: '{{ $vacancy_id }}',
+                    ...payload
+                })
+            }).catch(() => {});
+        }
+
+        function maybeAutoSubmit() {
+            if (!isExamActive()) return;
+            if (genericViolations >= MAX_GENERIC_VIOLATIONS) {
+                showWarning('Too many violations detected. Submitting your exam now.');
+                setTimeout(() => {
+                    if (!window.isSubmitting) window.prepareSubmit();
+                }, 800);
+            }
+        }
+
+        function registerViolation(type, message, payload = {}, countForThreshold = true) {
+            if (!isExamActive()) return;
+            if (countForThreshold) genericViolations += 1;
+            showWarning(message);
+            logViolation(type, payload);
+            maybeAutoSubmit();
+        }
+
+        function onFullscreenChange() {
+            if (!isExamActive()) return;
+            if (!isFullscreenActive()) {
+                registerViolation('fullscreen-exit', 'Fullscreen is required during the exam.');
+                requestExamFullscreen();
+            }
+        }
+
+        function onVisibilityChange() {
+            if (!isExamActive()) return;
+            if (document.visibilityState === 'hidden') {
+                hiddenAt = new Date();
+            } else if (hiddenAt) {
+                switchCount += 1;
+                const endedAt = new Date();
+                const durationSeconds = Math.max(0, Math.round((endedAt.getTime() - hiddenAt.getTime()) / 1000));
+                tabSwitchEvents.push({
+                    switch_count: switchCount,
+                    started_at: hiddenAt.toISOString(),
+                    ended_at: endedAt.toISOString(),
+                    duration_seconds: durationSeconds
+                });
+                window.tabSwitchMetrics = {
+                    total_switches: switchCount,
+                    total_hidden_seconds: tabSwitchEvents.reduce((sum, item) => sum + item.duration_seconds, 0),
+                    events: [...tabSwitchEvents]
+                };
+                registerViolation(
+                    'tab-switch',
+                    `Warning ${switchCount}: Stay on the exam page.`,
+                    {
+                        started_at: hiddenAt.toISOString(),
+                        ended_at: endedAt.toISOString(),
+                        duration_seconds: durationSeconds,
+                        switch_count: switchCount,
+                        total_switches: switchCount
+                    },
+                    false
+                );
+                hiddenAt = null;
+                requestExamFullscreen();
+            }
+        }
+
+        function onWindowBlur() {
+            if (!isExamActive()) return;
+            hiddenAt = hiddenAt || new Date();
+        }
+
+        function onWindowFocus() {
+            if (!isExamActive()) return;
+            requestExamFullscreen();
+        }
+
+        function onKeydown(event) {
+            if (!isExamActive()) return;
+
+            const key = event.key || '';
+            const lower = key.toLowerCase();
+            const blockedDirect = ['f12', 'f11', 'printscreen', 'escape', 'control', 'alt', 'meta'];
+            const blockedCombos =
+                event.ctrlKey ||
+                event.altKey ||
+                event.metaKey ||
+                (event.shiftKey && ['f10'].includes(lower)) ||
+                (event.ctrlKey && event.shiftKey && ['i', 'j', 'c'].includes(lower)) ||
+                (event.ctrlKey && ['c', 'v', 'x', 'u', 's', 'a', 'p', 'r', 'w', 't', 'tab'].includes(lower));
+
+            if (blockedDirect.includes(lower) || blockedCombos) {
+                event.preventDefault();
+                event.stopPropagation();
+                registerViolation('blocked-key', 'Restricted keyboard shortcut detected.', {
+                    key,
+                    ctrl: !!event.ctrlKey,
+                    alt: !!event.altKey,
+                    shift: !!event.shiftKey,
+                    meta: !!event.metaKey
+                });
+            }
+        }
+
+        function onContextMenu(event) {
+            if (!isExamActive()) return;
+            event.preventDefault();
+            registerViolation('context-menu', 'Right-click is disabled during the exam.');
+        }
+
+        function onClipboard(event) {
+            if (!isExamActive()) return;
+            event.preventDefault();
+            registerViolation(`clipboard-${event.type}`, `${event.type.toUpperCase()} is disabled during the exam.`);
+        }
+
+        function onSelectStart(event) {
+            if (!isExamActive()) return;
+            const target = event.target instanceof Element ? event.target : event.target?.parentElement;
+            if (!target) return;
+            const inEditable = !!target.closest('input, textarea');
+            if (inEditable) return;
+            if (target.closest('.question-text')) {
+                event.preventDefault();
+                registerViolation('text-selection', 'Selecting question text is disabled.');
+            }
+        }
+
+        function onDragStart(event) {
+            if (!isExamActive()) return;
+            const target = event.target instanceof Element ? event.target : event.target?.parentElement;
+            if (!target) return;
+            if (target.closest('.question-text')) {
+                event.preventDefault();
+            }
+        }
+
+        function onResize() {
+            if (!isExamActive()) return;
+
+            const now = Date.now();
+            const widthChange = Math.abs(window.innerWidth - lastWidth);
+            const heightChange = Math.abs(window.innerHeight - lastHeight);
+            lastWidth = window.innerWidth;
+            lastHeight = window.innerHeight;
+
+            if (now <= resizeIgnoreUntil) return;
+            if (widthChange < 120 && heightChange < 120) return;
+
+            registerViolation('window-resize', 'Window resize detected. Keep your exam window unchanged.', {
+                width: window.innerWidth,
+                height: window.innerHeight
+            });
+        }
+
+        function detectDevtools() {
+            if (!isExamActive()) return;
+            const threshold = 160;
+            const opened = (window.outerWidth - window.innerWidth > threshold) || (window.outerHeight - window.innerHeight > threshold);
+            if (!opened) return;
+
+            const now = Date.now();
+            if (now - lastDevtoolsWarningAt < 4000) return;
+            lastDevtoolsWarningAt = now;
+            registerViolation('devtools-heuristic', 'Developer-tools-like window pattern detected.');
+        }
+
+        function onBeforeUnload(event) {
+            if (!isExamActive()) return;
+            event.preventDefault();
+            event.returnValue = 'Exam is active. Leaving now may submit or invalidate your attempt.';
+        }
+
+        function activate() {
+            if (active) return;
+            active = true;
+            window.allowFullscreenExit = false;
+            document.body.classList.add('exam-protected');
+
+            document.addEventListener('fullscreenchange', onFullscreenChange);
+            document.addEventListener('webkitfullscreenchange', onFullscreenChange);
+            document.addEventListener('visibilitychange', onVisibilityChange);
+            window.addEventListener('blur', onWindowBlur);
+            window.addEventListener('focus', onWindowFocus);
+            window.addEventListener('resize', onResize);
+            window.addEventListener('beforeunload', onBeforeUnload);
+
+            document.addEventListener('keydown', onKeydown, true);
+            document.addEventListener('contextmenu', onContextMenu, true);
+            ['copy', 'cut', 'paste'].forEach(evt => document.addEventListener(evt, onClipboard, true));
+            document.addEventListener('selectstart', onSelectStart, true);
+            document.addEventListener('dragstart', onDragStart, true);
+
+            document.addEventListener('click', requestExamFullscreen, { passive: true });
+            document.addEventListener('keydown', requestExamFullscreen, { passive: true });
+
+            devtoolsInterval = setInterval(detectDevtools, 2000);
+            requestExamFullscreen();
+        }
+
+        function deactivate() {
+            if (!active) return;
+            active = false;
+            window.allowFullscreenExit = true;
+            document.body.classList.remove('exam-protected');
+
+            document.removeEventListener('fullscreenchange', onFullscreenChange);
+            document.removeEventListener('webkitfullscreenchange', onFullscreenChange);
+            document.removeEventListener('visibilitychange', onVisibilityChange);
+            window.removeEventListener('blur', onWindowBlur);
+            window.removeEventListener('focus', onWindowFocus);
+            window.removeEventListener('resize', onResize);
+            window.removeEventListener('beforeunload', onBeforeUnload);
+
+            document.removeEventListener('keydown', onKeydown, true);
+            document.removeEventListener('contextmenu', onContextMenu, true);
+            ['copy', 'cut', 'paste'].forEach(evt => document.removeEventListener(evt, onClipboard, true));
+            document.removeEventListener('selectstart', onSelectStart, true);
+            document.removeEventListener('dragstart', onDragStart, true);
+
+            document.removeEventListener('click', requestExamFullscreen, { passive: true });
+            document.removeEventListener('keydown', requestExamFullscreen, { passive: true });
+
+            if (warningTimeout) clearTimeout(warningTimeout);
+            if (devtoolsInterval) clearInterval(devtoolsInterval);
+            devtoolsInterval = null;
+            hiddenAt = null;
+        }
+
+        return { activate, deactivate };
+    })();
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => antiCheat.activate(), { once: true });
+    } else {
+        antiCheat.activate();
     }
-    document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'hidden' && !window.allowFocusLoss && !window.isSubmitting) {
-            window.__tabHiddenAt = new Date();
-        }
-    });
-
     function prepareSubmit() {
         collectCurrentAnswers(); // updates 'answers' object with current screen inputs
 
@@ -467,7 +664,7 @@
 
         window.isSubmitting = true;
         window.allowFocusLoss = true;
-        window.allowFullscreenExit = true;
+        antiCheat.deactivate();
         document.getElementById('exam-form').submit();
     }
 
@@ -709,3 +906,4 @@
 </script>
 @include('partials.loader')
 @endsection
+
