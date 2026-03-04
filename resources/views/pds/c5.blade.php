@@ -126,9 +126,6 @@
                         $hasStoredDoc = !empty($doc?->storage_path)
                             || ($docType === 'application_letter' && !empty($hasExistingApplicationLetter));
                         $hasExisting = $hasStoredDoc;
-                        $existingPreviewUrl = !empty($doc?->storage_path)
-                            ? url('/preview-file/' . base64_encode((string) $doc->storage_path))
-                            : null;
                         $requiredCos = in_array($docType, $requiredDocsByTrack['COS'] ?? [], true);
                         $requiredPlantilla = in_array($docType, $requiredDocsByTrack['Plantilla'] ?? [], true);
                         $requiredNow = $activeTrack === 'COS' ? $requiredCos : $requiredPlantilla;
@@ -162,53 +159,26 @@
                                     This document is already approved.
                                 </div>
                             @else
-                                <div class="flex flex-row">
-                                    @if($hasExisting)
-                                        <div class="text-[11px] leading-tight max-w-sm flex flex-wrap items-center gap-2">
-                                            @if($existingPreviewUrl)
-                                                <a
-                                                    href="{{ $existingPreviewUrl }}"
-                                                    target="_blank"
-                                                    rel="noopener"
-                                                    class="inline-flex items-center px-2 py-1 rounded p-4 border border-green-700 bg-green-50 text-green-700 font-semibold hover:bg-green-100 transition-colors"
-                                                >
-                                                    View Existing Document
-                                                </a>
-                                            @else
-                                                <span class="inline-flex items-center px-2 py-1 rounded p-4 border border-green-700 bg-green-50 text-green-700 font-semibold">
-                                                    Existing Document Ready
-                                                </span>
-                                            @endif
-                                            <!-- <button
-                                                type="button"
-                                                class="reuse-upload-trigger inline-flex items-center px-2 py-1 rounded p-4 border border-blue-700 bg-blue-50 text-blue-700 font-semibold hover:bg-blue-100 transition-colors"
-                                                data-input-id="{{ $inputId }}"
-                                            >
-                                                Upload New
-                                            </button> -->
-                                        </div>
-                                    @endif
-                                    <div class="ml-4 flex items-center gap-3">
-                                        <label
-                                            for="{{ $inputId }}"
-                                            class="cert-upload-area inline-flex items-center justify-center border border-gray-300 p-1 rounded cursor-pointer"
-                                        >
-                                            <span class="material-icons text-5xl {{ $hasExisting ? 'text-green-500' : 'text-blue-400' }}">
-                                                {{ $hasExisting ? 'check_circle' : 'cloud_upload' }}
-                                            </span>
-                                        </label>
-                                        <input
-                                            type="file"
-                                            id="{{ $inputId }}"
-                                            name="cert_uploads[{{ $docType }}]"
-                                            accept="{{ $meta['accept'] }}"
-                                            class="doc-upload-input absolute opacity-0 w-px h-px"
-                                            data-has-existing="{{ $hasExisting ? 1 : 0 }}"
-                                            data-required-cos="{{ $requiredCos ? 1 : 0 }}"
-                                            data-required-plantilla="{{ $requiredPlantilla ? 1 : 0 }}"
-                                            {{ ($requiredNow && !$hasExisting) ? 'required' : '' }}
-                                        >
-                                    </div>
+                                <div class="flex items-center gap-3">
+                                    <label
+                                        for="{{ $inputId }}"
+                                        class="cert-upload-area inline-flex items-center justify-center border border-gray-300 p-1 rounded cursor-pointer"
+                                    >
+                                        <span class="material-icons text-5xl {{ $hasExisting ? 'text-green-500' : 'text-blue-400' }}">
+                                            {{ $hasExisting ? 'check_circle' : 'cloud_upload' }}
+                                        </span>
+                                    </label>
+                                    <input
+                                        type="file"
+                                        id="{{ $inputId }}"
+                                        name="cert_uploads[{{ $docType }}]"
+                                        accept="{{ $meta['accept'] }}"
+                                        class="doc-upload-input absolute opacity-0 w-px h-px"
+                                        data-has-existing="{{ $hasExisting ? 1 : 0 }}"
+                                        data-required-cos="{{ $requiredCos ? 1 : 0 }}"
+                                        data-required-plantilla="{{ $requiredPlantilla ? 1 : 0 }}"
+                                        {{ ($requiredNow && !$hasExisting) ? 'required' : '' }}
+                                    >
                                 </div>
                             @endif
                         </div>
@@ -426,16 +396,6 @@
                 updateUploadState(input);
             });
             updateUploadState(input);
-        });
-
-        document.querySelectorAll('.reuse-upload-trigger').forEach((button) => {
-            button.addEventListener('click', function () {
-                const inputId = button.dataset.inputId;
-                if (!inputId) return;
-                const input = document.getElementById(inputId);
-                if (!input) return;
-                input.click();
-            });
         });
     });
 

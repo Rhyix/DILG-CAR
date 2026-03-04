@@ -11,7 +11,6 @@ use App\Models\Applications;
 use Illuminate\Http\Request;
 use App\Models\Vacancy;
 use App\Models\UploadedDocument;
-use App\Models\DocumentGalleryItem;
 use App\Models\PersonalInformation;
 use App\Models\WorkExperience;
 use App\Models\CivilServiceEligibility;
@@ -23,7 +22,6 @@ use App\Models\MiscInfos;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Collection;
 use Spatie\Activitylog\Models\Activity;
 use Carbon\Carbon;
 use App\Models\WorkExpSheet;
@@ -666,18 +664,177 @@ class JobVacancyController extends Controller
                 ->with('success', 'Application already exists for this vacancy.');
         }
 
-        $vacancyTrack = $this->normalizeTrack((string) $vacancy->vacancy_type);
-        Log::info('Apply redirected to C5 review flow', [
+        $requiredDocsModalState = $this->getRequiredDocsModalState((int) Auth::id(), (string) $vacancy->vacancy_type, (string) $vacancy->vacancy_id);
+        if ($requiredDocsModalState['hasMissing']) {
+            Log::info('Apply blocked: required docs missing', [
+                'user_id' => Auth::id(),
+                'vacancy_id' => $vacancy_id,
+            ]);
+            return redirect()
+                ->route('job_description', ['id' => $vacancy->vacancy_id])
+                ->with('required_docs_prompt', [
+                    'vacancy_id' => $vacancy->vacancy_id,
+                    'vacancy_track' => $requiredDocsModalState['vacancyTrack'],
+                    'redirect_url' => $requiredDocsModalState['redirectUrl'],
+                    'preview_docs' => $requiredDocsModalState['previewDocs'],
+                ]);
+        }
+
+        $docTrackMismatchState = $this->getDocumentTrackMismatchState((int) Auth::id(), (string) $vacancy->vacancy_type, (string) $vacancy->vacancy_id);
+        if ($docTrackMismatchState['hasMismatch']) {
+            Log::info('Apply blocked: doc track mismatch', [
+                'user_id' => Auth::id(),
+                'vacancy_id' => $vacancy_id,
+                'submitted_track' => $docTrackMismatchState['submittedTrack'],
+                'vacancy_track' => $docTrackMismatchState['vacancyTrack'],
+            ]);
+            return redirect()
+                ->route('job_description', ['id' => $vacancy->vacancy_id])
+                ->with('doc_track_mismatch', [
+                    'vacancy_id' => $vacancy->vacancy_id,
+                    'submitted_track' => $docTrackMismatchState['submittedTrack'],
+                    'vacancy_track' => $docTrackMismatchState['vacancyTrack'],
+                    'redirect_url' => $docTrackMismatchState['redirectUrl'],
+                ]);
+        }
+
+        $requiredDocumentIds = $this->getRequiredDocumentIdsForVacancyType((string) $vacancy->vacancy_type);
+        $this->seedVacancyDocumentsFromReusableUploads(
+            (int) Auth::id(),
+            (string) $vacancy->vacancy_id,
+            $requiredDocumentIds
+        );
+
+        $supportsVacancyScopedDocs = Schema::hasColumn('uploaded_documents', 'vacancy_id');
+        $applicationLetterDocQuery = UploadedDocument::where('user_id', Auth::id())
+            ->where('document_type', 'application_letter')
+            ->whereNotNull('storage_path')
+            ->where('storage_path', '!=', 'NOINPUT');
+        if ($supportsVacancyScopedDocs) {
+            $applicationLetterDocQuery->orderByRaw(
+                "CASE WHEN vacancy_id = ? THEN 0 WHEN vacancy_id IS NULL THEN 1 ELSE 2 END",
+                [(string) $vacancy->vacancy_id]
+            );
+        }
+        $applicationLetterDoc = $applicationLetterDocQuery
+            ->latest('updated_at')
+            ->first();
+
+        if (!$applicationLetterDoc) {
+            $latestApplicationLetter = Applications::where('user_id', Auth::id())
+                ->whereNotNull('file_storage_path')
+                ->latest('updated_at')
+                ->first();
+
+            if ($latestApplicationLetter) {
+                $applicationLetterDoc = UploadedDocument::updateOrCreate(
+                    $supportsVacancyScopedDocs
+                        ? [
+                            'user_id' => Auth::id(),
+                            'vacancy_id' => (string) $vacancy->vacancy_id,
+                            'document_type' => 'application_letter',
+                        ]
+                        : [
+                            'user_id' => Auth::id(),
+                            'document_type' => 'application_letter',
+                        ],
+                    [
+                        'original_name' => (string) ($latestApplicationLetter->file_original_name
+                            ?: basename((string) $latestApplicationLetter->file_storage_path)),
+                        'stored_name' => (string) ($latestApplicationLetter->file_stored_name
+                            ?: basename((string) $latestApplicationLetter->file_storage_path)),
+                        'storage_path' => (string) $latestApplicationLetter->file_storage_path,
+                        'mime_type' => 'application/pdf',
+                        'file_size_8b' => (int) ($latestApplicationLetter->file_size_8b ?? 0),
+                        'status' => 'Pending',
+                        'remarks' => '',
+                        'last_modified_by' => Auth::user()?->name ?? 'System',
+                    ]
+                );
+            }
+        }
+
+        if (!$applicationLetterDoc) {
+            Log::info('Apply blocked: application letter not found in UploadedDocument', [
+                'user_id' => Auth::id(),
+                'vacancy_id' => $vacancy_id,
+            ]);
+            return redirect()
+                ->route('job_description', ['id' => $vacancy->vacancy_id])
+                ->with('required_docs_prompt', [
+                    'vacancy_track' => $requiredDocsModalState['vacancyTrack'],
+                    'redirect_url' => $requiredDocsModalState['redirectUrl'],
+                    'preview_docs' => $requiredDocsModalState['previewDocs'],
+                ]);
+        }
+
+        if (
+            $supportsVacancyScopedDocs
+            && (string) ($applicationLetterDoc->vacancy_id ?? '') !== (string) $vacancy->vacancy_id
+        ) {
+            $applicationLetterDoc = $this->upsertVacancyDocumentFromSource(
+                $applicationLetterDoc,
+                (string) $vacancy->vacancy_id,
+                'application_letter'
+            );
+        }
+
+
+        // Create application
+        $application = \App\Models\Applications::create([
+            'user_id' => Auth::id(),
+            'vacancy_id' => $vacancy->vacancy_id,
+            'status' => ApplicationStatus::PENDING->value,
+            'is_valid' => true,
+
+            'file_original_name' => $applicationLetterDoc->original_name,
+            'file_stored_name' => $applicationLetterDoc->stored_name,
+            'file_storage_path' => $applicationLetterDoc->storage_path,
+            'file_status' => 'Submitted',
+            'file_remarks' => null,
+            'file_size_8b' => $applicationLetterDoc->file_size_8b,
+        ]);
+        Log::info('Apply success: application created', [
             'user_id' => Auth::id(),
             'vacancy_id' => $vacancy_id,
-            'vacancy_track' => $vacancyTrack,
+            'application_id' => $application->id,
         ]);
 
-        return redirect()->route('display_c5', [
-            'doc_track' => $vacancyTrack,
-            'vacancy_id' => $vacancy->vacancy_id,
-            'fresh_upload' => 1,
-        ]);
+        // Consume fresh-upload marker for this vacancy after successful application submit.
+        $vacancyUploads = session('vacancy_doc_uploads', []);
+        if (is_array($vacancyUploads) && array_key_exists((string) $vacancy->vacancy_id, $vacancyUploads)) {
+            unset($vacancyUploads[(string) $vacancy->vacancy_id]);
+            session(['vacancy_doc_uploads' => $vacancyUploads]);
+        }
+
+        // Keep apply response fast: store lightweight DB notifications directly.
+        $admins = \App\Models\Admin::all();
+        foreach ($admins as $admin) {
+            \App\Models\Notification::create([
+                'notifiable_type' => 'App\Models\Admin',
+                'notifiable_id' => $admin->id,
+                'type' => 'warning',
+                'data' => [
+                    'title' => 'New Job Application',
+                    'message' => Auth::user()->name . ' submitted an application for ' . $vacancy->position_title . '.',
+                    'link' => route('admin.applicant_status', ['user_id' => Auth::id(), 'vacancy_id' => $vacancy->vacancy_id], false),
+                    'section' => 'Application List',
+                    'category' => 'document_verification',
+                    'user_id' => Auth::id(),
+                    'vacancy_id' => $vacancy->vacancy_id,
+                ],
+                'read_at' => null,
+            ]);
+        }
+
+        activity()
+            ->event('apply job')
+            ->causedBy(Auth::user())
+            ->performedOn($vacancy)
+            ->withProperties(['vacancy_id' => $vacancy->vacancy_id, 'section' => 'Job Vacancy'])
+            ->log('Applied to job vacancy.');
+
+        return redirect()->route('my_applications')->with('success', 'Application submitted successfully!');
     }
 
     public function myApplications()
@@ -1044,68 +1201,9 @@ class JobVacancyController extends Controller
             ->orderByDesc('updated_at')
             ->get();
 
-        $documents = $docs
+        return $docs
             ->unique('document_type')
             ->keyBy('document_type');
-
-        $documents = $this->mergeGalleryDocumentsIntoReusableMap($documents, $userId, $vacancyId);
-        return $this->applyDocumentTypeAliasesToMap($documents);
-    }
-
-    private function mergeGalleryDocumentsIntoReusableMap(Collection $documents, int $userId, ?string $vacancyId): Collection
-    {
-        if (!Schema::hasTable('document_gallery_items')) {
-            return $documents;
-        }
-
-        $galleryItems = DocumentGalleryItem::where('user_id', $userId)
-            ->whereNotNull('document_type')
-            ->where('document_type', '!=', '')
-            ->whereNotNull('storage_path')
-            ->where('storage_path', '!=', 'NOINPUT')
-            ->orderByDesc('updated_at')
-            ->get();
-
-        foreach ($galleryItems as $item) {
-            $docType = trim((string) ($item->document_type ?? ''));
-            if ($docType === '' || $documents->has($docType)) {
-                continue;
-            }
-
-            $documents->put($docType, new UploadedDocument([
-                'user_id' => $userId,
-                'vacancy_id' => $vacancyId,
-                'document_type' => $docType,
-                'original_name' => (string) ($item->original_name ?? ''),
-                'stored_name' => (string) ($item->stored_name ?? ''),
-                'storage_path' => (string) ($item->storage_path ?? ''),
-                'mime_type' => (string) ($item->mime_type ?? 'application/pdf'),
-                'file_size_8b' => (int) ($item->file_size_8b ?? 0),
-                'status' => 'Pending',
-                'remarks' => '',
-            ]));
-        }
-
-        return $documents;
-    }
-
-    private function applyDocumentTypeAliasesToMap(Collection $documents): Collection
-    {
-        foreach (self::DOCUMENT_TYPE_ALIASES as $canonical => $aliases) {
-            if ($documents->has($canonical)) {
-                continue;
-            }
-
-            foreach ($aliases as $alias) {
-                $aliasDoc = $documents->get($alias);
-                if ($aliasDoc instanceof UploadedDocument && !empty($aliasDoc->storage_path) && $aliasDoc->storage_path !== 'NOINPUT') {
-                    $documents->put($canonical, $aliasDoc);
-                    break;
-                }
-            }
-        }
-
-        return $documents;
     }
 
     private function hasStoredUploadedDocument($uploadedDocuments, string $docType): bool

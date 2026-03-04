@@ -33,6 +33,21 @@ try {
 
     $workbook = $excel.Workbooks.Open($TemplateXlsx)
 
+    # Fix C2 layout width in exported PDF: expand the C2 table columns so
+    # CIVIL SERVICE ELIGIBILITY / WORK EXPERIENCE matches the width profile
+    # of the other pages while keeping a single-page C2 export.
+    try {
+        $c2Sheet = $workbook.Worksheets.Item('C2')
+        foreach ($colName in @('A','B','C','D','E','F','G','H','I','J','K')) {
+            $col = $c2Sheet.Columns.Item($colName)
+            $col.ColumnWidth = $col.ColumnWidth * 1.17
+            [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($col)
+        }
+        [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($c2Sheet)
+    } catch {
+        # Non-fatal: proceed with the workbook's original layout if C2 is unavailable.
+    }
+
     $jsonText = Get-Content -LiteralPath $DataJson -Raw
     $cellMap = $jsonText | ConvertFrom-Json
 
