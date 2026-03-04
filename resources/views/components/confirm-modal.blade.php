@@ -45,23 +45,24 @@
             x-transition:leave="ease-in duration-150"
             x-transition:leave-start="opacity-100"
             x-transition:leave-end="opacity-0"
-            class="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/55 px-4 py-6 backdrop-blur-sm"
+            class="fixed inset-0 z-[10000] overflow-y-auto bg-slate-900/55 backdrop-blur-sm"
             style="display: none;"
         >
         <div class="absolute inset-0" @click="open = false" aria-hidden="true"></div>
 
-        <div
-            role="dialog"
-            aria-modal="true"
-            aria-label="{{ $title }}"
-            class="relative w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
-            x-transition:enter="ease-out duration-200"
-            x-transition:enter-start="opacity-0 translate-y-2 scale-[0.98]"
-            x-transition:enter-end="opacity-100 translate-y-0 scale-100"
-            x-transition:leave="ease-in duration-150"
-            x-transition:leave-start="opacity-100 translate-y-0 scale-100"
-            x-transition:leave-end="opacity-0 translate-y-2 scale-[0.98]"
-        >
+        <div class="relative flex min-h-full w-full items-center justify-center px-4 py-6">
+            <div
+                role="dialog"
+                aria-modal="true"
+                aria-label="{{ $title }}"
+                class="relative w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+                x-transition:enter="ease-out duration-200"
+                x-transition:enter-start="opacity-0 translate-y-2 scale-[0.98]"
+                x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                x-transition:leave="ease-in duration-150"
+                x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+                x-transition:leave-end="opacity-0 translate-y-2 scale-[0.98]"
+            >
         <div class="flex items-start gap-3 border-b border-slate-100 px-5 py-4">
             <div class="mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border {{ $accentClass }}">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -107,7 +108,8 @@
                 {{ $confirmText }}
             </button>
         </div>{{-- /footer --}}
-        </div>{{-- /dialog --}}
+            </div>{{-- /dialog --}}
+        </div>
         </div>{{-- /fixed overlay --}}
     </template>
 </div>{{-- /x-data wrapper --}}

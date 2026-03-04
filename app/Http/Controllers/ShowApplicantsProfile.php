@@ -436,7 +436,7 @@ class ShowApplicantsProfile extends Controller
             return response()->json($vacancies->values()); // reset keys
         }
 
-        $vacancies = $vacancyQuery->paginate(20)->withQueryString();
+        $vacancies = $vacancyQuery->get();
 
         return view('admin.applications_list', [
             'vacancies' => $vacancies,
@@ -651,4 +651,3 @@ class ShowApplicantsProfile extends Controller
     }
 
 }
-

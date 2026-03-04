@@ -2,8 +2,7 @@
 @section('title', 'DILG - Applications List')
 @section('content')
 
-<main class="w-full h-full flex flex-col space-y-4 overflow-hidden">
-    <main class="w-full h-full min-h-0 flex flex-col space-y-4 overflow-hidden">
+<main class="w-full h-full min-h-0 flex flex-col gap-4 overflow-hidden">
 
     <!-- Header with back arrow and title -->
     <section class="flex-none flex items-center space-x-4 max-w-full">
@@ -13,45 +12,48 @@
         </h1>
     </section>
 
-    <!-- Search & Sort Section -->
-    <div class="flex flex-col gap-3 items-stretch sm:gap-4 md:flex-row md:flex-wrap md:items-end md:justify-between">
-        <!-- Search Bar -->
-        <form onsubmit="return false;" class="relative w-full min-w-0 md:flex-1 md:min-w-[260px] lg:min-w-[320px] no-spinner" data-loading-handled="1">
-            <input id="searchInput" type="search" placeholder="Search" aria-label="Search"
-                class="w-full pl-10 pr-4 py-1.5 rounded-full border border-[#0D2B70] placeholder:text-[#7D93B3] placeholder:font-semibold text-[#0D2B70] focus:outline-none focus:ring-2 focus:ring-[#0D2B70] focus:ring-offset-1" />
-            <svg xmlns="http://www.w3.org/2000/svg"
-                class="w-5 h-5 text-[#7D93B3] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none"
-                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                    d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
-            </svg>
-        </form>
-
-        <!-- Sort Dropdown with Custom Design -->
-        <div class="flex w-full items-stretch sm:w-auto">
-            <div class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:justify-center">
-                <label for="statusFilter" class="font-semibold text-[#0D2B70] text-sm">Sort By Status</label>
-                <select aria-label="Filter by Status" id="statusFilter"
-                    class="w-full sm:w-auto rounded-md text-[#0D2B70] p-2 px-3 font-semibold cursor-pointer border border-[#0D2B70]">
-                    <option value="">All</option>
-                    <option value="open">OPEN</option>
-                    <option value="closed">CLOSED</option>
-                </select>
+    <section class="flex-none mt-1 w-full rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:p-5">
+        <form onsubmit="return false;" class="relative w-full no-spinner" data-loading-handled="1">
+            <div class="grid w-full gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <div class="relative sm:col-span-2 lg:col-span-3">
+                    <label for="searchInput" class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                        Search
+                    </label>
+                    <input id="searchInput" type="search" placeholder="Search by vacancy ID or job title" aria-label="Search"
+                        class="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-11 pr-4 text-sm text-slate-700 shadow-sm outline-none transition focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20" />
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                        class="pointer-events-none absolute left-3 top-[39px] h-5 w-5 -translate-y-1/2 text-slate-400" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
+                    </svg>
+                </div>
+                <div>
+                    <label for="statusFilter" class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                        Status
+                    </label>
+                    <select aria-label="Filter by Status" id="statusFilter"
+                        class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 shadow-sm outline-none transition focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20">
+                        <option value="">All</option>
+                        <option value="open">OPEN</option>
+                        <option value="closed">CLOSED</option>
+                    </select>
+                </div>
             </div>
-        </div>
-    </div>
+        </form>
+    </section>
 
     <!-- Table Container -->
-    <div class="flex-1 min-h-0 flex flex-col border border-[#0D2B70] rounded-2xl overflow-hidden">
+    <div class="mb-4 w-full min-w-0 flex-1 flex flex-col min-h-0 overflow-hidden rounded-xl border border-[#0D2B70]">
         <!-- HEADER - Fixed outside scrollable area -->
-        <div class="bg-[#0D2B70] text-white rounded-t-xl flex-none">
-            <table class="w-full text-left border-separate table-fixed">
+        <div class="flex-none bg-[#0D2B70] text-white">
+            <table class="w-full text-left border-collapse table-fixed">
                 <thead>
                     <tr>
-                        <th class="py-4 px-6 font-normal w-[15%]">Vacancy ID</th>
-                        <th class="py-4 px-6 font-normal w-[30%]">Job Title</th>
-                        <th class="py-4 px-6 font-normal text-left w-[15%]">Status</th>
-                        <th class="py-4 px-6 font-normal text-center w-[40%]">Manage Applicants</th>
+                        <th class="w-[15%] px-3 py-2 text-[11px] font-semibold uppercase tracking-wider">Vacancy ID</th>
+                        <th class="w-[30%] px-3 py-2 text-[11px] font-semibold uppercase tracking-wider">Job Title</th>
+                        <th class="w-[15%] px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider">Status</th>
+                        <th class="w-[40%] px-3 py-2 text-center text-[11px] font-semibold uppercase tracking-wider">Manage Applicants</th>
                     </tr>
                 </thead>
             </table>
@@ -61,18 +63,18 @@
             <table class="w-full align-items-center text-left border-collapse table-fixed">
                 <tbody id="vacancy-list" class="divide-y divide-[#0D2B70]">
                     @forelse ($vacancies as $vacancy)
-                        <tr class="text-[#0D2B70] select-none hover:bg-blue-50 transition-colors duration-200">
-                            <td class="py-2 px-6 w-[15%]">{{ $vacancy->vacancy_id }}</td>
+                        <tr class="text-sm text-[#0D2B70] select-none hover:bg-blue-50 transition-colors duration-200">
+                            <td class="w-[15%] px-3 py-2">{{ $vacancy->vacancy_id }}</td>
 
-                            <td class="py-2 px-6 w-[30%]">
+                            <td class="w-[30%] px-3 py-2">
                                 <p class="font-medium">{{ $vacancy->position_title }}</p>
-                                <p class="text-[#0D2B70]/70 text-[0.8rem] italic mt-0.5">
+                                <p class="mt-0.5 text-xs italic text-[#0D2B70]/70">
                                     {{ $vacancy->vacancy_type }}
                                 </p>
                             </td>
 
-                            <td class="py-2 px-6 text-left w-[15%]">
-                                <div class="flex justify-start items-center gap-2 font-normal">
+                            <td class="w-[15%] px-3 py-2 text-left">
+                                <div class="flex items-center justify-start gap-1.5 font-normal">
                                     @php
                                         $statusColor = match (strtolower($vacancy->status)) {
                                             'open' => 'bg-green-600',
@@ -81,38 +83,38 @@
                                         };
                                     @endphp
 
-                                    <span class="w-4 h-4 rounded-full inline-block {{ $statusColor }}"></span>
-                                    <span class="font-semibold uppercase text-sm">
+                                    <span class="inline-block h-2.5 w-2.5 rounded-full {{ $statusColor }}"></span>
+                                    <span class="text-xs font-semibold uppercase">
                                         {{ $vacancy->status }}
                                     </span>
                                 </div>
                             </td>
 
-                            <td class="py-2 px-6 text-center w-[40%]">
-                                <div class="flex justify-center items-center gap-3">
+                            <td class="w-[40%] px-3 py-2 text-center">
+                                <div class="flex items-center justify-center gap-2">
                                     <a href="{{ route('admin.manage_applicants', ['vacancy_id' => $vacancy->vacancy_id]) }}?tab=new"
-                                    class="relative group use-loader flex items-center justify-center w-28 h-10 text-[#0D2B70] border border-[#0D2B70] font-bold rounded-md text-sm transition-all duration-300 hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md">
+                                    class="relative group use-loader inline-flex h-8 w-24 items-center justify-center rounded-md border border-[#0D2B70] text-xs font-bold text-[#0D2B70] transition-all duration-300 hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md">
                                     <span>New</span>
                                     @if(isset($vacancy->pending_count) && $vacancy->pending_count > 0)
-                                        <span class="absolute -top-2 -right-2 flex items-center justify-center w-5 h-5 rounded-full bg-red-600 text-white text-[10px] font-bold shadow-sm border border-white z-10">
+                                        <span class="absolute -right-2 -top-2 z-10 flex h-4 w-4 items-center justify-center rounded-full border border-white bg-red-600 text-[9px] font-bold text-white shadow-sm">
                                             {{ $vacancy->pending_count }}
                                         </span>
                                     @endif
                                     </a>
                                     <a href="{{ route('admin.manage_applicants', ['vacancy_id' => $vacancy->vacancy_id]) }}?tab=compliance"
-                                    class="relative group use-loader flex items-center justify-center w-28 h-10 text-[#0D2B70] border border-[#0D2B70] font-bold rounded-md text-sm transition-all duration-300 hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md">
+                                    class="relative group use-loader inline-flex h-8 w-24 items-center justify-center rounded-md border border-[#0D2B70] text-xs font-bold text-[#0D2B70] transition-all duration-300 hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md">
                                     <span>Compliance</span>
                                     @if(isset($vacancy->compliance_count) && $vacancy->compliance_count > 0)
-                                        <span class="absolute -top-2 -right-2 flex items-center justify-center w-5 h-5 rounded-full bg-orange-500 text-white text-[10px] font-bold shadow-sm border border-white z-10">
+                                        <span class="absolute -right-2 -top-2 z-10 flex h-4 w-4 items-center justify-center rounded-full border border-white bg-orange-500 text-[9px] font-bold text-white shadow-sm">
                                             {{ $vacancy->compliance_count }}
                                         </span>
                                     @endif
                                     </a>
                                     <a href="{{ route('admin.manage_applicants', ['vacancy_id' => $vacancy->vacancy_id]) }}?tab=qualified"
-                                    class="relative group use-loader flex items-center justify-center w-28 h-10 text-[#0D2B70] border border-[#0D2B70] font-bold rounded-md text-sm transition-all duration-300 hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md">
+                                    class="relative group use-loader inline-flex h-8 w-24 items-center justify-center rounded-md border border-[#0D2B70] text-xs font-bold text-[#0D2B70] transition-all duration-300 hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md">
                                     <span>Qualified</span>
                                     @if(isset($vacancy->qualified_count) && $vacancy->qualified_count > 0)
-                                        <span class="absolute -top-2 -right-2 flex items-center justify-center w-5 h-5 rounded-full bg-green-600 text-white text-[10px] font-bold shadow-sm border border-white z-10">
+                                        <span class="absolute -right-2 -top-2 z-10 flex h-4 w-4 items-center justify-center rounded-full border border-white bg-green-600 text-[9px] font-bold text-white shadow-sm">
                                             {{ $vacancy->qualified_count }}
                                         </span>
                                     @endif
@@ -122,9 +124,9 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="4" class="text-center py-12 text-gray-500 text-lg">
+                            <td colspan="4" class="py-5 text-center text-sm text-gray-500">
                                 <div class="flex flex-col items-center justify-center gap-2">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                                     </svg>
                                     <p>No job vacancies found.</p>
@@ -143,11 +145,6 @@
             </table>
         </div>
     </div>           
-    @if(method_exists($vacancies, 'links'))
-        <div class="flex justify-end">
-            {{ $vacancies->links() }}
-        </div>
-    @endif
     @include('partials.loader')
 </main>
 
@@ -251,31 +248,31 @@
                 }[vacancy.status?.toLowerCase()] ?? 'bg-gray-400';
 
                 container.innerHTML += `
-                <tr class="text-[#0D2B70] select-none hover:bg-blue-50 transition-colors duration-200">
-                    <td class="py-2 px-6 w-[15%] text-left">${vacancy.vacancy_id}</td>
-                    <td class="py-2 px-6 w-[30%] text-left">
+                <tr class="text-sm text-[#0D2B70] select-none hover:bg-blue-50 transition-colors duration-200">
+                    <td class="w-[15%] px-3 py-2 text-left">${vacancy.vacancy_id}</td>
+                    <td class="w-[30%] px-3 py-2 text-left">
                         <p>${vacancy.position_title}</p>
-                        <p class="text-[#0D2B70]/70 text-[0.9rem] italic">${vacancy.vacancy_type}</p>
+                        <p class="text-xs italic text-[#0D2B70]/70">${vacancy.vacancy_type}</p>
                     </td>
-                    <td class="py-2 px-6 text-left w-[15%]">
-                        <div class="flex justify-start items-center gap-3 font-normal">
-                            <span class="w-5 h-5 rounded-full inline-block ${statusColor}"></span>
-                            <span class="text-center font-semibold uppercase">${vacancy.status}</span>
+                    <td class="w-[15%] px-3 py-2 text-left">
+                        <div class="flex items-center justify-start gap-1.5 font-normal">
+                            <span class="inline-block h-2.5 w-2.5 rounded-full ${statusColor}"></span>
+                            <span class="text-xs font-semibold uppercase">${vacancy.status}</span>
                         </div>
                     </td>
-                    <td class="py-2 px-6 text-center w-[40%]">
-                        <div class="flex justify-center items-center gap-3">
-                            <a href="/admin/manage_applicants/${vacancy.vacancy_id}?tab=new" class="relative group use-loader flex items-center justify-center w-28 h-10 text-[#0D2B70] border border-[#0D2B70] font-bold rounded-md text-sm transition-all duration-300 hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md">
+                    <td class="w-[40%] px-3 py-2 text-center">
+                        <div class="flex items-center justify-center gap-2">
+                            <a href="/admin/manage_applicants/${vacancy.vacancy_id}?tab=new" class="relative group use-loader inline-flex h-8 w-24 items-center justify-center rounded-md border border-[#0D2B70] text-xs font-bold text-[#0D2B70] transition-all duration-300 hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md">
                                 <span>New</span>
-                                ${vacancy.pending_count > 0 ? `<span class="absolute -top-2 -right-2 flex items-center justify-center w-5 h-5 rounded-full bg-red-600 text-white text-[10px] font-bold shadow-sm border border-white z-10">${vacancy.pending_count}</span>` : ''}
+                                ${vacancy.pending_count > 0 ? `<span class="absolute -right-2 -top-2 z-10 flex h-4 w-4 items-center justify-center rounded-full border border-white bg-red-600 text-[9px] font-bold text-white shadow-sm">${vacancy.pending_count}</span>` : ''}
                             </a>
-                            <a href="/admin/manage_applicants/${vacancy.vacancy_id}?tab=compliance" class="relative group use-loader flex items-center justify-center w-28 h-10 text-[#0D2B70] border border-[#0D2B70] font-bold rounded-md text-sm transition-all duration-300 hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md">
+                            <a href="/admin/manage_applicants/${vacancy.vacancy_id}?tab=compliance" class="relative group use-loader inline-flex h-8 w-24 items-center justify-center rounded-md border border-[#0D2B70] text-xs font-bold text-[#0D2B70] transition-all duration-300 hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md">
                                 <span>Compliance</span>
-                                ${vacancy.compliance_count > 0 ? `<span class="absolute -top-2 -right-2 flex items-center justify-center w-5 h-5 rounded-full bg-orange-500 text-white text-[10px] font-bold shadow-sm border border-white z-10">${vacancy.compliance_count}</span>` : ''}
+                                ${vacancy.compliance_count > 0 ? `<span class="absolute -right-2 -top-2 z-10 flex h-4 w-4 items-center justify-center rounded-full border border-white bg-orange-500 text-[9px] font-bold text-white shadow-sm">${vacancy.compliance_count}</span>` : ''}
                             </a>
-                            <a href="/admin/manage_applicants/${vacancy.vacancy_id}?tab=qualified" class="relative group use-loader flex items-center justify-center w-28 h-10 text-[#0D2B70] border border-[#0D2B70] font-bold rounded-md text-sm transition-all duration-300 hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md">
+                            <a href="/admin/manage_applicants/${vacancy.vacancy_id}?tab=qualified" class="relative group use-loader inline-flex h-8 w-24 items-center justify-center rounded-md border border-[#0D2B70] text-xs font-bold text-[#0D2B70] transition-all duration-300 hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md">
                                 <span>Qualified</span>
-                                ${vacancy.qualified_count > 0 ? `<span class="absolute -top-2 -right-2 flex items-center justify-center w-5 h-5 rounded-full bg-green-600 text-white text-[10px] font-bold shadow-sm border border-white z-10">${vacancy.qualified_count}</span>` : ''}
+                                ${vacancy.qualified_count > 0 ? `<span class="absolute -right-2 -top-2 z-10 flex h-4 w-4 items-center justify-center rounded-full border border-white bg-green-600 text-[9px] font-bold text-white shadow-sm">${vacancy.qualified_count}</span>` : ''}
                             </a>
                         </div>
                     </td>
