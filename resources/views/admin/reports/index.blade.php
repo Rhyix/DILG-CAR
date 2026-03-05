@@ -6,9 +6,7 @@
 <main class="mx-auto w-full max-w-[1500px] pb-8">
     <section class="flex items-center gap-3 border-b border-[#0D2B70] pb-3">
         <h1 class="text-3xl font-montserrat font-semibold text-[#0D2B70]">Reports & Analytics</h1>
-        <span id="reportTitleBadge" class="rounded-full border border-[#0D2B70]/30 bg-[#0D2B70]/10 px-3 py-1 text-xs font-semibold text-[#0D2B70]">
-            Applicant Demographic Breakdown
-        </span>
+
     </section>
 
     <section class="mt-4 space-y-4">
@@ -26,6 +24,14 @@
                 <button type="button" role="tab" data-report="vacancy_summary" class="report-nav-btn">Vacancy Summary Report</button>
             </div>
         </section>
+
+        <hr>
+
+        <div class="my-4">
+            <span id="reportTitleBadge" class="px-3 py-1 text-4xl font-bold text-[#0D2B70]">
+                Applicant Demographic Breakdown
+            </span>
+        </div>
 
         <!-- FILTER WITH EXPORT BUTTON -->
         <div class="space-y-4">
