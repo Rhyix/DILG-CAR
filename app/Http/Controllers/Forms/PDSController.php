@@ -398,10 +398,10 @@ class PDSController extends Controller
             'surname' => 'D10', 'first_name' => 'D11', 'middle_name' => 'D12', 'name_extension' => 'L11',
             'place_of_birth' => 'D15', 'dual_country' => 'L15', 'height' => 'D22', 'weight' => 'D24',
             'blood_type' => 'D25', 'gsis_id_no' => 'D27', 'pagibig_id_no' => 'D29', 'philhealth_no' => 'D31',
-            'sss_id_no' => 'D32', 'tin_no' => 'D33', 'agency_employee_no' => 'D34', 'res_house_no' => 'I18',
-            'res_street' => 'L18', 'res_sub_vil' => 'I21', 'res_brgy' => 'L21', 'res_city' => 'I23',
-            'res_province' => 'L23', 'res_zipcode' => 'I24', 'per_house_no' => 'I26', 'per_street' => 'L26',
-            'per_sub_vil' => 'I28', 'per_brgy' => 'L28', 'per_city' => 'I30', 'per_province' => 'L30',
+            'sss_id_no' => 'D32', 'tin_no' => 'D33', 'agency_employee_no' => 'D34', 'res_house_no' => 'I17',
+            'res_street' => 'L17', 'res_sub_vil' => 'I20', 'res_brgy' => 'L20', 'res_city' => 'I22',
+            'res_province' => 'L22', 'res_zipcode' => 'I24', 'per_house_no' => 'I25', 'per_street' => 'L25',
+            'per_sub_vil' => 'I27', 'per_brgy' => 'L27', 'per_city' => 'I29', 'per_province' => 'L29',
             'per_zipcode' => 'I31', 'telephone_no' => 'I32', 'mobile_no' => 'I33', 'email_address' => 'I34',
             'spouse_surname' => 'D36', 'spouse_first_name' => 'D37', 'spouse_name_extension' => 'G37',
             'spouse_middle_name' => 'D38', 'spouse_occupation' => 'D39', 'spouse_employer' => 'D40',
@@ -412,12 +412,21 @@ class PDSController extends Controller
             'elem_academic_honors' => 'N54', 'jhs_school' => 'D55', 'jhs_basic' => 'G55', 'jhs_earned' => 'L55',
             'jhs_year_graduated' => 'M55', 'jhs_academic_honors' => 'N55',
         ];
+        $addressFields = [
+            'res_house_no', 'res_street', 'res_sub_vil', 'res_brgy', 'res_city', 'res_province', 'res_zipcode',
+            'per_house_no', 'per_street', 'per_sub_vil', 'per_brgy', 'per_city', 'per_province', 'per_zipcode',
+        ];
         foreach ($fieldToCellMap as $field => $cell) {
-            $this->setExcelText($c1Sheet, $cell, $c1[$field] ?? '');
+            $value = $c1[$field] ?? '';
+            if (in_array($field, $addressFields, true)) {
+                $value = $this->formatAddressForAnnexExport($value);
+            }
+            $this->setExcelText($c1Sheet, $cell, $value);
         }
         $this->setExcelText($c1Sheet, 'D13', $this->normalizeDateForExcel($c1['date_of_birth'] ?? ''));
-        $this->setExcelText($c1Sheet, 'D16', ucfirst((string) ($c1['sex'] ?? '')));
-        $this->setExcelText($c1Sheet, 'D17', ucfirst((string) ($c1['civil_status'] ?? '')));
+        // Keep text helpers empty; sex/civil status are represented by template checkbox controls.
+        $this->setExcelText($c1Sheet, 'D16', '');
+        $this->setExcelText($c1Sheet, 'D17', '');
         foreach (['J13', 'K13', 'L13', 'M13', 'N13'] as $cell) {
             $this->setExcelText($c1Sheet, $cell, '');
         }
@@ -498,19 +507,20 @@ class PDSController extends Controller
         foreach (['I6', 'K6', 'I8', 'K8', 'I13', 'K13', 'I18', 'K18', 'I23', 'K23', 'I27', 'K27', 'I31', 'K31', 'I34', 'K34', 'I37', 'K37', 'I43', 'K43', 'I45', 'K45', 'I47', 'K47'] as $checkboxCell) {
             $this->setExcelText($c4Sheet, $checkboxCell, '');
         }
-        $this->setExcelText($c4Sheet, 'G10', $this->yesNoDetail($c4['related_34_b'] ?? 'no'));
-        $this->setExcelText($c4Sheet, 'G14', $this->yesNoDetail($c4['guilty_35_a'] ?? 'no'));
+        // Keep template label in G10:L10; place user detail in the line below.
+        $this->setExcelText($c4Sheet, 'H11', $this->yesNoDetail($c4['related_34_b'] ?? 'no'));
+        $this->setExcelText($c4Sheet, 'H15', $this->yesNoDetail($c4['guilty_35_a'] ?? 'no'));
         [$caseDate, $caseStatus] = $this->parseCriminalCaseValue($c4);
-        $this->setExcelText($c4Sheet, 'H20', $this->normalizeDateForExcel($caseDate));
-        $this->setExcelText($c4Sheet, 'G21', $caseStatus);
-        $this->setExcelText($c4Sheet, 'G24', $this->yesNoDetail($c4['convicted_36'] ?? 'no'));
-        $this->setExcelText($c4Sheet, 'G28', $this->yesNoDetail($c4['separated_37'] ?? 'no'));
-        $this->setExcelText($c4Sheet, 'G32', $this->yesNoDetail($c4['candidate_38'] ?? 'no'));
-        $this->setExcelText($c4Sheet, 'G35', $this->yesNoDetail($c4['resigned_38_b'] ?? 'no'));
-        $this->setExcelText($c4Sheet, 'G38', $this->yesNoDetail($c4['immigrant_39'] ?? 'no'));
-        $this->setExcelText($c4Sheet, 'G44', $this->yesNoDetail($c4['indigenous_40_a'] ?? 'no'));
-        $this->setExcelText($c4Sheet, 'G46', $this->yesNoDetail($c4['pwd_40_b'] ?? 'no'));
-        $this->setExcelText($c4Sheet, 'G48', $this->yesNoDetail($c4['solo_parent_40_c'] ?? 'no'));
+        $this->setExcelText($c4Sheet, 'K20', $this->normalizeDateForExcel($caseDate));
+        $this->setExcelText($c4Sheet, 'K21', $caseStatus);
+        $this->setExcelText($c4Sheet, 'H25', $this->yesNoDetail($c4['convicted_36'] ?? 'no'));
+        $this->setExcelText($c4Sheet, 'H29', $this->yesNoDetail($c4['separated_37'] ?? 'no'));
+        $this->setExcelText($c4Sheet, 'K32', $this->yesNoDetail($c4['candidate_38'] ?? 'no'));
+        $this->setExcelText($c4Sheet, 'K35', $this->yesNoDetail($c4['resigned_38_b'] ?? 'no'));
+        $this->setExcelText($c4Sheet, 'H39', $this->yesNoDetail($c4['immigrant_39'] ?? 'no'));
+        $this->setExcelText($c4Sheet, 'L44', $this->yesNoDetail($c4['indigenous_40_a'] ?? 'no'));
+        $this->setExcelText($c4Sheet, 'L46', $this->yesNoDetail($c4['pwd_40_b'] ?? 'no'));
+        $this->setExcelText($c4Sheet, 'L48', $this->yesNoDetail($c4['solo_parent_40_c'] ?? 'no'));
 
         $this->setExcelText($c4Sheet, 'A52', $c4['ref1_name'] ?? '');
         $this->setExcelText($c4Sheet, 'F52', $c4['ref1_address'] ?? '');
@@ -678,9 +688,27 @@ class PDSController extends Controller
         $isByBirth = $isDual && $dualType === 'by birth';
         $isByNaturalization = $isDual && $dualType === 'by naturalization';
 
+        $sex = strtolower(trim((string) ($c1['sex'] ?? '')));
+        $isMale = $sex === 'male';
+        $isFemale = $sex === 'female';
+
+        $civilStatus = strtolower(trim((string) ($c1['civil_status'] ?? '')));
+        $isSingle = $civilStatus === 'single';
+        $isMarried = $civilStatus === 'married';
+        $isWidowed = $civilStatus === 'widowed';
+        $isSeparated = $civilStatus === 'separated';
+        $isOther = $civilStatus === 'other';
+
         return [
             1045 => $isFilipino,
             1046 => $isDual,
+            1049 => $isMale,
+            1050 => $isFemale,
+            1058 => $isSingle,
+            1059 => $isMarried,
+            1060 => $isWidowed,
+            1061 => $isOther,
+            1062 => $isSeparated,
             1063 => $isByBirth,
             1064 => $isByNaturalization,
         ];
@@ -688,7 +716,21 @@ class PDSController extends Controller
 
     private function buildC4TemplateCheckboxStates(array $c4): array
     {
-        $pairs = [
+        $pairs = $this->c4TemplateCheckboxShapePairs();
+
+        $states = [];
+        foreach ($pairs as $field => [$yesShapeId, $noShapeId]) {
+            $isYes = $this->isCheckedYes($c4[$field] ?? 'no');
+            $states[$yesShapeId] = $isYes;
+            $states[$noShapeId] = !$isYes;
+        }
+
+        return $states;
+    }
+
+    private function c4TemplateCheckboxShapePairs(): array
+    {
+        return [
             'related_34_a' => [4097, 4098],
             'related_34_b' => [4099, 4100],
             'guilty_35_a' => [4101, 4102],
@@ -702,15 +744,6 @@ class PDSController extends Controller
             'pwd_40_b' => [4112, 4115],
             'solo_parent_40_c' => [4113, 4116],
         ];
-
-        $states = [];
-        foreach ($pairs as $field => [$yesShapeId, $noShapeId]) {
-            $isYes = $this->isCheckedYes($c4[$field] ?? 'no');
-            $states[$yesShapeId] = $isYes;
-            $states[$noShapeId] = !$isYes;
-        }
-
-        return $states;
     }
 
     private function isCheckedYes($value): bool
@@ -1067,10 +1100,10 @@ class PDSController extends Controller
             'D10' => 'surname', 'D11' => 'first_name', 'D12' => 'middle_name', 'L11' => 'name_extension',
             'D15' => 'place_of_birth', 'L15' => 'dual_country', 'D22' => 'height', 'D24' => 'weight',
             'D25' => 'blood_type', 'D27' => 'gsis_id_no', 'D29' => 'pagibig_id_no', 'D31' => 'philhealth_no',
-            'D32' => 'sss_id_no', 'D33' => 'tin_no', 'D34' => 'agency_employee_no', 'I18' => 'res_house_no',
-            'L18' => 'res_street', 'I21' => 'res_sub_vil', 'L21' => 'res_brgy', 'I23' => 'res_city',
-            'L23' => 'res_province', 'I24' => 'res_zipcode', 'I26' => 'per_house_no', 'L26' => 'per_street',
-            'I28' => 'per_sub_vil', 'L28' => 'per_brgy', 'I30' => 'per_city', 'L30' => 'per_province',
+            'D32' => 'sss_id_no', 'D33' => 'tin_no', 'D34' => 'agency_employee_no', 'I17' => 'res_house_no',
+            'L17' => 'res_street', 'I20' => 'res_sub_vil', 'L20' => 'res_brgy', 'I22' => 'res_city',
+            'L22' => 'res_province', 'I24' => 'res_zipcode', 'I25' => 'per_house_no', 'L25' => 'per_street',
+            'I27' => 'per_sub_vil', 'L27' => 'per_brgy', 'I29' => 'per_city', 'L29' => 'per_province',
             'I31' => 'per_zipcode', 'I32' => 'telephone_no', 'I33' => 'mobile_no', 'I34' => 'email_address',
             'D36' => 'spouse_surname', 'D37' => 'spouse_first_name', 'G37' => 'spouse_name_extension',
             'D38' => 'spouse_middle_name', 'D39' => 'spouse_occupation', 'D40' => 'spouse_employer',
@@ -1086,18 +1119,26 @@ class PDSController extends Controller
         foreach ($cellToFieldMap as $cell => $field) {
             $fields[$field] = $this->readCellText($c1Sheet, $cell);
         }
+        $c1CheckboxStates = $this->readVmlCheckboxStates($uploadedPath, 'xl/drawings/vmlDrawing1.vml');
         $fields['date_of_birth'] = $this->readCellDate($c1Sheet, 'D13', 'd-m-Y');
         $fields['elem_from'] = $this->readCellDate($c1Sheet, 'J54', 'd-m-Y', true);
         $fields['elem_to'] = $this->readCellDate($c1Sheet, 'K54', 'd-m-Y', true);
         $fields['jhs_from'] = $this->readCellDate($c1Sheet, 'J55', 'd-m-Y', true);
         $fields['jhs_to'] = $this->readCellDate($c1Sheet, 'K55', 'd-m-Y', true);
-        $fields['sex'] = $this->normalizeSex($this->readCellText($c1Sheet, 'D16'));
-        $fields['civil_status'] = $this->normalizeCivilStatus($this->readCellText($c1Sheet, 'D17'));
-        $fields['citizenship'] = $this->normalizeCitizenship($this->readCellText($c1Sheet, 'J13'));
+        $fields['sex'] = $this->sexFromC1Checkboxes($c1CheckboxStates) ?: $this->normalizeSex($this->readCellText($c1Sheet, 'D16'));
+        $fields['civil_status'] = $this->civilStatusFromC1Checkboxes($c1CheckboxStates) ?: $this->normalizeCivilStatus($this->readCellText($c1Sheet, 'D17'));
+        $fields['citizenship'] = $this->citizenshipFromC1Checkboxes($c1CheckboxStates) ?: $this->normalizeCitizenship($this->readCellText($c1Sheet, 'J13'));
         $fields['blood_type'] = strtoupper(trim((string) ($fields['blood_type'] ?? '')));
-        $fields['dual_type'] = '';
+        $fields['dual_type'] = $this->dualTypeFromC1Checkboxes($c1CheckboxStates);
+        foreach ([
+            'res_house_no', 'res_street', 'res_sub_vil', 'res_brgy', 'res_city', 'res_province', 'res_zipcode',
+            'per_house_no', 'per_street', 'per_sub_vil', 'per_brgy', 'per_city', 'per_province', 'per_zipcode',
+        ] as $addressField) {
+            $fields[$addressField] = $this->normalizeAddressFromExcel($fields[$addressField] ?? '');
+        }
         if ($fields['citizenship'] !== 'Dual Citizenship') {
             $fields['dual_country'] = '';
+            $fields['dual_type'] = '';
         }
 
         $children = [];
@@ -1224,21 +1265,22 @@ class PDSController extends Controller
             }
         }
 
-        $related34A = $this->readYesNo($c4Sheet, 'I6', 'K6');
-        $related34B = $this->readYesNo($c4Sheet, 'I8', 'K8', 'G10');
-        $guilty35A = $this->readYesNo($c4Sheet, 'I13', 'K13', 'G14');
-        $criminal35B = $this->readYesNo($c4Sheet, 'I18', 'K18');
-        $convicted36 = $this->readYesNo($c4Sheet, 'I23', 'K23', 'G24');
-        $separated37 = $this->readYesNo($c4Sheet, 'I27', 'K27', 'G28');
-        $candidate38 = $this->readYesNo($c4Sheet, 'I31', 'K31', 'G32');
-        $resigned38B = $this->readYesNo($c4Sheet, 'I34', 'K34', 'G35');
-        $immigrant39 = $this->readYesNo($c4Sheet, 'I37', 'K37', 'G38');
-        $indigenous40A = $this->readYesNo($c4Sheet, 'I43', 'K43', 'G44');
-        $pwd40B = $this->readYesNo($c4Sheet, 'I45', 'K45', 'G46');
-        $soloParent40C = $this->readYesNo($c4Sheet, 'I47', 'K47', 'G48');
+        $c4CheckboxStates = $this->readVmlCheckboxStates($uploadedPath, 'xl/drawings/vmlDrawing2.vml');
+        $related34A = $this->readYesNoFromTemplateControls($c4Sheet, $c4CheckboxStates, 4097, 4098, 'I6', 'K6');
+        $related34B = $this->readYesNoFromTemplateControls($c4Sheet, $c4CheckboxStates, 4099, 4100, 'I8', 'K8', 'H11');
+        $guilty35A = $this->readYesNoFromTemplateControls($c4Sheet, $c4CheckboxStates, 4101, 4102, 'I13', 'K13', 'H15');
+        $criminal35B = $this->readYesNoFromTemplateControls($c4Sheet, $c4CheckboxStates, 4103, 4104, 'I18', 'K18');
+        $convicted36 = $this->readYesNoFromTemplateControls($c4Sheet, $c4CheckboxStates, 4105, 4106, 'I23', 'K23', 'H25');
+        $separated37 = $this->readYesNoFromTemplateControls($c4Sheet, $c4CheckboxStates, 4107, 4108, 'I27', 'K27', 'H29');
+        $candidate38 = $this->readYesNoFromTemplateControls($c4Sheet, $c4CheckboxStates, 4122, 4123, 'I31', 'K31', 'K32');
+        $resigned38B = $this->readYesNoFromTemplateControls($c4Sheet, $c4CheckboxStates, 4124, 4125, 'I34', 'K34', 'K35');
+        $immigrant39 = $this->readYesNoFromTemplateControls($c4Sheet, $c4CheckboxStates, 4109, 4110, 'I37', 'K37', 'H39');
+        $indigenous40A = $this->readYesNoFromTemplateControls($c4Sheet, $c4CheckboxStates, 4111, 4114, 'I43', 'K43', 'L44');
+        $pwd40B = $this->readYesNoFromTemplateControls($c4Sheet, $c4CheckboxStates, 4112, 4115, 'I45', 'K45', 'L46');
+        $soloParent40C = $this->readYesNoFromTemplateControls($c4Sheet, $c4CheckboxStates, 4113, 4116, 'I47', 'K47', 'L48');
 
-        $criminalDate = $this->readCellDate($c4Sheet, 'H20', 'Y-m-d');
-        $criminalStatus = $this->readCellText($c4Sheet, 'G21');
+        $criminalDate = $this->readCellDate($c4Sheet, 'K20', 'Y-m-d');
+        $criminalStatus = $this->readCellText($c4Sheet, 'K21');
         $criminal35BValue = 'no';
         $criminal35BArray = ['date' => '', 'status' => ''];
         if ($criminal35B === 'yes') {
@@ -1262,18 +1304,18 @@ class PDSController extends Controller
 
         $c4Data = [
             'related_34_a' => $related34A,
-            'related_34_b' => $related34B === 'yes' ? $this->readCellText($c4Sheet, 'G10') : 'no',
-            'guilty_35_a' => $guilty35A === 'yes' ? $this->readCellText($c4Sheet, 'G14') : 'no',
+            'related_34_b' => $related34B === 'yes' ? $this->readCellText($c4Sheet, 'H11') : 'no',
+            'guilty_35_a' => $guilty35A === 'yes' ? $this->readCellText($c4Sheet, 'H15') : 'no',
             'criminal_35_b' => $criminal35BValue,
             'criminal_35_b_array' => $criminal35BArray,
-            'convicted_36' => $convicted36 === 'yes' ? $this->readCellText($c4Sheet, 'G24') : 'no',
-            'separated_37' => $separated37 === 'yes' ? $this->readCellText($c4Sheet, 'G28') : 'no',
-            'candidate_38' => $candidate38 === 'yes' ? $this->readCellText($c4Sheet, 'G32') : 'no',
-            'resigned_38_b' => $resigned38B === 'yes' ? $this->readCellText($c4Sheet, 'G35') : 'no',
-            'immigrant_39' => $immigrant39 === 'yes' ? $this->readCellText($c4Sheet, 'G38') : 'no',
-            'indigenous_40_a' => $indigenous40A === 'yes' ? $this->readCellText($c4Sheet, 'G44') : 'no',
-            'pwd_40_b' => $pwd40B === 'yes' ? $this->readCellText($c4Sheet, 'G46') : 'no',
-            'solo_parent_40_c' => $soloParent40C === 'yes' ? $this->readCellText($c4Sheet, 'G48') : 'no',
+            'convicted_36' => $convicted36 === 'yes' ? $this->readCellText($c4Sheet, 'H25') : 'no',
+            'separated_37' => $separated37 === 'yes' ? $this->readCellText($c4Sheet, 'H29') : 'no',
+            'candidate_38' => $candidate38 === 'yes' ? $this->readCellText($c4Sheet, 'K32') : 'no',
+            'resigned_38_b' => $resigned38B === 'yes' ? $this->readCellText($c4Sheet, 'K35') : 'no',
+            'immigrant_39' => $immigrant39 === 'yes' ? $this->readCellText($c4Sheet, 'H39') : 'no',
+            'indigenous_40_a' => $indigenous40A === 'yes' ? $this->readCellText($c4Sheet, 'L44') : 'no',
+            'pwd_40_b' => $pwd40B === 'yes' ? $this->readCellText($c4Sheet, 'L46') : 'no',
+            'solo_parent_40_c' => $soloParent40C === 'yes' ? $this->readCellText($c4Sheet, 'L48') : 'no',
             'ref1_name' => $this->readCellText($c4Sheet, 'A52'),
             'ref1_tel' => $this->readCellText($c4Sheet, 'G52'),
             'ref1_address' => $this->readCellText($c4Sheet, 'F52'),
@@ -1292,8 +1334,8 @@ class PDSController extends Controller
         ];
 
         $warnings = [];
-        if (($fields['citizenship'] ?? '') === 'Dual Citizenship') {
-            $warnings[] = 'Dual citizenship type (By Birth / By Naturalization) is not available in the Excel template and must be selected manually.';
+        if (($fields['citizenship'] ?? '') === 'Dual Citizenship' && ($fields['dual_type'] ?? '') === '') {
+            $warnings[] = 'Dual citizenship type (By Birth / By Naturalization) was not detected from the Excel checkboxes.';
         }
         if (empty($dataLearning) && empty($dataVoluntary) && empty($skills) && empty($distinctions) && empty($organizations)) {
             $warnings[] = 'C3 sheet appears to have no importable entries.';
@@ -1325,6 +1367,153 @@ class PDSController extends Controller
             'warnings' => $warnings,
             'missing_report' => $this->buildExcelCoverageReport(),
         ];
+    }
+
+    private function readVmlCheckboxStates(string $xlsxPath, string $entryName): array
+    {
+        $zip = new \ZipArchive();
+        if ($zip->open($xlsxPath) !== true) {
+            return [];
+        }
+
+        try {
+            if ($zip->locateName($entryName) === false) {
+                return [];
+            }
+
+            $xml = $zip->getFromName($entryName);
+            if (!is_string($xml) || trim($xml) === '') {
+                return [];
+            }
+
+            $dom = new \DOMDocument();
+            if (!@$dom->loadXML($xml, LIBXML_NONET)) {
+                return [];
+            }
+
+            $xpath = new \DOMXPath($dom);
+            $xpath->registerNamespace('v', 'urn:schemas-microsoft-com:vml');
+            $xpath->registerNamespace('x', 'urn:schemas-microsoft-com:office:excel');
+            $xpath->registerNamespace('o', 'urn:schemas-microsoft-com:office:office');
+
+            $states = [];
+            $nodes = $xpath->query("//v:shape[x:ClientData[@ObjectType='Checkbox']]");
+            if (!$nodes) {
+                return [];
+            }
+
+            foreach ($nodes as $shapeNode) {
+                $shapeId = (string) $shapeNode->getAttribute('id');
+                $spid = (string) $shapeNode->getAttributeNS('urn:schemas-microsoft-com:office:office', 'spid');
+                if ($shapeId === '' && $spid === '') {
+                    continue;
+                }
+
+                $numericId = null;
+                if (preg_match('/_x0000_s(\d+)$/', $shapeId, $matches)) {
+                    $numericId = (int) $matches[1];
+                }
+                if ($numericId === null && preg_match('/_x0000_s(\d+)$/', $spid, $matches)) {
+                    $numericId = (int) $matches[1];
+                }
+
+                $clientDataNode = $xpath->query("./x:ClientData[@ObjectType='Checkbox']", $shapeNode)->item(0);
+                if (!$clientDataNode) {
+                    continue;
+                }
+                $isChecked = $xpath->query("./x:Checked", $clientDataNode)->length > 0;
+
+                if ($shapeId !== '') {
+                    $states[$shapeId] = $isChecked;
+                }
+                if ($spid !== '') {
+                    $states[$spid] = $isChecked;
+                }
+                if ($numericId !== null) {
+                    $states[$numericId] = $isChecked;
+                }
+            }
+
+            return $states;
+        } finally {
+            $zip->close();
+        }
+    }
+
+    private function shapeChecked(array $states, int $shapeId): bool
+    {
+        return (bool) ($states[$shapeId] ?? false);
+    }
+
+    private function sexFromC1Checkboxes(array $states): string
+    {
+        if ($this->shapeChecked($states, 1049)) {
+            return 'male';
+        }
+        if ($this->shapeChecked($states, 1050)) {
+            return 'female';
+        }
+        return '';
+    }
+
+    private function civilStatusFromC1Checkboxes(array $states): string
+    {
+        if ($this->shapeChecked($states, 1058)) {
+            return 'single';
+        }
+        if ($this->shapeChecked($states, 1059)) {
+            return 'married';
+        }
+        if ($this->shapeChecked($states, 1060)) {
+            return 'widowed';
+        }
+        if ($this->shapeChecked($states, 1062)) {
+            return 'separated';
+        }
+        if ($this->shapeChecked($states, 1061)) {
+            return 'other';
+        }
+        return '';
+    }
+
+    private function citizenshipFromC1Checkboxes(array $states): string
+    {
+        if ($this->shapeChecked($states, 1046)) {
+            return 'Dual Citizenship';
+        }
+        if ($this->shapeChecked($states, 1045)) {
+            return 'Filipino';
+        }
+        return '';
+    }
+
+    private function dualTypeFromC1Checkboxes(array $states): string
+    {
+        if ($this->shapeChecked($states, 1063)) {
+            return 'by birth';
+        }
+        if ($this->shapeChecked($states, 1064)) {
+            return 'by naturalization';
+        }
+        return '';
+    }
+
+    private function formatAddressForAnnexExport($value): string
+    {
+        $text = trim((string) ($value ?? ''));
+        if ($text === '' || $text === '{*}' || strtolower($text) === 'null') {
+            return 'N/A';
+        }
+        return $text;
+    }
+
+    private function normalizeAddressFromExcel($value): string
+    {
+        $text = trim((string) ($value ?? ''));
+        if ($text === '' || strtolower($text) === 'n/a' || strtolower($text) === 'na' || strtolower($text) === 'null' || $text === '{*}') {
+            return '';
+        }
+        return $text;
     }
 
     private function readCellText($sheet, string $cell): string
@@ -1416,6 +1605,39 @@ class PDSController extends Controller
         }
 
         return 'no';
+    }
+
+    private function readYesNoFromTemplateControls(
+        $sheet,
+        array $states,
+        int $yesShapeId,
+        int $noShapeId,
+        string $yesCell,
+        string $noCell,
+        ?string $detailCell = null
+    ): string {
+        $hasYes = array_key_exists($yesShapeId, $states);
+        $hasNo = array_key_exists($noShapeId, $states);
+
+        if ($hasYes || $hasNo) {
+            $yesChecked = $this->shapeChecked($states, $yesShapeId);
+            $noChecked = $this->shapeChecked($states, $noShapeId);
+
+            if ($yesChecked && !$noChecked) {
+                return 'yes';
+            }
+            if ($noChecked && !$yesChecked) {
+                return 'no';
+            }
+            if ($yesChecked) {
+                return 'yes';
+            }
+            if ($noChecked) {
+                return 'no';
+            }
+        }
+
+        return $this->readYesNo($sheet, $yesCell, $noCell, $detailCell);
     }
 
     private function isMarkedCellValue(string $value): bool
