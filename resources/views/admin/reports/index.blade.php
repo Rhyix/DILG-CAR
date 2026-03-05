@@ -7,27 +7,30 @@
     <section class="flex items-center gap-3 border-b border-[#0D2B70] pb-3">
         <h1 class="text-3xl font-montserrat font-semibold text-[#0D2B70]">Reports & Analytics</h1>
         <span id="reportTitleBadge" class="rounded-full border border-[#0D2B70]/30 bg-[#0D2B70]/10 px-3 py-1 text-xs font-semibold text-[#0D2B70]">
-            Vacancy Summary Report
+            Applicant Demographic Breakdown
         </span>
     </section>
 
-    <section class="mt-4 grid gap-4 xl:grid-cols-[280px_1fr]">
-        <aside class="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-            <p class="px-2 pb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Report Modules</p>
-            <div class="space-y-1" id="reportNav">
-                <button type="button" data-report="vacancy_summary" class="report-nav-btn is-active">A. Vacancy Summary Report</button>
-                <button type="button" data-report="vacancy_performance" class="report-nav-btn">B. Vacancy Performance Report</button>
-                <button type="button" data-report="vacancy_detailed" class="report-nav-btn">C. Vacancy Detailed Report (Printable)</button>
-                <button type="button" data-report="applicant_master_list" class="report-nav-btn">Applicant Master List</button>
-                <button type="button" data-report="applicant_status_analytics" class="report-nav-btn">Applicant Status Analytics</button>
-                <button type="button" data-report="exam_schedule" class="report-nav-btn">Exam Schedule Report</button>
-                <button type="button" data-report="exam_result_summary" class="report-nav-btn">Exam Result Summary</button>
-                <button type="button" data-report="exam_vacancy_based_result" class="report-nav-btn">Vacancy-Based Exam Result</button>
+    <section class="mt-4 space-y-4">
+        <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Report Modules</p>
+            <div id="reportNav" class="report-tabs" role="tablist" aria-label="Report Modules">
+                <button type="button" role="tab" data-report="applicant_demographic_breakdown" class="report-nav-btn is-active">Applicant Demographic Breakdown</button>
+                <button type="button" role="tab" data-report="applicant_master_list" class="report-nav-btn">Applicant Master List</button>
+                <button type="button" role="tab" data-report="applicant_status_analytics" class="report-nav-btn">Applicant Status Analytics</button>
+                <button type="button" role="tab" data-report="exam_result_summary" class="report-nav-btn">Exam Result Summary</button>
+                <button type="button" role="tab" data-report="exam_schedule" class="report-nav-btn">Exam Schedule Report</button>
+                <button type="button" role="tab" data-report="vacancy_detailed" class="report-nav-btn">Vacancy Detailed Report</button>
+                <button type="button" role="tab" data-report="vacancy_performance" class="report-nav-btn">Vacancy Performance Report</button>
+                <button type="button" role="tab" data-report="exam_vacancy_based_result" class="report-nav-btn">Vacancy-Based Exam Result</button>
+                <button type="button" role="tab" data-report="vacancy_summary" class="report-nav-btn">Vacancy Summary Report</button>
             </div>
-        </aside>
+        </section>
 
+        <!-- FILTER WITH EXPORT BUTTON -->
         <div class="space-y-4">
             <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <h1 class="font-bold text-lg text-gray-700">Filter and Export</h1>
                 <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
                     <div>
                         <label for="startDate" class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500">Start Date</label>
@@ -71,6 +74,18 @@
                             <option value="Not Qualified">Not Qualified</option>
                         </select>
                     </div>
+                    <div id="ageGroupFilterWrap" class="hidden">
+                        <label for="ageGroupFilter" class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500">Age Group</label>
+                        <select id="ageGroupFilter" class="filter-input">
+                            <option value="">All Age Groups</option>
+                            <option value="18-24">18-24</option>
+                            <option value="25-34">25-34</option>
+                            <option value="35-44">35-44</option>
+                            <option value="45-54">45-54</option>
+                            <option value="55+">55+</option>
+                            <option value="unknown">Unknown</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3">
@@ -82,7 +97,6 @@
                         <button type="button" id="exportCsvBtn" class="secondary-btn">Export CSV</button>
                         <button type="button" id="exportExcelBtn" class="secondary-btn hidden">Export Excel</button>
                         <button type="button" id="exportPdfBtn" class="secondary-btn hidden">Export PDF</button>
-                        <button type="button" id="printReportBtn" class="secondary-btn hidden">Print</button>
                     </div>
                 </div>
             </section>
@@ -118,19 +132,38 @@
 
 @push('styles')
 <style>
+    :root {
+        --reports-primary-900: #0D2B70;
+        --reports-primary-700: #1A3B89;
+        --reports-primary-200: #C8D6EE;
+        --reports-primary-100: #E7EEF9;
+        --reports-primary-050: #F2F6FC;
+    }
+    .report-tabs {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 0.5rem;
+        overflow-x: auto;
+        padding-bottom: 0.2rem;
+    }
     .report-nav-btn {
-        width: 100%;
-        border: 1px solid transparent;
-        border-radius: 12px;
-        padding: 0.65rem 0.7rem;
-        text-align: left;
+        flex: 0 0 auto;
+        border: 1px solid var(--reports-primary-200);
+        border-radius: 9999px;
+        padding: 0.55rem 0.9rem;
+        text-align: center;
+        white-space: nowrap;
         font-size: 0.84rem;
         font-weight: 600;
-        color: #334155;
+        color: var(--reports-primary-900);
+        background: var(--reports-primary-050);
         transition: all 0.15s ease;
     }
-    .report-nav-btn:hover { border-color: #bfdbfe; background: #eff6ff; color: #0d2b70; }
-    .report-nav-btn.is-active { border-color: #0d2b70; background: #0d2b70; color: #fff; }
+    .report-nav-btn:hover { border-color: var(--reports-primary-700); background: var(--reports-primary-100); color: var(--reports-primary-900); }
+    .report-nav-btn.is-active { border-color: var(--reports-primary-900); background: var(--reports-primary-900); color: #fff; }
+    .report-tabs::-webkit-scrollbar { height: 7px; }
+    .report-tabs::-webkit-scrollbar-thumb { background: var(--reports-primary-200); border-radius: 9999px; }
+    .report-tabs::-webkit-scrollbar-track { background: var(--reports-primary-050); border-radius: 9999px; }
     .filter-input {
         width: 100%;
         border: 1px solid #cbd5e1;
@@ -163,8 +196,8 @@
     }
     .secondary-btn:hover { background: #f8fafc; }
     @media print {
-        #reportNav, #applyFiltersBtn, #resetFiltersBtn, #exportCsvBtn, #exportExcelBtn, #exportPdfBtn, #printReportBtn,
-        #statusFilterWrap, #qualificationFilterWrap {
+        #reportNav, #applyFiltersBtn, #resetFiltersBtn, #exportCsvBtn, #exportExcelBtn, #exportPdfBtn,
+        #statusFilterWrap, #qualificationFilterWrap, #ageGroupFilterWrap {
             display: none !important;
         }
         .border, .shadow-sm, .rounded-2xl, .rounded-xl { box-shadow: none !important; border: 0 !important; }
@@ -177,14 +210,15 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     const reportMeta = {
-        vacancy_summary: 'Vacancy Summary Report',
-        vacancy_performance: 'Vacancy Performance Report',
-        vacancy_detailed: 'Vacancy Detailed Report (Printable)',
+        applicant_demographic_breakdown: 'Applicant Demographic Breakdown',
         applicant_master_list: 'Applicant Master List',
         applicant_status_analytics: 'Applicant Status Analytics',
-        exam_schedule: 'Exam Schedule Report',
         exam_result_summary: 'Exam Result Summary',
-        exam_vacancy_based_result: 'Vacancy-Based Exam Result'
+        exam_schedule: 'Exam Schedule Report',
+        vacancy_detailed: 'Vacancy Detailed Report',
+        vacancy_performance: 'Vacancy Performance Report',
+        exam_vacancy_based_result: 'Vacancy-Based Exam Result',
+        vacancy_summary: 'Vacancy Summary Report',
     };
 
     const els = {
@@ -195,14 +229,15 @@
         vacancy: document.getElementById('vacancyFilter'),
         statusWrap: document.getElementById('statusFilterWrap'),
         qualificationWrap: document.getElementById('qualificationFilterWrap'),
+        ageGroupWrap: document.getElementById('ageGroupFilterWrap'),
         status: document.getElementById('statusFilter'),
         qualification: document.getElementById('qualificationFilter'),
+        ageGroup: document.getElementById('ageGroupFilter'),
         applyBtn: document.getElementById('applyFiltersBtn'),
         resetBtn: document.getElementById('resetFiltersBtn'),
         exportCsvBtn: document.getElementById('exportCsvBtn'),
         exportExcelBtn: document.getElementById('exportExcelBtn'),
         exportPdfBtn: document.getElementById('exportPdfBtn'),
-        printBtn: document.getElementById('printReportBtn'),
         loading: document.getElementById('reportLoading'),
         content: document.getElementById('reportContent'),
         error: document.getElementById('reportError'),
@@ -213,7 +248,7 @@
         tableBody: document.querySelector('#reportTable tbody')
     };
 
-    let currentReport = 'vacancy_summary';
+    let currentReport = 'applicant_demographic_breakdown';
     let chartInstances = [];
 
     function setDefaultDates() {
@@ -227,17 +262,20 @@
         currentReport = reportType;
         els.titleBadge.textContent = reportMeta[reportType] || reportType;
         [...document.querySelectorAll('.report-nav-btn')].forEach((btn) => {
-            btn.classList.toggle('is-active', btn.dataset.report === reportType);
+            const isActive = btn.dataset.report === reportType;
+            btn.classList.toggle('is-active', isActive);
+            btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
         });
 
-        const applicantReport = reportType === 'applicant_master_list' || reportType === 'applicant_status_analytics';
+        const applicantReport = ['applicant_master_list', 'applicant_status_analytics', 'applicant_demographic_breakdown'].includes(reportType);
         els.qualificationWrap.classList.toggle('hidden', !applicantReport);
         els.statusWrap.classList.toggle('hidden', reportType !== 'applicant_master_list');
+        els.ageGroupWrap.classList.toggle('hidden', reportType !== 'applicant_demographic_breakdown');
 
-        const masterList = reportType === 'applicant_master_list';
-        els.exportExcelBtn.classList.toggle('hidden', !masterList);
-        els.exportPdfBtn.classList.toggle('hidden', !masterList);
-        els.printBtn.classList.toggle('hidden', reportType !== 'vacancy_detailed');
+        const excelSupported = ['applicant_master_list', 'applicant_demographic_breakdown'].includes(reportType);
+        const pdfSupported = reportType === 'applicant_master_list';
+        els.exportExcelBtn.classList.toggle('hidden', !excelSupported);
+        els.exportPdfBtn.classList.toggle('hidden', !pdfSupported);
     }
 
     function buildParams(extra = {}) {
@@ -254,6 +292,9 @@
         }
         if (!els.qualificationWrap.classList.contains('hidden') && els.qualification.value) {
             params.set('qualification', els.qualification.value);
+        }
+        if (!els.ageGroupWrap.classList.contains('hidden') && els.ageGroup.value) {
+            params.set('age_group', els.ageGroup.value);
         }
         return params;
     }
@@ -392,7 +433,7 @@
 
     document.addEventListener('DOMContentLoaded', () => {
         setDefaultDates();
-        setActiveReport('vacancy_summary');
+        setActiveReport('applicant_demographic_breakdown');
 
         els.nav?.addEventListener('click', (event) => {
             const btn = event.target.closest('.report-nav-btn');
@@ -407,13 +448,13 @@
             els.vacancy.value = '';
             els.status.value = '';
             els.qualification.value = '';
+            els.ageGroup.value = '';
             loadReport();
         });
 
         els.exportCsvBtn?.addEventListener('click', () => exportReport('csv'));
         els.exportExcelBtn?.addEventListener('click', () => exportReport('excel'));
         els.exportPdfBtn?.addEventListener('click', () => exportReport('pdf'));
-        els.printBtn?.addEventListener('click', () => window.print());
 
         loadReport();
     });
