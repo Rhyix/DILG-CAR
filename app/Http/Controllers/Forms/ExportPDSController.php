@@ -271,11 +271,18 @@ class ExportPDSController
 
             $this->setFont($pdf, 'Arial', '', 8);
 
-            // Write only the name parts for identification on overflow pages.
-            $this->writeFittedAt($pdf, $this->valueOrNa($personalInfo?->surname), 41.5, 45.5, 78);
-            $this->writeFittedAt($pdf, $this->valueOrNa($personalInfo?->first_name), 41.5, 52, 78);
-            $this->writeFittedAt($pdf, $this->valueOrNa($personalInfo?->middle_name), 41.5, 58, 78);
-            $this->writeFittedAt($pdf, $this->valueOrNa($personalInfo?->name_extension), 161, 52.5, 40);
+            // Write only the name parts for identification on overflow pages
+            $this->setXY($pdf, 41.5, 45.5);
+            $pdf->Write(0, $personalInfo->surname);
+
+            $this->setXY($pdf, 41.5, 52);
+            $pdf->Write(0, $personalInfo->first_name);
+
+            $this->setXY($pdf, 41.5, 58);
+            $pdf->Write(0, $personalInfo->middle_name);
+
+            $this->setXY($pdf, 165.2, 53);
+            $pdf->Write(0, $personalInfo->name_extension);
 
             // Write children overflow chunk if exists
             if (isset($childrenChunks[$i])) {
@@ -1001,7 +1008,7 @@ private function writeChildrenChunk($pdf, $chunk)
     }
 }
 
-// Educational Background Part
+// Educational Background
 
 private function writeEducationalBackground($pdf, $education)
 {
@@ -1041,7 +1048,7 @@ private function writeEducationalBackground($pdf, $education)
         $this->writeFittedAt($pdf, $this->dateOrNa($education?->elem_to, 'm/Y'), 148,263, 31.5, 7.7, 5.0);
         $this->writeFittedAt($pdf, $this->valueOrNa($education?->elem_earned), 166, 263, 18, 7.7, 5.0);
         $this->writeFittedAt($pdf, $this->valueOrNa($education?->elem_year_graduated), 181, 263, 12, 7.7, 5.0);
-        $this->writeFittedAt($pdf, $this->valueOrNa($education?->elem_academic_honors), 198, 263, 13, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($education?->elem_academic_honors), 198, 263, 8, 5.0, 5.0);
     }
 
     // === Junior High Section ===
@@ -1062,7 +1069,7 @@ private function writeEducationalBackground($pdf, $education)
         $this->writeFittedAt($pdf, $this->dateOrNa($education?->jhs_to, 'm/Y'), 148, 273, 31.5, 7.0, 5.0);
         $this->writeFittedAt($pdf, $this->valueOrNa($education?->jhs_earned), 166, 273, 18, 7.0, 5.0);
         $this->writeFittedAt($pdf, $this->valueOrNa($education?->jhs_year_graduated), 181, 273.5, 12, 7.0, 5.0);
-        $this->writeFittedAt($pdf, $this->valueOrNa($education?->jhs_academic_honors), 198, 273.5, 13, 5.0, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($education?->jhs_academic_honors), 198, 273.5, 8, 5.0, 5.0);
     }
 }
 
@@ -1834,48 +1841,6 @@ private function fitTextToWidth($pdf, string $text, float $maxWidth, float $base
     return [$display, $minSize, $pdf->GetStringWidth($display)];
 }
 
-private function fitTextToLines(
-    $pdf,
-    string $text,
-    float $maxWidth,
-    float $baseSize = 8.0,
-    float $minSize = 5.0,
-    int $maxLines = 2
-): array {
-    $display = trim($text);
-    if ($display === '') {
-        return [[], max($baseSize, $minSize), $this->getEffectiveMaxWidth($maxWidth)];
-    }
-
-    $effectiveMaxWidth = $this->getEffectiveMaxWidth($maxWidth);
-    $startSize = max((float) $baseSize, (float) $minSize);
-    $endSize = max(4.5, (float) $minSize);
-    $chosenLines = [$display];
-    $chosenSize = $startSize;
-
-    for ($size = $startSize; $size >= $endSize; $size -= 0.5) {
-        $this->setFont($pdf, 'Arial', '', $size);
-        $lines = $this->splitTextByWidth($pdf, $display, $effectiveMaxWidth);
-        $chosenLines = $lines;
-        $chosenSize = $size;
-
-        if (count($lines) <= $maxLines) {
-            break;
-        }
-    }
-
-    if (count($chosenLines) > $maxLines) {
-        $chosenLines = array_slice($chosenLines, 0, $maxLines);
-        $chosenLines[$maxLines - 1] = $this->appendEllipsisToFit(
-            $pdf,
-            $chosenLines[$maxLines - 1],
-            $effectiveMaxWidth
-        );
-    }
-
-    return [$chosenLines, $chosenSize, $effectiveMaxWidth];
-}
-
 private function truncateToWidth($pdf, string $text, float $maxWidth): string
 {
     $candidate = trim($text);
@@ -1898,26 +1863,6 @@ private function truncateToWidth($pdf, string $text, float $maxWidth): string
     return $ellipsis;
 }
 
-private function appendEllipsisToFit($pdf, string $text, float $maxWidth): string
-{
-    $candidate = rtrim($text);
-    $ellipsis = '...';
-
-    if ($candidate === '') {
-        return $ellipsis;
-    }
-
-    while (mb_strlen($candidate) > 0) {
-        $trial = rtrim($candidate) . $ellipsis;
-        if ($pdf->GetStringWidth($trial) <= $maxWidth) {
-            return $trial;
-        }
-        $candidate = mb_substr($candidate, 0, mb_strlen($candidate) - 1);
-    }
-
-    return $ellipsis;
-}
-
 private function writeCenteredFitted($pdf, string $text, float $startX, float $endX, float $y): void
 {
     $this->writeCenteredFittedSized($pdf, $text, $startX, $endX, $y, 8.0, 5.0);
@@ -1926,46 +1871,22 @@ private function writeCenteredFitted($pdf, string $text, float $startX, float $e
 private function writeCenteredFittedSized($pdf, string $text, float $startX, float $endX, float $y, float $baseSize, float $minSize): void
 {
     $maxWidth = max(1.0, ($endX - $startX) - 0.5);
-    [$lines, $size, $effectiveWidth] = $this->fitTextToLines($pdf, $text, $maxWidth, $baseSize, $minSize, 2);
-    if (empty($lines)) {
-        $this->setFont($pdf, 'Arial', '', 8);
-        return;
-    }
-
-    $this->setFont($pdf, 'Arial', '', $size);
-    $lineHeight = count($lines) > 1 ? max(1.8, $size * 0.32) : 0.0;
-    $currentY = $y - ((count($lines) - 1) * $lineHeight * 0.45);
+    [$display, $size, $width] = $this->fitTextToWidth($pdf, $text, $maxWidth, $baseSize, $minSize);
     $pageXScale = $this->getPageXScale();
-
-    foreach ($lines as $line) {
-        $lineWidth = $pdf->GetStringWidth($line);
-        $leftPadding = max(0.0, (($effectiveWidth - $lineWidth) / 2) / $pageXScale);
-        $centerX = $startX + $leftPadding;
-        $this->setXY($pdf, $centerX, $currentY);
-        $pdf->Cell($lineWidth, 0, $line, 0, 0, 'L');
-        $currentY += $lineHeight;
-    }
-
+    $usableWidth = $this->getEffectiveMaxWidth($endX - $startX);
+    $leftPadding = max(0.0, (($usableWidth - $width) / 2) / $pageXScale);
+    $centerX = $startX + $leftPadding;
+    $this->setXY($pdf, $centerX, $y);
+    $pdf->Write(0, $display);
     $this->setFont($pdf, 'Arial', '', 8);
 }
 
 private function writeFittedAt($pdf, string $text, float $x, float $y, float $maxWidth, float $baseSize = 8.0, float $minSize = 5.0): void
 {
-    [$lines, $size, $effectiveWidth] = $this->fitTextToLines($pdf, $text, $maxWidth, $baseSize, $minSize, 2);
-    if (empty($lines)) {
-        $this->setFont($pdf, 'Arial', '', 8);
-        return;
-    }
-
+    [$display, $size, $_width] = $this->fitTextToWidth($pdf, $text, $maxWidth, $baseSize, $minSize);
     $this->setFont($pdf, 'Arial', '', $size);
-    $lineHeight = count($lines) > 1 ? max(1.8, $size * 0.32) : 0.0;
-    $currentY = $y - ((count($lines) - 1) * $lineHeight * 0.45);
-    foreach ($lines as $line) {
-        $this->setXY($pdf, $x, $currentY);
-        // Keep each rendered line inside the target cell width.
-        $pdf->Cell($effectiveWidth, 0, $line, 0, 0, 'L');
-        $currentY += $lineHeight;
-    }
+    $this->setXY($pdf, $x, $y);
+    $pdf->Write(0, $display);
     $this->setFont($pdf, 'Arial', '', 8);
 }
 
