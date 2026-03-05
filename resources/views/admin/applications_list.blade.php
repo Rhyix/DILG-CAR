@@ -2,7 +2,7 @@
 @section('title', 'DILG - Applications List')
 @section('content')
 
-<main class="w-full h-full min-h-0 flex flex-col gap-4 overflow-hidden">
+<main class="w-full h-full min-h-0 flex flex-col gap-4 overflow-hidden pb-4">
 
     <!-- Header with back arrow and title -->
     <section class="flex-none flex items-center space-x-4 max-w-full">

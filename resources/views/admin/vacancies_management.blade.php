@@ -4,7 +4,7 @@
 @include('partials.loader')
 <!-- max-w-7xl -->
 <!-- test -->
-<main class="w-full h-full min-h-0 flex flex-col space-y-4 overflow-hidden">
+<main class="w-full h-full min-h-0 flex flex-col space-y-4 pb-4 overflow-hidden">
 
     <!-- Header Section -->
     <section class="flex-none flex items-center space-x-4 max-w-full">

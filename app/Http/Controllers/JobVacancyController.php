@@ -1169,14 +1169,44 @@ class JobVacancyController extends Controller
         return in_array($normalized, ['needs revision', 'disapproved with deficiency'], true);
     }
 
+    private function hasSatisfiedLatestRevisionRequest(?string $requestedAt, ?string $submittedAt): bool
+    {
+        if (empty($submittedAt)) {
+            return false;
+        }
+
+        if (empty($requestedAt)) {
+            return true;
+        }
+
+        try {
+            return Carbon::parse($submittedAt)->greaterThanOrEqualTo(Carbon::parse($requestedAt));
+        } catch (\Throwable $e) {
+            return true;
+        }
+    }
+
+    private function isRevisionComplianceLocked(int $requestedCount, ?string $requestedAt, ?string $submittedAt): bool
+    {
+        return $requestedCount >= 2 && $this->hasSatisfiedLatestRevisionRequest($requestedAt, $submittedAt);
+    }
+
     private function hasFinalRevisionDisqualification(Applications $application, $uploadedDocuments): bool
     {
-        if ($this->isRevisionStatus($application->file_status) && (int) ($application->file_revision_requested_count ?? 0) >= 2) {
+        if ($this->isRevisionComplianceLocked(
+            (int) ($application->file_revision_requested_count ?? 0),
+            $application->file_revision_requested_at ?? null,
+            $application->file_revision_submitted_at ?? null
+        )) {
             return true;
         }
 
         foreach ($uploadedDocuments as $doc) {
-            if ($this->isRevisionStatus($doc->status) && (int) ($doc->revision_requested_count ?? 0) >= 2) {
+            if ($this->isRevisionComplianceLocked(
+                (int) ($doc->revision_requested_count ?? 0),
+                $doc->revision_requested_at ?? null,
+                $doc->revision_submitted_at ?? null
+            )) {
                 return true;
             }
         }

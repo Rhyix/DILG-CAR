@@ -3,7 +3,7 @@
 @section('main-padding', 'px-5')
 
 @section('content')
-<div class="h-full max-h-full w-full font-montserrat flex flex-col gap-4 overflow-hidden">
+<div class="h-full max-h-full w-full font-montserrat flex flex-col pb-4 gap-4 overflow-hidden">
     <div class="border-b border-[#0D2B70] pb-3 flex-none">
         <h1 class="text-3xl font-semibold text-[#0D2B70]">Positions</h1>
         <p class="text-sm text-slate-600 mt-2">
@@ -23,7 +23,7 @@
     @endphp
 
     {{-- Search + Filter Card --}}
-    <div class="flex-none bg-white border border-slate-200 rounded-2xl shadow-sm px-5 py-4 flex flex-col gap-3">
+    <div class="flex-none bg-white border border-slate-200 rounded-2xl shadow-sm px-2 py-3 flex flex-col gap-3">
 
         {{-- Search --}}
         <div>
@@ -118,49 +118,50 @@
 
         </div>
     </div>
-
-    <div class="flex-1 flex flex-col min-h-0 overflow-hidden border border-[#0D2B70] rounded-xl bg-white shadow">
-        <div class="bg-[#0D2B70] text-white text-left rounded-t-xl">
-            <table class="w-full border-collapse">
-                <thead class="bg-[#0D2B70] text-white">
+<!-- Table Position -->
+    <div class="flex-1 flex flex-col min-h-0 margin-b-600 overflow-hidden border border-[#0D2B70] rounded-xl">
+        <div class="flex-none bg-[#0D2B70] text-white">
+            <table class="w-full border-collapse table-fixed">
+            <!-- Table Header Position -->
+                <thead>
                     <tr>
-                        <th class="py-4 px-6 font-semibold text-left w-[20%]">Sample Vacancy ID</th>
-                        <th class="py-4 px-6 font-semibold text-left w-[28%]">Job Title</th>
-                        <th class="py-4 px-6 font-semibold text-left w-[14%]">Monthly Salary</th>
-                        <th class="py-4 px-6 font-semibold text-left w-[14%]">Last Used</th>
-                        <th class="py-4 px-6 font-semibold text-left w-[16%]">Place of Assignment</th>
-                        <th class="py-4 px-6 font-semibold text-center w-[8%]">Actions</th>
+                        <th class="w-[20%] px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-left">Sample Vacancy ID</th>
+                        <th class="w-[28%] px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-left">Job Title</th>
+                        <th class="w-[14%] px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-left">Monthly Salary</th>
+                        <th class="w-[14%] px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-left">Last Used</th>
+                        <th class="w-[16%] px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-left">Place of Assignment</th>
+                        <th class="w-[8%] px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-center">Actions</th>
                     </tr>
                 </thead>
             </table>
         </div>
 
-        <div class="flex-1 overflow-auto min-h-0">
-            <table class="w-full text-left border-collapse">
+        <div class="flex-1 overflow-y-auto min-h-0">
+            <table class="w-full text-left border-collapse table-fixed">
                 <tbody id="positions-tbody" class="divide-y divide-[#0D2B70]">
                     @forelse($positions as $position)
-                        <tr class="text-[#0D2B70] select-none hover:bg-blue-50 transition-colors duration-200"
+                        <tr class="text-sm text-[#0D2B70] select-none hover:bg-blue-50 transition-colors duration-200"
                             data-search="{{ strtolower(implode(' ', array_filter([(string)$position->vacancy_id, (string)$position->position_title, (string)$position->vacancy_type, $position->monthly_salary !== null ? number_format((float)$position->monthly_salary, 2) : '', (string)$position->place_of_assignment]))) }}"
                             data-type="{{ strtolower((string)$position->vacancy_type) }}"
                             data-assignment="{{ strtolower(trim((string)$position->place_of_assignment)) }}">
-                            <td class="py-4 px-6 w-[20%]">
+                            <td class="w-[20%] px-3 py-2">
                                 <div class="flex items-center gap-2">
                                     <div class="w-3 h-3 rounded-full {{ strtoupper((string) $position->status) === 'OPEN' ? 'bg-green-500' : 'bg-red-500' }}"></div>
                                     <span>{{ $position->vacancy_id }}</span>
                                 </div>
                             </td>
-                            <td class="py-4 px-6 w-[28%]">
-                                <p>{{ $position->position_title }}</p>
-                                <p class="text-[#0D2B70]/70 text-[0.9rem] italic">{{ strtoupper((string) $position->vacancy_type) }}</p>
+                            <td class="w-[28%] px-3 py-2">
+                                <p class="font-medium">{{ $position->position_title }}</p>
+                                <p class="mt-0.5 text-xs italic text-[#0D2B70]/70">{{ strtoupper((string) $position->vacancy_type) }}</p>
                             </td>
-                            <td class="py-4 px-6 w-[14%]">
+                            <td class="w-[14%] px-3 py-2">
                                 {{ $position->monthly_salary !== null ? 'PHP ' . number_format((float) $position->monthly_salary, 2) : 'N/A' }}
                             </td>
-                            <td class="py-4 px-6 w-[14%]">
+                            <td class="w-[14%] px-3 py-2">
                                 {{ optional($position->updated_at)->format('F j, Y') ?: 'N/A' }}
                             </td>
-                            <td class="py-4 px-6 w-[16%]">{{ $position->place_of_assignment ?: 'N/A' }}</td>
-                            <td class="py-4 px-6 text-center w-[8%]">
+                            <td class="w-[16%] px-3 py-2">{{ $position->place_of_assignment ?: 'N/A' }}</td>
+                            <td class="w-[8%] px-3 py-2 text-center">
                                 @php
                                     $reuseRoute = strtoupper((string) $position->vacancy_type) === 'PLANTILLA'
                                         ? route('addplantilla', ['reuse' => $position->vacancy_id])

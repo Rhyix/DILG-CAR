@@ -2683,8 +2683,8 @@ class PDSController extends Controller
             if (
                 $supportsRevisionTracking
                 && (int) ($document->revision_requested_count ?? 0) > 0
-                && empty($document->revision_submitted_at)
             ) {
+                // Always stamp latest compliance submission against the latest revision request.
                 $updates['revision_submitted_at'] = now();
             }
             if ($supportsVacancyScopedDocs) {
@@ -2708,9 +2708,36 @@ class PDSController extends Controller
         return in_array($normalized, ['needs revision', 'disapproved with deficiency'], true);
     }
 
+    private function hasSatisfiedLatestRevisionRequest(?string $requestedAt, ?string $submittedAt): bool
+    {
+        if (empty($submittedAt)) {
+            return false;
+        }
+
+        if (empty($requestedAt)) {
+            // Legacy fallback when requested_at is unavailable: any submission means request satisfied.
+            return true;
+        }
+
+        try {
+            return Carbon::parse($submittedAt)->greaterThanOrEqualTo(Carbon::parse($requestedAt));
+        } catch (\Throwable $e) {
+            return true;
+        }
+    }
+
+    private function isRevisionComplianceLocked(int $requestedCount, ?string $requestedAt, ?string $submittedAt): bool
+    {
+        return $requestedCount >= 2 && $this->hasSatisfiedLatestRevisionRequest($requestedAt, $submittedAt);
+    }
+
     private function hasFinalRevisionDisqualification(Applications $application, string $vacancyId): bool
     {
-        if ($this->isRevisionStatus($application->file_status) && (int) ($application->file_revision_requested_count ?? 0) >= 2) {
+        if ($this->isRevisionComplianceLocked(
+            (int) ($application->file_revision_requested_count ?? 0),
+            $application->file_revision_requested_at ?? null,
+            $application->file_revision_submitted_at ?? null
+        )) {
             return true;
         }
 
@@ -2719,6 +2746,8 @@ class PDSController extends Controller
         }
 
         $supportsVacancyScopedDocs = Schema::hasColumn('uploaded_documents', 'vacancy_id');
+        $supportsRequestedAt = Schema::hasColumn('uploaded_documents', 'revision_requested_at');
+        $supportsSubmittedAt = Schema::hasColumn('uploaded_documents', 'revision_submitted_at');
         $docsQuery = UploadedDocument::query()
             ->where('user_id', $application->user_id)
             ->where('revision_requested_count', '>=', 2);
@@ -2730,8 +2759,20 @@ class PDSController extends Controller
             });
         }
 
-        $docs = $docsQuery->get(['status']);
-        return $docs->contains(fn($doc) => $this->isRevisionStatus($doc->status));
+        $select = ['revision_requested_count'];
+        if ($supportsRequestedAt) {
+            $select[] = 'revision_requested_at';
+        }
+        if ($supportsSubmittedAt) {
+            $select[] = 'revision_submitted_at';
+        }
+
+        $docs = $docsQuery->get($select);
+        return $docs->contains(function ($doc) use ($supportsRequestedAt, $supportsSubmittedAt) {
+            $requestedAt = $supportsRequestedAt ? ($doc->revision_requested_at ?? null) : null;
+            $submittedAt = $supportsSubmittedAt ? ($doc->revision_submitted_at ?? null) : null;
+            return $this->isRevisionComplianceLocked((int) ($doc->revision_requested_count ?? 0), $requestedAt, $submittedAt);
+        });
     }
 
     private function hasUploadedDocumentForType($documents, string $docType): bool
@@ -4037,10 +4078,11 @@ class PDSController extends Controller
 
         if ($this->hasFinalRevisionDisqualification($application, (string) $vacancy_id)) {
             return redirect()->back()->withErrors([
-                'final_revision_block' => 'No further compliance is allowed. Your application is already marked as not qualified after the final revision cycle.',
+                'final_revision_block' => 'No further compliance is allowed. You have already used your final revision opportunity.',
             ]);
         }
 
+        $currentDocs = $this->loadReusableUploadedDocumentsMap((int) $user_id, (string) $vacancy_id);
         $uploaded_files = [];
         $upload_errors = [];
         foreach (UploadedDocument::DOCUMENTS as $doc_type) {
@@ -4064,6 +4106,37 @@ class PDSController extends Controller
             if (!$scan_ok) {
                 $upload_errors["cert_uploads.$doc_type"] = $scan_message;
                 continue;
+            }
+
+            if ($doc_type === 'application_letter') {
+                $appRevisionCount = (int) ($application->file_revision_requested_count ?? 0);
+                $appRequestedAt = $application->file_revision_requested_at ?? null;
+                $appSubmittedAt = $application->file_revision_submitted_at ?? null;
+
+                if (!$this->isRevisionStatus($application->file_status)) {
+                    $upload_errors["cert_uploads.$doc_type"] = 'Cannot upload this document because it is not currently marked as Needs Revision.';
+                    continue;
+                }
+
+                if ($this->isRevisionComplianceLocked($appRevisionCount, $appRequestedAt, $appSubmittedAt)) {
+                    $upload_errors["cert_uploads.$doc_type"] = 'No further compliance is allowed for this document. You have already used your final revision opportunity.';
+                    continue;
+                }
+            } else {
+                $existingDoc = $this->resolveUploadedDocument($currentDocs, (string) $doc_type);
+
+                if (!$existingDoc || !$this->isRevisionStatus($existingDoc->status)) {
+                    $upload_errors["cert_uploads.$doc_type"] = 'Cannot upload this document because it is not currently marked as Needs Revision.';
+                    continue;
+                }
+
+                $docRevisionCount = (int) ($existingDoc->revision_requested_count ?? 0);
+                $docRequestedAt = $existingDoc->revision_requested_at ?? null;
+                $docSubmittedAt = $existingDoc->revision_submitted_at ?? null;
+                if ($this->isRevisionComplianceLocked($docRevisionCount, $docRequestedAt, $docSubmittedAt)) {
+                    $upload_errors["cert_uploads.$doc_type"] = 'No further compliance is allowed for this document. You have already used your final revision opportunity.';
+                    continue;
+                }
             }
 
             //If it's application_letter, store in Applications model
@@ -4093,8 +4166,8 @@ class PDSController extends Controller
                 if (
                     $supportsFileRevisionTracking
                     && (int) ($application->file_revision_requested_count ?? 0) > 0
-                    && empty($application->file_revision_submitted_at)
                 ) {
+                    // Always stamp latest compliance submission against the latest revision request.
                     $applicationUpdates['file_revision_submitted_at'] = now();
                 }
 
