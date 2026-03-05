@@ -682,16 +682,36 @@
     const resProvince = document.querySelector('#res_province');
     const resCity = document.querySelector('#res_city');
     const resBrgy = document.querySelector('#res_brgy');
-    const PSGC_CACHE_KEY = 'psgc:c1:v1';
+    const PSGC_CACHE_KEY = 'psgc:c1:v2';
+    const PSGC_LEGACY_CACHE_KEYS = ['psgc:c1:v1'];
     const PSGC_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+    const PSGC_MIN_PROVINCE_COUNT = 50;
     const psgcClientCache = {
         provinces: null,
         citiesByProvince: new Map(),
         barangaysByCity: new Map(),
         cityByCode: new Map(),
     };
+    function isValidPsgcCode(raw) {
+        return /^\d{10}$/.test(String(raw || '').trim());
+    }
+    function isValidPsgcName(raw) {
+        return /[A-Za-z]/.test(String(raw || '').trim());
+    }
+    function sanitizePsgcEntries(entries) {
+        if (!Array.isArray(entries)) return [];
+        return entries
+            .filter((entry) => entry && typeof entry === 'object')
+            .map((entry) => ({
+                code: String(entry.code || '').trim(),
+                name: String(entry.name || '').trim(),
+                zip_code: entry.zip_code == null ? null : String(entry.zip_code).trim(),
+            }))
+            .filter((entry) => isValidPsgcCode(entry.code) && isValidPsgcName(entry.name));
+    }
     function hydratePsgcClientCache() {
         try {
+            PSGC_LEGACY_CACHE_KEYS.forEach((legacyKey) => sessionStorage.removeItem(legacyKey));
             const raw = sessionStorage.getItem(PSGC_CACHE_KEY);
             if (!raw) return;
             const parsed = JSON.parse(raw);
@@ -701,15 +721,27 @@
                 sessionStorage.removeItem(PSGC_CACHE_KEY);
                 return;
             }
-            if (Array.isArray(parsed.provinces)) psgcClientCache.provinces = parsed.provinces;
+            const provinces = sanitizePsgcEntries(parsed.provinces);
+            if (provinces.length >= PSGC_MIN_PROVINCE_COUNT) {
+                psgcClientCache.provinces = provinces;
+            } else if (Array.isArray(parsed.provinces)) {
+                sessionStorage.removeItem(PSGC_CACHE_KEY);
+                return;
+            }
             if (parsed.citiesByProvince && typeof parsed.citiesByProvince === 'object') {
                 Object.entries(parsed.citiesByProvince).forEach(([k, v]) => {
-                    if (Array.isArray(v)) psgcClientCache.citiesByProvince.set(String(k), v);
+                    const entries = sanitizePsgcEntries(v);
+                    if (entries.length > 0) {
+                        psgcClientCache.citiesByProvince.set(String(k), entries);
+                    }
                 });
             }
             if (parsed.barangaysByCity && typeof parsed.barangaysByCity === 'object') {
                 Object.entries(parsed.barangaysByCity).forEach(([k, v]) => {
-                    if (Array.isArray(v)) psgcClientCache.barangaysByCity.set(String(k), v);
+                    const entries = sanitizePsgcEntries(v);
+                    if (entries.length > 0) {
+                        psgcClientCache.barangaysByCity.set(String(k), entries);
+                    }
                 });
             }
             if (parsed.cityByCode && typeof parsed.cityByCode === 'object') {
