@@ -971,6 +971,7 @@ class AdminController extends Controller
     private function getApplicantDocuments($user_id, $application)
     {
         $uploadedDocuments = $this->loadUploadedDocumentsMap((int) $user_id, (string) $application->vacancy_id);
+        $reusableDocuments = $this->loadReusableUploadedDocumentsMap((int) $user_id, (string) $application->vacancy_id);
         $documents = [];
 
         foreach (UploadedDocument::DOCUMENTS as $docType) {
@@ -1012,7 +1013,18 @@ class AdminController extends Controller
             } else {
                 $doc = $this->resolveUploadedDocument($uploadedDocuments, $docType);
                 $hasFile = $doc && !empty($doc->storage_path) && $doc->storage_path !== 'NOINPUT';
-                $status = $doc ? $doc->status : 'Not Submitted';
+                if (!$hasFile) {
+                    $fallbackDoc = $this->resolveUploadedDocument($reusableDocuments, $docType);
+                    $fallbackHasFile = $fallbackDoc && !empty($fallbackDoc->storage_path) && $fallbackDoc->storage_path !== 'NOINPUT';
+                    if ($fallbackHasFile) {
+                        $doc = $fallbackDoc;
+                        $hasFile = true;
+                    }
+                }
+
+                $status = $hasFile
+                    ? (!empty(trim((string) ($doc->status ?? ''))) ? $doc->status : 'Pending')
+                    : 'Not Submitted';
                 $revisionState = $this->getUploadedDocumentRevisionState(
                     (int) $user_id,
                     (string) $application->vacancy_id,
@@ -1078,6 +1090,32 @@ class AdminController extends Controller
             } else {
                 $docsQuery->whereNull('vacancy_id');
             }
+        }
+
+        $docs = $docsQuery
+            ->orderByDesc('updated_at')
+            ->get();
+
+        return $docs
+            ->unique('document_type')
+            ->keyBy('document_type');
+    }
+
+    private function loadReusableUploadedDocumentsMap(int $userId, ?string $vacancyId = null)
+    {
+        $supportsVacancyScopedDocs = Schema::hasColumn('uploaded_documents', 'vacancy_id');
+
+        $docsQuery = UploadedDocument::where('user_id', $userId)
+            ->whereNotNull('storage_path')
+            ->where('storage_path', '!=', 'NOINPUT');
+
+        if ($supportsVacancyScopedDocs && !empty($vacancyId)) {
+            $docsQuery->orderByRaw(
+                "CASE WHEN vacancy_id = ? THEN 0 WHEN vacancy_id IS NULL THEN 1 ELSE 2 END",
+                [(string) $vacancyId]
+            );
+        } elseif ($supportsVacancyScopedDocs) {
+            $docsQuery->orderByRaw('CASE WHEN vacancy_id IS NULL THEN 0 ELSE 1 END');
         }
 
         $docs = $docsQuery
@@ -2142,6 +2180,7 @@ class AdminController extends Controller
     private function buildUserDocumentsSnapshot($user_id, $application): array
     {
         $uploadedDocuments = $this->loadUploadedDocumentsMap((int) $user_id, (string) $application->vacancy_id);
+        $reusableDocuments = $this->loadReusableUploadedDocumentsMap((int) $user_id, (string) $application->vacancy_id);
         $documents = [];
 
         foreach (UploadedDocument::DOCUMENTS as $docType) {
@@ -2170,6 +2209,14 @@ class AdminController extends Controller
 
             $doc = $this->resolveUploadedDocument($uploadedDocuments, $docType);
             $hasFile = $doc && !empty($doc->storage_path) && $doc->storage_path !== 'NOINPUT';
+            if (!$hasFile) {
+                $fallbackDoc = $this->resolveUploadedDocument($reusableDocuments, $docType);
+                $fallbackHasFile = $fallbackDoc && !empty($fallbackDoc->storage_path) && $fallbackDoc->storage_path !== 'NOINPUT';
+                if ($fallbackHasFile) {
+                    $doc = $fallbackDoc;
+                    $hasFile = true;
+                }
+            }
             $documents[] = [
                 'id' => $docType,
                 'doc_id' => $doc->id ?? null,
@@ -2356,6 +2403,10 @@ class AdminController extends Controller
         } else {
             $uploadedDocuments = $this->loadUploadedDocumentsMap((int) $user_id, (string) $vacancy_id);
             $doc = $this->resolveUploadedDocument($uploadedDocuments, $document_type);
+            if (!$doc || empty($doc->storage_path) || $doc->storage_path === 'NOINPUT') {
+                $reusableDocuments = $this->loadReusableUploadedDocumentsMap((int) $user_id, (string) $vacancy_id);
+                $doc = $this->resolveUploadedDocument($reusableDocuments, $document_type);
+            }
             if ($doc) {
                 $path = $doc->storage_path;
             }
