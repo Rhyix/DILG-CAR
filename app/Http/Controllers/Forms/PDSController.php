@@ -27,6 +27,9 @@ use Illuminate\Support\Facades\Validator;
 use App\Services\ApplicationStatusTransitionService;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
 
 class PDSController extends Controller
 {
@@ -342,6 +345,437 @@ class PDSController extends Controller
             return response()->json([
                 'message' => 'Unable to process the uploaded Excel file. Please try again with the official template.',
             ], 500);
+        }
+    }
+
+    public function exportAnnexH1Excel(Request $request)
+    {
+        if (!session()->has('form.c1')) {
+            session(['form.c1' => $this->c1GetFormFromDB()]);
+        }
+        if (!session()->has('form.c2')) {
+            session(['form.c2' => $this->c2GetFormFromDB()]);
+        }
+        if (empty(session('data_learning')) && empty(session('data_voluntary')) && empty(session('data_otherInfo'))) {
+            $this->c3GetDatabase();
+        }
+        if (empty(session('form.c4'))) {
+            $this->c4GetDatabase();
+        }
+
+        $templateCandidates = [
+            base_path('ANNEX H-1 - CS Form No. 212 Revised 2025 - Personal Data Sheet.xlsx'),
+            base_path('sample_docs/ANNEX H-1 - CS Form No. 212 Revised 2025 - Personal Data Sheet.xlsx'),
+        ];
+        $templatePath = null;
+        foreach ($templateCandidates as $candidate) {
+            if (is_file($candidate)) {
+                $templatePath = $candidate;
+                break;
+            }
+        }
+        if ($templatePath === null) {
+            abort(404, 'ANNEX H-1 Excel template was not found.');
+        }
+
+        $spreadsheet = IOFactory::load($templatePath);
+        $c1Sheet = $spreadsheet->getSheetByName('C1');
+        $c2Sheet = $spreadsheet->getSheetByName('C2');
+        $c3Sheet = $spreadsheet->getSheetByName('C3');
+        $c4Sheet = $spreadsheet->getSheetByName('C4');
+        if (!$c1Sheet || !$c2Sheet || !$c3Sheet || !$c4Sheet) {
+            abort(422, 'Incompatible template: expected sheets C1, C2, C3, and C4.');
+        }
+
+        $c1 = session('form.c1', []);
+        $c2 = session('form.c2', []);
+        $dataLearning = session('data_learning', []);
+        $dataVoluntary = session('data_voluntary', []);
+        $dataOther = session('data_otherInfo', []);
+        $c4 = session('form.c4', []);
+
+        $fieldToCellMap = [
+            'surname' => 'D10', 'first_name' => 'D11', 'middle_name' => 'D12', 'name_extension' => 'L11',
+            'place_of_birth' => 'D15', 'dual_country' => 'L15', 'height' => 'D22', 'weight' => 'D24',
+            'blood_type' => 'D25', 'gsis_id_no' => 'D27', 'pagibig_id_no' => 'D29', 'philhealth_no' => 'D31',
+            'sss_id_no' => 'D32', 'tin_no' => 'D33', 'agency_employee_no' => 'D34', 'res_house_no' => 'I18',
+            'res_street' => 'L18', 'res_sub_vil' => 'I21', 'res_brgy' => 'L21', 'res_city' => 'I23',
+            'res_province' => 'L23', 'res_zipcode' => 'I24', 'per_house_no' => 'I26', 'per_street' => 'L26',
+            'per_sub_vil' => 'I28', 'per_brgy' => 'L28', 'per_city' => 'I30', 'per_province' => 'L30',
+            'per_zipcode' => 'I31', 'telephone_no' => 'I32', 'mobile_no' => 'I33', 'email_address' => 'I34',
+            'spouse_surname' => 'D36', 'spouse_first_name' => 'D37', 'spouse_name_extension' => 'G37',
+            'spouse_middle_name' => 'D38', 'spouse_occupation' => 'D39', 'spouse_employer' => 'D40',
+            'spouse_business_address' => 'D41', 'spouse_telephone' => 'D42', 'father_surname' => 'D43',
+            'father_first_name' => 'D44', 'father_name_extension' => 'G44', 'father_middle_name' => 'D45',
+            'mother_maiden_surname' => 'D47', 'mother_maiden_first_name' => 'D48', 'mother_maiden_middle_name' => 'D49',
+            'elem_school' => 'D54', 'elem_basic' => 'G54', 'elem_earned' => 'L54', 'elem_year_graduated' => 'M54',
+            'elem_academic_honors' => 'N54', 'jhs_school' => 'D55', 'jhs_basic' => 'G55', 'jhs_earned' => 'L55',
+            'jhs_year_graduated' => 'M55', 'jhs_academic_honors' => 'N55',
+        ];
+        foreach ($fieldToCellMap as $field => $cell) {
+            $this->setExcelText($c1Sheet, $cell, $c1[$field] ?? '');
+        }
+        $this->setExcelText($c1Sheet, 'D13', $this->normalizeDateForExcel($c1['date_of_birth'] ?? ''));
+        $this->setExcelText($c1Sheet, 'D16', ucfirst((string) ($c1['sex'] ?? '')));
+        $this->setExcelText($c1Sheet, 'D17', ucfirst((string) ($c1['civil_status'] ?? '')));
+        foreach (['J13', 'K13', 'L13', 'M13', 'N13'] as $cell) {
+            $this->setExcelText($c1Sheet, $cell, '');
+        }
+        $this->setExcelText($c1Sheet, 'J54', $this->normalizeDateForExcel($c1['elem_from'] ?? ''));
+        $this->setExcelText($c1Sheet, 'K54', $this->normalizeDateForExcel($c1['elem_to'] ?? ''));
+        $this->setExcelText($c1Sheet, 'J55', $this->normalizeDateForExcel($c1['jhs_from'] ?? ''));
+        $this->setExcelText($c1Sheet, 'K55', $this->normalizeDateForExcel($c1['jhs_to'] ?? ''));
+
+        $children = is_array($c1['children'] ?? null) ? $c1['children'] : [];
+        for ($i = 0; $i < 12; $i++) {
+            $row = 37 + $i;
+            $item = $children[$i] ?? [];
+            $this->setExcelText($c1Sheet, "I{$row}", $item['name'] ?? '');
+            $this->setExcelText($c1Sheet, "M{$row}", $this->normalizeDateForExcel($item['dob'] ?? ''));
+        }
+
+        $this->fillEducationRowToC1($c1Sheet, '56', $c1['vocational'][0] ?? []);
+        $this->fillEducationRowToC1($c1Sheet, '57', $c1['college'][0] ?? []);
+        $this->fillEducationRowToC1($c1Sheet, '58', $c1['grad'][0] ?? []);
+
+        $civilRows = is_array($c2['all_user_civil_service_eligibility'] ?? null) ? $c2['all_user_civil_service_eligibility'] : [];
+        for ($i = 0; $i < 7; $i++) {
+            $row = 5 + $i;
+            $entry = $civilRows[$i] ?? [];
+            $this->setExcelText($c2Sheet, "B{$row}", $entry['cs_eligibility_career'] ?? '');
+            $this->setExcelText($c2Sheet, "F{$row}", $entry['cs_eligibility_rating'] ?? '');
+            $this->setExcelText($c2Sheet, "G{$row}", $this->normalizeDateForExcel($entry['cs_eligibility_date'] ?? ''));
+            $this->setExcelText($c2Sheet, "I{$row}", $entry['cs_eligibility_place'] ?? '');
+            $this->setExcelText($c2Sheet, "J{$row}", $entry['cs_eligibility_license'] ?? '');
+            $this->setExcelText($c2Sheet, "K{$row}", $this->normalizeDateForExcel($entry['cs_eligibility_validity'] ?? ''));
+        }
+
+        $workRows = is_array($c2['all_user_work_exps'] ?? null) ? $c2['all_user_work_exps'] : [];
+        for ($i = 0; $i < 28; $i++) {
+            $row = 18 + $i;
+            $entry = $workRows[$i] ?? [];
+            $this->setExcelText($c2Sheet, "A{$row}", $this->normalizeDateForExcel($entry['work_exp_from'] ?? ''));
+            $this->setExcelText($c2Sheet, "C{$row}", $this->normalizeDateForExcel($entry['work_exp_to'] ?? ''));
+            $this->setExcelText($c2Sheet, "D{$row}", $entry['work_exp_position'] ?? '');
+            $this->setExcelText($c2Sheet, "G{$row}", $entry['work_exp_department'] ?? '');
+            $this->setExcelText($c2Sheet, "J{$row}", $entry['work_exp_status'] ?? '');
+            $this->setExcelText($c2Sheet, "K{$row}", $entry['work_exp_govt_service'] ?? '');
+        }
+
+        $volRows = is_array($dataVoluntary) ? $dataVoluntary : [];
+        for ($i = 0; $i < 7; $i++) {
+            $row = 6 + $i;
+            $entry = $volRows[$i] ?? [];
+            $this->setExcelText($c3Sheet, "B{$row}", $entry['voluntary_org'] ?? '');
+            $this->setExcelText($c3Sheet, "E{$row}", $this->normalizeDateForExcel($entry['voluntary_from'] ?? ''));
+            $this->setExcelText($c3Sheet, "F{$row}", $this->normalizeDateForExcel($entry['voluntary_to'] ?? ''));
+            $this->setExcelText($c3Sheet, "G{$row}", $entry['voluntary_hours'] ?? '');
+            $this->setExcelText($c3Sheet, "H{$row}", $entry['voluntary_position'] ?? '');
+        }
+
+        $learnRows = is_array($dataLearning) ? $dataLearning : [];
+        for ($i = 0; $i < 21; $i++) {
+            $row = 18 + $i;
+            $entry = $learnRows[$i] ?? [];
+            $this->setExcelText($c3Sheet, "B{$row}", $entry['learning_title'] ?? '');
+            $this->setExcelText($c3Sheet, "E{$row}", $this->normalizeDateForExcel($entry['learning_from'] ?? ''));
+            $this->setExcelText($c3Sheet, "F{$row}", $this->normalizeDateForExcel($entry['learning_to'] ?? ''));
+            $this->setExcelText($c3Sheet, "G{$row}", $entry['learning_hours'] ?? '');
+            $this->setExcelText($c3Sheet, "H{$row}", $entry['learning_type'] ?? '');
+            $this->setExcelText($c3Sheet, "I{$row}", $entry['learning_conducted'] ?? '');
+        }
+
+        $skills = $this->normalizeListData($dataOther['skill'] ?? []);
+        $distinctions = $this->normalizeListData($dataOther['distinction'] ?? []);
+        $organizations = $this->normalizeListData($dataOther['organization'] ?? []);
+        for ($i = 0; $i < 7; $i++) {
+            $row = 42 + $i;
+            $this->setExcelText($c3Sheet, "B{$row}", $skills[$i] ?? '');
+            $this->setExcelText($c3Sheet, "C{$row}", $distinctions[$i] ?? '');
+            $this->setExcelText($c3Sheet, "I{$row}", $organizations[$i] ?? '');
+        }
+
+        foreach (['I6', 'K6', 'I8', 'K8', 'I13', 'K13', 'I18', 'K18', 'I23', 'K23', 'I27', 'K27', 'I31', 'K31', 'I34', 'K34', 'I37', 'K37', 'I43', 'K43', 'I45', 'K45', 'I47', 'K47'] as $checkboxCell) {
+            $this->setExcelText($c4Sheet, $checkboxCell, '');
+        }
+        $this->setExcelText($c4Sheet, 'G10', $this->yesNoDetail($c4['related_34_b'] ?? 'no'));
+        $this->setExcelText($c4Sheet, 'G14', $this->yesNoDetail($c4['guilty_35_a'] ?? 'no'));
+        [$caseDate, $caseStatus] = $this->parseCriminalCaseValue($c4);
+        $this->setExcelText($c4Sheet, 'H20', $this->normalizeDateForExcel($caseDate));
+        $this->setExcelText($c4Sheet, 'G21', $caseStatus);
+        $this->setExcelText($c4Sheet, 'G24', $this->yesNoDetail($c4['convicted_36'] ?? 'no'));
+        $this->setExcelText($c4Sheet, 'G28', $this->yesNoDetail($c4['separated_37'] ?? 'no'));
+        $this->setExcelText($c4Sheet, 'G32', $this->yesNoDetail($c4['candidate_38'] ?? 'no'));
+        $this->setExcelText($c4Sheet, 'G35', $this->yesNoDetail($c4['resigned_38_b'] ?? 'no'));
+        $this->setExcelText($c4Sheet, 'G38', $this->yesNoDetail($c4['immigrant_39'] ?? 'no'));
+        $this->setExcelText($c4Sheet, 'G44', $this->yesNoDetail($c4['indigenous_40_a'] ?? 'no'));
+        $this->setExcelText($c4Sheet, 'G46', $this->yesNoDetail($c4['pwd_40_b'] ?? 'no'));
+        $this->setExcelText($c4Sheet, 'G48', $this->yesNoDetail($c4['solo_parent_40_c'] ?? 'no'));
+
+        $this->setExcelText($c4Sheet, 'A52', $c4['ref1_name'] ?? '');
+        $this->setExcelText($c4Sheet, 'F52', $c4['ref1_address'] ?? '');
+        $this->setExcelText($c4Sheet, 'G52', $c4['ref1_tel'] ?? '');
+        $this->setExcelText($c4Sheet, 'A53', $c4['ref2_name'] ?? '');
+        $this->setExcelText($c4Sheet, 'F53', $c4['ref2_address'] ?? '');
+        $this->setExcelText($c4Sheet, 'G53', $c4['ref2_tel'] ?? '');
+        $this->setExcelText($c4Sheet, 'A54', $c4['ref3_name'] ?? '');
+        $this->setExcelText($c4Sheet, 'F54', $c4['ref3_address'] ?? '');
+        $this->setExcelText($c4Sheet, 'G54', $c4['ref3_tel'] ?? '');
+
+        $this->setExcelText($c4Sheet, 'B61', $c4['govt_id_type'] ?? '');
+        $this->setExcelText($c4Sheet, 'B62', $c4['govt_id_number'] ?? '');
+        $govtPlace = trim((string) ($c4['govt_id_place_issued'] ?? ''));
+        $govtDate = $this->normalizeDateForExcel($c4['govt_id_date_issued'] ?? '');
+        $this->setExcelText($c4Sheet, 'B64', trim($govtPlace . ($govtDate !== '' ? ' | ' . $govtDate : '')));
+
+        $filename = 'ANNEX H-1 - CS Form No. 212 Revised 2025 - Personal Data Sheet - ' . now()->format('Ymd_His') . '.xlsx';
+        $tempPath = storage_path('app/' . uniqid('annex_h1_', true) . '.xlsx');
+        $this->stripWorkbookDefinedNames($spreadsheet);
+        $writer = new Xlsx($spreadsheet);
+        $writer->save($tempPath);
+        $this->applyAnnexTemplateCheckboxStates($tempPath, $c1, $c4);
+
+        return response()->download($tempPath, $filename)->deleteFileAfterSend(true);
+    }
+
+    private function setExcelText($sheet, string $cell, $value): void
+    {
+        $text = $this->sanitizeForExcelCell($value);
+        $sheet->setCellValueExplicit($cell, $text, DataType::TYPE_STRING);
+        $sheet->getStyle($cell)->getAlignment()->setWrapText(true);
+        $sheet->getStyle($cell)->getAlignment()->setShrinkToFit(false);
+    }
+
+    private function normalizeDateForExcel($value): string
+    {
+        $raw = trim((string) ($value ?? ''));
+        if ($raw === '') {
+            return '';
+        }
+        return $this->normalizeDateString($raw, 'd-m-Y');
+    }
+
+    private function fillEducationRowToC1($sheet, string $row, array $entry): void
+    {
+        $this->setExcelText($sheet, "D{$row}", $entry['school'] ?? '');
+        $this->setExcelText($sheet, "G{$row}", $entry['basic'] ?? '');
+        $this->setExcelText($sheet, "J{$row}", $this->normalizeDateForExcel($entry['from'] ?? ''));
+        $this->setExcelText($sheet, "K{$row}", $this->normalizeDateForExcel($entry['to'] ?? ''));
+        $this->setExcelText($sheet, "L{$row}", $entry['earned'] ?? '');
+        $this->setExcelText($sheet, "M{$row}", $entry['year_graduated'] ?? '');
+        $this->setExcelText($sheet, "N{$row}", $entry['academic_honors'] ?? '');
+    }
+
+    private function writeYesNoToCells($sheet, string $yesCell, string $noCell, $value): void
+    {
+        $normalized = strtolower(trim((string) ($value ?? '')));
+        $isYes = $normalized !== '' && $normalized !== 'no';
+        $this->setExcelCheckboxMark($sheet, $yesCell, $isYes);
+        $this->setExcelCheckboxMark($sheet, $noCell, !$isYes);
+    }
+
+    private function setExcelCheckboxMark($sheet, string $cell, bool $checked): void
+    {
+        $sheet->setCellValueExplicit($cell, $checked ? '☑' : '', DataType::TYPE_STRING);
+        $alignment = $sheet->getStyle($cell)->getAlignment();
+        $alignment->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $alignment->setVertical(Alignment::VERTICAL_CENTER);
+        $alignment->setWrapText(false);
+        $sheet->getStyle($cell)->getFont()->setBold(false);
+    }
+
+    private function writeCitizenshipCheckboxes($sheet, $citizenship): void
+    {
+        $value = strtolower(trim((string) ($citizenship ?? '')));
+        $isDual = str_contains($value, 'dual');
+        $isFilipino = $value === 'filipino' || (!$isDual && $value !== '');
+
+        // Clear any accidental text/value in the citizenship checkbox band.
+        foreach (['J13', 'K13', 'L13', 'M13', 'N13'] as $cell) {
+            $this->setExcelText($sheet, $cell, '');
+        }
+
+        // Template C1 checkbox cells for citizenship (within J:N, row 13).
+        // Filipino checkbox
+        $this->setExcelCheckboxMark($sheet, 'J13', $isFilipino);
+        // Dual Citizenship checkbox
+        $this->setExcelCheckboxMark($sheet, 'M13', $isDual);
+    }
+
+    private function applyAnnexTemplateCheckboxStates(string $xlsxPath, array $c1, array $c4): void
+    {
+        $zip = new \ZipArchive();
+        if ($zip->open($xlsxPath) !== true) {
+            return;
+        }
+
+        try {
+            $c1States = $this->buildC1TemplateCheckboxStates($c1);
+            $c4States = $this->buildC4TemplateCheckboxStates($c4);
+            $this->patchVmlCheckboxFile($zip, 'xl/drawings/vmlDrawing1.vml', $c1States);
+            $this->patchVmlCheckboxFile($zip, 'xl/drawings/vmlDrawing2.vml', $c4States);
+        } finally {
+            $zip->close();
+        }
+    }
+
+    private function patchVmlCheckboxFile(\ZipArchive $zip, string $entryName, array $states): void
+    {
+        if (empty($states) || $zip->locateName($entryName) === false) {
+            return;
+        }
+
+        $xml = $zip->getFromName($entryName);
+        if (!is_string($xml) || trim($xml) === '') {
+            return;
+        }
+
+        $dom = new \DOMDocument();
+        $dom->preserveWhiteSpace = true;
+        $dom->formatOutput = false;
+        if (!@$dom->loadXML($xml, LIBXML_NONET)) {
+            return;
+        }
+
+        $xpath = new \DOMXPath($dom);
+        $xpath->registerNamespace('v', 'urn:schemas-microsoft-com:vml');
+        $xpath->registerNamespace('x', 'urn:schemas-microsoft-com:office:excel');
+        $xpath->registerNamespace('o', 'urn:schemas-microsoft-com:office:office');
+
+        foreach ($states as $shapeId => $checked) {
+            $shapeNodes = $xpath->query("//v:shape[@id='_x0000_s{$shapeId}' or @o:spid='_x0000_s{$shapeId}']");
+            if (!$shapeNodes || $shapeNodes->length === 0) {
+                continue;
+            }
+
+            foreach ($shapeNodes as $shapeNode) {
+                $clientDataNode = $xpath->query("./x:ClientData[@ObjectType='Checkbox']", $shapeNode)->item(0);
+                if (!$clientDataNode) {
+                    continue;
+                }
+
+                $checkedNode = $xpath->query("./x:Checked", $clientDataNode)->item(0);
+                if ($checked) {
+                    if (!$checkedNode) {
+                        $clientDataNode->appendChild($dom->createElementNS('urn:schemas-microsoft-com:office:excel', 'x:Checked'));
+                    }
+                } elseif ($checkedNode) {
+                    $clientDataNode->removeChild($checkedNode);
+                }
+            }
+        }
+
+        $zip->addFromString($entryName, $dom->saveXML());
+    }
+
+    private function buildC1TemplateCheckboxStates(array $c1): array
+    {
+        $value = strtolower(trim((string) ($c1['citizenship'] ?? '')));
+        $isDual = str_contains($value, 'dual');
+        $isFilipino = $value === 'filipino' || (!$isDual && $value !== '');
+
+        $dualType = strtolower(trim((string) ($c1['dual_type'] ?? '')));
+        $isByBirth = $isDual && $dualType === 'by birth';
+        $isByNaturalization = $isDual && $dualType === 'by naturalization';
+
+        return [
+            1045 => $isFilipino,
+            1046 => $isDual,
+            1063 => $isByBirth,
+            1064 => $isByNaturalization,
+        ];
+    }
+
+    private function buildC4TemplateCheckboxStates(array $c4): array
+    {
+        $pairs = [
+            'related_34_a' => [4097, 4098],
+            'related_34_b' => [4099, 4100],
+            'guilty_35_a' => [4101, 4102],
+            'criminal_35_b' => [4103, 4104],
+            'convicted_36' => [4105, 4106],
+            'separated_37' => [4107, 4108],
+            'candidate_38' => [4122, 4123],
+            'resigned_38_b' => [4124, 4125],
+            'immigrant_39' => [4109, 4110],
+            'indigenous_40_a' => [4111, 4114],
+            'pwd_40_b' => [4112, 4115],
+            'solo_parent_40_c' => [4113, 4116],
+        ];
+
+        $states = [];
+        foreach ($pairs as $field => [$yesShapeId, $noShapeId]) {
+            $isYes = $this->isCheckedYes($c4[$field] ?? 'no');
+            $states[$yesShapeId] = $isYes;
+            $states[$noShapeId] = !$isYes;
+        }
+
+        return $states;
+    }
+
+    private function isCheckedYes($value): bool
+    {
+        $normalized = strtolower(trim((string) ($value ?? '')));
+        return $normalized !== '' && $normalized !== 'no';
+    }
+
+    private function sanitizeForExcelCell($value): string
+    {
+        $text = trim((string) ($value ?? ''));
+        if ($text === '') {
+            return '';
+        }
+
+        // Remove invalid XML control characters (keep tab/newline/carriage return).
+        $text = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $text) ?? '';
+        return $text;
+    }
+
+    private function yesNoDetail($value): string
+    {
+        $text = trim((string) ($value ?? ''));
+        if ($text === '' || strtolower($text) === 'no') {
+            return '';
+        }
+        return $text;
+    }
+
+    private function parseCriminalCaseValue(array $c4): array
+    {
+        $case = $c4['criminal_35_b_array'] ?? null;
+        if (is_array($case)) {
+            return [
+                trim((string) ($case['date'] ?? '')),
+                trim((string) ($case['status'] ?? '')),
+            ];
+        }
+
+        $value = trim((string) ($c4['criminal_35_b'] ?? ''));
+        if ($value === '' || strtolower($value) === 'no') {
+            return ['', ''];
+        }
+        $parts = array_map('trim', explode(',', $value, 2));
+        return [$parts[0] ?? '', $parts[1] ?? ''];
+    }
+
+    private function stripWorkbookDefinedNames($spreadsheet): void
+    {
+        try {
+            $definedNames = $spreadsheet->getDefinedNames();
+            if (!is_array($definedNames) || empty($definedNames)) {
+                return;
+            }
+
+            foreach ($definedNames as $definedName) {
+                if (!is_object($definedName) || !method_exists($definedName, 'getName')) {
+                    continue;
+                }
+                $name = (string) $definedName->getName();
+                $scope = method_exists($definedName, 'getScope') ? $definedName->getScope() : null;
+                $spreadsheet->removeDefinedName($name, $scope);
+            }
+        } catch (\Throwable $e) {
+            // Ignore: export should continue even if named ranges cannot be modified.
         }
     }
 
@@ -1088,6 +1522,30 @@ class PDSController extends Controller
             }
         }
         return false;
+    }
+
+    private function normalizeListData($value): array
+    {
+        if (is_array($value)) {
+            return array_values(array_filter(array_map(
+                static fn($item) => trim((string) $item),
+                $value
+            ), static fn($item) => $item !== ''));
+        }
+
+        if (is_string($value)) {
+            $trimmed = trim($value);
+            if ($trimmed === '') {
+                return [];
+            }
+            $decoded = json_decode($trimmed, true);
+            if (is_array($decoded)) {
+                return $this->normalizeListData($decoded);
+            }
+            return [$trimmed];
+        }
+
+        return [];
     }
 
     private function normalizeWorkStatus(string $value): string

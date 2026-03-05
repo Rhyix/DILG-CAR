@@ -45,7 +45,21 @@
             <!-- Personal Information Section -->
             <section class="bg-white rounded-lg sm:rounded-2xl shadow-xl p-4 sm:p-8 animate-slide-in">
 
-                <div class="flex justify-end">
+                <div class="flex flex-col sm:flex-row justify-end gap-2">
+                    <!-- <a
+                        href="{{ route('export.pds') }}"
+                        class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-lg border-2 border-rose-700 bg-rose-700 px-4 py-3 text-sm sm:text-base font-montserrat font-semibold text-white shadow-sm transition-all duration-200 hover:border-rose-800 hover:bg-rose-800 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-rose-700/30"
+                    >
+                        <span class="material-icons text-lg sm:text-xl">picture_as_pdf</span>
+                        Export to PDF
+                    </a> -->
+                    <a
+                        href="{{ route('pds.export_annex_h1_excel') }}"
+                        class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-lg border-2 border-emerald-700 bg-emerald-700 px-4 py-3 text-sm sm:text-base font-montserrat font-semibold text-white shadow-sm transition-all duration-200 hover:border-emerald-800 hover:bg-emerald-800 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-emerald-700/30"
+                    >
+                        <span class="material-icons text-lg sm:text-xl">download</span>
+                        Export to Excel (unstable)
+                    </a>
                 <button
                         type="button"
                         id="importPdsExcelBtn" 
