@@ -54,6 +54,7 @@
                         Export to PDF
                     </a> -->
                     <a
+                        id="exportAnnexH1Btn"
                         href="{{ route('pds.export_annex_h1_excel') }}"
                         class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-lg border-2 border-emerald-700 bg-emerald-700 px-4 py-3 text-sm sm:text-base font-montserrat font-semibold text-white shadow-sm transition-all duration-200 hover:border-emerald-800 hover:bg-emerald-800 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-emerald-700/30"
                     >
@@ -1508,6 +1509,27 @@
             }
         }
 
+        async function flushDraftBeforeExport() {
+            // Wait for any in-progress autosave cycle to finish first.
+            while (inFlight) {
+                queued = true;
+                await new Promise((resolve) => setTimeout(resolve, 80));
+            }
+
+            // Force one fresh save using latest form values.
+            await saveDraft(true);
+
+            // If force-save got queued behind another in-flight request, drain it too.
+            while (inFlight || queued) {
+                if (!inFlight && queued) {
+                    queued = false;
+                    await saveDraft(true);
+                    continue;
+                }
+                await new Promise((resolve) => setTimeout(resolve, 80));
+            }
+        }
+
         setInterval(() => saveDraft(false), AUTOSAVE_INTERVAL_MS);
 
         document.addEventListener('visibilitychange', () => {
@@ -1521,6 +1543,24 @@
             const formData = new FormData(form);
             navigator.sendBeacon(autosaveUrl, formData);
         });
+
+        const exportBtn = document.getElementById('exportAnnexH1Btn');
+        if (exportBtn) {
+            exportBtn.addEventListener('click', async (event) => {
+                event.preventDefault();
+                const targetUrl = exportBtn.getAttribute('href');
+                if (!targetUrl) return;
+
+                exportBtn.classList.add('opacity-60', 'cursor-not-allowed');
+                exportBtn.setAttribute('aria-disabled', 'true');
+
+                try {
+                    await flushDraftBeforeExport();
+                } finally {
+                    window.location.href = targetUrl;
+                }
+            });
+        }
     })();
 </script>
 <script>

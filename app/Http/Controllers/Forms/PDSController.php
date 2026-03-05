@@ -396,7 +396,7 @@ class PDSController extends Controller
 
         $fieldToCellMap = [
             'surname' => 'D10', 'first_name' => 'D11', 'middle_name' => 'D12', 'name_extension' => 'L11',
-            'place_of_birth' => 'D15', 'dual_country' => 'L15', 'height' => 'D22', 'weight' => 'D24',
+            'place_of_birth' => 'D15', 'dual_country' => 'J16', 'height' => 'D22', 'weight' => 'D24',
             'blood_type' => 'D25', 'gsis_id_no' => 'D27', 'pagibig_id_no' => 'D29', 'philhealth_no' => 'D31',
             'sss_id_no' => 'D32', 'tin_no' => 'D33', 'agency_employee_no' => 'D34', 'res_house_no' => 'I17',
             'res_street' => 'L17', 'res_sub_vil' => 'I20', 'res_brgy' => 'L20', 'res_city' => 'I22',
@@ -420,27 +420,36 @@ class PDSController extends Controller
             $value = $c1[$field] ?? '';
             if (in_array($field, $addressFields, true)) {
                 $value = $this->formatAddressForAnnexExport($value);
+            } else {
+                $value = $this->formatAnnexDisplayValue($value);
             }
             $this->setExcelText($c1Sheet, $cell, $value);
         }
-        $this->setExcelText($c1Sheet, 'D13', $this->normalizeDateForExcel($c1['date_of_birth'] ?? ''));
+        $this->setExcelText($c1Sheet, 'D13', $this->formatAnnexDisplayValue($this->normalizeDateForExcel($c1['date_of_birth'] ?? '')));
         // Keep text helpers empty; sex/civil status are represented by template checkbox controls.
         $this->setExcelText($c1Sheet, 'D16', '');
         $this->setExcelText($c1Sheet, 'D17', '');
         foreach (['J13', 'K13', 'L13', 'M13', 'N13'] as $cell) {
             $this->setExcelText($c1Sheet, $cell, '');
         }
-        $this->setExcelText($c1Sheet, 'J54', $this->normalizeDateForExcel($c1['elem_from'] ?? ''));
-        $this->setExcelText($c1Sheet, 'K54', $this->normalizeDateForExcel($c1['elem_to'] ?? ''));
-        $this->setExcelText($c1Sheet, 'J55', $this->normalizeDateForExcel($c1['jhs_from'] ?? ''));
-        $this->setExcelText($c1Sheet, 'K55', $this->normalizeDateForExcel($c1['jhs_to'] ?? ''));
+        $this->setExcelText($c1Sheet, 'J54', $this->formatAnnexDisplayValue($this->normalizeDateForExcel($c1['elem_from'] ?? '')));
+        $this->setExcelText($c1Sheet, 'K54', $this->formatAnnexDisplayValue($this->normalizeDateForExcel($c1['elem_to'] ?? '')));
+        $this->setExcelText($c1Sheet, 'J55', $this->formatAnnexDisplayValue($this->normalizeDateForExcel($c1['jhs_from'] ?? '')));
+        $this->setExcelText($c1Sheet, 'K55', $this->formatAnnexDisplayValue($this->normalizeDateForExcel($c1['jhs_to'] ?? '')));
 
         $children = is_array($c1['children'] ?? null) ? $c1['children'] : [];
         for ($i = 0; $i < 12; $i++) {
             $row = 37 + $i;
             $item = $children[$i] ?? [];
-            $this->setExcelText($c1Sheet, "I{$row}", $item['name'] ?? '');
-            $this->setExcelText($c1Sheet, "M{$row}", $this->normalizeDateForExcel($item['dob'] ?? ''));
+            $name = trim((string) ($item['name'] ?? ''));
+            $dob = $this->normalizeDateForExcel($item['dob'] ?? '');
+            if ($name === '' && $dob === '') {
+                $this->setExcelText($c1Sheet, "I{$row}", '');
+                $this->setExcelText($c1Sheet, "M{$row}", '');
+                continue;
+            }
+            $this->setExcelText($c1Sheet, "I{$row}", $this->formatAnnexDisplayValue($name));
+            $this->setExcelText($c1Sheet, "M{$row}", $this->formatAnnexDisplayValue($dob));
         }
 
         $this->fillEducationRowToC1($c1Sheet, '56', $c1['vocational'][0] ?? []);
@@ -451,24 +460,52 @@ class PDSController extends Controller
         for ($i = 0; $i < 7; $i++) {
             $row = 5 + $i;
             $entry = $civilRows[$i] ?? [];
-            $this->setExcelText($c2Sheet, "B{$row}", $entry['cs_eligibility_career'] ?? '');
-            $this->setExcelText($c2Sheet, "F{$row}", $entry['cs_eligibility_rating'] ?? '');
-            $this->setExcelText($c2Sheet, "G{$row}", $this->normalizeDateForExcel($entry['cs_eligibility_date'] ?? ''));
-            $this->setExcelText($c2Sheet, "I{$row}", $entry['cs_eligibility_place'] ?? '');
-            $this->setExcelText($c2Sheet, "J{$row}", $entry['cs_eligibility_license'] ?? '');
-            $this->setExcelText($c2Sheet, "K{$row}", $this->normalizeDateForExcel($entry['cs_eligibility_validity'] ?? ''));
+            $hasData = collect([
+                $entry['cs_eligibility_career'] ?? '',
+                $entry['cs_eligibility_rating'] ?? '',
+                $entry['cs_eligibility_date'] ?? '',
+                $entry['cs_eligibility_place'] ?? '',
+                $entry['cs_eligibility_license'] ?? '',
+                $entry['cs_eligibility_validity'] ?? '',
+            ])->contains(fn($v) => trim((string) $v) !== '');
+            if (!$hasData) {
+                foreach (['B', 'F', 'G', 'I', 'J', 'K'] as $col) {
+                    $this->setExcelText($c2Sheet, "{$col}{$row}", '');
+                }
+                continue;
+            }
+            $this->setExcelText($c2Sheet, "B{$row}", $this->formatAnnexDisplayValue($entry['cs_eligibility_career'] ?? ''));
+            $this->setExcelText($c2Sheet, "F{$row}", $this->formatAnnexDisplayValue($entry['cs_eligibility_rating'] ?? ''));
+            $this->setExcelText($c2Sheet, "G{$row}", $this->formatAnnexDisplayValue($this->normalizeDateForExcel($entry['cs_eligibility_date'] ?? '')));
+            $this->setExcelText($c2Sheet, "I{$row}", $this->formatAnnexDisplayValue($entry['cs_eligibility_place'] ?? ''));
+            $this->setExcelText($c2Sheet, "J{$row}", $this->formatAnnexDisplayValue($entry['cs_eligibility_license'] ?? ''));
+            $this->setExcelText($c2Sheet, "K{$row}", $this->formatAnnexDisplayValue($this->normalizeDateForExcel($entry['cs_eligibility_validity'] ?? '')));
         }
 
         $workRows = is_array($c2['all_user_work_exps'] ?? null) ? $c2['all_user_work_exps'] : [];
         for ($i = 0; $i < 28; $i++) {
             $row = 18 + $i;
             $entry = $workRows[$i] ?? [];
-            $this->setExcelText($c2Sheet, "A{$row}", $this->normalizeDateForExcel($entry['work_exp_from'] ?? ''));
-            $this->setExcelText($c2Sheet, "C{$row}", $this->normalizeDateForExcel($entry['work_exp_to'] ?? ''));
-            $this->setExcelText($c2Sheet, "D{$row}", $entry['work_exp_position'] ?? '');
-            $this->setExcelText($c2Sheet, "G{$row}", $entry['work_exp_department'] ?? '');
-            $this->setExcelText($c2Sheet, "J{$row}", $entry['work_exp_status'] ?? '');
-            $this->setExcelText($c2Sheet, "K{$row}", $entry['work_exp_govt_service'] ?? '');
+            $hasData = collect([
+                $entry['work_exp_from'] ?? '',
+                $entry['work_exp_to'] ?? '',
+                $entry['work_exp_position'] ?? '',
+                $entry['work_exp_department'] ?? '',
+                $entry['work_exp_status'] ?? '',
+                $entry['work_exp_govt_service'] ?? '',
+            ])->contains(fn($v) => trim((string) $v) !== '');
+            if (!$hasData) {
+                foreach (['A', 'C', 'D', 'G', 'J', 'K'] as $col) {
+                    $this->setExcelText($c2Sheet, "{$col}{$row}", '');
+                }
+                continue;
+            }
+            $this->setExcelText($c2Sheet, "A{$row}", $this->formatAnnexDisplayValue($this->normalizeDateForExcel($entry['work_exp_from'] ?? '')));
+            $this->setExcelText($c2Sheet, "C{$row}", $this->formatAnnexDisplayValue($this->normalizeDateForExcel($entry['work_exp_to'] ?? '')));
+            $this->setExcelText($c2Sheet, "D{$row}", $this->formatAnnexDisplayValue($entry['work_exp_position'] ?? ''));
+            $this->setExcelText($c2Sheet, "G{$row}", $this->formatAnnexDisplayValue($entry['work_exp_department'] ?? ''));
+            $this->setExcelText($c2Sheet, "J{$row}", $this->formatAnnexDisplayValue($entry['work_exp_status'] ?? ''));
+            $this->setExcelText($c2Sheet, "K{$row}", $this->formatAnnexDisplayValue($entry['work_exp_govt_service'] ?? ''));
         }
 
         $volRows = is_array($dataVoluntary) ? $dataVoluntary : [];
@@ -522,24 +559,51 @@ class PDSController extends Controller
         $this->setExcelText($c4Sheet, 'L46', $this->yesNoDetail($c4['pwd_40_b'] ?? 'no'));
         $this->setExcelText($c4Sheet, 'L48', $this->yesNoDetail($c4['solo_parent_40_c'] ?? 'no'));
 
-        $this->setExcelText($c4Sheet, 'A52', $c4['ref1_name'] ?? '');
-        $this->setExcelText($c4Sheet, 'F52', $c4['ref1_address'] ?? '');
-        $this->setExcelText($c4Sheet, 'G52', $c4['ref1_tel'] ?? '');
-        $this->setExcelText($c4Sheet, 'A53', $c4['ref2_name'] ?? '');
-        $this->setExcelText($c4Sheet, 'F53', $c4['ref2_address'] ?? '');
-        $this->setExcelText($c4Sheet, 'G53', $c4['ref2_tel'] ?? '');
-        $this->setExcelText($c4Sheet, 'A54', $c4['ref3_name'] ?? '');
-        $this->setExcelText($c4Sheet, 'F54', $c4['ref3_address'] ?? '');
-        $this->setExcelText($c4Sheet, 'G54', $c4['ref3_tel'] ?? '');
+        $this->setExcelText($c4Sheet, 'A52', $this->formatAnnexDisplayValue($c4['ref1_name'] ?? ''));
+        $this->setExcelText($c4Sheet, 'F52', $this->formatAnnexDisplayValue($c4['ref1_address'] ?? ''));
+        $this->setExcelText($c4Sheet, 'G52', $this->formatAnnexDisplayValue($c4['ref1_tel'] ?? ''));
+        $this->setExcelText($c4Sheet, 'A53', $this->formatAnnexDisplayValue($c4['ref2_name'] ?? ''));
+        $this->setExcelText($c4Sheet, 'F53', $this->formatAnnexDisplayValue($c4['ref2_address'] ?? ''));
+        $this->setExcelText($c4Sheet, 'G53', $this->formatAnnexDisplayValue($c4['ref2_tel'] ?? ''));
+        $this->setExcelText($c4Sheet, 'A54', $this->formatAnnexDisplayValue($c4['ref3_name'] ?? ''));
+        $this->setExcelText($c4Sheet, 'F54', $this->formatAnnexDisplayValue($c4['ref3_address'] ?? ''));
+        $this->setExcelText($c4Sheet, 'G54', $this->formatAnnexDisplayValue($c4['ref3_tel'] ?? ''));
 
-        $this->setExcelText($c4Sheet, 'B61', $c4['govt_id_type'] ?? '');
-        $this->setExcelText($c4Sheet, 'B62', $c4['govt_id_number'] ?? '');
+        $this->setExcelText($c4Sheet, 'B61', $this->formatAnnexDisplayValue($c4['govt_id_type'] ?? ''));
+        $this->setExcelText($c4Sheet, 'B62', $this->formatAnnexDisplayValue($c4['govt_id_number'] ?? ''));
         $govtPlace = trim((string) ($c4['govt_id_place_issued'] ?? ''));
         $govtDate = $this->normalizeDateForExcel($c4['govt_id_date_issued'] ?? '');
-        $this->setExcelText($c4Sheet, 'B64', trim($govtPlace . ($govtDate !== '' ? ' | ' . $govtDate : '')));
+        $govtCombined = trim($govtPlace . ($govtDate !== '' ? ' | ' . $govtDate : ''));
+        $this->setExcelText($c4Sheet, 'B64', $this->formatAnnexDisplayValue($govtCombined));
 
         $filename = 'ANNEX H-1 - CS Form No. 212 Revised 2025 - Personal Data Sheet - ' . now()->format('Ymd_His') . '.xlsx';
         $tempPath = storage_path('app/' . uniqid('annex_h1_', true) . '.xlsx');
+
+        // TEMP DEBUG: diagnose civil status checkbox export state.
+        try {
+            $debugC1States = $this->buildC1TemplateCheckboxStates($c1);
+            Log::debug('ANNEX_H1_EXPORT_C1_DEBUG', [
+                'user_id' => Auth::id(),
+                'session_id' => session()->getId(),
+                'civil_status_raw' => $c1['civil_status'] ?? null,
+                'civil_status_normalized' => $this->normalizeCivilStatus((string) ($c1['civil_status'] ?? '')),
+                'sex_raw' => $c1['sex'] ?? null,
+                'sex_normalized' => $this->normalizeSex((string) ($c1['sex'] ?? '')),
+                'c1_checkbox_states' => [
+                    'single_1058' => $debugC1States[1058] ?? null,
+                    'married_1059' => $debugC1States[1059] ?? null,
+                    'widowed_1060' => $debugC1States[1060] ?? null,
+                    'other_1061' => $debugC1States[1061] ?? null,
+                    'separated_1062' => $debugC1States[1062] ?? null,
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            Log::debug('ANNEX_H1_EXPORT_C1_DEBUG_ERROR', [
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage(),
+            ]);
+        }
+
         $this->stripWorkbookDefinedNames($spreadsheet);
         $writer = new Xlsx($spreadsheet);
         $writer->save($tempPath);
@@ -567,13 +631,27 @@ class PDSController extends Controller
 
     private function fillEducationRowToC1($sheet, string $row, array $entry): void
     {
-        $this->setExcelText($sheet, "D{$row}", $entry['school'] ?? '');
-        $this->setExcelText($sheet, "G{$row}", $entry['basic'] ?? '');
-        $this->setExcelText($sheet, "J{$row}", $this->normalizeDateForExcel($entry['from'] ?? ''));
-        $this->setExcelText($sheet, "K{$row}", $this->normalizeDateForExcel($entry['to'] ?? ''));
-        $this->setExcelText($sheet, "L{$row}", $entry['earned'] ?? '');
-        $this->setExcelText($sheet, "M{$row}", $entry['year_graduated'] ?? '');
-        $this->setExcelText($sheet, "N{$row}", $entry['academic_honors'] ?? '');
+        $hasData = false;
+        foreach (['school', 'basic', 'from', 'to', 'earned', 'year_graduated', 'academic_honors'] as $key) {
+            if (trim((string) ($entry[$key] ?? '')) !== '') {
+                $hasData = true;
+                break;
+            }
+        }
+        if (!$hasData) {
+            foreach (['D', 'G', 'J', 'K', 'L', 'M', 'N'] as $col) {
+                $this->setExcelText($sheet, "{$col}{$row}", '');
+            }
+            return;
+        }
+
+        $this->setExcelText($sheet, "D{$row}", $this->formatAnnexDisplayValue($entry['school'] ?? ''));
+        $this->setExcelText($sheet, "G{$row}", $this->formatAnnexDisplayValue($entry['basic'] ?? ''));
+        $this->setExcelText($sheet, "J{$row}", $this->formatAnnexDisplayValue($this->normalizeDateForExcel($entry['from'] ?? '')));
+        $this->setExcelText($sheet, "K{$row}", $this->formatAnnexDisplayValue($this->normalizeDateForExcel($entry['to'] ?? '')));
+        $this->setExcelText($sheet, "L{$row}", $this->formatAnnexDisplayValue($entry['earned'] ?? ''));
+        $this->setExcelText($sheet, "M{$row}", $this->formatAnnexDisplayValue($entry['year_graduated'] ?? ''));
+        $this->setExcelText($sheet, "N{$row}", $this->formatAnnexDisplayValue($entry['academic_honors'] ?? ''));
     }
 
     private function writeYesNoToCells($sheet, string $yesCell, string $noCell, $value): void
@@ -688,7 +766,7 @@ class PDSController extends Controller
         $isByBirth = $isDual && $dualType === 'by birth';
         $isByNaturalization = $isDual && $dualType === 'by naturalization';
 
-        $sex = strtolower(trim((string) ($c1['sex'] ?? '')));
+        $sex = $this->normalizeSex((string) ($c1['sex'] ?? ''));
         $isMale = $sex === 'male';
         $isFemale = $sex === 'female';
 
@@ -1098,7 +1176,7 @@ class PDSController extends Controller
 
         $cellToFieldMap = [
             'D10' => 'surname', 'D11' => 'first_name', 'D12' => 'middle_name', 'L11' => 'name_extension',
-            'D15' => 'place_of_birth', 'L15' => 'dual_country', 'D22' => 'height', 'D24' => 'weight',
+            'D15' => 'place_of_birth', 'J16' => 'dual_country', 'D22' => 'height', 'D24' => 'weight',
             'D25' => 'blood_type', 'D27' => 'gsis_id_no', 'D29' => 'pagibig_id_no', 'D31' => 'philhealth_no',
             'D32' => 'sss_id_no', 'D33' => 'tin_no', 'D34' => 'agency_employee_no', 'I17' => 'res_house_no',
             'L17' => 'res_street', 'I20' => 'res_sub_vil', 'L20' => 'res_brgy', 'I22' => 'res_city',
@@ -1507,6 +1585,15 @@ class PDSController extends Controller
         return $text;
     }
 
+    private function formatAnnexDisplayValue($value): string
+    {
+        $text = trim((string) ($value ?? ''));
+        if ($text === '' || $text === '{*}' || strtolower($text) === 'null') {
+            return 'N/A';
+        }
+        return $text;
+    }
+
     private function normalizeAddressFromExcel($value): string
     {
         $text = trim((string) ($value ?? ''));
@@ -1518,7 +1605,8 @@ class PDSController extends Controller
 
     private function readCellText($sheet, string $cell): string
     {
-        return $this->sanitizeExtractedText(trim((string) $sheet->getCell($cell)->getFormattedValue()));
+        $text = $this->sanitizeExtractedText(trim((string) $sheet->getCell($cell)->getFormattedValue()));
+        return $this->normalizeAddressFromExcel($text);
     }
 
     private function readCellDate($sheet, string $cell, string $outputFormat = 'd-m-Y', bool $monthYearOnly = false): string
