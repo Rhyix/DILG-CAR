@@ -42,7 +42,7 @@
                     <div class="flex gap-6"> <!-- NUMBER 34: b -->
                         <label class="flex items-center cursor-pointer hover:text-blue-600 transition-colors">
                             <input required type="radio" name="related_34_b"  class="mr-2"
-                            value="yes" {{ old('related_34_b', $data['related_34_b'] ?? '') != null ? 'checked' : '' }}>
+                            value="yes" {{ old('related_34_b', $data['related_34_b'] ?? '') == 'yes' ? 'checked' : '' }}>
                             <span>Yes</span>
                         </label>
                         <label class="flex items-center cursor-pointer hover:text-blue-600 transition-colors">
@@ -69,7 +69,7 @@
                     <div class="flex gap-6"> <!-- NUMBER 35: a -->
                         <label class="flex items-center cursor-pointer hover:text-blue-600 transition-colors">
                             <input type="radio" name="guilty_35_a" class="mr-2" required
-                            value="yes" {{ old('guilty_35_a', $data['guilty_35_a'] ?? '') != null ? 'checked' : '' }}>
+                            value="yes" {{ old('guilty_35_a', $data['guilty_35_a'] ?? '') == 'yes' ? 'checked' : '' }}>
                             <span>Yes</span>
                         </label>
                         <label class="flex items-center cursor-pointer hover:text-blue-600 transition-colors">
@@ -92,7 +92,7 @@
                     <div class="flex gap-6"> <!-- NUMBER 35: b -->
                         <label class="flex items-center cursor-pointer hover:text-blue-600 transition-colors">
                             <input type="radio" name="criminal_35_b" class="mr-2"  required
-                            value="yes" {{ old('criminal_35_b', $data['criminal_35_b'] ?? '') != null ? 'checked' : '' }}>
+                            value="yes" {{ old('criminal_35_b', $data['criminal_35_b'] ?? '') == 'yes' ? 'checked' : '' }}>
                             <span>Yes</span>
                         </label>
                         <label class="flex items-center cursor-pointer hover:text-blue-600 transition-colors">
@@ -130,7 +130,7 @@
                     <div class="flex gap-6"> <!-- NUMBER 36 -->
                         <label class="flex items-center cursor-pointer hover:text-blue-600 transition-colors">
                             <input type="radio" name="convicted_36" class="mr-2" required
-                            value="yes" {{ old('convicted_36', $data['convicted_36'] ?? '') != null ? 'checked' : '' }}>
+                            value="yes" {{ old('convicted_36', $data['convicted_36'] ?? '') == 'yes' ? 'checked' : '' }}>
                             <span>Yes</span>
                         </label>
                         <label class="flex items-center cursor-pointer hover:text-blue-600 transition-colors">
@@ -157,7 +157,7 @@
                     <div class="flex gap-6"> <!--NUMBER 37 -->
                         <label class="flex items-center cursor-pointer hover:text-blue-600 transition-colors">
                             <input type="radio" name="separated_37" class="mr-2" required
-                             value="yes" {{ old('separated_37', $data['separated_37'] ?? '') != null ? 'checked' : '' }}>
+                             value="yes" {{ old('separated_37', $data['separated_37'] ?? '') == 'yes' ? 'checked' : '' }}>
                             <span>Yes</span>
                         </label>
                         <label class="flex items-center cursor-pointer hover:text-blue-600 transition-colors">
@@ -181,7 +181,7 @@
                     <div class="flex gap-6"> <!-- NUMBER 38: a -->
                         <label class="flex items-center cursor-pointer hover:text-blue-600 transition-colors">
                             <input type="radio" name="candidate_38_a" class="mr-2" required
-                             value="yes" {{ old('candidate_38', $data['candidate_38'] ?? '') != null ? 'checked' : '' }}>
+                             value="yes" {{ old('candidate_38', $data['candidate_38'] ?? '') == 'yes' ? 'checked' : '' }}>
                             <span>Yes</span>
                         </label>
                         <label class="flex items-center cursor-pointer hover:text-blue-600 transition-colors">
@@ -204,7 +204,7 @@
                     <div class="flex gap-6"> <!-- NUMBER 38: b -->
                         <label class="flex items-center cursor-pointer hover:text-blue-600 transition-colors">
                             <input type="radio" name="resigned_38_b" class="mr-2" required
-                             value="yes" {{ old('resigned_38_b', $data['resigned_38_b'] ?? '') != null ? 'checked' : '' }}>
+                             value="yes" {{ old('resigned_38_b', $data['resigned_38_b'] ?? '') == 'yes' ? 'checked' : '' }}>
                             <span>Yes</span>
                         </label>
                         <label class="flex items-center cursor-pointer hover:text-blue-600 transition-colors">
@@ -229,7 +229,7 @@
                     <div class="flex gap-6"> <!-- NUMBER 39 -->
                         <label class="flex items-center cursor-pointer hover:text-blue-600 transition-colors">
                             <input type="radio" name="immigrant_39"class="mr-2" required
-                             value="yes" {{ old('immigrant_39', $data['immigrant_39'] ?? '') != null ? 'checked' : '' }}>
+                             value="yes" {{ old('immigrant_39', $data['immigrant_39'] ?? '') == 'yes' ? 'checked' : '' }}>
                             <span>Yes</span>
                         </label>
                         <label class="flex items-center cursor-pointer hover:text-blue-600 transition-colors">
@@ -259,7 +259,7 @@
                         <div class="flex gap-4"> <!-- NUMBER 40: a -->
                             <label class="flex items-center cursor-pointer hover:text-blue-600 transition-colors">
                                 <input type="radio" name="indigenous_40_a" class="mr-2" required
-                                 value="yes" {{ old('indigenous_40_a', $data['indigenous_40_a'] ?? '') != null ? 'checked' : '' }}>
+                                 value="yes" {{ old('indigenous_40_a', $data['indigenous_40_a'] ?? '') == 'yes' ? 'checked' : '' }}>
                                 <span>Yes</span>
                             </label>
                             <label class="flex items-center cursor-pointer hover:text-blue-600 transition-colors">
@@ -280,7 +280,7 @@
                         <div class="flex gap-4"> <!-- NUMBER 40: b -->
                             <label class="flex items-center cursor-pointer hover:text-blue-600 transition-colors">
                                 <input type="radio" name="pwd_40_b" class="mr-2" required
-                                 value="yes" {{ old('pwd_40_b', $data['pwd_40_b'] ?? '') != null ? 'checked' : '' }}>
+                                 value="yes" {{ old('pwd_40_b', $data['pwd_40_b'] ?? '') == 'yes' ? 'checked' : '' }}>
                                 <span>Yes</span>
                             </label>
                             <label class="flex items-center cursor-pointer hover:text-blue-600 transition-colors">
@@ -301,7 +301,7 @@
                         <div class="flex gap-4"> <!-- NUMBER 40: c -->
                             <label class="flex items-center cursor-pointer hover:text-blue-600 transition-colors">
                                 <input type="radio" name="solo_parent_40_c" class="mr-2" required
-                                 value="yes" {{ old('solo_parent_40_c', $data['solo_parent_40_c'] ?? '') != null ? 'checked' : '' }}>
+                                 value="yes" {{ old('solo_parent_40_c', $data['solo_parent_40_c'] ?? '') == 'yes' ? 'checked' : '' }}>
                                 <span>Yes</span>
                             </label>
                             <label class="flex items-center cursor-pointer hover:text-blue-600 transition-colors">
@@ -1008,3 +1008,4 @@
         })();
     </script>
     
+
