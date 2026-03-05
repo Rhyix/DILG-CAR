@@ -981,6 +981,8 @@ private function writeChildrenChunk($pdf, $chunk)
     }
 }
 
+// Educational Background
+
 private function writeEducationalBackground($pdf, $education)
 {
     // === Elementary Section ===
@@ -995,13 +997,31 @@ private function writeEducationalBackground($pdf, $education)
     if (!$hasElemData) {
         $this->writeFittedAt($pdf, 'N/A', 41.5, 267, 49, 7.0, 5.0);
     } else {
-        $this->writeFittedAt($pdf, $this->valueOrNa($education?->elem_school), 41.5, 265.5, 41, 6.5, 4.5);
-        $this->writeFittedAt($pdf, $this->valueOrNa($education?->elem_basic), 90, 265, 45, 6.5, 4.5);
-        $this->writeFittedAt($pdf, $this->dateOrNa($education?->elem_from, 'm/Y'), 135, 265.5, 27, 7.7, 5.0);
-        $this->writeFittedAt($pdf, $this->dateOrNa($education?->elem_to, 'm/Y'), 147,265.5, 31.5, 7.7, 5.0);
-        $this->writeFittedAt($pdf, $this->valueOrNa($education?->elem_earned), 166, 266, 18, 7.7, 5.0);
-        $this->writeFittedAt($pdf, $this->valueOrNa($education?->elem_year_graduated), 181, 265.5, 12, 7.7, 5.0);
-        $this->writeFittedAt($pdf, $this->valueOrNa($education?->elem_academic_honors), 198, 265.5, 8, 5.0, 5.0);
+        $this->writeWrapped(
+            $pdf,
+            $this->valueOrNa($education?->elem_school),
+            41,
+            40,
+            263,
+            264.0,
+            6.5,
+            2.0
+        );
+        $this->writeWrapped(
+            $pdf,
+            $this->valueOrNa($education?->elem_basic),
+            45,
+            90,
+            263,
+            263.7,
+            6.5,
+            2.0
+        );
+        $this->writeFittedAt($pdf, $this->dateOrNa($education?->elem_from, 'm/Y'), 135, 263, 27, 7.7, 5.0);
+        $this->writeFittedAt($pdf, $this->dateOrNa($education?->elem_to, 'm/Y'), 148,263, 31.5, 7.7, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($education?->elem_earned), 166, 263, 18, 7.7, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($education?->elem_year_graduated), 181, 263, 12, 7.7, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($education?->elem_academic_honors), 198, 263, 8, 5.0, 5.0);
     }
 
     // === Junior High Section ===
