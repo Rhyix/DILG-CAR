@@ -499,6 +499,25 @@
                 </div>
 
                 <!-- Elementary -->
+                @php
+                    $educationBg = auth()->user()?->educationalBackground;
+
+                    $elemBasicPrefill = old('elem_basic');
+                    if ($elemBasicPrefill === null || trim((string) $elemBasicPrefill) === '') {
+                        $elemBasicPrefill = session('form.c1.elem_basic');
+                    }
+                    if (($elemBasicPrefill === null || trim((string) $elemBasicPrefill) === '') && $educationBg) {
+                        $elemBasicPrefill = $educationBg->elem_basic;
+                    }
+
+                    $jhsBasicPrefill = old('jhs_basic');
+                    if ($jhsBasicPrefill === null || trim((string) $jhsBasicPrefill) === '') {
+                        $jhsBasicPrefill = session('form.c1.jhs_basic');
+                    }
+                    if (($jhsBasicPrefill === null || trim((string) $jhsBasicPrefill) === '') && $educationBg) {
+                        $jhsBasicPrefill = $educationBg->jhs_basic;
+                    }
+                @endphp
                 <div class="mb-6">
                     <h3 class="text-base sm:text-lg font-semibold text-gray-700 mb-4">ELEMENTARY</h3>
                     <div class="mobile-stack md:grid md:grid-cols-4 gap-4 sm:gap-6">
@@ -507,7 +526,7 @@
                             <label for="elem_school" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">School Name<span class="text-red-500">*</span></label>
                         </div>
                         <div class="relative md:col-span-2">
-                            <input type="text" id="elem_basic" name="elem_basic" value="PRIMARY" readonly placeholder=" " class="text-gray-500 floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
+                            <input type="text" id="elem_basic" name="elem_basic" value="{{ $elemBasicPrefill }}" placeholder=" " class="text-gray-500 floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
                             <label for="elem_basic" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Basic Education/Degree/Course</label>
                         </div>
                         <div class="relative">
@@ -542,7 +561,7 @@
                             <label for="jhs_school" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">School Name<span class="text-red-500">*</span></label>
                         </div>
                         <div class="relative md:col-span-2">
-                            <input type="text" id="jhs_basic" name="jhs_basic" value="{{ old('jhs_basic', session('form.c1.jhs_basic', 'SECONDARY')) }}" readonly placeholder=" " class="text-gray-500 floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
+                            <input type="text" id="jhs_basic" name="jhs_basic" value="{{ $jhsBasicPrefill }}" placeholder=" " class="text-gray-500 floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
                             <label for="jhs_basic" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Basic Education/Degree/Course</label>
                         </div>
                         <div class="relative">

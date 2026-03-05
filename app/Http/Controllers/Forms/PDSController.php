@@ -2038,6 +2038,7 @@ class PDSController extends Controller
         if (empty(session('data_learning')) && empty(session('data_voluntary')) && empty(session('data_otherInfo'))) {
             $this->c3GetDatabase();
         }
+        $this->syncLearningSessionFromDatabaseIfStale();
         $data_learning = session('data_learning', []);
         $data_voluntary = session('data_voluntary', []);
         $data_otherInfo = session('data_otherInfo', []);
@@ -2047,6 +2048,26 @@ class PDSController extends Controller
                     ->log('Viewed C3 form.');
         */
         return view('pds.c3', compact('data_learning', 'data_voluntary', 'data_otherInfo'));
+    }
+
+    private function syncLearningSessionFromDatabaseIfStale(): void
+    {
+        $currentUserId = Auth::id();
+        if (!$currentUserId) {
+            return;
+        }
+
+        $sessionLearning = session('data_learning', []);
+        $sessionCount = is_array($sessionLearning) ? count($sessionLearning) : 0;
+
+        $dbLearning = LearningAndDevelopment::where('user_id', $currentUserId)
+            ->orderByDesc('learning_from')
+            ->get()
+            ->toArray();
+
+        if (count($dbLearning) > $sessionCount) {
+            session(['data_learning' => $dbLearning]);
+        }
     }
 
     public function c3GetDatabase()
@@ -4285,6 +4306,7 @@ class PDSController extends Controller
         if (empty(session('data_learning')) && empty(session('data_voluntary')) && empty(session('data_otherInfo'))) {
             $this->c3GetDatabase();
         }
+        $this->syncLearningSessionFromDatabaseIfStale();
         $data_learning = session('data_learning', []);
         $data_voluntary = session('data_voluntary', []);
         $data_otherInfo = session('data_otherInfo', []);

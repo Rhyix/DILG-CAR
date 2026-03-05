@@ -157,10 +157,13 @@ class ExportPDSController
         }
 
         $hasVWOverflow = count($vwChunks) > 1;
-        $hasLNDOverflow = count($lndChunks) > 1;;
+        $hasLNDOverflow = count($lndChunks) > 1;
 
+        // Excel-path export currently supports only the first 21 L&D rows.
+        // When L&D overflows, force FPDI so continuation pages are generated.
+        $canUseExcelTemplate = !$request->boolean('force_fpdi') && !$hasLNDOverflow;
         $excelExport = null;
-        if (!$request->boolean('force_fpdi')) {
+        if ($canUseExcelTemplate) {
             $excelExport = $this->tryExportViaExcelTemplate(
                 $request,
                 $personalInfo,
@@ -409,13 +412,6 @@ class ExportPDSController
             $this->setFont($pdf, 'Arial', '', 8);
         }
 
-        if ($lndHasOverflow) {
-            $this->setFont($pdf, 'Arial', 'B', 8);
-            $this->setXY($pdf, 8, 235); // adjust as needed for L&D
-            $pdf->Write(0, "CONTINUED");
-            $this->setFont($pdf, 'Arial', '', 8);
-        }
-
         if ($skillsHasOverflow || $distinctionsHasOverflow || $organizationsHasOverflow) {
             $this->setFont($pdf, 'Arial', 'B', 8);
             $this->setXY($pdf, 8, 299); // adjust as needed for Other Information
@@ -427,14 +423,16 @@ class ExportPDSController
         // Overflow Pages: Page 3 logic for remaining chunks
         // ----------------------------
 
-        for ($i = 1; $i < max(
+        $page3OverflowMax = max(
             count($vwChunks),
-            count($lndChunks),
             count($skillsChunks),
             count($distinctionsChunks),
             count($organizationsChunks)
-        ); $i++) {
+        );
+
+        for ($i = 1; $i < $page3OverflowMax; $i++) {
             $this->currentTemplatePage = 3;
+            $this->configureCoordinateScale((float) $page3Size['width'], (float) $page3Size['height']);
             $pdf->AddPage($page3Size['orientation'], [$page3Size['width'], $page3Size['height']]);
             $pdf->useTemplate($templateId);
             $this->clearLegacyHeaderNote($pdf);
@@ -446,11 +444,6 @@ class ExportPDSController
                 $this->writeVoluntaryWorkChunk($pdf, $vwChunks[$i]);
             }
 
-            // Write Learning and Development chunk if exists
-            if (isset($lndChunks[$i])) {
-                $this->writeLearningAndDevelopmentChunk($pdf, $lndChunks[$i]);
-            }
-
             // Write Other Information chunk if exists
             $skillsChunk = $skillsChunks[$i] ?? [];
             $distinctionsChunk = $distinctionsChunks[$i] ?? [];
@@ -459,6 +452,40 @@ class ExportPDSController
             // Only call if any of them have data
             if ($skillsChunk || $distinctionsChunk || $organizationsChunk) {
                 $this->writeOtherInformation($pdf, $skillsChunk, $distinctionsChunk, $organizationsChunk);
+            }
+        }
+
+        // ----------------------------
+        // Overflow Pages: L&D continuation pages (beyond first 21 rows)
+        // ----------------------------
+        if ($lndHasOverflow) {
+            $lndContinuationTemplatePath = resource_path('templates/LEARNING AND DEVELOPMENT (L&D) INTERVENTIONSTRAINING PROGRAMS ATTENDED.pdf');
+            $lndContinuationTemplateId = $templateId;
+            $lndContinuationPageSize = $page3Size;
+            $usingDedicatedLndTemplate = false;
+
+            if (file_exists($lndContinuationTemplatePath)) {
+                $pdf->setSourceFile($lndContinuationTemplatePath);
+                $lndContinuationTemplateId = $pdf->importPage(1);
+                $lndContinuationPageSize = $pdf->getTemplateSize($lndContinuationTemplateId);
+                $usingDedicatedLndTemplate = true;
+            }
+
+            for ($i = 1; $i < count($lndChunks); $i++) {
+                $this->currentTemplatePage = 3;
+                $this->configureCoordinateScale((float) $lndContinuationPageSize['width'], (float) $lndContinuationPageSize['height']);
+                $pdf->AddPage($lndContinuationPageSize['orientation'], [$lndContinuationPageSize['width'], $lndContinuationPageSize['height']]);
+                $pdf->useTemplate($lndContinuationTemplateId);
+                $this->clearLegacyHeaderNote($pdf);
+
+                $this->writeLearningAndDevelopmentChunk($pdf, $lndChunks[$i]);
+                $this->setXY($pdf, 161, $this->isShortBondTemplate ? 273.2 : 305);
+                $pdf->Write(0, Carbon::now()->format('m/d/Y'));
+            }
+
+            if ($usingDedicatedLndTemplate) {
+                // Restore the main PDS source before importing page 4.
+                $pdf->setSourceFile($templatePath);
             }
         }
 
