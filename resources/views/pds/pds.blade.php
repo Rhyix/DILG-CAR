@@ -677,7 +677,7 @@
     });
     const psgcApiBase = @json(url('/psgc'));
     const perProvince = document.querySelector('#per_province');
-    const perCity = document.querySelector('#per_city');
+    const perCity = document.querggySelector('#per_city');
     const perBrgy = document.querySelector('#per_brgy');
     const resProvince = document.querySelector('#res_province');
     const resCity = document.querySelector('#res_city');

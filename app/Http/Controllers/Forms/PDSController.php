@@ -3197,12 +3197,23 @@ class PDSController extends Controller
         $hasExistingApplicationLetter = Applications::where('user_id', $user->id)
             ->whereNotNull('file_storage_path')
             ->exists();
+        $latestApplicationLetterPath = Applications::where('user_id', $user->id)
+            ->whereNotNull('file_storage_path')
+            ->latest('updated_at')
+            ->value('file_storage_path');
+        $applicationLetterPreviewUrl = !empty($latestApplicationLetterPath)
+            ? url('/preview-file/' . base64_encode((string) $latestApplicationLetterPath))
+            : null;
 
         // Reuse previously uploaded files from prior applications.
         $documents = $this->loadReusableUploadedDocumentsMap(
             (int) $user->id,
             !empty($applicationVacancyId) ? (string) $applicationVacancyId : null
         );
+        $documentsResolved = [];
+        foreach (array_keys($this->getDocumentLabelMap()) as $docType) {
+            $documentsResolved[$docType] = $this->resolveUploadedDocument($documents, (string) $docType);
+        }
 
         $defaultDocTrack = request('doc_track');
         if ($vacancyForApplication) {
@@ -3238,10 +3249,12 @@ class PDSController extends Controller
 
         return view('pds.c5', compact(
             'documents',
+            'documentsResolved',
             'defaultDocTrack',
             'requiredDocsByTrack',
             'documentLabels',
             'hasExistingApplicationLetter',
+            'applicationLetterPreviewUrl',
             'applicationVacancyId',
             'isFreshUpload',
             'hasFreshUploadForVacancy'

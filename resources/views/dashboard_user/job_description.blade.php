@@ -131,24 +131,6 @@
             </div>
         </section>
 
-        <!-- Confirm Application Modal -->
-        <div id="confirmApplyModal" class="fixed inset-0 z-[1200] flex items-center justify-center bg-black/55 backdrop-blur-md hidden px-4 py-6">
-            <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
-                <h2 class="text-lg font-semibold text-[#002C76] mb-3">Submit Application</h2>
-                <p class="text-sm text-gray-700 mb-6">
-                    Your required documents are ready. Do you want to submit your application now?
-                </p>
-
-                <form id="applyForm" action="{{ route('application.store', $vacancy->vacancy_id) }}" method="POST">
-                    @csrf
-                    <div class="flex justify-end gap-2">
-                        <button type="button" onclick="closeConfirmApplyModal()" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">Cancel</button>
-                        <button type="submit" class="use-loader px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Submit Application</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
         <!-- Complete PDS First Modal -->
         <div id="pdsRequiredModal" class="fixed inset-0 z-[1200] flex items-center justify-center bg-black/55 backdrop-blur-md hidden px-4 py-6">
             <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
@@ -234,7 +216,7 @@
                         Cancel
                     </button>
                     <button type="button" onclick="window.location.href='{{ $requiredDocsRedirectUrlForModal }}'" class="use-loader px-4 py-2 bg-[#0D2B70] text-white rounded-lg hover:bg-[#0A245D]">
-                        Continue to Apply
+                        Go to Upload Documents
                     </button>
                 </div>
                 </div>
@@ -388,12 +370,16 @@
 
 <script>
     function openModal(id) {
-        document.getElementById(id).classList.remove('hidden');
+        const modal = document.getElementById(id);
+        if (!modal) return;
+        modal.classList.remove('hidden');
         document.body.classList.add('overflow-hidden');
     }
 
     function closeModal(id) {
-        document.getElementById(id).classList.add('hidden');
+        const modal = document.getElementById(id);
+        if (!modal) return;
+        modal.classList.add('hidden');
         document.body.classList.remove('overflow-hidden');
     }
 
@@ -401,23 +387,19 @@
         const hasIncompletePds = @json($hasIncompletePdsForApply);
         if (hasIncompletePds) { openModal('pdsRequiredModal'); return; }
 
-        const hasMissingRequiredDocs = @json($hasMissingRequiredDocsForModal);
-        if (hasMissingRequiredDocs) { openModal('requiredDocsModal'); return; }
-
         const hasDocTrackMismatch = @json($hasDocTrackMismatch);
         if (hasDocTrackMismatch) { openModal('docTrackMismatchModal'); return; }
 
-        openModal('confirmApplyModal');
+        openModal('requiredDocsModal');
     }
 
-    function closeConfirmApplyModal()      { closeModal('confirmApplyModal'); }
     function closePdsRequiredModal()       { closeModal('pdsRequiredModal'); }
     function closeRequiredDocsModal()      { closeModal('requiredDocsModal'); }
     function closeDocTrackMismatchModal()  { closeModal('docTrackMismatchModal'); }
 
     // Re-initialize Feather Icons
     document.addEventListener('DOMContentLoaded', function() {
-        const modalIds = ['confirmApplyModal', 'pdsRequiredModal', 'requiredDocsModal', 'docTrackMismatchModal'];
+        const modalIds = ['pdsRequiredModal', 'requiredDocsModal', 'docTrackMismatchModal'];
         modalIds.forEach((id) => {
             const modal = document.getElementById(id);
             if (modal && modal.parentElement !== document.body) {
@@ -443,5 +425,14 @@
         if (showMismatchModalOnLoad) {
             openModal('docTrackMismatchModal');
         }
+
+        // Backward compatibility for legacy confirmation modal triggers.
+        window.submitApplication = openApplyModal;
+        window.confirmApply = openApplyModal;
+        window.openApplyConfirmationModal = openApplyModal;
+        window.closeApplyConfirmationModal = function () {};
+        window.addEventListener('confirm-apply-modal', function () {
+            openApplyModal();
+        });
     });
 </script>

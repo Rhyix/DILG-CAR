@@ -32,6 +32,7 @@
         $activeTrack = 'Plantilla';
     }
     $requiresFreshUpload = !empty($isFreshUpload);
+    $applicationLetterPreviewUrl = $applicationLetterPreviewUrl ?? null;
 @endphp
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         @if ($errors->any())
@@ -120,11 +121,17 @@
                 <div id="documents-container">
                 @foreach ($documentMeta as $docType => $meta)
                     @php
-                        $doc = $documents[$docType] ?? null;
+                        $doc = ($documentsResolved[$docType] ?? null) ?: ($documents[$docType] ?? null);
                         $status = trim((string) ($doc->status ?? ''));
                         $isApproved = strcasecmp($status, 'Okay/Confirmed') === 0;
-                        $hasStoredDoc = !empty($doc?->storage_path)
-                            || ($docType === 'application_letter' && !empty($hasExistingApplicationLetter));
+                        $docStoragePath = trim((string) ($doc->storage_path ?? ''));
+                        $previewUrl = '';
+                        if ($docStoragePath !== '' && $docStoragePath !== 'NOINPUT') {
+                            $previewUrl = url('/preview-file/' . base64_encode($docStoragePath));
+                        } elseif ($docType === 'application_letter' && !empty($applicationLetterPreviewUrl)) {
+                            $previewUrl = $applicationLetterPreviewUrl;
+                        }
+                        $hasStoredDoc = $previewUrl !== '' || ($docType === 'application_letter' && !empty($hasExistingApplicationLetter));
                         $hasExisting = $hasStoredDoc;
                         $requiredCos = in_array($docType, $requiredDocsByTrack['COS'] ?? [], true);
                         $requiredPlantilla = in_array($docType, $requiredDocsByTrack['Plantilla'] ?? [], true);
@@ -160,6 +167,25 @@
                                 </div>
                             @else
                                 <div class="flex items-center gap-3">
+                                    @if($previewUrl !== '')
+                                        <a
+                                            href="{{ $previewUrl }}"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            class="inline-flex items-center px-3 py-2 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100"
+                                        >
+                                            Preview
+                                        </a>
+                                    @endif
+                                    @if($hasExisting)
+                                        <button
+                                            type="button"
+                                            onclick="document.getElementById('{{ $inputId }}')?.click()"
+                                            class="inline-flex items-center px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-100 border border-slate-200 rounded-md hover:bg-slate-200"
+                                        >
+                                            Re-upload
+                                        </button>
+                                    @endif
                                     <label
                                         for="{{ $inputId }}"
                                         class="cert-upload-area inline-flex items-center justify-center border border-gray-300 p-1 rounded cursor-pointer"
