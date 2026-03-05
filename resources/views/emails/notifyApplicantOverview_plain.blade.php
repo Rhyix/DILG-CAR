@@ -24,9 +24,34 @@ Reviewed by: {{ $reviewer_name ?? 'N/A' }}
   $noticeMode = strtolower(trim((string) ($compliance_notice_mode ?? 'default')));
   $isFinalWarning = $noticeMode === 'final_warning';
   $isFinalDisqualified = $noticeMode === 'disqualified_final';
-  $showActionRequirements = !$isFinalDisqualified && (!$isQualified || $hasRevisions);
+  $showActionRequirements = !$isFinalDisqualified && !$isQualified;
   $displayDeadline = !empty($deadline) && $deadline !== 'No deadline set' ? $deadline : null;
   $displayRemarks = trim((string) ($application_remarks ?? ''));
+
+  $normalizeQs = function ($value) {
+    $normalized = strtolower(trim((string) $value));
+    if (in_array($normalized, ['yes', 'qualified', 'pass', 'passed'], true)) {
+      return 'yes';
+    }
+    if (in_array($normalized, ['na', 'n/a', 'not applicable'], true)) {
+      return 'na';
+    }
+    return 'no';
+  };
+
+  $qsLackings = [];
+  if ($normalizeQs($qs_education ?? 'no') === 'no') {
+    $qsLackings[] = 'Education';
+  }
+  if ($normalizeQs($qs_eligibility ?? 'no') === 'no') {
+    $qsLackings[] = 'Eligibility';
+  }
+  if ($normalizeQs($qs_experience ?? 'no') === 'no') {
+    $qsLackings[] = 'Experience';
+  }
+  if ($normalizeQs($qs_training ?? 'no') === 'no') {
+    $qsLackings[] = 'Training';
+  }
 @endphp
 
 Documents:
@@ -48,12 +73,17 @@ Action Required:
 - You are not qualified for this position.
 @elseif($showActionRequirements)
 Action Required:
+@if($displayDeadline)
 - Please comply with all deficiencies noted above.
 @if($isFinalWarning)
 - This is your final opportunity to comply.
 @endif
-@if($displayDeadline)
 - Submission deadline: {{ $displayDeadline }}
+@else
+@if(!empty($qsLackings))
+- This is the Qualifications you must attain inorder to apply for this job.
+- Qualification standards not met: {{ implode(', ', $qsLackings) }}.
+@endif
 @endif
 @else
 Action Required:
@@ -64,9 +94,6 @@ Action Required:
 Remarks:
 {{ $displayRemarks }}
 @endif
-
-Login to comply:
-{{ route('login.form', ['redirect' => 'application_status', 'user' => $user_id, 'vacancy' => $vacancy_id]) }}
 
 View full status:
 {{ route('application_status', ['user' => $user_id, 'vacancy' => $vacancy_id]) }}

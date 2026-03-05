@@ -92,8 +92,20 @@
 </head>
 
 <body>
+    @php
+        $logoPath = public_path('images/dilg_logo.png');
+        $logoSrc = asset('images/dilg_logo.png');
+
+        if (isset($message) && is_object($message) && method_exists($message, 'embed') && is_file($logoPath)) {
+            try {
+                $logoSrc = $message->embed($logoPath);
+            } catch (\Throwable $e) {
+                $logoSrc = asset('images/dilg_logo.png');
+            }
+        }
+    @endphp
     <div class="email-container">
-        <div class="email-header">            <img src="{{ asset('images/dilg_logo.png') }}" alt="DILG Logo" style="width:64px;height:64px;object-fit:contain;display:block;margin:0 auto 12px auto;border-radius:4px;">            <h1>📝 Exam Notification</h1>
+        <div class="email-header">            <img src="{{ $logoSrc }}" alt="DILG Logo" style="width:64px;height:64px;object-fit:contain;display:block;margin:0 auto 12px auto;border-radius:4px;">            <h1>📝 Exam Notification</h1>
         </div>
 
         <div class="email-body">
@@ -138,9 +150,9 @@
 
             <p><strong>Important Reminders:</strong></p>
             <ul>
-                <li>Please arrive at the exam venue at least 15 minutes before the scheduled time.</li>
+                <li>Please arrive at the exam venue at least 20 minutes before the scheduled time.</li>
                 <li>Bring a valid ID for verification purposes.</li>
-                <li>Make sure you have a stable internet connection if taking the exam online.</li>
+                <li>Bring a your own Laptop.</li>
                 <li>The exam will be available only during the scheduled time.</li>
             </ul>
 
@@ -161,3 +173,4 @@
 </body>
 
 </html>
+

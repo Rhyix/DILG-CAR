@@ -1,8 +1,9 @@
 @extends('layout.admin')
 @section('title', 'Positions')
+@section('main-padding', 'px-5')
 
 @section('content')
-<div class="h-full max-h-full max-w-6xl mx-auto font-montserrat flex flex-col gap-4 overflow-hidden">
+<div class="h-full max-h-full w-full font-montserrat flex flex-col gap-4 overflow-hidden">
     <div class="border-b border-[#0D2B70] pb-3 flex-none">
         <h1 class="text-3xl font-semibold text-[#0D2B70]">Positions</h1>
         <p class="text-sm text-slate-600 mt-2">
@@ -10,22 +11,113 @@
         </p>
     </div>
 
-    <form method="GET" action="{{ route('admin.positions.index') }}" class="max-w-md flex-none">
-        <label for="positions-search" class="sr-only">Search positions</label>
-        <div class="relative">
-            <input
-                id="positions-search"
-                name="search"
-                value="{{ $search }}"
-                type="search"
-                placeholder="Search vacancy ID, title, type, assignment"
-                class="w-full border border-slate-300 rounded-lg pl-10 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0D2B70]"
-            >
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
-            </svg>
+    @php
+        $assignmentOptions = $positions
+            ->pluck('place_of_assignment')
+            ->filter()
+            ->map(fn($v) => trim((string)$v))
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values();
+    @endphp
+
+    {{-- Search + Filter Card --}}
+    <div class="flex-none bg-white border border-slate-200 rounded-2xl shadow-sm px-5 py-4 flex flex-col gap-3">
+
+        {{-- Search --}}
+        <div>
+            <p class="text-[0.65rem] font-semibold tracking-widest text-slate-400 uppercase mb-1.5">Search</p>
+            <div class="relative">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
+                </svg>
+                <input
+                    id="positions-search"
+                    name="search"
+                    value="{{ $search }}"
+                    type="search"
+                    placeholder="Search by vacancy ID, job title, salary, or assignment…"
+                    class="w-full border border-slate-200 rounded-xl pl-9 pr-4 py-2.5 text-sm text-[#0D2B70] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0D2B70]/30 focus:border-[#0D2B70] bg-slate-50 transition"
+                >
+            </div>
         </div>
-    </form>
+
+        {{-- Filter Buttons Row --}}
+        <div class="flex flex-wrap items-center gap-2">
+
+            {{-- Vacancy Type Dropdown (Alpine) --}}
+            <div class="relative" id="type-filter-group" x-data="{ open: false, label: 'All' }" @click.outside="open = false">
+                <button type="button" @click="open = !open"
+                    class="flex items-center gap-2 px-4 py-2 rounded-full border border-[#0D2B70] text-[#0D2B70] text-sm font-medium hover:bg-[#0D2B70]/5 transition-colors duration-150 select-none">
+                    {{-- Briefcase icon --}}
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2" />
+                    </svg>
+                    <span x-text="label" class="min-w-[2.5rem] text-center"></span>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 flex-shrink-0 transition-transform duration-150" :class="open ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+                <div x-show="open" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" x-transition:leave="transition ease-in duration-75" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
+                    class="absolute left-0 top-full mt-1.5 z-30 bg-white border border-slate-200 rounded-xl shadow-lg py-1 min-w-[8rem]" x-cloak>
+                    @foreach(['all' => 'All', 'plantilla' => 'Plantilla', 'cos' => 'COS'] as $val => $lbl)
+                    <button type="button" data-type="{{ $val }}"
+                        class="type-filter-btn w-full text-left px-4 py-2 text-sm text-[#0D2B70] hover:bg-[#0D2B70]/5 transition-colors"
+                        @click="label = '{{ $lbl }}'; open = false">
+                        {{ $lbl }}
+                    </button>
+                    @endforeach
+                </div>
+            </div>
+
+            {{-- Place of Assignment Dropdown (Alpine) --}}
+            @if($assignmentOptions->isNotEmpty())
+            <div class="relative" x-data="{ open: false, label: 'All' }" @click.outside="open = false">
+                <button type="button" @click="open = !open"
+                    class="flex items-center gap-2 px-4 py-2 rounded-full border border-[#0D2B70] text-[#0D2B70] text-sm font-medium hover:bg-[#0D2B70]/5 transition-colors duration-150 select-none">
+                    {{-- Filter icon --}}
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 4h18M7 8h10M11 12h2M13 16h-2" />
+                    </svg>
+                    <span x-text="label" class="max-w-[10rem] truncate text-center"></span>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 flex-shrink-0 transition-transform duration-150" :class="open ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+                <div x-show="open" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" x-transition:leave="transition ease-in duration-75" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
+                    class="absolute left-0 top-full mt-1.5 z-30 bg-white border border-slate-200 rounded-xl shadow-lg py-1 min-w-[12rem] max-h-60 overflow-y-auto" x-cloak>
+                    <button type="button" data-assignment=""
+                        class="assignment-filter-btn w-full text-left px-4 py-2 text-sm text-[#0D2B70] hover:bg-[#0D2B70]/5 transition-colors"
+                        @click="label = 'All'; open = false">All</button>
+                    @foreach($assignmentOptions as $assignment)
+                    <button type="button" data-assignment="{{ strtolower($assignment) }}"
+                        class="assignment-filter-btn w-full text-left px-4 py-2 text-sm text-[#0D2B70] hover:bg-[#0D2B70]/5 transition-colors"
+                        @click="label = '{{ addslashes($assignment) }}'; open = false">
+                        {{ $assignment }}
+                    </button>
+                    @endforeach
+                </div>
+            </div>
+            @else
+            {{-- Placeholder button when no assignments exist --}}
+            <div class="relative" x-data="{ open: false }">
+                <button type="button"
+                    class="flex items-center gap-2 px-4 py-2 rounded-full border border-[#0D2B70] text-[#0D2B70] text-sm font-medium opacity-50 cursor-default select-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 4h18M7 8h10M11 12h2M13 16h-2" />
+                    </svg>
+                    <span>All</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+            </div>
+            @endif
+
+        </div>
+    </div>
 
     <div class="flex-1 flex flex-col min-h-0 overflow-hidden border border-[#0D2B70] rounded-xl bg-white shadow">
         <div class="bg-[#0D2B70] text-white text-left rounded-t-xl">
@@ -45,9 +137,12 @@
 
         <div class="flex-1 overflow-auto min-h-0">
             <table class="w-full text-left border-collapse">
-                <tbody class="divide-y divide-[#0D2B70]">
+                <tbody id="positions-tbody" class="divide-y divide-[#0D2B70]">
                     @forelse($positions as $position)
-                        <tr class="text-[#0D2B70] select-none hover:bg-blue-50 transition-colors duration-200">
+                        <tr class="text-[#0D2B70] select-none hover:bg-blue-50 transition-colors duration-200"
+                            data-search="{{ strtolower(implode(' ', array_filter([(string)$position->vacancy_id, (string)$position->position_title, (string)$position->vacancy_type, $position->monthly_salary !== null ? number_format((float)$position->monthly_salary, 2) : '', (string)$position->place_of_assignment]))) }}"
+                            data-type="{{ strtolower((string)$position->vacancy_type) }}"
+                            data-assignment="{{ strtolower(trim((string)$position->place_of_assignment)) }}">
                             <td class="py-4 px-6 w-[20%]">
                                 <div class="flex items-center gap-2">
                                     <div class="w-3 h-3 rounded-full {{ strtoupper((string) $position->status) === 'OPEN' ? 'bg-green-500' : 'bg-red-500' }}"></div>
@@ -88,9 +183,76 @@
                             </td>
                         </tr>
                     @endforelse
+                    <tr id="positions-no-results" class="hidden">
+                        <td colspan="6" class="py-10 text-center text-gray-500 text-2xl">
+                            <i data-feather="search" class="w-7 h-7 inline-block mr-2 text-gray-400"></i>
+                            No positions match your search
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </div>
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const input     = document.getElementById('positions-search');
+    const tbody     = document.getElementById('positions-tbody');
+    const noResults = document.getElementById('positions-no-results');
+
+    if (!input || !tbody) return;
+
+    const rows = Array.from(tbody.querySelectorAll('tr[data-search]'));
+
+    let activeType       = 'all';
+    let activeAssignment = '';
+
+    function applyFilters() {
+        const q = input.value.trim().toLowerCase();
+        let visibleCount = 0;
+
+        rows.forEach(function (row) {
+            const matchSearch     = q === '' || row.dataset.search.includes(q);
+            const matchType       = activeType === 'all' || row.dataset.type === activeType;
+            const matchAssignment = activeAssignment === '' || row.dataset.assignment === activeAssignment;
+            const visible         = matchSearch && matchType && matchAssignment;
+
+            row.classList.toggle('hidden', !visible);
+            if (visible) visibleCount++;
+        });
+
+        if (noResults) {
+            noResults.classList.toggle('hidden', visibleCount > 0 || rows.length === 0);
+        }
+    }
+
+    // Search input
+    input.addEventListener('input', function () {
+        applyFilters();
+        const url = new URL(window.location.href);
+        this.value.trim() ? url.searchParams.set('search', this.value.trim()) : url.searchParams.delete('search');
+        history.replaceState(null, '', url.toString());
+    });
+
+    // Type filter buttons (inside Alpine dropdown)
+    document.addEventListener('click', function (e) {
+        const typeBtn = e.target.closest('.type-filter-btn');
+        if (typeBtn) {
+            activeType = typeBtn.dataset.type;
+            applyFilters();
+        }
+        const assignBtn = e.target.closest('.assignment-filter-btn');
+        if (assignBtn) {
+            activeAssignment = assignBtn.dataset.assignment;
+            applyFilters();
+        }
+    });
+
+    // Apply on load
+    applyFilters();
+});
+</script>
+@endpush

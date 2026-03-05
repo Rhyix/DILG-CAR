@@ -170,6 +170,7 @@
       border-bottom: 1px solid #333333;
       min-height: 18px;
       margin-top: 12px;
+      text-align: center;
     }
 
     .sign-note {
@@ -225,10 +226,10 @@
     $noticeMode = strtolower(trim((string) ($compliance_notice_mode ?? 'default')));
     $isFinalWarning = $noticeMode === 'final_warning';
     $isFinalDisqualified = $noticeMode === 'disqualified_final';
-    $showActionRequirements = !$isFinalDisqualified && (!$isQualified || $hasRevisions);
+    $showActionRequirements = !$isFinalDisqualified && !$isQualified;
     $documentSubmissionStatus = $isFinalDisqualified
       ? 'NOT QUALIFIED'
-      : ($showActionRequirements ? 'INCOMPLETE' : 'COMPLETE');
+      : ($isQualified ? 'COMPLETE' : ($showActionRequirements ? 'INCOMPLETE' : 'COMPLETE'));
 
     $formatQsValue = function ($value) {
       $normalized = strtolower(trim((string) $value));
@@ -246,6 +247,20 @@
     $qsExperienceValue = $formatQsValue($qs_experience ?? 'no');
     $qsTrainingValue = $formatQsValue($qs_training ?? 'no');
     $overallQsMark = $isQualified ? 'YES (&#10003;)' : 'NO (&#10005;)';
+
+    $qsLackingLabels = [];
+    if ($qsEducationValue === 'NO') {
+      $qsLackingLabels[] = 'Education';
+    }
+    if ($qsEligibilityValue === 'NO') {
+      $qsLackingLabels[] = 'Eligibility';
+    }
+    if ($qsExperienceValue === 'NO') {
+      $qsLackingLabels[] = 'Experience';
+    }
+    if ($qsTrainingValue === 'NO') {
+      $qsLackingLabels[] = 'Training';
+    }
 
     $displayDeadline = !empty($deadline) && $deadline !== 'No deadline set' ? $deadline : null;
     $displayRemarks = trim((string) ($application_remarks ?? ''));
@@ -373,12 +388,17 @@
                 <p class="action-text"><strong>Remarks:</strong> {{ $displayRemarks }}</p>
               @endif
             @elseif($showActionRequirements)
-              <p class="action-text">Please comply with all deficiencies noted in the checklist above.</p>
-              @if($isFinalWarning)
-                <p class="action-text"><strong>This is your final opportunity to comply. Once your document/s are marked as 'Needs Revision' again, you will be considered not qualified and will no longer have the opportunity to comply again.</strong></p>
-              @endif
               @if($displayDeadline)
+                <p class="action-text">Please comply with all deficiencies noted in the checklist above.</p>
+                @if($isFinalWarning)
+                  <p class="action-text"><strong>This is your final opportunity to comply. Once your document/s are marked as 'Needs Revision' again, you will be considered not qualified and will no longer have the opportunity to comply again.</strong></p>
+                @endif
                 <p class="action-text"><strong>Submission deadline:</strong> {{ $displayDeadline }}</p>
+              @else
+                @if(!empty($qsLackingLabels))
+                  <p class="action-text"><strong>This is the Qualifications you must attain inorder to apply for this job.</strong></p>
+                  <p class="action-text"><strong>Qualification standards not met:</strong> {{ implode(', ', $qsLackingLabels) }}.</p>
+                @endif
               @endif
               @if($displayRemarks !== '')
                 <p class="action-text"><strong>Remarks:</strong> {{ $displayRemarks }}</p>
@@ -411,17 +431,18 @@
     </table>
 
     <table class="sign-table" role="presentation">
+      <!-- <strong>{{ $reviewer_name ?? '' }}</strong> -->
       <tr>
-        <td>Reviewed by: <strong>{{ $reviewer_name ?? '' }}</strong></td>
+        <td>Reviewed by: </td>
         <td>Received by or emailed to:</td>
       </tr>
       <tr>
         <td>
-          <div class="sign-line">{{ $reviewer_name ?? '' }}</div>
+          <div class="flex justify-center items-center text-center sign-line">{{ $reviewer_name ?? '' }}</div>
           <div class="sign-note">Printed name and signature of HR personnel</div>
         </td>
         <td>
-          <div class="sign-line">{{ $applicant_name ?? 'Applicant' }}</div>
+          <div class="flex justify-center items-center text-center sign-line">{{ $applicant_name ?? 'Applicant' }}</div>
           <div class="sign-note">Printed name and signature of applicant or email address</div>
         </td>
       </tr>
@@ -432,11 +453,6 @@
     </table>
 
     <div class="email-actions">
-      @if($showActionRequirements)
-        Action link:
-        <a href="{{ route('login.form', ['redirect' => 'application_status', 'user' => $user_id, 'vacancy' => $vacancy_id]) }}">Login to Comply</a>
-        <br>
-      @endif
       View full status:
       <a href="{{ route('application_status', ['user' => $user_id, 'vacancy' => $vacancy_id]) }}">Application Status Page</a>
     </div>

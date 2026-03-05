@@ -21,6 +21,7 @@ use App\Models\EducationalBackground;
 use App\Models\MiscInfos;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Schema;
 use Spatie\Activitylog\Models\Activity;
 use Carbon\Carbon;
@@ -57,9 +58,10 @@ class JobVacancyController extends Controller
             ->leftJoin('exam_details', 'job_vacancies.vacancy_id', '=', 'exam_details.vacancy_id')
             ->with('examDetail')
             ->orderByRaw("CASE 
-                WHEN job_vacancies.status = 'OPEN' AND exam_details.date IS NULL THEN 1 
-                WHEN job_vacancies.status = 'OPEN' THEN 2 
-                ELSE 3 
+                WHEN job_vacancies.status = 'OPEN' AND exam_details.date IS NOT NULL AND exam_details.date >= CURDATE() THEN 1 
+                WHEN job_vacancies.status = 'OPEN' AND exam_details.date IS NULL THEN 2 
+                WHEN job_vacancies.status = 'OPEN' AND exam_details.date IS NOT NULL AND exam_details.date < CURDATE() THEN 3 
+                ELSE 4 
             END")
             ->orderBy('job_vacancies.closing_date', 'asc')
             ->get();
@@ -134,6 +136,7 @@ class JobVacancyController extends Controller
             'salary_grade' => 'nullable|string',
             'pcn_no' => 'nullable|string',
             'plantilla_item_no' => 'nullable|string',
+            'csc_form' => 'nullable|file|mimes:pdf,doc,docx|max:10240',
         ]);
 
         $vacancy = JobVacancy::where('vacancy_id', $vacancy_id)->firstOrFail();
@@ -189,6 +192,16 @@ class JobVacancyController extends Controller
             'last_modified_at' => now(),
         ]);
 
+        // Handle CSC Form file upload (update)
+        if (request()->hasFile('csc_form')) {
+            if ($vacancy->csc_form_path) {
+                Storage::disk('public')->delete($vacancy->csc_form_path);
+            }
+            $vacancy->update([
+                'csc_form_path' => request()->file('csc_form')->store('csc_forms', 'public'),
+            ]);
+        }
+
         if (!empty($changes)) {
             activity()
                 ->event('edit')
@@ -235,6 +248,9 @@ class JobVacancyController extends Controller
             'to_position' => 'required|string',
             'to_office' => 'required|string',
             'to_office_address' => 'required|string',
+
+            // CSC Form
+            'csc_form' => 'nullable|file|mimes:pdf,doc,docx|max:10240',
         ]);
 
         // 🔷 Generate vacancy_id
@@ -297,6 +313,9 @@ class JobVacancyController extends Controller
             'to_position' => $validated['to_position'],
             'to_office' => $validated['to_office'],
             'to_office_address' => $validated['to_office_address'],
+            'csc_form_path' => $request->hasFile('csc_form')
+                ? $request->file('csc_form')->store('csc_forms', 'public')
+                : null,
         ]);
 
 
@@ -482,11 +501,12 @@ class JobVacancyController extends Controller
             $vacancies->whereBetween('monthly_salary', [$min * 1000, $max * 1000]);
         }
 
-        // Priority sorting: Unscheduled & Open first
+        // Priority sorting: Scheduled (future exam) → Open (unscheduled) → Completed (past exam) → Closed
         $vacancies->orderByRaw("CASE 
-            WHEN job_vacancies.status = 'OPEN' AND exam_details.date IS NULL THEN 1 
-            WHEN job_vacancies.status = 'OPEN' THEN 2 
-            ELSE 3 
+            WHEN job_vacancies.status = 'OPEN' AND exam_details.date IS NOT NULL AND exam_details.date >= CURDATE() THEN 1 
+            WHEN job_vacancies.status = 'OPEN' AND exam_details.date IS NULL THEN 2 
+            WHEN job_vacancies.status = 'OPEN' AND exam_details.date IS NOT NULL AND exam_details.date < CURDATE() THEN 3 
+            ELSE 4 
         END");
 
         if ($request->sort == 'latest') {
@@ -841,6 +861,7 @@ class JobVacancyController extends Controller
     {
         $applications = Applications::where('user_id', Auth::id())
             ->with('vacancy')
+            ->orderByRaw("CASE WHEN LOWER(TRIM(COALESCE(status, ''))) = 'not qualified' THEN 1 ELSE 0 END")
             ->orderBy('created_at', 'desc')
             ->get();
         /*
@@ -855,10 +876,19 @@ class JobVacancyController extends Controller
     // USEREND application status
     public function applicationStatus($user_id, $vacancy_id)
     {
+        if ((int) Auth::id() !== (int) $user_id) {
+            abort(403, 'Unauthorized access to this application.');
+        }
+
         $application = Applications::where('user_id', $user_id)
             ->where('vacancy_id', $vacancy_id)
             ->with(['personalInformation', 'vacancy'])
             ->firstOrFail();
+
+        if (strcasecmp(trim((string) ($application->status ?? '')), 'Not Qualified') === 0) {
+            return redirect()->route('my_applications')
+                ->with('error', 'This application is already marked as Not Qualified and can no longer be opened.');
+        }
 
         $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->first();
 
@@ -993,6 +1023,10 @@ class JobVacancyController extends Controller
      */
     public function getUpdatedDocumentsUser(Request $request, $user_id, $vacancy_id)
     {
+        if ((int) Auth::id() !== (int) $user_id) {
+            return response()->json(['error' => 'Unauthorized access to this application.'], 403);
+        }
+
         // Debug logging
         \Log::info("getUpdatedDocumentsUser called", [
             'user_id' => $user_id,
@@ -1009,6 +1043,12 @@ class JobVacancyController extends Controller
         if (!$application) {
             \Log::error("Application not found", ['user_id' => $user_id, 'vacancy_id' => $vacancy_id]);
             return response()->json(['error' => 'Application not found'], 404);
+        }
+
+        if (strcasecmp(trim((string) ($application->status ?? '')), 'Not Qualified') === 0) {
+            return response()->json([
+                'error' => 'This application is already marked as Not Qualified and can no longer be opened.'
+            ], 403);
         }
 
         // Use the same logic as applicationStatus method
@@ -1543,6 +1583,8 @@ class JobVacancyController extends Controller
 
         $query = Applications::with('vacancy')
             ->where('user_id', Auth::id());
+
+        $query->orderByRaw("CASE WHEN LOWER(TRIM(COALESCE(status, ''))) = 'not qualified' THEN 1 ELSE 0 END");
 
         if ($sortOrder === 'oldest') {
             $query->orderBy('created_at', 'asc');

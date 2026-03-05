@@ -70,26 +70,6 @@
 								class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 pb-2 border-b border-gray-50">
 								Qualification Standards</div>
 							<div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
-								<!-- Overall Result -->
-								<div
-									class="col-span-1 md:col-span-2 flex items-center justify-between bg-blue-50/50 p-4 rounded-lg">
-									<span class="text-sm font-bold text-[#002C76]">Overall Standard</span>
-									<div class="flex items-center gap-4 ml-auto">
-										<label
-											class="flex items-center gap-2 cursor-pointer result-radio-grp text-green-700 font-semibold text-sm">
-											<input type="radio" name="qs_result" value="Qualified"
-												class="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 focus:ring-green-500"
-												{{ old('qs_result', $application->qs_result ?? 'Not Qualified') === 'Qualified' ? 'checked' : '' }}> Qualified
-										</label>
-										<label
-											class="flex items-center gap-2 cursor-pointer result-radio-grp text-red-700 font-semibold text-sm">
-											<input type="radio" name="qs_result" value="Not Qualified"
-												class="w-4 h-4 text-red-600 bg-gray-100 border-gray-300 focus:ring-red-500"
-												{{ old('qs_result', $application->qs_result ?? 'Not Qualified') === 'Not Qualified' ? 'checked' : '' }}> Not Qualified
-										</label>
-									</div>
-								</div>
-
 								@php
 									$qsFields = [
 										'qs_education' => 'Education',
@@ -121,6 +101,25 @@
 										</div>
 									</div>
 								@endforeach
+								<!-- Overall Result -->
+								<div
+									class="col-span-1 md:col-span-2 flex items-center justify-between bg-blue-50/50 p-4 rounded-lg">
+									<span class="text-sm font-bold text-[#002C76]">Overall Standard</span>
+									<div class="flex items-center gap-4 ml-auto">
+										<label
+											class="flex items-center gap-2 cursor-pointer result-radio-grp text-green-700 font-semibold text-sm">
+											<input type="radio" name="qs_result" value="Qualified"
+												class="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 focus:ring-green-500"
+												{{ old('qs_result', $application->qs_result ?? 'Not Qualified') === 'Qualified' ? 'checked' : '' }}> Qualified
+										</label>
+										<label
+											class="flex items-center gap-2 cursor-pointer result-radio-grp text-red-700 font-semibold text-sm">
+											<input type="radio" name="qs_result" value="Not Qualified"
+												class="w-4 h-4 text-red-600 bg-gray-100 border-gray-300 focus:ring-red-500"
+												{{ old('qs_result', $application->qs_result ?? 'Not Qualified') === 'Not Qualified' ? 'checked' : '' }}> Not Qualified
+										</label>
+									</div>
+								</div>
 							</div>
 						</div>
 
@@ -148,7 +147,7 @@
 									</div>
 
 									<!-- Info Icon -->
-									<button type="button"
+									<!-- <button type="button"
 										onclick="const t = document.getElementById('status-tooltip'); t.classList.toggle('hidden');"
 										class="text-gray-400 hover:text-[#002C76] transition-colors p-1 rounded-full hover:bg-gray-50">
 										<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
@@ -156,7 +155,7 @@
 											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
 												d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
 										</svg>
-									</button>
+									</button> -->
 								</div>
 							</div>
 
@@ -364,8 +363,27 @@
 						<!-- Hidden by default, toggled via JS -->
 						<div id="notify-action-requirements" class="space-y-8 hidden">
 							<!-- Set Deadline -->
-							<div>
-								<div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Set Deadline
+							<div id="show-deadline-wrap" class="hidden">
+								<button
+									type="button"
+									id="show-deadline-btn"
+									class="inline-flex items-center gap-2 text-xs font-semibold text-[#002C76] border border-[#002C76]/30 rounded-md px-3 py-1.5 hover:bg-[#002C76]/5 transition-colors"
+								>
+									Show Set Deadline
+								</button>
+							</div>
+							<div id="notify-deadline-section">
+								<div class="flex items-center justify-between mb-3">
+									<div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Set Deadline</div>
+									<button
+										type="button"
+										id="clear-deadline-btn"
+										class="inline-flex items-center justify-center w-6 h-6 rounded-full border border-gray-300 text-gray-500 hover:text-red-600 hover:border-red-300 hover:bg-red-50 transition-colors"
+										title="Do not set deadline"
+										aria-label="Do not set deadline"
+									>
+										&times;
+									</button>
 								</div>
 								<div class="flex gap-3">
 									<input type="date" name="deadline_date" id="deadline_date"
@@ -379,9 +397,8 @@ value="{{ old('deadline_time', $application->deadline_time ? \Carbon\Carbon::par
 									<i data-feather="alert-triangle" class="inline w-3 h-3"></i> Deadline passed
 								</div>
 							</div>
-
 							<!-- Remarks -->
-							<div>
+							<div id="notify-remarks-section">
 								<div class="flex items-center justify-between mb-3">
 									<div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Applicant
 										Remarks</div>
@@ -456,6 +473,18 @@ value="{{ old('deadline_time', $application->deadline_time ? \Carbon\Carbon::par
 			return requiredDocumentSet.has(docId);
 		}
 
+		function getApplicationProgressStats() {
+			const relevantDocs = documents.filter(doc => isRequiredDocument(doc?.id));
+			const docsForProgress = relevantDocs.length > 0 ? relevantDocs : documents;
+			const totalDocs = docsForProgress.length;
+			const confirmedDocs = docsForProgress.reduce((acc, doc) => (
+				doc.status === 'Okay/Confirmed' || doc.status === 'Verified' ? acc + 1 : acc
+			), 0);
+			const percentage = totalDocs > 0 ? Math.round((confirmedDocs / totalDocs) * 100) : 0;
+
+			return { totalDocs, confirmedDocs, percentage };
+		}
+
 		function escapeHtml(value) {
 			const div = document.createElement('div');
 			div.textContent = value ?? '';
@@ -476,14 +505,27 @@ value="{{ old('deadline_time', $application->deadline_time ? \Carbon\Carbon::par
 			return `${label} ${suffix}`;
 		}
 
+		function docHasUpload(doc) {
+			const status = (doc?.status || '').trim();
+			// Consider a document as "uploaded / has activity" when it is NOT in a purely not-submitted state
+			// and has an actual file preview URL attached.
+			if (status === 'Not Submitted' || status === '') return false;
+			return !!(doc?.preview && doc.preview !== '');
+		}
+
 		function sortDocumentsForRequiredPriority(docList) {
 			return [...(docList || [])].sort((a, b) => {
+				// Primary: documents with an uploaded/pending file come before not-submitted ones
+				const uploadedA = docHasUpload(a) ? 0 : 1;
+				const uploadedB = docHasUpload(b) ? 0 : 1;
+				if (uploadedA !== uploadedB) return uploadedA - uploadedB;
+
+				// Secondary (within same upload tier): required before "if any"
 				const requiredA = isRequiredDocument(a?.id) ? 0 : 1;
 				const requiredB = isRequiredDocument(b?.id) ? 0 : 1;
-				if (requiredA !== requiredB) {
-					return requiredA - requiredB; // required first, optional last
-				}
+				if (requiredA !== requiredB) return requiredA - requiredB;
 
+				// Tertiary: alphabetical by label
 				const labelA = (a?.text || a?.name || a?.id || '').toLowerCase();
 				const labelB = (b?.text || b?.name || b?.id || '').toLowerCase();
 				return labelA.localeCompare(labelB);
@@ -503,6 +545,23 @@ value="{{ old('deadline_time', $application->deadline_time ? \Carbon\Carbon::par
 			return sortDocumentsForRequiredPriority(uploaded);
 		}
 
+		let deadlineHiddenByChoice = false;
+
+		function setDeadlineSectionHidden(hidden, allowRestore = true) {
+			const section = document.getElementById('notify-deadline-section');
+			const showWrap = document.getElementById('show-deadline-wrap');
+			if (!section) return;
+			section.classList.toggle('hidden', !!hidden);
+			if (showWrap) {
+				showWrap.classList.toggle('hidden', !hidden || !allowRestore);
+			}
+		}
+
+		function isDeadlineSectionHidden() {
+			const section = document.getElementById('notify-deadline-section');
+			return !!(section && section.classList.contains('hidden'));
+		}
+
 		document.addEventListener('DOMContentLoaded', function () {
 			documents = sortDocumentsForRequiredPriority(documents);
 
@@ -517,8 +576,26 @@ value="{{ old('deadline_time', $application->deadline_time ? \Carbon\Carbon::par
 			// Bind events
 			const dateInput = document.querySelector('input[name="deadline_date"]');
 			const timeInput = document.querySelector('input[name="deadline_time"]');
+			const clearDeadlineBtn = document.getElementById('clear-deadline-btn');
+			const showDeadlineBtn = document.getElementById('show-deadline-btn');
 			if (dateInput) dateInput.addEventListener('change', checkDeadline);
 			if (timeInput) timeInput.addEventListener('change', checkDeadline);
+			if (clearDeadlineBtn) {
+				clearDeadlineBtn.addEventListener('click', () => {
+					deadlineHiddenByChoice = true;
+					if (dateInput) dateInput.value = '';
+					if (timeInput) timeInput.value = '';
+					setDeadlineSectionHidden(true, true);
+					checkDeadline();
+				});
+			}
+			if (showDeadlineBtn) {
+				showDeadlineBtn.addEventListener('click', () => {
+					deadlineHiddenByChoice = false;
+					setDeadlineSectionHidden(false, true);
+					checkDeadline();
+				});
+			}
 
 			// Bind radio change events for QS
 			const qsRadioNames = ['qs_education', 'qs_eligibility', 'qs_experience', 'qs_training'];
@@ -529,14 +606,29 @@ value="{{ old('deadline_time', $application->deadline_time ? \Carbon\Carbon::par
 			});
 		});
 
-		// --- QS Logic (Manual QS only) ---
+		// --- QS Logic ---
 		function updateQualificationStatus() {
-			// Keep overall result in sync with current QS radio selections only.
-			// Document verification must not auto-toggle QS fields.
+			// Keep overall result in sync with QS radios and progress rules.
 			checkOverallQualification();
 		}
 
+		function setQualificationFieldsState(state) {
+			const fields = ['qs_education', 'qs_eligibility', 'qs_experience', 'qs_training'];
+			const value = state === 'Qualified' ? 'yes' : 'no';
+			fields.forEach(field => {
+				const target = document.querySelector(`input[name="${field}"][value="${value}"]`);
+				if (target) target.checked = true;
+			});
+		}
+
 		function checkOverallQualification() {
+			const { percentage } = getApplicationProgressStats();
+			if (percentage === 100) {
+				setQualificationFieldsState('Qualified');
+				updateResultButton('Qualified');
+				return;
+			}
+
 			const fields = ['qs_education', 'qs_eligibility', 'qs_experience', 'qs_training'];
 			let allGreen = true;
 			let hasRequirements = false;
@@ -1102,16 +1194,40 @@ value="{{ old('deadline_time', $application->deadline_time ? \Carbon\Carbon::par
 		}
 
 		async function notifyApplicant() {
+			// Validate: if deadline section is visible, a date must be selected
+			const deadlineEnabled = !isDeadlineSectionHidden();
+			if (deadlineEnabled) {
+				const dateInput = document.querySelector('input[name="deadline_date"]');
+				if (!dateInput || !dateInput.value) {
+					dateInput?.classList.add('border-red-500', 'ring-1', 'ring-red-400');
+					dateInput?.focus();
+					// Show inline error
+					let errEl = document.getElementById('deadline-required-error');
+					if (!errEl) {
+						errEl = document.createElement('p');
+						errEl.id = 'deadline-required-error';
+						errEl.className = 'text-red-500 text-xs mt-1 font-medium';
+						errEl.textContent = 'Please set a deadline date, or click × to reject.'; 
+						dateInput?.parentElement?.insertAdjacentElement('afterend', errEl);
+					}
+					dateInput?.addEventListener('input', () => {
+						dateInput.classList.remove('border-red-500', 'ring-1', 'ring-red-400');
+						document.getElementById('deadline-required-error')?.remove();
+					}, { once: true });
+					return;
+				}
+			}
+
 			const btn = document.getElementById('confirm-notify-btn');
 			const originalContent = btn.innerHTML;
 			btn.disabled = true;
 			btn.innerHTML = `
-														<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-															<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-															<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-														</svg>
-														Sending...
-													`;
+				<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+					<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+					<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+				</svg>
+				Sending...
+				`;
 			btn.classList.add("opacity-75", "cursor-not-allowed");
 
 			try {
@@ -1120,8 +1236,9 @@ value="{{ old('deadline_time', $application->deadline_time ? \Carbon\Carbon::par
 				const timeInput = document.querySelector('input[name="deadline_time"]');
 
 				const payload = {
-					deadline_date: dateInput ? dateInput.value : null,
-					deadline_time: timeInput ? timeInput.value : null,
+					deadline_enabled: deadlineEnabled ? 1 : 0,
+					deadline_date: deadlineEnabled && dateInput ? (dateInput.value || null) : null,
+					deadline_time: deadlineEnabled && timeInput ? (timeInput.value || null) : null,
 					qs_education: document.querySelector('input[name="qs_education"]:checked')?.value || 'na',
 					qs_eligibility: document.querySelector('input[name="qs_eligibility"]:checked')?.value || 'na',
 					qs_experience: document.querySelector('input[name="qs_experience"]:checked')?.value || 'na',
@@ -1234,17 +1351,17 @@ value="{{ old('deadline_time', $application->deadline_time ? \Carbon\Carbon::par
 					remarksText = doc.remarks || "";
 				}
 				rowsHtml += `
-							<tr class="hover:bg-gray-50/50 transition-colors">
-								<td class="px-5 py-4 align-top text-gray-800 font-medium w-[40%]">${getDocumentLabelHtml(doc)}</td>
-								<td class="px-5 py-4 align-top text-gray-700 w-[25%] whitespace-nowrap">
-									<div class="flex items-center gap-2">
-										<span>${iconHtml}</span>
-										<span class="font-semibold text-xs">${status}</span>
-									</div>
-								</td>
-								<td class="px-5 py-4 align-top text-gray-600 text-xs italic">${remarksText || '<span class="text-gray-300">No remarks</span>'}</td>
-							</tr>
-						`;
+					<tr class="hover:bg-gray-50/50 transition-colors">
+						<td class="px-5 py-4 align-top text-gray-800 font-medium w-[40%]">${getDocumentLabelHtml(doc)}</td>
+						<td class="px-5 py-4 align-top text-gray-700 w-[25%] whitespace-nowrap">
+							<div class="flex items-center gap-2">
+								<span>${iconHtml}</span>
+								<span class="font-semibold text-xs">${status}</span>
+							</div>
+						</td>
+						<td class="px-5 py-4 align-top text-gray-600 text-xs italic">${remarksText || '<span class="text-gray-300">No remarks</span>'}</td>
+					</tr>
+				`;
 			});
 			bodyEl.innerHTML = rowsHtml;
 
@@ -1254,14 +1371,22 @@ value="{{ old('deadline_time', $application->deadline_time ? \Carbon\Carbon::par
 			const hasRevisions = notifyDocs.some(doc => doc.status === 'Needs Revision' || doc.status === 'Disapproved With Deficiency');
 
 			const actionReqEl = document.getElementById('notify-action-requirements');
+			const hideActionReq = isQualified && !hasRevisions;
 			if (actionReqEl) {
-				// Condition: if "Qualified" remove deadline and remarks
-				// if documents have revisions and/or "Not Qualified", enable them
-				if (isQualified && !hasRevisions) {
-					actionReqEl.classList.add('hidden');
-				} else {
-					actionReqEl.classList.remove('hidden');
-				}
+				actionReqEl.classList.toggle('hidden', hideActionReq);
+			}
+
+			const remarksSectionEl = document.getElementById('notify-remarks-section');
+			if (remarksSectionEl) {
+				const hideRemarks = isQualified && !hasRevisions;
+				remarksSectionEl.classList.toggle('hidden', hideRemarks);
+			}
+
+			if (hideActionReq) {
+				deadlineHiddenByChoice = false;
+				setDeadlineSectionHidden(true, false);
+			} else {
+				setDeadlineSectionHidden(deadlineHiddenByChoice, true);
 			}
 
 			const modal = document.getElementById('notify-modal');
@@ -1292,14 +1417,30 @@ value="{{ old('deadline_time', $application->deadline_time ? \Carbon\Carbon::par
 			}
 		}
 
-
 		// Render documents list
 		function renderDocuments(docList) {
 			const listEl = document.getElementById('document-list');
 			if (!listEl) return;
 			listEl.innerHTML = "";
 
-			docList.forEach(doc => {
+			let lastHadUpload = null; // track group transitions
+
+			docList.forEach((doc, index) => {
+				const hasUpload = docHasUpload(doc);
+
+				// Insert a divider when transitioning from uploaded group to not-submitted group
+				if (lastHadUpload !== null && lastHadUpload === true && !hasUpload) {
+					const divider = document.createElement('li');
+					divider.setAttribute('aria-hidden', 'true');
+					divider.className = "my-2 border-t border-dashed border-gray-300 flex items-center gap-2 px-1";
+					const label = document.createElement('span');
+					label.className = "text-[10px] text-gray-400 uppercase tracking-wide whitespace-nowrap";
+					label.textContent = "Not yet submitted";
+					divider.appendChild(label);
+					listEl.appendChild(divider);
+				}
+				lastHadUpload = hasUpload;
+
 				const li = document.createElement('li');
 				li.id = `doc-item-${doc.id}`;
 				li.className = "mb-1"; // minimal margin
@@ -1357,13 +1498,7 @@ value="{{ old('deadline_time', $application->deadline_time ? \Carbon\Carbon::par
 
 		// Update Progress Bar
 		function updateProgressCircle() {
-			const relevantDocs = documents.filter(doc => isRequiredDocument(doc?.id));
-			const docsForProgress = relevantDocs.length > 0 ? relevantDocs : documents;
-			const totalDocs = docsForProgress.length;
-			const confirmedDocs = docsForProgress.reduce((acc, doc) => (
-				doc.status === 'Okay/Confirmed' || doc.status === 'Verified' ? acc + 1 : acc
-			), 0);
-			const percentage = totalDocs > 0 ? Math.round((confirmedDocs / totalDocs) * 100) : 0;
+			const { totalDocs, confirmedDocs, percentage } = getApplicationProgressStats();
 
 			const bar = document.getElementById('linear-progress-bar');
 			if (bar) {
@@ -1382,6 +1517,8 @@ value="{{ old('deadline_time', $application->deadline_time ? \Carbon\Carbon::par
 
 			const countText = document.getElementById('progress-count');
 			if (countText) countText.textContent = `${confirmedDocs}/${totalDocs}`;
+
+			checkOverallQualification();
 
 			// Tooltip updates can be kept simple or removed if not critical
 		}

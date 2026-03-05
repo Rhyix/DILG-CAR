@@ -32,6 +32,7 @@ class JobVacancy extends Model
         'to_position',
         'to_office',
         'to_office_address',
+        'csc_form_path',
         'last_modified_by',
         'last_modified_at',
     ];

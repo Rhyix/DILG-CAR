@@ -38,11 +38,14 @@
                         <span class="lg:hidden text-xs font-bold text-slate-400 uppercase tracking-wide w-32 shrink-0">Status</span>
                         @php
                             $status = $application->status;
+                            $statusNormalized = strtolower(trim((string) $status));
+                            $isNotQualified = $statusNormalized === 'not qualified';
                             $badge = 'bg-gray-100 text-gray-800';
                             if ($status === 'Complete') $badge = 'bg-green-100 text-green-800';
                             elseif ($status === 'Incomplete') $badge = 'bg-orange-100 text-orange-800';
                             elseif ($status === 'Closed') $badge = 'bg-red-100 text-red-800';
                             elseif ($status === 'Pending') $badge = 'bg-yellow-100 text-yellow-800';
+                            elseif ($isNotQualified) $badge = 'bg-red-100 text-red-800';
                         @endphp
                         <span class="px-3 py-1 rounded-full text-xs font-semibold {{ $badge }}">
                             {{ $status }}
@@ -51,13 +54,23 @@
 
                     <!-- Actions -->
                     <div class="lg:py-4 lg:px-6 lg:w-[15%] flex lg:justify-center">
-                        <button
-                            onclick="window.location.href='{{ route('application_status', [$application->user_id, $application->vacancy_id]) }}'"
-                            class="use-loader w-full lg:w-auto justify-center text-[#0D2B70] border border-[#0D2B70] font-bold py-2.5 lg:py-1 px-4 rounded-md text-sm transition-all 
-                            duration-300 hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md inline-flex items-center gap-2">
-                            <i data-feather="eye" class="w-4 h-4"></i>
-                            <span>View</span>
-                        </button>
+                        @if($isNotQualified)
+                            <button
+                                type="button"
+                                disabled
+                                class="w-full lg:w-auto justify-center text-gray-400 border border-gray-300 font-bold py-2.5 lg:py-1 px-4 rounded-md text-sm inline-flex items-center gap-2 cursor-not-allowed opacity-70">
+                                <i data-feather="lock" class="w-4 h-4"></i>
+                                <span>Closed</span>
+                            </button>
+                        @else
+                            <button
+                                onclick="window.location.href='{{ route('application_status', [$application->user_id, $application->vacancy_id]) }}'"
+                                class="use-loader w-full lg:w-auto justify-center text-[#0D2B70] border border-[#0D2B70] font-bold py-2.5 lg:py-1 px-4 rounded-md text-sm transition-all 
+                                duration-300 hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md inline-flex items-center gap-2">
+                                <i data-feather="eye" class="w-4 h-4"></i>
+                                <span>View</span>
+                            </button>
+                        @endif
                     </div>
                 </div>
             @endforeach

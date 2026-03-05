@@ -1848,9 +1848,15 @@ class AdminController extends Controller
             ->firstOrFail();
 
         // Update Deadline and QS data if provided in request
+        $request->merge([
+            'deadline_date' => ($request->input('deadline_date') === '' ? null : $request->input('deadline_date')),
+            'deadline_time' => ($request->input('deadline_time') === '' ? null : $request->input('deadline_time')),
+        ]);
+
         $validatedData = $request->validate([
+            'deadline_enabled' => 'nullable|boolean',
             'deadline_date' => 'nullable|date',
-            'deadline_time' => 'nullable',
+            'deadline_time' => 'nullable|date_format:H:i',
             'qs_education' => 'nullable|string',
             'qs_eligibility' => 'nullable|string',
             'qs_experience' => 'nullable|string',
@@ -1858,11 +1864,22 @@ class AdminController extends Controller
             'qs_result' => 'nullable|string',
         ]);
 
-        if ($request->has('deadline_date')) {
-            $application->deadline_date = $validatedData['deadline_date'];
-        }
-        if ($request->has('deadline_time')) {
-            $application->deadline_time = $validatedData['deadline_time'] ? date('H:i', strtotime($validatedData['deadline_time'])) : null;
+        $deadlineEnabled = !array_key_exists('deadline_enabled', $validatedData)
+            || (bool) $validatedData['deadline_enabled'];
+        if (!$deadlineEnabled) {
+            $application->deadline_date = null;
+            $application->deadline_time = null;
+        } else {
+            if ($request->exists('deadline_date')) {
+                $application->deadline_date = !empty($validatedData['deadline_date'])
+                    ? $validatedData['deadline_date']
+                    : null;
+            }
+            if ($request->exists('deadline_time')) {
+                $application->deadline_time = $validatedData['deadline_time']
+                    ? date('H:i', strtotime($validatedData['deadline_time']))
+                    : null;
+            }
         }
 
         foreach (['qs_education', 'qs_eligibility', 'qs_experience', 'qs_training', 'qs_result'] as $field) {
@@ -1870,6 +1887,7 @@ class AdminController extends Controller
                 $application->$field = $validatedData[$field];
             }
         }
+        $isRejectedByNoDeadline = false;
         $application->save();
 
         // We trust the HR's explicitly validated QS variables instead of overwriting them.
@@ -1882,6 +1900,18 @@ class AdminController extends Controller
         $documents = $this->sortDocumentsAscending($this->getApplicantDocuments($user_id, $application));
         $userDocumentsSnapshot = $this->sortDocumentsAscending($this->buildUserDocumentsSnapshot($user_id, $application));
         $notifyDocumentsSnapshot = $this->filterDocumentsForNotify($userDocumentsSnapshot, $requiredDocumentIds);
+
+        // --- Calculate Progress (required docs only, aligned with admin progress UI) ---
+        $requiredLookup = array_fill_keys($requiredDocumentIds, true);
+        $requiredDocuments = array_values(array_filter($documents, function ($doc) use ($requiredLookup) {
+            $docId = (string) ($doc['id'] ?? '');
+            return $docId !== '' && isset($requiredLookup[$docId]);
+        }));
+        $progressSourceDocs = !empty($requiredDocuments) ? $requiredDocuments : $documents;
+        $totalDocuments = count($progressSourceDocs);
+        $verifiedCount = collect($progressSourceDocs)->whereIn('status', ['Verified', 'Okay/Confirmed'])->count();
+        $progressPercentage = $totalDocuments > 0 ? round(($verifiedCount / $totalDocuments) * 100) : 0;
+        $progressCount = "$verifiedCount/$totalDocuments";
 
         // --- Logic Check for Application Status Update ---
         $hasNeedsRevision = false;
@@ -1914,8 +1944,29 @@ class AdminController extends Controller
             $application->deadline_time = null;
         }
 
+        if (!$hasFinalRevisionFailure && $progressPercentage === 100) {
+            $application->qs_education = 'yes';
+            $application->qs_eligibility = 'yes';
+            $application->qs_experience = 'yes';
+            $application->qs_training = 'yes';
+            $application->qs_result = 'Qualified';
+        }
+
         $isQualifiedByQs = !$hasFinalRevisionFailure
             && strcasecmp((string) ($application->qs_result ?? ''), 'Qualified') === 0;
+        $isRejectedByNoDeadline = !$deadlineEnabled
+            && !$hasFinalRevisionFailure
+            && !$isQualifiedByQs
+            && $hasNeedsRevision;
+        if ($isRejectedByNoDeadline) {
+            $application->qs_result = 'Not Qualified';
+        }
+        if ($isQualifiedByQs) {
+            // Qualified applicants no longer need a compliance deadline.
+            $application->deadline_date = null;
+            $application->deadline_time = null;
+        }
+
         $complianceNoticeMode = $hasFinalRevisionFailure
             ? 'disqualified_final'
             : ($hasNeedsRevision ? 'final_warning' : 'default');
@@ -1926,7 +1977,9 @@ class AdminController extends Controller
         // 3. Otherwise -> keep current status
 
         $statusTransitions = app(ApplicationStatusTransitionService::class);
-        if ($isQualifiedByQs) {
+        if ($isRejectedByNoDeadline || $hasFinalRevisionFailure) {
+            $application->status = 'Not Qualified';
+        } elseif ($isQualifiedByQs) {
             $application->status = ApplicationStatus::QUALIFIED->value;
         } elseif ($hasNeedsRevision && !$hasFinalRevisionFailure) {
             if ($statusTransitions->canTransition($application->status, ApplicationStatus::COMPLIANCE->value)) {
@@ -1936,19 +1989,6 @@ class AdminController extends Controller
 
         $application->save();
         // -------------------------------------------------
-
-        // --- Calculate Progress (required docs only, aligned with admin progress UI) ---
-        $requiredLookup = array_fill_keys($requiredDocumentIds, true);
-        $requiredDocuments = array_values(array_filter($documents, function ($doc) use ($requiredLookup) {
-            $docId = (string) ($doc['id'] ?? '');
-            return $docId !== '' && isset($requiredLookup[$docId]);
-        }));
-
-        $progressSourceDocs = !empty($requiredDocuments) ? $requiredDocuments : $documents;
-        $totalDocuments = count($progressSourceDocs);
-        $verifiedCount = collect($progressSourceDocs)->whereIn('status', ['Verified', 'Okay/Confirmed'])->count();
-        $progressPercentage = $totalDocuments > 0 ? round(($verifiedCount / $totalDocuments) * 100) : 0;
-        $progressCount = "$verifiedCount/$totalDocuments";
 
         // --- Retrieve Job Vacancy Details ---
         $placeOfAssignment = $vacancy->place_of_assignment ?? 'N/A';
@@ -1983,7 +2023,7 @@ class AdminController extends Controller
         $messageTitle = 'Application Status Update';
         $messageBody = 'Your application has been reviewed. Please see the updated status.';
         $messageLevel = 'info';
-        if ($hasFinalRevisionFailure) {
+        if ($hasFinalRevisionFailure || $isRejectedByNoDeadline) {
             $messageTitle = 'Application Not Qualified';
             $messageBody = 'I am sorry to inform you that, you are not qualified for this position.';
             $messageLevel = 'error';
