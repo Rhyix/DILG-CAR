@@ -206,32 +206,7 @@
     </div>
 
 
-    {{-- CSC Form Upload --}}
-    <h2 class="font-bold mt-6">CSC FORM ATTACHMENT</h2>
-    <div class="mt-3 mb-6">
-        <label class="block mb-2 text-sm">CSC Form <span class="text-xs text-slate-500">(PDF, DOC, DOCX &mdash; max 10MB)</span></label>
-        <label for="csc_form_upload_cos"
-            class="inline-flex items-center gap-3 cursor-pointer border-2 border-dashed border-[#0D2B70] rounded-lg px-4 py-3 text-[#0D2B70] text-sm font-medium hover:bg-[#0D2B70]/5 transition-colors w-full">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-            </svg>
-            <span id="csc_form_filename_cos" class="truncate">
-                @if(isset($vacancy) && $vacancy->csc_form_path)
-                    {{ basename($vacancy->csc_form_path) }}
-                @else
-                    Choose a file to upload&hellip;
-                @endif
-            </span>
-        </label>
-        <input id="csc_form_upload_cos" type="file" name="csc_form" accept=".pdf,.doc,.docx" class="sr-only"
-            onchange="document.getElementById('csc_form_filename_cos').textContent = this.files[0] ? this.files[0].name : 'Choose a file to upload\u2026'">
-        @if(isset($vacancy) && $vacancy->csc_form_path)
-            <p class="text-xs text-slate-500 mt-1">
-                Current file: <a href="{{ Storage::url($vacancy->csc_form_path) }}" target="_blank" class="text-[#0D2B70] underline">{{ basename($vacancy->csc_form_path) }}</a>
-                &mdash; Upload a new file to replace it.
-            </p>
-        @endif
-    </div>
+
 
   </form>
 

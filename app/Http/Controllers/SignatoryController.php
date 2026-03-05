@@ -12,11 +12,17 @@ class SignatoryController extends Controller
      */
     public function index(Request $request)
     {
-        $search = $request->query('search');
+        $search = trim((string) $request->query('search', ''));
+        $office = trim((string) $request->query('office', ''));
+        $sort = trim((string) $request->query('sort', 'latest'));
+        $allowedSort = ['latest', 'oldest', 'name_asc', 'name_desc'];
+        if (!in_array($sort, $allowedSort, true)) {
+            $sort = 'latest';
+        }
 
         $query = Signatory::query();
-        if ($search) {
-            $term = trim($search);
+        if ($search !== '') {
+            $term = $search;
             $query->where(function ($q) use ($term) {
                 $q->where('first_name', 'like', "%{$term}%")
                     ->orWhere('middle_name', 'like', "%{$term}%")
@@ -26,9 +32,37 @@ class SignatoryController extends Controller
                     ->orWhere('office_address', 'like', "%{$term}%");
             });
         }
-        $signatories = $query->latest()->get();
-        
-        return view('admin.signatories.index', compact('signatories', 'search'));
+
+        if ($office !== '') {
+            $query->where('office', $office);
+        }
+
+        switch ($sort) {
+            case 'oldest':
+                $query->oldest();
+                break;
+            case 'name_asc':
+                $query->orderBy('last_name')->orderBy('first_name')->orderBy('middle_name');
+                break;
+            case 'name_desc':
+                $query->orderBy('last_name', 'desc')->orderBy('first_name', 'desc')->orderBy('middle_name', 'desc');
+                break;
+            case 'latest':
+            default:
+                $query->latest();
+                break;
+        }
+
+        $offices = Signatory::query()
+            ->whereNotNull('office')
+            ->where('office', '!=', '')
+            ->distinct()
+            ->orderBy('office')
+            ->pluck('office');
+
+        $signatories = $query->get();
+
+        return view('admin.signatories.index', compact('signatories', 'search', 'office', 'sort', 'offices'));
     }
 
     /**

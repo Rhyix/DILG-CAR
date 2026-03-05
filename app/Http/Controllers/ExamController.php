@@ -554,6 +554,29 @@ class ExamController extends Controller
             })->values(); // Reset keys
         }
 
+        // Prioritize exam statuses in the list: Scheduled first, Completed last.
+        $statusPriority = [
+            'Scheduled' => 0,
+            'Ongoing' => 1,
+            'Unscheduled' => 2,
+            'Completed' => 3,
+        ];
+
+        $jobVacancies = $jobVacancies
+            ->sort(function ($a, $b) use ($statusPriority) {
+                $priorityA = $statusPriority[$a->exam_status] ?? 99;
+                $priorityB = $statusPriority[$b->exam_status] ?? 99;
+
+                if ($priorityA !== $priorityB) {
+                    return $priorityA <=> $priorityB;
+                }
+
+                $timeA = $a->created_at ? $a->created_at->timestamp : 0;
+                $timeB = $b->created_at ? $b->created_at->timestamp : 0;
+                return $timeB <=> $timeA;
+            })
+            ->values();
+
         // If AJAX request, return JSON
         if ($request->ajax()) {
             return response()->json($jobVacancies);

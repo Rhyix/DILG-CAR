@@ -1,239 +1,177 @@
-
 @extends('layout.admin')
 @section('title', 'Admin Activity Log')
-@section('content')
 
-<main class="w-full space-y-6 font-montserrat" x-data="logTable()">
-
+@push('styles')
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+@endpush
 
-    <!-- Header Section -->
+@section('content')
+<main class="w-full h-full min-h-0 flex flex-col gap-4 pb-4 overflow-hidden font-montserrat" x-data="logTable()">
     <section class="flex-none flex items-center space-x-4 max-w-full">
         <h1 class="flex items-center gap-3 w-full border-b border-[#0D2B70] text-white text-4xl font-montserrat py-2 tracking-wide select-none">
             <span class="whitespace-nowrap text-[#0D2B70]">Activity Log</span>
         </h1>
     </section>
 
-    <!-- Filters -->
-    <section
-    class="px-2 rounded-xl flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4"
->
-    <form
-        method="GET"
-        class="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 w-full"
-    >
-        <!-- Search Input -->
-        <div class="relative w-full sm:w-[250px] md:w-[325px]">
-            <svg
-                class="w-5 h-5 text-[#7D93B3] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                stroke-width="2"
-            >
-                <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"
+    <section class="flex-none mt-1 w-full rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:p-5">
+        <div class="flex w-full flex-col gap-4">
+            <form onsubmit="return false;" class="relative w-full">
+                <label for="activitySearchInput" class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500">Search</label>
+                <input
+                    id="activitySearchInput"
+                    type="search"
+                    placeholder="Search by activity description"
+                    x-model="search"
+                    @input="onInputChange"
+                    class="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-11 pr-4 text-sm text-slate-700 shadow-sm outline-none transition focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20"
                 />
-            </svg>
+                <svg xmlns="http://www.w3.org/2000/svg"
+                    class="pointer-events-none absolute left-3 top-[39px] h-5 w-5 -translate-y-1/2 text-slate-400"
+                    fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
+                </svg>
+            </form>
 
-            <input
-                type="search"
-                placeholder="Search..."
-                x-model="search"
-                @input="onInputChange"
-                class="pl-10 pr-4 py-1.5 rounded-md border-2 border-[#0D2B70]
-                       placeholder:text-[#7D93B3] placeholder:font-semibold
-                       text-[#0D2B70] focus:outline-none focus:ring-2
-                       focus:ring-[#0D2B70] focus:ring-offset-1 w-full"
-            />
-        </div>
+            <div class="grid w-full gap-2 sm:grid-cols-2 lg:grid-cols-5 xl:grid-cols-6">
+                <div class="min-w-0">
+                    <select
+                        x-model="sortOrder"
+                        @change="onFilterChange"
+                        class="w-full rounded-xl border border-[#0D2B70] bg-white px-4 py-2.5 text-sm font-semibold text-[#0D2B70] shadow-sm outline-none transition focus:ring-2 focus:ring-[#0D2B70]/20">
+                        <option value="desc">Latest</option>
+                        <option value="asc">Oldest</option>
+                    </select>
+                </div>
 
-        <!-- Sort Order -->
-        <select
-            x-model="sortOrder"
-            @change="fetchLogs"
-            class="w-full sm:w-auto border-2 border-[#0D2B70] rounded-md px-4 py-2 text-sm font-semibold text-[#0D2B70]"
-        >
-            <option value="desc">LATEST</option>
-            <option value="asc">OLDEST</option>
-        </select>
+                <div class="min-w-0">
+                    <select
+                        x-model="adminName"
+                        @change="onFilterChange"
+                        class="w-full rounded-xl border border-[#0D2B70] bg-white px-4 py-2.5 text-sm font-semibold text-[#0D2B70] shadow-sm outline-none transition focus:ring-2 focus:ring-[#0D2B70]/20">
+                        <option value="">All Admins</option>
+                        @foreach ($adminNames as $name)
+                            <option value="{{ $name }}">{{ $name }}</option>
+                        @endforeach
+                    </select>
+                </div>
 
-        <!-- Admin Name -->
-        <select
-            x-model="adminName"
-            @change="fetchLogs"
-            class="w-full sm:w-auto border-2 border-[#0D2B70] rounded-md px-4 py-2 text-sm font-semibold text-[#0D2B70]"
-        >
-            <option value="">All Admins</option>
-            @foreach ($adminNames as $name)
-                <option value="{{ $name }}">{{ $name }}</option>
-            @endforeach
-        </select>
+                <div class="min-w-0">
+                    <select
+                        x-model="section"
+                        @change="onFilterChange"
+                        class="w-full rounded-xl border border-[#0D2B70] bg-white px-4 py-2.5 text-sm font-semibold text-[#0D2B70] shadow-sm outline-none transition focus:ring-2 focus:ring-[#0D2B70]/20">
+                        <option value="">All Sections</option>
+                        @foreach ($sections as $sec)
+                            <option value="{{ $sec }}">{{ $sec }}</option>
+                        @endforeach
+                    </select>
+                </div>
 
-        <!-- Section Filter -->
-        <select
-            x-model="section"
-            @change="fetchLogs"
-            class="w-full sm:w-auto border-2 border-[#0D2B70] rounded-md px-4 py-2 text-sm font-semibold text-[#0D2B70]"
-        >
-            <option value="">All Sections</option>
-            @foreach ($sections as $sec)
-                <option value="{{ $sec }}">{{ $sec }}</option>
-            @endforeach
-        </select>
+                <div class="min-w-0">
+                    <input
+                        x-ref="dateRangeInput"
+                        x-model="dateRange"
+                        type="text"
+                        placeholder="Select date range"
+                        class="w-full rounded-xl border border-[#0D2B70] bg-white px-4 py-2.5 text-sm font-semibold text-[#0D2B70] shadow-sm outline-none transition focus:ring-2 focus:ring-[#0D2B70]/20"
+                    />
+                </div>
 
-        <!-- Date Range -->
-        <input
-            id="dateRange"
-            x-model="dateRange"
-            @change="fetchLogs"
-            type="text"
-            placeholder="Select Date Range"
-            class="w-full sm:w-auto border-2 border-[#0D2B70] rounded-md px-4 py-2 text-sm font-semibold text-[#0D2B70]"
-        />
-    </form>
-
-    <!-- Export Button -->
-    <div class="shrink-0 w-full lg:w-auto">
-        @include('partials.alerts_template', [
-            'id' => 'exportAll',
-            'showTrigger' => true,
-            'triggerText' => 'Export Log',
-            'triggerClass' => 'w-full lg:w-auto font-semibold flex justify-center items-center px-4 py-2 bg-white text-[#0D2B70] rounded-md
-                               hover:bg-[#0D2B70] transition whitespace-nowrap
-                               hover:text-white hover:shadow-md border border-[#0D2B70]',
-            'title' => 'Export Confirmation',
-            'message' => 'Are you sure you want to export All activities?',
-            'showCancel' => true,
-            'cancelText' => 'No, Cancel',
-            'okText' => 'Yes, Export',
-            'okAction' => "window.location.href='" . route('exportActivities') . "'",
-        ])
-    </div>
-</section>
-
-    <!--
-        <form class="bg-white px-6 py-4 rounded-xl shadow flex items-center justify-start gap-4 overflow-x-auto">
-            <input type="checkbox" id="selectAll"
-                x-model="allSelected"
-                class="peer appearance-none w-5 h-5 border-2 border-[#0D2B70] bg-white checked:bg-[#0D2B70] checked:border-[#0D2B70] focus:ring-2 focus:ring-offset-1 focus:ring-[#0D2B70] transition">
-            <label for="selectAll" class="text-[#0D2B70] font-semibold cursor-pointer">
-                Select All
-            </label>
-            <input type="checkbox" id="selectAll"
-                x-model="allSelected"
-                class="peer appearance-none w-5 h-5 border-2 border-[#0D2B70] bg-white checked:bg-[#0D2B70] checked:border-[#0D2B70] focus:ring-2 focus:ring-offset-1 focus:ring-[#0D2B70] transition">
-            <label for="selectAll" class="text-[#0D2B70] font-semibold cursor-pointer">
-                view
-            </label>
-            <input type="checkbox" id="selectAll"
-                x-model="allSelected"
-                class="peer appearance-none w-5 h-5 border-2 border-[#0D2B70] bg-white checked:bg-[#0D2B70] checked:border-[#0D2B70] focus:ring-2 focus:ring-offset-1 focus:ring-[#0D2B70] transition">
-            <label for="selectAll" class="text-[#0D2B70] font-semibold cursor-pointer">
-                export
-            </label>
-            <input type="checkbox" id="selectAll"
-                x-model="allSelected"
-                class="peer appearance-none w-5 h-5 border-2 border-[#0D2B70] bg-white checked:bg-[#0D2B70] checked:border-[#0D2B70] focus:ring-2 focus:ring-offset-1 focus:ring-[#0D2B70] transition">
-            <label for="selectAll" class="text-[#0D2B70] font-semibold cursor-pointer">
-                submit
-            </label>
-            <input type="checkbox" id="selectAll"
-                x-model="allSelected"
-                class="peer appearance-none w-5 h-5 border-2 border-[#0D2B70] bg-white checked:bg-[#0D2B70] checked:border-[#0D2B70] focus:ring-2 focus:ring-offset-1 focus:ring-[#0D2B70] transition">
-            <label for="selectAll" class="text-[#0D2B70] font-semibold cursor-pointer">
-                create
-            </label>
-            <input type="checkbox" id="selectAll"
-                x-model="allSelected"
-                class="peer appearance-none w-5 h-5 border-2 border-[#0D2B70] bg-white checked:bg-[#0D2B70] checked:border-[#0D2B70] focus:ring-2 focus:ring-offset-1 focus:ring-[#0D2B70] transition">
-            <label for="selectAll" class="text-[#0D2B70] font-semibold cursor-pointer">
-                edit
-            </label>
-        </form>
-    -->
-    <!-- Entry Count Info -->
-     <div class="flex flex-row justify-between">
-        <div x-show="logsData.length > 0">
-            Showing <span x-text="startEntry"></span>–<span x-text="endEntry"></span> out of <span x-text="logsData.length"></span> entries
-        manage</div>
-            <div class="items-end justify-end gap-6">
-                <button @click="prevPage" :disabled="currentPage === 1"
-                    class="w-9 h-9 rounded-full bg-gray-200 text-[#0D2B70] hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">
-                    &lt;
-                </button>
-
-                <span class="text-lg text-gray-700 font-semibold">
-                    <span x-text="currentPage"></span> of <span x-text="totalPages"></span>
-                </span>
-
-                <button @click="nextPage" :disabled="currentPage === totalPages"
-                    class="w-9 h-9 rounded-full bg-gray-200 text-[#0D2B70] hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">
-                    &gt;
-                </button>
+                <div class="min-w-0 sm:col-span-2 lg:col-span-1 xl:col-span-2 flex justify-end">
+                    @include('partials.alerts_template', [
+                        'id' => 'exportAll',
+                        'showTrigger' => true,
+                        'triggerText' => 'Export Log',
+                        'triggerClass' => 'w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl border border-[#0D2B70] bg-white px-5 py-2.5 text-sm font-semibold text-[#0D2B70] shadow-sm transition hover:bg-[#0D2B70] hover:text-white',
+                        'title' => 'Export Confirmation',
+                        'message' => 'Are you sure you want to export all activities?',
+                        'showCancel' => true,
+                        'cancelText' => 'No, Cancel',
+                        'okText' => 'Yes, Export',
+                        'okAction' => "window.location.href='" . route('exportActivities') . "'",
+                    ])
+                </div>
             </div>
-    </div>
-
-<!-- Activity Table -->
-<section class="space-y-1">
-    <div class="border border-[#0D2B70] rounded-xl overflow-hidden">
-        <div>
-            <table class="w-full text-left border-collapse">
-                <!-- Table Header -->
-                <thead class="bg-[#0D2B70] text-white sticky top-0 z-10">
-                    <tr>
-                        <th class="py-4 px-6 font-normal">Timestamp</th>
-                        <th class="py-4 px-6 font-normal">User</th>
-                        <th class="py-4 px-6 font-normal">Role</th>
-                        <th class="py-4 px-6 font-normal">Section</th>
-                        <th class="py-4 px-6 font-normal">Description</th>
-                    </tr>
-                </thead>
-                <!-- Table Body -->
-                <tbody class="divide-y divide-[#0D2B70]">
-                    <template x-for="log in paginatedLogs" :key="log.id">
-                        <tr class="bg-white text-[#0D2B70]">
-                            <td class="py-4 px-6" x-text="log.timestamp"></td>
-                            <td class="py-4 px-6 truncate" x-text="log.admin_name"></td>
-                            <td class="py-4 px-6" x-text="log.role"></td>
-                            <td class="py-4 px-6" x-text="log.section"></td>
-                            <td class="py-4 px-6 text-left whitespace-normal break-words max-w-[420px]" x-html="log.description_html"></td>
-                        </tr>
-                    </template>
-                </tbody>
-            </table>
         </div>
-    </div>
-</section>
+    </section>
 
+    <section class="flex-none flex items-center justify-between">
+        <p class="text-sm text-slate-600" x-show="logsData.length > 0">
+            Showing <span x-text="startEntry"></span>-<span x-text="endEntry"></span> of <span x-text="logsData.length"></span> entries
+        </p>
+        <p class="text-sm text-slate-600" x-show="logsData.length === 0">
+            No records found.
+        </p>
 
-    <!-- Pagination -->
-    <!-- <section class="flex items-center justify-center gap-6 pt-4">
-        <button @click="prevPage" :disabled="currentPage === 1"
-            class="w-9 h-9 rounded-full bg-gray-200 text-[#0D2B70] hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">
-            &lt;
-        </button>
+        <div class="flex items-center gap-3">
+            <button @click="prevPage" :disabled="currentPage === 1"
+                class="h-8 w-8 rounded-full bg-gray-200 text-[#0D2B70] hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">
+                &lt;
+            </button>
 
-        <span class="text-lg text-gray-700 font-semibold">
-            <span x-text="currentPage"></span> of <span x-text="totalPages"></span>
-        </span>
+            <span class="text-sm font-semibold text-slate-700">
+                <span x-text="currentPage"></span> / <span x-text="totalPages"></span>
+            </span>
 
-        <button @click="nextPage" :disabled="currentPage === totalPages"
-            class="w-9 h-9 rounded-full bg-gray-200 text-[#0D2B70] hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">
-            &gt;
-        </button>
-    </section> -->
+            <button @click="nextPage" :disabled="currentPage === totalPages"
+                class="h-8 w-8 rounded-full bg-gray-200 text-[#0D2B70] hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">
+                &gt;
+            </button>
+        </div>
+    </section>
 
+    <section class="flex-1 min-h-0">
+        <div class="h-full flex flex-col min-h-0 overflow-hidden border border-[#0D2B70] rounded-xl bg-white">
+            <div class="bg-[#0D2B70] text-white rounded-t-xl">
+                <table class="w-full border-collapse table-fixed">
+                    <thead>
+                        <tr>
+                            <th class="px-4 py-3 text-[11px] font-semibold text-center w-[17%]">Timestamp</th>
+                            <th class="px-4 py-3 text-[11px] font-semibold text-center w-[16%]">User</th>
+                            <th class="px-4 py-3 text-[11px] font-semibold text-center w-[12%]">Role</th>
+                            <th class="px-4 py-3 text-[11px] font-semibold text-center w-[15%]">Section</th>
+                            <th class="px-4 py-3 text-[11px] font-semibold text-left w-[40%]">Description</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+
+            <div class="flex-1 min-h-0 overflow-auto">
+                <table class="w-full border-collapse table-fixed">
+                    <tbody class="divide-y divide-[#0D2B70]">
+                        <template x-if="isLoading">
+                            <tr>
+                                <td colspan="5" class="px-6 py-6 text-center text-sm text-slate-500">Loading activity logs...</td>
+                            </tr>
+                        </template>
+
+                        <template x-if="!isLoading && paginatedLogs.length === 0">
+                            <tr>
+                                <td colspan="5" class="px-6 py-6 text-center text-sm text-slate-500">No records found.</td>
+                            </tr>
+                        </template>
+
+                        <template x-for="log in paginatedLogs" :key="log.id">
+                            <tr class="hover:bg-blue-50/40 text-[#0D2B70]">
+                                <td class="w-[17%] px-4 py-3 text-sm text-center" x-text="log.timestamp"></td>
+                                <td class="w-[16%] px-4 py-3 text-sm text-center truncate" x-text="log.admin_name"></td>
+                                <td class="w-[12%] px-4 py-3 text-sm text-center" x-text="log.role"></td>
+                                <td class="w-[15%] px-4 py-3 text-sm text-center" x-text="log.section"></td>
+                                <td class="w-[40%] px-4 py-3 text-sm text-left whitespace-normal break-words" x-html="log.description_html"></td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
 </main>
+@endsection
 
-    @include('partials.loader')
-
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
-    
     function logTable() {
         return {
             logsData: [],
@@ -243,23 +181,37 @@
             adminName: '',
             section: '',
             dateRange: '',
-            debounceTimer: 1,
-            sortOrder: 'desc', // default
-
-            selectedLogs: [],
-            allSelected: false,
-
-            toggleAll() {
-                if (this.allSelected) {
-                    this.selectedLogs = this.paginatedLogs.map(log => log.id);
-                } else {
-                    this.selectedLogs = [];
-                }
-            },
+            sortOrder: 'desc',
+            isLoading: false,
+            debounceTimer: null,
 
             init() {
-                this.setPerPageByViewportHeight();
-                window.addEventListener('resize', () => this.setPerPageByViewportHeight());
+                this.initDateRangePicker();
+                this.fetchLogs();
+            },
+
+            initDateRangePicker() {
+                if (!this.$refs.dateRangeInput || typeof flatpickr === 'undefined') return;
+
+                flatpickr(this.$refs.dateRangeInput, {
+                    mode: 'range',
+                    dateFormat: 'Y-m-d',
+                    onClose: (_selectedDates, dateStr) => {
+                        this.dateRange = dateStr;
+                        this.onFilterChange();
+                    },
+                });
+            },
+
+            onInputChange() {
+                clearTimeout(this.debounceTimer);
+                this.debounceTimer = setTimeout(() => {
+                    this.onFilterChange();
+                }, 400);
+            },
+
+            onFilterChange() {
+                this.currentPage = 1;
                 this.fetchLogs();
             },
 
@@ -272,30 +224,31 @@
                     sort: this.sortOrder,
                 });
 
-                fetch(`/admin/activity-log/data?${params}`)
-                    .then(res => res.json())
-                    .then(data => {
-                        this.logsData = data;
-                        this.currentPage = 1;
+                this.isLoading = true;
+
+                fetch(`{{ route('admin.activity_log.fetch') }}?${params.toString()}`, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                    .then((res) => res.json())
+                    .then((data) => {
+                        this.logsData = Array.isArray(data) ? data : [];
+                        if (this.currentPage > this.totalPages) {
+                            this.currentPage = this.totalPages;
+                        }
+                    })
+                    .catch((error) => {
+                        console.error('Failed to fetch activity logs:', error);
+                        this.logsData = [];
+                    })
+                    .finally(() => {
+                        this.isLoading = false;
                     });
             },
 
-            onInputChange() {
-                clearTimeout(this.debounceTimer);
-                this.debounceTimer = setTimeout(() => this.fetchLogs(), 500);
-            },
-
-            setPerPageByViewportHeight() {
-                const base = window.innerHeight || 800;
-                const reserved = 320;
-                const row = 64;
-                const calc = Math.floor((base - reserved) / row);
-                this.perPage = Math.max(5, Math.min(calc, 50));
-                if (this.currentPage > this.totalPages) this.currentPage = this.totalPages;
-            },
-
             get totalPages() {
-                return Math.ceil(this.logsData.length / this.perPage) || 1;
+                return Math.max(1, Math.ceil(this.logsData.length / this.perPage));
             },
 
             get paginatedLogs() {
@@ -304,76 +257,27 @@
             },
 
             get startEntry() {
+                if (this.logsData.length === 0) return 0;
                 return (this.currentPage - 1) * this.perPage + 1;
             },
 
             get endEntry() {
+                if (this.logsData.length === 0) return 0;
                 return Math.min(this.currentPage * this.perPage, this.logsData.length);
             },
 
-
             nextPage() {
-                if (this.currentPage < this.totalPages) this.currentPage++;
+                if (this.currentPage < this.totalPages) {
+                    this.currentPage++;
+                }
             },
 
             prevPage() {
-                if (this.currentPage > 1) this.currentPage--;
+                if (this.currentPage > 1) {
+                    this.currentPage--;
+                }
             },
-
-            viewLog(id) {
-                const log = this.logsData.find(log => log.id === id);
-                if (!log) {
-                    alert("Log not found.");
-                    return;
-                }
-
-                const section = log.section.toLowerCase();
-
-                // Normalize and redirect based on known sections
-                if (section.includes('vacancies') || section.includes('job vacancy')) {
-                    if(log.subject.vacancy_id) {
-                        window.location.href = `/admin/vacancies/${log.subject.vacancy_id}/edit`;
-                    } else {
-                        window.location.href = '/admin/vacancies_management';
-                    }
-                } else if (section.includes('system')) {
-                    @if((Auth::guard('admin')->user()->role ?? null) === 'superadmin')
-                        window.location.href = '/admin/admin_account_management';
-                    @elseif((Auth::guard('admin')->user()->role ?? null) === 'hr_division')
-                        window.location.href = '/admin/applications_list';
-                    @elseif((Auth::guard('admin')->user()->role ?? null) === 'viewer')
-                        window.location.href = '/viewer';
-                    @else
-                        window.location.href = '/admin/dashboard';
-                    @endif
-                } else if (section.includes('exam')) {
-                    window.location.href = '/admin/exam_management';
-                } else if (section.includes('activity')) {
-                    window.location.href = '/admin/activity_log';
-                } else if (section.includes('application')) {
-                    if(log.subject.id && log.vacancy_id !== null) {
-                        window.location.href = `/admin/applicant_status/${log.subject.id}/${log.vacancy_id}`;
-                    }else if(log.subject.vacancy_id) {
-                        window.location.href = `/admin/applicants/${log.subject.vacancy_id}`;
-                    }
-                     else {
-                        window.location.href = '/admin/applications_list';
-                    }
-                    
-                } else {
-                    alert("No redirect rule for section: " + log.section);
-                }
-            }
-        }
+        };
     }
-
-    flatpickr("#dateRange", {
-        mode: "range",
-        dateFormat: "Y-m-d",
-        onChange: function () {
-            document.querySelector('#dateRange').dispatchEvent(new Event('change'));
-        }
-    });
 </script>
-
-@endsection
+@endpush

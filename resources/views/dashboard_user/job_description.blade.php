@@ -292,6 +292,30 @@
             </div>
         </section>
 
+        <!-- CSC Form Attachment (Plantilla only) -->
+        @if(strtolower($vacancy->vacancy_type) == 'plantilla' && !empty($vacancy->csc_form_path))
+            <section class="bg-white p-6 rounded-lg shadow border-l-4 border-[#002C76]">
+                <h3 class="text-xl font-bold text-[#002C76] mb-4 flex items-center gap-2">
+                    <i data-feather="file" class="w-6 h-6"></i>
+                    CSC FORM ATTACHMENT
+                </h3>
+                <div class="flex items-center gap-4 p-4 bg-slate-50 border border-slate-200 rounded-lg">
+                    <div class="flex-shrink-0 w-10 h-10 bg-[#002C76]/10 rounded-lg flex items-center justify-center">
+                        <i data-feather="file-text" class="w-5 h-5 text-[#002C76]"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-semibold text-slate-800 truncate">{{ basename($vacancy->csc_form_path) }}</p>
+                        <p class="text-xs text-slate-500 mt-0.5">CSC Form for this position</p>
+                    </div>
+                    <a href="{{ Storage::url($vacancy->csc_form_path) }}" target="_blank"
+                       class="flex-shrink-0 inline-flex items-center gap-2 px-4 py-2 bg-[#002C76] text-white text-sm font-medium rounded-lg hover:bg-[#001a4d] transition-colors">
+                        <i data-feather="eye" class="w-4 h-4"></i>
+                        View
+                    </a>
+                </div>
+            </section>
+        @endif
+
         <!-- COS Details -->
         @if(strtolower($vacancy->vacancy_type) == 'cos')
             <section class="bg-white p-6 rounded-lg shadow border-l-4 border-green-600">
