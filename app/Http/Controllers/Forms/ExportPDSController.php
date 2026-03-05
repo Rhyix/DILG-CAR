@@ -37,7 +37,7 @@ class ExportPDSController
     private function getFooterDateY(): float
     {
         if (!$this->isShortBondTemplate) {
-            return 310.190;
+            return 305;
         }
 
         return $this->currentTemplatePage === 1 ? 310.190 : 320.8;
@@ -490,7 +490,7 @@ class ExportPDSController
         // Write first C4 chunk (max 7 rows)
         $this->WriteC4Information($pdf, $user->id);
 
-        $this->setXY($pdf, 113, 270);
+        $this->setXY($pdf, 113, 274);
         $pdf->Write(0, Carbon::now()->format('m/d/Y'));
 
         // C4 has no overflow data so no need for overflow page
@@ -995,13 +995,13 @@ private function writeEducationalBackground($pdf, $education)
     if (!$hasElemData) {
         $this->writeFittedAt($pdf, 'N/A', 41.5, 267, 49, 7.0, 5.0);
     } else {
-        $this->writeFittedAt($pdf, $this->valueOrNa($education?->elem_school), 41.5, 265.5, 48, 6.5, 4.5);
+        $this->writeFittedAt($pdf, $this->valueOrNa($education?->elem_school), 41.5, 265.5, 41, 6.5, 4.5);
         $this->writeFittedAt($pdf, $this->valueOrNa($education?->elem_basic), 90, 265, 45, 6.5, 4.5);
-        $this->writeFittedAt($pdf, $this->dateOrNa($education?->elem_from, 'm/Y'), 135, 265.5, 27, 7.0, 5.0);
-        $this->writeFittedAt($pdf, $this->dateOrNa($education?->elem_to, 'm/Y'), 147,265.5, 31.5, 7.0, 5.0);
-        $this->writeFittedAt($pdf, $this->valueOrNa($education?->elem_earned), 166, 266.5, 18, 7.0, 5.0);
-        $this->writeFittedAt($pdf, $this->valueOrNa($education?->elem_year_graduated), 181, 265.5, 12, 7.0, 5.0);
-        $this->writeFittedAt($pdf, $this->valueOrNa($education?->elem_academic_honors), 198, 266, 10.2, 4.8, 3.8);
+        $this->writeFittedAt($pdf, $this->dateOrNa($education?->elem_from, 'm/Y'), 135, 265.5, 27, 7.7, 5.0);
+        $this->writeFittedAt($pdf, $this->dateOrNa($education?->elem_to, 'm/Y'), 147,265.5, 31.5, 7.7, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($education?->elem_earned), 166, 266, 18, 7.7, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($education?->elem_year_graduated), 181, 265.5, 12, 7.7, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($education?->elem_academic_honors), 198, 265.5, 8, 5.0, 5.0);
     }
 
     // === Junior High Section ===
@@ -1022,7 +1022,7 @@ private function writeEducationalBackground($pdf, $education)
         $this->writeFittedAt($pdf, $this->dateOrNa($education?->jhs_to, 'm/Y'), 148, 273, 31.5, 7.0, 5.0);
         $this->writeFittedAt($pdf, $this->valueOrNa($education?->jhs_earned), 166, 273, 18, 7.0, 5.0);
         $this->writeFittedAt($pdf, $this->valueOrNa($education?->jhs_year_graduated), 181, 273.5, 12, 7.0, 5.0);
-        $this->writeFittedAt($pdf, $this->valueOrNa($education?->jhs_academic_honors), 198, 273.5, 10.2, 4.8, 3.8);
+        $this->writeFittedAt($pdf, $this->valueOrNa($education?->jhs_academic_honors), 198, 273.5, 8, 5.0, 5.0);
     }
 }
 
@@ -1069,16 +1069,16 @@ private function writeVocationalChunk($pdf, $chunk)
 
         $this->writeFittedAt($pdf, $this->valueOrNa($voc['school'] ?? null), $startX_school, $currentY, 48, 6.5, 4.5);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($voc['basic'] ?? null), 85, $currentY, 45, 6.5, 4.5);
+        $this->writeFittedAt($pdf, $this->valueOrNa($voc['basic'] ?? null), 90, $currentY, 45, 6.5, 4.5);
 
-        $this->writeFittedAt($pdf, $this->dateOrNa($voc['from'] ?? null, 'm/Y'), 132, $currentY, 27, 7.0, 5.0);
-        $this->writeFittedAt($pdf, $this->dateOrNa($voc['to'] ?? null, 'm/Y'), 143, $currentY, 31.5, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->dateOrNa($voc['from'] ?? null, 'm/Y'), 135, $currentY, 27, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->dateOrNa($voc['to'] ?? null, 'm/Y'), 147.5, $currentY, 31.5, 7.0, 5.0);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($voc['earned'] ?? null),  159, 282, 18, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($voc['earned'] ?? null),  163, 281, 18, 7.0, 5.0);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($voc['year_graduated'] ?? null), 173, 282,  12, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($voc['year_graduated'] ?? null), 181, 281,  12, 7.0, 5.0);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($voc['academic_honors'] ?? null), 187, 282, 8, 8.0, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($voc['academic_honors'] ?? null), 195, 281, 8, 5.0, 5.0);
     }
 }
 
@@ -1121,18 +1121,18 @@ private function writeCollegeChunk($pdf, $chunk)
     {
         $currentY = $startY + ((int)$index * $lineHeight);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($college['school'] ?? null), $startX_school, 290, 48, 6.5, 4.5);
+        $this->writeFittedAt($pdf, $this->valueOrNa($college['school'] ?? null), 41.2, 289, 48, 6.5, 4.5);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($college['basic'] ?? null), 85, 290, 45, 6.5, 4.5);
+        $this->writeFittedAt($pdf, $this->valueOrNa($college['basic'] ?? null), 89.5, 288.5, 45, 6.5, 4.5);
 
-        $this->writeFittedAt($pdf, $this->dateOrNa($college['from'] ?? null, 'm/Y'), 132, 290, 27, 7.0, 5.0);
-        $this->writeFittedAt($pdf, $this->dateOrNa($college['to'] ?? null, 'm/Y'), 143, 290, 31.5, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->dateOrNa($college['from'] ?? null, 'm/Y'), 135, 289, 27, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->dateOrNa($college['to'] ?? null, 'm/Y'), 147.5, 289, 31.5, 7.0, 5.0);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($college['earned'] ?? null), 159, 290, 18, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($college['earned'] ?? null), 165, 289, 18, 7.0, 5.0);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($college['year_graduated'] ?? null), 173, 290, 12, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($college['year_graduated'] ?? null), 182, 289, 12, 7.0, 5.0);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($college['academic_honors'] ?? null), 189, 290, 10.2, 4.8, 3.8);
+        $this->writeFittedAt($pdf, $this->valueOrNa($college['academic_honors'] ?? null), 196, 289, 10.2, 5.0, 5.0);
 
     }
 }
@@ -1178,19 +1178,19 @@ private function writeGraduateChunk($pdf, $chunk)
     {
         $currentY = $startY + ($index * $lineHeight);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($grad['school'] ?? null), $startX_school, 298, 48, 6.5, 4.5);
+        $this->writeFittedAt($pdf, $this->valueOrNa($grad['school'] ?? null), 40.5, 296, 48, 6.5, 4.5);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($grad['basic'] ?? null), 85, 298, 45, 6.5, 4.5);
+        $this->writeFittedAt($pdf, $this->valueOrNa($grad['basic'] ?? null), 89.5, 296.5, 45, 6.5, 4.5);
 
-        $this->writeFittedAt($pdf, $this->dateOrNa($grad['from'] ?? null, 'm/Y'), 132, 298, 11, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->dateOrNa($grad['from'] ?? null, 'm/Y'), 135, 296.5, 11, 7.0, 5.0);
 
-        $this->writeFittedAt($pdf, $this->dateOrNa($grad['to'] ?? null, 'm/Y'), 143, 298, 11, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->dateOrNa($grad['to'] ?? null, 'm/Y'), 147.5, 296.5, 11, 7.0, 5.0);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($grad['earned'] ?? null), 159, 298, 18, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($grad['earned'] ?? null), 165, 296.5, 18, 7.0, 5.0);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($grad['year_graduated'] ?? null), 173, 298, 12, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($grad['year_graduated'] ?? null), 182, 296.5, 12, 7.0, 5.0);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($grad['academic_honors'] ?? null), 188, 298, 10.2, 4.8, 3.8);
+        $this->writeFittedAt($pdf, $this->valueOrNa($grad['academic_honors'] ?? null), 196, 296.5, 10.2, 5.0, 5.0);
     }
 }
 
@@ -1198,11 +1198,11 @@ private function writeGraduateChunk($pdf, $chunk)
 
 private function writeCivilServiceEligibilityChunk($pdf, $chunk)
 {
-    $startX_career = 9.0;
+    $startX_career = 8.0;
     $startX_rating = 71.0;
     $startX_date = 94.0;
     $startX_place = 118.0;
-    $startX_license = 173.0;
+    $startX_license = 145.0;
     $startX_validity = 184.0;
     $endX_validity = 201.5;
 
@@ -1217,8 +1217,8 @@ private function writeCivilServiceEligibilityChunk($pdf, $chunk)
         $endX_validity = 195.9;
     }
 
-    $startY = 26.0;
-    $rowHeight = 8.0;
+    $startY = 26;
+    $rowHeight = 7;
     $cellInset = 0.5;
 
     $careerWidth = max(1.0, ($startX_rating - $startX_career) - $cellInset);
@@ -1274,16 +1274,16 @@ private function writeCivilServiceEligibilityChunk($pdf, $chunk)
 
 private function writeWorkExperienceChunk($pdf, $chunk)
 {
-    $x_from = 7.0;
-    $x_to = 21.59;
+    $x_from = 5;
+    $x_to = 22;
     $x_position = 40.132;
     $x_agency = 94.488;
-    $x_status = 177.65;
+    $x_status = 150;
     $x_gov = 187.0;
     $x_gov_end = 199.5;
 
     if ($this->isShortBondTemplate) {
-        $x_from = 20.5;
+        $x_from = 19.5;
         $x_to = 36.5;
         $x_position = 53.1;
         $x_agency = 104.7;
@@ -1292,8 +1292,8 @@ private function writeWorkExperienceChunk($pdf, $chunk)
         $x_gov_end = 195.9;
     }
 
-    $startY = 112.0;
-    $rowHeight = 7.2;
+    $startY = 103.5;
+    $rowHeight = 6.5;
     $cellInset = 0.5;
 
     $fromWidth = max(1.0, ($x_to - $x_from) - $cellInset);
@@ -1382,20 +1382,21 @@ private function writeVoluntaryWorkChunk($pdf, $chunk)
         $pdf->Write(0, 'N/A');
         return;
     }
-
     // Render each voluntary work row
     foreach ($chunk as $index => $vw) {
         $currentY = $startY + ($index * $rowHeight);
+        $singleLineY = $currentY + 2.0;
+        $multiLineY = $currentY - 1.0;
 
-        $this->writeWrapped($pdf, $this->valueOrNa($vw['voluntary_org'] ?? null), 115, 6, 32, $currentY - 1, 6, 2);
+        $this->writeWrapped($pdf, $this->valueOrNa($vw['voluntary_org'] ?? null), 115, 6, $singleLineY, $multiLineY, 6, 2);
 
-        $this->writeFittedAt($pdf, $this->dateOrNa($vw['voluntary_from'] ?? null), 95, 32, 15.0, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->dateOrNa($vw['voluntary_from'] ?? null), 95, $singleLineY, 15.0, 7.0, 5.0);
 
-        $this->writeFittedAt($pdf, $this->dateOrNa($vw['voluntary_to'] ?? null), 110, 32, 19.0, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->dateOrNa($vw['voluntary_to'] ?? null), 110, $singleLineY, 19.0, 7.0, 5.0);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($vw['voluntary_hours'] ?? null), 128, 32, 12.0, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($vw['voluntary_hours'] ?? null), 128, $singleLineY, 12.0, 7.0, 5.0);
 
-        $this->writeWrapped($pdf, $this->valueOrNa($vw['voluntary_position'] ?? null), 60, 141, 32, $currentY - 1, 7, 3);
+        $this->writeWrapped($pdf, $this->valueOrNa($vw['voluntary_position'] ?? null), 60, 141, $singleLineY, $multiLineY, 7, 3);
     }
 }
 
@@ -1409,7 +1410,7 @@ private function writeLearningAndDevelopmentChunk($pdf, $chunk)
     $x_type = 142;
     $x_conducted = 161;
 
-    $startY = 103;
+    $startY = 98;
     $rowHeight = 6.4;
 
     // Check if all learning/development fields are empty
@@ -1438,18 +1439,20 @@ private function writeLearningAndDevelopmentChunk($pdf, $chunk)
     // Otherwise, render the actual data
     foreach ($chunk as $index => $lnd) {
         $currentY = $startY + ($index * $rowHeight);
+        $singleLineY = $currentY + 6.0;
+        $multiLineY = $currentY - 1.0;
 
-        $this->writeWrapped($pdf, $this->valueOrNa($lnd['learning_title'] ?? null), 105, 6, 109, $currentY - 1, 6, 2);
+        $this->writeWrapped($pdf, $this->valueOrNa($lnd['learning_title'] ?? null), 105, 6, $singleLineY, $multiLineY, 6, 2);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($lnd['learning_type'] ?? null), $x_type, 109, 18.0, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($lnd['learning_type'] ?? null), $x_type, $singleLineY, 18.0, 7.0, 5.0);
 
-        $this->writeFittedAt($pdf, $this->dateOrNa($lnd['learning_from'] ?? null), 94.5, 109, 15.0, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->dateOrNa($lnd['learning_from'] ?? null), 94.5, $singleLineY, 15.0, 7.0, 5.0);
 
-        $this->writeFittedAt($pdf, $this->dateOrNa($lnd['learning_to'] ?? null), 110.5, 109, 19.0, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->dateOrNa($lnd['learning_to'] ?? null), 110.5, $singleLineY, 19.0, 7.0, 5.0);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($lnd['learning_hours'] ?? null), $x_hours, 109, 12.0, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($lnd['learning_hours'] ?? null), $x_hours, $singleLineY, 12.0, 7.0, 5.0);
 
-        $this->writeWrapped($pdf, $this->valueOrNa($lnd['learning_conducted'] ?? null), 47.3, 159, 109, $currentY - 1, 6, 2);
+        $this->writeWrapped($pdf, $this->valueOrNa($lnd['learning_conducted'] ?? null), 47.3, 159, $singleLineY, $multiLineY, 6, 2);
     }
 }
 
@@ -1464,7 +1467,7 @@ private function writeOtherInformation($pdf, $skills, $distinctions, $organizati
     $wSkill = 50.0;
     $wDistinction = 98.0;
     $wOrg = 41.5;
-    $startY = 268.0;
+    $startY = 255.7;
     $rowHeight = 6.15;
     $textOffsetY = 2.2;
 
@@ -1502,42 +1505,77 @@ private function WriteC4Information($pdf, $userId)
     }
 
     // Leave photo box blank when no uploaded photo is available.
-    if (!$misc) {
-        return;
+
+    if (!$misc) return;
+
+    $criminalDetailsRaw = $misc->criminal_35_b ?? '';
+    $criminalDetails = explode(',', $criminalDetailsRaw);
+
+    $dateFiledRaw = trim($criminalDetails[0] ?? '');
+    $caseStatusRaw = isset($criminalDetails[1]) ? implode(',', array_slice($criminalDetails, 1)) : ''; // In case the status contains commas
+
+    $dateFiled = '';
+    try {
+        if ($dateFiledRaw && strtolower($dateFiledRaw) !== 'no') {
+            $dateFiled = Carbon::parse($dateFiledRaw)->format('m/d/Y');
+        }
+    } catch (\Exception $e) {
+        $dateFiled = '';
     }
 
-    $criminalCase = $this->parseCriminal35B($misc);
 
-    $checkboxStates = [
-        'third_degree' => $this->hasAffirmativeSelection($misc->related_34_a),
-        'fourth_degree' => $this->hasAffirmativeSelection($misc->related_34_b),
-        'guilty' => $this->hasAffirmativeSelection($misc->guilty_35_a),
-        'charged' => $criminalCase['has_case'],
-        'convicted' => $this->hasAffirmativeSelection($misc->convicted_36),
-        'separated' => $this->hasAffirmativeSelection($misc->separated_37),
-        'candidate' => $this->hasAffirmativeSelection($misc->candidate_38),
-        'resigned' => $this->hasAffirmativeSelection($misc->resigned_38_b),
-        'immigrant' => $this->hasAffirmativeSelection($misc->immigrant_39),
-        'indigenous' => $this->hasAffirmativeSelection($misc->indigenous_40_a),
-        'disability' => $this->hasAffirmativeSelection($misc->pwd_40_b),
-        'solo_parent' => $this->hasAffirmativeSelection($misc->solo_parent_40_c),
-    ];
+        if ($dateFiledRaw && strtolower($dateFiledRaw) !== 'no') {
+            try {
+                $dateFiled = Carbon::parse($dateFiledRaw)->format('m/d/Y');
+            } catch (\Exception $e) {
+                $dateFiled = ''; // or log the error if needed
+            }
+        }
 
-    // Checkboxes sa may pinakababa
-    $checkboxes = [
-        'third_degree' => ['yes' => [139.5, 24.4], 'no' => [165, 26]],
-        'fourth_degree' => ['yes' => [139.5, 30], 'no' => [159, 32]],
-        'guilty' => ['yes' => [138.7, 46], 'no' => [159.5, 48]],
-        'convicted' => ['yes' => [138.7, 83.5], 'no' => [161.6, 86]],
-        'charged' => ['yes' => [138.7, 62.5], 'no' => [160.7, 65]],
-        'separated' => ['yes' => [138.7, 99.5], 'no' => [161.5, 102.7]],
-        'candidate' => ['yes' => [138.7, 113], 'no' => [163, 116.7]],
-        'resigned' => ['yes' => [139.5, 123], 'no' => [163.5, 126.6]],
-        'immigrant' => ['yes' => [138.7, 135], 'no' => [163.5, 138.7]],
-        'indigenous' => ['yes' => [138.7, 163], 'no' => [164, 167]],
-        'disability' => ['yes' => [138.7, 171], 'no' => [164, 175.8]],
-        'solo_parent' => ['yes' => [138.7, 180.4], 'no' => [164, 185]],
-    ];
+        $info = [
+            'third_degree'         => $misc->related_34_a,
+            'fourth_degree'        => strtolower($misc->related_34_b) === 'no' ? ['No', ''] : ['Yes', $misc->related_34_b],
+            'guilty'               => strtolower($misc->guilty_35_a) === 'no' ? ['No', ''] : ['Yes', $misc->guilty_35_a],
+            'charged' => strtolower($criminalDetailsRaw) === 'no'
+                                ? ['No', '', '']
+                                : ['Yes', $dateFiled, $caseStatusRaw],
+            'convicted'            => strtolower($misc->convicted_36) === 'no' ? ['No', ''] : ['Yes', $misc->convicted_36],
+            'separated'            => strtolower($misc->separated_37) === 'no' ? ['No', ''] : ['Yes', $misc->separated_37],
+            'candidate'            => strtolower($misc->candidate_38) === 'no' ? ['No', ''] : ['Yes', $misc->candidate_38],
+            'resigned'             => strtolower($misc->resigned_38_b) === 'no' ? ['No', ''] : ['Yes', $misc->resigned_38_b],
+            'immigrant'            => strtolower($misc->immigrant_39) === 'no' ? ['No', ''] : ['Yes', $misc->immigrant_39],
+            'indigenous'           => strtolower($misc->indigenous_40_a) === 'no' ? ['No', ''] : ['Yes', $misc->indigenous_40_a],
+            'disability'           => strtolower($misc->pwd_40_b) === 'no' ? ['No', ''] : ['Yes', $misc->pwd_40_b],
+            'solo_parent'          => strtolower($misc->solo_parent_40_c) === 'no' ? ['No', ''] : ['Yes', $misc->solo_parent_40_c],
+
+            // References
+            'references' => [
+                ['name' => $misc->ref1_name, 'address' => $misc->ref1_address, 'tel' => $misc->ref1_tel],
+                ['name' => $misc->ref2_name, 'address' => $misc->ref2_address, 'tel' => $misc->ref2_tel],
+                ['name' => $misc->ref3_name, 'address' => $misc->ref3_address, 'tel' => $misc->ref3_tel],
+            ],
+
+            // IDs
+            'govt_id'    => $misc->govt_id_type ?? '',
+            'other_id'   => $misc->govt_id_number ?? '',
+            'issue_place'=> $misc->govt_id_place_issued ?? '',
+            'issue_date' => $misc->govt_id_date_issued ?? '',
+        ];
+
+        $checkboxes = [
+            'third_degree'  => ['yes' => [139.5, 24.4], 'no' => [161, 24.7]],
+            'fourth_degree' => ['yes' => [139.5, 30], 'no' => [160.8, 30]],
+            'guilty'        => ['yes' => [138.7, 46],   'no' => [161.5, 46]],
+            'convicted'     => ['yes' => [138.7, 83.5], 'no' => [164, 83]],
+            'charged'       => ['yes' => [138.7, 62.5], 'no' => [162.5, 62.6]],
+            'separated'     => ['yes' => [138.7, 99.5],'no' => [163.5, 99.3]],
+            'candidate'     => ['yes' => [138.7, 113],    'no' => [165.5, 113]],
+            'resigned'      => ['yes' => [139.5, 123],'no' => [166.3, 123.3]],
+            'immigrant'     => ['yes' => [138.7, 135],    'no' => [165.5, 135]],
+            'indigenous'    => ['yes' => [138.7, 163],  'no' => [166, 163]],
+            'disability'    => ['yes' => [138.7, 171],  'no' => [166, 171.5]],
+            'solo_parent'   => ['yes' => [138.7, 180.4],  'no' => [166, 180.5]],
+        ];
 
     foreach ($checkboxes as $key => $coord) {
         $answer = ($checkboxStates[$key] ?? false) ? 'yes' : 'no';
@@ -1550,51 +1588,44 @@ private function WriteC4Information($pdf, $userId)
 
     $this->setFont($pdf, 'Arial', '', 8);
 
-    // Detail fields
-    $this->writeFittedAt($pdf, $this->affirmativeDetail($misc->related_34_b), 141.224, 40, 56, 7.0, 5.0);
-    $this->writeFittedAt($pdf, $this->affirmativeDetail($misc->guilty_35_a), 141.224, 56, 56, 7.0, 5.0);
-    $this->writeFittedAt($pdf, $criminalCase['date'], 163, 73, 40, 7.0, 5.0);
-    $this->writeFittedAt($pdf, $criminalCase['status'], 163, 77, 40, 7.0, 5.0);
-    $this->writeFittedAt($pdf, $this->affirmativeDetail($misc->convicted_36), 141.224, 120, 56, 7.0, 5.0);
-    $this->writeFittedAt($pdf, $this->affirmativeDetail($misc->separated_37), 141.224, 93.5, 56, 7.0, 5.0);
-    $this->writeFittedAt($pdf, $this->affirmativeDetail($misc->candidate_38), 166, 100, 40, 7.0, 5.0);
-    $this->writeFittedAt($pdf, $this->affirmativeDetail($misc->resigned_38_b), 163, 129, 40, 7.0, 5.0);
-    $this->writeFittedAt($pdf, $this->affirmativeDetail($misc->immigrant_39), 141.224, 144, 62, 7.0, 5.0);
-    $this->writeFittedAt($pdf, $this->affirmativeDetail($misc->indigenous_40_a), 177, 168, 26, 6.5, 4.5);
-    $this->writeFittedAt($pdf, $this->affirmativeDetail($misc->pwd_40_b), 177, 177, 26, 6.5, 4.5);
-    $this->writeFittedAt($pdf, $this->affirmativeDetail($misc->solo_parent_40_c), 177, 185, 26, 6.5, 4.5);
+        // Detail fields
+        $this->writeFittedAt($pdf, (string) ($info['fourth_degree'][1] ?? ''), 141.224, 40, 56, 7.0, 5.0);
+        $this->writeFittedAt($pdf, (string) ($info['guilty'][1] ?? ''), 141.224, 56, 56, 7.0, 5.0);
+        $this->writeFittedAt($pdf, (string) ($info['charged'][1] ?? ''), 163, 73, 40, 7.0, 5.0);
+        $this->writeFittedAt($pdf, (string) ($info['charged'][2] ?? ''), 163, 77, 40, 7.0, 5.0);
+        $this->writeFittedAt($pdf, (string) ($info['convicted'][1] ?? ''), 141.224, 93, 56, 7.0, 5.0);
+        $this->writeFittedAt($pdf, (string) ($info['separated'][1] ?? ''), 141.224, 107, 56, 7.0, 5.0);
+        $this->writeFittedAt($pdf, (string) ($info['candidate'][1] ?? ''), 165, 118, 40, 7.0, 5.0);
+        $this->writeFittedAt($pdf, (string) ($info['resigned'][1] ?? ''), 163.5, 129, 40, 7.0, 5.0);
+        $this->writeFittedAt($pdf, (string) ($info['immigrant'][1] ?? ''), 141.224, 144, 62, 7.0, 5.0);
+        $this->writeFittedAt($pdf, (string) ($info['indigenous'][1] ?? ''), 177, 168, 26, 6.5, 4.5);
+        $this->writeFittedAt($pdf, (string) ($info['disability'][1] ?? ''), 177, 177, 26, 6.5, 4.5);
+        $this->writeFittedAt($pdf, (string) ($info['solo_parent'][1] ?? ''), 177, 185, 26, 6.5, 4.5);
 
-    // Reference table
-    $x_name = 8.0;
-    $x_address = 87.0;
-    $x_telno = 132.0;
-    $y_refs = [209.0, 218.5, 228.0];
-    $references = [
-        ['name' => $misc->ref1_name, 'address' => $misc->ref1_address, 'tel' => $misc->ref1_tel],
-        ['name' => $misc->ref2_name, 'address' => $misc->ref2_address, 'tel' => $misc->ref2_tel],
-        ['name' => $misc->ref3_name, 'address' => $misc->ref3_address, 'tel' => $misc->ref3_tel],
-    ];
+        // Reference table
+        $x_name = 8.0;
+        $x_address = 87.0;
+        $x_telno = 134.0;
+        $y_refs = [206, 213, 220];
 
-    foreach ($references as $i => $ref) {
-        if ($i >= count($y_refs)) {
-            break;
+        foreach ($info['references'] as $i => $ref) {
+            if ($i >= count($y_refs)) break;
+            $y = $y_refs[$i];
+            $this->writeFittedAt($pdf, $this->valueOrNa($ref['name'] ?? null), $x_name, $y, 58, 7.5, 5.0);
+            $this->writeFittedAt($pdf, $this->valueOrNa($ref['address'] ?? null), $x_address, $y, 58, 7.5, 5.0);
+            $this->writeFittedAt($pdf, $this->valueOrNa($ref['tel'] ?? null), $x_telno, $y, 20, 7.5, 5.0);
         }
-        $y = $y_refs[$i];
-        $this->writeFittedAt($pdf, $this->valueOrNa($ref['name'] ?? null), $x_name, $y, 74, 8.0, 5.0);
-        $this->writeFittedAt($pdf, $this->valueOrNa($ref['address'] ?? null), $x_address, $y, 49, 7.0, 5.0);
-        $this->writeFittedAt($pdf, $this->valueOrNa($ref['tel'] ?? null), $x_telno, $y, 14, 6.5, 5.0);
-    }
 
-    // ID Section
-    $this->writeFittedAt($pdf, $this->valueOrNa($misc->govt_id_type ?? null), 33, 268.0, 58, 7.0, 5.0);
-    $this->writeFittedAt($pdf, $this->valueOrNa($misc->govt_id_number ?? null), 35, 274, 58, 7.0, 5.0);
+        // ID Section
+        $this->writeFittedAt($pdf, $this->valueOrNa($info['govt_id'] ?? null), 31, 262.5, 58, 7.5, 5.0); // Govt ID type
+        $this->writeFittedAt($pdf, $this->valueOrNa($info['other_id'] ?? null), 32, 269, 58, 7.5, 5.0); // Govt ID number
 
-    $issuePlace = trim($this->normalizeScalarText($misc->govt_id_place_issued ?? ''));
-    $issuedDate = $this->dateOrNa($misc->govt_id_date_issued ?? null);
-    $issuedText = $issuePlace === ''
-        ? $issuedDate
-        : trim($issuePlace . ' | ' . ($issuedDate === 'N/A' ? '' : $issuedDate), " |\t\n\r\0\x0B");
-    $this->writeFittedAt($pdf, $this->valueOrNa($issuedText), 33, 281.5, 86, 6.0, 4.6);
+        $issuePlace = trim((string) ($info['issue_place'] ?? ''));
+        $issuedDate = $this->dateOrNa($info['issue_date'] ?? null);
+        $issuedText = $issuePlace === ''
+            ? $issuedDate
+            : trim($issuePlace . ' | ' . ($issuedDate === 'N/A' ? '' : $issuedDate), " |\t\n\r\0\x0B");
+        $this->writeFittedAt($pdf, $this->valueOrNa($issuedText), 32, 276, 86, 7.5, 4.6);
 
     // Leave oath/signature/thumbmark placeholders blank when data is unavailable.
 }
