@@ -149,7 +149,7 @@ class ExportController extends Controller
         return response()->stream($callback, 200, $headers);
     }
 
-    public function exportALLVacancies()
+    public function exportAllVacancies()
     {
     $timestamp = now()->format('Y-m-d_H-i-s');
     $fileName = "job_vacancies(All)_{$timestamp}.csv";

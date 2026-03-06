@@ -96,7 +96,10 @@ class JobVacancyController extends Controller
     {
         $vacancy = JobVacancy::where('vacancy_id', $vacancy_id)->firstOrFail();
         $signatories = \App\Models\Signatory::all();
-        $view = $vacancy->vacancy_type === 'Plantilla' ? 'admin.vacancy_add_plantilla' : 'admin.vacancy_add_cos';
+        $vacancyType = (string) ($vacancy->vacancy_type ?? '');
+        $view = strcasecmp(trim($vacancyType), 'Plantilla') === 0
+            ? 'admin.vacancy_add_plantilla'
+            : 'admin.vacancy_add_cos';
 
         activity()
             ->event('view')
@@ -159,7 +162,7 @@ class JobVacancyController extends Controller
 
         $status = 'OPEN';
 
-        $vacancy->update([
+        $vacancyUpdateData = [
             'vacancy_type' => $validated['vacancy_type'],
             'position_title' => $validated['position_title'],
             'monthly_salary' => $validated['monthly_salary'],
@@ -191,8 +194,13 @@ class JobVacancyController extends Controller
             'plantilla_item_no' => $validated['plantilla_item_no'] ?? null,
 
             'last_modified_by' => Auth::user()?->name ?? 'System',
-            'last_modified_at' => now(),
-        ]);
+        ];
+
+        if ($this->hasJobVacancyLastModifiedAtColumn()) {
+            $vacancyUpdateData['last_modified_at'] = now();
+        }
+
+        $vacancy->update($vacancyUpdateData);
 
         // Handle CSC Form file upload only when the column exists in this database.
         if ($this->hasJobVacancyCscFormPathColumn() && request()->hasFile('csc_form')) {
@@ -1631,6 +1639,25 @@ class JobVacancyController extends Controller
         } catch (\Throwable $e) {
             $hasColumn = false;
             Log::warning('Unable to detect job_vacancies.csc_form_path column.', [
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return $hasColumn;
+    }
+
+    private function hasJobVacancyLastModifiedAtColumn(): bool
+    {
+        static $hasColumn = null;
+        if ($hasColumn !== null) {
+            return $hasColumn;
+        }
+
+        try {
+            $hasColumn = Schema::hasColumn('job_vacancies', 'last_modified_at');
+        } catch (\Throwable $e) {
+            $hasColumn = false;
+            Log::warning('Unable to detect job_vacancies.last_modified_at column.', [
                 'error' => $e->getMessage(),
             ]);
         }

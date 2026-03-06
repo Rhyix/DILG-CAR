@@ -540,12 +540,30 @@ Route::middleware([ViewerAccess::class, 'admin.ability:admin.exam.monitor'])->gr
     Route::post('/admin/exam_management/{vacancy_id}/edit', [ExamController::class, 'updateExam'])->name('admin.exam.update')->middleware(RedirectIfNotAdmin::class);
 
     //Export
-    Route::get('/export-job-vacancies-cos', [ExportController::class, 'exportCOS'])->middleware(RedirectIfNotAdmin::class)->name('exportJobVacancyCOS');
-    Route::get('/export-job-vacancies-plantilla', [ExportController::class, 'exportPlantilla'])->middleware(RedirectIfNotAdmin::class)->name('exportJobVacancyPlantilla');
-    Route::get('/export-job-vacancies-all', [ExportController::class, 'exportAllVacancies'])->middleware(RedirectIfNotAdmin::class)->name('exportJobVacancyAll');
-    Route::get('/export-activities-all', [ExportController::class, 'exportActivities'])->middleware(RedirectIfNotAdmin::class)->name('exportActivities');
-    Route::get('/export/reviewed-applications/{vacancy_id}', [ExportController::class, 'exportReviewedApplications'])->middleware(RedirectIfNotAdmin::class)->name('exportReviewed');
-    Route::get('/export/not-reviewed-applications/{vacancy_id}', [ExportController::class, 'exportNotReviewedApplications'])->middleware(RedirectIfNotAdmin::class)->name('exportNotReviewed');
+    Route::get('/export-job-vacancies-cos', [ExportController::class, 'exportCOS'])
+        ->middleware(RedirectIfNotAdmin::class)
+        ->withoutMiddleware([ViewerAccess::class, \App\Http\Middleware\EnsureAdminAbility::class, 'admin.ability:admin.exam.monitor'])
+        ->name('exportJobVacancyCOS');
+    Route::get('/export-job-vacancies-plantilla', [ExportController::class, 'exportPlantilla'])
+        ->middleware(RedirectIfNotAdmin::class)
+        ->withoutMiddleware([ViewerAccess::class, \App\Http\Middleware\EnsureAdminAbility::class, 'admin.ability:admin.exam.monitor'])
+        ->name('exportJobVacancyPlantilla');
+    Route::get('/export-job-vacancies-all', [ExportController::class, 'exportAllVacancies'])
+        ->middleware(RedirectIfNotAdmin::class)
+        ->withoutMiddleware([ViewerAccess::class, \App\Http\Middleware\EnsureAdminAbility::class, 'admin.ability:admin.exam.monitor'])
+        ->name('exportJobVacancyAll');
+    Route::get('/export-activities-all', [ExportController::class, 'exportActivities'])
+        ->middleware(RedirectIfNotAdmin::class)
+        ->withoutMiddleware([ViewerAccess::class, \App\Http\Middleware\EnsureAdminAbility::class, 'admin.ability:admin.exam.monitor'])
+        ->name('exportActivities');
+    Route::get('/export/reviewed-applications/{vacancy_id}', [ExportController::class, 'exportReviewedApplications'])
+        ->middleware(RedirectIfNotAdmin::class)
+        ->withoutMiddleware([ViewerAccess::class, \App\Http\Middleware\EnsureAdminAbility::class, 'admin.ability:admin.exam.monitor'])
+        ->name('exportReviewed');
+    Route::get('/export/not-reviewed-applications/{vacancy_id}', [ExportController::class, 'exportNotReviewedApplications'])
+        ->middleware(RedirectIfNotAdmin::class)
+        ->withoutMiddleware([ViewerAccess::class, \App\Http\Middleware\EnsureAdminAbility::class, 'admin.ability:admin.exam.monitor'])
+        ->name('exportNotReviewed');
 
 
     //Import

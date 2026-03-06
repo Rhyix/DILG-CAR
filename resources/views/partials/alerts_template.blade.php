@@ -13,7 +13,7 @@
 ])
 
 @php
-    $modalId = preg_replace('/[^A-Za-z0-9_-]/', '', (string) $id) ?: 'alertModal';
+    $modalId = strtolower(preg_replace('/[^A-Za-z0-9_-]/', '', (string) $id) ?: 'alertModal');
     $openEvent = 'open-confirm-' . $modalId;
     $confirmEvent = 'confirm-' . $modalId;
     $hasCustomContent = !empty(trim((string) $content));
@@ -45,7 +45,7 @@
         />
     </div>
 
-    @if(!empty(trim((string) $okAction)))
+        @if(!empty(trim((string) $okAction)))
         <script>
             window.addEventListener(@json($confirmEvent), function () {
                 {!! $okAction !!}
