@@ -152,7 +152,7 @@
                     Edit
                 </button>
                 <button type="button" @click="showPasswordModal = true"
-                    class="rounded-xl bg-slate-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-900">
+                    class="rounded-xl bg-[#0D2B70] px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-900">
                     Reset Password
                 </button>
             </div>
@@ -169,8 +169,19 @@
                 }
                 return number_format($size / 1048576, 2) . ' MB';
             };
+            $uploadedGalleryByType = $galleryItems
+                ->filter(fn ($item) => filled($item->document_type))
+                ->sortByDesc('updated_at')
+                ->unique('document_type')
+                ->keyBy('document_type');
         @endphp
 
+
+        <section class="mb-4 flex items-center space-x-4">
+            <h1 class="flex w-full items-center gap-3 border-b border-[#0D2B70] pb-2 text-3xl font-montserrat font-bold tracking-wide text-[#0D2B70]">
+                                Document Gallery
+            </h1>
+        </section>
         <section class="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <!-- <div class="flex flex-wrap items-start justify-between gap-4">
                 <div>
@@ -182,18 +193,41 @@
                 </span>
             </div> -->
 
+            <div class="mt-2 rounded-xl border border-slate-200 bg-white p-4">
+                <h3 class="text-sm font-bold text-[#0D2B70]">Document Checklist</h3>
+                <p class="mt-1 text-xs text-slate-500">Green means uploaded. Gray means empty.</p>
+                <div class="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                    @foreach ($documentTypeOptions as $docType)
+                        @php
+                            $isUploadedType = $uploadedGalleryByType->has($docType);
+                        @endphp
+                        <div class="flex items-center justify-between rounded-lg border px-3 py-2 {{ $isUploadedType ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 bg-slate-50' }}">
+                            <span class="text-xs font-semibold {{ $isUploadedType ? 'text-emerald-700' : 'text-slate-600' }}">
+                                {{ ucwords(str_replace('_', ' ', $docType)) }}
+                            </span>
+                            <span class="text-[11px] font-bold {{ $isUploadedType ? 'text-emerald-700' : 'text-slate-500' }}">
+                                {{ $isUploadedType ? 'Uploaded' : 'Empty' }}
+                            </span>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+
             <form method="POST" action="{{ route('profile.document_gallery.store') }}" enctype="multipart/form-data"
                 class="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
                 @csrf
                 <div class="grid gap-3 md:grid-cols-[1fr,1fr,auto]">
                     <div>
-                        <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">Document Type (Optional)</label>
-                        <select name="document_type"
+                        <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">Document Type</label>
+                        <select name="document_type" required
                             class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20">
-                            <option value="" {{ old('document_type') === null || old('document_type') === '' ? 'selected' : '' }}>General / Unclassified</option>
+                            <option value="" {{ old('document_type') === null || old('document_type') === '' ? 'selected' : '' }} disabled>Select a document type</option>
                             @foreach ($documentTypeOptions as $docType)
-                                <option value="{{ $docType }}" {{ old('document_type') === $docType ? 'selected' : '' }}>
-                                    {{ ucwords(str_replace('_', ' ', $docType)) }}
+                                @php
+                                    $docTypeTaken = $uploadedGalleryByType->has($docType);
+                                @endphp
+                                <option value="{{ $docType }}" {{ old('document_type') === $docType ? 'selected' : '' }} {{ $docTypeTaken ? 'disabled' : '' }}>
+                                    {{ ucwords(str_replace('_', ' ', $docType)) }}{{ $docTypeTaken ? ' (Uploaded)' : '' }}
                                 </option>
                             @endforeach
                         </select>
@@ -210,7 +244,7 @@
                         </button>
                     </div>
                 </div>
-                <p class="mt-2 text-xs text-slate-500">Allowed files: PDF, JPG, JPEG, PNG. Max size: 10MB.</p>
+                <p class="mt-2 text-xs text-slate-500">Allowed files: PDF, JPG, JPEG, PNG. Max size: 10MB. One file per document type.</p>
                 @error('gallery_document')
                     <p class="mt-2 text-sm text-rose-600">{{ $message }}</p>
                 @enderror

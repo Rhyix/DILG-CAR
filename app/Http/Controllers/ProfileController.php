@@ -153,10 +153,21 @@ class ProfileController extends Controller
 
         $validated = $request->validate([
             'gallery_document' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
-            'document_type' => ['nullable', 'string', 'in:' . implode(',', $documentTypeOptions)],
+            'document_type' => ['required', 'string', 'in:' . implode(',', $documentTypeOptions)],
         ]);
 
         $user = Auth::user();
+        $documentType = (string) $validated['document_type'];
+        $existingType = DocumentGalleryItem::where('user_id', $user->id)
+            ->where('document_type', $documentType)
+            ->exists();
+        if ($existingType) {
+            return redirect()
+                ->route('account.settings')
+                ->withErrors(['document_type' => 'A file for this document type already exists. Remove it first before uploading another.'])
+                ->withInput();
+        }
+
         $file = $request->file('gallery_document');
         $originalName = $file->getClientOriginalName();
         $extension = strtolower((string) $file->getClientOriginalExtension());
@@ -168,7 +179,7 @@ class ProfileController extends Controller
 
         DocumentGalleryItem::create([
             'user_id' => $user->id,
-            'document_type' => $validated['document_type'] ?? null,
+            'document_type' => $documentType,
             'original_name' => $originalName,
             'stored_name' => $storedName,
             'storage_path' => $storagePath,
