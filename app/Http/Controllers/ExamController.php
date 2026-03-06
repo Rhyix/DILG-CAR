@@ -1050,9 +1050,16 @@ class ExamController extends Controller
 
     public function viewExam(Request $request, $vacancy_id, $user_id)
     {
-        //dd($request->all());
-        info($user_id);
-        $application = Applications::select('user_id', 'answers', 'scores', 'exam_started_at', 'exam_end_time', 'exam_submitted_at', 'tab_violations', 'last_tab_violation_at', 'status')->where('user_id', $user_id)->where('vacancy_id', $vacancy_id)->firstOrFail();
+        $application = Applications::select('user_id', 'answers', 'scores', 'exam_started_at', 'exam_end_time', 'exam_submitted_at', 'tab_violations', 'last_tab_violation_at', 'status')
+            ->where('user_id', $user_id)
+            ->where('vacancy_id', $vacancy_id)
+            ->first();
+        if (!$application) {
+            if (auth('admin')->check() && strcasecmp((string) auth('admin')->user()->role, 'viewer') === 0) {
+                return redirect()->route('viewer')->with('error', 'Exam answers are unavailable for the selected applicant.');
+            }
+            abort(404);
+        }
         $examItems = ExamItems::select('id', 'question', 'ans', 'is_essay', 'choices', 'essay_max_score')->where('vacancy_id', $vacancy_id)->get();
         $positionTitle = JobVacancy::select('position_title')->where('vacancy_id', $vacancy_id)->firstOrFail();
         $userName = User::select('name')->find($user_id);
@@ -1064,7 +1071,7 @@ class ExamController extends Controller
 
         //info($answers);
 
-        $result = 0;
+        $examResults = [];
 
         $examineeCode = strtoupper('EXM-' . substr(hash('sha256', $vacancy_id . '-' . $user_id), 0, 8));
 
@@ -1127,7 +1134,16 @@ class ExamController extends Controller
 
     public function getExamAnswersJson(Request $request, $vacancy_id, $user_id)
     {
-        $application = Applications::select('user_id', 'answers', 'scores', 'tab_violations', 'last_tab_violation_at')->where('user_id', $user_id)->where('vacancy_id', $vacancy_id)->firstOrFail();
+        $application = Applications::select('user_id', 'answers', 'scores', 'tab_violations', 'last_tab_violation_at')
+            ->where('user_id', $user_id)
+            ->where('vacancy_id', $vacancy_id)
+            ->first();
+        if (!$application) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Exam answers are unavailable for the selected applicant.',
+            ], 404);
+        }
         $examItems = ExamItems::select('id', 'question', 'ans', 'is_essay', 'choices', 'essay_max_score')->where('vacancy_id', $vacancy_id)->get();
 
         $answers = $application->answers;
@@ -1550,23 +1566,31 @@ class ExamController extends Controller
                 ], 400);
             }
 
-            $participants = Applications::where('vacancy_id', $vacancy_id)->get();
+            $participants = Applications::where('vacancy_id', $vacancy_id)
+                ->select('user_id')
+                ->get();
             if ($participants->isEmpty()) {
                 return response()->json(['success' => false, 'message' => 'No participants found for this vacancy.']);
             }
+
+            $usersById = User::query()
+                ->whereIn('id', $participants->pluck('user_id')->unique()->values())
+                ->get(['id', 'email'])
+                ->keyBy('id');
 
             $sentCount = 0;
             $failedCount = 0;
             $skippedCount = 0;
             foreach ($participants as $app) {
-                $user = User::find($app->user_id);
+                $user = $usersById->get($app->user_id);
                 if (!$user || empty($user->email)) {
                     $skippedCount++;
                     continue;
                 }
 
                 try {
-                    Mail::to($user->email)->sendNow(new NotifyApplicantMail($vacancy_id, $user->id, $examDetail->id));
+                    // Queue delivery to keep Save & Notify responsive under larger applicant batches.
+                    Mail::to($user->email)->queue(new NotifyApplicantMail($vacancy_id, $user->id, $examDetail->id));
                     $sentCount++;
                 } catch (\Throwable $mailException) {
                     $failedCount++;

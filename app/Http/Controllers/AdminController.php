@@ -1022,9 +1022,11 @@ class AdminController extends Controller
                     }
                 }
 
+                $docStatus = trim((string) ($doc->status ?? ''));
+                $isRevisionStatus = in_array(strtolower($docStatus), ['needs revision', 'disapproved with deficiency'], true);
                 $status = $hasFile
-                    ? (!empty(trim((string) ($doc->status ?? ''))) ? $doc->status : 'Pending')
-                    : 'Not Submitted';
+                    ? ($docStatus !== '' ? $doc->status : 'Pending')
+                    : ($isRevisionStatus ? $doc->status : 'Not Submitted');
                 $revisionState = $this->getUploadedDocumentRevisionState(
                     (int) $user_id,
                     (string) $application->vacancy_id,
@@ -1886,10 +1888,14 @@ class AdminController extends Controller
             ->firstOrFail();
 
         // Update Deadline and QS data if provided in request
-        $request->merge([
-            'deadline_date' => ($request->input('deadline_date') === '' ? null : $request->input('deadline_date')),
-            'deadline_time' => ($request->input('deadline_time') === '' ? null : $request->input('deadline_time')),
-        ]);
+        // Only normalize empty strings when the field is explicitly submitted.
+        // This prevents notify-only actions from wiping existing deadline values.
+        if ($request->exists('deadline_date') && $request->input('deadline_date') === '') {
+            $request->merge(['deadline_date' => null]);
+        }
+        if ($request->exists('deadline_time') && $request->input('deadline_time') === '') {
+            $request->merge(['deadline_time' => null]);
+        }
 
         $validatedData = $request->validate([
             'deadline_enabled' => 'nullable|boolean',
@@ -1958,11 +1964,9 @@ class AdminController extends Controller
         foreach ($documents as $doc) {
             $status = $doc['status'];
 
-            // Skip documents that are not submitted
-            if ($status === 'Not Submitted' || $status === 'Pending' && empty($doc['original_name']) && $doc['id'] !== 'application_letter') {
-                // Note: 'Pending' might be default for placeholder docs, but if no file is attached (original_name empty), treat as not submitted?
-                // Actually getApplicantDocuments sets status to 'Not Submitted' if $doc is null.
-                // If $doc exists but status is 'Pending', it counts as submitted.
+            // Skip placeholders/unsubmitted documents for revision checks.
+            if ($status === 'Not Submitted' || ($status === 'Pending' && empty($doc['original_name']) && $doc['id'] !== 'application_letter')) {
+                continue;
             }
 
             if ($status === 'Needs Revision' || $status === 'Disapproved With Deficiency') {
@@ -2217,12 +2221,14 @@ class AdminController extends Controller
                     $hasFile = true;
                 }
             }
+            $docStatus = trim((string) ($doc->status ?? ''));
+            $isRevisionStatus = in_array(strtolower($docStatus), ['needs revision', 'disapproved with deficiency'], true);
             $documents[] = [
                 'id' => $docType,
                 'doc_id' => $doc->id ?? null,
                 'name' => self::DOCUMENT_LABELS[$docType] ?? ucwords(str_replace('_', ' ', $docType)),
                 'text' => self::DOCUMENT_LABELS[$docType] ?? ucwords(str_replace('_', ' ', $docType)),
-                'status' => $hasFile ? ($doc->status ?? 'Pending') : 'Not Submitted',
+                'status' => $hasFile ? ($doc->status ?? 'Pending') : ($isRevisionStatus ? $doc->status : 'Not Submitted'),
                 'preview' => $hasFile ? url('/preview-file/' . base64_encode($doc->storage_path)) : '',
                 'remarks' => $doc ? ($doc->remarks ?: '') : '',
                 'original_name' => $doc->original_name ?? '',

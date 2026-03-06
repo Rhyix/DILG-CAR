@@ -193,10 +193,23 @@
                 </span>
             </div> -->
 
-            <div class="mt-2 rounded-xl border border-slate-200 bg-white p-4">
-                <h3 class="text-sm font-bold text-[#0D2B70]">Document Checklist</h3>
-                <p class="mt-1 text-xs text-slate-500">Green means uploaded. Gray means empty.</p>
-                <div class="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            <div class="mt-2 rounded-xl border border-slate-200 bg-white p-4" x-data="{ showChecklist: false }">
+                <button type="button" @click="showChecklist = !showChecklist"
+                    class="flex w-full items-center justify-between gap-3 text-left">
+                    <div>
+                        <h3 class="text-sm font-bold text-[#0D2B70]">Document Checklist</h3>
+                        <p class="mt-1 text-xs text-slate-500">Green means uploaded. Gray means empty.</p>
+                    </div>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-600 transition-transform duration-200"
+                        viewBox="0 0 20 20" fill="currentColor" :class="showChecklist ? 'rotate-180' : ''"
+                        aria-hidden="true">
+                        <path fill-rule="evenodd"
+                            d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                            clip-rule="evenodd" />
+                    </svg>
+                </button>
+                <div class="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3" x-show="showChecklist" x-transition
+                    style="display: none;">
                     @foreach ($documentTypeOptions as $docType)
                         @php
                             $isUploadedType = $uploadedGalleryByType->has($docType);

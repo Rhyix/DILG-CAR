@@ -55,14 +55,31 @@ class ProfileController extends Controller
     {
         $user = Auth::user();
         $validated = $request->validated();
-        $middleInitial = filled($validated['middle_name'] ?? null)
-            ? strtoupper(mb_substr(trim((string) $validated['middle_name']), 0, 1)) . '.'
-            : '';
-        $validated['name'] = trim(implode(' ', array_filter([
-            trim((string) ($validated['first_name'] ?? '')),
-            $middleInitial,
-            trim((string) ($validated['last_name'] ?? '')),
-        ])));
+        $firstName = trim((string) ($validated['first_name'] ?? ''));
+        $lastName = trim((string) ($validated['last_name'] ?? ''));
+
+        // Backward compatibility: accept legacy "name" payloads when split fields are not sent.
+        if ($firstName === '' && $lastName === '' && filled($validated['name'] ?? null)) {
+            $parts = preg_split('/\s+/', trim((string) $validated['name'])) ?: [];
+            $firstName = trim((string) array_shift($parts));
+            $lastName = trim(implode(' ', $parts));
+            $validated['first_name'] = $firstName;
+            $validated['last_name'] = $lastName;
+        }
+
+        if ($firstName !== '' || $lastName !== '') {
+            $middleInitial = filled($validated['middle_name'] ?? null)
+                ? strtoupper(mb_substr(trim((string) $validated['middle_name']), 0, 1)) . '.'
+                : '';
+            $validated['name'] = trim(implode(' ', array_filter([
+                $firstName,
+                $middleInitial,
+                $lastName,
+            ])));
+        } elseif (array_key_exists('name', $validated)) {
+            $validated['name'] = trim((string) $validated['name']);
+        }
+
         if (array_key_exists('phone', $validated)) {
             $validated['phone_number'] = preg_replace('/\D+/', '', (string) $validated['phone']);
         }
