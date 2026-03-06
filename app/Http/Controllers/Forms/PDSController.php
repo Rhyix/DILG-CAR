@@ -4459,31 +4459,46 @@ class PDSController extends Controller
             }
 
             if ($doc_type === 'application_letter') {
+                $hasExistingApplicationLetter = !empty($application->file_storage_path)
+                    && $application->file_storage_path !== 'NOINPUT';
+                $applicationLetterInRevision = $this->isRevisionStatus($application->file_status);
                 $appRevisionCount = (int) ($application->file_revision_requested_count ?? 0);
                 $appRequestedAt = $application->file_revision_requested_at ?? null;
                 $appSubmittedAt = $application->file_revision_submitted_at ?? null;
 
-                if (!$this->isRevisionStatus($application->file_status)) {
+                // Allow initial uploads when there is no existing file yet.
+                if ($hasExistingApplicationLetter && !$applicationLetterInRevision) {
                     $upload_errors["cert_uploads.$doc_type"] = 'Cannot upload this document because it is not currently marked as Needs Revision.';
                     continue;
                 }
 
-                if ($this->isRevisionComplianceLocked($appRevisionCount, $appRequestedAt, $appSubmittedAt)) {
+                if (
+                    $applicationLetterInRevision
+                    && $this->isRevisionComplianceLocked($appRevisionCount, $appRequestedAt, $appSubmittedAt)
+                ) {
                     $upload_errors["cert_uploads.$doc_type"] = 'No further compliance is allowed for this document. You have already used your final revision opportunity.';
                     continue;
                 }
             } else {
                 $existingDoc = $this->resolveUploadedDocument($currentDocs, (string) $doc_type);
+                $existingDocHasFile = $existingDoc
+                    && !empty($existingDoc->storage_path)
+                    && $existingDoc->storage_path !== 'NOINPUT';
+                $existingDocInRevision = $existingDoc && $this->isRevisionStatus($existingDoc->status);
 
-                if (!$existingDoc || !$this->isRevisionStatus($existingDoc->status)) {
+                // Allow initial uploads when there is no existing file yet.
+                if ($existingDocHasFile && !$existingDocInRevision) {
                     $upload_errors["cert_uploads.$doc_type"] = 'Cannot upload this document because it is not currently marked as Needs Revision.';
                     continue;
                 }
 
-                $docRevisionCount = (int) ($existingDoc->revision_requested_count ?? 0);
-                $docRequestedAt = $existingDoc->revision_requested_at ?? null;
-                $docSubmittedAt = $existingDoc->revision_submitted_at ?? null;
-                if ($this->isRevisionComplianceLocked($docRevisionCount, $docRequestedAt, $docSubmittedAt)) {
+                $docRevisionCount = (int) ($existingDoc?->revision_requested_count ?? 0);
+                $docRequestedAt = $existingDoc?->revision_requested_at ?? null;
+                $docSubmittedAt = $existingDoc?->revision_submitted_at ?? null;
+                if (
+                    $existingDocInRevision
+                    && $this->isRevisionComplianceLocked($docRevisionCount, $docRequestedAt, $docSubmittedAt)
+                ) {
                     $upload_errors["cert_uploads.$doc_type"] = 'No further compliance is allowed for this document. You have already used your final revision opportunity.';
                     continue;
                 }

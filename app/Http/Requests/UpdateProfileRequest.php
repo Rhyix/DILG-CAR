@@ -15,9 +15,10 @@ class UpdateProfileRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'first_name' => ['required', 'string', 'max:255'],
+            'name' => ['nullable', 'string', 'max:255'],
+            'first_name' => ['nullable', 'string', 'max:255', 'required_without:name'],
             'middle_name' => ['nullable', 'string', 'max:255'],
-            'last_name' => ['required', 'string', 'max:255'],
+            'last_name' => ['nullable', 'string', 'max:255', 'required_without:name'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email,'.Auth::id()],
             'bio' => ['nullable', 'string', 'max:500'],
             'phone' => ['nullable', 'regex:/^09\d{9}$/'],

@@ -6,6 +6,7 @@ use App\Models\Admin;
 use App\Models\JobVacancy;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class StoreVacancyTest extends TestCase
@@ -31,7 +32,7 @@ class StoreVacancyTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_creates_vacancy_with_default_status_open()
     {
         $data = [
@@ -64,7 +65,7 @@ class StoreVacancyTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_ignores_status_input_and_forces_open()
     {
         $data = [
