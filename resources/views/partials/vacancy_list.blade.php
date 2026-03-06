@@ -3,7 +3,10 @@
 
         <!-- Job Title -->
         <div class="lg:py-2.5 lg:px-4 lg:w-[25%] mb-3 lg:mb-0">
-            <p class="font-bold text-base lg:text-sm lg:font-medium leading-tight">{{ $vacancy->position_title }}</p>
+            <p
+                class="font-bold text-base lg:text-sm lg:font-medium leading-tight block lg:truncate lg:whitespace-nowrap lg:overflow-hidden"
+                title="{{ $vacancy->position_title }}"
+            >{{ $vacancy->position_title }}</p>
             <p class="text-[#0D2B70]/70 text-xs italic mt-0.5">{{ $vacancy->vacancy_type }}</p>
         </div>
 
