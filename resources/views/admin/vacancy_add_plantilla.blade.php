@@ -407,6 +407,9 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // Initialize on page load
     handleSignatoryChange();
+    if (typeof checkAllFieldsFilled === 'function') {
+        checkAllFieldsFilled();
+    }
 
     // Vacancy Titles dropdown population
     const titleSelect = document.getElementById('position_title_select');
@@ -418,19 +421,35 @@ document.addEventListener("DOMContentLoaded", function() {
             .then(data => {
                 if (data.success) {
                     const current = "{{ old('position_title', $formSource?->position_title ?? '') }}";
+                    let currentFound = false;
                     data.data.forEach(o => {
                         const opt = document.createElement('option');
                         opt.value = o.position_title;
                         opt.textContent = o.position_title;
                         if (current && current === o.position_title) opt.selected = true;
+                        if (current && current === o.position_title) {
+                            currentFound = true;
+                        }
                         opt.dataset.sg = o.salary_grade || '';
                         opt.dataset.salary = o.monthly_salary || 0;
                         titleSelect.appendChild(opt);
                     });
+                    if (current && !currentFound) {
+                        const fallbackOption = document.createElement('option');
+                        fallbackOption.value = current;
+                        fallbackOption.textContent = current;
+                        fallbackOption.selected = true;
+                        fallbackOption.dataset.sg = sgField.value || '';
+                        fallbackOption.dataset.salary = salField.value || '';
+                        titleSelect.appendChild(fallbackOption);
+                    }
                     const sel = titleSelect.options[titleSelect.selectedIndex];
                     if (sel && sel.dataset) {
                         sgField.value = sel.dataset.sg || '';
                         salField.value = sel.dataset.salary || '';
+                    }
+                    if (typeof checkAllFieldsFilled === 'function') {
+                        checkAllFieldsFilled();
                     }
                 }
             }).catch(() => {});
@@ -438,6 +457,9 @@ document.addEventListener("DOMContentLoaded", function() {
             const sel = titleSelect.options[titleSelect.selectedIndex];
             sgField.value = sel?.dataset?.sg || '';
             salField.value = sel?.dataset?.salary || '';
+            if (typeof checkAllFieldsFilled === 'function') {
+                checkAllFieldsFilled();
+            }
         });
     }
 });
@@ -445,11 +467,25 @@ document.addEventListener("DOMContentLoaded", function() {
 // Validate all fields
 function checkAllFieldsFilled() {
     const form = document.getElementById('plantillaForm');
+    const requiredFields = new Set([
+        'position_title',
+        'monthly_salary',
+        'closing_date',
+        'place_of_assignment',
+        'qualification_education',
+        'qualification_training',
+        'qualification_experience',
+        'qualification_eligibility',
+        'to_person',
+        'to_position',
+        'to_office',
+        'to_office_address',
+    ]);
     const inputs = form.querySelectorAll('input:not([type="hidden"]), select, textarea');
     let allFilled = true;
     
     inputs.forEach(input => {
-        if (input.hasAttribute('readonly')) return; 
+        if (!requiredFields.has(input.name)) return;
         
         // For Select
         if (input.tagName === 'SELECT') {

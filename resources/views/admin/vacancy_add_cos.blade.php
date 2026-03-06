@@ -351,19 +351,33 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // Initialize on page load
     handleSignatoryChange();
+    if (typeof checkAllFieldsFilled === 'function') {
+        checkAllFieldsFilled();
+    }
 });
 
 // Validate all fields
 function checkAllFieldsFilled() {
     const form = document.getElementById('vacancy-form');
-    // Select inputs, selects, textareas that are not hidden and not readonly (except if it's the signatory select which is not readonly)
-    // Actually we want to check if the user *can* fill them.
-    // Readonly fields are usually filled by system or other fields.
-    const inputs = form.querySelectorAll('input:not([type="hidden"]), select, textarea');
+    const requiredFields = new Set([
+        'position_title',
+        'monthly_salary',
+        'closing_date',
+        'place_of_assignment',
+        'qualification_education',
+        'qualification_training',
+        'qualification_experience',
+        'qualification_eligibility',
+        'to_person',
+        'to_position',
+        'to_office',
+        'to_office_address',
+    ]);
     let allFilled = true;
     
+    const inputs = form.querySelectorAll('input:not([type="hidden"]), select, textarea');
     inputs.forEach(input => {
-        if (input.hasAttribute('readonly')) return; 
+        if (!requiredFields.has(input.name)) return;
         
         // For Select
         if (input.tagName === 'SELECT') {
@@ -482,24 +496,40 @@ document.addEventListener('DOMContentLoaded', async () => {
   const sal = document.getElementById('monthly_salary');
   try {
     const res = await fetch("{{ route('admin.vacancy_titles.list') }}");
-    const data = await res.json();
-    if (data.success) {
+  const data = await res.json();
+      if (data.success) {
       const opts = data.data || [];
       const current = "{{ old('position_title', $formSource?->position_title ?? '') }}";
+      let currentFound = false;
       opts.forEach(o => {
         const opt = document.createElement('option');
         opt.value = o.position_title;
         opt.textContent = o.position_title;
         if (current && current === o.position_title) opt.selected = true;
+        if (current && current === o.position_title) {
+            currentFound = true;
+        }
         opt.dataset.sg = o.salary_grade || '';
         opt.dataset.salary = o.monthly_salary || 0;
         select.appendChild(opt);
       });
+      if (current && !currentFound) {
+          const fallbackOption = document.createElement('option');
+          fallbackOption.value = current;
+          fallbackOption.textContent = current;
+          fallbackOption.selected = true;
+          fallbackOption.dataset.sg = sg.value || '';
+          fallbackOption.dataset.salary = sal.value || '';
+          select.appendChild(fallbackOption);
+      }
       // Initialize if current exists
       const sel = select.options[select.selectedIndex];
       if (sel && sel.dataset) {
         sg.value = sel.dataset.sg || '';
         sal.value = sel.dataset.salary || '';
+      }
+      if (typeof checkAllFieldsFilled === 'function') {
+          checkAllFieldsFilled();
       }
     }
   } catch(e) {}
@@ -507,6 +537,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const sel = select.options[select.selectedIndex];
     sg.value = sel?.dataset?.sg || '';
     sal.value = sel?.dataset?.salary || '';
+    if (typeof checkAllFieldsFilled === 'function') {
+        checkAllFieldsFilled();
+    }
   });
 });
 </script>
