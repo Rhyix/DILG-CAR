@@ -1,97 +1,105 @@
 @forelse ($vacancies as $vacancy)
-    <div class="flex flex-col lg:flex-row lg:items-center text-[#0D2B70] hover:bg-blue-50 transition-colors duration-200 p-5 lg:p-0 border-b border-gray-100 lg:border-none relative group">
-        
+    <div class="flex flex-col lg:flex-row lg:items-center text-[#0D2B70] hover:bg-blue-50 transition-colors duration-200 p-5 lg:p-0 border-b border-gray-100 lg:border-none relative group text-sm">
+
         <!-- Job Title -->
-        <div class="lg:py-4 lg:px-6 lg:w-[25%] mb-3 lg:mb-0">
-            <p class="font-bold text-lg lg:text-base lg:font-medium leading-tight">{{ $vacancy->position_title }}</p>
-            <p class="text-[#0D2B70]/70 text-sm italic mt-0.5">{{ $vacancy->vacancy_type }}</p>
+        <div class="lg:py-2.5 lg:px-4 lg:w-[25%] mb-3 lg:mb-0">
+            <p class="font-bold text-base lg:text-sm lg:font-medium leading-tight">{{ $vacancy->position_title }}</p>
+            <p class="text-[#0D2B70]/70 text-xs italic mt-0.5">{{ $vacancy->vacancy_type }}</p>
         </div>
 
         <!-- Salary -->
-        <div class="lg:py-4 lg:px-6 lg:w-[12%] mb-2 lg:mb-0 flex items-center lg:block">
+        <div class="lg:py-2.5 lg:px-4 lg:w-[12%] mb-2 lg:mb-0 flex items-center lg:block">
             <span class="lg:hidden text-xs font-bold text-slate-400 uppercase tracking-wide w-24 shrink-0">Salary</span>
-            <span class="font-medium">₱{{ number_format($vacancy->monthly_salary, 2) }}</span>
+            <span class="font-medium text-xs lg:text-sm">&#8369;{{ number_format($vacancy->monthly_salary, 2) }}</span>
         </div>
 
         <!-- Place -->
-        <div class="lg:py-4 lg:px-6 lg:w-[18%] mb-2 lg:mb-0 flex items-center lg:block">
+        <div class="lg:py-2.5 lg:px-4 lg:w-[18%] mb-2 lg:mb-0 flex items-center lg:block">
             <span class="lg:hidden text-xs font-bold text-slate-400 uppercase tracking-wide w-24 shrink-0">Assignment</span>
-            <span class="text-sm sm:text-base">{{ $vacancy->place_of_assignment }}</span>
+            <span class="text-xs sm:text-sm lg:text-xs block lg:truncate lg:whitespace-nowrap lg:overflow-hidden"
+                title="{{ $vacancy->place_of_assignment }}">
+                {{ $vacancy->place_of_assignment }}
+            </span>
         </div>
 
         <!-- Deadline -->
-        <div class="lg:py-4 lg:px-6 lg:w-[15%] mb-2 lg:mb-0 flex items-center lg:justify-center lg:block">
-             <span class="lg:hidden text-xs font-bold text-slate-400 uppercase tracking-wide w-24 shrink-0">Deadline</span>
-             <div class="flex lg:flex-col lg:items-center gap-2 lg:gap-0">
+        <div class="lg:py-2.5 lg:px-4 lg:w-[15%] mb-2 lg:mb-0 flex items-center lg:justify-center lg:block">
+            <span class="lg:hidden text-xs font-bold text-slate-400 uppercase tracking-wide w-24 shrink-0">Deadline</span>
+            <div class="flex lg:flex-col lg:items-center gap-2 lg:gap-0">
                 @php
                     $closing = \Carbon\Carbon::parse($vacancy->closing_date);
                     $daysLeft = now()->diffInDays($closing, false);
                     $isUrgent = $vacancy->status === 'OPEN' && $daysLeft >= 0 && $daysLeft <= 7;
                 @endphp
-                <span class="font-semibold text-sm">{{ $closing->format('M d, Y') }}</span>
-                @if($isUrgent)
-                    <span class="text-[10px] sm:text-xs text-red-600 font-bold flex items-center gap-1 lg:mt-1 animate-pulse bg-red-50 px-2 py-0.5 rounded-full lg:bg-transparent lg:px-0">
-                        <i data-feather="alert-circle" class="w-3 h-3"></i>
-                        <span>Expiring Soon</span>
-                    </span>
-                @endif
-             </div>
+                <div class="flex flex-row items-center gap-2">
+                    @if($isUrgent)
+                        <span
+                            class="inline-flex items-center justify-center text-red-800 bg-red-100 ring-1 ring-red-300 rounded-full p-1 animate-pulse shadow-sm"
+                            title="Expiring Soon"
+                            aria-label="Expiring Soon"
+                        >
+                            <i data-feather="alert-circle" class="w-4 h-4"></i>
+                        </span>
+                    @endif
+                    <span class="font-semibold text-xs lg:text-xs">{{ $closing->format('M d, Y') }}</span>
+                </div>
+
+            </div>
         </div>
 
         <!-- Status -->
-        <div class="lg:py-4 lg:px-6 lg:w-[10%] mb-2 lg:mb-0 flex items-center lg:justify-center">
-             <span class="lg:hidden text-xs font-bold text-slate-400 uppercase tracking-wide w-24 shrink-0">Status</span>
-             <span class="px-3 py-1 rounded-full text-xs font-semibold {{ $vacancy->status === 'OPEN' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
+        <div class="lg:py-2.5 lg:px-4 lg:w-[10%] mb-2 lg:mb-0 flex items-center lg:justify-center">
+            <span class="lg:hidden text-xs font-bold text-slate-400 uppercase tracking-wide w-24 shrink-0">Status</span>
+            <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold {{ $vacancy->status === 'OPEN' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
                 {{ $vacancy->status }}
             </span>
         </div>
 
         <!-- Exam -->
-        <div class="lg:py-4 lg:px-6 lg:w-[10%] mb-4 lg:mb-0 flex items-center lg:justify-center">
-             <span class="lg:hidden text-xs font-bold text-slate-400 uppercase tracking-wide w-24 shrink-0">Exam</span>
-             @php
+        <div class="lg:py-2.5 lg:px-4 lg:w-[10%] mb-4 lg:mb-0 flex items-center lg:justify-center">
+            <span class="lg:hidden text-xs font-bold text-slate-400 uppercase tracking-wide w-24 shrink-0">Exam</span>
+            @php
                 $examStatus = 'Unscheduled';
                 $examBadge = 'bg-gray-100 text-gray-800';
-                
+
                 if ($vacancy->examDetail && $vacancy->examDetail->date) {
                     try {
                         $date = $vacancy->examDetail->date;
                         $time = $vacancy->examDetail->time;
                         $timeEnd = $vacancy->examDetail->time_end;
-                        
+
                         $startDateTime = \Carbon\Carbon::parse($date . ' ' . $time);
-                        $endDateTime = $timeEnd 
+                        $endDateTime = $timeEnd
                             ? \Carbon\Carbon::parse($date . ' ' . $timeEnd)
-                            : $startDateTime->copy()->addHours(2); // Default 2 hours if no end time
-                        
+                            : $startDateTime->copy()->addHours(2);
+
                         $now = \Carbon\Carbon::now();
-                        
+
                         if ($now->lt($startDateTime)) {
                             $examStatus = 'Scheduled';
                             $examBadge = 'bg-blue-100 text-blue-800';
                         } elseif ($now->between($startDateTime, $endDateTime)) {
                             $examStatus = 'Ongoing';
-                            $examBadge = 'bg-yellow-100 text-yellow-800'; // Or animate pulse
+                            $examBadge = 'bg-yellow-100 text-yellow-800';
                         } else {
                             $examStatus = 'Completed';
                             $examBadge = 'bg-purple-100 text-purple-800';
                         }
                     } catch (\Exception $e) {
-                        // Keep unscheduled on error
+                        // Keep unscheduled on parse errors
                     }
                 }
             @endphp
-            <span class="px-3 py-1 rounded-full text-xs font-semibold {{ $examBadge }}">
+            <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold {{ $examBadge }}">
                 {{ $examStatus }}
             </span>
         </div>
 
         <!-- Actions -->
-        <div class="lg:py-4 lg:px-6 lg:w-[10%] mt-2 lg:mt-0 flex lg:justify-center w-full lg:w-auto">
+        <div class="lg:py-2.5 lg:px-4 lg:w-[10%] mt-2 lg:mt-0 flex lg:justify-center w-full lg:w-auto">
             <button
                 onclick="window.location.href='{{ route('job_description', $vacancy->vacancy_id) }}'"
-                class="use-loader w-full lg:w-auto justify-center text-[#0D2B70] border border-[#0D2B70] font-bold py-2.5 lg:py-1.5 px-4 rounded-lg text-sm transition-all 
-                duration-300 hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md inline-flex items-center gap-2 group-hover:bg-[#0D2B70] group-hover:text-white lg:group-hover:bg-transparent lg:group-hover:text-[#0D2B70] lg:hover:!bg-[#0D2B70] lg:hover:!text-white">
+                class="use-loader w-full lg:w-auto justify-center text-[#0D2B70] border border-[#0D2B70] font-bold py-2.5 lg:py-1 px-3 rounded-lg text-xs transition-all duration-300 hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md inline-flex items-center gap-2 group-hover:bg-[#0D2B70] group-hover:text-white lg:group-hover:bg-transparent lg:group-hover:text-[#0D2B70] lg:hover:!bg-[#0D2B70] lg:hover:!text-white">
                 <i data-feather="eye" class="w-4 h-4"></i>
                 <span>View</span>
             </button>

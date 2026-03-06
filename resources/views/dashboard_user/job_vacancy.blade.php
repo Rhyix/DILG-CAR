@@ -5,7 +5,7 @@
 @section('title', 'Job Vacancies')
 
 @section('content')
-    <div class="px-4 pb-8 sm:px-8">
+    <div class="px-4 pb-4 sm:px-8 h-[calc(100vh-8rem)] md:h-[calc(100dvh-8rem)] flex flex-col">
 <!-- Updated HTML with mobile classes -->
         <!-- Header Section -->
             <div class="flex-none flex items-center mb-6 sm:mb-10 pace-x-4 max-w-full">
@@ -269,16 +269,16 @@
 </section>
 
 <!-- Job Vacancies List -->
-<div class="bg-white rounded-xl border border-[#0D2B70] shadow-sm overflow-hidden flex flex-col h-[75vh] lg:h-[65vh]">
+<div class="bg-white rounded-xl border border-[#0D2B70] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0">
     <!-- Desktop Header -->
-    <div class="hidden lg:flex flex-none bg-[#0D2B70] text-white text-sm font-bold uppercase tracking-wider sticky top-0 z-10">
-        <div class="py-4 px-6 w-[25%]">Job Title</div>
-        <div class="py-4 px-6 w-[12%]">Monthly Salary</div>
-        <div class="py-4 px-6 w-[18%]">Place of Assignment</div>
-        <div class="py-4 px-6 w-[15%] text-center">Deadline</div>
-        <div class="py-4 px-6 w-[10%] text-center">Status</div>
-        <div class="py-4 px-6 w-[10%] text-center">Exam</div>
-        <div class="py-4 px-6 w-[10%] text-center">Actions</div>
+    <div class="hidden lg:flex flex-none bg-[#0D2B70] text-white text-xs font-bold uppercase tracking-wider sticky top-0 z-10">
+        <div class="py-3 px-4 w-[25%]">Job Title</div>
+        <div class="py-3 px-4 w-[12%]">Monthly Salary</div>
+        <div class="py-3 px-4 w-[18%]">Place of Assignment</div>
+        <div class="py-3 px-4 w-[15%] text-center">Deadline</div>
+        <div class="py-3 px-4 w-[10%] text-center">Status</div>
+        <div class="py-3 px-4 w-[10%] text-center">Exam</div>
+        <div class="py-3 px-4 w-[10%] text-center">Actions</div>
     </div>
 
     <!-- List Container -->
