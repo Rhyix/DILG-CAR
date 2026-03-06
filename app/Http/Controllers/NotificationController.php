@@ -8,14 +8,32 @@ use App\Models\Notification;
 
 class NotificationController extends Controller
 {
+    private function applyViewerExamFilter($query)
+    {
+        return $query->where(function ($examQuery) {
+            $examQuery->where('data->category', 'exam_lifecycle')
+                ->orWhere('data->section', 'Exam Management')
+                ->orWhere('data->title', 'Exam Management')
+                ->orWhere('data->link', 'like', '%/admin/exam_management/%')
+                ->orWhere('data->action_url', 'like', '%/admin/exam_management/%');
+        });
+    }
+
     private function getQuery()
     {
         if (Auth::guard('admin')->check()) {
-            return Notification::where('notifiable_type', 'App\Models\Admin')
+            $admin = Auth::guard('admin')->user();
+            $query = Notification::where('notifiable_type', 'App\Models\Admin')
                 ->where(function ($q) {
                     $q->where('notifiable_id', Auth::guard('admin')->id())
                         ->orWhereNull('notifiable_id');
                 });
+
+            if (strtolower((string) ($admin->role ?? '')) === 'viewer') {
+                $query = $this->applyViewerExamFilter($query);
+            }
+
+            return $query;
         } elseif (Auth::guard('web')->check()) {
             return Notification::where('notifiable_type', 'App\Models\User')
                 ->where('notifiable_id', Auth::id());

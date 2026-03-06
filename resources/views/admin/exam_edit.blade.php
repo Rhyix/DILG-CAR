@@ -12,7 +12,7 @@
 @endpush
 
 @section('content')
-    <div x-data="examEditor()" class="w-full max-w-full font-montserrat">
+    <div id="examEditorRoot" x-data="examEditor()" class="w-full max-w-full font-montserrat">
 
         <!-- Header -->
         <section class="flex items-center space-x-4 mb-4 max-w-full border-b border-[#0D2B70]">
@@ -40,7 +40,8 @@
         </div>
 
         <!-- Question Modal (same design as exam library questions) -->
-        <div id="questionModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
+        <div id="questionModal"
+            class="hidden fixed inset-0 z-[10020] bg-slate-900/60 backdrop-blur-md flex items-center justify-center overflow-y-auto">
             <div class="bg-white rounded-xl shadow-2xl p-8 max-w-4xl w-full mx-4 my-8 max-h-[90vh] overflow-y-auto">
                 <h2 id="modalTitle" class="text-2xl font-bold text-[#0D2B70] mb-6">Add Question</h2>
 
@@ -98,107 +99,77 @@
         </div>
 
         <!-- Confirmation Modal -->
-        <div x-show="showConfirmModal" x-cloak class="fixed inset-0 z-[70] overflow-y-auto" style="display: none;"
-            x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0"
-            x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-200"
-            x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
+        <template x-teleport="body">
+            <div x-show="showConfirmModal" x-cloak class="fixed inset-0 z-[10030] overflow-y-auto" style="display: none;"
+                x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0"
+                x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-200"
+                x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
 
-            <!-- Backdrop -->
-            <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-md" @click="if(!isProcessing) closeModal()">
-            </div>
+                <!-- Backdrop -->
+                <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-md" @click="if(!isProcessing) closeModal()">
+                </div>
 
-            <!-- Modal Panel -->
-            <div class="relative flex min-h-full items-center justify-center p-4">
-                <div class="w-full max-w-md transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl ring-1 ring-black/5 transition-all"
-                    x-transition:enter="transition ease-out duration-300"
-                    x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                    x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
-                    x-transition:leave="transition ease-in duration-200"
-                    x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
-                    x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95">
+                <!-- Modal Panel -->
+                <div class="relative flex min-h-full items-center justify-center p-4">
+                    <div class="w-full max-w-md transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl ring-1 ring-black/5 transition-all"
+                        x-transition:enter="transition ease-out duration-300"
+                        x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                        x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                        x-transition:leave="transition ease-in duration-200"
+                        x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                        x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95">
 
-                    <div class="px-6 py-5 border-b border-slate-100">
-                        <div class="flex items-start gap-4">
-                            <div class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full"
-                                :class="(modalType === 'discard' || modalType === 'back') ? 'bg-red-100' : 'bg-blue-100'">
-                                <template x-if="modalType === 'discard' || modalType === 'back'">
-                                    <svg class="h-5 w-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke-width="1.75"
-                                        stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                            d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-                                    </svg>
-                                </template>
-                                <template x-if="modalType === 'save'">
-                                    <svg class="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke-width="1.75"
-                                        stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                            d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                </template>
-                            </div>
-                            <div class="min-w-0">
-                                <h3 class="text-lg font-bold text-slate-900 leading-6" x-text="modalTitle"></h3>
-                                <p class="mt-2 text-sm text-slate-600 leading-6" x-text="modalMessage"></p>
+                        <div class="px-6 py-5 border-b border-slate-100">
+                            <div class="flex items-start gap-4">
+                                <div class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full"
+                                    :class="(modalType === 'discard' || modalType === 'back') ? 'bg-red-100' : 'bg-blue-100'">
+                                    <template x-if="modalType === 'discard' || modalType === 'back'">
+                                        <svg class="h-5 w-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke-width="1.75"
+                                            stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                                        </svg>
+                                    </template>
+                                    <template x-if="modalType === 'save'">
+                                        <svg class="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke-width="1.75"
+                                            stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </template>
+                                </div>
+                                <div class="min-w-0">
+                                    <h3 class="text-lg font-bold text-slate-900 leading-6" x-text="modalTitle"></h3>
+                                    <p class="mt-2 text-sm text-slate-600 leading-6" x-text="modalMessage"></p>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="px-6 py-4 bg-slate-50 flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
-                        <button type="button"
-                            class="inline-flex w-full sm:w-auto justify-center rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-100 transition"
-                            :disabled="isProcessing" @click="closeModal()">
-                            Cancel
-                        </button>
-                        <button type="button"
-                            class="inline-flex w-full sm:w-auto justify-center rounded-lg px-4 py-2.5 text-sm font-semibold text-white shadow-sm flex items-center gap-2 transition"
-                            :class="(modalType === 'discard' || modalType === 'back') ? 'bg-red-600 hover:bg-red-500' : 'bg-[#002C76] hover:bg-[#0A2259]'"
-                            :disabled="isProcessing" @click="confirmAction()">
-                            <svg x-show="isProcessing" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
-                                </circle>
-                                <path class="opacity-75" fill="currentColor"
-                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                                </path>
-                            </svg>
-                            <span
-                                x-text="isProcessing ? 'Saving...' : (modalType === 'save' ? 'Save Changes' : (modalType === 'discard' ? 'Discard All' : 'Leave Page'))"></span>
-                        </button>
+                        <div class="px-6 py-4 bg-slate-50 flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+                            <button type="button"
+                                class="inline-flex w-full sm:w-auto justify-center rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-100 transition"
+                                :disabled="isProcessing" @click="closeModal()">
+                                Cancel
+                            </button>
+                            <button type="button"
+                                class="inline-flex w-full sm:w-auto justify-center rounded-lg px-4 py-2.5 text-sm font-semibold text-white shadow-sm flex items-center gap-2 transition"
+                                :class="(modalType === 'discard' || modalType === 'back') ? 'bg-red-600 hover:bg-red-500' : 'bg-[#002C76] hover:bg-[#0A2259]'"
+                                :disabled="isProcessing" @click="confirmAction()">
+                                <svg x-show="isProcessing" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                                    xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+                                    </circle>
+                                    <path class="opacity-75" fill="currentColor"
+                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                    </path>
+                                </svg>
+                                <span
+                                    x-text="isProcessing ? 'Saving...' : (modalType === 'save' ? 'Save Changes' : (modalType === 'discard' ? 'Discard All' : 'Leave Page'))"></span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-
-        <!-- Toast Notification -->
-        <div x-show="showToast" 
-            x-transition:enter="transition ease-out duration-300"
-            x-transition:enter-start="opacity-0 transform translate-y-2"
-            x-transition:enter-end="opacity-100 transform translate-y-0"
-            x-transition:leave="transition ease-in duration-200"
-            x-transition:leave-start="opacity-100 transform translate-y-0"
-            x-transition:leave-end="opacity-0 transform translate-y-2"
-            class="fixed bottom-4 right-4 z-50 flex items-center w-full max-w-xs p-4 mb-4 text-gray-500 bg-white rounded-lg shadow dark:text-gray-400 dark:bg-gray-800"
-            role="alert">
-            <div class="inline-flex items-center justify-center flex-shrink-0 w-8 h-8 rounded-lg"
-                :class="toastType === 'success' ? 'text-green-500 bg-green-100 dark:bg-green-800 dark:text-green-200' : 'text-red-500 bg-red-100 dark:bg-red-800 dark:text-red-200'">
-                <template x-if="toastType === 'success'">
-                    <svg class="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z"/>
-                    </svg>
-                </template>
-                <template x-if="toastType === 'error'">
-                    <svg class="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 11.793a1 1 0 1 1-1.414 1.414L10 11.414l-2.293 2.293a1 1 0 0 1-1.414-1.414L8.586 10 6.293 7.707a1 1 0 0 1 1.414-1.414L10 8.586l2.293-2.293a1 1 0 0 1 1.414 1.414L11.414 10l2.293 2.293Z"/>
-                    </svg>
-                </template>
-            </div>
-            <div class="ml-3 text-sm font-normal" x-text="toastMessage"></div>
-            <button type="button" class="ml-auto -mx-1.5 -my-1.5 bg-white text-gray-400 hover:text-gray-900 rounded-lg focus:ring-2 focus:ring-gray-300 p-1.5 hover:bg-gray-100 inline-flex items-center justify-center h-8 w-8 dark:text-gray-500 dark:hover:text-white dark:bg-gray-800 dark:hover:bg-gray-700" @click="showToast = false" aria-label="Close">
-                <span class="sr-only">Close</span>
-                <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
-                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
-                </svg>
-            </button>
-        </div>
+        </template>
 
         <!-- Question Form -->
         <form method="POST" id="examForm" @submit.prevent="handleSaveClick"
@@ -564,9 +535,32 @@
             }
         }
 
+        function mountModalToBody(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal && modal.parentElement !== document.body) {
+                document.body.appendChild(modal);
+            }
+        }
+
+        function setModalScreenFocusLock() {
+            const questionModal = document.getElementById('questionModal');
+            const questionModalOpen = !!questionModal && !questionModal.classList.contains('hidden');
+
+            const alpineRoot = document.getElementById('examEditorRoot');
+            const comp = alpineRoot && alpineRoot.__x ? alpineRoot.__x.$data : null;
+            const confirmModalOpen = !!(comp && comp.showConfirmModal);
+
+            document.body.classList.toggle('overflow-hidden', questionModalOpen || confirmModalOpen);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            mountModalToBody('questionModal');
+            setModalScreenFocusLock();
+        });
+
         function openQuestionModalForEdit(index) {
             // populate modal with question data from Alpine component
-            const alpineRoot = document.querySelector('[x-data]');
+            const alpineRoot = document.getElementById('examEditorRoot');
             const comp = alpineRoot && alpineRoot.__x ? alpineRoot.__x.$data : null;
             if (!comp) return;
             const q = comp.questions[index];
@@ -585,6 +579,7 @@
             }
             handleTypeChangeModal();
             document.getElementById('questionModal').classList.remove('hidden');
+            setModalScreenFocusLock();
         }
 
         function openQuestionModalForCreate() {
@@ -599,10 +594,12 @@
             for (let i=0;i<4;i++) addChoiceModal();
             handleTypeChangeModal();
             document.getElementById('questionModal').classList.remove('hidden');
+            setModalScreenFocusLock();
         }
 
         function closeQuestionModal() {
             document.getElementById('questionModal').classList.add('hidden');
+            setModalScreenFocusLock();
         }
 
         function saveQuestionModal(e) {
@@ -616,7 +613,7 @@
                         const correctAnswer = (type === 'multiple_choice' && selectedCorrectAnswerModal>=0) ? choices[selectedCorrectAnswerModal] : '';
             const isEssay = type === 'essay';
 
-            const alpineRoot = document.querySelector('[x-data]');
+            const alpineRoot = document.getElementById('examEditorRoot');
             const comp = alpineRoot && alpineRoot.__x ? alpineRoot.__x.$data : null;
             if (!comp) return;
 
@@ -662,9 +659,6 @@
                 modalMessage: '',
                 isProcessing: false, // Loading state for modal
                 pendingBackUrl: '', // URL to navigate to after confirmation
-                showToast: false,
-                toastMessage: '',
-                toastType: 'success', // 'success' or 'error'
 
                 init() {
                         const data = @json($exam_items);
@@ -840,6 +834,7 @@
                         this.modalMessage = 'You have unsaved changes. Are you sure you want to leave? All unsaved progress will be lost.';
                         this.pendingBackUrl = url;
                         this.showConfirmModal = true;
+                        setModalScreenFocusLock();
                     } else {
                         window.location.href = url;
                     }
@@ -850,6 +845,7 @@
                     this.modalTitle = 'Discard All Questions';
                     this.modalMessage = 'Are you sure you want to discard all questions? This action cannot be undone and all current progress will be lost.';
                     this.showConfirmModal = true;
+                    setModalScreenFocusLock();
                 },
 
                 handleSaveClick() {
@@ -860,21 +856,22 @@
                     this.modalTitle = 'Save Exam Changes';
                     this.modalMessage = 'Are you sure you want to save these changes? This will update the exam questions for all applicants.';
                     this.showConfirmModal = true;
+                    setModalScreenFocusLock();
                 },
 
                 closeModal() {
                     if (this.isProcessing) return;
                     this.showConfirmModal = false;
                     this.modalType = '';
+                    setModalScreenFocusLock();
                 },
 
                 showToastNotification(message, type = 'success') {
-                    this.toastMessage = message;
-                    this.toastType = type;
-                    this.showToast = true;
-                    setTimeout(() => {
-                        this.showToast = false;
-                    }, 3000);
+                    if (typeof window.showAppToast === 'function') {
+                        window.showAppToast(message, type);
+                        return;
+                    }
+                    console.log(message);
                 },
 
                 confirmAction() {
@@ -886,6 +883,7 @@
                         this.hasChanges = false;
                         this.showConfirmModal = false;
                         this.modalType = '';
+                        setModalScreenFocusLock();
                         this.showToastNotification('Questions discarded.', 'success');
                     } else if (this.modalType === 'save') {
                         // Set processing state to true
@@ -912,6 +910,7 @@
                                 this.isProcessing = false;
                                 this.showConfirmModal = false;
                                 this.modalType = '';
+                                setModalScreenFocusLock();
                                 this.showToastNotification('Questions saved successfully!', 'success');
                                 setTimeout(() => {
                                     window.location.reload();
@@ -924,6 +923,7 @@
                             console.error('Error saving exam:', error);
                             this.isProcessing = false;
                             this.showConfirmModal = false;
+                            setModalScreenFocusLock();
                             this.showToastNotification('Error saving exam: ' + error.message, 'error');
                         });
                     }

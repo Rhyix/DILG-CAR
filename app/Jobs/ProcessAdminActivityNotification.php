@@ -130,8 +130,8 @@ class ProcessAdminActivityNotification implements ShouldQueue
 
     private function resolveCategory(Activity $activity, string $section): ?string
     {
-        $eventName = (string) ($activity->event ?? '');
-        if (in_array(strtolower($eventName), ['login', 'logout'], true)) {
+        $eventName = strtolower((string) ($activity->event ?? ''));
+        if (in_array($eventName, ['login', 'logout'], true)) {
             return null;
         }
 
@@ -152,8 +152,14 @@ class ProcessAdminActivityNotification implements ShouldQueue
             }
         }
 
-        if ($section === 'Exam Management' && in_array($eventName, ['start', 'notify_schedule'], true)) {
-            return 'exam_lifecycle';
+        if ($section === 'Exam Management') {
+            if ($eventName === '' || $eventName === 'view') {
+                return null;
+            }
+
+            if (in_array($eventName, ['create', 'update', 'save', 'start', 'notify', 'notify_selected', 'notify_schedule'], true)) {
+                return 'exam_lifecycle';
+            }
         }
 
         return null;

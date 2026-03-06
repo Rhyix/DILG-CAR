@@ -56,7 +56,7 @@
 						</div>
 						<div>
 							<div class="text-xs font-semibold text-gray-700 uppercase mb-1">Compensation:</div>
-							<div class="text-sm text-gray-900">â‚±{{ number_format($compensation, 2) }}</div>
+							<div class="text-sm text-gray-900">	PHP {{ number_format($compensation, 2) }}</div>
 						</div>
 					</div>
 
@@ -1302,7 +1302,7 @@
 				placeEl.textContent = "{{ $place_of_assignment }}";
 			}
 			if (compEl) {
-				compEl.textContent = "â‚±{{ number_format($compensation, 2) }}";
+				compEl.textContent = "PHP {{ number_format($compensation, 2) }}";
 			}
 			if (qsListEl) {
 				qsListEl.innerHTML = "";

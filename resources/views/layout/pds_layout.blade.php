@@ -677,7 +677,13 @@
 
         // Notification system
         function showNotification(message, type = 'error', duration = 5000) {
+            if (typeof window.showAppToast === 'function') {
+                window.showAppToast(message, type, duration);
+                return;
+            }
+
             const container = document.getElementById('notificationContainer');
+            if (!container) return;
             const notification = document.createElement('div');
             notification.className = `notification ${type}`;
             
