@@ -3,6 +3,7 @@
 namespace App\Observers;
 
 use App\Models\UploadedDocument;
+use App\Services\DocumentGallerySyncService;
 use Illuminate\Support\Facades\Auth;
 
 class UploadedDocumentObserver
@@ -15,8 +16,20 @@ class UploadedDocumentObserver
         'stored_name',
     ];
 
+    public function __construct(
+        private DocumentGallerySyncService $gallerySyncService
+    ) {
+    }
+
+    public function created(UploadedDocument $document): void
+    {
+        $this->gallerySyncService->syncFromUploadedDocument($document);
+    }
+
     public function updated(UploadedDocument $document): void
     {
+        $this->gallerySyncService->syncFromUploadedDocument($document);
+
         $changes = $this->extractTrackedChanges($document);
         if (empty($changes)) {
             return;
@@ -70,4 +83,3 @@ class UploadedDocumentObserver
         return $changes;
     }
 }
-

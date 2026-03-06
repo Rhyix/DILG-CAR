@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\DocumentGalleryItem;
 use App\Models\UploadedDocument;
 use App\Models\JobVacancy;
 use App\Models\Applications;
@@ -46,6 +47,18 @@ class PdfUploadTest extends TestCase
             'vacancy_id' => $vacancy->vacancy_id,
             'status' => 'New',
             'is_valid' => true,
+        ]);
+        UploadedDocument::create([
+            'user_id' => $user->id,
+            'vacancy_id' => $vacancy->vacancy_id,
+            'document_type' => 'pqe_result',
+            'original_name' => 'old.pdf',
+            'stored_name' => 'old.pdf',
+            'storage_path' => 'uploads/pds-files/old.pdf',
+            'mime_type' => 'application/pdf',
+            'file_size_8b' => 100,
+            'status' => 'Needs Revision',
+            'remarks' => 'Please re-upload.',
         ]);
         $this->actingAs($user);
 
@@ -94,6 +107,40 @@ class PdfUploadTest extends TestCase
         ]);
     }
 
+    public function test_application_status_upload_syncs_application_letter_to_document_gallery(): void
+    {
+        Storage::fake('public');
+        $user = User::factory()->create();
+        $vacancy = $this->createVacancy('VAC-AL-001');
+        Applications::create([
+            'user_id' => $user->id,
+            'vacancy_id' => $vacancy->vacancy_id,
+            'status' => 'Compliance',
+            'is_valid' => true,
+            'file_status' => 'Needs Revision',
+            'file_storage_path' => 'uploads/application_letters/old_application_letter.pdf',
+            'file_original_name' => 'old_application_letter.pdf',
+            'file_stored_name' => 'old_application_letter.pdf',
+            'file_size_8b' => 10,
+        ]);
+
+        Storage::disk('public')->put('uploads/application_letters/old_application_letter.pdf', 'old');
+        $this->actingAs($user);
+
+        $file = UploadedFile::fake()->createWithContent('application_letter.pdf', "%PDF-1.7\n%TEST\n");
+        $response = $this->post(route('application_status.upload', [$user->id, $vacancy->vacancy_id]), [
+            'cert_uploads' => [
+                'application_letter' => $file,
+            ],
+        ]);
+
+        $response->assertRedirect();
+        $this->assertDatabaseHas('document_gallery_items', [
+            'user_id' => $user->id,
+            'document_type' => 'application_letter',
+        ]);
+    }
+
     public function test_upload_rejects_oversized_pdf(): void
     {
         Storage::fake('public');
@@ -121,9 +168,11 @@ class PdfUploadTest extends TestCase
     {
         Storage::fake('public');
         $user = User::factory()->create();
+        $vacancy = $this->createVacancy('VAC-010');
         $this->actingAs($user);
 
         $response = $this->post(route('finalize_pds', ['go_to' => 'dashboard_user']), [
+            'vacancy_id' => $vacancy->vacancy_id,
             'doc_track' => 'COS',
             'declaration' => '1',
             'consent' => '1',
@@ -144,6 +193,60 @@ class PdfUploadTest extends TestCase
             ->first();
         $this->assertNotNull($document);
         Storage::disk('public')->assertExists($document->storage_path);
+        $this->assertDatabaseHas('document_gallery_items', [
+            'user_id' => $user->id,
+            'document_type' => 'application_letter',
+        ]);
+        $this->assertDatabaseHas('document_gallery_items', [
+            'user_id' => $user->id,
+            'document_type' => 'signed_pds',
+        ]);
+    }
+
+    public function test_document_gallery_keeps_single_record_per_document_type_on_auto_sync(): void
+    {
+        $user = User::factory()->create();
+        $this->createVacancy('VAC-001');
+        $this->createVacancy('VAC-002');
+
+        UploadedDocument::create([
+            'user_id' => $user->id,
+            'vacancy_id' => 'VAC-001',
+            'document_type' => 'cert_training',
+            'original_name' => 'old.pdf',
+            'stored_name' => 'old.pdf',
+            'storage_path' => 'uploads/pds-files/old.pdf',
+            'mime_type' => 'application/pdf',
+            'file_size_8b' => 100,
+            'status' => 'Pending',
+            'remarks' => '',
+        ]);
+
+        UploadedDocument::create([
+            'user_id' => $user->id,
+            'vacancy_id' => 'VAC-002',
+            'document_type' => 'cert_training',
+            'original_name' => 'new.pdf',
+            'stored_name' => 'new.pdf',
+            'storage_path' => 'uploads/pds-files/new.pdf',
+            'mime_type' => 'application/pdf',
+            'file_size_8b' => 200,
+            'status' => 'Pending',
+            'remarks' => '',
+        ]);
+
+        $this->assertSame(
+            1,
+            DocumentGalleryItem::where('user_id', $user->id)
+                ->where('document_type', 'cert_training')
+                ->count()
+        );
+
+        $this->assertDatabaseHas('document_gallery_items', [
+            'user_id' => $user->id,
+            'document_type' => 'cert_training',
+            'storage_path' => 'uploads/pds-files/new.pdf',
+        ]);
     }
 
     public function test_finalize_pds_upload_rolls_back_on_failure(): void

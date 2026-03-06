@@ -25,6 +25,7 @@ use App\Models\CivilServiceEligibility;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 use App\Services\ApplicationStatusTransitionService;
+use App\Services\DocumentGallerySyncService;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
@@ -4521,6 +4522,7 @@ class PDSController extends Controller
                 }
 
                 $application->update($applicationUpdates);
+                app(DocumentGallerySyncService::class)->syncApplicationLetterFromApplication($application);
 
                 // *** NEW: Check if application was "Compliance" -> update to "Updated" ***
                 if (ApplicationStatus::equals($application->status, ApplicationStatus::COMPLIANCE)) {
