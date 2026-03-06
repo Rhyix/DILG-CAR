@@ -1,4 +1,4 @@
-@extends('layout.pds_layout')
+﻿@extends('layout.pds_layout')
 @section('title', 'PDS - Personal Data Sheet')
 @section('content')
     <style>
@@ -86,7 +86,7 @@
         
 
                 <!-- CS ID Number -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-4 sm:mb-6">
+                <!-- <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-4 sm:mb-6">
                     <div class="relative w-full sm:w-[400px]">
                         <input
                             type="number"
@@ -102,24 +102,21 @@
                             for="cs_id_no"
                             class="floating-label absolute left-3 top-2.5 text-xs sm:text-sm text-gray-500 pointer-events-none"
                         >
-                            1. CS ID No. (Do not fill up. For CSC Use Only)
+                            CS ID No. (Do not fill up. For CSC Use Only)
                         </label>
 
                     </div>
-                </div>
-
-
-
+                </div> -->
 
                 <!-- Name Fields -->
                 <div class="mobile-stack md:grid md:grid-cols-4 gap-4 sm:gap-6 mb-4 sm:mb-6">
                     <div class="relative rounded-lg">
                         <input type="text" id="surname" name="surname" value="{{ old('surname', session('form.c1.surname')) }}" placeholder=" " required class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                        <label for="surname" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">2. Surname <span class="text-red-500">*</span></label>
+                        <label for="surname" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">1. Surname <span class="text-red-500">*</span></label>
                     </div>
                     <div class="relative">
                         <input type="text" id="first_name" name="first_name" value="{{ old('first_name', session('form.c1.first_name')) }}" placeholder=" " required class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                        <label for="first_name" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">First Name <span class="text-red-500">*</span></label>
+                        <label for="first_name" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">2. First Name <span class="text-red-500">*</span></label>
                     </div>
                     <div class="relative">
                         <input type="text" id="middle_name" name="middle_name" value="{{ old('middle_name', session('form.c1.middle_name')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
@@ -401,11 +398,36 @@
                 </p>
 
                 <!-- Spouse Information -->
-                <div class="mb-6 sm:mb-8">
-                    <h3 class="text-base sm:text-lg font-semibold text-gray-700 mb-4 flex items-center">
+                <!-- Spouse Information -->
+                <div class="mb-6 sm:mb-8"
+                    x-effect="
+                        const isNA = civilStatus === 'single';
+                        $el.querySelectorAll('input[id^=\'spouse_\']').forEach(f => {
+                            if (isNA) {
+                                f.value = 'N/A';
+                                f.readOnly = true;
+                                f.classList.add('bg-gray-100', 'text-gray-400', 'cursor-not-allowed');
+                                f.classList.remove('focus:border-blue-500', 'focus:ring-2', 'focus:ring-blue-200');
+                            } else {
+                                if (f.value === 'N/A') f.value = '';
+                                f.readOnly = false;
+                                f.classList.remove('bg-gray-100', 'text-gray-400', 'cursor-not-allowed');
+                                f.classList.add('focus:border-blue-500', 'focus:ring-2', 'focus:ring-blue-200');
+                            }
+                        });
+                    "
+                >
+                    <h3 class="text-base sm:text-lg font-semibold text-gray-700 mb-4 flex items-center gap-3">
                         <span class="material-icons text-sm mr-2 text-blue-500">favorite</span>
                         22. Spouse Information
+                        <span x-show="civilStatus === 'single'"
+                              x-cloak
+                              class="inline-flex items-center gap-1 rounded-full bg-amber-100 border border-amber-300 px-3 py-0.5 text-xs font-semibold text-amber-700">
+                            <span class="material-icons" style="font-size:13px;">info</span>
+                            N/A â€” Not applicable for Single
+                        </span>
                     </h3>
+
                     <div class="mobile-stack md:grid md:grid-cols-4 gap-4 sm:gap-6 mb-4">
                         <div class="relative">
                             <input type="text" id="spouse_surname" name="spouse_surname" value="{{ old('spouse_surname', session('form.c1.spouse_surname')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
@@ -678,7 +700,7 @@
     });
     const psgcApiBase = @json(url('/psgc'));
     const perProvince = document.querySelector('#per_province');
-    const perCity = document.querggySelector('#per_city');
+    const perCity = document.querySelector('#per_city');
     const perBrgy = document.querySelector('#per_brgy');
     const resProvince = document.querySelector('#res_province');
     const resCity = document.querySelector('#res_city');
@@ -824,11 +846,9 @@
         el.addEventListener('input', handler);
         el.addEventListener('change', handler);
         if (id === 'per_zipcode' || id === 'res_zipcode') {
-            el.dataset.autoFilled = (el.readOnly && el.value) ? '1' : '0';
+            el.dataset.autoFilled = '0';
             el.addEventListener('input', () => {
-                if (!el.readOnly) {
-                    el.dataset.autoFilled = '0';
-                }
+                el.dataset.autoFilled = '0';
             });
         }
     });
@@ -1145,7 +1165,6 @@
             const cachedZip = String(psgcClientCache.cityByCode.get(normalizedCityCode) || '').trim();
             if (cachedZip !== '') {
                 zipInput.value = cachedZip;
-                zipInput.readOnly = true;
                 zipInput.dataset.autoFilled = '1';
                 zipInput.dataset.cityCode = normalizedCityCode;
                 zipInput.dispatchEvent(new Event('change'));
@@ -1173,7 +1192,6 @@
                     psgcClientCache.cityByCode.set(normalizedCityCode, zip);
                     persistPsgcClientCache();
                     zipInput.value = zip;
-                    zipInput.readOnly = true;
                     zipInput.dataset.autoFilled = '1';
                     zipInput.dataset.cityCode = normalizedCityCode;
                     zipInput.dispatchEvent(new Event('change'));
@@ -1185,7 +1203,6 @@
                     zipInput.dispatchEvent(new Event('change'));
                 }
 
-                zipInput.readOnly = false;
                 zipInput.dataset.autoFilled = '0';
                 zipInput.dataset.cityCode = normalizedCityCode;
             })
@@ -1204,7 +1221,6 @@
                     zipInput.value = '';
                     zipInput.dispatchEvent(new Event('change'));
                 }
-                zipInput.readOnly = false;
                 zipInput.dataset.autoFilled = '0';
                 zipInput.dataset.cityCode = normalizedCityCode;
             });
@@ -1253,8 +1269,7 @@
         const perZip = document.querySelector('#per_zipcode');
         if (resZip && perZip) {
             perZip.value = resZip.value;
-            perZip.readOnly = resZip.readOnly;
-            perZip.dataset.autoFilled = resZip.dataset.autoFilled || (resZip.readOnly ? '1' : '0');
+            perZip.dataset.autoFilled = resZip.dataset.autoFilled || '0';
             perZip.dataset.cityCode = String(getSelectedCode(perCity) || '');
             perZip.dispatchEvent(new Event('change'));
         }
@@ -1343,7 +1358,7 @@
             const city = val(prefix + '_city');
             const prov = val(prefix + '_province');
             const zip = val(prefix + '_zipcode');
-            return 'House/Block/Lot No.: ' + house + ' • Street: ' + street + ' • Subdivision/Village: ' + sub + ' • Barangay: ' + brgy + ' • City/Municipality: ' + city + ' • Province: ' + prov + ' • ZIP Code: ' + zip;
+            return 'House/Block/Lot No.: ' + house + ' â€¢ Street: ' + street + ' â€¢ Subdivision/Village: ' + sub + ' â€¢ Barangay: ' + brgy + ' â€¢ City/Municipality: ' + city + ' â€¢ Province: ' + prov + ' â€¢ ZIP Code: ' + zip;
         }
         function populatePreview() {
             set('preview_surname', val('surname'));
@@ -1586,7 +1601,7 @@
                 showNotification(message, type);
                 return;
             }
-            alert(message);
+            showAppToast(message);
         };
 
         const dispatchInputEvents = (element) => {
@@ -1872,3 +1887,4 @@
     </div>
 </div>
 @endsection
+

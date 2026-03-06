@@ -104,7 +104,7 @@
             x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
 
             <!-- Backdrop -->
-            <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-[1px]" @click="if(!isProcessing) closeModal()">
+            <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-md" @click="if(!isProcessing) closeModal()">
             </div>
 
             <!-- Modal Panel -->

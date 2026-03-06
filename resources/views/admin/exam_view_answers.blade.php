@@ -1,4 +1,4 @@
-@extends('layout.admin')
+﻿@extends('layout.admin')
 
 @section('title', 'Juan Dela Cruz - Answers')
 
@@ -13,6 +13,10 @@
 @endpush
 
 @section('content')
+@php
+    $canManageExam = auth('admin')->check()
+        && \Illuminate\Support\Facades\Gate::forUser(auth('admin')->user())->allows('admin.exam.manage');
+@endphp
 <div class="px-6 mb-6 flex justify-between items-center font-montserrat">
     <div class="flex items-center gap-4">
         <!-- Back Button -->
@@ -37,6 +41,9 @@
         <div class="text-right leading-tight">
             <p><span class="font-medium text-gray-600">Last Refreshed:</span> <span id="last-refreshed">--</span></p>
             <p><span class="font-medium text-gray-600">Score:</span> <span id="score">--</span></p>
+            @unless ($canManageExam)
+                <p class="text-xs font-semibold text-blue-700">Read-only monitor mode</p>
+            @endunless
         </div>
         <div class="flex items-center gap-2">
             <button onclick="fetchAnswers(true)" aria-label="Refresh answers" title="Refresh answers"
@@ -47,10 +54,12 @@
                     <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path>
                 </svg>
             </button>
-            <a href="{{ route('admin.view_exam.pdf', ['vacancy_id' => $vacancy_id, 'user_id' => $user_id]) }}" target="_blank"
-               class="mt-2 px-3 py-2 rounded bg-[#0D2B70] text-white hover:bg-[#002C76] transition">
-               Download PDF
-            </a>
+            @if ($canManageExam)
+                <a href="{{ route('admin.view_exam.pdf', ['vacancy_id' => $vacancy_id, 'user_id' => $user_id]) }}" target="_blank"
+                   class="mt-2 px-3 py-2 rounded bg-[#0D2B70] text-white hover:bg-[#002C76] transition">
+                   Download PDF
+                </a>
+            @endif
         </div>
     </div>
 </div>
@@ -88,6 +97,7 @@
 
 
 <script>
+    const canManageExam = @json($canManageExam);
     let Questions = @json($examResults);
     let hasChanges = false;
 
@@ -284,14 +294,16 @@
     document.addEventListener("DOMContentLoaded", () => {
         renderAnswers();
         startPolling();
-        document.addEventListener('input', (e) => {
-            if (e.target && e.target.id && e.target.id.startsWith('score-input-')) {
-                hasChanges = true;
+        if (canManageExam) {
+            document.addEventListener('input', (e) => {
+                if (e.target && e.target.id && e.target.id.startsWith('score-input-')) {
+                    hasChanges = true;
+                }
+            });
+            const form = document.getElementById('saveScoresForm');
+            if (form) {
+                form.addEventListener('submit', () => { hasChanges = false; });
             }
-        });
-        const form = document.getElementById('saveScoresForm');
-        if (form) {
-            form.addEventListener('submit', () => { hasChanges = false; });
         }
     });
 
@@ -334,6 +346,7 @@
                                     ${q.essay_max_score ? `max="${q.essay_max_score}"` : ''}
                                     placeholder="0${q.essay_max_score ? ' - ' + q.essay_max_score : ''}"
                                     class="w-28 text-sm font-semibold px-3 py-1 rounded border border-gray-300 focus:ring-1 focus:ring-[#0D2B70]"
+                                    ${!canManageExam ? 'readonly disabled' : ''}
                                     oninput="handleEssayInput(this, ${q.essay_max_score || 0});"
                                 />
                                 ${q.essay_max_score ? `<span class="text-sm text-gray-500">/ ${q.essay_max_score} pts</span>` : ''}
@@ -383,15 +396,17 @@
         if(scoreEl) scoreEl.textContent = `${final_score} / ${highest_score}`;
 
         // Show Save Score button
-        const saveBtn = document.createElement('div');
-        saveBtn.className = 'flex justify-end mt-8 max-w-3xl mx-auto';
-        saveBtn.innerHTML = `
-            <button type="button" onclick="triggerSaveScoresConfirm()"
-                class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md transition">
-                Save Score
-            </button>
-        `;
-        container.appendChild(saveBtn);
+        if (canManageExam) {
+            const saveBtn = document.createElement('div');
+            saveBtn.className = 'flex justify-end mt-8 max-w-3xl mx-auto';
+            saveBtn.innerHTML = `
+                <button type="button" onclick="triggerSaveScoresConfirm()"
+                    class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md transition">
+                    Save Score
+                </button>
+            `;
+            container.appendChild(saveBtn);
+        }
         recomputeScore();
     }
 
@@ -410,13 +425,12 @@
 
         console.log('Saving score:', results);
 
-        alert('Score saved successfully! (Check console for data)');
+        showAppToast('Score saved successfully! (Check console for data)');
         // TODO: Send via AJAX to backend
     }*/
 
-    document.addEventListener('DOMContentLoaded', renderAnswers);
-
     function triggerSaveScoresConfirm() {
+        if (!canManageExam) return;
         window.dispatchEvent(new CustomEvent('open-save-scores-confirm'));
     }
     function triggerBackConfirm() {
@@ -451,4 +465,5 @@
 />
 
 @endsection
+
 

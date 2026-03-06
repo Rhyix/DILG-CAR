@@ -22,6 +22,7 @@
         }
     </style>
 
+    @include('partials.global_toast')
     @stack('styles')
 </head>
 

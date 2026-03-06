@@ -1022,7 +1022,7 @@ private function writeEducationalBackground($pdf, $education)
             $this->valueOrNa($education?->elem_school),
             40.5,
             265,
-            41,
+            48,
             6.5,
             2.0,
             3.0
@@ -1218,7 +1218,7 @@ private function writeGraduateChunk($pdf, $chunk)
     {
         $currentY = $startY + ($index * $lineHeight);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($grad['school'] ?? null), 40.5, 292, 48, 6.5, 4.5);
+        $this->writeFittedAt($pdf, $this->valueOrNa($grad['school'] ?? null), 40.5, 293, 48, 6.5, 4.5);
 
         $this->writeFittedAt($pdf, $this->valueOrNa($grad['basic'] ?? null), 90, 292, 45, 6.5, 4.5);
 

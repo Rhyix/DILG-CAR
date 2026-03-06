@@ -7,7 +7,7 @@
     x-transition:leave="transition ease-in duration-100"
     x-transition:leave-start="opacity-100"
     x-transition:leave-end="opacity-0"
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 px-4"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md px-4"
     style="display: none;"
 >
     <div 

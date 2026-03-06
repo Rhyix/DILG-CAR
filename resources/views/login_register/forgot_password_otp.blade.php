@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
@@ -6,6 +6,7 @@
     <title>Verification Code</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+    @include('partials.global_toast')
     <style>
         .font-montserrat {
             font-family: 'Montserrat', sans-serif;
@@ -141,7 +142,7 @@
         })
         .then(data => {
             countdown = 300; // reset to 5 mins
-            alert(data.message);
+            showAppToast(data.message);
             startCountdown();
         })
         .catch(error => {
@@ -154,3 +155,4 @@
     @include('partials.loader')
 </body>
 </html>
+

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
@@ -6,6 +6,7 @@
     <title>Forgot Password</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+    @include('partials.global_toast')
 </head>
 <style>
     .font-monserrat {
@@ -142,7 +143,7 @@ resendLink.addEventListener('click', function(e) {
         countdownEl = document.getElementById("countdown");
         startCountdown();
 
-        alert("New OTP sent successfully.");
+        showAppToast("New OTP sent successfully.");
     })
     .catch(error => {
         console.error("Resend error:", error);

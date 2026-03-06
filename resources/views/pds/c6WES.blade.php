@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -11,6 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+  @include('partials.global_toast')
   <style>
     body {
       font-family: 'Montserrat', sans-serif;
@@ -290,11 +291,11 @@
 
     <!-- Instructions -->
     <section class="bg-blue-50 border border-blue-300 rounded-md mobile-instructions p-4 mb-6 text-sm text-gray-700">
-      <h3 class="text-lg font-semibold text-blue-900 mb-2">📌 Instructions:</h3>
+      <h3 class="text-lg font-semibold text-blue-900 mb-2">ðŸ“Œ Instructions:</h3>
       <ul class="list-disc pl-6 space-y-1">
         <li>Fill in all fields for each work experience entry as accurately as possible.</li>
-        <li>Use the <strong>"➕ Add Work Entry"</strong> button to add more entries if needed.</li>
-        <li>Click <strong>"🗑 Remove Entry"</strong> to delete a specific work experience block.</li>
+        <li>Use the <strong>"âž• Add Work Entry"</strong> button to add more entries if needed.</li>
+        <li>Click <strong>"ðŸ—‘ Remove Entry"</strong> to delete a specific work experience block.</li>
         <li>Include only the work experiences relevant to the position being applied to.</li>
         <li>For current roles, check <strong>"Present"</strong>. Work experience should be listed from most recent.</li>
       </ul>
@@ -364,7 +365,7 @@
               <div class="mobile-list-item flex gap-2 mb-2">
                 <input :readonly="!entry.isDisplayed" required :name="'entries[' + index + '][accomplishments][' + accIndex + ']'" class="mobile-input w-full border rounded px-3 py-2" x-model="entry.accomplishments[accIndex]">
                 <button type="button" @click="entry.accomplishments.splice(accIndex, 1)" :disabled="!entry.isDisplayed" class="mobile-remove-btn bg-red-600 text-white px-2 py-1 rounded hover:bg-red-800 disabled:bg-gray-400">
-                  ✕
+                  âœ•
                 </button>
               </div>
             </template>
@@ -382,7 +383,7 @@
               <div class="mobile-list-item flex gap-2 mb-2">
                 <input :readonly="!entry.isDisplayed" required :name="'entries[' + index + '][duties][' + dutyIndex + ']'" class="mobile-input w-full border rounded px-3 py-2" x-model="entry.duties[dutyIndex]">
                 <button type="button" @click="entry.duties.splice(dutyIndex, 1)" :disabled="!entry.isDisplayed" class="mobile-remove-btn bg-red-600 text-white px-2 py-1 rounded hover:bg-red-800 disabled:bg-gray-400">
-                  ✕
+                  âœ•
                 </button>
               </div>
             </template>
@@ -432,7 +433,7 @@
   function submitWithDownload() {
     const actionField = document.getElementById('after_action');
     const form = document.getElementById('workExperienceForm');
-    if (!actionField || !form) return alert('Form not found.');
+    if (!actionField || !form) return showAppToast('Form not found.');
     actionField.value = 'download';
     form.submit();
   }
@@ -468,3 +469,4 @@
   </script>
 </body>
 </html>
+

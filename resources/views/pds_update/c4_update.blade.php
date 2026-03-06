@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    @include('partials.global_toast')
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -203,22 +204,22 @@
                         <span class="material-icons text-sm mr-1">check_circle</span>
                         PERSONAL INFORMATION
                     </div>
-                    <span class="text-gray-300">→</span>
+                    <span class="text-gray-300">â†’</span>
                     <div class="progress-step completed flex items-center px-4 py-2 rounded-full text-sm font-medium">
                         <span class="material-icons text-sm mr-1">check_circle</span>
                         WORK EXPERIENCE
                     </div>
-                    <span class="text-gray-300">→</span>
+                    <span class="text-gray-300">â†’</span>
                     <div class="progress-step completed flex items-center px-4 py-2 rounded-full text-sm font-medium">
                         <span class="material-icons text-sm mr-1">check_circle</span>
                         LEARNING & DEVELOPMENT
                     </div>
-                    <span class="text-gray-300">→</span>
+                    <span class="text-gray-300">â†’</span>
                     <div class="progress-step active flex items-center px-4 py-2 rounded-full text-sm font-medium">
                         <span class="material-icons text-sm mr-1">info</span>
                         OTHER INFORMATION
                     </div>
-                    <span class="text-gray-300">→</span>
+                    <span class="text-gray-300">â†’</span>
                     <div class="progress-step flex items-center px-4 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-500">
                         <span class="material-icons text-sm mr-1">info</span>
                         UPLOAD PDF
@@ -656,7 +657,7 @@
             
             function handlePhotoUpload(file) {
                 if (file.size > 10 * 1024 * 1024) {
-                    alert('File size must be less than 10MB');
+                    showAppToast('File size must be less than 10MB');
                     return;
                 }
                 

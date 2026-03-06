@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    @include('partials.global_toast')
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -374,7 +375,7 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm mt-2">
                                 <div><span class="font-medium">Company:</span> Tech Solutions Inc.</div>
                                 <div><span class="font-medium">Period:</span> Jan 2020 - Present</div>
-                                <div><span class="font-medium">Salary:</span> ₱45,000</div>
+                                <div><span class="font-medium">Salary:</span> â‚±45,000</div>
                                 <div><span class="font-medium">Status:</span> Permanent</div>
                             </div>
                         </div>
@@ -664,7 +665,7 @@
 
         function downloadPDF() {
             // In a real application, this would generate a PDF
-            alert('PDF download feature will be implemented. For now, please use the Print function and save as PDF.');
+            showAppToast('PDF download feature will be implemented. For now, please use the Print function and save as PDF.');
             window.print();
         }
 

@@ -1,4 +1,4 @@
-@extends('layout.admin')
+﻿@extends('layout.admin')
 @section('title', 'DILG - Manage Exam')
 @section('content')
 
@@ -567,7 +567,7 @@
         })
         .then(data => {
             if(data.success) {
-                alert(data.message || "Exam links sent successfully.");
+                showAppToast(data.message || "Exam links sent successfully.");
                 // Mark links as sent on client and update Start Exam state
                 linkSentClient = true;
                 updateStartButtonState();
@@ -576,14 +576,14 @@
             } else {
                 sendLinkButton.disabled = false;
                 sendLinkButton.innerHTML = originalText;
-                alert("Failed to send links: " + data.message);
+                showAppToast("Failed to send links: " + data.message);
             }
         })
         .catch(error => {
             console.error("Error:", error);
             sendLinkButton.disabled = false;
             sendLinkButton.innerHTML = originalText;
-            alert("An error occurred: " + error.message);
+            showAppToast("An error occurred: " + error.message);
         });
     }
 
@@ -612,19 +612,19 @@
         })
         .then(data => {
             if(data.success) {
-                alert("Exam started successfully!");
+                showAppToast("Exam started successfully!");
                 window.location.reload(); // Reload to update status
             } else {
                 startButton.disabled = false;
                 startButton.innerHTML = originalText;
-                alert("Failed to start exam: " + data.message);
+                showAppToast("Failed to start exam: " + data.message);
             }
         })
         .catch(error => {
             console.error("Error:", error);
             startButton.disabled = false;
             startButton.innerHTML = originalText;
-            alert("An error occurred: " + error.message);
+            showAppToast("An error occurred: " + error.message);
         });
     }
 
@@ -665,7 +665,7 @@
         const endTime = document.getElementById('time_end_hidden').value;
         
         if (startTime && endTime && endTime <= startTime) {
-            alert('End time must be after start time. Please correct the times.');
+            showAppToast('End time must be after start time. Please correct the times.');
             return;
         }
         
@@ -749,14 +749,14 @@
                 if (data.notified) {
                     msg += " " + (data.notify_message || "Applicants have been notified.");
                 }
-                alert(msg);
+                showAppToast(msg);
                 
                 // Optionally reload the page to reflect changes
                 // window.location.reload();
             } else {
                 saveButton.disabled = false;
                 console.error('Save failed:', data.message);
-                alert("Failed to save exam details: " + (data.message || 'Unknown error'));
+                showAppToast("Failed to save exam details: " + (data.message || 'Unknown error'));
             }
         })
         .catch(error => {
@@ -764,7 +764,7 @@
             saveButton.disabled = false;
             console.error('Error caught:', error);
             console.error('Error message:', error.message);
-            alert("An error occurred while saving exam details.\n\nError: " + error.message + "\n\nPlease check the browser console and Laravel logs for more details.");
+            showAppToast("An error occurred while saving exam details.\n\nError: " + error.message + "\n\nPlease check the browser console and Laravel logs for more details.");
         });
     });
 
@@ -927,12 +927,12 @@
         const isExamCompleted = @json($isExamCompleted);
         
         if (isExamActive) {
-            alert('Cannot edit questions while an exam is currently in progress.');
+            showAppToast('Cannot edit questions while an exam is currently in progress.');
             return;
         }
 
         if (isExamCompleted) {
-            alert('Cannot edit questions after the exam has been completed.');
+            showAppToast('Cannot edit questions after the exam has been completed.');
             return;
         }
         
@@ -1079,19 +1079,19 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                alert(data.message);
+                showAppToast(data.message);
                 // Refresh list
                 const search = document.getElementById('searchInputQualified').value;
                 fetchQualifiedApplicants(search);
                 // Reset Selection
                 document.getElementById('selectAll').checked = false;
             } else {
-                alert('Error: ' + data.message);
+                showAppToast('Error: ' + data.message);
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('An error occurred while sending notifications.');
+            showAppToast('An error occurred while sending notifications.');
         })
         .finally(() => {
             // Re-enable handled by updateSelectedCount when table refreshes (checkboxes lost)
@@ -1334,3 +1334,4 @@
 </script>
 
 @endsection
+

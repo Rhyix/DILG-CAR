@@ -1,4 +1,4 @@
-<!-- resources/views/dashboard_user/job_vacancy.blade.php -->
+﻿<!-- resources/views/dashboard_user/job_vacancy.blade.php -->
 
 @extends('layout.app')
 
@@ -170,7 +170,7 @@
                         loader?.classList.add('hidden');
                     })
                     .catch(() => {
-                        alert('Failed to load vacancies.');
+                        showAppToast('Failed to load vacancies.');
                         loader?.classList.add('hidden');
                     });
             }
@@ -199,3 +199,4 @@
         </script>
 
 @endsection
+

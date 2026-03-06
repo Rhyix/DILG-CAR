@@ -505,9 +505,10 @@ Route::middleware([ViewerAccess::class, 'admin.ability:admin.exam.monitor'])->gr
     Route::get('/admin/exam_management/{vacancy_id}/manage', [ExamController::class, 'manageExam'])->name('admin.manage_exam');
     Route::get('/admin/exam_management/{vacancy_id}/lobby-data', [ExamController::class, 'getLobbyData'])->name('admin.exam.lobby_data');
 
-    // Admin-only exam checking/scoring/config
-    Route::get('/admin/exam_management/{vacancy_id}/view_exam/{user_id}', [ExamController::class, 'viewExam'])->name('admin.view_exam')->middleware(RedirectIfNotAdmin::class);
-    Route::get('/admin/exam_management/{vacancy_id}/view_exam/{user_id}/json', [ExamController::class, 'getExamAnswersJson'])->name('admin.view_exam.json')->middleware(RedirectIfNotAdmin::class);
+    // Exam answer monitoring (admin + viewer)
+    Route::get('/admin/exam_management/{vacancy_id}/view_exam/{user_id}', [ExamController::class, 'viewExam'])->name('admin.view_exam');
+    Route::get('/admin/exam_management/{vacancy_id}/view_exam/{user_id}/json', [ExamController::class, 'getExamAnswersJson'])->name('admin.view_exam.json');
+    // Admin-only exam scoring/config
     Route::get('/admin/exam_management/{vacancy_id}/view_exam/{user_id}/pdf', [ExamController::class, 'downloadExamPdf'])->name('admin.view_exam.pdf')->middleware(RedirectIfNotAdmin::class);
     Route::post('/admin/exam_management/{vacancy_id}/view_exam/{user_id}', [ExamController::class, 'saveResult'])->name('admin.save_result')->middleware(RedirectIfNotAdmin::class);
     Route::get('/admin/exam_management/{vacancy_id}/qualified', [ExamController::class, 'getQualifiedApplicants'])->name('admin.exam.qualified')->middleware(RedirectIfNotAdmin::class);

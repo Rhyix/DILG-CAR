@@ -97,6 +97,7 @@
             });
         })();
     </script>
+    @include('partials.global_toast')
     <style>
         body {
             font-family: 'Inter', sans-serif;
