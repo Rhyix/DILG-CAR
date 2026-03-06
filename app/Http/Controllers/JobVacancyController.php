@@ -55,7 +55,9 @@ class JobVacancyController extends Controller
     public function jobVacancy()
     {
         $jobVacancies = JobVacancy::select('job_vacancies.*')
-            ->leftJoin('exam_details', 'job_vacancies.vacancy_id', '=', 'exam_details.vacancy_id')
+            ->leftJoin('exam_details', function ($join) {
+                $join->whereRaw('job_vacancies.vacancy_id COLLATE utf8mb4_unicode_ci = exam_details.vacancy_id COLLATE utf8mb4_unicode_ci');
+            })
             ->with('examDetail')
             ->orderByRaw("CASE 
                 WHEN job_vacancies.status = 'OPEN' AND exam_details.date IS NOT NULL AND exam_details.date >= CURDATE() THEN 1 
@@ -472,7 +474,9 @@ class JobVacancyController extends Controller
     public function filterVacancy(Request $request)
     {
         $vacancies = JobVacancy::select('job_vacancies.*')
-            ->leftJoin('exam_details', 'job_vacancies.vacancy_id', '=', 'exam_details.vacancy_id')
+            ->leftJoin('exam_details', function ($join) {
+                $join->whereRaw('job_vacancies.vacancy_id COLLATE utf8mb4_unicode_ci = exam_details.vacancy_id COLLATE utf8mb4_unicode_ci');
+            })
             ->with('examDetail');
 
         if ($request->search) {
