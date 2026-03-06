@@ -293,7 +293,7 @@
         </section>
 
         <!-- CSC Form Attachment (Plantilla only) -->
-        @if(strtolower($vacancy->vacancy_type) == 'plantilla' && !empty($vacancy->csc_form_path))
+        @if(strcasecmp(trim((string) $vacancy->vacancy_type), 'plantilla') === 0 && !empty($vacancy->csc_form_path))
             <section class="bg-white p-6 rounded-lg shadow border-l-4 border-[#002C76]">
                 <h3 class="text-xl font-bold text-[#002C76] mb-4 flex items-center gap-2">
                     <i data-feather="file" class="w-6 h-6"></i>
@@ -312,6 +312,16 @@
                         <i data-feather="eye" class="w-4 h-4"></i>
                         View
                     </a>
+                </div>
+            </section>
+        @elseif(strcasecmp(trim((string) $vacancy->vacancy_type), 'plantilla') === 0)
+            <section class="bg-white p-6 rounded-lg shadow border-l-4 border-[#002C76]">
+                <h3 class="text-xl font-bold text-[#002C76] mb-4 flex items-center gap-2">
+                    <i data-feather="file" class="w-6 h-6"></i>
+                    CSC FORM ATTACHMENT
+                </h3>
+                <div class="p-4 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600">
+                    No CSC form attachment has been uploaded for this Plantilla vacancy yet.
                 </div>
             </section>
         @endif
