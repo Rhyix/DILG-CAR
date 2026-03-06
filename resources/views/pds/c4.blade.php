@@ -1,4 +1,4 @@
-\@extends('layout.pds_layout')
+﻿\@extends('layout.pds_layout')
 @section('title', 'Other Information')
 @section('content')
 @if ($errors->any())
@@ -817,7 +817,7 @@
 
             function handlePhotoUpload(file) {
                 if (file.size > 10 * 1024 * 1024) {
-                    alert('File size must be less than 10MB');
+                    showAppToast('File size must be less than 10MB');
                     return;
                 }
 
@@ -1008,4 +1008,5 @@
         })();
     </script>
     
+
 

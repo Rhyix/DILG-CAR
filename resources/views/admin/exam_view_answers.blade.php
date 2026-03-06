@@ -1,4 +1,4 @@
-@extends('layout.admin')
+﻿@extends('layout.admin')
 
 @section('title', 'Juan Dela Cruz - Answers')
 
@@ -425,7 +425,7 @@
 
         console.log('Saving score:', results);
 
-        alert('Score saved successfully! (Check console for data)');
+        showAppToast('Score saved successfully! (Check console for data)');
         // TODO: Send via AJAX to backend
     }*/
 
@@ -465,4 +465,5 @@
 />
 
 @endsection
+
 

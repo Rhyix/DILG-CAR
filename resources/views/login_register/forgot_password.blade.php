@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
@@ -143,7 +143,7 @@ resendLink.addEventListener('click', function(e) {
         countdownEl = document.getElementById("countdown");
         startCountdown();
 
-        alert("New OTP sent successfully.");
+        showAppToast("New OTP sent successfully.");
     })
     .catch(error => {
         console.error("Resend error:", error);
@@ -157,3 +157,4 @@ resendLink.addEventListener('click', function(e) {
 
 </body>
 </html>
+

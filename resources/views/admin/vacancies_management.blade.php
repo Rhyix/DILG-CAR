@@ -1,4 +1,4 @@
-@extends('layout.admin')
+﻿@extends('layout.admin')
 @section('title', 'DILG - Job Vacancies Management')
 @section('content')
 @include('partials.loader')
@@ -484,7 +484,7 @@
             attachLoaderListeners();
         } catch (err) {
             console.error('Fetch vacancies error:', err);
-            alert('Failed to load vacancies. See console for details.');
+            showAppToast('Failed to load vacancies. See console for details.');
             loader_?.classList.add('hidden');
         }
     }
@@ -495,3 +495,4 @@
 </script>
 @endpush
 @endsection
+

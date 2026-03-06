@@ -1,4 +1,4 @@
-@extends('layout.viewer')
+﻿@extends('layout.viewer')
 
 @section('title', 'DILG - Manage Exam')
 
@@ -131,11 +131,12 @@
     function copyExamLink() {
         const link = document.getElementById('exam-link').textContent.trim();
         navigator.clipboard.writeText(link).then(() => {
-            alert('Exam link copied to clipboard!');
+            showAppToast('Exam link copied to clipboard!');
         }).catch(() => {
-            alert('Failed to copy link.');
+            showAppToast('Failed to copy link.');
         });
     }
 </script>
 @include('partials.loader')
 @endsection
+

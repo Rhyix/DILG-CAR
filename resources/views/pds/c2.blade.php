@@ -1,4 +1,4 @@
-@extends('layout.pds_layout')
+﻿@extends('layout.pds_layout')
 @section('title','Work Experience')
 @section('content')
 <!-- Main Content -->
@@ -329,7 +329,7 @@
                         console.log(target_table + " " + target_id);
                     }
                     else {
-                        return alert('Delete Failed');
+                        return showAppToast('Delete Failed');
                     }
                     if (target_id) {
                         fetch(`/c2/d/${target_table}/${target_id}`, {
@@ -348,7 +348,7 @@
                                 }, 200);
                             }
                             else {
-                                alert('Delete Failed');
+                                showAppToast('Delete Failed');
                             }
                         });
                     }
@@ -624,3 +624,4 @@
             });
         })();
     </script>
+

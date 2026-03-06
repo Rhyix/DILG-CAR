@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
@@ -103,7 +103,7 @@
 
                         <!-- Back to Login Link (styled like register link in login page) -->
                         <p class="text-center text-sm text-blue-800">
-                            <a href="{{ route('login') }}" class="use-loader font-bold hover:underline">← BACK TO LOGIN</a>
+                            <a href="{{ route('login') }}" class="use-loader font-bold hover:underline">â† BACK TO LOGIN</a>
                         </p>
                     </form>
                 </div>
@@ -184,7 +184,7 @@
                 return response.json();
             })
             .then(data => {
-                alert("New OTP sent successfully.");
+                showAppToast("New OTP sent successfully.");
                 countdown = 300;
                 startCountdown();
             })
@@ -198,3 +198,4 @@
     @include('partials.loader')
 </body>
 </html>
+

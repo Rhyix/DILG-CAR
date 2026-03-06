@@ -1,4 +1,4 @@
-@extends('layout.admin')
+﻿@extends('layout.admin')
 
 @section('title', 'Application Status')
 
@@ -56,7 +56,7 @@
 						</div>
 						<div>
 							<div class="text-xs font-semibold text-gray-700 uppercase mb-1">Compensation:</div>
-							<div class="text-sm text-gray-900">₱{{ number_format($compensation, 2) }}</div>
+							<div class="text-sm text-gray-900">â‚±{{ number_format($compensation, 2) }}</div>
 						</div>
 					</div>
 
@@ -703,7 +703,7 @@
 			const selectedDoc = getDocumentById(contextMenuDocId);
 			if (!selectedDoc) {
 				closeDocumentContextMenu();
-				alert('Unable to find the selected document.');
+				showAppToast('Unable to find the selected document.');
 				return;
 			}
 
@@ -938,7 +938,7 @@
 
 		async function updateDocumentStatus(newStatus) {
 			if (!currentSelectedDoc) {
-				alert("Please select a document first.");
+				showAppToast("Please select a document first.");
 				return;
 			}
 
@@ -946,7 +946,7 @@
 
 			const requestingNeedsRevision = newStatus === 'Needs Revision' || newStatus === 'Disapproved With Deficiency';
 			if (requestingNeedsRevision && currentSelectedDoc.revision_locked) {
-				alert(currentSelectedDoc.revision_lock_reason || 'Needs Revision is currently locked for this document.');
+				showAppToast(currentSelectedDoc.revision_lock_reason || 'Needs Revision is currently locked for this document.');
 				return;
 			}
 
@@ -1050,7 +1050,7 @@
 						errorMessage = "Failed to save status. Server responded with: " + response.status + " " + response.statusText;
 					}
 					console.error("Server Error Details:", errorMessage);
-					alert(errorMessage);
+					showAppToast(errorMessage);
 					throw new Error('Failed to update status');
 				}
 
@@ -1207,7 +1207,7 @@
 						errEl = document.createElement('p');
 						errEl.id = 'deadline-required-error';
 						errEl.className = 'text-red-500 text-xs mt-1 font-medium';
-						errEl.textContent = 'Please set a deadline date, or click × to reject.'; 
+						errEl.textContent = 'Please set a deadline date, or click Ã— to reject.'; 
 						dateInput?.parentElement?.insertAdjacentElement('afterend', errEl);
 					}
 					dateInput?.addEventListener('input', () => {
@@ -1266,14 +1266,14 @@
 				}
 
 				if (response.ok && data && data.success !== false) {
-					alert(data.message || "Email sent successfully!");
+					showAppToast(data.message || "Email sent successfully!");
 					closeNotifyModal();
 				} else {
-					alert(data?.message || "Failed to send email.");
+					showAppToast(data?.message || "Failed to send email.");
 				}
 			} catch (error) {
 				console.error(error);
-				alert("An error occurred while sending the notification: " + error.message);
+				showAppToast("An error occurred while sending the notification: " + error.message);
 			} finally {
 				btn.disabled = false;
 				btn.innerHTML = originalContent;
@@ -1302,7 +1302,7 @@
 				placeEl.textContent = "{{ $place_of_assignment }}";
 			}
 			if (compEl) {
-				compEl.textContent = "₱{{ number_format($compensation, 2) }}";
+				compEl.textContent = "â‚±{{ number_format($compensation, 2) }}";
 			}
 			if (qsListEl) {
 				qsListEl.innerHTML = "";
@@ -1584,7 +1584,7 @@
 		}
 
 		.toggle-circle::after {
-			content: '✖️';
+			content: 'âœ–ï¸';
 			position: absolute;
 			top: 3px;
 			left: 3px;
@@ -1607,7 +1607,7 @@
 		}
 
 		.input-toggle:checked+.toggle-label .toggle-circle::after {
-			content: '✔️';
+			content: 'âœ”ï¸';
 			transform: rotate(0deg);
 		}
 
@@ -1623,7 +1623,7 @@
 			/* text-sm */
 			font-weight: 600;
 			min-width: 110px;
-			/* 👈 Enough room for longer phrases */
+			/* ðŸ‘ˆ Enough room for longer phrases */
 			text-align: left;
 			/* Optional: aligns text better */
 			line-height: 1.2;
@@ -1690,3 +1690,4 @@
 		}
 	</style>
 @endsection
+

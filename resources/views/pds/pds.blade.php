@@ -1,4 +1,4 @@
-@extends('layout.pds_layout')
+﻿@extends('layout.pds_layout')
 @section('title', 'PDS - Personal Data Sheet')
 @section('content')
     <style>
@@ -424,7 +424,7 @@
                               x-cloak
                               class="inline-flex items-center gap-1 rounded-full bg-amber-100 border border-amber-300 px-3 py-0.5 text-xs font-semibold text-amber-700">
                             <span class="material-icons" style="font-size:13px;">info</span>
-                            N/A — Not applicable for Single
+                            N/A â€” Not applicable for Single
                         </span>
                     </h3>
 
@@ -1358,7 +1358,7 @@
             const city = val(prefix + '_city');
             const prov = val(prefix + '_province');
             const zip = val(prefix + '_zipcode');
-            return 'House/Block/Lot No.: ' + house + ' • Street: ' + street + ' • Subdivision/Village: ' + sub + ' • Barangay: ' + brgy + ' • City/Municipality: ' + city + ' • Province: ' + prov + ' • ZIP Code: ' + zip;
+            return 'House/Block/Lot No.: ' + house + ' â€¢ Street: ' + street + ' â€¢ Subdivision/Village: ' + sub + ' â€¢ Barangay: ' + brgy + ' â€¢ City/Municipality: ' + city + ' â€¢ Province: ' + prov + ' â€¢ ZIP Code: ' + zip;
         }
         function populatePreview() {
             set('preview_surname', val('surname'));
@@ -1601,7 +1601,7 @@
                 showNotification(message, type);
                 return;
             }
-            alert(message);
+            showAppToast(message);
         };
 
         const dispatchInputEvents = (element) => {
@@ -1887,3 +1887,4 @@
     </div>
 </div>
 @endsection
+

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
@@ -142,7 +142,7 @@
         })
         .then(data => {
             countdown = 300; // reset to 5 mins
-            alert(data.message);
+            showAppToast(data.message);
             startCountdown();
         })
         .catch(error => {
@@ -155,3 +155,4 @@
     @include('partials.loader')
 </body>
 </html>
+

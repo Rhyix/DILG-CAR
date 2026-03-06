@@ -1,4 +1,4 @@
-@extends('layout.admin')
+﻿@extends('layout.admin')
 @section('title', 'Manage Questions')
 
 @push('styles')
@@ -266,7 +266,7 @@
 
                     ${q.correct_answer && !q.choices ? `
                         <div class="mt-4 pl-4 border-l-2 border-gray-200">
-                            <p class="text-sm text-green-600 font-semibold">✓ Answer: ${q.correct_answer}</p>
+                            <p class="text-sm text-green-600 font-semibold">âœ“ Answer: ${q.correct_answer}</p>
                         </div>
                     ` : ''}
 
@@ -753,7 +753,7 @@
             const question = allQuestions.find(q => q.id === id);
 
             if (question.exam_usages_count > 0) {
-                alert(`This question is currently used in ${question.exam_usages_count} exam(s). You cannot delete it.`);
+                showAlert(`This question is currently used in ${question.exam_usages_count} exam(s). You cannot delete it.`, 'error');
                 return;
             }
 
@@ -781,24 +781,20 @@
         }
 
         function showAlert(message, type) {
-            const container = document.getElementById('alert-container');
-            const alertBox = document.getElementById('alert-message');
-            const alertText = document.getElementById('alert-text');
-
-            container.classList.remove('hidden');
-            alertText.textContent = message;
-
-            if (type === 'success') {
-                alertBox.className = 'px-4 py-3 bg-green-100 border border-green-400 text-green-800 rounded-lg shadow text-sm font-semibold flex items-center justify-between';
-            } else {
-                alertBox.className = 'px-4 py-3 bg-red-100 border border-red-400 text-red-800 rounded-lg shadow text-sm font-semibold flex items-center justify-between';
+            const toastType = type === 'success' ? 'success' : (type === 'warning' ? 'warning' : (type === 'error' ? 'error' : 'info'));
+            if (typeof window.showAppToast === 'function') {
+                window.showAppToast(message, toastType);
+                return;
             }
 
-            setTimeout(() => closeAlert(), 5000);
+            // Last-resort fallback
+            if (typeof window.__nativeAlert === 'function') {
+                window.__nativeAlert(String(message));
+            }
         }
 
         function closeAlert() {
-            document.getElementById('alert-container').classList.add('hidden');
+            // No-op: retained for compatibility with existing close button markup.
         }
     </script>
 
@@ -810,3 +806,4 @@
         if (window.feather) feather.replace();
     </script>
 @endpush
+
