@@ -54,6 +54,16 @@
                 </p>
 
                 <ul class="space-y-1 text-sm md:text-base font-semibold text-blue-600">
+                    <li><a href="https://bit.ly/JerMayNel" target="_blank" class="hover:underline"><s>ANTOLIN, JANEL M.</s></a></li>
+                    <li><a href="https://github.com/SaplingShallCode" target="_blank" class="hover:underline"><s>ARZADON, CARL MATTHEW T.</s></a></li>
+                    <li><a href="https://bit.ly/dmnd_portfolio" target="_blank" class="hover:underline"><s>CABANELA, EDRIENE JAY O.</s></a></li>
+                    <li><a href="https://github.com/Cristhan11" target="_blank" class="hover:underline"><s>OBILLO, CRISTHAN A.</s></a></li>
+                    <li><a href="https://markpagso03.github.io/redirector" target="_blank" class="hover:underline"><s>PAGSOLINGAN, MARK ANGELU E.</s></a></li>
+                    <li><a href="https://github.com/Cxdzz" target="_blank" class="hover:underline"><s>RACADIO, CHRISTIAN B.</s></a></li>
+                    <li><a href="https://joashsantos.netlify.app/" target="_blank" class="hover:underline"><s>SANTOS, JOASH IRVIN M.</s></a></li>
+                </ul>
+
+                <!-- <ul class="space-y-1 text-sm md:text-base font-semibold text-blue-600">
                     <li><a href="https://bit.ly/JerMayNel" target="_blank" class="hover:underline">ANTOLIN, JANEL M.</a></li>
                     <li><a href="https://github.com/SaplingShallCode" target="_blank" class="hover:underline">ARZADON, CARL MATTHEW T.</a></li>
                     <li><a href="https://bit.ly/dmnd_portfolio" target="_blank" class="hover:underline">CABANELA, EDRIENE JAY O.</a></li>
@@ -61,7 +71,7 @@
                     <li><a href="https://markpagso03.github.io/redirector" target="_blank" class="hover:underline">PAGSOLINGAN, MARK ANGELU E.</a></li>
                     <li><a href="https://github.com/Cxdzz" target="_blank" class="hover:underline">RACADIO, CHRISTIAN B.</a></li>
                     <li><a href="https://joashsantos.netlify.app/" target="_blank" class="hover:underline">SANTOS, JOASH IRVIN M.</a></li>
-                </ul>
+                </ul> -->
             </div>
         </div>
     </div>
