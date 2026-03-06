@@ -216,27 +216,6 @@
                         class="flex items-center gap-2 p-2 rounded hover:bg-gray-100">
                         @php
                             $u = Auth::user();
-                            $u?->loadMissing('personalInformation');
-                            $personalInfo = $u?->personalInformation;
-
-                            $hasPdsName = $personalInfo && collect([
-                                $personalInfo->first_name,
-                                $personalInfo->middle_name,
-                                $personalInfo->surname,
-                                $personalInfo->name_extension,
-                            ])->filter(fn($value) => filled($value))->isNotEmpty();
-
-                            $middleInitial = filled($personalInfo?->middle_name)
-                                ? mb_substr(trim($personalInfo->middle_name), 0, 1) . '.'
-                                : '';
-                            $pdsNameParts = array_filter([
-                                trim($personalInfo?->first_name ?? ''),
-                                $middleInitial,
-                                trim($personalInfo?->surname ?? ''),
-                                trim($personalInfo?->name_extension ?? ''),
-                            ], fn($part) => $part !== '');
-                            $pdsName = $pdsNameParts ? trim(implode(' ', $pdsNameParts)) : null;
-
                             $accountMiddleInitial = filled($u?->middle_name)
                                 ? mb_substr(trim((string) $u->middle_name), 0, 1) . '.'
                                 : '';
@@ -247,17 +226,11 @@
                             ], fn($part) => $part !== '');
                             $accountDisplayName = $accountNameParts ? trim(implode(' ', $accountNameParts)) : null;
 
-                            $displayName = $hasPdsName
-                                ? ($pdsName ?: 'N/A')
-                                : ($accountDisplayName ?: ($u?->name ?: 'N/A'));
+                            $displayName = $accountDisplayName ?: ($u?->name ?: 'N/A');
 
                             $avatar = $u?->avatar_path ? asset('storage/' . $u->avatar_path) : null;
-                            $initialFirstName = $hasPdsName
-                                ? trim((string) ($personalInfo?->first_name ?? ''))
-                                : trim((string) ($u?->first_name ?? ''));
-                            $initialLastName = $hasPdsName
-                                ? trim((string) ($personalInfo?->surname ?? ''))
-                                : trim((string) ($u?->last_name ?? ''));
+                            $initialFirstName = trim((string) ($u?->first_name ?? ''));
+                            $initialLastName = trim((string) ($u?->last_name ?? ''));
 
                             $initials = strtoupper(
                                 mb_substr($initialFirstName, 0, 1) .
