@@ -220,7 +220,6 @@
                             $u = Auth::user();
                             $u?->loadMissing('personalInformation');
                             $personalInfo = $u?->personalInformation;
-                            $isGoogleSignup = $u ? \Illuminate\Support\Facades\Hash::check('google-oauth', (string) $u->password) : false;
 
                             $hasPdsName = $personalInfo && collect([
                                 $personalInfo->first_name,
@@ -240,17 +239,41 @@
                             ], fn($part) => $part !== '');
                             $pdsName = $pdsNameParts ? trim(implode(' ', $pdsNameParts)) : null;
 
+                            $accountMiddleInitial = filled($u?->middle_name)
+                                ? mb_substr(trim((string) $u->middle_name), 0, 1) . '.'
+                                : '';
+                            $accountNameParts = array_filter([
+                                trim((string) ($u?->first_name ?? '')),
+                                $accountMiddleInitial,
+                                trim((string) ($u?->last_name ?? '')),
+                            ], fn($part) => $part !== '');
+                            $accountDisplayName = $accountNameParts ? trim(implode(' ', $accountNameParts)) : null;
+
                             $displayName = $hasPdsName
                                 ? ($pdsName ?: 'N/A')
-                                : ($isGoogleSignup ? 'N/A' : ($u?->name ?: 'N/A'));
+                                : ($accountDisplayName ?: ($u?->name ?: 'N/A'));
 
                             $avatar = $u?->avatar_path ? asset('storage/' . $u->avatar_path) : null;
-                            $initialsSource = $displayName !== 'N/A' ? $displayName : 'N A';
-                            $initials = collect(preg_split('/\s+/', trim($initialsSource)))
-                                ->filter()
-                                ->map(fn($p) => mb_substr($p, 0, 1))
-                                ->join('');
-                            $initials = $initials !== '' ? $initials : 'NA';
+                            $initialFirstName = $hasPdsName
+                                ? trim((string) ($personalInfo?->first_name ?? ''))
+                                : trim((string) ($u?->first_name ?? ''));
+                            $initialLastName = $hasPdsName
+                                ? trim((string) ($personalInfo?->surname ?? ''))
+                                : trim((string) ($u?->last_name ?? ''));
+
+                            $initials = strtoupper(
+                                mb_substr($initialFirstName, 0, 1) .
+                                mb_substr($initialLastName, 0, 1)
+                            );
+
+                            if ($initials === '') {
+                                $initialsSource = $displayName !== 'N/A' ? $displayName : 'N A';
+                                $initials = collect(preg_split('/\s+/', trim($initialsSource)))
+                                    ->filter()
+                                    ->map(fn($p) => mb_substr($p, 0, 1))
+                                    ->join('');
+                                $initials = strtoupper($initials !== '' ? $initials : 'NA');
+                            }
                         @endphp
                         @if($avatar)
                             <img src="{{ $avatar }}" alt="Avatar" class="w-8 h-8 rounded-full object-cover">

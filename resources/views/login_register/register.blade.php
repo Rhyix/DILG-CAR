@@ -88,7 +88,7 @@
               <span class="absolute inset-y-0 left-4 flex items-center">
                 <i class="fas fa-font text-yellow-400"></i>
               </span>
-              <input type="text" name="middle_initial" placeholder="Enter Middle Name" value="{{ old('middle_initial') }}" required
+              <input type="text" name="middle_name" placeholder="Enter Middle Name" value="{{ old('middle_name') }}" required
                 class="w-full bg-white border border-blue-400 rounded-full pl-12 pr-4 py-3 outline-none text-blue-900 placeholder:text-blue-800/60 focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
                 pattern="^[A-Za-z\s\-\.]{2,50}$"
                 title="Middle name should contain only letters, spaces, hyphens, or periods (2-50 characters).">
@@ -106,7 +106,7 @@
             </div>
           </div>
           @error('first_name') <p class="text-red-600 text-sm ml-3 -mt-2">{{ $message }}</p> @enderror
-          @error('middle_initial') <p class="text-red-600 text-sm ml-3 -mt-2">{{ $message }}</p> @enderror
+          @error('middle_name') <p class="text-red-600 text-sm ml-3 -mt-2">{{ $message }}</p> @enderror
           @error('last_name') <p class="text-red-600 text-sm ml-3 -mt-2">{{ $message }}</p> @enderror
           @error('fname') <p class="text-red-600 text-sm ml-3 -mt-2">{{ $message }}</p> @enderror
           @error('mname') <p class="text-red-600 text-sm ml-3 -mt-2">{{ $message }}</p> @enderror

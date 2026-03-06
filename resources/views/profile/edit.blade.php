@@ -5,10 +5,22 @@
     <h1 class="text-2xl font-bold mb-4">Edit Profile</h1>
     <form method="POST" action="{{ route('profile.update') }}" class="space-y-4">
         @csrf
-        <div>
-            <label class="block text-sm font-medium">Name</label>
-            <input type="text" name="name" value="{{ old('name', $user->name) }}" class="mt-1 w-full border rounded px-3 py-2">
-            @error('name') <div class="text-red-600 text-sm">{{ $message }}</div> @enderror
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+                <label class="block text-sm font-medium">First Name</label>
+                <input type="text" name="first_name" value="{{ old('first_name', $user->first_name) }}" class="mt-1 w-full border rounded px-3 py-2">
+                @error('first_name') <div class="text-red-600 text-sm">{{ $message }}</div> @enderror
+            </div>
+            <div>
+                <label class="block text-sm font-medium">Middle Name</label>
+                <input type="text" name="middle_name" value="{{ old('middle_name', $user->middle_name) }}" class="mt-1 w-full border rounded px-3 py-2">
+                @error('middle_name') <div class="text-red-600 text-sm">{{ $message }}</div> @enderror
+            </div>
+            <div>
+                <label class="block text-sm font-medium">Last Name</label>
+                <input type="text" name="last_name" value="{{ old('last_name', $user->last_name) }}" class="mt-1 w-full border rounded px-3 py-2">
+                @error('last_name') <div class="text-red-600 text-sm">{{ $message }}</div> @enderror
+            </div>
         </div>
         <div>
             <label class="block text-sm font-medium">Email</label>

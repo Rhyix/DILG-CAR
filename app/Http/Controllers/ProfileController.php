@@ -55,6 +55,43 @@ class ProfileController extends Controller
     {
         $user = Auth::user();
         $validated = $request->validated();
+        $middleInitial = filled($validated['middle_name'] ?? null)
+            ? strtoupper(mb_substr(trim((string) $validated['middle_name']), 0, 1)) . '.'
+            : '';
+        $validated['name'] = trim(implode(' ', array_filter([
+            trim((string) ($validated['first_name'] ?? '')),
+            $middleInitial,
+            trim((string) ($validated['last_name'] ?? '')),
+        ])));
+        if (array_key_exists('phone', $validated)) {
+            $validated['phone_number'] = preg_replace('/\D+/', '', (string) $validated['phone']);
+        }
+        if ($request->hasFile('avatar')) {
+            $file = $request->file('avatar');
+            $path = 'avatars/' . Auth::id() . '-' . time() . '.png';
+            $imageData = file_get_contents($file->getPathname());
+            // Attempt simple square resize via GD if available.
+            if (function_exists('imagecreatefromstring')) {
+                $src = imagecreatefromstring($imageData);
+                if ($src) {
+                    $w = imagesx($src);
+                    $h = imagesy($src);
+                    $size = 256;
+                    $dst = imagecreatetruecolor($size, $size);
+                    $min = min($w, $h);
+                    $sx = (int) (($w - $min) / 2);
+                    $sy = (int) (($h - $min) / 2);
+                    imagecopyresampled($dst, $src, 0, 0, $sx, $sy, $size, $size, $min, $min);
+                    ob_start();
+                    imagepng($dst);
+                    $imageData = ob_get_clean();
+                    imagedestroy($dst);
+                    imagedestroy($src);
+                }
+            }
+            Storage::disk('public')->put($path, $imageData);
+            $validated['avatar_path'] = $path;
+        }
         $user->fill($validated);
         $user->save();
         $profile = $user->profile()->firstOrCreate(['user_id' => $user->id]);

@@ -6,7 +6,14 @@
     <div class="flex items-center gap-4 mb-6">
         @php
             $avatar = $user->avatar_path ? asset('storage/'.$user->avatar_path) : null;
-            $initials = collect(explode(' ', $user->name))->map(fn($p)=>mb_substr($p,0,1))->join('');
+            $middleInitial = filled($user->middle_name) ? mb_substr(trim($user->middle_name), 0, 1) . '.' : '';
+            $displayName = trim(implode(' ', array_filter([
+                trim($user->first_name ?? ''),
+                $middleInitial,
+                trim($user->last_name ?? ''),
+            ], fn ($part) => $part !== '')));
+            $displayName = $displayName !== '' ? $displayName : 'N/A';
+            $initials = collect(explode(' ', $displayName))->map(fn($p)=>mb_substr($p,0,1))->join('');
         @endphp
         @if($avatar)
             <img src="{{ $avatar }}" alt="Avatar" class="w-16 h-16 rounded-full object-cover">
@@ -25,7 +32,7 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
             <div class="text-sm text-gray-500">Name</div>
-            <div class="font-semibold">{{ $user->name }}</div>
+            <div class="font-semibold">{{ $displayName }}</div>
         </div>
         <div>
             <div class="text-sm text-gray-500">Email</div>

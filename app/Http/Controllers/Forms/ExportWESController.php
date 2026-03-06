@@ -25,7 +25,7 @@ class ExportWESController extends Controller
         // Get full name for signature
         $personalInfo = PersonalInformation::where('user_id', $user->id)->first();
         $firstName = $personalInfo->first_name ?? ($user->first_name ?? '');
-        $middleName = $personalInfo->middle_name ?? ($user->middle_name ?? ($user->middle_initial ?? ''));
+        $middleName = $personalInfo->middle_name ?? ($user->middle_name ?? '');
         $surname = $personalInfo->surname ?? ($user->last_name ?? '');
         $extension = $personalInfo->name_extension ?? ($user->name_extension ?? '');
 

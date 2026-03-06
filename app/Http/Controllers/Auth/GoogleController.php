@@ -77,9 +77,25 @@ class GoogleController extends Controller
             ->stateless()
             ->user();
 
+        $googleFullName = trim((string) $googleUser->getName());
+        $nameParts = preg_split('/\s+/', $googleFullName) ?: [];
+        $firstName = (string) ($nameParts[0] ?? '');
+        $lastName = count($nameParts) > 1 ? (string) end($nameParts) : '';
+        $middleName = count($nameParts) > 2
+            ? trim(implode(' ', array_slice($nameParts, 1, -1)))
+            : '';
+        $middleInitial = $middleName !== '' ? strtoupper(mb_substr($middleName, 0, 1)) . '.' : '';
+        $fullName = trim(implode(' ', array_filter([$firstName, $middleInitial, $lastName])));
+
         $user = User::firstOrCreate(
             ['email' => $googleUser->getEmail()],
-            ['name' => $googleUser->getName(), 'password' => bcrypt('google-oauth')]
+            [
+                'name' => $fullName !== '' ? $fullName : $googleFullName,
+                'first_name' => $firstName !== '' ? $firstName : null,
+                'middle_name' => $middleName !== '' ? $middleName : null,
+                'last_name' => $lastName !== '' ? $lastName : null,
+                'password' => bcrypt('google-oauth'),
+            ]
         );
 
         Auth::login($user);

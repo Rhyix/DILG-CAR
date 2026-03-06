@@ -26,20 +26,20 @@ class RegisterController extends Controller
     public function register(Request $request)
     {
         // Support both field naming styles:
-        // first_name/middle_initial/last_name and fname/mname/lname.
+        // first_name/middle_name/last_name and fname/mname/lname.
         $firstName = trim((string) ($request->input('first_name') ?? $request->input('fname') ?? ''));
-        $middleInitial = trim((string) ($request->input('middle_initial') ?? $request->input('mname') ?? ''));
+        $middleName = trim((string) ($request->input('middle_name') ?? $request->input('middle_initial') ?? $request->input('mname') ?? ''));
         $lastName = trim((string) ($request->input('last_name') ?? $request->input('lname') ?? ''));
 
         $request->merge([
             'first_name' => $firstName,
-            'middle_initial' => $middleInitial,
+            'middle_name' => $middleName,
             'last_name' => $lastName,
         ]);
 
         $request->validate([
             'first_name' => 'required|string|max:255',
-            'middle_initial' => 'nullable|string|max:255',
+            'middle_name' => 'nullable|string|max:255',
             'last_name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:6|confirmed',
@@ -49,7 +49,7 @@ class RegisterController extends Controller
 
         $fullName = trim(implode(' ', array_filter([
             $firstName,
-            $middleInitial,
+            $middleName !== '' ? strtoupper(mb_substr($middleName, 0, 1)) . '.' : '',
             $lastName,
         ], fn ($value) => $value !== '')));
 
@@ -63,7 +63,7 @@ class RegisterController extends Controller
             'pending_registration' => [
                 'name' => $fullName,
                 'first_name' => $firstName,
-                'middle_initial' => $middleInitial,
+                'middle_name' => $middleName,
                 'last_name' => $lastName,
                 'phone_number' => $request->input('phone_number'),
                 'sex' => $request->input('sex'),
@@ -159,7 +159,7 @@ class RegisterController extends Controller
         $user = \App\Models\User::create([
             'name' => $data['name'],
             'first_name' => $data['first_name'] ?? null,
-            'middle_initial' => $data['middle_initial'] ?? null,
+            'middle_name' => $data['middle_name'] ?? null,
             'last_name' => $data['last_name'] ?? null,
             'phone_number' => $data['phone_number'] ?? null,
             'sex' => $data['sex'] ?? null,
