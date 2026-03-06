@@ -20,6 +20,14 @@
 
 @extends('layout.app')
 @section('title', 'DILG - Job Description')
+@push('styles')
+    <style>
+        /* Keep a single scroll container (page shell) on this view */
+        body {
+            overflow: hidden;
+        }
+    </style>
+@endpush
 @section('content')
     @php
         $requiredDocsPayload = session('required_docs_prompt');
@@ -43,91 +51,166 @@
         $requiredDocsPreviewForModal = $requiredDocsPreview ?? [];
         $hasMissingRequiredDocsForModal = (bool) ($hasMissingRequiredDocs ?? false);
         $hasIncompletePdsForApply = !($hasCompletedPdsForApply ?? false);
-    @endphp
-    <main class="flex-1 min-w-0 space-y-8 font-montserrat">
 
-        <!-- Header Section -->
-        <section class="flex-none flex items-center space-x-4 max-w-full">
-            <h1 class="flex items-center gap-3 w-full border-b border-[#0D2B70] text-white text-4xl font-montserrat py-2 tracking-wide select-none">
-                <span class="whitespace-nowrap text-[#0D2B70]">Job Descriptions</span>
+        $isClosed = strtolower((string) $vacancy->status) === 'closed';
+        $status = $isClosed ? 'CLOSED' : 'OPEN';
+        $typeIsPlantilla = strcasecmp(trim((string) $vacancy->vacancy_type), 'plantilla') === 0;
+        $typeIsCos = strcasecmp(trim((string) $vacancy->vacancy_type), 'cos') === 0;
+        $typeLabel = $typeIsCos
+            ? 'Contract of Service Position'
+            : ($typeIsPlantilla ? 'Plantilla Position' : (string) $vacancy->vacancy_type);
+    @endphp
+
+    <main class="flex-1 min-w-0 space-y-5 font-montserrat mr-4">
+        <section class="flex items-center max-w-full">
+            <h1 class="w-full border-b border-[#0D2B70] py-2 text-2xl sm:text-3xl text-[#0D2B70] tracking-wide">
+                Job Description
             </h1>
         </section>
 
-        @php
-            $isClosed = strtolower($vacancy->status) === 'closed';
-            $statusColor = $isClosed ? 'bg-red-600' : 'bg-green-600';
-            $status = $isClosed ? 'CLOSED' : 'OPEN';
-            $borderColor = $isClosed ? 'border-red-600' : 'border-green-600';
-        @endphp
+        <section class="rounded-2xl border border-[#0D2B70]/20 bg-white/70 p-4 sm:p-5 shadow-sm">
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-[#0D2B70]/30 pb-3">
+                <h2 class="text-3xl sm:text-4xl font-extrabold text-[#0D2B70] break-words">{{ $vacancy->position_title }}</h2>
+                <span class="inline-flex items-center rounded-full px-4 py-1 text-sm font-semibold {{ $isClosed ? 'bg-red-100 text-red-700 border border-red-300' : 'bg-emerald-100 text-emerald-700 border border-emerald-300' }}">
+                    {{ $isClosed ? 'Closed' : 'Open' }}
+                </span>
+            </div>
 
-        <!-- Main Job Info Card -->
-        <section class="bg-white p-4 md:p-6 rounded-lg shadow border-l-4 {{ $borderColor }}">
-            <div class="flex flex-col md:flex-row md:justify-between md:items-start md:space-x-6">
-                <!-- Left: Title and Details -->
-                <div class="space-y-2 w-full md:w-2/3">
-                    <h2 class="text-2xl md:text-4xl font-extrabold text-[#002C76] break-words">{{ $vacancy->position_title }}</h2>
-                    <p class="text-gray-600 text-base md:text-lg">
-                        @if ($vacancy->vacancy_type === 'COS')
-                            CONTRACT OF SERVICE
-                        @elseif ($vacancy->vacancy_type === 'Plantilla')
-                            PLANTILLA ITEM
-                        @else
-                            {{ $vacancy->vacancy_type }}
+            <div class="mt-4 grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-4">
+                <aside class="rounded-xl border border-[#0D2B70]/25 bg-white p-3">
+                    <h3 class="text-xl font-bold text-[#0D2B70] border-b border-[#0D2B70]/40 pb-1">{{ $typeLabel }}</h3>
+                    <div class="mt-2 space-y-1.5 text-sm text-[#0D2B70]">
+                        <p><span class="font-bold">Compensation:</span> {{ $vacancy->monthly_salary }}</p>
+                        <p><span class="font-bold">Date Posted:</span> {{ $vacancy->created_at }}</p>
+                        <p><span class="font-bold">Deadline:</span> {{ \Carbon\Carbon::parse($vacancy->closing_date)->subMinute()->format('n/j/Y g:i A') }}</p>
+                        <p><span class="font-bold">Place of Assignment:</span> {{ $vacancy->place_of_assignment }}</p>
+
+                        @if($typeIsPlantilla)
+                            <p><span class="font-bold">Salary Grade:</span> {{ $vacancy->salary_grade }}</p>
+                            <p><span class="font-bold">Plantilla Item Number:</span> {{ $vacancy->plantilla_item_no }}</p>
                         @endif
-                    </p>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1 text-sm mt-2">
-                        <p><span class="font-semibold">Date Posted:</span> {{ $vacancy->created_at }}</p>
-                        <p><span class="font-semibold">Deadline:</span> {{ \Carbon\Carbon::parse($vacancy->closing_date)->subMinute()->format('n/j/Y g:i A') }}</p>
-                        <p><span class="font-semibold">Place of Assignment:</span> {{ $vacancy->place_of_assignment }}</p>
-
-                        @if(strtolower($vacancy->vacancy_type) == 'plantilla')
-                            <p><span class="font-semibold">Item No.:</span> {{ $vacancy->plantilla_item_no }}</p>
-                            <p><span class="font-semibold">Salary Grade:</span> {{ $vacancy->salary_grade }}</p>
-                        @endif
-
-                        <p><span class="font-semibold">Compensation:</span> {{ $vacancy->monthly_salary }}</p>
                     </div>
-                </div>
 
-                <!-- Right: Status and Buttons -->
-                <div class="flex flex-col items-end gap-2 mt-4 md:mt-0 w-full md:w-auto md:ml-auto">
-                    <span class="text-black font-bold text-sm flex items-center gap-1 uppercase">
-                        {{ $status }}
-                        <span class="w-3 h-3 {{ $statusColor }} rounded-full"></span>
-                    </span>
-
-                    @if ($hasApplied)
-                        <!-- Already Applied Button -->
-                        <button disabled
-                            class="flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-gray-400 text-white text-sm font-semibold shadow cursor-not-allowed w-full md:w-auto">
-                            <i data-feather="check-circle" class="w-4 h-4"></i> ALREADY APPLIED
-                        </button>
-                    @elseif (!$isClosed)
-                    <!-- Apply Button -->
-                        <button type="button"
-                            onclick="openApplyModal()"
-                            class="flex items-center justify-center gap-2 px-6 py-3 rounded-full text-sm font-semibold shadow transition w-full md:w-auto bg-green-600 hover:bg-green-700 text-white">
-                            <i data-feather="arrow-right" class="w-4 h-4"></i> APPLY
-                        </button>
-                    @else
-                    <!-- Application Closed Button -->
-                        <button disabled
-                            class="flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-gray-400 text-white text-sm font-semibold shadow cursor-not-allowed w-full md:w-auto">
-                            <i data-feather="x-circle" class="w-4 h-4"></i> APPLICATION CLOSED
-                        </button>
+                    @if($typeIsPlantilla)
+                        <div class="mt-3">
+                            @if(!empty($vacancy->csc_form_path))
+                                <a href="{{ Storage::url($vacancy->csc_form_path) }}" target="_blank"
+                                    class="inline-flex items-center justify-center w-full px-3 py-2 text-xs font-semibold rounded-md border border-[#0D2B70] text-[#0D2B70] hover:bg-[#0D2B70] hover:text-white transition">
+                                    View CSC Form Attachment
+                                </a>
+                            @else
+                                <div class="text-xs text-slate-500 border border-slate-200 bg-slate-50 rounded-md p-2">
+                                    No CSC form attachment uploaded.
+                                </div>
+                            @endif
+                        </div>
                     @endif
 
-                    <!-- PDS Button -->
-                    @if($hasIncompletePdsForApply)
-                        <button onclick="window.location.href='{{ route('display_c1') }}'"
-                            class="use-loader flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow transition w-full md:w-auto">
-                            <i data-feather="arrow-right" class="w-4 h-4"></i> COMPLETE PDS
-                        </button>
+                    <!-- Application Buttons -->
+                    <div class="mt-3 flex flex-col gap-2 justify-center">
+                        @if ($hasApplied)
+                            <button disabled
+                                class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gray-400 text-white text-sm font-semibold cursor-not-allowed">
+                                <i data-feather="check-circle" class="w-4 h-4"></i> ALREADY APPLIED
+                            </button>
+                        @elseif (!$isClosed)
+                            <button type="button" onclick="openApplyModal()"
+                                class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-semibold transition">
+                                <i data-feather="arrow-right" class="w-4 h-4"></i> APPLY
+                            </button>
+                        @else
+                            <button disabled
+                                class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gray-400 text-white text-sm font-semibold cursor-not-allowed">
+                                <i data-feather="x-circle" class="w-4 h-4"></i> APPLICATION CLOSED
+                            </button>
+                        @endif
+
+                        @if($hasIncompletePdsForApply)
+                            <button onclick="window.location.href='{{ route('display_c1') }}'"
+                                class="use-loader inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition">
+                                <i data-feather="file-text" class="w-4 h-4"></i> COMPLETE PDS
+                            </button>
+                        @endif
+                    </div>
+                </aside>
+
+                <section class="rounded-xl border border-[#0D2B70]/25 bg-white p-4 text-sm text-[#0D2B70] space-y-5">
+                    <div>
+                        <h3 class="text-3xl font-semibold text-[#0D2B70] mb-2">Qualification Standards</h3>
+                        <ul class="space-y-2">
+                            <li>
+                                <p class="font-bold">Education</p>
+                                <p class="text-slate-700">{{ $vacancy->qualification_education ?: 'Not specified' }}</p>
+                            </li>
+                            <li>
+                                <p class="font-bold">Experience</p>
+                                <p class="text-slate-700">{{ $vacancy->qualification_experience ?: 'Not specified' }}</p>
+                            </li>
+                            <li>
+                                <p class="font-bold">Training</p>
+                                <p class="text-slate-700">{{ $vacancy->qualification_training ?: 'Not specified' }}</p>
+                            </li>
+                            <li>
+                                <p class="font-bold">Eligibility</p>
+                                <p class="text-slate-700">{{ $vacancy->qualification_eligibility ?: 'Not specified' }}</p>
+                            </li>
+                            @if($typeIsPlantilla && !empty($vacancy->competencies))
+                                <li>
+                                    <p class="font-bold">Competencies</p>
+                                    <p class="text-slate-700">{!! nl2br(e($vacancy->competencies)) !!}</p>
+                                </li>
+                            @endif
+                        </ul>
+                    </div>
+
+                    <hr>
+
+
+                    @if($typeIsCos)
+                        <div>
+                            <h3 class="text-3xl font-semibold text-[#0D2B70] mb-2">COS Details</h3>
+                            <ul class="space-y-2">
+                                <li>
+                                    <p class="font-bold">Scope of Work</p>
+                                    <p class="text-slate-700">{!! nl2br(e($vacancy->scope_of_work)) !!}</p>
+                                </li>
+                                <li>
+                                    <p class="font-bold">Expected Output</p>
+                                    <p class="text-slate-700">{!! nl2br(e($vacancy->expected_output)) !!}</p>
+                                </li>
+                                <li>
+                                    <p class="font-bold">Duration of Work</p>
+                                    <p class="text-slate-700">{!! nl2br(e($vacancy->duration_of_work)) !!}</p>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <hr>
                     @endif
 
-                    <!-- Work Experience Sheet Button - REMOVED -->
-                </div>
+                    <div>
+                        <h3 class="text-3xl font-semibold text-[#0D2B70] mb-2">Application</h3>
+                        <ul class="space-y-2">
+                            <li>
+                                <p class="font-bold">How to Apply</p>
+                                <p class="text-slate-700">
+                                    Qualified applicants are advised to apply online through
+                                    <a target="_blank" href="https://car.dilg.gov.ph/dilg-car-vacancy/" class="text-[#0D2B70] font-bold underline">this portal</a>.
+                                </p>
+                            </li>
+                            <li>
+                                <p class="font-bold">Address To</p>
+                                <p class="text-slate-700">
+                                    {{ $vacancy->to_person }}, {{ $vacancy->to_position }}, {{ $vacancy->to_office }}, {{ $vacancy->to_office_address }}
+                                </p>
+                            </li>
+                            <li>
+                                <p class="font-bold">Notice</p>
+                                <p class="text-red-600 font-semibold">APPLICATIONS WITH INCOMPLETE DOCUMENTS SHALL NOT BE ENTERTAINED.</p>
+                            </li>
+                        </ul>
+                    </div>
+                </section>
             </div>
         </section>
 
@@ -173,7 +256,7 @@
                         <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
                     </svg>
                     <span>
-                        <span class="font-medium">Note:</span> 
+                        <span class="font-medium">Note:</span>
                         Make sure all required documents are available before applying.
                         Upload any missing required document now to continue your application.
                     </span>
@@ -182,19 +265,17 @@
                 <div class="max-h-72 overflow-y-auto border border-gray-200 rounded-xl p-4 mb-6 bg-slate-50">
                     <ul class="space-y-3">
                         @php
-                            // Filter documents for COS positions
                             $filteredDocs = $requiredDocsPreviewForModal;
                             if (strtolower($vacancy->vacancy_type) === 'cos') {
                                 $filteredDocs = collect($requiredDocsPreviewForModal)->filter(function($doc) {
                                     $docLabel = is_array($doc) ? ($doc['label'] ?? '') : '';
-                                    // Remove Certificate of Employment, Certificate of Training, and Transcript of Record
-                                    return !str_contains(strtolower($docLabel), 'certificate of employment') && 
-                                        !str_contains(strtolower($docLabel), 'certificate of training') && 
-                                        !str_contains(strtolower($docLabel), 'transcript of record');
+                                    return !str_contains(strtolower($docLabel), 'certificate of employment')
+                                        && !str_contains(strtolower($docLabel), 'certificate of training')
+                                        && !str_contains(strtolower($docLabel), 'transcript of record');
                                 })->values()->toArray();
                             }
                         @endphp
-                        
+
                         @forelse($filteredDocs as $doc)
                             @php
                                 $docLabel = is_array($doc) ? ($doc['label'] ?? 'Document') : 'Document';
@@ -248,156 +329,6 @@
             </div>
         </div>
 
-        <!-- QUALIFICATIONS TABLE -->
-        <section class="bg-white p-6 rounded-lg shadow border-l-4 border-[#002C76]">
-            <h3 class="text-xl font-bold text-[#002C76] mb-4 flex items-center gap-2">
-                <i data-feather="clipboard-list" class="w-6 h-6"></i>
-                QUALIFICATION STANDARDS
-            </h3>
-            
-            <div class="overflow-x-auto">
-                <table class="w-full border-collapse">
-                    <!-- Education -->
-                    <tr class="border-b border-gray-200 hover:bg-blue-50 transition-colors">
-                        <td class="py-3 px-4 w-1/4 align-top font-bold text-[#002C76]">Education</td>
-                        <td class="py-3 px-4 text-gray-700">{{ $vacancy->qualification_education ?: 'Not specified' }}</td>
-                    </tr>
-                    
-                    <!-- Experience -->
-                    <tr class="border-b border-gray-200 hover:bg-blue-50 transition-colors">
-                        <td class="py-3 px-4 w-1/4 align-top font-bold text-[#002C76]">Experience</td>
-                        <td class="py-3 px-4 text-gray-700">{{ $vacancy->qualification_experience ?: 'Not specified' }}</td>
-                    </tr>
-                    
-                    <!-- Training -->
-                    <tr class="border-b border-gray-200 hover:bg-blue-50 transition-colors">
-                        <td class="py-3 px-4 w-1/4 align-top font-bold text-[#002C76]">Training</td>
-                        <td class="py-3 px-4 text-gray-700">{{ $vacancy->qualification_training ?: 'Not specified' }}</td>
-                    </tr>
-                    
-                    <!-- Eligibility -->
-                    <tr class="border-b border-gray-200 hover:bg-blue-50 transition-colors">
-                        <td class="py-3 px-4 w-1/4 align-top font-bold text-[#002C76]">Eligibility</td>
-                        <td class="py-3 px-4 text-gray-700">{{ $vacancy->qualification_eligibility ?: 'Not specified' }}</td>
-                    </tr>
-                    
-                    <!-- Competencies (Plantilla only) -->
-                    @if(strtolower($vacancy->vacancy_type) == 'plantilla' && !empty($vacancy->competencies))
-                    <tr class="border-b border-gray-200 hover:bg-blue-50 transition-colors">
-                        <td class="py-3 px-4 w-1/4 align-top font-bold text-[#002C76]">Competencies</td>
-                        <td class="py-3 px-4 text-gray-700">{!! nl2br(e($vacancy->competencies)) !!}</td>
-                    </tr>
-                    @endif
-                </table>
-            </div>
-        </section>
-
-        <!-- CSC Form Attachment (Plantilla only) -->
-        @if(strcasecmp(trim((string) $vacancy->vacancy_type), 'plantilla') === 0 && !empty($vacancy->csc_form_path))
-            <section class="bg-white p-6 rounded-lg shadow border-l-4 border-[#002C76]">
-                <h3 class="text-xl font-bold text-[#002C76] mb-4 flex items-center gap-2">
-                    <i data-feather="file" class="w-6 h-6"></i>
-                    CSC FORM ATTACHMENT
-                </h3>
-                <div class="flex items-center gap-4 p-4 bg-slate-50 border border-slate-200 rounded-lg">
-                    <div class="flex-shrink-0 w-10 h-10 bg-[#002C76]/10 rounded-lg flex items-center justify-center">
-                        <i data-feather="file-text" class="w-5 h-5 text-[#002C76]"></i>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <p class="text-sm font-semibold text-slate-800 truncate">{{ basename($vacancy->csc_form_path) }}</p>
-                        <p class="text-xs text-slate-500 mt-0.5">CSC Form for this position</p>
-                    </div>
-                    <a href="{{ Storage::url($vacancy->csc_form_path) }}" target="_blank"
-                       class="flex-shrink-0 inline-flex items-center gap-2 px-4 py-2 bg-[#002C76] text-white text-sm font-medium rounded-lg hover:bg-[#001a4d] transition-colors">
-                        <i data-feather="eye" class="w-4 h-4"></i>
-                        View
-                    </a>
-                </div>
-            </section>
-        @elseif(strcasecmp(trim((string) $vacancy->vacancy_type), 'plantilla') === 0)
-            <section class="bg-white p-6 rounded-lg shadow border-l-4 border-[#002C76]">
-                <h3 class="text-xl font-bold text-[#002C76] mb-4 flex items-center gap-2">
-                    <i data-feather="file" class="w-6 h-6"></i>
-                    CSC FORM ATTACHMENT
-                </h3>
-                <div class="p-4 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600">
-                    No CSC form attachment has been uploaded for this Plantilla vacancy yet.
-                </div>
-            </section>
-        @endif
-
-        <!-- COS Details -->
-        @if(strtolower($vacancy->vacancy_type) == 'cos')
-            <section class="bg-white p-6 rounded-lg shadow border-l-4 border-green-600">
-                <h3 class="text-xl font-bold text-green-700 mb-4 flex items-center gap-2">
-                    <i data-feather="file-text" class="w-6 h-6"></i>
-                    COS DETAILS
-                </h3>
-                
-                <div class="overflow-x-auto">
-                    <table class="w-full border-collapse">
-                        <!-- Scope of Work -->
-                        <tr class="border-b border-gray-200 hover:bg-green-50 transition-colors">
-                            <td class="py-3 px-4 w-1/4 align-top font-bold text-green-700">Scope of Work</td>
-                            <td class="py-3 px-4 text-gray-700">{!! nl2br(e($vacancy->scope_of_work)) !!}</td>
-                        </tr>
-                        
-                        <!-- Expected Output -->
-                        <tr class="border-b border-gray-200 hover:bg-green-50 transition-colors">
-                            <td class="py-3 px-4 w-1/4 align-top font-bold text-green-700">Expected Output</td>
-                            <td class="py-3 px-4 text-gray-700">{!! nl2br(e($vacancy->expected_output)) !!}</td>
-                        </tr>
-                        
-                        <!-- Duration of Work -->
-                        <tr class="border-b border-gray-200 hover:bg-green-50 transition-colors">
-                            <td class="py-3 px-4 w-1/4 align-top font-bold text-green-700">Duration of Work</td>
-                            <td class="py-3 px-4 text-gray-700">{!! nl2br(e($vacancy->duration_of_work)) !!}</td>
-                        </tr>
-                    </table>
-                </div>
-            </section>
-        @endif
-
-        <!-- Application Details -->
-        <section class="bg-white p-6 rounded-lg shadow border-l-4 border-[#002C76]">
-            <h3 class="text-xl font-bold text-[#002C76] mb-4 flex items-center gap-2">
-                <i data-feather="send" class="w-6 h-6"></i>
-                APPLICATION
-            </h3>
-            
-            <div class="overflow-x-auto">
-                <table class="w-full border-collapse">
-                    <!-- Application Instructions -->
-                    <tr class="border-b border-gray-200 hover:bg-blue-50 transition-colors">
-                        <td class="py-3 px-4 w-1/4 align-top font-bold text-[#002C76]">How to Apply</td>
-                        <td class="py-3 px-4 text-gray-700">
-                            Qualified applicants are advised to apply online through 
-                            <a href="https://car.dilg.gov.ph/dilg-car-vacancy/" class="text-blue-600 font-bold underline">this portal</a>.
-                        </td>
-                    </tr>
-                    
-                    <!-- Address To -->
-                    <tr class="border-b border-gray-200 hover:bg-blue-50 transition-colors">
-                        <td class="py-3 px-4 w-1/4 align-top font-bold text-[#002C76]">Address To</td>
-                        <td class="py-3 px-4 text-gray-700">
-                            <p class="font-bold">{{ $vacancy->to_person }}</p>
-                            <p>{{ $vacancy->to_position }}</p>
-                            <p>{{ $vacancy->to_office }}</p>
-                            <p>{{ $vacancy->to_office_address }}</p>
-                        </td>
-                    </tr>
-                    
-                    <!-- Important Notice -->
-                    <tr class="border-b border-gray-200 hover:bg-blue-50 transition-colors">
-                        <td class="py-3 px-4 w-1/4 align-top font-bold text-[#002C76]">Notice</td>
-                        <td class="py-3 px-4">
-                            <p class="text-red-600 font-bold">APPLICATIONS WITH INCOMPLETE DOCUMENTS SHALL NOT BE ENTERTAINED.</p>
-                        </td>
-                    </tr>
-                </table>
-            </div>
-        </section>
-
         @include('partials.loader')
     </main>
 @endsection
@@ -431,7 +362,6 @@
     function closeRequiredDocsModal()      { closeModal('requiredDocsModal'); }
     function closeDocTrackMismatchModal()  { closeModal('docTrackMismatchModal'); }
 
-    // Re-initialize Feather Icons
     document.addEventListener('DOMContentLoaded', function() {
         const modalIds = ['pdsRequiredModal', 'requiredDocsModal', 'docTrackMismatchModal'];
         modalIds.forEach((id) => {
@@ -460,7 +390,6 @@
             openModal('docTrackMismatchModal');
         }
 
-        // Backward compatibility for legacy confirmation modal triggers.
         window.submitApplication = openApplyModal;
         window.confirmApply = openApplyModal;
         window.openApplyConfirmationModal = openApplyModal;
