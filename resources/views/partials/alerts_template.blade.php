@@ -73,7 +73,7 @@
                 x-transition:leave="ease-in duration-150"
                 x-transition:leave-start="opacity-100"
                 x-transition:leave-end="opacity-0"
-                class="fixed inset-0 z-[10000] overflow-y-auto bg-slate-900/55 backdrop-blur-sm"
+                class="fixed inset-0 z-[10000] overflow-y-auto bg-slate-900/60 backdrop-blur-md"
                 style="display: none;"
                 @keydown.escape.window="showModal = false"
             >

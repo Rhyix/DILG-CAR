@@ -194,8 +194,8 @@ class JobVacancyController extends Controller
             'last_modified_at' => now(),
         ]);
 
-        // Handle CSC Form file upload (update)
-        if (request()->hasFile('csc_form')) {
+        // Handle CSC Form file upload only when the column exists in this database.
+        if ($this->hasJobVacancyCscFormPathColumn() && request()->hasFile('csc_form')) {
             if ($vacancy->csc_form_path) {
                 Storage::disk('public')->delete($vacancy->csc_form_path);
             }
@@ -281,8 +281,10 @@ class JobVacancyController extends Controller
 
         $status = 'OPEN'; // Default status for new vacancies
 
+        $hasCscFormPathColumn = $this->hasJobVacancyCscFormPathColumn();
+
         // 🔷 Create vacancy
-        $vacancy = JobVacancy::create([
+        $vacancyData = [
             //'vacancy_id' => $vacancy_id,
             'position_title' => $validated['position_title'],
             'vacancy_type' => $validated['vacancy_type'],
@@ -315,10 +317,16 @@ class JobVacancyController extends Controller
             'to_position' => $validated['to_position'],
             'to_office' => $validated['to_office'],
             'to_office_address' => $validated['to_office_address'],
-            'csc_form_path' => $request->hasFile('csc_form')
+        ];
+
+        // Some environments may not yet have the csc_form_path column.
+        if ($hasCscFormPathColumn) {
+            $vacancyData['csc_form_path'] = $request->hasFile('csc_form')
                 ? $request->file('csc_form')->store('csc_forms', 'public')
-                : null,
-        ]);
+                : null;
+        }
+
+        $vacancy = JobVacancy::create($vacancyData);
 
 
         ExamDetail::create(['vacancy_id' => $vacancy->vacancy_id]);
@@ -1609,6 +1617,25 @@ class JobVacancyController extends Controller
         })->count();
 
         return (int) round(($completedRequiredDocs / $totalRequiredDocs) * 100);
+    }
+
+    private function hasJobVacancyCscFormPathColumn(): bool
+    {
+        static $hasColumn = null;
+        if ($hasColumn !== null) {
+            return $hasColumn;
+        }
+
+        try {
+            $hasColumn = Schema::hasColumn('job_vacancies', 'csc_form_path');
+        } catch (\Throwable $e) {
+            $hasColumn = false;
+            Log::warning('Unable to detect job_vacancies.csc_form_path column.', [
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return $hasColumn;
     }
 
     public function sortMyApplications(Request $request)

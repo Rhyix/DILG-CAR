@@ -1050,10 +1050,6 @@ class ExamController extends Controller
 
     public function viewExam(Request $request, $vacancy_id, $user_id)
     {
-        if ($denied = $this->denyViewerAccess($request, 'Viewer cannot check applicant answers.')) {
-            return $denied;
-        }
-
         //dd($request->all());
         info($user_id);
         $application = Applications::select('user_id', 'answers', 'scores', 'exam_started_at', 'exam_end_time', 'exam_submitted_at', 'tab_violations', 'last_tab_violation_at', 'status')->where('user_id', $user_id)->where('vacancy_id', $vacancy_id)->firstOrFail();
@@ -1131,10 +1127,6 @@ class ExamController extends Controller
 
     public function getExamAnswersJson(Request $request, $vacancy_id, $user_id)
     {
-        if ($denied = $this->denyViewerAccess($request, 'Viewer cannot check applicant answers.')) {
-            return $denied;
-        }
-
         $application = Applications::select('user_id', 'answers', 'scores', 'tab_violations', 'last_tab_violation_at')->where('user_id', $user_id)->where('vacancy_id', $vacancy_id)->firstOrFail();
         $examItems = ExamItems::select('id', 'question', 'ans', 'is_essay', 'choices', 'essay_max_score')->where('vacancy_id', $vacancy_id)->get();
 

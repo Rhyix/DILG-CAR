@@ -13,6 +13,7 @@
     
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet" />
+    @include('partials.global_toast')
     
     <style>
         body { font-family: 'Montserrat', sans-serif; }

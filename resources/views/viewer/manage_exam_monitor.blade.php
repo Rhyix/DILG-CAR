@@ -18,7 +18,7 @@
             <span class="mx-2">|</span>
             <span class="font-bold">Type:</span> {{ $vacancy->vacancy_type }}
         </p>
-        <p class="text-xs text-gray-500 mt-2">Viewer mode is monitoring-only. Checking answers and scoring are disabled.</p>
+        <p class="text-xs text-gray-500 mt-2">Viewer mode is monitoring-only. Checking answers is allowed, scoring remains disabled.</p>
     </section>
 
     <section class="flex items-center justify-between">
@@ -38,7 +38,8 @@
                     <th class="py-4 px-6 text-left text-sm tracking-wider w-[35%]">Name</th>
                     <th class="py-4 px-6 text-center text-sm tracking-wider w-[20%]">MC</th>
                     <th class="py-4 px-6 text-center text-sm tracking-wider w-[20%]">Essay</th>
-                    <th class="py-4 px-6 text-center text-sm tracking-wider w-[25%]">Status</th>
+                    <th class="py-4 px-6 text-center text-sm tracking-wider w-[15%]">Status</th>
+                    <th class="py-4 px-6 text-center text-sm tracking-wider w-[10%]">Action</th>
                 </tr>
             </thead>
             <tbody id="exam-lobby-tbody" class="bg-white divide-y divide-gray-200">
@@ -64,11 +65,18 @@
                                     <span>{{ $p->status ?? 'Pending' }}</span>
                                 </div>
                             </td>
+                            <td class="py-4 px-6 text-center">
+                                <a href="{{ route('admin.view_exam', ['vacancy_id' => $p->vacancy_id, 'user_id' => $p->user_id]) }}" target="_blank"
+                                    class="inline-flex items-center gap-1 rounded-md border border-[#0D2B70] px-3 py-1.5 text-xs font-bold text-[#0D2B70] transition-all duration-150 hover:bg-[#002C76] hover:text-white">
+                                    <x-heroicon-o-eye class="h-3 w-3" />
+                                    <span>View</span>
+                                </a>
+                            </td>
                         </tr>
                     @endforeach
                 @else
                     <tr>
-                        <td colspan="4" class="py-10 text-center text-gray-500">
+                        <td colspan="5" class="py-10 text-center text-gray-500">
                             <p class="text-lg font-semibold">There are no participants yet.</p>
                         </td>
                     </tr>
@@ -98,7 +106,7 @@
         if (!participants.length) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="4" class="py-10 text-center text-gray-500">
+                    <td colspan="5" class="py-10 text-center text-gray-500">
                         <p class="text-lg font-semibold">There are no participants yet.</p>
                     </td>
                 </tr>
@@ -116,6 +124,16 @@
                         <i class="fa-solid fa-circle text-xs" style="color:${p.status_color}"></i>
                         <span class="capitalize">${p.status}</span>
                     </div>
+                </td>
+                <td class="py-4 px-6 text-center">
+                    <a href="/admin/exam_management/${p.vacancy_id}/view_exam/${p.user_id}" target="_blank"
+                        class="inline-flex items-center gap-1 rounded-md border border-[#0D2B70] px-3 py-1.5 text-xs font-bold text-[#0D2B70] transition-all duration-150 hover:bg-[#002C76] hover:text-white">
+                        <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                        </svg>
+                        <span>View</span>
+                    </a>
                 </td>
             </tr>
         `).join('');

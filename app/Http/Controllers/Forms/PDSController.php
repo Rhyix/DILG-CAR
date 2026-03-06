@@ -3534,13 +3534,17 @@ class PDSController extends Controller
 
         $storedPaths = [];
         try {
-            return DB::transaction(function () use ($request, $uploaded_files, &$storedPaths, $go_to, $applicationVacancyId, $docTrack, $requiredDocs) {
+            return DB::transaction(function () use ($request, $uploaded_files, &$storedPaths, $go_to, $applicationVacancyId, $docTrack) {
                 $storedPaths = $this->c5StoreFilesToDB($uploaded_files, $applicationVacancyId);
                 if (!empty($applicationVacancyId)) {
+                    $allDocumentTypes = array_values(array_filter(
+                        UploadedDocument::DOCUMENTS,
+                        fn($docType) => $docType !== 'isApproved'
+                    ));
                     $this->seedVacancyDocumentsFromReusableUploads(
                         (int) Auth::id(),
                         (string) $applicationVacancyId,
-                        $requiredDocs
+                        $allDocumentTypes
                     );
                 }
 
@@ -4135,7 +4139,8 @@ class PDSController extends Controller
             'file_original_name' => $applicationLetterDoc->original_name,
             'file_stored_name' => $applicationLetterDoc->stored_name,
             'file_storage_path' => $applicationLetterDoc->storage_path,
-            'file_status' => 'Submitted',
+            // Re-applies should always return application-letter validation to pending.
+            'file_status' => 'Pending',
             'file_remarks' => null,
             'file_size_8b' => $applicationLetterDoc->file_size_8b,
             'is_valid' => true,

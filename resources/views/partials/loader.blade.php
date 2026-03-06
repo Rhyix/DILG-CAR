@@ -2,6 +2,8 @@
   .pds-loading-overlay {
     position: fixed;
     inset: 0;
+    width: 100vw;
+    height: 100vh;
     background: rgba(255, 255, 255, 0.1);
     /* Low opacity for glass effect foundation */
     backdrop-filter: blur(8px);
@@ -10,7 +12,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 9999;
+    z-index: 2147483000;
     pointer-events: auto;
     opacity: 0;
     visibility: hidden;
@@ -136,6 +138,15 @@
     const text = document.getElementById('loader-text');
     const nonBlockingDelay = 10000;
     let unblockTimer = null;
+
+    // Ensure overlay is attached to <body>, so fixed positioning covers the full viewport
+    // even when this partial is included inside transformed/scrollable containers.
+    if (overlay && overlay.parentElement !== document.body) {
+      document.body.appendChild(overlay);
+    }
+    if (live && live.parentElement !== document.body) {
+      document.body.appendChild(live);
+    }
 
     function setLive(message) {
       if (live) live.textContent = message;

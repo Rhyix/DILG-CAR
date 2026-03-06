@@ -6,6 +6,7 @@
     <title>Forgot Password</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+    @include('partials.global_toast')
 </head>
 <style>
     .font-monserrat {
@@ -156,4 +157,3 @@ resendLink.addEventListener('click', function(e) {
 
 </body>
 </html>
-

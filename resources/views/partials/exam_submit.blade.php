@@ -11,7 +11,7 @@
     <div x-show="showSubmitConfirm"
          x-transition:enter="transition ease-out duration-300"
          x-transition:leave="transition ease-in duration-200"
-         class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+         class="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50"
          style="display: none;"
          @keydown.escape.window="allowFocusLoss = false; showSubmitConfirm = false">
 

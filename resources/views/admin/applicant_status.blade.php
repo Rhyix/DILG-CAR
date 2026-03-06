@@ -391,7 +391,7 @@
 										value="{{ old('deadline_date', $application->deadline_date ? \Carbon\Carbon::parse($application->deadline_date)->format('Y-m-d') : '') }}">
 									<input type="time" name="deadline_time" id="deadline_time"
 										class="flex-1 text-sm px-3 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-[#002C76] focus:border-[#002C76] disabled:bg-gray-50 disabled:text-gray-400 outline-none transition-shadow"
-value="{{ old('deadline_time', $application->deadline_time ? \Carbon\Carbon::parse($application->deadline_time)->format('H:i') : '17:00') }}">
+										value="{{ old('deadline_time', $application->deadline_time ? \Carbon\Carbon::parse($application->deadline_time)->format('H:i') : '17:00') }}">
 								</div>
 								<div id="deadlineWarning" class="text-red-500 text-xs mt-2 hidden font-medium">
 									<i data-feather="alert-triangle" class="inline w-3 h-3"></i> Deadline passed
@@ -417,7 +417,7 @@ value="{{ old('deadline_time', $application->deadline_time ? \Carbon\Carbon::par
 											: null;
 										$defaultRemarks = $deadline
 											? "Correct and/or submit the above-noted inconsistencies and/or deficiencies not later than $deadline."
-											: "No remarks yet";
+											: '';
 									}
 								@endphp
 								<textarea id="notify-applicant-remarks"
