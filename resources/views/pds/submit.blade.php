@@ -375,7 +375,7 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm mt-2">
                                 <div><span class="font-medium">Company:</span> Tech Solutions Inc.</div>
                                 <div><span class="font-medium">Period:</span> Jan 2020 - Present</div>
-                                <div><span class="font-medium">Salary:</span> â‚±45,000</div>
+                                <div><span class="font-medium">Salary:</span> PHP 45,000</div>
                                 <div><span class="font-medium">Status:</span> Permanent</div>
                             </div>
                         </div>
