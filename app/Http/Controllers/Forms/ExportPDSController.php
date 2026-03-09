@@ -213,7 +213,7 @@ class ExportPDSController
         $this->setFont($pdf, 'Arial', '', 8);
 
         $this->writePersonalInfo($pdf, $personalInfo);
-        $this->writeAddresses($pdf, $residential, $permanent, $this->getWriteCentered());
+        $this->writeAddresses($pdf, $residential, $permanent);
         $this->writeFamilyBackground($pdf, $familyBackground);
         $this->writeEducationalBackground($pdf, $educationalBackground);
 
@@ -883,7 +883,7 @@ class ExportPDSController
 
         // Citizenship
         if ($this->valueMatches($info?->citizenship, 'Filipino')) {
-            $this->markCheckbox($pdf, 133, 63.5);
+            $this->markCheckbox($pdf, 139, 63.5);
         } elseif ($this->valueMatches($info?->citizenship, 'Dual Citizenship', 'Dual')) {
             $this->markCheckbox($pdf, 157.5, 63.5);
         }
@@ -904,25 +904,25 @@ class ExportPDSController
 
 }
 
-private function writeAddresses($pdf, $residential, $permanent, $writeCentered)
+private function writeAddresses($pdf, $residential, $permanent)
 {
     // Residential Address
-    $writeCentered($pdf, $this->valueOrNa($residential[0] ?? null), 120, 155, 86.5); // House Number
-    $writeCentered($pdf, $this->valueOrNa($residential[1] ?? null), 150, 215, 86.5); // Street
-    $writeCentered($pdf, $this->valueOrNa($residential[2] ?? null), 125, 148, 93); // Village/Subdivision
-    $writeCentered($pdf, $this->valueOrNa($residential[3] ?? null), 135, 225, 93); // Barangay
-    $writeCentered($pdf, $this->valueOrNa($residential[4] ?? null), 130, 145, 99.8); // City/Municipality
-    $writeCentered($pdf, $this->valueOrNa($residential[5] ?? null), 130, 230, 99.5); // Province
-    $writeCentered($pdf, $this->valueOrNa($residential[6] ?? null), 130, 190, 108); // ZIP Code
+    $this->writeWrappedAt($pdf, $this->valueOrNa($residential[0] ?? null), 136, 86, 48, 8.0, 2.2, 1.0); // House Number
+    $this->writeWrappedAt($pdf, $this->valueOrNa($residential[1] ?? null), 179.5, 86, 65, 8.0, 2.2, 1.0); // Street
+    $this->writeWrappedAt($pdf, $this->valueOrNa($residential[2] ?? null), 136, 92.5, 23, 8.0, 2.2, 1.0); // Village/Subdivision
+    $this->writeWrappedAt($pdf, $this->valueOrNa($residential[3] ?? null), 179.5, 92.5, 48, 8.0, 2.2, 1.0); // Barangay
+    $this->writeWrappedAt($pdf, $this->valueOrNa($residential[4] ?? null), 130, 99, 50, 8.0, 2.2, 1.0); // City/Municipality
+    $this->writeWrappedAt($pdf, $this->valueOrNa($residential[5] ?? null), 179.5, 99, 100, 8.0, 2.2, 1.0); // Province
+    $this->writeWrappedAt($pdf, $this->valueOrNa($residential[6] ?? null), 130, 108, 60, 8.0, 2.2, 1.0); // ZIP Code
 
     // Permanent Address
-    $writeCentered($pdf, $this->valueOrNa($permanent[0] ?? null), 120, 155, 112.5); // House Number
-    $writeCentered($pdf, $this->valueOrNa($permanent[1] ?? null), 150, 215, 112.5); // Street
-    $writeCentered($pdf, $this->valueOrNa($permanent[2] ?? null), 125, 148, 119); // Village/Subdivision
-    $writeCentered($pdf, $this->valueOrNa($permanent[3] ?? null), 135, 225, 118.5); // Barangay
-    $writeCentered($pdf, $this->valueOrNa($permanent[4] ?? null), 130, 145, 126); // City/Municipality
-    $writeCentered($pdf, $this->valueOrNa($permanent[5] ?? null), 130, 231, 126); // Province
-    $writeCentered($pdf, $this->valueOrNa($permanent[6] ?? null), 130   , 190, 135.5); // ZIP Code
+    $this->writeWrappedAt($pdf, $this->valueOrNa($permanent[0] ?? null), 136, 112, 35, 8.0, 2.2, 1.0); // House Number
+    $this->writeWrappedAt($pdf, $this->valueOrNa($permanent[1] ?? null), 179.5, 112, 65, 8.0, 2.2, 1.0); // Street
+    $this->writeWrappedAt($pdf, $this->valueOrNa($permanent[2] ?? null), 136, 119, 23, 8.0, 2.2, 1.0); // Village/Subdivision
+    $this->writeWrappedAt($pdf, $this->valueOrNa($permanent[3] ?? null), 179.5, 118.5, 48, 8.0, 2.2, 1.0); // Barangay
+    $this->writeWrappedAt($pdf, $this->valueOrNa($permanent[4] ?? null), 130, 125.5, 50, 8.0, 2.2, 1.0); // City/Municipality
+    $this->writeWrappedAt($pdf, $this->valueOrNa($permanent[5] ?? null), 179.5, 125.5, 100, 8.0, 2.2, 1.0); // Province
+    $this->writeWrappedAt($pdf, $this->valueOrNa($permanent[6] ?? null), 130, 133.5, 60, 8.0, 2.2, 1.0); // ZIP Code
 
 }
 
@@ -1060,7 +1060,7 @@ private function writeEducationalBackground($pdf, $education)
         $this->writeFittedAt($pdf, $this->valueOrNa($education?->jhs_basic), 90, 271, 45, 6.5, 4.5);
         $this->writeFittedAt($pdf, $this->dateOrNa($education?->jhs_from, 'm/Y'), 136, 271, 27, 7.0, 5.0);
         $this->writeFittedAt($pdf, $this->dateOrNa($education?->jhs_to, 'm/Y'), 149, 271, 31.5, 7.0, 5.0);
-        $this->writeFittedAt($pdf, $this->valueOrNa($education?->jhs_earned), 167, 271, 18, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($education?->jhs_earned), 166, 271, 18, 7.0, 5.0);
         $this->writeFittedAt($pdf, $this->valueOrNa($education?->jhs_year_graduated), 182, 271, 12, 7.0, 5.0);
         $this->writeFittedAt($pdf, $this->valueOrNa($education?->jhs_academic_honors), 199, 271, 13, 7.0, 5.0);
     }
@@ -1967,6 +1967,17 @@ private function writeFittedAt($pdf, string $text, float $x, float $y, float $ma
         $currentY += $lineHeight;
     }
     $this->setFont($pdf, 'Arial', '', 8);
+}
+
+private function writeAt($pdf, string $text, float $x, float $y, ?float $maxWidth = null): void
+{
+    if ($maxWidth !== null) {
+        $this->writeFittedAt($pdf, $text, $x, $y, $maxWidth);
+        return;
+    }
+
+    $this->setXY($pdf, $x, $y);
+    $pdf->Write(0, $text);
 }
 
 

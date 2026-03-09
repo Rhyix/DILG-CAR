@@ -103,7 +103,7 @@
 
                         <!-- Back to Login Link (styled like register link in login page) -->
                         <p class="text-center text-sm text-blue-800">
-                            <a href="{{ route('login') }}" class="use-loader font-bold hover:underline">â† BACK TO LOGIN</a>
+                            <a href="{{ route('login') }}" class="use-loader font-bold hover:underline">BACK TO LOGIN</a>
                         </p>
                     </form>
                 </div>
