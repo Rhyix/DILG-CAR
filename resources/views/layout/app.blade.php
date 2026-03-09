@@ -373,7 +373,10 @@
 
             function fetchCount() {
                 fetch("/notifications/count", { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                    .then(r => r.json()).then(d => { notifBadge.textContent = d.count; notifBadge.style.display = d.count > 0 ? 'flex' : 'none'; });
+                    .then(r => r.json()).then(d => {
+                        notifBadge.textContent = d.display ?? (d.count >= 100 ? '99+' : d.count);
+                        notifBadge.style.display = d.count > 0 ? 'flex' : 'none';
+                    });
             }
             function fetchItems(reset = false) {
                 if (loading) return; loading = true;
@@ -407,6 +410,12 @@
                 window.Echo.private('notifications.' + channelId).listen('.NewSystemNotification', () => {
                     fetchCount();
                 });
+            }
+        });
+
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted) {
+                window.location.reload();
             }
         });
     </script>

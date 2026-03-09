@@ -35,6 +35,7 @@ use App\Http\Controllers\VacancyTitleController;
 use App\Http\Controllers\PositionUtilityController;
 
 use App\Events\PackageSent;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Response;
 
@@ -155,8 +156,8 @@ Route::middleware(['auth'])->group(function () {
 // ==================================================================================================
 // USER LOGOUT
 // ==================================================================================================
-Route::post('/logout', function () {
-    session()->forget([
+Route::post('/logout', function (Request $request) {
+    $request->session()->forget([
         'form',
         'data_learning',
         'data_voluntary',
@@ -166,9 +167,10 @@ Route::post('/logout', function () {
         'redirect_after_login',
         'pending_registration',
     ]);
-    Auth::logout();
-    session()->invalidate();
-    session()->regenerateToken();
+    Auth::guard('web')->logout();
+    Auth::guard('admin')->logout();
+    $request->session()->invalidate();
+    $request->session()->regenerateToken();
     return redirect('/login')
         ->header('Clear-Site-Data', '"cache","storage"');
 })->name('logout');

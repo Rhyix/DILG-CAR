@@ -92,7 +92,7 @@
             });
             window.addEventListener('pageshow', function(event){
                 if (event.persisted) {
-                    ensureFreshToken();
+                    window.location.reload();
                 }
             });
         })();

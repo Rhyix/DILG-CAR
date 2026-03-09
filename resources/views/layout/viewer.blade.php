@@ -236,8 +236,10 @@
 
         window.addEventListener('pageshow', function (event) {
             if (event.persisted) {
-                document.querySelector('.background')?.classList.add('hidden');
+                window.location.reload();
+                return;
             }
+            document.querySelector('.background')?.classList.add('hidden');
         });
     </script>
     <script>

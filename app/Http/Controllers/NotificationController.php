@@ -46,49 +46,83 @@ class NotificationController extends Controller
     {
         $query = $this->getQuery();
         if (!$query)
-            return response()->json(['count' => 0]);
-        $count = $query->whereNull('read_at')->count();
+            return response()->json(['count' => 0, 'display' => '0']);
 
-        return response()->json(['count' => $count]);
+        $count = $query
+            ->whereNull('read_at')
+            ->where('created_at', '>=', now()->subHours(24))
+            ->count();
+
+        $display = $count >= 100 ? '99+' : (string) $count;
+        return response()->json(['count' => $count, 'display' => $display]);
     }
 
     // Index method
-    public function index()
+    public function index(Request $request)
     {
         if (Auth::guard('admin')->check()) {
             return redirect()->route('admin.notifications.index');
         }
 
         $query = $this->getQuery();
-        $notifications = $query ? $query->latest()->paginate(20) : collect();
+        if (!$query) {
+            return view('notifications.index', ['notifications' => collect(), 'filter' => 'all', 'unreadCount' => 0]);
+        }
+
+        $filter = $request->query('filter', 'all');
+        $listQuery = clone $query;
+        if ($filter === 'unread') {
+            $listQuery->whereNull('read_at');
+        }
+
+        $notifications = $listQuery->latest()->paginate(20)->withQueryString();
+        $unreadCount = $query->whereNull('read_at')->count();
 
         return view('notifications.index', [
             'notifications' => $notifications,
+            'filter'        => $filter,
+            'unreadCount'   => $unreadCount,
         ]);
     }
 
-    public function adminIndex()
+    public function adminIndex(Request $request)
     {
         if (!Auth::guard('admin')->check()) {
             return redirect()->route('notifications.index');
         }
 
         $query = $this->getQuery();
-        $notifications = $query ? $query->latest()->paginate(20) : collect();
+        if (!$query) {
+            return view('notifications.admin_index', ['notifications' => collect(), 'filter' => 'all', 'unreadCount' => 0]);
+        }
+
+        $filter = $request->query('filter', 'all');
+        $listQuery = clone $query;
+        if ($filter === 'unread') {
+            $listQuery->whereNull('read_at');
+        }
+
+        $notifications = $listQuery->latest()->paginate(20)->withQueryString();
+        $unreadCount = $query->whereNull('read_at')->count();
 
         return view('notifications.admin_index', [
             'notifications' => $notifications,
+            'filter'        => $filter,
+            'unreadCount'   => $unreadCount,
         ]);
     }
 
-    // Fetch latest notifications
+    // Fetch latest notifications (last 24 hours only)
     public function fetch()
     {
         $query = $this->getQuery();
         if (!$query)
             return response()->json(['notifications' => []]);
 
-        $notifications = $query->latest()->paginate(10);
+        $notifications = $query
+            ->where('created_at', '>=', now()->subHours(24))
+            ->latest()
+            ->paginate(10);
 
         // Return standard notifications collection
         $payload = $notifications->toArray();
