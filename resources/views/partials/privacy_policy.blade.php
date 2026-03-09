@@ -1,7 +1,7 @@
 <div x-data="{ showNotice: false }" class="inline">
     <button @click="showNotice = true"
         class="border-2 border-[#002C76] font-montserrat text-xl text-black-300 rounded-lg flex items-center gap-3 px-6 py-4 hover:bg-[#002C76] hover:text-white transition">
-        <i data-feather="shield" class="w-6 h-6 mt-1"></i> PRIVACY POLICY
+        <i data-feather="lock" class="w-6 h-6 mt-1"></i> PRIVACY POLICY
     </button>
     <div x-show="showNotice" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
         x-transition:enter="transition ease-out duration-300" x-transition:leave="transition ease-in duration-200"

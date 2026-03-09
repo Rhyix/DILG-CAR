@@ -134,8 +134,8 @@
         </div>
     </section>
 
-    <section class="mx-auto mb-8 max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+    <section class="mx-auto mb-10 py-10 max-w-7xl sm:px-6">
+        <div class="flex flex-row gap-5 justify-around text-sm text-gray-500">
             @include('partials.data_privacy_notice')
             @include('partials.privacy_policy')
             @include('partials.about_this_site')

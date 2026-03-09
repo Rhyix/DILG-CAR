@@ -53,6 +53,14 @@
                     <span class="text-gray-500 text-sm">(June 2025 – July 2025)</span>
                 </p>
 
+                <ul class="space-y-1 text-sm md:text font-semibold text-blue-600">
+
+                    <li><a target="_blank">UBUNGEN, AB'CD</a></li>
+                    <li><a target="_blank">VALDEZ, JOHN ERROL P.</a></li>
+                    <li><a target="_blank">VISAYA, CARL LAURENZ</a></li>
+                    <p class="text-2xl">3>7</p>
+                </ul>
+
                 <ul class="space-y-1 text-sm md:text-base font-semibold text-blue-600">
                     <li><a href="https://bit.ly/JerMayNel" target="_blank" class="hover:underline"><s>ANTOLIN, JANEL M.</s></a></li>
                     <li><a href="https://github.com/SaplingShallCode" target="_blank" class="hover:underline"><s>ARZADON, CARL MATTHEW T.</s></a></li>
