@@ -88,6 +88,12 @@ class ExportPDSController
             abort(401);
         }
 
+        $isPreview = $request->boolean('preview');
+        $isDownload = $request->boolean('download');
+        $isPrint = $request->boolean('print');
+        // Keep instructional red text for preview only; print/download should use clean template.
+        $useCleanTemplate = $isDownload || $isPrint || !$isPreview;
+
         // C1
         $personalInfo = PersonalInformation::where('user_id', $user->id)->first(); // changed from firstOrFail()
         $familyBackground = FamilyBackground::where('user_id', $user->id)->first();
@@ -121,10 +127,31 @@ class ExportPDSController
         $pdf = new Fpdi();
         // Keep absolute-positioned template writing from triggering automatic blank pages.
         $pdf->SetAutoPageBreak(false, 0);
-        $templatePath = resource_path('templates/PDS_2025_from_xlsx.pdf');
-        if (!file_exists($templatePath)) {
-            $templatePath = resource_path('templates/PDS_fixed_V9.pdf');
+
+        $templateCandidates = $useCleanTemplate
+            ? [
+                resource_path('templates/pds template without red text.pdf'),
+                resource_path('templates/PDS_2025_from_xlsx.pdf'),
+                resource_path('templates/PDS_fixed_V9.pdf'),
+            ]
+            : [
+                resource_path('templates/PDS_2025_from_xlsx.pdf'),
+                resource_path('templates/pds template without red text.pdf'),
+                resource_path('templates/PDS_fixed_V9.pdf'),
+            ];
+
+        $templatePath = null;
+        foreach ($templateCandidates as $candidate) {
+            if (file_exists($candidate)) {
+                $templatePath = $candidate;
+                break;
+            }
         }
+
+        if ($templatePath === null) {
+            abort(404, 'PDS PDF template was not found.');
+        }
+
         $pageCount = $pdf->setSourceFile($templatePath);
 
         // Separates Residential and Permanent Address Information
@@ -196,7 +223,8 @@ class ExportPDSController
 
         // Excel-path export currently supports only the first 21 L&D rows.
         // When L&D overflows, force FPDI so continuation pages are generated.
-        $canUseExcelTemplate = !$request->boolean('force_fpdi') && !$hasLNDOverflow;
+        // Keep Excel export for preview mode only; print/download mode relies on the clean PDF template.
+        $canUseExcelTemplate = !$useCleanTemplate && !$request->boolean('force_fpdi') && !$hasLNDOverflow;
         $excelExport = null;
         if ($canUseExcelTemplate) {
             $excelExport = $this->tryExportViaExcelTemplate(
@@ -532,7 +560,6 @@ class ExportPDSController
         $this->clearLegacyHeaderNote($pdf);
 
         // Cover red instructional text on download (they're baked into the template)
-        $isDownload = $request->boolean('download');
         if ($isDownload) {
             $this->coverSignatureRedText($pdf);
         }
@@ -572,7 +599,7 @@ class ExportPDSController
         $userAgent = (string) ($request->userAgent() ?? ($_SERVER['HTTP_USER_AGENT'] ?? ''));
         $isMobile = preg_match('/Android|iPhone|iPad|iPod|webOS|BlackBerry|Windows Phone/i', $userAgent);
 
-        $forceInline = $request->boolean('preview');
+        $forceInline = $isPreview || $isPrint;
 
         if ($isDownload) {
             // Download as attachment — red text already covered above
@@ -2258,7 +2285,15 @@ private function respondWithGeneratedPdfPath(Request $request, string $path, str
 {
     $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
     $isMobile = preg_match('/Android|iPhone|iPad|iPod|webOS|BlackBerry|Windows Phone/i', $userAgent);
-    $forceInline = $request->boolean('preview');
+    $isDownload = $request->boolean('download');
+    $isPrint = $request->boolean('print');
+    $forceInline = $request->boolean('preview') || $isPrint;
+
+    if ($isDownload) {
+        return response()->download($path, $filename, [
+            'Content-Type' => 'application/pdf',
+        ]);
+    }
 
     if ($isMobile && !$forceInline) {
         return redirect()

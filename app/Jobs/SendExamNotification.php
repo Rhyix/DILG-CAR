@@ -62,7 +62,16 @@ class SendExamNotification implements ShouldQueue
             if (empty($token)) {
                 throw new \RuntimeException('Exam token not found for applicant.');
             }
-            $examLink = route('user.exam_lobby', ['vacancy_id' => $this->vacancyId, 'token' => $token]);
+            $examPath = route('user.exam_lobby', [
+                'vacancy_id' => $this->vacancyId,
+                'token' => $token,
+            ], false);
+
+            // Always anchor externally shared links to APP_URL so they are reachable from other devices.
+            $appUrl = rtrim((string) config('app.url', ''), '/');
+            $examLink = $appUrl !== ''
+                ? $appUrl . '/' . ltrim($examPath, '/')
+                : url($examPath);
 
             // Send email using the exam schedule link template
             $fromAddress = (string) config('mail.from.address');

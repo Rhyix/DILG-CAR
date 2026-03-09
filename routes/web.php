@@ -291,6 +291,7 @@ Route::middleware('auth:admin')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::get('/export-pds', [Forms\ExportPDSController::class, 'exportPDS'])->name('export.pds');
     Route::get('/export-wes', [Forms\ExportWESController::class, 'exportWES'])->name('export.wes');
+    Route::view('/pds-preview', 'pds.preview')->name('pds.preview');
 });
 
 // ==================================================================================================
