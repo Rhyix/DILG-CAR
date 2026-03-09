@@ -40,7 +40,42 @@ class ExportPDSController
             return 305;
         }
 
-        return $this->currentTemplatePage === 1 ? 310.190 : 320.8;
+        // Page 2 is handled separately via getPage2FooterDateY().
+        // This baseline covers the other template pages.
+        if ($this->currentTemplatePage === 1) {
+            return 310.190;
+        }
+
+        if ($this->currentTemplatePage === 3) {
+            return 273.2;
+        }
+
+        return 310.190;
+    }
+
+    private function getPage2FooterDateX(): float
+    {
+        // Adjust page-2 footer date X here without affecting other pages.
+        return 145;
+    }
+
+    private function getPage2FooterDateY(): float
+    {
+        // Adjust page-2 footer date Y here without affecting other pages.
+        return $this->isShortBondTemplate ? 273.2 : 291;
+    }
+
+    private function writeFooterDate(Fpdi $pdf): void
+    {
+        $this->setFont($pdf, 'Arial', '', 8);
+
+        if ($this->currentTemplatePage === 2) {
+            $this->setXY($pdf, $this->getPage2FooterDateX(), $this->getPage2FooterDateY());
+        } else {
+            $this->setXY($pdf, 163.5, $this->getFooterDateY());
+        }
+
+        $pdf->Write(0, Carbon::now()->format('m/d/Y'));
     }
 
     public function exportPDS(Request $request)
@@ -222,8 +257,7 @@ class ExportPDSController
         $this->writeGraduateChunk($pdf, $gradChunks[0] ?? []);
         $this->writeChildrenChunk($pdf, $childrenChunks[0] ?? []);
 
-        $this->setXY($pdf, 163.5, $this->getFooterDateY());
-        $pdf->Write(0, Carbon::now()->format('m/d/Y'));
+        $this->writeFooterDate($pdf);
 
 
         // Determine continuation needs
@@ -266,8 +300,7 @@ class ExportPDSController
             $pdf->useTemplate($templateId);
             $this->clearLegacyHeaderNote($pdf);
 
-            $this->setXY($pdf, 163.5, $this->getFooterDateY());
-            $pdf->Write(0, Carbon::now()->format('m/d/Y'));
+            $this->writeFooterDate($pdf);
 
             $this->setFont($pdf, 'Arial', '', 8);
 
@@ -335,8 +368,7 @@ class ExportPDSController
             $this->setFont($pdf, 'Arial', '', 8);
         }
 
-        $this->setXY($pdf, 160, $this->getFooterDateY());
-        $pdf->Write(0, Carbon::now()->format('m/d/Y'));
+        $this->writeFooterDate($pdf);
         // ----------------------------
         // Overflow Pages: CSE overflow + WE overflow
         // ----------------------------
@@ -348,8 +380,7 @@ class ExportPDSController
             $pdf->useTemplate($templateId);
             $this->clearLegacyHeaderNote($pdf);
 
-            $this->setXY($pdf, 160, $this->getFooterDateY());
-            $pdf->Write(0, Carbon::now()->format('m/d/Y'));
+            $this->writeFooterDate($pdf);
             $this->writeCivilServiceEligibilityChunk($pdf, $cseChunks[$i]);
 
             // If WE overflows, write next WE chunk here
@@ -367,8 +398,7 @@ class ExportPDSController
             $pdf->useTemplate($templateId);
             $this->clearLegacyHeaderNote($pdf);
 
-            $this->setXY($pdf, 160, $this->getFooterDateY());
-            $pdf->Write(0, Carbon::now()->format('m/d/Y'));
+            $this->writeFooterDate($pdf);
             $this->writeWorkExperienceChunk($pdf, $chunk);
         }
 
@@ -419,6 +449,8 @@ class ExportPDSController
             $this->setFont($pdf, 'Arial', '', 8);
         }
 
+        $this->writeFooterDate($pdf);
+
         // ----------------------------
         // Overflow Pages: Page 3 logic for remaining chunks
         // ----------------------------
@@ -436,8 +468,7 @@ class ExportPDSController
             $pdf->AddPage($page3Size['orientation'], [$page3Size['width'], $page3Size['height']]);
             $pdf->useTemplate($templateId);
             $this->clearLegacyHeaderNote($pdf);
-            $this->setXY($pdf, 161, $this->isShortBondTemplate ? 273.2 : 305);
-            $pdf->Write(0, Carbon::now()->format('m/d/Y'));
+            $this->writeFooterDate($pdf);
 
             // Write Voluntary Work chunk if exists
             if (isset($vwChunks[$i])) {
@@ -479,8 +510,7 @@ class ExportPDSController
                 $this->clearLegacyHeaderNote($pdf);
 
                 $this->writeLearningAndDevelopmentChunk($pdf, $lndChunks[$i]);
-                $this->setXY($pdf, 161, $this->isShortBondTemplate ? 273.2 : 305);
-                $pdf->Write(0, Carbon::now()->format('m/d/Y'));
+                $this->writeFooterDate($pdf);
             }
 
             if ($usingDedicatedLndTemplate) {
@@ -1517,17 +1547,17 @@ private function writeOtherInformation($pdf, $skills, $distinctions, $organizati
 
     if (empty($skills) && empty($distinctions) && empty($organizations)) {
         $firstRowY = $startY + $textOffsetY;
-        $this->writeCenteredFitted($pdf, 'N/A', $xSkill, $xSkill + $wSkill, $firstRowY);
-        $this->writeCenteredFitted($pdf, 'N/A', $xDistinction, $xDistinction + $wDistinction, $firstRowY);
-        $this->writeCenteredFitted($pdf, 'N/A', $xOrg, $xOrg + $wOrg, $firstRowY);
+        $this->writeCenteredFitted($pdf, 'N/A', $xSkill, $firstRowY, $wSkill);
+        $this->writeCenteredFitted($pdf, 'N/A', $xDistinction, $firstRowY, $wDistinction);
+        $this->writeCenteredFitted($pdf, 'N/A', $xOrg, $firstRowY, $wOrg);
         return;
     }
 
     for ($i = 0; $i < 7; $i++) {
         $y = $startY + $textOffsetY + ($i * $rowHeight);
-        $this->writeFittedAt($pdf, $skills[$i] ?? '', $xSkill, $y, $wSkill, 7.0, 5.0);
-        $this->writeFittedAt($pdf, $distinctions[$i] ?? '', $xDistinction, $y, $wDistinction, 7.0, 5.0);
-        $this->writeFittedAt($pdf, $organizations[$i] ?? '', $xOrg, $y, $wOrg, 6.5, 5.0);
+        $this->writeFittedAt($pdf, $skills[$i] ?? '', 6, 256, $wSkill, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $distinctions[$i] ?? '', 60, 256, $wDistinction, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $organizations[$i] ?? '', 160, 256, $wOrg, 6.5, 5.0);
     }
 }
 
@@ -1762,9 +1792,9 @@ private function coverSignatureRedText(Fpdi $pdf): void
 // Move writeCentered to class method for cleaner passing
 private function getWriteCentered()
 {
-    return function ($pdf, $text, $startX, $endX, $y)
+    return function ($pdf, $text, $x, $y, $width)
     {
-        $this->writeCenteredFitted($pdf, (string) $text, (float) $startX, (float) $endX, (float) $y);
+        $this->writeCenteredFitted($pdf, (string) $text, (float) $x, (float) $y, (float) $width);
     };
 }
 
@@ -1918,14 +1948,14 @@ private function appendEllipsisToFit($pdf, string $text, float $maxWidth): strin
     return $ellipsis;
 }
 
-private function writeCenteredFitted($pdf, string $text, float $startX, float $endX, float $y): void
+private function writeCenteredFitted($pdf, string $text, float $x, float $y, float $width): void
 {
-    $this->writeCenteredFittedSized($pdf, $text, $startX, $endX, $y, 8.0, 5.0);
+    $this->writeCenteredFittedSized($pdf, $text, $x, $y, $width, 8.0, 5.0);
 }
 
-private function writeCenteredFittedSized($pdf, string $text, float $startX, float $endX, float $y, float $baseSize, float $minSize): void
+private function writeCenteredFittedSized($pdf, string $text, float $x, float $y, float $width, float $baseSize, float $minSize): void
 {
-    $maxWidth = max(1.0, ($endX - $startX) - 0.5);
+    $maxWidth = max(1.0, $width - 0.5);
     [$lines, $size, $effectiveWidth] = $this->fitTextToLines($pdf, $text, $maxWidth, $baseSize, $minSize, 2);
     if (empty($lines)) {
         $this->setFont($pdf, 'Arial', '', 8);
@@ -1940,7 +1970,7 @@ private function writeCenteredFittedSized($pdf, string $text, float $startX, flo
     foreach ($lines as $line) {
         $lineWidth = $pdf->GetStringWidth($line);
         $leftPadding = max(0.0, (($effectiveWidth - $lineWidth) / 2) / $pageXScale);
-        $centerX = $startX + $leftPadding;
+        $centerX = $x + $leftPadding;
         $this->setXY($pdf, $centerX, $currentY);
         $pdf->Cell($lineWidth, 0, $line, 0, 0, 'L');
         $currentY += $lineHeight;

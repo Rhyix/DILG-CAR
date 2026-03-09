@@ -1198,7 +1198,8 @@
                     return;
                 }
 
-                if (wasAutoFilled || cityChanged) {
+                // Preserve manually-entered/copied ZIP values when PSGC has no ZIP for a city.
+                if (latestAutoFilled || latestValue === '') {
                     zipInput.value = '';
                     zipInput.dispatchEvent(new Event('change'));
                 }
@@ -1217,7 +1218,8 @@
                     return;
                 }
 
-                if (wasAutoFilled || cityChanged) {
+                // Preserve manually-entered/copied ZIP values when lookup fails.
+                if (latestAutoFilled || latestValue === '') {
                     zipInput.value = '';
                     zipInput.dispatchEvent(new Event('change'));
                 }
@@ -1887,4 +1889,3 @@
     </div>
 </div>
 @endsection
-
