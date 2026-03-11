@@ -107,7 +107,7 @@
             @csrf
 
             <!-- Voluntary Work Section -->
-            <section class="bg-white rounded-2xl shadow-xl p-4 sm:p-8 animate-slide-in">`
+            <section class="bg-white rounded-2xl shadow-xl p-4 sm:p-8 animate-slide-in">
                 <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
                     <div class="flex items-start sm:items-center">
                         <span
@@ -118,7 +118,7 @@
                     </div>
                     <button type="button" id="add-voluntary-btn"
                         class="w-full sm:w-auto flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 text-sm sm:text-base">
-                            <span class="material-icons mr-2 text-sm sm:text-base">add_circle</span>z
+                            <span class="material-icons mr-2 text-sm sm:text-base">add_circle</span>
                         Add Voluntary Work
                     </button>
                 </div>
@@ -288,43 +288,49 @@
         const learningEmpty = document.getElementById('learning-empty');
         const voluntaryEmpty = document.getElementById('voluntary-empty');
 
+        const bindClick = (selector, callback) => {
+            const element = document.querySelector(selector);
+            if (!element) return;
+            element.addEventListener('click', callback);
+        };
+
         // Add Learning Event Listeners
-        document.getElementById('add-learning-btn').addEventListener('click', addLearningEntry);
-        document.querySelector('.add-learning-trigger').addEventListener('click', function () {
+        bindClick('#add-learning-btn', addLearningEntry);
+        bindClick('.add-learning-trigger', function () {
             addLearningEntry();
-            learningEmpty.style.display = 'none';
+            if (learningEmpty) learningEmpty.style.display = 'none';
         });
 
         // Add Voluntary Work Event Listeners
-        document.getElementById('add-voluntary-btn').addEventListener('click', addVoluntaryEntry);
-        document.querySelector('.add-voluntary-trigger').addEventListener('click', function () {
+        bindClick('#add-voluntary-btn', addVoluntaryEntry);
+        bindClick('.add-voluntary-trigger', function () {
             addVoluntaryEntry();
-            voluntaryEmpty.style.display = 'none';
+            if (voluntaryEmpty) voluntaryEmpty.style.display = 'none';
         });
 
         // Add Other Information Event Listeners
-        document.querySelector('.add-skill').addEventListener('click', function () {
-            //addField('skills-container', 'skills[]', 'Enter special skill or hobby');
+        bindClick('.add-skill', function () {
             addSkillEntry(''); // Add a new empty input
         });
 
-        document.querySelector('.add-distinction').addEventListener('click', function () {
-            //addField('distinctions-container', 'distinctions[]', 'Enter non-academic distinction or recognition');
+        bindClick('.add-distinction', function () {
             addDistinctionEntry(''); // Add a new empty input
         });
 
-        document.querySelector('.add-organization').addEventListener('click', function () {
-            //addField('organizations-container', 'organizations[]', 'Enter organization name');
+        bindClick('.add-organization', function () {
             addOrganizationEntry(''); // Add a new empty input
         });
 
         // ==================================================================================================================================
         // ADD DATA FOR OTHER INFORMATION FIELD from the passed data in PDSController
         let data_otherInfo = {!! json_encode($data_otherInfo) !!};
+        if (!data_otherInfo || typeof data_otherInfo !== 'object') {
+            data_otherInfo = {};
+        }
         // -----------------------------------------------------------------------------------------------------------------------------------
         // ADD SKILL FUNCTION (Add Other Information)
-        if (Array.isArray(data_otherInfo['skill']) && data_otherInfo['skill'].length > 0) { // Load entries from session if available
-            data_otherInfo['skill'].forEach(entry => {
+        if (Array.isArray(data_otherInfo.skill) && data_otherInfo.skill.length > 0) { // Load entries from session if available
+            data_otherInfo.skill.forEach(entry => {
                 if (entry) { // skips null, undefined, 0, "", false
                     addSkillEntry(entry);
                 }
@@ -336,8 +342,8 @@
 
         // -----------------------------------------------------------------------------------------------------------------------------------
         // ADD DISTICTION FUNCTION (Add Other Information)
-        if (Array.isArray(data_otherInfo['distinction']) && data_otherInfo['distinction'].length > 0) { // Load entries from session if available
-            data_otherInfo['distinction'].forEach(entry => {
+        if (Array.isArray(data_otherInfo.distinction) && data_otherInfo.distinction.length > 0) { // Load entries from session if available
+            data_otherInfo.distinction.forEach(entry => {
                 if (entry) { // skips null, undefined, 0, "", false
                     addDistinctionEntry(entry);
                 }
@@ -350,8 +356,8 @@
         // -----------------------------------------------------------------------------------------------------------------------------------
 
         // ADD ORGANIZATION FUNCTION (Add Other Information)
-        if (Array.isArray(data_otherInfo['organization']) && data_otherInfo['organization'].length > 0) { // Load entries from session if available
-            data_otherInfo['organization'].forEach(entry => {
+        if (Array.isArray(data_otherInfo.organization) && data_otherInfo.organization.length > 0) { // Load entries from session if available
+            data_otherInfo.organization.forEach(entry => {
                 if (entry) { // skips null, undefined, 0, "", false
                     addOrganizationEntry(entry);
                 }
@@ -366,24 +372,23 @@
 
         // Remove entry functionality
         document.addEventListener('click', function (e) {
-            if (e.target && e.target.closest('.remove-entry')) {
-                const entry = e.target.closest('.entry-card');
-                entry.classList.add('removing');
-                setTimeout(() => {
-                    entry.remove();
-                    updateEntryCount(); // TODO: add in voluntary [CHECKED]
-                    reindexEntries_learning(); // TODO: add in voluntary [CHECKED]
-                    reindexEntries_voluntary();
-                    checkEmptyStates();
-                }, 300);
+            const removeEntryButton = e.target.closest('.remove-entry');
+            if (removeEntryButton) {
+                const entry = removeEntryButton.closest('.entry-card');
+                if (!entry) return;
+                entry.remove();
+                updateEntryCount();
+                reindexEntries_learning();
+                reindexEntries_voluntary();
+                checkEmptyStates();
+                return;
             }
 
-            if (e.target && e.target.closest('.remove-field')) {
-                const field = e.target.closest('.flex');
-                field.classList.add('removing');
-                setTimeout(() => {
-                    field.remove();
-                }, 300);
+            const removeFieldButton = e.target.closest('.remove-field');
+            if (removeFieldButton) {
+                const field = removeFieldButton.closest('.other-info-row');
+                if (!field) return;
+                field.remove();
             }
         });
 
@@ -705,7 +710,7 @@
         function addField(containerId, fieldName, placeholder, value = '') {
             const container = document.getElementById(containerId);
             const fieldHtml = `
-                    <div class="flex flex-col sm:flex-row gap-3 animate-fade-in">
+                    <div class="other-info-row flex flex-col sm:flex-row gap-3 animate-fade-in">
     <input type="text" name="${fieldName}" placeholder="${placeholder}" required value="${value}" class="flex-1 px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base">
     <button type="button" class="remove-field px-4 py-2 sm:py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors duration-200 flex items-center justify-center">
         <span class="material-icons text-sm sm:text-base">remove</span>

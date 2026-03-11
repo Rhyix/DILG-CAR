@@ -1416,7 +1416,7 @@ private function writeWorkExperienceChunk($pdf, $chunk)
     $x_to = 22;
     $x_position = 40.132;
     $x_agency = 94.488;
-    $x_status = 150;
+    $x_status = 145;
     $x_gov = 187.0;
     $x_gov_end = 199.5;
 
@@ -1442,38 +1442,40 @@ private function writeWorkExperienceChunk($pdf, $chunk)
     $govWidth = max(1.0, ($x_gov_end - $x_gov) - $cellInset);
 
     $isEmpty = !$this->hasWorkExperienceData((array) $chunk);
+    $firstRowY = $startY - 1.4;
 
     // If all are empty, write N/A in the first row cells.
     if ($isEmpty) {
-        $this->writeFittedAt($pdf, 'N/A', 9, 102, $fromWidth, 8.0, 3.6); // From
-        $this->writeFittedAt($pdf, 'N/A', 27, 102, $toWidth, 8.0, 3.6); // To
-        $this->writeFittedAt($pdf, 'N/A', 63, 102, $positionWidth, 8.0, 5.0); // Position
-        $this->writeWrapped($pdf, 'N/A', $agencyWidth, 115, 102, 100.5, 6.0, 2.0); // Agency
-        $this->writeFittedAt($pdf, 'N/A', 153, 102, $statusWidth, 8.0, 4.5); // Status
-        $this->writeFittedAt($pdf, 'N/A', 189.5, 102, $govWidth, 8.0, 5.0); // Government Service
+        $this->writeFittedAt($pdf, 'N/A', $x_from, $firstRowY, $fromWidth, 8.0, 3.6); // From
+        $this->writeFittedAt($pdf, 'N/A', $x_to, $firstRowY, $toWidth, 8.0, 3.6); // To
+        $this->writeFittedAt($pdf, 'N/A', $x_position, $firstRowY, $positionWidth, 8.0, 5.0); // Position
+        $this->writeWrapped($pdf, 'N/A', $agencyWidth, $x_agency, $firstRowY, $firstRowY, 6.0, 2.0); // Agency
+        $this->writeFittedAt($pdf, 'N/A', $x_status, $firstRowY, $statusWidth, 8.0, 4.5); // Status
+        $this->writeFittedAt($pdf, 'N/A', $x_gov, $firstRowY, $govWidth, 8.0, 5.0); // Government Service
         return;
     }
 
     foreach ($chunk as $index => $we) {
         $currentY = $startY + ($index * $rowHeight);
+        $rowY = $currentY - 1.5;
 
-        $this->writeFittedAt($pdf, $this->dateOrNa($we['work_exp_from'] ?? null), 5, 102, $fromWidth, 8.0, 3.6);
-        $this->writeFittedAt($pdf, $this->dateOrNa($we['work_exp_to'] ?? null), $x_to, 102, $toWidth, 8.0, 3.6);
-        $this->writeFittedAt($pdf, $this->valueOrNa($we['work_exp_position'] ?? null), $x_position, 102, $positionWidth, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->dateOrNa($we['work_exp_from'] ?? null), $x_from, $rowY, $fromWidth, 8.0, 3.6);
+        $this->writeFittedAt($pdf, $this->dateOrNa($we['work_exp_to'] ?? null), $x_to, $rowY, $toWidth, 8.0, 3.6);
+        $this->writeFittedAt($pdf, $this->valueOrNa($we['work_exp_position'] ?? null), $x_position, $rowY, $positionWidth, 7.0, 5.0);
 
         $this->writeWrapped(
             $pdf,
             $this->valueOrNa($we['work_exp_department'] ?? null),
             $agencyWidth,
             $x_agency,
-            102,
-            $currentY - 1.5,
+            $rowY,
+            $rowY,
             6.0,
             2.0
         );
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($we['work_exp_status'] ?? null), 147.5, 102, $statusWidth, 8.0, 4.5);
-        $this->writeFittedAt($pdf, $this->normalizeGovServiceFlag($we['work_exp_govt_service'] ?? null, 'N/A'), 189.5, 102 , $govWidth, 8.0, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($we['work_exp_status'] ?? null), $x_status, $rowY, $statusWidth, 8.0, 4.5);
+        $this->writeFittedAt($pdf, $this->normalizeGovServiceFlag($we['work_exp_govt_service'] ?? null, 'N/A'), $x_gov, $rowY, $govWidth, 8.0, 5.0);
     }
 }
 
