@@ -576,7 +576,7 @@
             <div class="sidebar-desktop">
                 @include('partials.sidebar')
             </div>
-            <main class="flex-1 overflow-x-hidden ml-2 p-3 sm:p-10 pt-8 pb-10 mt-0 sm:mt-1 space-y-10 md:ml-20 transition-all duration-300" style="margin-left: 0; padding-left: 18px;">
+            <main class="flex-1 overflow-x-hidden p-3 sm:p-10 pt-8 pb-10 mt-0 sm:mt-1 space-y-10 md:ml-20 lg:ml-[20.5rem] transition-all duration-300">
                 @yield('content')
             </main>
         </div>

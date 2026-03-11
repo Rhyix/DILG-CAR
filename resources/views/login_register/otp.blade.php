@@ -1,22 +1,48 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Verification Code - DILG CAR Recruitment and Selection Portal</title>
-    
-    <!-- Tailwind CDN -->
+
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" />
-    
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     @include('partials.global_toast')
-    
+
     <style>
-        body { font-family: 'Montserrat', sans-serif; }
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            font-family: 'Montserrat', sans-serif;
+            overflow: hidden;
+        }
+
+        body {
+            background-color: #04132f;
+            background-image: url('{{ asset('templates/template.png') }}');
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: cover;
+        }
+
+        .portal-page-bg {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background:
+                radial-gradient(circle at 14% 74%, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0) 46%),
+                linear-gradient(120deg, rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0) 34%);
+        }
+
+        .otp-shell {
+            position: relative;
+            z-index: 1;
+            max-height: calc(100vh - 2rem);
+            overflow: hidden;
+        }
     </style>
 </head>
 
@@ -26,40 +52,44 @@
     </script>
 @endif
 
-<body class="min-h-screen bg-gradient-to-br from-blue-800 via-blue-700 to-blue-900 flex items-center justify-center p-4">
+<body class="relative min-h-screen p-4 md:p-6">
+    <div aria-hidden="true" class="portal-page-bg"></div>
 
-    <!-- Main Container (exactly like login page) -->
-    <div class="w-full max-w-6xl bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl overflow-hidden">
-        <div class="flex flex-col lg:flex-row">
-
-            <!-- Left: OTP Form (styled exactly like login form) -->
-            <div class="flex-1 p-8 lg:p-12">
-                <div class="max-w-md mx-auto">
-                    <div class="flex items-center justify-center gap-3 mb-6">
-                        <img src="{{ asset('images/dilg_logo.png') }}" alt="DILG Logo" class="w-12 h-12">
-                        <div class="text-center">
-                            <h2 class="text-3xl font-extrabold text-blue-900 tracking-tight">VERIFICATION CODE</h2>
-                            <p class="text-blue-800 font-semibold">Enter the OTP sent to your email</p>
+    <div class="otp-shell mx-auto flex min-h-[calc(100vh-2rem)] w-full max-w-6xl items-center justify-center">
+        <div class="grid w-full overflow-hidden rounded-3xl border border-white/15 bg-white/95 shadow-[0_30px_90px_rgba(2,12,34,0.35)] backdrop-blur-sm lg:grid-cols-[1fr_0.95fr]">
+            <section class="bg-gradient-to-br from-[#081c47] via-[#0d2b70] to-[#17438b] px-6 py-9 text-white sm:px-10 lg:px-12">
+                <div class="mx-auto flex h-full max-w-xl flex-col justify-center">
+                    <div class="mb-8 flex items-center gap-4">
+                        <img src="{{ asset('images/dilg_logo.png') }}" alt="DILG Logo" class="h-14 w-14 rounded-full bg-white/10 p-1 shadow-[0_10px_20px_rgba(2,12,34,0.25)]" />
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-[0.34em] text-blue-100">DILG CAR</p>
+                            <h2 class="mt-1 text-2xl font-extrabold tracking-tight">OTP Verification</h2>
                         </div>
                     </div>
 
-                    <form method="POST" action="{{ route('otp_check') }}" class="space-y-5">
+                    <p class="max-w-lg text-sm leading-relaxed text-blue-100 sm:text-base">
+                        A verification code was sent to your email. Enter the 6-digit OTP to continue account verification.
+                    </p>
+
+                    <p class="mt-10 text-sm font-semibold tracking-[0.12em] text-yellow-300">
+                        MATINO. MAHUSAY. MAAASAHAN.
+                    </p>
+                </div>
+            </section>
+
+            <section class="bg-white px-6 py-9 sm:px-10 lg:px-12">
+                <div class="mx-auto max-w-md">
+                    <p class="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">Secure Access</p>
+                    <h3 class="mt-2 text-3xl font-extrabold tracking-tight text-[#0D2B70]">Enter Verification Code</h3>
+                    <p class="mt-2 text-sm text-slate-600">Code sent to <span class="font-semibold">{{ $email ?? old('email') }}</span></p>
+
+                    <form method="POST" action="{{ route('otp_check', [], false) }}" class="mt-7 space-y-5" autocomplete="off">
                         @csrf
                         <input type="hidden" name="email" value="{{ old('email', $email ?? '') }}">
 
-                        <!-- Info Message (styled to match login page aesthetic) -->
-                        <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-center mb-2">
-                            <p class="text-blue-800 text-sm">
-                                We have sent the OTP code to your email address.<br>
-                                <span class="font-semibold">OTP expires in 5 minutes</span>, after which you will need to resend a new OTP.<br>
-                                Please do not reload this page as it may invalidate the OTP.
-                            </p>
-                        </div>
-
-                        <!-- OTP Input (styled exactly like login email field) -->
                         <div class="relative">
-                            <span class="absolute inset-y-0 left-4 flex items-center">
-                                <i class="fas fa-lock text-yellow-400"></i>
+                            <span class="pointer-events-none absolute inset-y-0 left-4 flex items-center text-slate-400">
+                                <i class="fa-solid fa-shield-halved"></i>
                             </span>
                             <input
                                 required
@@ -68,15 +98,15 @@
                                 inputmode="numeric"
                                 pattern="\d*"
                                 maxlength="6"
-                                placeholder="Enter verification code"
-                                autocomplete="off"
-                                class="w-full bg-white border border-blue-400 rounded-full pl-12 pr-4 py-3 outline-none text-blue-900 placeholder:text-blue-800/60 focus:ring-2 focus:ring-blue-600 focus:border-blue-600 text-center tracking-widest text-lg"
+                                placeholder="Enter 6-digit OTP"
+                                autocomplete="one-time-code"
+                                class="w-full rounded-xl border border-slate-300 bg-white py-3 pl-12 pr-4 text-center text-lg tracking-[0.35em] text-[#0D2B70] outline-none transition focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20"
                             />
                         </div>
 
                         @if ($errors->any())
-                            <div class="bg-red-50 border border-red-200 rounded-xl p-3">
-                                <ul class="text-red-600 text-sm list-disc list-inside">
+                            <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+                                <ul class="list-disc pl-5 text-sm text-red-700">
                                     @foreach ($errors->all() as $error)
                                         <li>{{ $error }}</li>
                                     @endforeach
@@ -84,118 +114,113 @@
                             </div>
                         @endif
 
-                        <!-- Timer and Resend (styled to match login page) -->
-                        <div class="flex flex-col items-center mt-2 text-sm text-blue-800">
-                            <div id="timer" class="mb-2">
-                                Resend OTP in <span id="countdown" class="font-bold"></span>
-                            </div>
-                            <a href="#" id="resend-link" class="font-bold text-blue-800 hover:text-blue-900 hover:underline hidden">
-                                RESEND CODE
+                        <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-center">
+                            <p id="timer" class="text-sm text-slate-700">
+                                Resend OTP in <span id="countdown" class="font-bold text-[#0D2B70]">00:30</span>
+                            </p>
+                            <a href="#" id="resend-link" class="hidden text-sm font-semibold text-[#0D2B70] hover:underline">
+                                Resend Code
                             </a>
                         </div>
 
-                        <!-- NEXT Button (styled exactly like login button) -->
                         <button
                             type="submit"
-                            class="w-full bg-yellow-400 hover:bg-yellow-500 text-blue-900 font-bold py-3 rounded-full shadow-md transition transform hover:scale-[1.02] active:scale-[0.98]">
-                            NEXT
+                            class="w-full rounded-xl bg-[#0D2B70] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#0A2259]">
+                            Verify OTP
                         </button>
 
-                        <!-- Back to Login Link (styled like register link in login page) -->
-                        <p class="text-center text-sm text-blue-800">
-                            <a href="{{ route('login') }}" class="use-loader font-bold hover:underline">BACK TO LOGIN</a>
+                        <p class="text-center text-sm text-slate-600">
+                            <a href="{{ route('login.form', [], false) }}" class="use-loader font-semibold text-[#0D2B70] hover:underline">Back to Login</a>
                         </p>
                     </form>
                 </div>
-            </div>
-
-            <!-- Right: Logo and Agency Info (exactly like login page) -->
-            <div class="flex-1 bg-gradient-to-br from-blue-800 to-blue-900 text-white flex flex-col items-center justify-center p-8 lg:p-12 text-center relative overflow-hidden">
-                <div class="absolute inset-0 opacity-10 pointer-events-none" style="background-image: radial-gradient(circle at 20% 20%, #fff 0, transparent 20%), radial-gradient(circle at 80% 30%, #fff 0, transparent 20%), radial-gradient(circle at 30% 80%, #fff 0, transparent 20%);"></div>
-                <img 
-                    src="{{ asset('images/dilg_logo.png') }}" 
-                    alt="DILG Logo" 
-                    class="w-28 sm:w-36 md:w-40 mb-6 drop-shadow-lg"
-                />
-                <h1 class="text-xl sm:text-2xl md:text-3xl font-extrabold leading-tight">
-                    DEPARTMENT OF THE INTERIOR <br/>
-                    AND LOCAL GOVERNMENT
-                </h1>
-                <p class="text-sm sm:text-base md:text-lg mt-1 font-semibold">CORDILLERA ADMINISTRATIVE REGION</p>
-                <p class="text-sm sm:text-base md:text-lg mt-1 text-blue-200">MATINO. MAHUSAY. MAAASAHAN.</p>
-                <p class="text-yellow-400 font-bold mt-4 text-base sm:text-lg">
-                    RECRUITMENT SELECTION AND PLACEMENT PORTAL
-                </p>
-            </div>
+            </section>
         </div>
     </div>
 
     <script>
-        const countdownEl = document.getElementById("countdown");
-        const resendLink = document.getElementById("resend-link");
-        const timerSpan = document.getElementById("timer");
-        let timerInterval;
+        const countdownEl = document.getElementById('countdown');
+        const resendLink = document.getElementById('resend-link');
+        const timerEl = document.getElementById('timer');
+        const defaultCooldown = 30;
+        const storageKey = 'register_otp_resend_available_at';
+        const serverResendAvailableAt = {{ (int) ($resendAvailableAtTs ?? now()->timestamp) }} * 1000;
+        const storedResendAvailableAt = Number(sessionStorage.getItem(storageKey) || 0);
+        const resendAvailableAt = Math.max(serverResendAvailableAt, storedResendAvailableAt);
+        let timerInterval = null;
+        let countdown = Math.max(0, Math.floor((resendAvailableAt - Date.now()) / 1000));
 
-        // OTP expiry from Blade (in ms)
-        const expiresAt = {{ \Carbon\Carbon::parse(session('pending_registration.expires_at'))->timestamp }} * 1000;
-        const now = Date.now();
-        let countdown = Math.floor((expiresAt - now) / 1000);
-        countdown = countdown > 0 ? countdown : 0;
-
-        function updateTimer() {
+        function renderCountdown() {
             const minutes = String(Math.floor(countdown / 60)).padStart(2, '0');
             const seconds = String(countdown % 60).padStart(2, '0');
-
             countdownEl.textContent = `${minutes}:${seconds}`;
 
             if (countdown <= 0) {
                 clearInterval(timerInterval);
-                resendLink.classList.remove("hidden");
-                timerSpan.innerHTML = '';
+                sessionStorage.removeItem(storageKey);
+                timerEl.classList.add('hidden');
+                resendLink.classList.remove('hidden');
                 return;
             }
 
-            countdown--;
+            countdown -= 1;
         }
 
-        function startCountdown() {
+        function startCooldown(seconds) {
             clearInterval(timerInterval);
-            resendLink.classList.add("hidden");
-            updateTimer();
-            timerInterval = setInterval(updateTimer, 1000);
+            countdown = Math.max(0, Number(seconds) || defaultCooldown);
+            const expiresAt = Date.now() + (countdown * 1000);
+            sessionStorage.setItem(storageKey, String(expiresAt));
+            resendLink.classList.add('hidden');
+            timerEl.classList.remove('hidden');
+            renderCountdown();
+            timerInterval = setInterval(renderCountdown, 1000);
         }
 
-        startCountdown();
+        startCooldown(countdown);
 
-        resendLink.addEventListener('click', function(e) {
-            e.preventDefault();
+        resendLink.addEventListener('click', async function (event) {
+            event.preventDefault();
 
-            fetch("{{ route('otp_resend') }}", {
-                method: 'POST',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                },
-                body: JSON.stringify({ email: '{{ $email ?? old('email') }}' })
-            })
-            .then(response => {
-                if (!response.ok) throw new Error('Resend failed');
-                return response.json();
-            })
-            .then(data => {
-                showAppToast("New OTP sent successfully.");
-                countdown = 300;
-                startCountdown();
-            })
-            .catch(error => {
-                console.error("Resend error:", error);
-                timerSpan.innerHTML = `<span class="text-red-500">Failed to resend OTP. Try again later.</span>`;
-            });
+            try {
+                const response = await fetch("{{ route('otp_resend', [], false) }}", {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({ email: '{{ $email ?? old('email') }}' })
+                });
+
+                const data = await response.json().catch(() => ({}));
+
+                if (!response.ok) {
+                    const retryAfter = Number(data.retry_after || defaultCooldown);
+                    if (response.status === 429) {
+                        showAppToast(data.message || `Please wait ${retryAfter} seconds.`);
+                        startCooldown(retryAfter);
+                        return;
+                    }
+                    throw new Error(data.message || 'Resend failed');
+                }
+
+                showAppToast(data.message || 'New OTP sent successfully.');
+                const serverNextAllowed = Number(data.resend_available_at || 0) * 1000;
+                if (serverNextAllowed > 0) {
+                    sessionStorage.setItem(storageKey, String(serverNextAllowed));
+                }
+                startCooldown(Number(data.retry_after || defaultCooldown));
+            } catch (error) {
+                console.error('Resend error:', error);
+                timerEl.classList.remove('hidden');
+                timerEl.innerHTML = '<span class="text-sm text-red-600">Failed to resend OTP. Try again.</span>';
+            }
         });
     </script>
 
     @include('partials.loader')
 </body>
 </html>
-

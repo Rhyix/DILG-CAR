@@ -12,9 +12,21 @@
     </style>
 </head>
 <body>
+    @php
+        $logoPath = public_path('images/dilg_logo.png');
+        $logoSrc = asset('images/dilg_logo.png');
+
+        if (isset($message) && is_object($message) && method_exists($message, 'embed') && is_file($logoPath)) {
+            try {
+                $logoSrc = $message->embed($logoPath);
+            } catch (\Throwable $e) {
+                $logoSrc = asset('images/dilg_logo.png');
+            }
+        }
+    @endphp
     <div class="container">
         <div style="display:flex;align-items:center;gap:12px;padding-bottom:12px;border-bottom:1px solid #e5e7eb;margin-bottom:12px;">
-            <img src="{{ asset('images/dilg_logo.png') }}" alt="DILG Logo" style="width:50px;height:50px;object-fit:contain;">
+            <img src="{{ $logoSrc }}" alt="DILG Logo" style="width:50px;height:50px;object-fit:contain;">
             <div>
                 <div style="font-weight:700;font-size:15px;color:#0D2B70;">DILG - CAR</div>
                 <div style="font-size:11px;color:#6b7280;">Recruitment Selection and Placement Portal</div>

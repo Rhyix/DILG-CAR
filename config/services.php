@@ -13,11 +13,12 @@ return [
     | a conventional file to locate the various service credentials.
     |
     */
-'google' => [
-    'client_id'     => env('GOOGLE_CLIENT_ID'),
-    'client_secret' => env('GOOGLE_CLIENT_SECRET'),
-    'redirect'      => env('GOOGLE_REDIRECT_URI'),
-],
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        // Trim to avoid OAuth redirect mismatches caused by accidental spaces in .env.
+        'redirect' => trim((string) env('GOOGLE_REDIRECT_URI', '')),
+    ],
 
 
 

@@ -16,6 +16,90 @@
             overflow: hidden;
         }
 
+        body {
+            margin: 0;
+            background-color: #04132f;
+            background-image: url('{{ asset('templates/template.png') }}');
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: cover;
+        }
+
+        .admin-page-bg {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background:
+                radial-gradient(circle at 18% 16%, rgba(96, 165, 250, 0.18) 0%, rgba(96, 165, 250, 0) 26%),
+                linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.012) 22%, rgba(255, 255, 255, 0) 100%),
+                linear-gradient(90deg, rgba(3, 13, 33, 0.22) 0%, rgba(3, 13, 33, 0) 38%, rgba(3, 13, 33, 0.14) 100%);
+        }
+
+        .admin-page-bg::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            opacity: 0.32;
+            background:
+                radial-gradient(circle at 74% 24%, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0) 28%),
+                linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, transparent 24%);
+        }
+
+        .admin-page-bg::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(circle at 82% 58%, rgba(96, 165, 250, 0.10) 0%, rgba(96, 165, 250, 0) 24%),
+                linear-gradient(180deg, rgba(2, 9, 25, 0) 0%, rgba(2, 9, 25, 0.18) 100%);
+            opacity: 0.55;
+        }
+
+        .admin-shell {
+            position: relative;
+            isolation: isolate;
+        }
+
+        .admin-shell::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            right: 6%;
+            width: min(34rem, 42vw);
+            height: min(34rem, 42vw);
+            border-radius: 9999px;
+            transform: translateY(-50%);
+            background: radial-gradient(circle, rgba(147, 197, 253, 0.22) 0%, rgba(96, 165, 250, 0.12) 34%, rgba(59, 130, 246, 0.04) 54%, rgba(59, 130, 246, 0) 72%);
+            filter: blur(12px);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .admin-hero {
+            background:
+                linear-gradient(160deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0) 32%),
+                linear-gradient(180deg, #081c47 0%, #0d2b70 56%, #17438b 100%);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+        }
+
+        .admin-hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.03) 18%, rgba(255, 255, 255, 0) 44%);
+            opacity: 0.5;
+        }
+
+        @media (max-width: 1023px) {
+            .admin-shell::before {
+                right: 50%;
+                width: min(30rem, 82vw);
+                height: min(30rem, 82vw);
+                transform: translate(50%, -44%);
+            }
+        }
+
         .requirement-valid {
             color: #047857;
         }
@@ -29,12 +113,12 @@
     $registerErrors = $errors->getBag('adminRegister');
     $openRegisterModal = $registerErrors->any() || old('auth_tab') === 'register';
 @endphp
-<body class="min-h-screen overflow-hidden bg-gradient-to-br from-[#071A4D] via-[#0A2566] to-[#12398B] p-4 md:p-6">
-    <div class="mx-auto flex min-h-[calc(100vh-2rem)] w-full max-w-7xl items-center justify-center">
-        <div class="grid w-full max-h-[calc(100vh-2rem)] overflow-hidden rounded-3xl border border-white/20 bg-white shadow-2xl lg:grid-cols-[1.15fr_1fr]">
-            <section class="relative hidden overflow-hidden bg-[#0B2A71] px-8 py-10 text-white lg:block">
-                <div class="absolute -left-16 -top-20 h-56 w-56 rounded-full bg-white/10 blur-xl"></div>
-                <div class="absolute -bottom-20 -right-20 h-72 w-72 rounded-full bg-yellow-300/20 blur-xl"></div>
+<body class="relative min-h-screen overflow-hidden p-4 md:p-6">
+    <div aria-hidden="true" class="admin-page-bg"></div>
+
+    <div class="admin-shell relative z-10 mx-auto flex min-h-[calc(100vh-2rem)] w-full max-w-7xl items-center justify-center">
+        <div class="relative z-10 grid w-full max-h-[calc(100vh-2rem)] overflow-hidden rounded-3xl border border-white/12 bg-white/96 shadow-[0_28px_90px_rgba(3,12,32,0.34)] backdrop-blur-sm lg:grid-cols-[1.15fr_1fr]">
+            <section class="admin-hero relative hidden overflow-hidden px-8 py-10 text-white lg:block">
 
                 <div class="relative z-10 flex h-full flex-col justify-between">
                     <div>
@@ -53,7 +137,7 @@
                         </div>
                     </div>
 
-                    <div class="rounded-2xl border border-white/20 bg-white/10 p-5 backdrop-blur-sm">
+                    <div class="rounded-2xl border border-white/15 bg-slate-950/15 p-5 backdrop-blur-sm">
                         <p class="text-sm font-semibold text-yellow-200">Approval Workflow</p>
                         <ul class="mt-3 space-y-2 text-sm text-blue-50">
                             <li class="flex items-start gap-2"><i class="fa-solid fa-user-plus mt-0.5"></i><span>Register account details (no role selected).</span></li>
@@ -254,7 +338,7 @@
                         </div>
                     </div>
 
-                    <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <div id="adminPasswordRequirementsPanel" class="hidden rounded-xl border border-slate-200 bg-slate-50 p-4">
                         <p class="text-xs font-semibold uppercase tracking-wide text-slate-600">Password Requirements</p>
                         <ul id="passwordRequirements" class="mt-2 space-y-1 text-xs">
                             <li data-rule="length" class="requirement requirement-invalid flex items-center gap-2"><i class="fa-regular fa-circle"></i><span>At least 8 characters</span></li>
@@ -311,6 +395,7 @@
 
             const passwordInput = document.getElementById('registerPassword');
             const passwordConfirmInput = document.getElementById('registerPasswordConfirm');
+            const passwordRequirementsPanel = document.getElementById('adminPasswordRequirementsPanel');
 
             const openRegisterModal = () => {
                 if (!registerModal) return;
@@ -384,15 +469,43 @@
                 });
             };
 
+            const setPasswordRequirementsVisibility = (isVisible) => {
+                if (!passwordRequirementsPanel) return;
+
+                passwordRequirementsPanel.classList.toggle('hidden', !isVisible);
+            };
+
+            const syncPasswordRequirementsVisibility = () => {
+                const activeElement = document.activeElement;
+                const shouldShow = activeElement === passwordInput || activeElement === passwordConfirmInput;
+
+                setPasswordRequirementsVisibility(shouldShow);
+            };
+
             if (passwordInput) {
+                passwordInput.addEventListener('focus', () => {
+                    setPasswordRequirementsVisibility(true);
+                    updatePasswordRequirements();
+                });
                 passwordInput.addEventListener('input', updatePasswordRequirements);
+                passwordInput.addEventListener('blur', () => {
+                    requestAnimationFrame(syncPasswordRequirementsVisibility);
+                });
             }
 
             if (passwordConfirmInput) {
+                passwordConfirmInput.addEventListener('focus', () => {
+                    setPasswordRequirementsVisibility(true);
+                    updatePasswordRequirements();
+                });
                 passwordConfirmInput.addEventListener('input', updatePasswordRequirements);
+                passwordConfirmInput.addEventListener('blur', () => {
+                    requestAnimationFrame(syncPasswordRequirementsVisibility);
+                });
             }
 
             updatePasswordRequirements();
+            setPasswordRequirementsVisibility(false);
 
             const shouldOpenRegisterModal = @json($openRegisterModal);
             if (shouldOpenRegisterModal) {

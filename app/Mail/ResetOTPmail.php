@@ -40,6 +40,7 @@ class ResetOTPmail extends Mailable
     {
         return new Content(
             view: 'emails.resetpassword_otp',
+            text: 'emails.resetpassword_otp_plain',
         );
     }
 

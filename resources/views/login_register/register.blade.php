@@ -3,589 +3,740 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>Register - DILG CAR Recruitment and Selection Portal</title>
 
-  <!-- Tailwind + AlpineJS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/alpinejs" defer></script>
 
-  <!-- Fonts & Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" />
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
   <style>
-    body { font-family: 'Montserrat', sans-serif; }
-    [x-cloak] { display: none !important; }
+    html,
+    body {
+      height: 100%;
+      font-family: 'Montserrat', sans-serif;
+      overflow: hidden;
+    }
+
+    body {
+      margin: 0;
+      background-color: #04132f;
+      background-image: url('{{ asset('templates/template.png') }}');
+      background-position: center;
+      background-repeat: no-repeat;
+      background-size: cover;
+    }
+
+    [x-cloak] {
+      display: none !important;
+    }
+
+    .portal-page-bg {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 14% 74%, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0) 46%),
+        linear-gradient(120deg, rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0) 30%);
+    }
+
+    .portal-page-bg::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 8% 70%, rgba(255, 255, 255, 0.28) 0 1px, rgba(255, 255, 255, 0) 2px);
+      background-size: 8px 8px;
+      opacity: 0.18;
+    }
+
+    .portal-page-bg::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(180deg, rgba(9, 27, 64, 0.15) 0%, rgba(9, 27, 64, 0.42) 100%);
+      opacity: 0.45;
+    }
+
+    .portal-shell {
+      position: relative;
+      isolation: isolate;
+    }
+
+    .register-card {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(213, 221, 237, 0.92);
+      background: linear-gradient(180deg, #f4f6fb 0%, #e9edf5 100%);
+      box-shadow: 0 28px 70px rgba(2, 14, 40, 0.24);
+      backdrop-filter: blur(4px);
+    }
+
+    .register-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.42) 0%, rgba(255, 255, 255, 0.04) 34%, rgba(255, 255, 255, 0) 100%),
+        radial-gradient(circle at 14% 78%, rgba(41, 91, 168, 0.28) 0%, rgba(41, 91, 168, 0) 40%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .register-surface {
+      position: relative;
+      z-index: 1;
+    }
+
+    .register-fit {
+      transform-origin: top center;
+    }
+
+    @media (max-height: 940px) {
+      .register-fit {
+        transform: scale(0.94);
+      }
+    }
+
+    @media (max-height: 860px) {
+      .register-fit {
+        transform: scale(0.89);
+      }
+    }
+
+    @media (max-height: 790px) {
+      .register-fit {
+        transform: scale(0.84);
+      }
+    }
+
+    @media (max-width: 1023px) {
+      .register-card::before {
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.34) 0%, rgba(255, 255, 255, 0.02) 44%, rgba(255, 255, 255, 0) 100%),
+          radial-gradient(circle at 18% 78%, rgba(41, 91, 168, 0.18) 0%, rgba(41, 91, 168, 0) 44%);
+      }
+    }
+
+    #registerForm .border-slate-300 {
+      border-color: #c5d0e4 !important;
+    }
+
+    #registerForm input.bg-white {
+      background-color: #f8faff !important;
+      color: #304a74;
+    }
+
+    #registerForm input.bg-white::placeholder {
+      color: #8394b1;
+    }
+
+    #registerForm .text-slate-600 {
+      color: #304a74 !important;
+    }
+
+    #registerForm .text-slate-500 {
+      color: #58729c !important;
+    }
   </style>
 </head>
-<body class="h-screen overflow-hidden bg-gradient-to-br from-[#071A4D] via-[#0A2566] to-[#12398B] flex items-center justify-center p-4">
+<body class="relative h-screen overflow-hidden p-3 md:p-4">
+  @if(session('success'))
+    <div x-data="{ show: true }" x-init="setTimeout(() => show = false, 4000)" x-show="show" x-transition
+      class="fixed top-5 right-5 z-50 w-full max-w-sm rounded-xl border border-green-400 bg-green-100 px-4 py-3 text-green-700 shadow-lg">
+      <strong class="font-bold">Success!</strong>
+      <p class="text-sm">{{ session('success') }}</p>
+    </div>
+  @endif
 
-<!-- Flash Messages (styled like login page success message) -->
-@if(session('success'))
-  <div x-data="{ show: true }" x-init="setTimeout(() => show = false, 4000)" x-show="show" x-transition
-    class="fixed top-5 right-5 z-50 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-xl shadow-lg w-full max-w-sm">
-    <strong class="font-bold">Success!</strong>
-    <p class="text-sm">{{ session('success') }}</p>
-  </div>
-@endif
+  @if ($errors->any())
+    <div x-data="{ show: true }" x-init="setTimeout(() => show = false, 4000)" x-show="show" x-transition
+      class="fixed top-5 right-5 z-50 w-full max-w-sm rounded-xl border border-red-400 bg-red-100 px-4 py-3 text-red-700 shadow-lg">
+      <strong class="font-bold">Whoops!</strong>
+      <ul class="mt-1 list-disc list-inside text-sm">
+        @foreach ($errors->all() as $error)
+          <li>{{ $error }}</li>
+        @endforeach
+      </ul>
+    </div>
+  @endif
 
-@if ($errors->any())
-  <div x-data="{ show: true }" x-init="setTimeout(() => show = false, 4000)" x-show="show" x-transition
-    class="fixed top-5 right-5 z-50 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl shadow-lg w-full max-w-sm">
-    <strong class="font-bold">Whoops!</strong>
-    <ul class="list-disc list-inside text-sm mt-1">
-      @foreach ($errors->all() as $error)
-        <li>{{ $error }}</li>
-      @endforeach
-    </ul>
-  </div>
-@endif
+  <template x-if="showModal">
+    <div x-cloak>
+      @include('partials.data_privacy_notice_signup_version')
+    </div>
+  </template>
 
-@php $firstErrorField = collect($errors->keys())->first(); @endphp
+  <div aria-hidden="true" class="portal-page-bg"></div>
 
-<!-- Privacy Modal -->
-<template x-if="showModal">
-  <div x-cloak>
-    @include('partials.data_privacy_notice_signup_version')
-  </div>
-</template>
+  <div class="portal-shell relative z-10 mx-auto flex h-[calc(100vh-1.5rem)] w-full max-w-[1240px] items-center justify-center">
+    <div class="register-card relative z-10 w-full overflow-hidden rounded-[22px]">
+      <section class="register-surface max-h-[calc(100vh-1.5rem)] overflow-hidden px-5 py-5 sm:px-8 sm:py-7 lg:px-10 lg:py-8">
+        <div class="register-fit mx-auto w-full">
+          <div class="mb-5 flex flex-col gap-4 border-b border-[#d6dceb] pb-4 lg:flex-row lg:items-start lg:justify-between">
+            <div class="flex items-center gap-3">
+              <div class="flex h-14 w-14 items-center justify-center">
+                <img src="{{ asset('images/dilg_logo.png') }}" alt="DILG Logo" class="h-12 w-12">
+              </div>
+              <div>
+                <p class="text-xs font-semibold uppercase tracking-[0.3em] text-[#1d3f79]">DILG CAR</p>
+                <h2 class="mt-1 text-3xl font-extrabold tracking-tight text-[#162a56]">Create Applicant Account</h2>
+                <p class="mt-1 max-w-2xl text-sm leading-relaxed text-[#4c638e]">
+                  Set up your account for email verification, application tracking, and secure access to the recruitment portal.
+                </p>
+              </div>
+            </div>
 
-<!-- Main Container (exactly like login page) -->
-<div class="w-full max-w-6xl bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl overflow-hidden h-full max-h-full">
-  <div class="flex flex-col lg:flex-row h-full">
-
-    <!-- Left: Registration Form (exactly like login page styling) -->
-    <div class="flex-1 p-8 lg:p-12 overflow-y-auto">
-      <div class="max-w-md mx-auto">
-        <div class="flex items-center justify-center gap-3 mb-6">
-          <img src="{{ asset('images/dilg_logo.png') }}" alt="DILG Logo" class="w-12 h-12">
-          <div class="text-center">
-            <h2 class="text-3xl font-extrabold text-blue-900 tracking-tight">SIGN UP</h2>
-            <p class="text-blue-800 font-semibold">Create an account to proceed</p>
+            <div class="rounded-xl border border-[#d2d9ea] bg-[#eef2f8] px-4 py-3 text-sm text-[#4b5f86] lg:max-w-sm">
+              <div class="flex items-start gap-3">
+                <span class="mt-0.5 text-[#2d4f8c]"><i class="fa-solid fa-shield-halved"></i></span>
+                <div>
+                  <p class="font-semibold text-[#223a69]">Secure registration</p>
+                  <p class="mt-1">Your email address will be used for OTP verification and important status updates.</p>
+                </div>
+              </div>
+            </div>
           </div>
+
+          <form id="registerForm" method="POST" action="{{ route('register') }}" autocomplete="off"
+            class="space-y-4"
+            x-on:submit.prevent="submitForm($el)">
+            @csrf
+
+            <div class="grid gap-4 rounded-2xl border border-[#d5dcea] bg-[#f2f5fb] p-4 md:p-5 xl:grid-cols-[1.15fr_1fr] xl:divide-x xl:divide-[#dce2ef]">
+              <section class="rounded-xl bg-transparent p-0 md:pr-5">
+                <div class="mb-3">
+                  <p class="text-xs font-bold uppercase tracking-wide text-[#2b4575]">Personal Information</p>
+                  <p class="mt-1 text-sm text-[#4f6590]">Provide the name and profile details associated with your application.</p>
+                </div>
+
+                <div class="grid gap-3 md:grid-cols-3">
+                  <div>
+                    <label for="first_name" class="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-600">First Name</label>
+                    <input id="first_name" type="text" name="first_name" placeholder="First name" value="{{ old('first_name') }}" required
+                      class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-200"
+                      pattern="^[A-Za-z\s\-\.]{2,50}$"
+                      title="Name should contain only letters, spaces, hyphens, or periods (2-50 characters).">
+                  </div>
+
+                  <div>
+                    <label for="middle_name" class="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-600">Middle Name</label>
+                    <input id="middle_name" type="text" name="middle_name" placeholder="Middle name" value="{{ old('middle_name') }}" required
+                      class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-200"
+                      pattern="^[A-Za-z\s\-\.]{2,50}$"
+                      title="Middle name should contain only letters, spaces, hyphens, or periods (2-50 characters).">
+                  </div>
+
+                  <div>
+                    <label for="last_name" class="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-600">Last Name</label>
+                    <input id="last_name" type="text" name="last_name" placeholder="Last name" value="{{ old('last_name') }}" required
+                      class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-200"
+                      pattern="^[A-Za-z\s\-\.]{2,50}$"
+                      title="Name should contain only letters, spaces, hyphens, or periods (2-50 characters).">
+                  </div>
+                </div>
+                @error('first_name') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
+                @error('middle_name') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
+                @error('last_name') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
+                @error('fname') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
+                @error('mname') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
+                @error('lname') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
+
+                <div class="mt-4">
+                  <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">Sex</p>
+                  <div class="grid gap-2 sm:grid-cols-3">
+                    <label class="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-xs font-medium text-slate-700 transition hover:border-[#0D2B70]/40 sm:text-sm">
+                      <input type="radio" name="sex" value="Male" {{ old('sex') === 'Male' ? 'checked' : '' }} required
+                        class="h-4 w-4 border-slate-300 text-[#0D2B70] focus:ring-[#0D2B70]/30">
+                      <span>Male</span>
+                    </label>
+                    <label class="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-xs font-medium text-slate-700 transition hover:border-[#0D2B70]/40 sm:text-sm">
+                      <input type="radio" name="sex" value="Female" {{ old('sex') === 'Female' ? 'checked' : '' }} required
+                        class="h-4 w-4 border-slate-300 text-[#0D2B70] focus:ring-[#0D2B70]/30">
+                      <span>Female</span>
+                    </label>
+                    <label class="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-xs font-medium text-slate-700 transition hover:border-[#0D2B70]/40 sm:text-sm">
+                      <input type="radio" name="sex" value="Prefer not to say" {{ old('sex') === 'Prefer not to say' ? 'checked' : '' }} required
+                        class="h-4 w-4 border-slate-300 text-[#0D2B70] focus:ring-[#0D2B70]/30">
+                      <span>Prefer not to say</span>
+                    </label>
+                  </div>
+                </div>
+
+              </section>
+
+              <section class="rounded-xl bg-transparent p-0 md:pl-5">
+                <div class="mb-3">
+                  <p class="text-xs font-bold uppercase tracking-wide text-[#2b4575]">Account Details</p>
+                  <p class="mt-1 text-sm text-[#4f6590]">Use active contact details create a strong password for secure access.</p>
+                </div>
+
+                <div class="space-y-3">
+                  <div>
+                    <label for="phone_number" class="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-600">Contact Number</label>
+                    <input id="phone_number" type="text" name="phone_number" placeholder="09XX XXX XXXX" value="{{ old('phone_number') }}" required
+                      class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-200"
+                      pattern="^09[0-9]{2}\s[0-9]{3}\s[0-9]{4}$"
+                      title="Contact number must follow the format 09XX XXX XXXX."
+                      aria-describedby="phone_number_hint phone_number_feedback"
+                      inputmode="numeric"
+                      autocomplete="tel"
+                      maxlength="13">
+                    <p id="phone_number_hint" class="mt-1 text-xs text-slate-500">Format: 09XX XXX XXXX</p>
+                    <p id="phone_number_feedback" class="hidden mt-1 text-sm text-red-600" aria-live="polite"></p>
+                    @error('phone_number') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                  </div>
+
+                  <div>
+                    <label for="email" class="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-600">Email Address</label>
+                    <input id="email" type="email" name="email" placeholder="name@example.com" value="{{ old('email') }}" required
+                      aria-describedby="email_feedback"
+                      class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-200">
+                    <p id="email_feedback" class="hidden mt-1 text-sm text-red-600" aria-live="polite"></p>
+                    @error('email') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                  </div>
+
+                  <div>
+                    <label for="password" class="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-600">Password</label>
+                    <div class="relative">
+                      <input id="password" type="password" name="password" placeholder="Create password" required minlength="8"
+                        aria-describedby="password_requirements password_feedback"
+                        class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 pr-10 text-sm text-slate-700 outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-200"
+                        pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9\s]).{8,}"
+                        title="Password must be at least 8 characters long and include uppercase and lowercase letters, a number, and a special character.">
+                      <button type="button" id="togglePassword" class="absolute inset-y-0 right-3 flex items-center text-slate-400 hover:text-slate-600">
+                        <i class="fas fa-eye"></i>
+                      </button>
+                    </div>
+                    <p id="password_feedback" class="hidden mt-1 text-sm text-red-600" aria-live="polite"></p>
+                    @error('password') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                  </div>
+
+                  <div>
+                    <label for="password_confirmation" class="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-600">Confirm Password</label>
+                    <div class="relative">
+                      <input id="password_confirmation" type="password" name="password_confirmation" placeholder="Confirm password" required minlength="8"
+                        aria-describedby="password_confirmation_feedback"
+                        class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 pr-10 text-sm text-slate-700 outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-200">
+                      <button type="button" id="togglePasswordConfirm" class="absolute inset-y-0 right-3 flex items-center text-slate-400 hover:text-slate-600">
+                        <i class="fas fa-eye"></i>
+                      </button>
+                    </div>
+                    <p id="password_confirmation_feedback" class="hidden mt-1 text-sm text-red-600" aria-live="polite"></p>
+                    @error('password_confirmation') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                  </div>
+
+                  <div id="password_requirements" aria-hidden="true" class="hidden rounded-lg border border-slate-200 bg-white px-3 py-3 text-xs text-slate-700 sm:text-sm">
+                    <p class="font-semibold text-slate-800">Password must include:</p>
+                    <div class="mt-2 space-y-1.5">
+                      <div class="password-requirement flex items-center gap-2 text-slate-500" data-rule="length">
+                        <span class="inline-flex h-4 w-4 items-center justify-center rounded-full border border-slate-200 bg-transparent text-[9px] text-slate-300">
+                          <i class="fas fa-check"></i>
+                        </span>
+                        <span>At least 8 characters</span>
+                      </div>
+                      <div class="password-requirement flex items-center gap-2 text-slate-500" data-rule="mixedCase">
+                        <span class="inline-flex h-4 w-4 items-center justify-center rounded-full border border-slate-200 bg-transparent text-[9px] text-slate-300">
+                          <i class="fas fa-check"></i>
+                        </span>
+                        <span>Uppercase and lowercase letters</span>
+                      </div>
+                      <div class="password-requirement flex items-center gap-2 text-slate-500" data-rule="number">
+                        <span class="inline-flex h-4 w-4 items-center justify-center rounded-full border border-slate-200 bg-transparent text-[9px] text-slate-300">
+                          <i class="fas fa-check"></i>
+                        </span>
+                        <span>At least 1 number</span>
+                      </div>
+                      <div class="password-requirement flex items-center gap-2 text-slate-500" data-rule="symbol">
+                        <span class="inline-flex h-4 w-4 items-center justify-center rounded-full border border-slate-200 bg-transparent text-[9px] text-slate-300">
+                          <i class="fas fa-check"></i>
+                        </span>
+                        <span>At least 1 special character</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <section class="rounded-xl border border-[#d3dbe9] bg-[#eef2f8] p-3 sm:p-4">
+              <div class="flex items-start gap-2 rounded-lg border border-[#d2d9ea] bg-[#f2f5fb] px-3 py-2.5">
+                <input type="checkbox" id="agree" @click.prevent="showModal = true" :checked="checkboxChecked"
+                  class="mt-0.5 rounded border-slate-300 text-[#0D2B70] focus:ring-[#0D2B70]/30">
+                <label for="agree" class="text-xs leading-relaxed text-slate-600 sm:text-sm">
+                  I have read and agree to the
+                  <span @click="showModal = true" class="cursor-pointer font-semibold text-[#0D2B70] underline underline-offset-2 hover:text-[#0A2259]">Data Privacy Notice</span>
+                </label>
+              </div>
+
+              <div class="mt-3 grid gap-2 sm:grid-cols-2">
+                <button type="submit"
+                  :disabled="!(agreed && checkboxChecked) || isSubmitting"
+                  :class="{ 'opacity-50 cursor-not-allowed': !(agreed && checkboxChecked), 'cursor-wait': isSubmitting }"
+                  class="w-full rounded-lg bg-[#0D2B70] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0A2259]">
+                  <span x-text="isSubmitting ? 'Processing...' : 'Create Account'"></span>
+                </button>
+
+                <a :class="{
+                    'opacity-50 cursor-not-allowed pointer-events-none': !(agreed && checkboxChecked),
+                    'use-loader flex w-full items-center justify-center gap-2 rounded-lg border border-[#c5d0e4] bg-[#f8faff] px-4 py-2.5 text-sm font-semibold text-[#0D2B70] transition hover:bg-[#eef3fb]': true
+                  }"
+                  :href="(agreed && checkboxChecked) ? '{{ route('google.login', [], false) }}' : '#'">
+                  <img src="{{ asset('images/google-icon.png') }}" alt="Google Icon" class="h-4 w-4">
+                  Continue with Google
+                </a>
+              </div>
+
+              <p class="mt-2.5 text-center text-xs text-slate-600 sm:text-sm">
+                Already have an account?
+                <a href="{{ route('login.form') }}" class="use-loader font-semibold text-[#0D2B70] hover:underline">Log in</a>
+              </p>
+            </section>
+          </form>
         </div>
-
-        <form id="registerForm" method="POST" action="{{ route('register') }}" autocomplete="off"
-          class="space-y-5"
-          x-on:submit.prevent="submitForm($el)">
-          @csrf
-
-          <!-- Name fields (styled exactly like login email field) -->
-          <div class="space-y-5">
-            <!-- First Name -->
-            <div class="relative">
-              <span class="absolute inset-y-0 left-4 flex items-center">
-                <i class="fas fa-user text-yellow-400"></i>
-              </span>
-              <input type="text" name="first_name" placeholder="Enter First Name" value="{{ old('first_name') }}" required
-                class="w-full bg-white border border-blue-400 rounded-full pl-12 pr-4 py-3 outline-none text-blue-900 placeholder:text-blue-800/60 focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
-                pattern="^[A-Za-z\s\-\.]{2,50}$"
-                title="Name should contain only letters, spaces, hyphens, or periods (2-50 characters).">
-            </div>  
-
-            <!-- Middle Name -->
-            <div class="relative">
-              <span class="absolute inset-y-0 left-4 flex items-center">
-                <i class="fas fa-font text-yellow-400"></i>
-              </span>
-              <input type="text" name="middle_name" placeholder="Enter Middle Name" value="{{ old('middle_name') }}" required
-                class="w-full bg-white border border-blue-400 rounded-full pl-12 pr-4 py-3 outline-none text-blue-900 placeholder:text-blue-800/60 focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
-                pattern="^[A-Za-z\s\-\.]{2,50}$"
-                title="Middle name should contain only letters, spaces, hyphens, or periods (2-50 characters).">
-            </div>
-
-            <!-- Last Name -->
-            <div class="relative">
-              <span class="absolute inset-y-0 left-4 flex items-center">
-                <i class="fas fa-id-badge text-yellow-400"></i>
-              </span>
-              <input type="text" name="last_name" placeholder="Enter Last Name" value="{{ old('last_name') }}" required
-                class="w-full bg-white border border-blue-400 rounded-full pl-12 pr-4 py-3 outline-none text-blue-900 placeholder:text-blue-800/60 focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
-                pattern="^[A-Za-z\s\-\.]{2,50}$"
-                title="Name should contain only letters, spaces, hyphens, or periods (2-50 characters).">
-            </div>
-          </div>
-          @error('first_name') <p class="text-red-600 text-sm ml-3 -mt-2">{{ $message }}</p> @enderror
-          @error('middle_name') <p class="text-red-600 text-sm ml-3 -mt-2">{{ $message }}</p> @enderror
-          @error('last_name') <p class="text-red-600 text-sm ml-3 -mt-2">{{ $message }}</p> @enderror
-          @error('fname') <p class="text-red-600 text-sm ml-3 -mt-2">{{ $message }}</p> @enderror
-          @error('mname') <p class="text-red-600 text-sm ml-3 -mt-2">{{ $message }}</p> @enderror
-          @error('lname') <p class="text-red-600 text-sm ml-3 -mt-2">{{ $message }}</p> @enderror
-
-          <!-- Sex (styled with consistent spacing) -->
-          <div class="flex flex-col gap-2">
-            <span class="text-blue-900 font-semibold">Sex</span>
-            <div class="flex gap-6">
-              <label class="flex items-center gap-2 cursor-pointer">
-                <input type="radio" name="sex" value="Male" required
-                  class="w-4 h-4 text-blue-600 border-blue-400 focus:ring-blue-600">
-                <span class="text-blue-900">Male</span>
-              </label>
-              <label class="flex items-center gap-2 cursor-pointer">
-                <input type="radio" name="sex" value="Female" required
-                  class="w-4 h-4 text-blue-600 border-blue-400 focus:ring-blue-600">
-                <span class="text-blue-900">Female</span>
-              </label>
-              <label class="flex items-center gap-2 cursor-pointer">
-                <input type="radio" name="sex" value="Prefer not to say" required
-                  class="w-4 h-4 text-blue-600 border-blue-400 focus:ring-blue-600">
-                <span class="text-blue-900">Prefer not to say</span>
-              </label>
-            </div>
-          </div>
- 
-          <!-- Contact Number (styled exactly like login email field) -->
-          <div class="relative">
-            <span class="absolute inset-y-0 left-4 flex items-center">
-              <i class="fas fa-phone text-yellow-400"></i>
-            </span>
-            <input id="phone_number" type="text" name="phone_number" placeholder="09XX XXX XXXX" value="{{ old('phone_number') }}" required
-              class="w-full bg-white border border-blue-400 rounded-full pl-12 pr-4 py-3 outline-none text-blue-900 placeholder:text-blue-800/60 focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
-              pattern="^09[0-9]{2}\s[0-9]{3}\s[0-9]{4}$"
-              title="Contact number must follow the format 09XX XXX XXXX."
-              aria-describedby="phone_number_hint phone_number_feedback"
-              inputmode="numeric"
-              autocomplete="tel"
-              maxlength="13"
-            >
-          </div>
-          <p id="phone_number_hint" class="text-xs text-blue-800/70 ml-3 -mt-2">Format: 09XX XXX XXXX</p>
-          <p id="phone_number_feedback" class="hidden text-red-600 text-sm ml-3 -mt-3" aria-live="polite"></p>
-          @error('phone_number') <p class="text-red-600 text-sm ml-3 -mt-2">{{ $message }}</p> @enderror
-
-          <!-- Email (styled exactly like login email field) -->
-          <div class="relative">
-            <span class="absolute inset-y-0 left-4 flex items-center">
-              <i class="fas fa-envelope text-yellow-400"></i>
-            </span>
-            <input id="email" type="email" name="email" placeholder="Email Address" value="{{ old('email') }}" required
-              aria-describedby="email_feedback"
-              class="w-full bg-white border border-blue-400 rounded-full pl-12 pr-4 py-3 outline-none text-blue-900 placeholder:text-blue-800/60 focus:ring-2 focus:ring-blue-600 focus:border-blue-600">
-          </div>
-          <p id="email_feedback" class="hidden text-red-600 text-sm ml-3 -mt-3" aria-live="polite"></p>
-          @error('email') <p class="text-red-600 text-sm ml-3 -mt-2">{{ $message }}</p> @enderror
-
-          <!-- Password (styled exactly like login password field WITH toggle button) -->
-          <div class="relative">
-            <span class="absolute inset-y-0 left-4 flex items-center">
-              <i class="fas fa-lock text-yellow-400"></i>
-            </span>
-            <input 
-              id="password" 
-              type="password" 
-              name="password" 
-              placeholder="Password" 
-              required 
-              minlength="8"
-              aria-describedby="password_requirements password_feedback"
-              class="w-full bg-white border border-blue-400 rounded-full pl-12 pr-12 py-3 outline-none text-blue-900 placeholder:text-blue-800/60 focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
-              pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9\s]).{8,}"
-              title="Password must be at least 8 characters long and include uppercase and lowercase letters, a number, and a special character.">
-            <button type="button" id="togglePassword" class="absolute inset-y-0 right-3 px-3 flex items-center text-blue-800/70 hover:text-blue-900">
-              <i class="fas fa-eye"></i>
-            </button>
-          </div>
-          <div id="password_requirements" class="rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900 -mt-2">
-            <p class="font-semibold">Password must include:</p>
-            <div class="mt-2 space-y-2">
-              <div class="password-requirement flex items-center gap-2 text-blue-800/80" data-rule="length">
-                <span class="inline-flex h-5 w-5 items-center justify-center rounded-full border border-blue-200 text-[10px] text-blue-300">
-                  <i class="fas fa-check"></i>
-                </span>
-                <span>At least 8 characters</span>
-              </div>
-              <div class="password-requirement flex items-center gap-2 text-blue-800/80" data-rule="mixedCase">
-                <span class="inline-flex h-5 w-5 items-center justify-center rounded-full border border-blue-200 text-[10px] text-blue-300">
-                  <i class="fas fa-check"></i>
-                </span>
-                <span>Uppercase and lowercase letters</span>
-              </div>
-              <div class="password-requirement flex items-center gap-2 text-blue-800/80" data-rule="number">
-                <span class="inline-flex h-5 w-5 items-center justify-center rounded-full border border-blue-200 text-[10px] text-blue-300">
-                  <i class="fas fa-check"></i>
-                </span>
-                <span>At least 1 number</span>
-              </div>
-              <div class="password-requirement flex items-center gap-2 text-blue-800/80" data-rule="symbol">
-                <span class="inline-flex h-5 w-5 items-center justify-center rounded-full border border-blue-200 text-[10px] text-blue-300">
-                  <i class="fas fa-check"></i>
-                </span>
-                <span>At least 1 special character</span>
-              </div>
-            </div>
-          </div>
-          <p id="password_feedback" class="hidden text-red-600 text-sm ml-3 -mt-3" aria-live="polite"></p>
-          @error('password') <p class="text-red-600 text-sm ml-3 -mt-2">{{ $message }}</p> @enderror
-
-          <!-- Confirm Password (styled exactly like login password field WITH toggle button) -->
-          <div class="relative">
-            <span class="absolute inset-y-0 left-4 flex items-center">
-              <i class="fas fa-lock text-yellow-400"></i>
-            </span>
-            <input 
-              id="password_confirmation" 
-              type="password" 
-              name="password_confirmation" 
-              placeholder="Confirm Password" 
-              required 
-              minlength="8"
-              aria-describedby="password_confirmation_feedback"
-              class="w-full bg-white border border-blue-400 rounded-full pl-12 pr-12 py-3 outline-none text-blue-900 placeholder:text-blue-800/60 focus:ring-2 focus:ring-blue-600 focus:border-blue-600">
-            <button type="button" id="togglePasswordConfirm" class="absolute inset-y-0 right-3 px-3 flex items-center text-blue-800/70 hover:text-blue-900">
-              <i class="fas fa-eye"></i>
-            </button>
-          </div>
-          <p id="password_confirmation_feedback" class="hidden text-red-600 text-sm ml-3 -mt-3" aria-live="polite"></p>
-          @error('password_confirmation') <p class="text-red-600 text-sm ml-3 -mt-2">{{ $message }}</p> @enderror
-
-          <!-- Data Privacy (styled like remember me checkbox) -->
-          <div class="flex items-start mt-2">
-            <input type="checkbox" id="agree" @click.prevent="showModal = true" :checked="checkboxChecked"
-              class="mr-2 mt-1 cursor-pointer rounded border-blue-400 text-blue-800 focus:ring-blue-600">
-            <label for="agree" class="text-sm text-blue-800">
-              I have read and agree to the
-              <span @click="showModal = true" class="font-bold underline cursor-pointer hover:text-blue-900">Data Privacy Notice</span>
-            </label>
-          </div>
-
-          <!-- Register Button (styled exactly like login button - changed to match login blue color) -->
-          <button type="submit"
-            :disabled="!(agreed && checkboxChecked) || isSubmitting"
-            :class="{ 'opacity-50 cursor-not-allowed': !(agreed && checkboxChecked), 'cursor-wait': isSubmitting }"
-            class="w-full bg-[#0D2B70] text-white font-bold py-3 rounded-full hover:bg-[#0A2259] shadow-md transition transform hover:scale-[1.02] active:scale-[0.98]">
-            <span x-text="isSubmitting ? 'Processing…' : 'Sign Up'"></span>
-          </button>
-
-          <!-- Google Login (styled exactly like login google button) -->
-          <div class="flex items-center justify-center my-4">
-            <a :class="{
-                'opacity-50 cursor-not-allowed': !(agreed && checkboxChecked),
-                'use-loader flex items-center justify-center gap-3 w-full bg-white border-2 border-yellow-400 text-blue-900 font-bold py-3 rounded-full hover:bg-yellow-100 shadow-md transition transform hover:scale-[1.02] active:scale-[0.98]': true
-              }"
-              :href="(agreed && checkboxChecked) ? '{{ route('google.login', [], false) }}' : '#'">
-              <img src="{{ asset('images/google-icon.png') }}" alt="Google Icon" class="w-5 h-5">
-              Continue with Google
-            </a>
-          </div>
-
-          <!-- Login Link (styled exactly like register link in login page) -->
-          <p class="text-center text-sm text-blue-800">
-            Already have an account?
-            <a href="{{ route('login') }}" class="use-loader font-bold hover:underline">LOG-IN</a>
-          </p>
-        </form>
-      </div>
-    </div>
-
-    <!-- Right: Logo and Agency Info (exactly like login page) -->
-    <div class="flex-1 bg-gradient-to-br from-blue-800 to-blue-900 text-white flex flex-col items-center justify-center p-8 lg:p-12 text-center relative overflow-hidden">
-      <div class="absolute inset-0 opacity-10 pointer-events-none" style="background-image: radial-gradient(circle at 20% 20%, #fff 0, transparent 20%), radial-gradient(circle at 80% 30%, #fff 0, transparent 20%), radial-gradient(circle at 30% 80%, #fff 0, transparent 20%);"></div>
-      <img 
-        src="{{ asset('images/dilg_logo.png') }}" 
-        alt="DILG Logo" 
-        class="w-28 sm:w-36 md:w-40 mb-6 drop-shadow-lg"
-      />
-      <h1 class="text-xl sm:text-2xl md:text-3xl font-extrabold leading-tight">
-        DEPARTMENT OF THE INTERIOR <br/>
-        AND LOCAL GOVERNMENT
-      </h1>
-      <p class="text-sm sm:text-base md:text-lg mt-1 font-semibold">CORDILLERA ADMINISTRATIVE REGION</p>
-      <p class="text-sm sm:text-base md:text-lg mt-1 text-blue-200">MATINO. MAHUSAY. MAAASAHAN.</p>
-      <p class="text-yellow-400 font-bold mt-4 text-base sm:text-lg">
-        RECRUITMENT SELECTION AND PLACEMENT PORTAL
-      </p>
+      </section>
     </div>
   </div>
-</div>
 
-@include('partials.loader')
+  @include('partials.loader')
 
-<!-- Form Scripts -->
-<script>
-  const FIELD_BASE_CLASSES = ['border-blue-400', 'focus:ring-blue-600', 'focus:border-blue-600'];
-  const FIELD_ERROR_CLASSES = ['border-red-500', 'focus:ring-red-500', 'focus:border-red-500'];
-  const FIELD_SUCCESS_CLASSES = ['border-green-500', 'focus:ring-green-500', 'focus:border-green-500'];
+  <script>
+    const FIELD_BASE_CLASSES = ['border-slate-300', 'focus:ring-blue-200', 'focus:border-blue-900'];
+    const FIELD_ERROR_CLASSES = ['border-red-500', 'focus:ring-red-100', 'focus:border-red-500'];
+    const FIELD_SUCCESS_CLASSES = ['border-emerald-500', 'focus:ring-emerald-100', 'focus:border-emerald-500'];
 
-  function applyFieldClasses(input, classesToAdd) {
-    if (!input) return;
-    input.classList.remove(...FIELD_BASE_CLASSES, ...FIELD_ERROR_CLASSES, ...FIELD_SUCCESS_CLASSES);
-    input.classList.add(...classesToAdd);
-  }
-
-  function setFieldState(input, feedback, state, message = '') {
-    if (!input || !feedback) return state !== 'invalid';
-
-    if (state === 'invalid') {
-      applyFieldClasses(input, FIELD_ERROR_CLASSES);
-      input.setCustomValidity(message);
-      feedback.textContent = message;
-      feedback.classList.remove('hidden');
-      return false;
+    function applyFieldClasses(input, classesToAdd) {
+      if (!input) return;
+      input.classList.remove(...FIELD_BASE_CLASSES, ...FIELD_ERROR_CLASSES, ...FIELD_SUCCESS_CLASSES);
+      input.classList.add(...classesToAdd);
     }
 
-    input.setCustomValidity('');
-    feedback.textContent = '';
-    feedback.classList.add('hidden');
+    function setFieldState(input, feedback, state, message = '') {
+      if (!input || !feedback) return state !== 'invalid';
 
-    if (state === 'valid') {
-      applyFieldClasses(input, FIELD_SUCCESS_CLASSES);
-    } else {
-      applyFieldClasses(input, FIELD_BASE_CLASSES);
-    }
-
-    return true;
-  }
-
-  function formatPhoneNumber(value) {
-    const digits = value.replace(/\D/g, '').slice(0, 11);
-    const parts = [];
-
-    if (digits.length > 0) parts.push(digits.slice(0, 4));
-    if (digits.length > 4) parts.push(digits.slice(4, 7));
-    if (digits.length > 7) parts.push(digits.slice(7, 11));
-
-    return parts.join(' ');
-  }
-
-  function validatePhoneNumber(force = false) {
-    const input = document.getElementById('phone_number');
-    const feedback = document.getElementById('phone_number_feedback');
-    if (!input || !feedback) return true;
-
-    input.value = formatPhoneNumber(input.value);
-    const normalized = input.value.replace(/\D/g, '');
-    const showFeedback = force || input.dataset.touched === 'true';
-
-    if (normalized === '') {
-      return force
-        ? setFieldState(input, feedback, 'invalid', 'Contact number is required.')
-        : setFieldState(input, feedback, 'neutral');
-    }
-
-    if (!/^09\d{9}$/.test(normalized)) {
-      return showFeedback
-        ? setFieldState(input, feedback, 'invalid', 'Enter a valid contact number using the format 09XX XXX XXXX.')
-        : setFieldState(input, feedback, 'neutral');
-    }
-
-    return setFieldState(input, feedback, 'valid');
-  }
-
-  function validateEmailAddress(force = false) {
-    const input = document.getElementById('email');
-    const feedback = document.getElementById('email_feedback');
-    if (!input || !feedback) return true;
-
-    const value = input.value.trim();
-    input.value = value;
-    const showFeedback = force || input.dataset.touched === 'true';
-    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-    if (value === '') {
-      return force
-        ? setFieldState(input, feedback, 'invalid', 'Email address is required.')
-        : setFieldState(input, feedback, 'neutral');
-    }
-
-    if (!emailPattern.test(value)) {
-      return showFeedback
-        ? setFieldState(input, feedback, 'invalid', 'Enter a valid email address.')
-        : setFieldState(input, feedback, 'neutral');
-    }
-
-    return setFieldState(input, feedback, 'valid');
-  }
-
-  function updatePasswordRequirements() {
-    const input = document.getElementById('password');
-    if (!input) return { length: false, mixedCase: false, number: false, symbol: false };
-
-    const value = input.value;
-    const status = {
-      length: value.length >= 8,
-      mixedCase: /[a-z]/.test(value) && /[A-Z]/.test(value),
-      number: /\d/.test(value),
-      symbol: /[^A-Za-z0-9\s]/.test(value),
-    };
-
-    document.querySelectorAll('.password-requirement').forEach((item) => {
-      const isMet = Boolean(status[item.dataset.rule]);
-      const badge = item.querySelector('span');
-
-      item.classList.toggle('text-green-700', isMet);
-      item.classList.toggle('text-blue-800/80', !isMet);
-
-      if (badge) {
-        badge.classList.toggle('border-green-300', isMet);
-        badge.classList.toggle('bg-green-100', isMet);
-        badge.classList.toggle('text-green-600', isMet);
-        badge.classList.toggle('border-blue-200', !isMet);
-        badge.classList.toggle('bg-transparent', !isMet);
-        badge.classList.toggle('text-blue-300', !isMet);
-      }
-    });
-
-    return status;
-  }
-
-  function validatePassword(force = false) {
-    const input = document.getElementById('password');
-    const feedback = document.getElementById('password_feedback');
-    if (!input || !feedback) return true;
-
-    const value = input.value;
-    const showFeedback = force || input.dataset.touched === 'true';
-    const requirements = updatePasswordRequirements();
-    const isValid = Object.values(requirements).every(Boolean);
-
-    if (value === '') {
-      return force
-        ? setFieldState(input, feedback, 'invalid', 'Password is required.')
-        : setFieldState(input, feedback, 'neutral');
-    }
-
-    if (!isValid) {
-      return showFeedback
-        ? setFieldState(input, feedback, 'invalid', 'Password must be at least 8 characters and include uppercase and lowercase letters, a number, and a special character.')
-        : setFieldState(input, feedback, 'neutral');
-    }
-
-    return setFieldState(input, feedback, 'valid');
-  }
-
-  function validatePasswordConfirmation(force = false) {
-    const passwordInput = document.getElementById('password');
-    const confirmInput = document.getElementById('password_confirmation');
-    const feedback = document.getElementById('password_confirmation_feedback');
-    if (!passwordInput || !confirmInput || !feedback) return true;
-
-    const value = confirmInput.value;
-    const showFeedback = force || confirmInput.dataset.touched === 'true';
-
-    if (value === '') {
-      return force
-        ? setFieldState(confirmInput, feedback, 'invalid', 'Please confirm your password.')
-        : setFieldState(confirmInput, feedback, 'neutral');
-    }
-
-    if (value !== passwordInput.value) {
-      return showFeedback
-        ? setFieldState(confirmInput, feedback, 'invalid', 'Passwords do not match.')
-        : setFieldState(confirmInput, feedback, 'neutral');
-    }
-
-    return setFieldState(confirmInput, feedback, 'valid');
-  }
-
-  function validateRegistrationForm(form) {
-    const isPhoneValid = validatePhoneNumber(true);
-    const isEmailValid = validateEmailAddress(true);
-    const isPasswordValid = validatePassword(true);
-    const isPasswordConfirmationValid = validatePasswordConfirmation(true);
-    const isFormValid = isPhoneValid && isEmailValid && isPasswordValid && isPasswordConfirmationValid && form.checkValidity();
-
-    if (!isFormValid) {
-      form.reportValidity();
-    }
-
-    return isFormValid;
-  }
-
-  function bindBlurValidation(input, validator, onInput) {
-    if (!input) return;
-
-    input.addEventListener('input', () => {
-      if (typeof onInput === 'function') {
-        onInput();
+      if (state === 'invalid') {
+        applyFieldClasses(input, FIELD_ERROR_CLASSES);
+        input.setCustomValidity(message);
+        feedback.textContent = message;
+        feedback.classList.remove('hidden');
+        return false;
       }
 
-      if (input.dataset.touched === 'true') {
+      input.setCustomValidity('');
+      feedback.textContent = '';
+      feedback.classList.add('hidden');
+
+      if (state === 'valid') {
+        applyFieldClasses(input, FIELD_SUCCESS_CLASSES);
+      } else {
+        applyFieldClasses(input, FIELD_BASE_CLASSES);
+      }
+
+      return true;
+    }
+
+    function formatPhoneNumber(value) {
+      const digits = value.replace(/\D/g, '').slice(0, 11);
+      const parts = [];
+
+      if (digits.length > 0) parts.push(digits.slice(0, 4));
+      if (digits.length > 4) parts.push(digits.slice(4, 7));
+      if (digits.length > 7) parts.push(digits.slice(7, 11));
+
+      return parts.join(' ');
+    }
+
+    function validatePhoneNumber(force = false) {
+      const input = document.getElementById('phone_number');
+      const feedback = document.getElementById('phone_number_feedback');
+      if (!input || !feedback) return true;
+
+      input.value = formatPhoneNumber(input.value);
+      const normalized = input.value.replace(/\D/g, '');
+      const showFeedback = force || input.dataset.touched === 'true';
+
+      if (normalized === '') {
+        return force
+          ? setFieldState(input, feedback, 'invalid', 'Contact number is required.')
+          : setFieldState(input, feedback, 'neutral');
+      }
+
+      if (!/^09\d{9}$/.test(normalized)) {
+        return showFeedback
+          ? setFieldState(input, feedback, 'invalid', 'Enter a valid contact number using the format 09XX XXX XXXX.')
+          : setFieldState(input, feedback, 'neutral');
+      }
+
+      return setFieldState(input, feedback, 'valid');
+    }
+
+    function validateEmailAddress(force = false) {
+      const input = document.getElementById('email');
+      const feedback = document.getElementById('email_feedback');
+      if (!input || !feedback) return true;
+
+      const value = input.value.trim();
+      input.value = value;
+      const showFeedback = force || input.dataset.touched === 'true';
+      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+      if (value === '') {
+        return force
+          ? setFieldState(input, feedback, 'invalid', 'Email address is required.')
+          : setFieldState(input, feedback, 'neutral');
+      }
+
+      if (!emailPattern.test(value)) {
+        return showFeedback
+          ? setFieldState(input, feedback, 'invalid', 'Enter a valid email address.')
+          : setFieldState(input, feedback, 'neutral');
+      }
+
+      return setFieldState(input, feedback, 'valid');
+    }
+
+    function updatePasswordRequirements() {
+      const input = document.getElementById('password');
+      if (!input) return { length: false, mixedCase: false, number: false, symbol: false };
+
+      const value = input.value;
+      const status = {
+        length: value.length >= 8,
+        mixedCase: /[a-z]/.test(value) && /[A-Z]/.test(value),
+        number: /\d/.test(value),
+        symbol: /[^A-Za-z0-9\s]/.test(value),
+      };
+
+      document.querySelectorAll('.password-requirement').forEach((item) => {
+        const isMet = Boolean(status[item.dataset.rule]);
+        const badge = item.querySelector('span');
+
+        item.classList.toggle('text-emerald-700', isMet);
+        item.classList.toggle('text-slate-500', !isMet);
+
+        if (badge) {
+          badge.classList.toggle('border-emerald-200', isMet);
+          badge.classList.toggle('bg-emerald-50', isMet);
+          badge.classList.toggle('text-emerald-600', isMet);
+          badge.classList.toggle('border-slate-200', !isMet);
+          badge.classList.toggle('bg-transparent', !isMet);
+          badge.classList.toggle('text-slate-300', !isMet);
+        }
+      });
+
+      return status;
+    }
+
+    function setPasswordRequirementsVisibility(isVisible) {
+      const panel = document.getElementById('password_requirements');
+      if (!panel) return;
+
+      panel.classList.toggle('hidden', !isVisible);
+      panel.setAttribute('aria-hidden', isVisible ? 'false' : 'true');
+    }
+
+    function validatePassword(force = false) {
+      const input = document.getElementById('password');
+      const feedback = document.getElementById('password_feedback');
+      if (!input || !feedback) return true;
+
+      const value = input.value;
+      const showFeedback = force || input.dataset.touched === 'true';
+      const requirements = updatePasswordRequirements();
+      const isValid = Object.values(requirements).every(Boolean);
+
+      if (value === '') {
+        return force
+          ? setFieldState(input, feedback, 'invalid', 'Password is required.')
+          : setFieldState(input, feedback, 'neutral');
+      }
+
+      if (!isValid) {
+        return showFeedback
+          ? setFieldState(input, feedback, 'invalid', 'Password must be at least 8 characters and include uppercase and lowercase letters, a number, and a special character.')
+          : setFieldState(input, feedback, 'neutral');
+      }
+
+      return setFieldState(input, feedback, 'valid');
+    }
+
+    function validatePasswordConfirmation(force = false) {
+      const passwordInput = document.getElementById('password');
+      const confirmInput = document.getElementById('password_confirmation');
+      const feedback = document.getElementById('password_confirmation_feedback');
+      if (!passwordInput || !confirmInput || !feedback) return true;
+
+      const value = confirmInput.value;
+      const showFeedback = force || confirmInput.dataset.touched === 'true';
+
+      if (value === '') {
+        return force
+          ? setFieldState(confirmInput, feedback, 'invalid', 'Please confirm your password.')
+          : setFieldState(confirmInput, feedback, 'neutral');
+      }
+
+      if (value !== passwordInput.value) {
+        return showFeedback
+          ? setFieldState(confirmInput, feedback, 'invalid', 'Passwords do not match.')
+          : setFieldState(confirmInput, feedback, 'neutral');
+      }
+
+      return setFieldState(confirmInput, feedback, 'valid');
+    }
+
+    function validateRegistrationForm(form) {
+      const isPhoneValid = validatePhoneNumber(true);
+      const isEmailValid = validateEmailAddress(true);
+      const isPasswordValid = validatePassword(true);
+      const isPasswordConfirmationValid = validatePasswordConfirmation(true);
+      const isFormValid = isPhoneValid && isEmailValid && isPasswordValid && isPasswordConfirmationValid && form.checkValidity();
+
+      if (!isFormValid) {
+        form.reportValidity();
+      }
+
+      return isFormValid;
+    }
+
+    function bindBlurValidation(input, validator, options = {}) {
+      if (!input) return;
+
+      const { onInput, onFocus, onBlur } = options;
+
+      input.addEventListener('input', () => {
+        if (typeof onInput === 'function') {
+          onInput();
+        }
+      });
+
+      input.addEventListener('focus', () => {
+        if (typeof onFocus === 'function') {
+          onFocus();
+        }
+      });
+
+      input.addEventListener('blur', () => {
+        input.dataset.touched = 'true';
         validator(false);
-      }
-    });
 
-    input.addEventListener('blur', () => {
-      input.dataset.touched = 'true';
-      validator(false);
-    });
-  }
-
-  function setupPasswordToggle(buttonId, inputId) {
-    const button = document.getElementById(buttonId);
-    const input = document.getElementById(inputId);
-    if (!button || !input) return;
-
-    button.addEventListener('click', function () {
-      const isPassword = input.getAttribute('type') === 'password';
-      input.setAttribute('type', isPassword ? 'text' : 'password');
-      this.setAttribute('aria-pressed', isPassword ? 'true' : 'false');
-
-      const icon = this.querySelector('i');
-      if (!icon) return;
-
-      icon.classList.toggle('fa-eye', !isPassword);
-      icon.classList.toggle('fa-eye-slash', isPassword);
-    });
-  }
-
-  function initializeRegisterForm() {
-    const phoneInput = document.getElementById('phone_number');
-    const emailInput = document.getElementById('email');
-    const passwordInput = document.getElementById('password');
-    const passwordConfirmInput = document.getElementById('password_confirmation');
-
-    if (phoneInput) {
-      phoneInput.value = formatPhoneNumber(phoneInput.value);
+        if (typeof onBlur === 'function') {
+          onBlur();
+        }
+      });
     }
 
-    bindBlurValidation(phoneInput, validatePhoneNumber, () => {
-      phoneInput.value = formatPhoneNumber(phoneInput.value);
-    });
-    bindBlurValidation(emailInput, validateEmailAddress);
-    bindBlurValidation(passwordInput, validatePassword, () => {
+    function setupPasswordToggle(buttonId, inputId) {
+      const button = document.getElementById(buttonId);
+      const input = document.getElementById(inputId);
+      if (!button || !input) return;
+
+      button.addEventListener('click', function () {
+        const isPassword = input.getAttribute('type') === 'password';
+        input.setAttribute('type', isPassword ? 'text' : 'password');
+        this.setAttribute('aria-pressed', isPassword ? 'true' : 'false');
+
+        const icon = this.querySelector('i');
+        if (!icon) return;
+
+        icon.classList.toggle('fa-eye', !isPassword);
+        icon.classList.toggle('fa-eye-slash', isPassword);
+      });
+    }
+
+    function initializeRegisterForm() {
+      const phoneInput = document.getElementById('phone_number');
+      const emailInput = document.getElementById('email');
+      const passwordInput = document.getElementById('password');
+      const passwordConfirmInput = document.getElementById('password_confirmation');
+      const passwordToggle = document.getElementById('togglePassword');
+
+      const syncPasswordRequirementsVisibility = () => {
+        const activeElement = document.activeElement;
+        const shouldShow = activeElement === passwordInput || activeElement === passwordToggle;
+
+        setPasswordRequirementsVisibility(shouldShow);
+      };
+
+      if (phoneInput) {
+        phoneInput.value = formatPhoneNumber(phoneInput.value);
+      }
+
+      bindBlurValidation(phoneInput, validatePhoneNumber, {
+        onInput: () => {
+          phoneInput.value = formatPhoneNumber(phoneInput.value);
+        },
+      });
+      bindBlurValidation(emailInput, validateEmailAddress);
+      bindBlurValidation(passwordInput, validatePassword, {
+        onInput: () => {
+          updatePasswordRequirements();
+        },
+        onFocus: () => {
+          setPasswordRequirementsVisibility(true);
+          updatePasswordRequirements();
+        },
+        onBlur: () => {
+          requestAnimationFrame(syncPasswordRequirementsVisibility);
+
+          if (
+            passwordConfirmInput &&
+            passwordConfirmInput.value !== '' &&
+            passwordConfirmInput.dataset.touched === 'true'
+          ) {
+            validatePasswordConfirmation(false);
+          }
+        },
+      });
+      bindBlurValidation(passwordConfirmInput, validatePasswordConfirmation);
+
+      if (passwordToggle) {
+        passwordToggle.addEventListener('focus', () => {
+          setPasswordRequirementsVisibility(true);
+          updatePasswordRequirements();
+        });
+        passwordToggle.addEventListener('blur', () => {
+          requestAnimationFrame(syncPasswordRequirementsVisibility);
+        });
+      }
+
       updatePasswordRequirements();
+      setPasswordRequirementsVisibility(false);
+      setupPasswordToggle('togglePassword', 'password');
+      setupPasswordToggle('togglePasswordConfirm', 'password_confirmation');
+    }
 
-      if (passwordConfirmInput && passwordConfirmInput.value !== '') {
-        validatePasswordConfirmation(false);
-      }
-    });
-    bindBlurValidation(passwordConfirmInput, validatePasswordConfirmation);
+    initializeRegisterForm();
 
-    updatePasswordRequirements();
-    setupPasswordToggle('togglePassword', 'password');
-    setupPasswordToggle('togglePasswordConfirm', 'password_confirmation');
-  }
+    function signupPage({ hasErrors }) {
+      return {
+        showModal: false,
+        agreed: false,
+        checkboxChecked: false,
+        hasErrors: hasErrors === 'true',
+        isSubmitting: false,
+        submitForm(form) {
+          if (!(this.agreed && this.checkboxChecked)) {
+            return;
+          }
 
-  initializeRegisterForm();
+          if (!validateRegistrationForm(form)) {
+            return;
+          }
 
-  function signupPage({ hasErrors }) {
-    return {
-      showModal: false,
-      agreed: false,
-      checkboxChecked: false,
-      hasErrors: hasErrors === 'true',
-      isSubmitting: false,
-      submitForm(form) {
-        if (!(this.agreed && this.checkboxChecked)) {
-          return;
-        }
-
-        if (!validateRegistrationForm(form)) {
-          return;
-        }
-
-        this.isSubmitting = true;
-        form.submit();
-      },
-      initModal() {
-        if (!this.hasErrors && !localStorage.getItem('modalShown')) {
-          this.showModal = true;
-          localStorage.setItem('modalShown', 'yes');
+          this.isSubmitting = true;
+          form.submit();
+        },
+        initModal() {
+          if (!this.hasErrors && !localStorage.getItem('modalShown')) {
+            this.showModal = true;
+            localStorage.setItem('modalShown', 'yes');
+          }
         }
       }
     }
-  }
-</script>
-
+  </script>
 </body>
 </html>

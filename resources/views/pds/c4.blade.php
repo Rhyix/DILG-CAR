@@ -475,23 +475,64 @@
                         <label class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">ID/License/Passport No.:</label>
                     </div>
 
+                    @php
+                        $govtDateIssuedRaw = old('govt_id_date_issued', $data['govt_id_date_issued'] ?? '');
+                        $govtPlaceIssuedRaw = old('govt_id_place_issued', $data['govt_id_place_issued'] ?? '');
+                        $isGovtDateNotApplicable = strtoupper(trim((string) $govtDateIssuedRaw)) === 'N/A';
+                        $isGovtPlaceNotApplicable = strtoupper(trim((string) $govtPlaceIssuedRaw)) === 'N/A';
+                        if ($isGovtDateNotApplicable && $isGovtPlaceNotApplicable) {
+                            // Keep only one not-applicable flag active to enforce exclusivity.
+                            $isGovtPlaceNotApplicable = false;
+                            $govtPlaceIssuedRaw = '';
+                        }
+                        $govtDateIssuedValue = $isGovtDateNotApplicable ? '' : $govtDateIssuedRaw;
+                        $govtPlaceIssuedValue = $isGovtPlaceNotApplicable ? '' : $govtPlaceIssuedRaw;
+                    @endphp
+
                     <!-- Date Issued -->
                     <div class="relative">
-                        @php
-                            $govtDateIssued = old('govt_id_date_issued', $data['govt_id_date_issued'] ?? '');
-                            $govtDateIssuedValue = strtoupper(trim((string) $govtDateIssued)) === 'N/A' ? '' : $govtDateIssued;
-                        @endphp
-                        <input type="date" name="govt_id_date_issued" value="{{ $govtDateIssuedValue }}"
-                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
+                        <input
+                            type="date"
+                            id="govt_id_date_issued"
+                            name="govt_id_date_issued"
+                            value="{{ $govtDateIssuedValue }}"
+                            {{ $isGovtDateNotApplicable ? 'disabled' : '' }}
+                            class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
                         <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">Date of Issuance</label>
-                        <p class="mt-2 text-xs text-gray-500">Leave blank if no issuance date is available.</p>
+                        <label class="mt-2 inline-flex items-center gap-2 text-xs text-gray-600">
+                            <input
+                                type="checkbox"
+                                id="govt_id_date_not_applicable"
+                                name="govt_id_date_not_applicable"
+                                value="1"
+                                {{ $isGovtDateNotApplicable ? 'checked' : '' }}
+                                class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                            <span>Check if not applicable</span>
+                        </label>
                     </div>
 
                     <!-- Place Issued -->
                     <div class="relative">
-                        <input type="text" name="govt_id_place_issued" required value="{{ old('govt_id_place_issued', $data['govt_id_place_issued'] ?? '') }}"
-                        class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer" placeholder=" ">
+                        <input
+                            type="text"
+                            id="govt_id_place_issued"
+                            name="govt_id_place_issued"
+                            required
+                            value="{{ $govtPlaceIssuedValue }}"
+                            {{ $isGovtPlaceNotApplicable ? 'disabled' : '' }}
+                            class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer"
+                            placeholder=" ">
                         <label class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Place of Issuance</label>
+                        <label class="mt-2 inline-flex items-center gap-2 text-xs text-gray-600">
+                            <input
+                                type="checkbox"
+                                id="govt_id_place_not_applicable"
+                                name="govt_id_place_not_applicable"
+                                value="1"
+                                {{ $isGovtPlaceNotApplicable ? 'checked' : '' }}
+                                class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                            <span>Check if not applicable</span>
+                        </label>
                     </div>
                 </div>
             </section>
@@ -1033,6 +1074,11 @@
         const idSelect = document.getElementById('govt_id_type');
         const otherIdWrapper = document.getElementById('other-id-wrapper');
         const otherIdInput = document.getElementById('other_id_input');
+        const form = document.getElementById('other-info-form');
+        const govtDateIssuedInput = document.getElementById('govt_id_date_issued');
+        const govtPlaceIssuedInput = document.getElementById('govt_id_place_issued');
+        const govtDateNotApplicableCheckbox = document.getElementById('govt_id_date_not_applicable');
+        const govtPlaceNotApplicableCheckbox = document.getElementById('govt_id_place_not_applicable');
 
         idSelect.addEventListener('change', function () {
             if (this.value === 'other') {
@@ -1043,8 +1089,85 @@
             }
         });
 
+        function upsertNotApplicableHiddenInput(fieldName, marker, shouldEnable) {
+            if (!form) {
+                return;
+            }
+
+            const selector = `input[type="hidden"][data-na-hidden="${marker}"]`;
+            let hidden = form.querySelector(selector);
+
+            if (shouldEnable) {
+                if (!hidden) {
+                    hidden = document.createElement('input');
+                    hidden.type = 'hidden';
+                    hidden.name = fieldName;
+                    hidden.setAttribute('data-na-hidden', marker);
+                    form.appendChild(hidden);
+                }
+                hidden.value = 'N/A';
+                return;
+            }
+
+            if (hidden) {
+                hidden.remove();
+            }
+        }
+
+        function syncGovtIssueNotApplicable(source = null) {
+            if (!govtDateNotApplicableCheckbox || !govtPlaceNotApplicableCheckbox) {
+                return;
+            }
+
+            if (govtDateNotApplicableCheckbox.checked && govtPlaceNotApplicableCheckbox.checked) {
+                if (source === 'place') {
+                    govtDateNotApplicableCheckbox.checked = false;
+                } else {
+                    govtPlaceNotApplicableCheckbox.checked = false;
+                }
+            }
+
+            if (source === 'date' && govtDateNotApplicableCheckbox.checked) {
+                govtPlaceNotApplicableCheckbox.checked = false;
+            }
+
+            if (source === 'place' && govtPlaceNotApplicableCheckbox.checked) {
+                govtDateNotApplicableCheckbox.checked = false;
+            }
+
+            if (govtDateIssuedInput) {
+                govtDateIssuedInput.disabled = govtDateNotApplicableCheckbox.checked;
+                if (govtDateNotApplicableCheckbox.checked) {
+                    govtDateIssuedInput.value = '';
+                }
+            }
+
+            if (govtPlaceIssuedInput) {
+                govtPlaceIssuedInput.disabled = govtPlaceNotApplicableCheckbox.checked;
+                govtPlaceIssuedInput.required = !govtPlaceNotApplicableCheckbox.checked;
+                if (govtPlaceNotApplicableCheckbox.checked) {
+                    govtPlaceIssuedInput.value = '';
+                }
+            }
+
+            upsertNotApplicableHiddenInput('govt_id_date_issued', 'date-issued', govtDateNotApplicableCheckbox.checked);
+            upsertNotApplicableHiddenInput('govt_id_place_issued', 'place-issued', govtPlaceNotApplicableCheckbox.checked);
+        }
+
+        govtDateNotApplicableCheckbox?.addEventListener('change', function () {
+            syncGovtIssueNotApplicable('date');
+        });
+
+        govtPlaceNotApplicableCheckbox?.addEventListener('change', function () {
+            syncGovtIssueNotApplicable('place');
+        });
+
+        syncGovtIssueNotApplicable();
+
         // Before form submission, replace `govt_id_type` value with `other_id_input` if 'Other' is selected
         document.querySelector('form').addEventListener('submit', function (e) {
+            syncGovtIssueNotApplicable();
+
             if (idSelect.value === 'other' && otherIdInput.value.trim() !== '') {
                 const tempInput = document.createElement('input');
                 tempInput.type = 'hidden';
@@ -1189,13 +1312,53 @@
                 }
             }
 
+            function draftDataDiffers(localDraftData) {
+                if (!localDraftData || typeof localDraftData !== 'object') {
+                    return false;
+                }
+
+                const currentData = collectDraftData();
+                const fieldNames = new Set([
+                    ...Object.keys(currentData),
+                    ...Object.keys(localDraftData),
+                ]);
+
+                for (const fieldName of fieldNames) {
+                    const currentValue = currentData[fieldName];
+                    const localValue = localDraftData[fieldName];
+
+                    if (Array.isArray(currentValue) || Array.isArray(localValue)) {
+                        const currentArray = Array.isArray(currentValue) ? currentValue : [];
+                        const localArray = Array.isArray(localValue) ? localValue : [];
+
+                        if (currentArray.length !== localArray.length) {
+                            return true;
+                        }
+
+                        if (currentArray.some((value, index) => value !== localArray[index])) {
+                            return true;
+                        }
+
+                        continue;
+                    }
+
+                    if (String(currentValue ?? '') !== String(localValue ?? '')) {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
             function restoreLocalDraftIfNeeded() {
                 const localDraft = readLocalDraft();
                 if (!localDraft || !localDraft.data || typeof localDraft.data !== 'object') {
                     return false;
                 }
 
-                if (!localDraft.unsynced && formHasMeaningfulData()) {
+                const localDraftDiffersFromForm = draftDataDiffers(localDraft.data);
+
+                if (!localDraftDiffersFromForm) {
                     return false;
                 }
 
@@ -1276,7 +1439,10 @@
 
             form.addEventListener('input', markDirty);
             form.addEventListener('change', markDirty);
-            form.addEventListener('submit', () => { isSubmitting = true; });
+            form.addEventListener('submit', () => {
+                isSubmitting = true;
+                persistLocalDraft(true);
+            });
 
             async function saveDraft(force = false) {
                 if (isSubmitting) return;
@@ -1297,13 +1463,16 @@
                     const response = await fetch(autosaveUrl, {
                         method: 'POST',
                         body: formData,
-                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                        credentials: 'same-origin'
                     });
                     if (response.ok) {
                         const payload = await response.json().catch(() => null);
-                        if (draftVersion === versionAtRequestStart) {
+                        if (payload?.ok === true && draftVersion === versionAtRequestStart) {
                             isDirty = false;
                             persistLocalDraft(false, payload?.saved_at ?? new Date().toISOString());
+                        } else {
+                            persistLocalDraft(true);
                         }
                     } else {
                         persistLocalDraft(true);
@@ -1328,7 +1497,7 @@
 
             document.addEventListener('visibilitychange', () => {
                 if (document.hidden) {
-                    persistLocalDraft(isDirty);
+                    persistLocalDraft(true);
                 }
                 if (document.hidden && isDirty) {
                     saveDraft(true);
@@ -1344,14 +1513,14 @@
             });
 
             window.addEventListener('pagehide', () => {
-                persistLocalDraft(isDirty);
+                persistLocalDraft(true);
                 if (!isDirty || isSubmitting || !navigator.sendBeacon || !navigator.onLine) return;
                 const formData = new FormData(form);
                 navigator.sendBeacon(autosaveUrl, formData);
             });
 
             window.addEventListener('beforeunload', () => {
-                persistLocalDraft(isDirty);
+                persistLocalDraft(true);
                 if (!isDirty || isSubmitting || !navigator.sendBeacon || !navigator.onLine) return;
                 const formData = new FormData(form);
                 navigator.sendBeacon(autosaveUrl, formData);

@@ -1,7 +1,19 @@
 <div style="font-family: Montserrat, Arial, sans-serif; background:#f7fafc; padding:24px;">
+  @php
+    $logoPath = public_path('images/dilg_logo.png');
+    $logoSrc = asset('images/dilg_logo.png');
+
+    if (isset($message) && is_object($message) && method_exists($message, 'embed') && is_file($logoPath)) {
+      try {
+        $logoSrc = $message->embed($logoPath);
+      } catch (\Throwable $e) {
+        $logoSrc = asset('images/dilg_logo.png');
+      }
+    }
+  @endphp
   <div style="max-width:720px; margin:0 auto; background:#ffffff; border:1px solid #e5e7eb; border-radius:16px; box-shadow:0 8px 20px rgba(0,0,0,0.06); overflow:hidden;">
     <div style="background:#0D2B70; color:#fff; padding:20px 24px; display:flex; align-items:center; gap:16px;">
-      <img src="{{ asset('images/dilg_logo.png') }}" alt="DILG Logo" style="width:54px;height:54px;object-fit:contain;border-radius:4px;flex-shrink:0;background:#fff;padding:2px;">
+      <img src="{{ $logoSrc }}" alt="DILG Logo" style="width:54px;height:54px;object-fit:contain;border-radius:4px;flex-shrink:0;background:#fff;padding:2px;">
       <div>
         <h1 style="margin:0; font-size:20px;">Admin Notification</h1>
         <p style="margin:4px 0 0 0; font-size:13px; opacity:.9;">Applicant Notification Triggered</p>

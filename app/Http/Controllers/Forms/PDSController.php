@@ -19,6 +19,7 @@ use App\Models\UploadedDocument;
 use Illuminate\Http\UploadedFile;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use App\Models\LearningAndDevelopment;
 use Illuminate\Support\Facades\DB;
 use App\Models\CivilServiceEligibility;
@@ -278,6 +279,20 @@ class PDSController extends Controller
         return $digits;
     }
 
+    private function isGoogleOAuthUser($user): bool
+    {
+        if (!$user) {
+            return false;
+        }
+
+        $password = (string) ($user->password ?? '');
+        if ($password === '') {
+            return false;
+        }
+
+        return Hash::check('google-oauth', $password);
+    }
+
     /**
      * Updates the C1 session data based on the database .If there is no data on the database,
      * the function should return an empty array.
@@ -288,6 +303,10 @@ class PDSController extends Controller
 
         $c1_full_info = [];
         $current_user = Auth::user();
+        if (!$current_user) {
+            return $c1_full_info;
+        }
+
         $user_personal_info = $current_user->personalInformation?->attributesToArray();
         if ($user_personal_info != null) {
             $user_personal_info['date_of_birth'] = $this->normalizeDateForForm($user_personal_info['date_of_birth'] ?? null);
@@ -329,6 +348,13 @@ class PDSController extends Controller
             $user_personal_info['per_zipcode'] = ($user_personal_info['per_zipcode'] != '{*}') ? $user_personal_info['per_zipcode'] : null;
 
             $c1_full_info = array_merge($c1_full_info, $user_personal_info);
+        } elseif (!$this->isGoogleOAuthUser($current_user)) {
+            $c1_full_info = array_merge($c1_full_info, [
+                'surname' => trim((string) ($current_user->last_name ?? '')) ?: null,
+                'first_name' => trim((string) ($current_user->first_name ?? '')) ?: null,
+                'middle_name' => trim((string) ($current_user->middle_name ?? '')) ?: null,
+                'sex' => $this->normalizeSex((string) ($current_user->sex ?? '')) ?: null,
+            ]);
         }
 
         $user_family_bg = $current_user->familyBackground?->attributesToArray();
@@ -1502,8 +1528,22 @@ class PDSController extends Controller
         if ($govtPlaceAndDate !== '') {
             $parts = array_map('trim', explode('|', $govtPlaceAndDate, 2));
             if (count($parts) === 2) {
-                $govtPlaceIssued = $parts[0];
-                $govtDateIssued = $this->normalizeDateString($parts[1], 'Y-m-d');
+                $firstAsDate = $this->normalizeDateString($parts[0], 'Y-m-d');
+                $secondAsDate = $this->normalizeDateString($parts[1], 'Y-m-d');
+
+                if ($firstAsDate !== '' && $secondAsDate === '') {
+                    // New export order: date | place
+                    $govtDateIssued = $firstAsDate;
+                    $govtPlaceIssued = $parts[1];
+                } elseif ($secondAsDate !== '' && $firstAsDate === '') {
+                    // Backward compatibility: place | date
+                    $govtPlaceIssued = $parts[0];
+                    $govtDateIssued = $secondAsDate;
+                } else {
+                    // Ambiguous fallback keeps prior behavior.
+                    $govtPlaceIssued = $parts[0];
+                    $govtDateIssued = $secondAsDate;
+                }
             } else {
                 $govtPlaceIssued = $govtPlaceAndDate;
             }
@@ -2757,6 +2797,37 @@ class PDSController extends Controller
         }
     }
 
+    private function resolveAutosaveDetailValue(
+        array $incoming,
+        array $existing,
+        string $selectionField,
+        string $detailField,
+        string $targetField
+    ): string {
+        $currentValue = trim((string) ($existing[$targetField] ?? 'no'));
+
+        if (!array_key_exists($selectionField, $incoming)) {
+            return $currentValue;
+        }
+
+        $selection = trim((string) $incoming[$selectionField]);
+
+        if ($selection === 'no') {
+            return 'no';
+        }
+
+        if ($selection === 'yes') {
+            $detail = trim((string) ($incoming[$detailField] ?? ''));
+            if ($detail !== '') {
+                return $detail;
+            }
+
+            return strtolower($currentValue) !== 'no' ? $currentValue : '';
+        }
+
+        return $currentValue;
+    }
+
     private function normalizeReferenceContact($value): string
     {
         $value = trim((string) $value);
@@ -2838,18 +2909,20 @@ class PDSController extends Controller
 
     private function formatGovtIssuePlaceAndDate($place, $date): string
     {
-        $govtPlace = trim((string) $place);
+        $rawGovtPlace = trim((string) $place);
+        $govtPlace = strtoupper($rawGovtPlace) === 'N/A' ? '' : $rawGovtPlace;
         $rawGovtDate = trim((string) $date);
 
-        if ($rawGovtDate === '') {
+        if ($rawGovtDate === '' || strtoupper($rawGovtDate) === 'N/A') {
             $govtDate = '';
-        } elseif (strtoupper($rawGovtDate) === 'N/A') {
-            $govtDate = 'N/A';
         } else {
             $govtDate = $this->normalizeDateForExcel($rawGovtDate);
+            if ($govtDate === '') {
+                $govtDate = $rawGovtDate;
+            }
         }
 
-        return implode(' | ', array_values(array_filter([$govtPlace, $govtDate], fn ($value) => $value !== '')));
+        return implode(' | ', array_values(array_filter([$govtDate, $govtPlace], fn ($value) => $value !== '')));
     }
 
     public function c4ShowForm()
@@ -3154,16 +3227,145 @@ class PDSController extends Controller
                     $incoming = [];
                 }
 
-                $criminalDetails = $request->input('criminal_35_b_details');
-                if (is_array($criminalDetails)) {
-                    $incoming['criminal_35_b_array'] = $criminalDetails;
+                $merged = $existing;
+
+                $directScalarFields = [
+                    'related_34_a',
+                    'ref1_name',
+                    'ref1_address',
+                    'ref2_name',
+                    'ref2_address',
+                    'ref3_name',
+                    'ref3_address',
+                    'govt_id_number',
+                ];
+
+                foreach ($directScalarFields as $field) {
+                    if (array_key_exists($field, $incoming)) {
+                        $merged[$field] = trim((string) $incoming[$field]);
+                    }
                 }
 
-                if (array_key_exists('govt_id_date_issued', $incoming)) {
-                    $incoming['govt_id_date_issued'] = $this->normalizeGovtIdDateIssued($incoming['govt_id_date_issued']);
+                $detailMappings = [
+                    ['selection' => 'related_34_b', 'detail' => 'related_34_b_details', 'target' => 'related_34_b'],
+                    ['selection' => 'guilty_35_a', 'detail' => 'guilty_35_a_details', 'target' => 'guilty_35_a'],
+                    ['selection' => 'convicted_36', 'detail' => 'convicted_36_details', 'target' => 'convicted_36'],
+                    ['selection' => 'separated_37', 'detail' => 'separated_37_details', 'target' => 'separated_37'],
+                    ['selection' => 'candidate_38_a', 'detail' => 'candidate_38_a_details', 'target' => 'candidate_38'],
+                    ['selection' => 'resigned_38_b', 'detail' => 'resigned_38_b_details', 'target' => 'resigned_38_b'],
+                    ['selection' => 'immigrant_39', 'detail' => 'immigrant_39_details', 'target' => 'immigrant_39'],
+                    ['selection' => 'indigenous_40_a', 'detail' => 'indigenous_40_a_details', 'target' => 'indigenous_40_a'],
+                    ['selection' => 'pwd_40_b', 'detail' => 'pwd_40_b_details', 'target' => 'pwd_40_b'],
+                    ['selection' => 'solo_parent_40_c', 'detail' => 'solo_parent_40_c_details', 'target' => 'solo_parent_40_c'],
+                ];
+
+                foreach ($detailMappings as $mapping) {
+                    $merged[$mapping['target']] = $this->resolveAutosaveDetailValue(
+                        $incoming,
+                        $existing,
+                        $mapping['selection'],
+                        $mapping['detail'],
+                        $mapping['target']
+                    );
                 }
 
-                session(['form.c4' => array_merge($existing, $incoming)]);
+                $existingCriminalArray = $existing['criminal_35_b_array'] ?? [];
+                if (!is_array($existingCriminalArray)) {
+                    $existingCriminalArray = [];
+                }
+
+                $incomingCriminalArray = $incoming['criminal_35_b_details'] ?? null;
+                $criminalDate = trim((string) ($existingCriminalArray['date'] ?? ''));
+                $criminalStatus = trim((string) ($existingCriminalArray['status'] ?? ''));
+
+                if (is_array($incomingCriminalArray)) {
+                    $criminalDate = trim((string) ($incomingCriminalArray['date'] ?? $criminalDate));
+                    $criminalStatus = trim((string) ($incomingCriminalArray['status'] ?? $criminalStatus));
+                }
+
+                $criminalSelection = array_key_exists('criminal_35_b', $incoming)
+                    ? trim((string) $incoming['criminal_35_b'])
+                    : null;
+
+                if ($criminalSelection === 'yes') {
+                    $merged['criminal_35_b'] = trim($criminalDate . ',' . $criminalStatus, ',');
+                    $merged['criminal_35_b_array'] = [
+                        'date' => $criminalDate,
+                        'status' => $criminalStatus,
+                    ];
+                } elseif ($criminalSelection === 'no') {
+                    $merged['criminal_35_b'] = 'no';
+                    $merged['criminal_35_b_array'] = [
+                        'date' => '',
+                        'status' => '',
+                    ];
+                } else {
+                    if (!array_key_exists('criminal_35_b_array', $merged)) {
+                        $merged['criminal_35_b_array'] = [
+                            'date' => $criminalDate,
+                            'status' => $criminalStatus,
+                        ];
+                    }
+                }
+
+                if (array_key_exists('ref1_tel', $incoming)) {
+                    $merged['ref1_tel'] = $this->normalizeReferenceContact($incoming['ref1_tel']);
+                }
+                if (array_key_exists('ref2_tel', $incoming)) {
+                    $merged['ref2_tel'] = $this->normalizeReferenceContact($incoming['ref2_tel']);
+                }
+                if (array_key_exists('ref3_tel', $incoming)) {
+                    $merged['ref3_tel'] = $this->normalizeReferenceContact($incoming['ref3_tel']);
+                }
+
+                if (array_key_exists('govt_id_other', $incoming)) {
+                    $merged['govt_id_other'] = trim((string) $incoming['govt_id_other']);
+                }
+
+                if (array_key_exists('govt_id_type', $incoming)) {
+                    $govtIdType = trim((string) $incoming['govt_id_type']);
+                    if ($govtIdType === 'other') {
+                        $govtIdOther = trim((string) ($incoming['govt_id_other'] ?? ($existing['govt_id_other'] ?? '')));
+                        if ($govtIdOther !== '') {
+                            $govtIdType = $govtIdOther;
+                        }
+                    }
+                    $merged['govt_id_type'] = $govtIdType;
+                }
+
+                $dateNotApplicable = array_key_exists('govt_id_date_not_applicable', $incoming)
+                    && (string) $incoming['govt_id_date_not_applicable'] === '1';
+                $placeNotApplicable = array_key_exists('govt_id_place_not_applicable', $incoming)
+                    && (string) $incoming['govt_id_place_not_applicable'] === '1';
+
+                // Keep only one field marked as not applicable.
+                if ($dateNotApplicable && $placeNotApplicable) {
+                    $placeNotApplicable = false;
+                }
+
+                if ($dateNotApplicable) {
+                    $merged['govt_id_date_issued'] = 'N/A';
+                } elseif (array_key_exists('govt_id_date_issued', $incoming)) {
+                    $merged['govt_id_date_issued'] = $this->normalizeGovtIdDateIssued($incoming['govt_id_date_issued']);
+                }
+
+                if ($placeNotApplicable) {
+                    $merged['govt_id_place_issued'] = 'N/A';
+                } elseif (array_key_exists('govt_id_place_issued', $incoming)) {
+                    $merged['govt_id_place_issued'] = trim((string) $incoming['govt_id_place_issued']);
+                }
+
+                $merged['user_id'] = Auth::id();
+                session(['form.c4' => $merged]);
+
+                $dataToSave = $merged;
+                unset($dataToSave['criminal_35_b_array']);
+                unset($dataToSave['govt_id_date_not_applicable'], $dataToSave['govt_id_place_not_applicable']);
+
+                MiscInfos::updateOrCreate(
+                    ['user_id' => Auth::id()],
+                    $dataToSave
+                );
                 break;
             }
 

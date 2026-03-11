@@ -3,7 +3,7 @@
         $simple = in_array(request()->input('simple'), [1, '1', true, 'true'], true);
     @endphp
     <aside id="sidebar"
-        class="sidebar sidebar-transition fixed ml-5 mt-5 mb-5 flex flex-col justify-between bg-white text-[#002C76] rounded-xl shadow-lg {{ $simple ? 'overflow-y-auto w-72' : 'overflow-hidden w-16' }} relative z-60 h-[95vh]">
+        class="sidebar sidebar-transition fixed top-5 left-5 flex flex-col justify-between bg-white text-[#002C76] rounded-xl shadow-lg {{ $simple ? 'overflow-y-hidden w-72' : 'overflow-hidden w-16' }} z-[60] h-[95vh]">
 
         <style>
             #pdsMenu.pds-menu, #docsMenu.pds-menu {
@@ -146,7 +146,7 @@
                             <i data-feather="file-text" class="w-4 h-4 stroke-[3] flex-shrink-0"></i>
                             <span class="ml-3">PERSONAL DATA SHEET</span>
                         </a>
-                        <a href="{{ route('export.wes', ['preview' => 1]) }}" target="_blank" rel="noopener"
+                        <a href="{{ route('wes.preview') }}" target="_blank" rel="noopener"
                             class="flex items-center rounded-md px-3 py-2 text-sm font-semibold transition text-[#002C76] hover:text-white hover:bg-[#002C76]">
                             <i data-feather="file" class="w-4 h-4 stroke-[3] flex-shrink-0"></i>
                             <span class="ml-3">WORK EXPERIENCE SHEET</span>
@@ -233,7 +233,7 @@
                 }
             }
 
-            // Ensure sidebar stays open and allow scroll when PDS submenu is open
+            // Keep sidebar fixed in simple mode: page scroll should not scroll the sidebar itself.
             const sidebar = document.getElementById('sidebar');
             const toggleButton = document.getElementById('toggleSidebar');
             const logo = document.querySelector('img[alt="DILG Logo"]');
@@ -273,7 +273,8 @@
             }
 
             if (isSimple) {
-                sidebar?.classList.add('overflow-y-auto');
+                sidebar?.classList.remove('overflow-y-auto');
+                sidebar?.classList.add('overflow-y-hidden');
             }
 
             toggleButton?.addEventListener('click', () => {

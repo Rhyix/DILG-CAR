@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Support\Facades\Log;
 
 use Illuminate\Support\Facades\Mail;
 use App\Mail\OTPmail;
@@ -76,6 +78,7 @@ class RegisterController extends Controller
                 'password' => Hash::make($request->password),
                 'otp' => $otp,
                 'expires_at' => now()->addMinutes(5), //
+                'resend_available_at_ts' => now()->addSeconds(30)->timestamp,
             ]
         ]);
 
@@ -84,10 +87,18 @@ class RegisterController extends Controller
         try {
             Mail::to($request->email)->send(new OTPmail($otp));
         } catch (\Throwable $e) {
+            Log::error('Failed to send registration OTP mail.', [
+                'email' => $request->email,
+                'error' => $e->getMessage(),
+            ]);
             activity()
                 ->withProperties(['ip' => request()->ip(), 'email' => $request->email, 'section' => 'Register'])
                 ->event('send')
                 ->log('Failed to send OTP via mail.');
+
+            return back()
+                ->withInput($request->except('password', 'password_confirmation'))
+                ->withErrors(['email' => 'Unable to send OTP right now. Please try again after a moment.']);
         }
         //info("mail");
 
@@ -113,9 +124,18 @@ class RegisterController extends Controller
         ->log('Viewed OTP input form.');
 
 
+    $resendAvailableAtTs = (int) ($data['resend_available_at_ts'] ?? 0);
+    if ($resendAvailableAtTs <= 0 && isset($data['resend_available_at'])) {
+        $resendAvailableAtTs = Carbon::parse($data['resend_available_at'])->timestamp;
+    }
+    if ($resendAvailableAtTs <= 0) {
+        $resendAvailableAtTs = now()->timestamp;
+    }
+
     return view('login_register.otp', [
         'email' => $data['email'],
-        'status' => 'otp_waiting'
+        'status' => 'otp_waiting',
+        'resendAvailableAtTs' => $resendAvailableAtTs,
     ]);
 }
 
@@ -189,25 +209,50 @@ class RegisterController extends Controller
     public function resendOTP(Request $request)
     {
         $data = session('pending_registration');
+        $wantsJson = $request->expectsJson() || $request->ajax() || $request->wantsJson() || $request->isJson();
 
         if (!$data) {
-            return $request->ajax()
+            return $wantsJson
                 ? response()->json(['message' => 'Session expired.'], 419)
                 : redirect()->route('register')->withErrors(['expired' => 'Session expired. Please register again.']);
+        }
+
+        $resendAvailableAtTs = (int) ($data['resend_available_at_ts'] ?? 0);
+        if ($resendAvailableAtTs <= 0 && isset($data['resend_available_at'])) {
+            $resendAvailableAtTs = Carbon::parse($data['resend_available_at'])->timestamp;
+        }
+
+        $nowTs = now()->timestamp;
+        if ($resendAvailableAtTs > $nowTs) {
+            $retryAfter = $resendAvailableAtTs - $nowTs;
+            $message = "Please wait {$retryAfter} seconds before requesting another OTP.";
+
+            return $wantsJson
+                ? response()->json(['message' => $message, 'retry_after' => $retryAfter], 429)
+                : back()->withErrors(['otp' => $message]);
         }
 
         $newOtp = rand(100000, 999999);
         $data['otp'] = $newOtp;
         $data['expires_at'] = now()->addMinutes(5);
+        $data['resend_available_at_ts'] = now()->addSeconds(30)->timestamp;
         session(['pending_registration' => $data]);
 
         try {
             Mail::to($data['email'])->send(new OTPmail($newOtp));
         } catch (\Throwable $e) {
+            Log::error('Failed to resend registration OTP mail.', [
+                'email' => $data['email'] ?? null,
+                'error' => $e->getMessage(),
+            ]);
             activity()
                 ->withProperties(['ip' => request()->ip(), 'email' => $data['email'] ?? 'Unknown', 'section' => 'Register'])
                 ->event('send')
                 ->log('Failed to resend OTP via mail.');
+
+            return $wantsJson
+                ? response()->json(['message' => 'Unable to send OTP right now. Please try again.'], 500)
+                : back()->withErrors(['otp' => 'Unable to send OTP right now. Please try again.']);
         }
 
         activity()
@@ -215,8 +260,12 @@ class RegisterController extends Controller
             ->event('send')
             ->log('Resent OTP for registration.');
 
-        return $request->ajax()
-            ? response()->json(['message' => 'OTP resent.'])
+        return $wantsJson
+            ? response()->json([
+                'message' => 'OTP resent.',
+                'retry_after' => 30,
+                'resend_available_at' => (int) $data['resend_available_at_ts'],
+            ])
             : back()->with('status', 'A new OTP has been sent to your email.');
     }
 

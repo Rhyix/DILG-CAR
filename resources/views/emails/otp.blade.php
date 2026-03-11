@@ -3,24 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <title>OTP Verification</title>
-  <!-- Google Fonts: Montserrat -->
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     body {
       margin: 0;
       padding: 0;
-      font-family: 'Montserrat', sans-serif;
-      background-color: #F3F8FF;
+      font-family: Arial, sans-serif;
+      background-color: #f3f8ff;
     }
 
     .container {
       max-width: 600px;
       margin: 30px auto;
-      background: #FFFFFF;
+      background: #ffffff;
       border: 1px solid #cfd9e0;
       border-radius: 16px;
       overflow: hidden;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
     }
 
     .header {
@@ -47,24 +45,17 @@
     }
 
     .banner {
-      background-color: #002C76;
-      color: white;
+      background-color: #002c76;
+      color: #ffffff;
       padding: 15px 30px;
-      margin: 15px 15px 0px 15px;
+      margin: 15px 15px 0;
       font-size: 18px;
       font-weight: 700;
-      border-radius: 16px 16px 16px 16px;
-      display: flex;
-      align-items: center;
-    }
-
-    .banner img {
-      width: 20px;
-      margin-right: 10px;
+      border-radius: 16px;
     }
 
     .content {
-      padding: 0px 30px 15px 30px;
+      padding: 0 30px 20px 30px;
       color: #1a202c;
       font-size: 15px;
       line-height: 1.6;
@@ -82,52 +73,46 @@
       letter-spacing: 4px;
       border-radius: 8px;
     }
-
-    .footer {
-      padding: 0 30px 30px;
-      font-size: 14px;
-      color: #2d3748;
-    }
-
-    .footer strong {
-      font-weight: 700;
-    }
   </style>
 </head>
 <body>
+  @php
+    $logoPath = public_path('images/dilg_logo.png');
+    $logoSrc = asset('images/dilg_logo.png');
+
+    if (isset($message) && is_object($message) && method_exists($message, 'embed') && is_file($logoPath)) {
+        try {
+            $logoSrc = $message->embed($logoPath);
+        } catch (\Throwable $e) {
+            $logoSrc = asset('images/dilg_logo.png');
+        }
+    }
+  @endphp
+
   <div class="container">
-    <!-- Header -->
     <div class="header">
-      <img class="logo" src="{{ $message->embed(public_path('images/dilg_logo.png')) }}" alt="DILG Logo" style="object-fit:contain;">
+      <img class="logo" src="{{ $logoSrc }}" alt="DILG Logo" style="object-fit: contain;">
       <div class="title-text">
         <h2>DILG - CAR<br>Recruitment Selection and Placement Portal</h2>
       </div>
     </div>
 
-    <!-- Banner -->
-    <div class="banner">
-      <img src="https://img.icons8.com/ios-filled/50/ffffff/key-security.png" alt="Key Icon" />
-      One-Time Password (OTP)
-    </div>
+    <div class="banner">One-Time Password (OTP)</div>
 
-    <!-- Content -->
     <div class="content">
       <p>Hello!</p>
       <p>
         You are registering a new account on <strong>DILG - CAR Recruitment Selection and Placement Portal</strong>.
-        To verify your account, here is your OTP to be entered on the verification page:
+        To verify your account, use the OTP below:
       </p>
 
-      <div class="otp-box">
-        {{ $otp }}
-      </div>
+      <div class="otp-box">{{ $otp }}</div>
 
       <p>This code will expire in <strong>5 minutes</strong>.</p>
       <p>Do not share this code with anyone.</p>
-      <p>If you didn’t request this code, just ignore this email. Thank you!</p>
-      <p><br><strong>– DILG – CAR</strong></p>
+      <p>If you did not request this code, just ignore this email. Thank you.</p>
+      <p><strong>- DILG-CAR</strong></p>
     </div>
   </div>
-  @include('partials.loader')
 </body>
 </html>

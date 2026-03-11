@@ -443,7 +443,7 @@
 @if (session('after_action') === 'download')
 <script>
   window.onload = function () {
-    window.location.href = "{{ route('export.wes', ['preview' => 1]) }}";
+    window.location.href = "{{ route('wes.preview') }}";
   };
 </script>
 @endif

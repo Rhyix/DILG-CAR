@@ -130,6 +130,7 @@ class ExportPDSController
 
         $templateCandidates = $useCleanTemplate
             ? [
+                resource_path('templates/revised pds without red signature text.pdf'),
                 resource_path('templates/pds template without red text.pdf'),
                 resource_path('templates/PDS_2025_from_xlsx.pdf'),
                 resource_path('templates/PDS_fixed_V9.pdf'),
@@ -274,7 +275,6 @@ class ExportPDSController
         $this->configureCoordinateScale((float) $page1Size['width'], (float) $page1Size['height']);
         $pdf->AddPage($page1Size['orientation'], [$page1Size['width'], $page1Size['height']]);
         $pdf->useTemplate($templateId);
-        $this->clearLegacyHeaderNote($pdf);
         $this->setFont($pdf, 'Arial', '', 8);
 
         $this->writePersonalInfo($pdf, $personalInfo);
@@ -328,8 +328,6 @@ class ExportPDSController
             $this->currentTemplatePage = 1;
             $pdf->AddPage($page1Size['orientation'], [$page1Size['width'], $page1Size['height']]);
             $pdf->useTemplate($templateId);
-            $this->clearLegacyHeaderNote($pdf);
-
             $this->writeFooterDate($pdf);
 
             $this->setFont($pdf, 'Arial', '', 8);
@@ -371,8 +369,6 @@ class ExportPDSController
         $this->configureCoordinateScale((float) $page2Size['width'], (float) $page2Size['height']);
         $pdf->AddPage($page2Size['orientation'], [$page2Size['width'], $page2Size['height']]);
         $pdf->useTemplate($templateId);
-        $this->clearLegacyHeaderNote($pdf);
-
         // Write first CSE chunk (max 7 rows)
         $this->writeCivilServiceEligibilityChunk($pdf, $cseChunks[0] ?? []);
 
@@ -408,8 +404,6 @@ class ExportPDSController
             $this->currentTemplatePage = 2;
             $pdf->AddPage($page2Size['orientation'], [$page2Size['width'], $page2Size['height']]);
             $pdf->useTemplate($templateId);
-            $this->clearLegacyHeaderNote($pdf);
-
             $this->writeFooterDate($pdf);
             $this->writeCivilServiceEligibilityChunk($pdf, $cseChunks[$i]);
 
@@ -426,8 +420,6 @@ class ExportPDSController
             $this->currentTemplatePage = 2;
             $pdf->AddPage($page2Size['orientation'], [$page2Size['width'], $page2Size['height']]);
             $pdf->useTemplate($templateId);
-            $this->clearLegacyHeaderNote($pdf);
-
             $this->writeFooterDate($pdf);
             $this->writeWorkExperienceChunk($pdf, $chunk);
         }
@@ -442,8 +434,6 @@ class ExportPDSController
         $this->configureCoordinateScale((float) $page3Size['width'], (float) $page3Size['height']);
         $pdf->AddPage($page3Size['orientation'], [$page3Size['width'], $page3Size['height']]);
         $pdf->useTemplate($templateId);
-        $this->clearLegacyHeaderNote($pdf);
-
         // Write first Voluntary chunk (max 7 rows)
         $this->writeVoluntaryWorkChunk($pdf, $vwChunks[0] ?? []);
 
@@ -497,7 +487,6 @@ class ExportPDSController
             $this->configureCoordinateScale((float) $page3Size['width'], (float) $page3Size['height']);
             $pdf->AddPage($page3Size['orientation'], [$page3Size['width'], $page3Size['height']]);
             $pdf->useTemplate($templateId);
-            $this->clearLegacyHeaderNote($pdf);
             $this->writeFooterDate($pdf);
 
             // Write Voluntary Work chunk if exists
@@ -537,8 +526,6 @@ class ExportPDSController
                 $this->configureCoordinateScale((float) $lndContinuationPageSize['width'], (float) $lndContinuationPageSize['height']);
                 $pdf->AddPage($lndContinuationPageSize['orientation'], [$lndContinuationPageSize['width'], $lndContinuationPageSize['height']]);
                 $pdf->useTemplate($lndContinuationTemplateId);
-                $this->clearLegacyHeaderNote($pdf);
-
                 $this->writeLearningAndDevelopmentChunk($pdf, $lndChunks[$i]);
                 $this->writeFooterDate($pdf);
             }
@@ -559,13 +546,6 @@ class ExportPDSController
         $this->configureCoordinateScale((float) $page4Size['width'], (float) $page4Size['height']);
         $pdf->AddPage($page4Size['orientation'], [$page4Size['width'], $page4Size['height']]);
         $pdf->useTemplate($templateId);
-        $this->clearLegacyHeaderNote($pdf);
-
-        // Cover red instructional text on download (they're baked into the template)
-        if ($isDownload) {
-            $this->coverSignatureRedText($pdf);
-        }
-
         // Write first C4 chunk (max 7 rows)
         $this->WriteC4Information($pdf, $user->id);
 
@@ -604,7 +584,7 @@ class ExportPDSController
         $forceInline = $isPreview || $isPrint;
 
         if ($isDownload) {
-            // Download as attachment — red text already covered above
+            // Download as attachment
             $pdf->Output($filename, 'D');
             exit;
         } elseif ($isMobile && !$forceInline) {
@@ -1742,12 +1722,11 @@ private function WriteC4Information($pdf, $userId)
         $this->writeFittedAt($pdf, $this->valueOrNa($info['govt_id'] ?? null), 31, 262.5, 58, 7.5, 5.0); // Govt ID type
         $this->writeFittedAt($pdf, $this->valueOrNa($info['other_id'] ?? null), 32, 269, 58, 7.5, 5.0); // Govt ID number
 
-        $issuePlace = trim((string) ($info['issue_place'] ?? ''));
-        $issuedDate = $this->dateOrNa($info['issue_date'] ?? null);
-        $issuedText = $issuePlace === ''
-            ? $issuedDate
-            : trim($issuePlace . ' | ' . ($issuedDate === 'N/A' ? '' : $issuedDate), " |\t\n\r\0\x0B");
-        $this->writeFittedAt($pdf, $this->valueOrNa($issuedText), 32, 276, 86, 7.5, 4.6);
+        $issuedText = $this->formatGovtIssuePlaceAndDate(
+            $info['issue_place'] ?? '',
+            $info['issue_date'] ?? ''
+        );
+        $this->writeFittedAt($pdf, $issuedText, 32, 276, 86, 7.5, 4.6);
 
     // Leave oath/signature/thumbmark placeholders blank when data is unavailable.
 }
@@ -1807,40 +1786,6 @@ private function parseCriminal35B($misc): array
 }
 
 
-/**
- * Paints white rectangles over the red instructional signature/oath text
- * that is baked into the page-4 PDF template. Only called for downloads.
- * Adjust Y values here if the template is ever replaced.
- */
-private function coverSignatureRedText(Fpdi $pdf): void
-{
-    $pdf->SetFillColor(255, 255, 255);
-    $pdf->SetDrawColor(255, 255, 255);
-
-    // Helper: scale Y then paint a white filled rect (no border)
-    $whiteRect = function (float $x, float $y, float $w, float $h) use ($pdf): void {
-        $scaledX = $this->scaleX($x);
-        $scaledY = $this->scaleY($y);
-        $pdf->Rect($scaledX, $scaledY, $this->scaleWidth($w), $this->scaleHeight($h), 'F');
-    };
-
-    // 1. Upper narrow signature-indicator box
-    //    "(wet signature/e-signature/digital certificate)"
-    $whiteRect(109.0, 234.5, 95.0, 5.5);
-
-    // 2. Main signature box red text (above the date/sign lines)
-    //    "(wet signature/e-signature/digital certificate)"
-    $whiteRect(109.0, 247.5, 95.0, 5.5);
-
-    // 3. Person Administering Oath box red text
-    //    "(wet signature/e-signature/digital certificate except for notary public)"
-    $whiteRect(7.0, 288.5, 155.0, 5.5);
-
-    // Restore draw color to black for subsequent writes
-    $pdf->SetDrawColor(0, 0, 0);
-    $pdf->SetFillColor(0, 0, 0);
-}
-
 // Move writeCentered to class method for cleaner passing
 private function getWriteCentered()
 {
@@ -1878,11 +1823,6 @@ private function markCheckbox($pdf, float $x, float $y): void
     $pdf->SetLineWidth(0.25);
     $pdf->Line($x1, $y1, $x2, $y2);
     $pdf->Line($x3, $y3, $x4, $y4);
-}
-
-private function clearLegacyHeaderNote(Fpdi $pdf): void
-{
-    // Disabled: user requested no white cover on the "CS Form No. 212 Revised 2025" label.
 }
 
 private function getPageXScale(): float
@@ -3056,10 +2996,12 @@ private function excelDateMonthYear($value): string
 
 private function formatGovtIssuePlaceAndDate($place, $date): string
 {
-    $issuePlace = $this->excelValue($place);
-    $issueDate = $this->excelDate($date);
+    $issuePlaceRaw = $this->excelValue($place);
+    $issueDateRaw = $this->excelDate($date);
+    $issuePlace = strtoupper(trim($issuePlaceRaw)) === 'N/A' ? '' : $issuePlaceRaw;
+    $issueDate = strtoupper(trim($issueDateRaw)) === 'N/A' ? '' : $issueDateRaw;
 
-    return implode(' | ', array_values(array_filter([$issuePlace, $issueDate], fn ($value) => $value !== '')));
+    return implode(' | ', array_values(array_filter([$issueDate, $issuePlace], fn ($value) => $value !== '')));
 }
 
 }

@@ -4,6 +4,20 @@ $fromAddress = env('MAIL_FROM_ADDRESS', 'hello@example.com');
 $fallbackLocalDomain = str_contains($fromAddress, '@')
     ? ltrim(strrchr($fromAddress, '@'), '@')
     : parse_url(env('APP_URL', 'http://localhost'), PHP_URL_HOST);
+$configuredScheme = strtolower((string) env('MAIL_SCHEME', ''));
+$configuredEncryption = strtolower((string) env('MAIL_ENCRYPTION', ''));
+
+if ($configuredScheme === 'tls') {
+    $configuredScheme = 'smtp';
+}
+
+if ($configuredScheme === 'ssl') {
+    $configuredScheme = 'smtps';
+}
+
+$smtpScheme = $configuredScheme !== ''
+    ? $configuredScheme
+    : ($configuredEncryption === 'ssl' ? 'smtps' : 'smtp');
 
 return [
 
@@ -44,13 +58,16 @@ return [
 
         'smtp' => [
             'transport' => 'smtp',
-            'scheme' => env('MAIL_SCHEME'),
+            // Valid schemes are smtp / smtps. TLS should be controlled via encryption/auto_tls.
+            'scheme' => $smtpScheme,
+            'encryption' => env('MAIL_ENCRYPTION'),
             'url' => env('MAIL_URL'),
             'host' => env('MAIL_HOST', '127.0.0.1'),
             'port' => env('MAIL_PORT', 2525),
             'username' => env('MAIL_USERNAME'),
             'password' => env('MAIL_PASSWORD'),
-            'timeout' => null,
+            'timeout' => env('MAIL_TIMEOUT', 30),
+            'auto_tls' => env('MAIL_AUTO_TLS', true),
             'local_domain' => env('MAIL_EHLO_DOMAIN', $fallbackLocalDomain),
         ],
 

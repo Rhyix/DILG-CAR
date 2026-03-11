@@ -3,36 +3,68 @@
 namespace App\Http\Controllers\Forms;
 
 use App\Http\Controllers\Controller;
-use PhpOffice\PhpWord\TemplateProcessor;
-use PhpOffice\PhpWord\Element\TextRun;
-use PhpOffice\PhpWord\Element\Text;
-use PhpOffice\PhpWord\SimpleType\Jc;
-use PhpOffice\PhpWord\Style\Font;
-use App\Models\WorkExpSheet;
-use App\Models\WorkExperience;
 use App\Models\PersonalInformation;
-use Illuminate\Support\Facades\Auth;
+use App\Models\WorkExperience;
+use App\Models\WorkExpSheet;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
 
 class ExportWESController extends Controller
 {
     public function exportWES(Request $request)
     {
         $user = Auth::user();
+        $prepared = $this->prepareWesData($user->id, $user);
+        $fullName = $prepared['full_name'];
+        $experiences = $prepared['experiences'];
 
-        // Get full name for signature
-        $personalInfo = PersonalInformation::where('user_id', $user->id)->first();
+        $pdf = $this->buildWesPdf($fullName, $experiences);
+
+        $timestamp = now()->format('Ymd_His');
+        $filename = "WorkExperienceSheet_{$timestamp}.pdf";
+
+        $forceInline = $request->boolean('preview') || $request->boolean('print');
+        if ($request->boolean('download')) {
+            $forceInline = false;
+        }
+
+        activity()
+            ->causedBy($user)
+            ->event('export')
+            ->withProperties([
+                'exported_file' => $filename,
+                'entries_count' => $experiences->count(),
+                'section' => 'Export',
+                'format' => 'pdf',
+            ])
+            ->log('Exported Work Experience Sheet.');
+
+        $content = $pdf->Output('S');
+
+        return response($content, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => ($forceInline ? 'inline' : 'attachment') . '; filename="' . $filename . '"',
+            'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+            'Pragma' => 'no-cache',
+        ]);
+    }
+
+    public function previewWES()
+    {
+        return view('pds.wes_preview');
+    }
+
+    private function prepareWesData(int $userId, $user): array
+    {
+        $personalInfo = PersonalInformation::where('user_id', $userId)->first();
         $firstName = $personalInfo->first_name ?? ($user->first_name ?? '');
         $middleName = $personalInfo->middle_name ?? ($user->middle_name ?? '');
         $surname = $personalInfo->surname ?? ($user->last_name ?? '');
         $extension = $personalInfo->name_extension ?? ($user->name_extension ?? '');
 
-        // Get middle initial with dot (e.g., 'J.')
         $middleInitial = $middleName ? strtoupper(mb_substr($middleName, 0, 1)) . '.' : '';
-
-        // Compose full name (uppercase)
         $fullName = strtoupper(trim($firstName . ' ' . $middleInitial . ' ' . $surname));
         if (!empty($extension)) {
             $fullName .= ', ' . strtoupper($extension);
@@ -41,23 +73,13 @@ class ExportWESController extends Controller
             $fullName = strtoupper($user->name ?? 'N/A');
         }
 
-        // Load Word template
-        $templatePath = public_path('templates/WES_Template.docx');
-        $templateProcessor = new TemplateProcessor($templatePath);
-
-        // Insert into placeholder ${name} in the Word template
-        $templateProcessor->setValue('name', $fullName);
-        $templateProcessor->setValue('date', now()->format('F d, Y'));
-
-
-        // Work experience entries ordered most recent first
-        $experiences = WorkExpSheet::where('user_id', $user->id)
+        $experiences = WorkExpSheet::where('user_id', $userId)
             ->where('isDisplayed', true)
             ->orderByDesc('start_date')
             ->get();
 
         if ($experiences->isEmpty()) {
-            $experiences = WorkExperience::where('user_id', $user->id)
+            $experiences = WorkExperience::where('user_id', $userId)
                 ->orderByDesc('work_exp_from')
                 ->get()
                 ->map(function ($row) {
@@ -89,63 +111,149 @@ class ExportWESController extends Controller
             ]);
         }
 
-        $templateProcessor->cloneBlock('experience', $experiences->count(), true, true);
+        return [
+            'full_name' => $fullName,
+            'experiences' => $experiences,
+        ];
+    }
 
-        foreach ($experiences as $i => $exp) {
-            $idx = $i + 1;
+    private function buildWesPdf(string $fullName, Collection $experiences): \FPDF
+    {
+        $pdf = new \FPDF('P', 'mm', 'A4');
+        $pdf->SetMargins(12, 12, 12);
+        $pdf->SetAutoPageBreak(true, 12);
+        $pdf->AddPage();
+
+        $pdf->SetFont('Arial', 'I', 9);
+        $pdf->Cell(0, 5, $this->toPdfText('Attachment to CS Form No. 212'), 0, 1, 'C');
+        $pdf->SetFont('Arial', 'B', 16);
+        $pdf->Cell(0, 8, $this->toPdfText('WORK EXPERIENCE SHEET'), 0, 1, 'C');
+        $pdf->Ln(2);
+
+        $pdf->SetFont('Arial', '', 10);
+        $pdf->Cell(20, 6, $this->toPdfText('Name:'), 0, 0);
+        $pdf->SetFont('Arial', 'B', 10);
+        $pdf->Cell(120, 6, $this->toPdfText($fullName), 0, 0);
+        $pdf->SetFont('Arial', '', 10);
+        $pdf->Cell(12, 6, $this->toPdfText('Date:'), 0, 0);
+        $pdf->Cell(0, 6, $this->toPdfText(now()->format('F d, Y')), 0, 1);
+        $pdf->Ln(2);
+        $pdf->Line(12, $pdf->GetY(), 198, $pdf->GetY());
+        $pdf->Ln(4);
+
+        foreach ($experiences as $index => $exp) {
+            $this->ensurePdfSpace($pdf, 42);
+            $entryNo = $index + 1;
             $from = $this->formatMonthYear($exp->start_date);
             $to = $exp->end_date ? $this->formatMonthYear($exp->end_date) : 'Present';
+            $duration = trim(($from !== '' ? $from : 'N/A') . ' to ' . ($to !== '' ? $to : 'N/A'));
 
-            $templateProcessor->setValue("from#{$idx}", $from);
-            $templateProcessor->setValue("to#{$idx}", $to);
-            $templateProcessor->setValue("position#{$idx}", $exp->position ?? '');
-            $templateProcessor->setValue("office#{$idx}", $exp->office ?? '');
-            $templateProcessor->setValue("supervisor#{$idx}", $exp->supervisor ?? '');
-            $templateProcessor->setValue("agency#{$idx}", $exp->agency ?? '');
-            $templateProcessor->setValue("accomplishments#{$idx}", $this->formatList($exp->accomplishments));
-            $templateProcessor->setValue("duties#{$idx}", $this->formatList($exp->duties));
+            $pdf->SetFont('Arial', 'B', 11);
+            $pdf->Cell(0, 7, $this->toPdfText("Entry {$entryNo}"), 0, 1);
+            $pdf->SetFont('Arial', '', 10);
+
+            $this->pdfLabelValue($pdf, 'Duration', $duration);
+            $this->pdfLabelValue($pdf, 'Position', (string) ($exp->position ?? 'N/A'));
+            $this->pdfLabelValue($pdf, 'Name of Office/Unit', (string) ($exp->office ?? 'N/A'));
+            $this->pdfLabelValue($pdf, 'Immediate Supervisor', (string) ($exp->supervisor ?? 'N/A'));
+            $this->pdfLabelValue($pdf, 'Agency/Organization and Location', (string) ($exp->agency ?? 'N/A'));
+
+            $this->pdfListBlock($pdf, 'Accomplishments and Contributions', $this->listItemsForPreview($exp->accomplishments ?? []));
+            $this->pdfListBlock($pdf, 'Summary of Actual Duties', $this->listItemsForPreview($exp->duties ?? []));
+
+            $pdf->Ln(2);
+            $pdf->SetDrawColor(220, 220, 220);
+            $pdf->Line(12, $pdf->GetY(), 198, $pdf->GetY());
+            $pdf->SetDrawColor(0, 0, 0);
+            $pdf->Ln(3);
         }
 
-        // Save and return the document with timestamped filename
-        $timestamp = now()->format('Ymd_His');
-        $outputFilename = "WorkExperienceSheet_{$timestamp}.docx";
-        $outputPath = storage_path("app/public/{$outputFilename}");
-        $templateProcessor->saveAs($outputPath);
+        $this->ensurePdfSpace($pdf, 24);
+        $pdf->Ln(6);
+        $pdf->SetFont('Arial', '', 10);
+        $pdf->Cell(120, 6, '', 0, 0);
+        $pdf->Cell(64, 6, '_______________________________', 0, 1, 'C');
+        $pdf->Cell(120, 5, '', 0, 0);
+        $pdf->Cell(64, 5, $this->toPdfText('(Signature over Printed Name of Employee/Applicant)'), 0, 1, 'C');
+        $pdf->Ln(6);
+        $pdf->Cell(0, 6, $this->toPdfText('Date: ____________________'), 0, 1, 'R');
 
-        activity()
-            ->causedBy($user)
-            ->event('export')
-            ->withProperties([
-                'exported_file' => $outputFilename,
-                'entries_count' => $experiences->count(),
-                'section' => 'Export'
-            ])
-            ->log('Exported Work Experience Sheet.');
-
-        if ($request->boolean('preview')) {
-            return response()->file($outputPath, [
-                'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                'Content-Disposition' => 'inline; filename="' . $outputFilename . '"',
-            ])->deleteFileAfterSend(true);
-        }
-
-        return response()->download($outputPath, $outputFilename)->deleteFileAfterSend(true);
-
+        return $pdf;
     }
 
-    private function formatList($value)
+    private function ensurePdfSpace(\FPDF $pdf, float $heightNeeded): void
     {
-        if (empty($value)) return '○ None';
-        $items = is_string($value) ? explode('|', $value) : (array) $value;
-        return '○ ' . implode("\n○ ", array_map('trim', $items));
+        if ($pdf->GetY() + $heightNeeded <= 285) {
+            return;
+        }
+
+        $pdf->AddPage();
     }
 
-    private function formatMonthYear($date)
+    private function pdfLabelValue(\FPDF $pdf, string $label, string $value): void
+    {
+        $label = rtrim($label, ':') . ':';
+        $safeValue = trim($value) !== '' ? trim($value) : 'N/A';
+
+        $pdf->SetFont('Arial', 'B', 9.5);
+        $pdf->Cell(56, 6, $this->toPdfText($label), 0, 0);
+        $pdf->SetFont('Arial', '', 9.5);
+        $pdf->MultiCell(130, 6, $this->toPdfText($safeValue), 0, 'L');
+    }
+
+    private function pdfListBlock(\FPDF $pdf, string $title, array $items): void
+    {
+        $pdf->SetFont('Arial', 'B', 9.5);
+        $pdf->Cell(0, 6, $this->toPdfText($title . ':'), 0, 1);
+        $pdf->SetFont('Arial', '', 9.5);
+
+        foreach ($items as $item) {
+            $pdf->Cell(4, 6, '-', 0, 0);
+            $pdf->MultiCell(178, 6, $this->toPdfText($item), 0, 'L');
+        }
+    }
+
+    private function listItemsForPreview($value): array
+    {
+        if (empty($value)) {
+            return ['N/A'];
+        }
+
+        $items = is_string($value) ? explode('|', $value) : (array) $value;
+        $items = array_values(array_filter(array_map(function ($item) {
+            return trim((string) $item);
+        }, $items), function ($item) {
+            return $item !== '';
+        }));
+
+        return empty($items) ? ['N/A'] : $items;
+    }
+
+    private function formatMonthYear($date): string
     {
         try {
             return Carbon::parse($date)->format('M Y');
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return '';
         }
+    }
+
+    private function toPdfText(string $text): string
+    {
+        $cleaned = strtr($text, [
+            '’' => "'",
+            '‘' => "'",
+            '“' => '"',
+            '”' => '"',
+            '–' => '-',
+            '—' => '-',
+            '•' => '-',
+            '…' => '...',
+            "\u{00A0}" => ' ',
+        ]);
+
+        $converted = @iconv('UTF-8', 'Windows-1252//TRANSLIT//IGNORE', $cleaned);
+
+        return $converted === false ? utf8_decode($cleaned) : $converted;
     }
 }

@@ -112,10 +112,22 @@
   </style>
 </head>
     <body>
+        @php
+            $logoPath = public_path('images/dilg_logo.png');
+            $logoSrc = asset('images/dilg_logo.png');
+
+            if (isset($message) && is_object($message) && method_exists($message, 'embed') && is_file($logoPath)) {
+                try {
+                    $logoSrc = $message->embed($logoPath);
+                } catch (\Throwable $e) {
+                    $logoSrc = asset('images/dilg_logo.png');
+                }
+            }
+        @endphp
         <div class="container">
             <!-- Header -->
             <div class="header">
-            <img class="logo" src="{{ isset($message) ? $message->embed(public_path('images/dilg_logo.png')) : asset('images/dilg_logo.png') }}" alt="DILG Logo" style="object-fit:contain;">
+            <img class="logo" src="{{ $logoSrc }}" alt="DILG Logo" style="object-fit:contain;">
             <div class="title-text">
                 <h2>DILG - CAR<br>Recruitment Selection and Placement Portal</h2>
             </div>
@@ -180,6 +192,5 @@
             </p>
             </div>
         </div>
-    @include('partials.loader')
     </body>
 </html>
