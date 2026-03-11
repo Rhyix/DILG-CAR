@@ -137,6 +137,105 @@ class PDSController extends Controller
         return $value;
     }
 
+    private function parseEducationDateForValidation($value): ?Carbon
+    {
+        $value = is_string($value) ? trim($value) : null;
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        try {
+            if (preg_match('/^\d{2}-\d{2}-\d{4}$/', $value)) {
+                return Carbon::createFromFormat('d-m-Y', $value);
+            }
+
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+                return Carbon::createFromFormat('Y-m-d', $value);
+            }
+
+            return null;
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    private function normalizeEducationEntriesForForm($entries)
+    {
+        if (!is_array($entries)) {
+            return $entries;
+        }
+
+        foreach ($entries as $index => $entry) {
+            if (!is_array($entry)) {
+                continue;
+            }
+
+            foreach (['from', 'to'] as $dateKey) {
+                $entries[$index][$dateKey] = $this->normalizeDateForForm($entry[$dateKey] ?? null);
+            }
+        }
+
+        return $entries;
+    }
+
+    private function addEducationDateRangeValidationError(
+        \Illuminate\Validation\Validator $validator,
+        $fromValue,
+        $toValue,
+        string $fromField,
+        string $toField
+    ): void {
+        $fromDate = $this->parseEducationDateForValidation($fromValue);
+        $toDate = $this->parseEducationDateForValidation($toValue);
+
+        if (!$fromDate || !$toDate || !$fromDate->gt($toDate)) {
+            return;
+        }
+
+        $validator->errors()->add($fromField, 'The "From" date must not be later than the "To" date.');
+        $validator->errors()->add($toField, 'The "To" date must not be earlier than the "From" date.');
+    }
+
+    private function validateEducationDateRanges(\Illuminate\Validation\Validator $validator, array $payload): void
+    {
+        $this->addEducationDateRangeValidationError(
+            $validator,
+            $payload['elem_from'] ?? null,
+            $payload['elem_to'] ?? null,
+            'elem_from',
+            'elem_to'
+        );
+
+        $this->addEducationDateRangeValidationError(
+            $validator,
+            $payload['jhs_from'] ?? null,
+            $payload['jhs_to'] ?? null,
+            'jhs_from',
+            'jhs_to'
+        );
+
+        foreach (['vocational', 'college', 'grad'] as $educationType) {
+            $entries = $payload[$educationType] ?? [];
+            if (!is_array($entries)) {
+                continue;
+            }
+
+            foreach ($entries as $index => $entry) {
+                if (!is_array($entry)) {
+                    continue;
+                }
+
+                $this->addEducationDateRangeValidationError(
+                    $validator,
+                    $entry['from'] ?? null,
+                    $entry['to'] ?? null,
+                    "{$educationType}.{$index}.from",
+                    "{$educationType}.{$index}.to"
+                );
+            }
+        }
+    }
+
     private function normalizeTelephoneInput(?string $value): ?string
     {
         $value = is_string($value) ? trim($value) : $value;
@@ -572,9 +671,10 @@ class PDSController extends Controller
 
         $this->setExcelText($c4Sheet, 'B61', $this->formatAnnexDisplayValue($c4['govt_id_type'] ?? ''));
         $this->setExcelText($c4Sheet, 'B62', $this->formatAnnexDisplayValue($c4['govt_id_number'] ?? ''));
-        $govtPlace = trim((string) ($c4['govt_id_place_issued'] ?? ''));
-        $govtDate = $this->normalizeDateForExcel($c4['govt_id_date_issued'] ?? '');
-        $govtCombined = trim($govtPlace . ($govtDate !== '' ? ' | ' . $govtDate : ''));
+        $govtCombined = $this->formatGovtIssuePlaceAndDate(
+            $c4['govt_id_place_issued'] ?? '',
+            $c4['govt_id_date_issued'] ?? ''
+        );
         $this->setExcelText($c4Sheet, 'B64', $this->formatAnnexDisplayValue($govtCombined));
 
         $filename = 'ANNEX H-1 - CS Form No. 212 Revised 2025 - Personal Data Sheet - ' . now()->format('Ymd_His') . '.xlsx';
@@ -904,10 +1004,17 @@ class PDSController extends Controller
         $request->merge([
             'telephone_no' => $this->normalizeTelephoneInput($request->input('telephone_no')),
             'mobile_no' => $this->normalizeMobileInput($request->input('mobile_no')),
+            'elem_from' => $this->normalizeDateForForm($request->input('elem_from')),
+            'elem_to' => $this->normalizeDateForForm($request->input('elem_to')),
+            'jhs_from' => $this->normalizeDateForForm($request->input('jhs_from')),
+            'jhs_to' => $this->normalizeDateForForm($request->input('jhs_to')),
+            'vocational' => $this->normalizeEducationEntriesForForm($request->input('vocational')),
+            'college' => $this->normalizeEducationEntriesForForm($request->input('college')),
+            'grad' => $this->normalizeEducationEntriesForForm($request->input('grad')),
         ]);
 
         // get key-value pairs only for fields that need validation.
-        $c1_form_data_valid = $request->validate([
+        $validator = Validator::make($request->all(), [
             'surname' => 'required|max:255|string',
             'first_name' => 'required|max:255|string',
             'middle_name' => 'nullable|max:255|string',
@@ -929,6 +1036,15 @@ class PDSController extends Controller
             'elem_to' => 'required|date_format:d-m-Y',
             'jhs_from' => 'required|date_format:d-m-Y',
             'jhs_to' => 'required|date_format:d-m-Y',
+            'vocational' => 'nullable|array',
+            'vocational.*.from' => 'nullable|date_format:d-m-Y',
+            'vocational.*.to' => 'nullable|date_format:d-m-Y',
+            'college' => 'nullable|array',
+            'college.*.from' => 'nullable|date_format:d-m-Y',
+            'college.*.to' => 'nullable|date_format:d-m-Y',
+            'grad' => 'nullable|array',
+            'grad.*.from' => 'nullable|date_format:d-m-Y',
+            'grad.*.to' => 'nullable|date_format:d-m-Y',
 
         ], [
             'date_of_birth.date_format' => 'The date of birth field must match the format dd-mm-yyyy.',
@@ -936,7 +1052,19 @@ class PDSController extends Controller
             'elem_to.date_format' => 'The elem to field must match the format dd-mm-yyyy.',
             'jhs_from.date_format' => 'The jhs from field must match the format dd-mm-yyyy.',
             'jhs_to.date_format' => 'The jhs to field must match the format dd-mm-yyyy.',
+            'vocational.*.from.date_format' => 'The vocational from field must match the format dd-mm-yyyy.',
+            'vocational.*.to.date_format' => 'The vocational to field must match the format dd-mm-yyyy.',
+            'college.*.from.date_format' => 'The college from field must match the format dd-mm-yyyy.',
+            'college.*.to.date_format' => 'The college to field must match the format dd-mm-yyyy.',
+            'grad.*.from.date_format' => 'The graduate studies from field must match the format dd-mm-yyyy.',
+            'grad.*.to.date_format' => 'The graduate studies to field must match the format dd-mm-yyyy.',
         ]);
+
+        $validator->after(function (\Illuminate\Validation\Validator $validator) use ($request) {
+            $this->validateEducationDateRanges($validator, $request->all());
+        });
+
+        $c1_form_data_valid = $validator->validate();
 
         foreach (['date_of_birth', 'elem_from', 'elem_to', 'jhs_from', 'jhs_to'] as $dateField) {
             $c1_form_data_valid[$dateField] = $this->normalizeDateForForm($c1_form_data_valid[$dateField] ?? null);
@@ -2483,6 +2611,11 @@ class PDSController extends Controller
             $request->merge(['govt_id_type' => $govt_id_type]);
         }
 
+        $ref1Contact = $this->normalizeReferenceContact($request->input('ref1_tel'));
+        $ref2Contact = $this->normalizeReferenceContact($request->input('ref2_tel'));
+        $ref3Contact = $this->normalizeReferenceContact($request->input('ref3_tel'));
+        $govtIdDateIssued = $this->normalizeGovtIdDateIssued($request->input('govt_id_date_issued'));
+
         // TODO get the photo upload
         $misc_data = [
             //'user_id'               => Auth::id(),
@@ -2501,19 +2634,19 @@ class PDSController extends Controller
             'solo_parent_40_c' => $solo_parent_40_c,
 
             'ref1_name' => $request->input('ref1_name'),
-            'ref1_tel' => $request->input('ref1_tel'),
+            'ref1_tel' => $ref1Contact,
             'ref1_address' => $request->input('ref1_address'),
             'ref2_name' => $request->input('ref2_name'),
-            'ref2_tel' => $request->input('ref2_tel'),
+            'ref2_tel' => $ref2Contact,
             'ref2_address' => $request->input('ref2_address'),
             'ref3_name' => $request->input('ref3_name'),
-            'ref3_tel' => $request->input('ref3_tel'),
+            'ref3_tel' => $ref3Contact,
             'ref3_address' => $request->input('ref3_address'),
 
             'govt_id_type' => $govt_id_type,
             'govt_id_other' => $request->input('govt_id_other'),
             'govt_id_number' => $request->input('govt_id_number'),
-            'govt_id_date_issued' => $request->input('govt_id_date_issued'),
+            'govt_id_date_issued' => $govtIdDateIssued,
             'govt_id_place_issued' => $request->input('govt_id_place_issued'),
 
             'photo_upload' => $temp_photo_path ?? null,
@@ -2541,6 +2674,12 @@ class PDSController extends Controller
         ]);
 
         // Validation for the data to be inserted in session to database
+        $referenceContactRule = function ($attribute, $value, $fail) {
+            if (!$this->isValidReferenceContact($value)) {
+                $fail('The ' . $this->referenceContactFieldLabel($attribute) . ' must be a valid email address or an 11-digit contact number in the format 09XX XXX XXXX.');
+            }
+        };
+
         $validator_misc_data = Validator::make($misc_data, [
             'related_34_a' => 'required|string|max:255',
             'related_34_b' => 'required|string|max:255',
@@ -2556,18 +2695,22 @@ class PDSController extends Controller
             'solo_parent_40_c' => 'required|string|max:255',
 
             'ref1_name' => 'required|string|max:255',
-            'ref1_tel' => 'required|string|max:20',
+            'ref1_tel' => ['required', 'string', 'max:255', $referenceContactRule],
             'ref1_address' => 'required|string|max:255',
             'ref2_name' => 'required|string|max:255',
-            'ref2_tel' => 'required|string|max:20',
+            'ref2_tel' => ['required', 'string', 'max:255', $referenceContactRule],
             'ref2_address' => 'required|string|max:255',
             'ref3_name' => 'required|string|max:255',
-            'ref3_tel' => 'required|string|max:20',
+            'ref3_tel' => ['required', 'string', 'max:255', $referenceContactRule],
             'ref3_address' => 'required|string|max:255',
 
             'govt_id_type' => 'required|string|max:255',
             'govt_id_number' => 'required|string|max:50',
-            'govt_id_date_issued' => 'required|date',
+            'govt_id_date_issued' => ['required', 'string', 'max:50', function ($attribute, $value, $fail) {
+                if (!$this->isValidGovtIdDateIssued($value)) {
+                    $fail('The Date of Issuance must be a valid date or N/A.');
+                }
+            }],
             'govt_id_place_issued' => 'required|string|max:255',
             'photo_upload' => 'nullable|string',
         ]);
@@ -2612,6 +2755,101 @@ class PDSController extends Controller
         } else {
             return 'no';
         }
+    }
+
+    private function normalizeReferenceContact($value): string
+    {
+        $value = trim((string) $value);
+
+        if ($value === '') {
+            return '';
+        }
+
+        if (filter_var($value, FILTER_VALIDATE_EMAIL)) {
+            return $value;
+        }
+
+        $digits = preg_replace('/\D+/', '', $value);
+
+        if ($digits !== null && preg_match('/^09\d{9}$/', $digits) === 1) {
+            return substr($digits, 0, 4) . ' ' . substr($digits, 4, 3) . ' ' . substr($digits, 7, 4);
+        }
+
+        return $value;
+    }
+
+    private function isValidReferenceContact($value): bool
+    {
+        $value = trim((string) $value);
+
+        if ($value === '') {
+            return false;
+        }
+
+        if (filter_var($value, FILTER_VALIDATE_EMAIL)) {
+            return true;
+        }
+
+        $digits = preg_replace('/\D+/', '', $value);
+
+        if ($digits === null) {
+            return false;
+        }
+
+        return preg_match('/^09\d{9}$/', $digits) === 1;
+    }
+
+    private function referenceContactFieldLabel(string $attribute): string
+    {
+        return match ($attribute) {
+            'ref1_tel' => 'Reference 1 contact/email',
+            'ref2_tel' => 'Reference 2 contact/email',
+            'ref3_tel' => 'Reference 3 contact/email',
+            default => str_replace('_', ' ', $attribute),
+        };
+    }
+
+    private function normalizeGovtIdDateIssued($value): string
+    {
+        $value = trim((string) $value);
+
+        if ($value === '') {
+            return 'N/A';
+        }
+
+        return $value;
+    }
+
+    private function isValidGovtIdDateIssued($value): bool
+    {
+        $value = trim((string) $value);
+
+        if ($value === '' || strtoupper($value) === 'N/A') {
+            return true;
+        }
+
+        try {
+            \Carbon\Carbon::parse($value);
+            return true;
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
+    private function formatGovtIssuePlaceAndDate($place, $date): string
+    {
+        $govtPlace = trim((string) $place);
+        $rawGovtDate = trim((string) $date);
+
+        if ($rawGovtDate === '') {
+            $govtDate = '';
+        } elseif (strtoupper($rawGovtDate) === 'N/A') {
+            $govtDate = 'N/A';
+        } else {
+            $govtDate = $this->normalizeDateForExcel($rawGovtDate);
+        }
+
+        return implode(' | ', array_values(array_filter([$govtPlace, $govtDate], fn ($value) => $value !== '')));
     }
 
     public function c4ShowForm()
@@ -2919,6 +3157,10 @@ class PDSController extends Controller
                 $criminalDetails = $request->input('criminal_35_b_details');
                 if (is_array($criminalDetails)) {
                     $incoming['criminal_35_b_array'] = $criminalDetails;
+                }
+
+                if (array_key_exists('govt_id_date_issued', $incoming)) {
+                    $incoming['govt_id_date_issued'] = $this->normalizeGovtIdDateIssued($incoming['govt_id_date_issued']);
                 }
 
                 session(['form.c4' => array_merge($existing, $incoming)]);

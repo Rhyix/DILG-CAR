@@ -341,9 +341,18 @@
                                 <label class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Name*</label>
                             </div>
                             <div class="relative">
-                                <input required type="tel" name="ref1_tel" required value="{{ old('ref1_tel', $data['ref1_tel'] ?? '') }}"
-                                placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
+                                <input
+                                    required
+                                    type="text"
+                                    name="ref1_tel"
+                                    value="{{ old('ref1_tel', $data['ref1_tel'] ?? '') }}"
+                                    placeholder=" "
+                                    inputmode="text"
+                                    class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer {{ $errors->has('ref1_tel') ? 'error-field' : '' }}"
+                                    data-reference-contact>
                                 <label class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">CONTACT NO. AND/OR EMAIL*</label>
+                                <p class="mt-2 text-xs text-gray-500">Format: 09XX XXX XXXX or enter a valid email address.</p>
+                                <p class="error-message {{ $errors->has('ref1_tel') ? '' : 'hidden' }}" data-reference-contact-error aria-live="polite">{{ $errors->first('ref1_tel') }}</p>
                             </div>
                             <div class="relative md:col-span-2">
                                 <input required type="text" name="ref1_address" required value="{{ old('ref1_address', $data['ref1_address'] ?? '') }}"
@@ -363,9 +372,24 @@
                                 <label class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Name*</label>
                             </div>
                             <div class="relative">
+<<<<<<< Updated upstream
                                 <input required type="tel" name="ref2_tel" required value="{{ old('ref2_tel', $data['ref2_tel'] ?? '') }}"
                                 placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
                                 <label class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">CONTACT NO. AND/OR EMAIL*.</label>
+=======
+                                <input
+                                    required
+                                    type="text"
+                                    name="ref2_tel"
+                                    value="{{ old('ref2_tel', $data['ref2_tel'] ?? '') }}"
+                                    placeholder=" "
+                                    inputmode="text"
+                                    class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer {{ $errors->has('ref2_tel') ? 'error-field' : '' }}"
+                                    data-reference-contact>
+                                <label class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">CONTACT NO. AND/OR EMAIL*</label>
+                                <p class="mt-2 text-xs text-gray-500">Format: 09XX XXX XXXX or enter a valid email address.</p>
+                                <p class="error-message {{ $errors->has('ref2_tel') ? '' : 'hidden' }}" data-reference-contact-error aria-live="polite">{{ $errors->first('ref2_tel') }}</p>
+>>>>>>> Stashed changes
                             </div>
                             <div class="relative md:col-span-2">
                                 <input required type="text" name="ref2_address" required value="{{ old('ref2_address', $data['ref2_address'] ?? '') }}"
@@ -385,9 +409,24 @@
                                 <label class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none ">Name*</label>
                             </div>
                             <div class="relative">
+<<<<<<< Updated upstream
                                 <input required type="tel" name="ref3_tel" required value="{{ old('ref3_tel', $data['ref3_tel'] ?? '') }}"
                                 placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
                                 <label class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">CONTACT NO. AND/OR EMAIL*</label>
+=======
+                                <input
+                                    required
+                                    type="text"
+                                    name="ref3_tel"
+                                    value="{{ old('ref3_tel', $data['ref3_tel'] ?? '') }}"
+                                    placeholder=" "
+                                    inputmode="text"
+                                    class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer {{ $errors->has('ref3_tel') ? 'error-field' : '' }}"
+                                    data-reference-contact>
+                                <label class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">CONTACT NO. AND/OR EMAIL*</label>
+                                <p class="mt-2 text-xs text-gray-500">Format: 09XX XXX XXXX or enter a valid email address.</p>
+                                <p class="error-message {{ $errors->has('ref3_tel') ? '' : 'hidden' }}" data-reference-contact-error aria-live="polite">{{ $errors->first('ref3_tel') }}</p>
+>>>>>>> Stashed changes
                             </div>
                             <div class="relative md:col-span-2">
                                 <input required type="text" name="ref3_address" required value="{{ old('ref3_address', $data['ref3_address'] ?? '') }}"
@@ -449,9 +488,14 @@
 
                     <!-- Date Issued -->
                     <div class="relative">
-                        <input type="date" name="govt_id_date_issued" required value="{{ old('govt_id_date_issued', $data['govt_id_date_issued'] ?? '') }}"
+                        @php
+                            $govtDateIssued = old('govt_id_date_issued', $data['govt_id_date_issued'] ?? '');
+                            $govtDateIssuedValue = strtoupper(trim((string) $govtDateIssued)) === 'N/A' ? '' : $govtDateIssued;
+                        @endphp
+                        <input type="date" name="govt_id_date_issued" value="{{ $govtDateIssuedValue }}"
                         class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
                         <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">Date of Issuance</label>
+                        <p class="mt-2 text-xs text-gray-500">Leave blank if no issuance date is available.</p>
                     </div>
 
                     <!-- Place Issued -->
@@ -833,14 +877,101 @@
 
 
 
-            // Form submission
             const form = document.getElementById('other-info-form');
+            const referenceContactInputs = Array.from(document.querySelectorAll('[data-reference-contact]'));
+
+            function formatReferencePhoneNumber(digits) {
+                const trimmedDigits = digits.replace(/\D/g, '').slice(0, 11);
+
+                if (trimmedDigits.length <= 4) {
+                    return trimmedDigits;
+                }
+
+                if (trimmedDigits.length <= 7) {
+                    return `${trimmedDigits.slice(0, 4)} ${trimmedDigits.slice(4)}`;
+                }
+
+                return `${trimmedDigits.slice(0, 4)} ${trimmedDigits.slice(4, 7)} ${trimmedDigits.slice(7)}`;
+            }
+
+            function setReferenceContactValidity(input, message) {
+                const errorElement = input.parentElement.querySelector('[data-reference-contact-error]');
+                const hasError = Boolean(message);
+
+                input.classList.toggle('error-field', hasError);
+                input.setAttribute('aria-invalid', hasError ? 'true' : 'false');
+                input.setCustomValidity(message);
+
+                if (errorElement) {
+                    errorElement.textContent = message;
+                    errorElement.classList.toggle('hidden', !hasError);
+                }
+            }
+
+            function clearReferenceContactValidity(input) {
+                setReferenceContactValidity(input, '');
+            }
+
+            function normalizeReferenceContactDraft(input) {
+                const currentValue = input.value;
+                const isEmailValue = currentValue.includes('@') || /[A-Za-z]/.test(currentValue);
+
+                if (isEmailValue) {
+                    return;
+                }
+
+                const digits = currentValue.replace(/\D/g, '').slice(0, 11);
+                input.value = formatReferencePhoneNumber(digits);
+            }
+
+            function validateReferenceContactInput(input) {
+                const trimmedValue = input.value.trim();
+
+                if (trimmedValue === '') {
+                    clearReferenceContactValidity(input);
+                    return true;
+                }
+
+                const isEmailValue = trimmedValue.includes('@') || /[A-Za-z]/.test(trimmedValue);
+
+                if (isEmailValue) {
+                    const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedValue);
+                    setReferenceContactValidity(input, isValidEmail ? '' : 'Enter a valid email address.');
+                    return isValidEmail;
+                }
+
+                const digits = trimmedValue.replace(/\D/g, '');
+                input.value = formatReferencePhoneNumber(digits);
+
+                const isValidPhoneNumber = /^09\d{9}$/.test(digits);
+                const message = isValidPhoneNumber
+                    ? ''
+                    : 'Enter an 11-digit contact number in the format 09XX XXX XXXX.';
+
+                setReferenceContactValidity(input, message);
+                return isValidPhoneNumber;
+            }
+
+            referenceContactInputs.forEach((input) => {
+                input.addEventListener('input', () => {
+                    normalizeReferenceContactDraft(input);
+                    clearReferenceContactValidity(input);
+                });
+                input.addEventListener('blur', () => {
+                    input.value = input.value.trim();
+                    validateReferenceContactInput(input);
+                });
+            });
+
+            // Form submission
             form.addEventListener('submit', (e) => {
                 if (skipValidation) {
                     return; // Skip this logic if flag is true
                 }
 
                 e.preventDefault();
+
+                referenceContactInputs.forEach((input) => validateReferenceContactInput(input));
 
                 // Force HTML5 validation
                 if (!form.checkValidity()) {
@@ -951,13 +1082,234 @@
             if (!form) return;
 
             const autosaveUrl = @json(route('pds.autosave', ['section' => 'c4']));
-            const AUTOSAVE_INTERVAL_MS = 30000;
+            const draftStatus = document.getElementById('draft-save-status');
+            const LOCAL_DRAFT_KEY = @json('dilg-car:pds:c4:draft:' . (string) (Auth::id() ?? 'guest'));
+            const AUTOSAVE_INTERVAL_MS = 15000;
             let isDirty = false;
             let isSubmitting = false;
             let inFlight = false;
             let queued = false;
+            let isRestoringDraft = false;
+            let draftVersion = 0;
 
-            const markDirty = () => { isDirty = true; };
+            function updateDraftStatus(message, tone = 'info') {
+                if (!draftStatus) {
+                    return;
+                }
+
+                draftStatus.textContent = message;
+                draftStatus.classList.remove('text-blue-700', 'text-emerald-700', 'text-amber-700', 'text-red-700');
+
+                if (tone === 'success') {
+                    draftStatus.classList.add('text-emerald-700');
+                    return;
+                }
+
+                if (tone === 'warning') {
+                    draftStatus.classList.add('text-amber-700');
+                    return;
+                }
+
+                if (tone === 'error') {
+                    draftStatus.classList.add('text-red-700');
+                    return;
+                }
+
+                draftStatus.classList.add('text-blue-700');
+            }
+
+            function formatDraftTime(timestamp) {
+                if (!timestamp) {
+                    return 'just now';
+                }
+
+                const parsed = new Date(timestamp);
+                if (Number.isNaN(parsed.getTime())) {
+                    return 'just now';
+                }
+
+                return parsed.toLocaleTimeString([], {
+                    hour: 'numeric',
+                    minute: '2-digit',
+                });
+            }
+
+            function getNamedFields(name) {
+                return Array.from(form.elements).filter((field) => field.name === name);
+            }
+
+            function formHasMeaningfulData() {
+                return Array.from(form.elements).some((field) => {
+                    if (!field.name || field.disabled || field.name === '_token') {
+                        return false;
+                    }
+
+                    if (['file', 'submit', 'button', 'reset'].includes(field.type)) {
+                        return false;
+                    }
+
+                    if (field.type === 'radio' || field.type === 'checkbox') {
+                        return field.checked;
+                    }
+
+                    return String(field.value ?? '').trim() !== '';
+                });
+            }
+
+            function collectDraftData() {
+                const data = {};
+
+                Array.from(form.elements).forEach((field) => {
+                    if (!field.name || field.disabled || field.name === '_token') {
+                        return;
+                    }
+
+                    if (['file', 'submit', 'button', 'reset'].includes(field.type)) {
+                        return;
+                    }
+
+                    if (field.type === 'radio') {
+                        if (!Object.prototype.hasOwnProperty.call(data, field.name)) {
+                            data[field.name] = '';
+                        }
+
+                        if (field.checked) {
+                            data[field.name] = field.value;
+                        }
+
+                        return;
+                    }
+
+                    if (field.type === 'checkbox') {
+                        if (!Array.isArray(data[field.name])) {
+                            data[field.name] = [];
+                        }
+
+                        if (field.checked) {
+                            data[field.name].push(field.value);
+                        }
+
+                        return;
+                    }
+
+                    data[field.name] = field.value;
+                });
+
+                return data;
+            }
+
+            function persistLocalDraft(unsynced = true, savedAt = new Date().toISOString()) {
+                try {
+                    window.localStorage.setItem(LOCAL_DRAFT_KEY, JSON.stringify({
+                        unsynced,
+                        savedAt,
+                        data: collectDraftData(),
+                    }));
+                    return true;
+                } catch (error) {
+                    return false;
+                }
+            }
+
+            function readLocalDraft() {
+                try {
+                    const raw = window.localStorage.getItem(LOCAL_DRAFT_KEY);
+                    if (!raw) {
+                        return null;
+                    }
+
+                    const parsed = JSON.parse(raw);
+                    return parsed && typeof parsed === 'object' ? parsed : null;
+                } catch (error) {
+                    return null;
+                }
+            }
+
+            function restoreLocalDraftIfNeeded() {
+                const localDraft = readLocalDraft();
+                if (!localDraft || !localDraft.data || typeof localDraft.data !== 'object') {
+                    return false;
+                }
+
+                if (!localDraft.unsynced && formHasMeaningfulData()) {
+                    return false;
+                }
+
+                const restoredFields = new Set();
+                isRestoringDraft = true;
+
+                Object.entries(localDraft.data).forEach(([name, value]) => {
+                    const fields = getNamedFields(name);
+                    if (!fields.length) {
+                        return;
+                    }
+
+                    const firstField = fields[0];
+
+                    if (firstField.type === 'radio') {
+                        const checkedField = fields.find((field) => field.value === value) ?? null;
+                        fields.forEach((field) => {
+                            field.checked = field.value === value;
+                        });
+                        if (checkedField) {
+                            restoredFields.add(checkedField);
+                        }
+                        return;
+                    }
+
+                    if (firstField.type === 'checkbox') {
+                        const values = Array.isArray(value) ? value : [value];
+                        fields.forEach((field) => {
+                            field.checked = values.includes(field.value);
+                        });
+                        restoredFields.add(firstField);
+                        return;
+                    }
+
+                    const normalizedValue = firstField.type === 'date' && String(value).toUpperCase() === 'N/A'
+                        ? ''
+                        : String(value ?? '');
+
+                    firstField.value = normalizedValue;
+                    restoredFields.add(firstField);
+                });
+
+                restoredFields.forEach((field) => {
+                    field.dispatchEvent(new Event('change', { bubbles: true }));
+
+                    if (!['radio', 'checkbox', 'select-one', 'select-multiple'].includes(field.type)) {
+                        field.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                });
+
+                isRestoringDraft = false;
+
+                isDirty = true;
+                updateDraftStatus(`Unsynced draft restored from this browser at ${formatDraftTime(localDraft.savedAt)}.`, 'warning');
+
+                if (typeof window.showAppToast === 'function') {
+                    window.showAppToast('A saved C4 draft was restored from this browser.', 'warning', 4000);
+                }
+
+                return true;
+            }
+
+            const markDirty = () => {
+                if (isRestoringDraft) {
+                    return;
+                }
+
+                isDirty = true;
+                draftVersion += 1;
+                updateDraftStatus(
+                    navigator.onLine
+                        ? 'Saving draft...'
+                        : 'Offline: draft saved on this device.',
+                    navigator.onLine ? 'info' : 'warning'
+                );
+                persistLocalDraft(true);
+            };
+
             form.addEventListener('input', markDirty);
             form.addEventListener('change', markDirty);
             form.addEventListener('submit', () => { isSubmitting = true; });
@@ -969,8 +1321,15 @@
                     queued = true;
                     return;
                 }
+                if (!navigator.onLine) {
+                    persistLocalDraft(true);
+                    updateDraftStatus('Offline: draft saved on this device.', 'warning');
+                    return;
+                }
 
                 inFlight = true;
+                const versionAtRequestStart = draftVersion;
+                updateDraftStatus('Syncing draft...', 'info');
                 try {
                     const formData = new FormData(form);
                     const response = await fetch(autosaveUrl, {
@@ -979,10 +1338,19 @@
                         headers: { 'X-Requested-With': 'XMLHttpRequest' }
                     });
                     if (response.ok) {
-                        isDirty = false;
+                        const payload = await response.json().catch(() => null);
+                        if (draftVersion === versionAtRequestStart) {
+                            isDirty = false;
+                            persistLocalDraft(false, payload?.saved_at ?? new Date().toISOString());
+                            updateDraftStatus(`Draft saved at ${formatDraftTime(payload?.saved_at)}.`, 'success');
+                        }
+                    } else {
+                        persistLocalDraft(true);
+                        updateDraftStatus('Unable to sync right now. Draft saved on this device.', 'warning');
                     }
                 } catch (error) {
-                    // Ignore autosave failures silently; normal submit remains available.
+                    persistLocalDraft(true);
+                    updateDraftStatus('Connection issue: draft saved on this device.', 'warning');
                 } finally {
                     inFlight = false;
                     if (queued) {
@@ -992,21 +1360,45 @@
                 }
             }
 
+            const restoredDraft = restoreLocalDraftIfNeeded();
+            if (restoredDraft && navigator.onLine) {
+                saveDraft(true);
+            }
+
             setInterval(() => saveDraft(false), AUTOSAVE_INTERVAL_MS);
 
             document.addEventListener('visibilitychange', () => {
+                if (document.hidden) {
+                    persistLocalDraft(isDirty);
+                }
                 if (document.hidden && isDirty) {
                     saveDraft(true);
                 }
             });
 
+            window.addEventListener('online', () => {
+                updateDraftStatus('Connection restored. Syncing draft...', 'info');
+                saveDraft(true);
+            });
+
+            window.addEventListener('offline', () => {
+                persistLocalDraft(true);
+                updateDraftStatus('Offline: draft saved on this device.', 'warning');
+            });
+
+            window.addEventListener('pagehide', () => {
+                persistLocalDraft(isDirty);
+                if (!isDirty || isSubmitting || !navigator.sendBeacon || !navigator.onLine) return;
+                const formData = new FormData(form);
+                navigator.sendBeacon(autosaveUrl, formData);
+            });
+
             window.addEventListener('beforeunload', () => {
-                if (!isDirty || isSubmitting || !navigator.sendBeacon) return;
+                persistLocalDraft(isDirty);
+                if (!isDirty || isSubmitting || !navigator.sendBeacon || !navigator.onLine) return;
                 const formData = new FormData(form);
                 navigator.sendBeacon(autosaveUrl, formData);
             });
         })();
     </script>
     
-
-

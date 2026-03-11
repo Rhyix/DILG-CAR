@@ -541,9 +541,32 @@
                         $jhsBasicPrefill = $educationBg->jhs_basic;
                     }
                 @endphp
+                @php
+                    $normalizeEducationDateForInput = static function ($value) {
+                        $value = is_string($value) ? trim($value) : '';
+
+                        if ($value === '') {
+                            return '';
+                        }
+
+                        try {
+                            if (preg_match('/^\d{2}-\d{2}-\d{4}$/', $value)) {
+                                return \Carbon\Carbon::createFromFormat('d-m-Y', $value)->format('Y-m-d');
+                            }
+
+                            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+                                return \Carbon\Carbon::createFromFormat('Y-m-d', $value)->format('Y-m-d');
+                            }
+                        } catch (\Throwable $e) {
+                            return '';
+                        }
+
+                        return '';
+                    };
+                @endphp
                 <div class="mb-6">
                     <h3 class="text-base sm:text-lg font-semibold text-gray-700 mb-4">ELEMENTARY</h3>
-                    <div class="mobile-stack md:grid md:grid-cols-4 gap-4 sm:gap-6">
+                    <div class="mobile-stack md:grid md:grid-cols-4 gap-4 sm:gap-6" data-education-date-range>
                         <div class="relative md:col-span-2">
                             <input required type="text" id="elem_school" name="elem_school" value="{{ old('elem_school', session('form.c1.elem_school')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
                             <label for="elem_school" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">School Name<span class="text-red-500">*</span></label>
@@ -553,12 +576,13 @@
                             <label for="elem_basic" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Basic Education/Degree/Course</label>
                         </div>
                         <div class="relative">
-                            <input required type="text" id="elem_from" name="elem_from" value="{{ old('elem_from', session('form.c1.elem_from')) }}" class="edu-date w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base">
+                            <input required type="date" id="elem_from" name="elem_from" value="{{ $normalizeEducationDateForInput(old('elem_from', session('form.c1.elem_from'))) }}" data-education-date-role="from" autocomplete="off" class="edu-date w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base">
                             <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">From<span class="text-red-500">*</span></label>
                         </div>
                         <div class="relative">
-                            <input required type="text" id="elem_to" name="elem_to" value="{{ old('elem_to', session('form.c1.elem_to')) }}" class="edu-date w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base">
+                            <input required type="date" id="elem_to" name="elem_to" value="{{ $normalizeEducationDateForInput(old('elem_to', session('form.c1.elem_to'))) }}" data-education-date-role="to" autocomplete="off" class="edu-date w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base">
                             <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">To<span class="text-red-500">*</span></label>
+                            <p class="error-message hidden" data-education-date-error aria-live="polite"></p>
                         </div>
                         <div class="relative md:col-span-2">
                             <input pattern="\d{4}" maxlength="4" type="text" inputmode="numeric" id="elem_year_graduated" name="elem_year_graduated" value="{{ old('elem_year_graduated', session('form.c1.elem_year_graduated')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
@@ -578,7 +602,7 @@
                 <!-- Secondary -->
                 <div class="mb-6">
                     <h3 class="text-base sm:text-lg font-semibold text-gray-700 mb-4">SECONDARY</h3>
-                    <div class="mobile-stack md:grid md:grid-cols-4 gap-4 sm:gap-6">
+                    <div class="mobile-stack md:grid md:grid-cols-4 gap-4 sm:gap-6" data-education-date-range>
                         <div class="relative md:col-span-2">
                             <input required type="text" id="jhs_school" name="jhs_school" value="{{ old('jhs_school', session('form.c1.jhs_school')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
                             <label for="jhs_school" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">School Name<span class="text-red-500">*</span></label>
@@ -588,12 +612,13 @@
                             <label for="jhs_basic" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Basic Education/Degree/Course</label>
                         </div>
                         <div class="relative">
-                            <input required type="text" id="jhs_from" name="jhs_from" value="{{ old('jhs_from', session('form.c1.jhs_from')) }}" class="edu-date w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base">
+                            <input required type="date" id="jhs_from" name="jhs_from" value="{{ $normalizeEducationDateForInput(old('jhs_from', session('form.c1.jhs_from'))) }}" data-education-date-role="from" autocomplete="off" class="edu-date w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base">
                             <label for="jhs_from" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">From<span class="text-red-500">*</span></label>
                         </div>
                         <div class="relative">
-                            <input required type="text" id="jhs_to" name="jhs_to" value="{{ old('jhs_to', session('form.c1.jhs_to')) }}" class="edu-date w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base">
+                            <input required type="date" id="jhs_to" name="jhs_to" value="{{ $normalizeEducationDateForInput(old('jhs_to', session('form.c1.jhs_to'))) }}" data-education-date-role="to" autocomplete="off" class="edu-date w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base">
                             <label for="jhs_to" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">To<span class="text-red-500">*</span></label>
+                            <p class="error-message hidden" data-education-date-error aria-live="polite"></p>
                         </div>
                         <div class="relative md:col-span-2">
                             <input pattern="\d{4}" maxlength="4" type="text" inputmode="numeric" id="jhs_year_graduated" name="jhs_year_graduated" value="{{ old('jhs_year_graduated', session('form.c1.jhs_year_graduated')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
@@ -684,19 +709,191 @@
         form.action = `/pds/submit_c1/${location}`;
         form.requestSubmit();
     }
-    flatpickr("#date_of_birth", {dateFormat: "d-m-Y", allowInput: true});
-    flatpickr(".edu-date", {dateFormat: "d-m-Y", allowInput: true});
-    document.addEventListener('DOMContentLoaded', function () {
-        function initChildDates() {
-            document.querySelectorAll('.edu-date').forEach(function (el) {
-                if (!el.classList.contains('flatpickr-input')) {
-                    flatpickr(el, {dateFormat: "d-m-Y", allowInput: true});
-                }
-            });
+    function parsePdsEducationDate(value) {
+        const normalized = String(value || '').trim();
+        if (!normalized) {
+            return null;
         }
-        initChildDates();
-        const observer = new MutationObserver(initChildDates);
-        observer.observe(document.body, { childList: true, subtree: true });
+
+        let parsed;
+
+        if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+            const [year, month, day] = normalized.split('-').map(Number);
+            parsed = new Date(year, month - 1, day);
+
+            if (
+                Number.isNaN(parsed.getTime()) ||
+                parsed.getFullYear() !== year ||
+                parsed.getMonth() !== month - 1 ||
+                parsed.getDate() !== day
+            ) {
+                return null;
+            }
+
+            return parsed;
+        }
+
+        const match = normalized.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+        if (!match) {
+            return null;
+        }
+
+        const day = Number(match[1]);
+        const month = Number(match[2]);
+        const year = Number(match[3]);
+        parsed = new Date(year, month - 1, day);
+
+        if (
+            Number.isNaN(parsed.getTime()) ||
+            parsed.getFullYear() !== year ||
+            parsed.getMonth() !== month - 1 ||
+            parsed.getDate() !== day
+        ) {
+            return null;
+        }
+
+        return parsed;
+    }
+    function togglePdsEducationDateRangeState(rangeEl, state) {
+        const fromInput = rangeEl.querySelector('[data-education-date-role="from"]');
+        const toInput = rangeEl.querySelector('[data-education-date-role="to"]');
+        const errorEl = rangeEl.querySelector('[data-education-date-error]');
+        const nextStateKey = JSON.stringify(state);
+        const currentStateKey = rangeEl.dataset.educationDateState || '';
+
+        if (!fromInput || !toInput) {
+            return;
+        }
+
+        if (currentStateKey === nextStateKey) {
+            return;
+        }
+
+        rangeEl.dataset.educationDateState = nextStateKey;
+        fromInput.setCustomValidity(state.fromMessage || '');
+        toInput.setCustomValidity(state.toMessage || '');
+
+        fromInput.classList.toggle('error-field', Boolean(state.fromInvalid));
+        fromInput.setAttribute('aria-invalid', state.fromInvalid ? 'true' : 'false');
+
+        toInput.classList.toggle('error-field', Boolean(state.toInvalid));
+        toInput.setAttribute('aria-invalid', state.toInvalid ? 'true' : 'false');
+
+        if (errorEl) {
+            errorEl.textContent = state.inlineMessage || '';
+            errorEl.classList.toggle('hidden', !state.inlineMessage);
+        }
+    }
+    function validatePdsEducationDateRange(rangeEl) {
+        if (!rangeEl) {
+            return;
+        }
+
+        const fromInput = rangeEl.querySelector('[data-education-date-role="from"]');
+        const toInput = rangeEl.querySelector('[data-education-date-role="to"]');
+        if (!fromInput || !toInput) {
+            return;
+        }
+
+        const fromValue = (fromInput.value || '').trim();
+        const toValue = (toInput.value || '').trim();
+        const fromDate = parsePdsEducationDate(fromValue);
+        const toDate = parsePdsEducationDate(toValue);
+        const fromHasInvalidFormat = Boolean(fromValue && !fromDate);
+        const toHasInvalidFormat = Boolean(toValue && !toDate);
+        const hasRangeError = Boolean(fromValue && toValue && fromDate && toDate && fromDate.getTime() > toDate.getTime());
+
+        if (toDate) {
+            fromInput.max = toValue;
+        } else {
+            fromInput.removeAttribute('max');
+        }
+
+        if (fromDate) {
+            toInput.min = fromValue;
+        } else {
+            toInput.removeAttribute('min');
+        }
+
+        if (fromHasInvalidFormat) {
+            togglePdsEducationDateRangeState(rangeEl, {
+                fromInvalid: true,
+                toInvalid: false,
+                fromMessage: 'Enter a valid date in dd-mm-yyyy format.',
+                toMessage: '',
+                inlineMessage: 'Enter a valid From date in dd-mm-yyyy format.',
+            });
+            return;
+        }
+
+        if (toHasInvalidFormat) {
+            togglePdsEducationDateRangeState(rangeEl, {
+                fromInvalid: false,
+                toInvalid: true,
+                fromMessage: '',
+                toMessage: 'Enter a valid date in dd-mm-yyyy format.',
+                inlineMessage: 'Enter a valid To date in dd-mm-yyyy format.',
+            });
+            return;
+        }
+
+        if (hasRangeError) {
+            togglePdsEducationDateRangeState(rangeEl, {
+                fromInvalid: true,
+                toInvalid: true,
+                fromMessage: 'The "From" date must not be later than the "To" date.',
+                toMessage: 'The "To" date must not be earlier than the "From" date.',
+                inlineMessage: 'From date must not be later than To date.',
+            });
+            return;
+        }
+
+        togglePdsEducationDateRangeState(rangeEl, {
+            fromInvalid: false,
+            toInvalid: false,
+            fromMessage: '',
+            toMessage: '',
+            inlineMessage: '',
+        });
+    }
+    function bindPdsEducationDateRange(rangeEl) {
+        if (!rangeEl || rangeEl.dataset.educationDateBound === '1') {
+            validatePdsEducationDateRange(rangeEl);
+            return;
+        }
+
+        const fromInput = rangeEl.querySelector('[data-education-date-role="from"]');
+        const toInput = rangeEl.querySelector('[data-education-date-role="to"]');
+        if (!fromInput || !toInput) {
+            return;
+        }
+
+        const validate = () => validatePdsEducationDateRange(rangeEl);
+        ['input', 'change', 'blur'].forEach((eventName) => {
+            fromInput.addEventListener(eventName, validate);
+            toInput.addEventListener(eventName, validate);
+        });
+
+        rangeEl.dataset.educationDateBound = '1';
+        validate();
+    }
+    function initPdsEducationDateRanges(scopeEl = document) {
+        const root = scopeEl || document;
+        const rangeEls = [];
+
+        if (typeof root.matches === 'function' && root.matches('[data-education-date-range]')) {
+            rangeEls.push(root);
+        }
+        if (typeof root.querySelectorAll === 'function') {
+            rangeEls.push(...root.querySelectorAll('[data-education-date-range]'));
+        }
+
+        rangeEls.forEach(bindPdsEducationDateRange);
+    }
+    window.initPdsEducationDateRanges = initPdsEducationDateRanges;
+    flatpickr("#date_of_birth", {dateFormat: "d-m-Y", allowInput: true});
+    document.addEventListener('DOMContentLoaded', function () {
+        initPdsEducationDateRanges(document);
     });
     const psgcApiBase = @json(url('/psgc'));
     const perProvince = document.querySelector('#per_province');

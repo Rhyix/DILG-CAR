@@ -2557,7 +2557,7 @@ private function buildExcelCellMap(
 
         $this->mapSet($map, 'C4', 'B61', $this->excelValue($misc->govt_id_type));
         $this->mapSet($map, 'C4', 'B62', $this->excelValue($misc->govt_id_number));
-        $this->mapSet($map, 'C4', 'B64', trim($this->excelValue($misc->govt_id_place_issued) . ' | ' . $this->excelDate($misc->govt_id_date_issued)));
+        $this->mapSet($map, 'C4', 'B64', $this->formatGovtIssuePlaceAndDate($misc->govt_id_place_issued, $misc->govt_id_date_issued));
         $this->mapSet($map, 'C4', 'F65', Carbon::now()->format('m/d/Y'));
     }
 
@@ -2823,7 +2823,7 @@ private function fillExcelC4($sheet, $misc): void
 
     $sheet->setCellValue('B61', $this->excelValue($misc->govt_id_type));
     $sheet->setCellValue('B62', $this->excelValue($misc->govt_id_number));
-    $sheet->setCellValue('B64', trim($this->excelValue($misc->govt_id_place_issued) . ' | ' . $this->excelDate($misc->govt_id_date_issued)));
+    $sheet->setCellValue('B64', $this->formatGovtIssuePlaceAndDate($misc->govt_id_place_issued, $misc->govt_id_date_issued));
     $sheet->setCellValue('F65', Carbon::now()->format('m/d/Y'));
 }
 
@@ -2891,6 +2891,14 @@ private function excelDateMonthYear($value): string
     } catch (\Throwable $e) {
         return $raw;
     }
+}
+
+private function formatGovtIssuePlaceAndDate($place, $date): string
+{
+    $issuePlace = $this->excelValue($place);
+    $issueDate = $this->excelDate($date);
+
+    return implode(' | ', array_values(array_filter([$issuePlace, $issueDate], fn ($value) => $value !== '')));
 }
 
 }

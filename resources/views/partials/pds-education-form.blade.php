@@ -144,14 +144,38 @@
                     'academic_honors' => '',
                 ];
             }
+@endphp
+
+        @php
+            $normalizeEducationDateForInput = static function ($value) {
+                $value = is_string($value) ? trim($value) : '';
+
+                if ($value === '') {
+                    return '';
+                }
+
+                try {
+                    if (preg_match('/^\d{2}-\d{2}-\d{4}$/', $value)) {
+                        return \Carbon\Carbon::createFromFormat('d-m-Y', $value)->format('Y-m-d');
+                    }
+
+                    if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+                        return \Carbon\Carbon::createFromFormat('Y-m-d', $value)->format('Y-m-d');
+                    }
+                } catch (\Throwable $e) {
+                    return '';
+                }
+
+                return '';
+            };
         @endphp
 
         <div id="{{ $education_type }}-container">
             @foreach ($oldEducationData as $index => $data)
-                <div class="education-entry animate-slide-in" data-index="{{ $index }}">
+                <div class="education-entry animate-slide-in" data-index="{{ $index }}" data-education-date-range>
                     <div class="entry-card">
                         <div class="flex justify-between items-start mb-4">
-                            <h4 class="text-base sm:text-lg font-medium text-gray-700">#{{ $index + 1 }}</h4>
+                            <h4 class="entry-number text-base sm:text-lg font-medium text-gray-700">#{{ $index + 1 }}</h4>
                             <button type="button" class="remove-btn" onclick="removeEducationRow(this, '{{ $education_type }}')">
                                 <span class="material-icons">close</span>
                             </button>
@@ -183,10 +207,12 @@
                             </div>
 
                             <div class="relative">
-                                <input type="text"
+                                <input type="date"
                                        aria-label="From date"
                                        name="{{ $education_type }}[{{ $index }}][from]"
-                                       value="{{ old($education_type.'.'.$index.'.from', $data['from'] ?? '') }}"
+                                       value="{{ $normalizeEducationDateForInput(old($education_type.'.'.$index.'.from', $data['from'] ?? '')) }}"
+                                       data-education-date-role="from"
+                                       autocomplete="off"
                                        class="edu-date w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base"
                                        {{ $education_type == 'college' ? 'required' : '' }}>
                                 <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">
@@ -195,15 +221,18 @@
                             </div>
 
                             <div class="relative">
-                                <input type="text"
+                                <input type="date"
                                        aria-label="To date"
                                        name="{{ $education_type }}[{{ $index }}][to]"
-                                       value="{{ old($education_type.'.'.$index.'.to', $data['to'] ?? '') }}"
+                                       value="{{ $normalizeEducationDateForInput(old($education_type.'.'.$index.'.to', $data['to'] ?? '')) }}"
+                                       data-education-date-role="to"
+                                       autocomplete="off"
                                        class="edu-date w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base"
                                        {{ $education_type == 'college' ? 'required' : '' }}>
                                 <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">
                                     To{!! $education_type == 'college' ? '<span class="text-red-500">*</span>' : '' !!}
                                 </label>
+                                <p class="error-message hidden" data-education-date-error aria-live="polite"></p>
                             </div>
 
                             <div class="relative md:col-span-2">
@@ -251,10 +280,10 @@
 
         <!-- Hidden template -->
         <template id="{{ $education_type }}-template">
-            <div class="education-entry animate-slide-in" data-index="__INDEX__">
+            <div class="education-entry animate-slide-in" data-index="__INDEX__" data-education-date-range>
                 <div class="entry-card">
                     <div class="flex justify-between items-start mb-4">
-                        <h4 class="text-base sm:text-lg font-medium text-gray-700">#__DISPLAY_INDEX__</h4>
+                        <h4 class="entry-number text-base sm:text-lg font-medium text-gray-700">#__DISPLAY_INDEX__</h4>
                         <button type="button" class="remove-btn" onclick="removeEducationRow(this, '{{ $education_type }}')">
                             <span class="material-icons">close</span>
                         </button>
@@ -286,28 +315,33 @@
                         </div>
 
                         <div class="relative">
-                            <input type="text"
-                                   aria-label="From date"
-                                   name="{{ $education_type }}[__INDEX__][from]"
-                                   value=""
-                                   class="edu-date w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base"
-                                   {{ $education_type == 'college' ? 'required' : '' }}>
+                             <input type="date"
+                                    aria-label="From date"
+                                    name="{{ $education_type }}[__INDEX__][from]"
+                                    value=""
+                                    data-education-date-role="from"
+                                    autocomplete="off"
+                                    class="edu-date w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base"
+                                    {{ $education_type == 'college' ? 'required' : '' }}>
                             <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">
                                 From{{ $education_type == 'college' ? '*' : '' }}
                             </label>
                         </div>
 
                         <div class="relative">
-                            <input type="text"
-                                   aria-label="To date"
-                                   name="{{ $education_type }}[__INDEX__][to]"
-                                   value=""
-                                   class="edu-date w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base"
-                                   {{ $education_type == 'college' ? 'required' : '' }}>
-                            <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">
-                                To{{ $education_type == 'college' ? '*' : '' }}
-                            </label>
-                        </div>
+                             <input type="date"
+                                    aria-label="To date"
+                                    name="{{ $education_type }}[__INDEX__][to]"
+                                    value=""
+                                    data-education-date-role="to"
+                                    autocomplete="off"
+                                    class="edu-date w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base"
+                                    {{ $education_type == 'college' ? 'required' : '' }}>
+                             <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">
+                                 To{{ $education_type == 'college' ? '*' : '' }}
+                             </label>
+                             <p class="error-message hidden" data-education-date-error aria-live="polite"></p>
+                         </div>
 
                         <div class="relative md:col-span-2">
                             <input type="text"
@@ -354,12 +388,10 @@
         <script>
             function initEducationFlatpickr(scopeEl) {
                 try {
-                    if (!window.flatpickr || !scopeEl) return;
+                    if (!scopeEl) return;
                     const targets = scopeEl.querySelectorAll('input.edu-date');
                     targets.forEach(el => {
-                        if (el.dataset.fpApplied === '1') return;
-                        flatpickr(el, { dateFormat: "d-m-Y", allowInput: true });
-                        el.dataset.fpApplied = '1';
+                        el.setAttribute('autocomplete', 'off');
                     });
                 } catch (e) {}
             }
@@ -374,6 +406,9 @@
 
                 container.insertAdjacentHTML('beforeend', newRowHtml);
                 initEducationFlatpickr(container);
+                if (typeof window.initPdsEducationDateRanges === 'function') {
+                    window.initPdsEducationDateRanges(container);
+                }
             }
 
             function removeEducationRow(button, type) {
@@ -389,7 +424,9 @@
                 entries.forEach((entry, index) => {
                     entry.dataset.index = index;
                     const h4 = entry.querySelector('.entry-number');
-                    h4.textContent = `#${index + 1}`;
+                    if (h4) {
+                        h4.textContent = `#${index + 1}`;
+                    }
 
                     const inputs = entry.querySelectorAll('input');
                     inputs.forEach(input => {
@@ -401,10 +438,16 @@
                     });
                 });
                 initEducationFlatpickr(container);
+                if (typeof window.initPdsEducationDateRanges === 'function') {
+                    window.initPdsEducationDateRanges(container);
+                }
             }
             document.addEventListener('DOMContentLoaded', () => {
                 const container = document.getElementById('{{ $education_type }}-container');
                 initEducationFlatpickr(container);
+                if (typeof window.initPdsEducationDateRanges === 'function') {
+                    window.initPdsEducationDateRanges(container);
+                }
             });
         </script>
     </div>
