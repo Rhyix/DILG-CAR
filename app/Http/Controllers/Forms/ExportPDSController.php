@@ -411,9 +411,6 @@ class ExportPDSController
             $organizationsChunks[0] ?? []
         );
 
-        // Determine continuation for C3
-        $lndHasOverflow = count($lndChunks) > 1;
-
         $this->writeFooterDate($pdf);
 
         // ----------------------------
@@ -422,11 +419,11 @@ class ExportPDSController
 
         $page3OverflowMax = max(
             count($vwChunks),
+            count($lndChunks),
             count($skillsChunks),
             count($distinctionsChunks),
             count($organizationsChunks)
         );
-        $renderedLndChunkIndexes = [];
 
         for ($i = 1; $i < $page3OverflowMax; $i++) {
             $this->currentTemplatePage = 3;
@@ -440,10 +437,9 @@ class ExportPDSController
                 $this->writeVoluntaryWorkChunk($pdf, $vwChunks[$i]);
             }
 
-            // Reuse this overflow page for L&D chunk when available.
+            // Write L&D chunk if exists for this page index.
             if (isset($lndChunks[$i])) {
                 $this->writeLearningAndDevelopmentChunk($pdf, $lndChunks[$i]);
-                $renderedLndChunkIndexes[$i] = true;
             }
 
             // Write Other Information chunk if exists
@@ -454,29 +450,6 @@ class ExportPDSController
             // Only call if any of them have data
             if ($skillsChunk || $distinctionsChunk || $organizationsChunk) {
                 $this->writeOtherInformation($pdf, $skillsChunk, $distinctionsChunk, $organizationsChunk);
-            }
-        }
-
-        // ----------------------------
-        // Overflow Pages: L&D continuation pages (beyond first 21 rows)
-        // ----------------------------
-        if ($lndHasOverflow) {
-            $lndContinuationTemplateId = $templateId;
-            $lndContinuationPageSize = $page3Size;
-            // Use the same page-3 template/grid as the main page so L&D alignment
-            // is consistent between the first page and all overflow pages.
-
-            for ($i = 1; $i < count($lndChunks); $i++) {
-                if (isset($renderedLndChunkIndexes[$i])) {
-                    continue;
-                }
-
-                $this->currentTemplatePage = 3;
-                $this->configureCoordinateScale((float) $lndContinuationPageSize['width'], (float) $lndContinuationPageSize['height']);
-                $pdf->AddPage($lndContinuationPageSize['orientation'], [$lndContinuationPageSize['width'], $lndContinuationPageSize['height']]);
-                $pdf->useTemplate($lndContinuationTemplateId);
-                $this->writeLearningAndDevelopmentChunk($pdf, $lndChunks[$i]);
-                $this->writeFooterDate($pdf);
             }
         }
 
@@ -1292,7 +1265,7 @@ private function writeCivilServiceEligibilityChunk($pdf, $chunk)
     $startX_career = 8.0;
     $startX_rating = 71.0;
     $startX_date = 94.0;
-    $startX_place = 118.0;
+    $startX_place = 115;
     $startX_license = 145.0;
     $startX_validity = 184.0;
     $endX_validity = 201.5;
@@ -1302,7 +1275,7 @@ private function writeCivilServiceEligibilityChunk($pdf, $chunk)
         $startX_career = 20.5;
         $startX_rating = 83.0;
         $startX_date = 104.7;
-        $startX_place = 127.8;
+        $startX_place = 127.4;
         $startX_license = 157.5;
         $startX_validity = 176.4;
         $endX_validity = 195.9;
@@ -1328,7 +1301,7 @@ private function writeCivilServiceEligibilityChunk($pdf, $chunk)
         $this->writeFittedSingleLine($pdf, 'N/A', $startX_career, $firstRowY, $careerWidth, 7.0, 5.0); // Career
         $this->writeFittedSingleLine($pdf, 'N/A', $startX_rating, $firstRowY, $ratingWidth, 8.0, 5.0); // Rating
         $this->writeFittedSingleLine($pdf, 'N/A', $startX_date, $firstRowY, $dateWidth, 8.0, 5.0); // Date
-        $this->writeFittedSingleLine($pdf, 'N/A', $startX_place, $firstRowY, $placeWidth, 7.0, 5.0); // Place
+        $this->writeFittedSingleLine($pdf, 'N/A', $startX_place, $firstRowY, $placeWidth, 6.2, 4.8); // Place
         $this->writeFittedSingleLine($pdf, 'N/A', $startX_license, $firstRowY, $licenseWidth, 8.0, 5.0); // License
         $this->writeFittedSingleLine($pdf, 'N/A', $startX_validity, $firstRowY, $validityWidth, 8.0, 5.0); // Validity
         return;
@@ -1342,7 +1315,7 @@ private function writeCivilServiceEligibilityChunk($pdf, $chunk)
         $this->writeFittedSingleLine($pdf, $this->valueOrNa($cse['cs_eligibility_career'] ?? null), $startX_career, $rowY, $careerWidth, 7.0, 5.0);
         $this->writeFittedSingleLine($pdf, $this->valueOrNa($cse['cs_eligibility_rating'] ?? null), $startX_rating, $rowY, $ratingWidth, 8.0, 5.0);
         $this->writeFittedSingleLine($pdf, $this->dateOrNa($cse['cs_eligibility_date'] ?? null), $startX_date, $rowY, $dateWidth, 8.0, 5.0);
-        $this->writeFittedSingleLine($pdf, $this->valueOrNa($cse['cs_eligibility_place'] ?? null), $startX_place, $rowY, $placeWidth, 7.0, 5.0);
+        $this->writeFittedSingleLine($pdf, $this->valueOrNa($cse['cs_eligibility_place'] ?? null), $startX_place, $rowY, $placeWidth, 6.2, 4.8);
         $this->writeFittedSingleLine($pdf, $this->valueOrNa($cse['cs_eligibility_license'] ?? null), $startX_license, $rowY, $licenseWidth, 8.0, 5.0);
         $this->writeFittedSingleLine($pdf, $this->dateOrNa($cse['cs_eligibility_validity'] ?? null), $startX_validity, $rowY, $validityWidth, 8.0, 5.0);
     }
@@ -1456,7 +1429,7 @@ private function writeLearningAndDevelopmentChunk($pdf, $chunk)
     $x_from = 95;
     $x_to = 110.5;
     $x_hours = 130;
-    $x_type = 146.8;
+    $x_type = 143.5;
     $x_conducted = 160;
     $x_right = 201.5;
     $cellInset = 0.6;
@@ -1473,11 +1446,11 @@ private function writeLearningAndDevelopmentChunk($pdf, $chunk)
 
     // If all fields are empty, write N/A in the first-row cells.
     if ($isEmpty) {
-        $this->writeWrapped($pdf, 'N/A', $titleWidth, $x_title, $startY, $startY - 1.0, 7.0, 2);
+        $this->writeTruncatedAtSize($pdf, 'N/A', $x_title, $startY, $titleWidth, 6.6);
         $this->writeFittedAt($pdf, 'N/A', 94.5, $startY, 15.0, 8.0, 5.0);
         $this->writeFittedAt($pdf, 'N/A', 110.5, $startY, 19.0, 8.0, 5.0);
         $this->writeFittedAt($pdf, 'N/A', $x_hours, $startY, 12.0, 7.0, 5.0);
-        $this->writeFittedAt($pdf, 'N/A', $x_type, $startY, $typeWidth, 7.0, 5.0);
+        $this->writeFittedSingleLine($pdf, 'N/A', $x_type, $startY, $typeWidth, 6.2, 4.8);
         $this->writeWrapped($pdf, 'N/A', $conductedWidth, $x_conducted, $startY, $startY - 1.0, 7.0, 2);
         return;
     }
@@ -1487,25 +1460,23 @@ private function writeLearningAndDevelopmentChunk($pdf, $chunk)
         $currentY = $startY + ($index * $rowHeight);
         $multiLineY = $currentY - 1.0;
 
-        $this->writeWrapped(
+        $this->writeTruncatedAtSize(
             $pdf,
             $this->valueOrNa($lnd['learning_title'] ?? null),
-            $titleWidth,
             $x_title,
             $currentY,
-            $multiLineY,
-            7.0,
-            2
+            $titleWidth,
+            6.6 
         );
 
-        $this->writeFittedAt(
+        $this->writeFittedSingleLine(
             $pdf,
             $this->valueOrNa($lnd['learning_type'] ?? null),
             $x_type,
             $currentY,
             $typeWidth,
-            7.0,
-            5.0
+            6.2,
+            4.8
         );
 
         $this->writeFittedAt($pdf, $this->dateOrNa($lnd['learning_from'] ?? null), $x_from - 0.5, $currentY, 15.0, 8.0, 5.0);
