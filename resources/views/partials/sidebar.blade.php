@@ -30,7 +30,7 @@
         <!-- Upper Section -->
         <div>
             <a class="flex items-center gap-2 pt-14 px-2">
-                <img src="{{ asset  ('/publicimages/dilg_logo.png') }}" alt="DILG Logo"
+                <img src="{{ asset('images/dilg_logo.png') }}" alt="DILG Logo"
                     class="h-12 w-12 rounded-full border border-white flex-shrink-0 logo-transition" />
                 <div id="sidebarText" class="{{ $simple ? 'sidebar-text-visible' : 'sidebar-text-hidden' }} whitespace-nowrap overflow-hidden">
                     <div class="font-bold font-montserrat text-[#002C76] text-[20px] uppercase leading-tight tracking-wide">
