@@ -191,6 +191,7 @@ class ExportPDSController
 
         // Preprocess Civil Service Eligibility and Work Experience chunks
         $cseChunks = array_chunk($civilServiceEligibility->toArray(), 7);
+        // Keep row spacing stable in the printed grid using the full 28-row page capacity.
         $weChunks = array_chunk($workExperience->toArray(), 28);
 
         $hasCSEOverflow = count($cseChunks) > 1;
@@ -290,26 +291,6 @@ class ExportPDSController
         $this->writeFooterDate($pdf);
 
 
-        // Determine continuation needs
-        $childrenHasOverflow = count($childrenChunks) > 1;
-        $schoolHasOverflow = count($collegeChunks) > 1 || count($vocationalChunks) > 1 || count($gradChunks) > 1;
-
-        // Write CONTINUED indicator for children if overflow exists
-        if ($childrenHasOverflow) {
-            $this->setFont($pdf, 'Arial', 'B', 8);
-            $this->setXY($pdf, 122, 242);
-            $pdf->Write(0, "CONTINUED");
-            $this->setFont($pdf, 'Arial', '', 8);
-        }
-
-        // Write CONTINUED indicator for school chunks if overflow exists
-        if ($schoolHasOverflow) {
-            $this->setFont($pdf, 'Arial', 'B', 8);
-            $this->setXY($pdf, 43, 310);
-            $pdf->Write(0, "CONTINUED");
-            $this->setFont($pdf, 'Arial', '', 8);
-        }
-
         // ----------------------------
         // Overflow Pages: Children, Vocational, College, Graduate overflow
         // ----------------------------
@@ -376,24 +357,6 @@ class ExportPDSController
         $this->writeWorkExperienceChunk($pdf, $weChunks[0] ?? []);
 
 
-        // Determine CSE and WE continuation
-        $cseHasOverflow = count($cseChunks) > 1;
-        $weHasOverflow = count($weChunks) > 1;
-
-        if ($cseHasOverflow) {
-            $this->setFont($pdf, 'Arial', 'B', 8);
-            $this->setXY($pdf, 8, 80.5); // adjust XY for CSE continued placement
-            $pdf->Write(0, "CONTINUED");
-            $this->setFont($pdf, 'Arial', '', 8);
-        }
-
-        if ($weHasOverflow) {
-            $this->setFont($pdf, 'Arial', 'B', 8);
-            $this->setXY($pdf, 8, 308.5); // adjust XY for WE continued placement
-            $pdf->Write(0, "CONTINUED");
-            $this->setFont($pdf, 'Arial', '', 8);
-        }
-
         $this->writeFooterDate($pdf);
         // ----------------------------
         // Overflow Pages: CSE overflow + WE overflow
@@ -449,25 +412,7 @@ class ExportPDSController
         );
 
         // Determine continuation for C3
-        $vwHasOverflow = count($vwChunks) > 1;
         $lndHasOverflow = count($lndChunks) > 1;
-        $skillsHasOverflow = count($skillsChunks) > 1;
-        $distinctionsHasOverflow = count($distinctionsChunks) > 1;
-        $organizationsHasOverflow = count($organizationsChunks) > 1;
-
-        if ($vwHasOverflow) {
-            $this->setFont($pdf, 'Arial', 'B', 8);
-            $this->setXY($pdf, 8, 77.5); // adjust as needed for Voluntary Work
-            $pdf->Write(0, "CONTINUED");
-            $this->setFont($pdf, 'Arial', '', 8);
-        }
-
-        if ($skillsHasOverflow || $distinctionsHasOverflow || $organizationsHasOverflow) {
-            $this->setFont($pdf, 'Arial', 'B', 8);
-            $this->setXY($pdf, 8, 299); // adjust as needed for Other Information
-            $pdf->Write(0, "CONTINUED");
-            $this->setFont($pdf, 'Arial', '', 8);
-        }
 
         $this->writeFooterDate($pdf);
 
@@ -481,6 +426,7 @@ class ExportPDSController
             count($distinctionsChunks),
             count($organizationsChunks)
         );
+        $renderedLndChunkIndexes = [];
 
         for ($i = 1; $i < $page3OverflowMax; $i++) {
             $this->currentTemplatePage = 3;
@@ -492,6 +438,12 @@ class ExportPDSController
             // Write Voluntary Work chunk if exists
             if (isset($vwChunks[$i])) {
                 $this->writeVoluntaryWorkChunk($pdf, $vwChunks[$i]);
+            }
+
+            // Reuse this overflow page for L&D chunk when available.
+            if (isset($lndChunks[$i])) {
+                $this->writeLearningAndDevelopmentChunk($pdf, $lndChunks[$i]);
+                $renderedLndChunkIndexes[$i] = true;
             }
 
             // Write Other Information chunk if exists
@@ -509,30 +461,22 @@ class ExportPDSController
         // Overflow Pages: L&D continuation pages (beyond first 21 rows)
         // ----------------------------
         if ($lndHasOverflow) {
-            $lndContinuationTemplatePath = resource_path('templates/LEARNING AND DEVELOPMENT (L&D) INTERVENTIONSTRAINING PROGRAMS ATTENDED.pdf');
             $lndContinuationTemplateId = $templateId;
             $lndContinuationPageSize = $page3Size;
-            $usingDedicatedLndTemplate = false;
-
-            if (file_exists($lndContinuationTemplatePath)) {
-                $pdf->setSourceFile($lndContinuationTemplatePath);
-                $lndContinuationTemplateId = $pdf->importPage(1);
-                $lndContinuationPageSize = $pdf->getTemplateSize($lndContinuationTemplateId);
-                $usingDedicatedLndTemplate = true;
-            }
+            // Use the same page-3 template/grid as the main page so L&D alignment
+            // is consistent between the first page and all overflow pages.
 
             for ($i = 1; $i < count($lndChunks); $i++) {
+                if (isset($renderedLndChunkIndexes[$i])) {
+                    continue;
+                }
+
                 $this->currentTemplatePage = 3;
                 $this->configureCoordinateScale((float) $lndContinuationPageSize['width'], (float) $lndContinuationPageSize['height']);
                 $pdf->AddPage($lndContinuationPageSize['orientation'], [$lndContinuationPageSize['width'], $lndContinuationPageSize['height']]);
                 $pdf->useTemplate($lndContinuationTemplateId);
                 $this->writeLearningAndDevelopmentChunk($pdf, $lndChunks[$i]);
                 $this->writeFooterDate($pdf);
-            }
-
-            if ($usingDedicatedLndTemplate) {
-                // Restore the main PDS source before importing page 4.
-                $pdf->setSourceFile($templatePath);
             }
         }
 
@@ -1366,6 +1310,7 @@ private function writeCivilServiceEligibilityChunk($pdf, $chunk)
 
     $startY = 26;
     $rowHeight = 7;
+    $perRowDownShift = 0.15;
     $cellInset = 0.5;
 
     $careerWidth = max(1.0, ($startX_rating - $startX_career) - $cellInset);
@@ -1376,37 +1321,30 @@ private function writeCivilServiceEligibilityChunk($pdf, $chunk)
     $validityWidth = max(1.0, ($endX_validity - $startX_validity) - $cellInset);
 
     $isEmpty = !$this->hasCivilServiceData((array) $chunk);
+    $firstRowY = $startY - 0.6;
 
     // If all fields are empty, write N/A in the first row cells.
     if ($isEmpty) {
-        $this->writeWrapped($pdf, 'N/A', $careerWidth, 35, 24.5, 24.0, 8.0, 3.0); // Career Eligibility
-        $this->writeFittedAt($pdf, 'N/A', 79, 24.5, $ratingWidth, 8.0, 5.0); // Rating
-        $this->writeFittedAt($pdf, 'N/A', 99, 24.5, $dateWidth, 8.0, 3.6); // Date
-        $this->writeFittedAt($pdf, 'N/A', 126, 24.5, $placeWidth, 8.0, 4.5); // Place
-        $this->writeFittedAt($pdf, 'N/A', 153.5, 24.5, $licenseWidth, 8.0, 5.0); // License
-        $this->writeFittedAt($pdf, 'N/A', 188, 24.5, $validityWidth, 8.0, 3.6); // Validity
+        $this->writeFittedSingleLine($pdf, 'N/A', $startX_career, $firstRowY, $careerWidth, 7.0, 5.0); // Career
+        $this->writeFittedSingleLine($pdf, 'N/A', $startX_rating, $firstRowY, $ratingWidth, 8.0, 5.0); // Rating
+        $this->writeFittedSingleLine($pdf, 'N/A', $startX_date, $firstRowY, $dateWidth, 8.0, 5.0); // Date
+        $this->writeFittedSingleLine($pdf, 'N/A', $startX_place, $firstRowY, $placeWidth, 7.0, 5.0); // Place
+        $this->writeFittedSingleLine($pdf, 'N/A', $startX_license, $firstRowY, $licenseWidth, 8.0, 5.0); // License
+        $this->writeFittedSingleLine($pdf, 'N/A', $startX_validity, $firstRowY, $validityWidth, 8.0, 5.0); // Validity
         return;
     }
 
     foreach ($chunk as $index => $cse) {
         $currentY = $startY + ($index * $rowHeight);
+        // Explicit downward bias per row so lower rows sit visibly lower in their cells.
+        $rowY = $currentY - 0.6 + ($index * $perRowDownShift);
 
-        $this->writeWrapped(
-            $pdf,
-            $this->valueOrNa($cse['cs_eligibility_career'] ?? null),
-            $careerWidth,
-            7,
-            24.5,
-            $currentY - 0.5,
-            7.0,
-            3.0
-        );
-
-        $this->writeFittedAt($pdf, $this->valueOrNa($cse['cs_eligibility_rating'] ?? null), 80, 24.5, $ratingWidth, 8.0, 5.0);
-        $this->writeFittedAt($pdf, $this->dateOrNa($cse['cs_eligibility_date'] ?? null), 95, 24.5, $dateWidth, 8.0, 3.6);
-        $this->writeFittedAt($pdf, $this->valueOrNa($cse['cs_eligibility_place'] ?? null), 125, 24.5, $placeWidth, 7.0, 4.5);
-        $this->writeFittedAt($pdf, $this->valueOrNa($cse['cs_eligibility_license'] ?? null), 153.5, 24.5, $licenseWidth, 8.0, 5.0);
-        $this->writeFittedAt($pdf, $this->dateOrNa($cse['cs_eligibility_validity'] ?? null), 183, 24.5, $validityWidth, 8.0, 3.6);
+        $this->writeFittedSingleLine($pdf, $this->valueOrNa($cse['cs_eligibility_career'] ?? null), $startX_career, $rowY, $careerWidth, 7.0, 5.0);
+        $this->writeFittedSingleLine($pdf, $this->valueOrNa($cse['cs_eligibility_rating'] ?? null), $startX_rating, $rowY, $ratingWidth, 8.0, 5.0);
+        $this->writeFittedSingleLine($pdf, $this->dateOrNa($cse['cs_eligibility_date'] ?? null), $startX_date, $rowY, $dateWidth, 8.0, 5.0);
+        $this->writeFittedSingleLine($pdf, $this->valueOrNa($cse['cs_eligibility_place'] ?? null), $startX_place, $rowY, $placeWidth, 7.0, 5.0);
+        $this->writeFittedSingleLine($pdf, $this->valueOrNa($cse['cs_eligibility_license'] ?? null), $startX_license, $rowY, $licenseWidth, 8.0, 5.0);
+        $this->writeFittedSingleLine($pdf, $this->dateOrNa($cse['cs_eligibility_validity'] ?? null), $startX_validity, $rowY, $validityWidth, 8.0, 5.0);
     }
 }
 
@@ -1430,9 +1368,10 @@ private function writeWorkExperienceChunk($pdf, $chunk)
         $x_gov_end = 195.9;
     }
 
-    $startY = 103.5;
-    $rowHeight = 6.5;
+    $startY = 103.3;
+    $rowHeight = 6.66;
     $cellInset = 0.5;
+    $maxRowsPerPage = 28;
 
     $fromWidth = max(1.0, ($x_to - $x_from) - $cellInset);
     $toWidth = max(1.0, ($x_position - $x_to) - $cellInset);
@@ -1442,40 +1381,30 @@ private function writeWorkExperienceChunk($pdf, $chunk)
     $govWidth = max(1.0, ($x_gov_end - $x_gov) - $cellInset);
 
     $isEmpty = !$this->hasWorkExperienceData((array) $chunk);
-    $firstRowY = $startY - 1.4;
+    $firstRowY = $startY - 1.75;
 
     // If all are empty, write N/A in the first row cells.
     if ($isEmpty) {
-        $this->writeFittedAt($pdf, 'N/A', $x_from, $firstRowY, $fromWidth, 8.0, 3.6); // From
-        $this->writeFittedAt($pdf, 'N/A', $x_to, $firstRowY, $toWidth, 8.0, 3.6); // To
-        $this->writeFittedAt($pdf, 'N/A', $x_position, $firstRowY, $positionWidth, 8.0, 5.0); // Position
-        $this->writeWrapped($pdf, 'N/A', $agencyWidth, $x_agency, $firstRowY, $firstRowY, 6.0, 2.0); // Agency
-        $this->writeFittedAt($pdf, 'N/A', $x_status, $firstRowY, $statusWidth, 8.0, 4.5); // Status
-        $this->writeFittedAt($pdf, 'N/A', $x_gov, $firstRowY, $govWidth, 8.0, 5.0); // Government Service
+        $this->writeTruncatedAtSize($pdf, 'N/A', $x_from, $firstRowY, $fromWidth, 7.0); // From
+        $this->writeTruncatedAtSize($pdf, 'N/A', $x_to, $firstRowY, $toWidth, 7.0); // To
+        $this->writeTruncatedAtSize($pdf, 'N/A', $x_position, $firstRowY, $positionWidth, 7.0); // Position
+        $this->writeTruncatedAtSize($pdf, 'N/A', $x_agency, $firstRowY, $agencyWidth, 6.0); // Agency
+        $this->writeTruncatedAtSize($pdf, 'N/A', $x_status, $firstRowY, $statusWidth, 7.0); // Status
+        $this->writeTruncatedAtSize($pdf, 'N/A', $x_gov, $firstRowY, $govWidth, 7.0); // Government Service
         return;
     }
 
     foreach ($chunk as $index => $we) {
         $currentY = $startY + ($index * $rowHeight);
-        $rowY = $currentY - 1.5;
+        // Use linear row stepping to keep all rows on the same baseline.
+        $rowY = $currentY - 1.75;
 
-        $this->writeFittedAt($pdf, $this->dateOrNa($we['work_exp_from'] ?? null), $x_from, $rowY, $fromWidth, 8.0, 3.6);
-        $this->writeFittedAt($pdf, $this->dateOrNa($we['work_exp_to'] ?? null), $x_to, $rowY, $toWidth, 8.0, 3.6);
-        $this->writeFittedAt($pdf, $this->valueOrNa($we['work_exp_position'] ?? null), $x_position, $rowY, $positionWidth, 7.0, 5.0);
-
-        $this->writeWrapped(
-            $pdf,
-            $this->valueOrNa($we['work_exp_department'] ?? null),
-            $agencyWidth,
-            $x_agency,
-            $rowY,
-            $rowY,
-            6.0,
-            2.0
-        );
-
-        $this->writeFittedAt($pdf, $this->valueOrNa($we['work_exp_status'] ?? null), $x_status, $rowY, $statusWidth, 8.0, 4.5);
-        $this->writeFittedAt($pdf, $this->normalizeGovServiceFlag($we['work_exp_govt_service'] ?? null, 'N/A'), $x_gov, $rowY, $govWidth, 8.0, 5.0);
+        $this->writeTruncatedAtSize($pdf, $this->dateOrNa($we['work_exp_from'] ?? null), $x_from, $rowY, $fromWidth, 7.0);
+        $this->writeTruncatedAtSize($pdf, $this->dateOrNa($we['work_exp_to'] ?? null), $x_to, $rowY, $toWidth, 7.0);
+        $this->writeTruncatedAtSize($pdf, $this->valueOrNa($we['work_exp_position'] ?? null), $x_position, $rowY, $positionWidth, 7.0);
+        $this->writeTruncatedAtSize($pdf, $this->valueOrNa($we['work_exp_department'] ?? null), $x_agency, $rowY, $agencyWidth, 6.0);
+        $this->writeTruncatedAtSize($pdf, $this->valueOrNa($we['work_exp_status'] ?? null), $x_status, $rowY, $statusWidth, 7.0);
+        $this->writeTruncatedAtSize($pdf, $this->normalizeGovServiceFlag($we['work_exp_govt_service'] ?? null, 'N/A'), $x_gov, $rowY, $govWidth, 7.0);
     }
 }
 
@@ -1523,12 +1452,19 @@ private function writeVoluntaryWorkChunk($pdf, $chunk)
 private function writeLearningAndDevelopmentChunk($pdf, $chunk)
 {
     // Column X positions
-    $x_title = 7;
+    $x_title = 5.4;
     $x_from = 95;
     $x_to = 110.5;
     $x_hours = 130;
-    $x_type = 142;
-    $x_conducted = 161;
+    $x_type = 146.8;
+    $x_conducted = 160;
+    $x_right = 201.5;
+    $cellInset = 0.6;
+
+    // Keep each value strictly inside its column width.
+    $titleWidth = max(1.0, ($x_from - $x_title) - $cellInset);
+    $typeWidth = max(1.0, ($x_conducted - $x_type) - $cellInset);
+    $conductedWidth = max(1.0, ($x_right - $x_conducted) - $cellInset);
 
     $startY = 103;
     $rowHeight = 6.4;
@@ -1537,12 +1473,12 @@ private function writeLearningAndDevelopmentChunk($pdf, $chunk)
 
     // If all fields are empty, write N/A in the first-row cells.
     if ($isEmpty) {
-        $this->writeWrapped($pdf, 'N/A', 105, 6, $startY, $startY - 1.0, 7.0, 2);
+        $this->writeWrapped($pdf, 'N/A', $titleWidth, $x_title, $startY, $startY - 1.0, 7.0, 2);
         $this->writeFittedAt($pdf, 'N/A', 94.5, $startY, 15.0, 8.0, 5.0);
         $this->writeFittedAt($pdf, 'N/A', 110.5, $startY, 19.0, 8.0, 5.0);
         $this->writeFittedAt($pdf, 'N/A', $x_hours, $startY, 12.0, 7.0, 5.0);
-        $this->writeFittedAt($pdf, 'N/A', $x_type, $startY, 18.0, 7.0, 5.0);
-        $this->writeWrapped($pdf, 'N/A', 47.3, $x_conducted - 2, $startY, $startY - 1.0, 7.0, 2);
+        $this->writeFittedAt($pdf, 'N/A', $x_type, $startY, $typeWidth, 7.0, 5.0);
+        $this->writeWrapped($pdf, 'N/A', $conductedWidth, $x_conducted, $startY, $startY - 1.0, 7.0, 2);
         return;
     }
 
@@ -1551,17 +1487,41 @@ private function writeLearningAndDevelopmentChunk($pdf, $chunk)
         $currentY = $startY + ($index * $rowHeight);
         $multiLineY = $currentY - 1.0;
 
-        $this->writeWrapped($pdf, $this->valueOrNa($lnd['learning_title'] ?? null), 105, 6, 102.5, $multiLineY, 7.0, 2);
+        $this->writeWrapped(
+            $pdf,
+            $this->valueOrNa($lnd['learning_title'] ?? null),
+            $titleWidth,
+            $x_title,
+            $currentY,
+            $multiLineY,
+            7.0,
+            2
+        );
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($lnd['learning_type'] ?? null), 146, 102.5, 18.0, 7.0, 5.0);
+        $this->writeFittedAt(
+            $pdf,
+            $this->valueOrNa($lnd['learning_type'] ?? null),
+            $x_type,
+            $currentY,
+            $typeWidth,
+            7.0,
+            5.0
+        );
 
-        $this->writeFittedAt($pdf, $this->dateOrNa($lnd['learning_from'] ?? null), $x_from - 0.5, 102.5, 15.0, 8.0, 5.0);
+        $this->writeFittedAt($pdf, $this->dateOrNa($lnd['learning_from'] ?? null), $x_from - 0.5, $currentY, 15.0, 8.0, 5.0);
+        $this->writeFittedAt($pdf, $this->dateOrNa($lnd['learning_to'] ?? null), $x_to, $currentY, 19.0, 8.0, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($lnd['learning_hours'] ?? null), $x_hours - 1.0, $currentY, 12.0, 8.0, 5.0);
 
-        $this->writeFittedAt($pdf, $this->dateOrNa($lnd['learning_to'] ?? null), $x_to, 102.5, 19.0, 8.0, 5.0);
-
-        $this->writeFittedAt($pdf, $this->valueOrNa($lnd['learning_hours'] ?? null), 129, 102.5, 12.0, 8.0, 5.0);
-
-        $this->writeWrapped($pdf, $this->valueOrNa($lnd['learning_conducted'] ?? null), 47.3, 160,  102.5, $currentY, $multiLineY, 7.0, 2);
+        $this->writeWrapped(
+            $pdf,
+            $this->valueOrNa($lnd['learning_conducted'] ?? null),
+            $conductedWidth,
+            $x_conducted,
+            $currentY,
+            $multiLineY,
+            7.0,
+            2
+        );
     }
 }
 
@@ -1992,6 +1952,64 @@ private function writeFittedAt($pdf, string $text, float $x, float $y, float $ma
         $pdf->Cell($effectiveWidth, 0, $line, 0, 0, 'L');
         $currentY += $lineHeight;
     }
+    $this->setFont($pdf, 'Arial', '', 8);
+}
+
+private function writeFittedSingleLine(
+    $pdf,
+    string $text,
+    float $x,
+    float $y,
+    float $maxWidth,
+    float $baseSize = 8.0,
+    float $minSize = 5.0
+): void {
+    $text = mb_strtoupper(trim($text));
+    if ($text === '') {
+        $this->setFont($pdf, 'Arial', '', 8);
+        return;
+    }
+
+    $effectiveWidth = max(1.0, $this->getEffectiveMaxWidth($maxWidth));
+    $startSize = max((float) $baseSize, (float) $minSize);
+    $endSize = max(4.5, (float) $minSize);
+    $chosenSize = $startSize;
+
+    for ($size = $startSize; $size >= $endSize; $size -= 0.5) {
+        $this->setFont($pdf, 'Arial', '', $size);
+        if ($pdf->GetStringWidth($text) <= $effectiveWidth) {
+            $chosenSize = $size;
+            break;
+        }
+        $chosenSize = $size;
+    }
+
+    $this->setFont($pdf, 'Arial', '', $chosenSize);
+    $line = $this->truncateToWidth($pdf, $text, $effectiveWidth);
+    $this->setXY($pdf, $x, $y);
+    $pdf->Cell($effectiveWidth, 0, $line, 0, 0, 'L');
+    $this->setFont($pdf, 'Arial', '', 8);
+}
+
+private function writeTruncatedAtSize(
+    $pdf,
+    string $text,
+    float $x,
+    float $y,
+    float $maxWidth,
+    float $fontSize = 7.0
+): void {
+    $text = mb_strtoupper(trim($text));
+    if ($text === '') {
+        $this->setFont($pdf, 'Arial', '', 8);
+        return;
+    }
+
+    $effectiveWidth = max(1.0, $this->getEffectiveMaxWidth($maxWidth));
+    $this->setFont($pdf, 'Arial', '', max(4.5, $fontSize));
+    $line = $this->truncateToWidth($pdf, $text, $effectiveWidth);
+    $this->setXY($pdf, $x, $y);
+    $pdf->Cell($effectiveWidth, 0, $line, 0, 0, 'L');
     $this->setFont($pdf, 'Arial', '', 8);
 }
 

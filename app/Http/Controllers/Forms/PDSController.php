@@ -2267,6 +2267,7 @@ class PDSController extends Controller
         // ------------------------------
         $work_exp_count = $c2_form_data['work_exp_count'] ?? 0;
         $all_wex_data = [];
+        $persistedWorkIds = [];
 
         for ($i = 0; $i < $work_exp_count; $i++) {
 
@@ -2284,8 +2285,11 @@ class PDSController extends Controller
             // Check if the value of id is zero, a zero value means a record
             // does not exist. thus, create a new record
             $wex_id_temp = $c2_form_data['work_exp_id'][$i] ?? null;
-            if (!empty($wex_id_temp)) {
-                $data_work_exp['id'] = $wex_id_temp;
+            $wex_id_temp = is_scalar($wex_id_temp) ? trim((string) $wex_id_temp) : '';
+            $wex_id = ctype_digit($wex_id_temp) ? (int) $wex_id_temp : 0;
+
+            if ($wex_id > 0) {
+                $data_work_exp['id'] = $wex_id;
             } else {
                 $data_work_exp['created_at'] = now();
             }
@@ -2298,8 +2302,20 @@ class PDSController extends Controller
                 $data_work_exp['id'] = $newRecord->id;
             }
 
+            if (!empty($data_work_exp['id'])) {
+                $persistedWorkIds[] = (int) $data_work_exp['id'];
+            }
             $all_wex_data[] = $data_work_exp;
             // WorkExperience::upsert($data_work_exp, 'id');
+        }
+
+        // Keep DB rows in sync with submitted form rows.
+        if (!empty($persistedWorkIds)) {
+            WorkExperience::where('user_id', Auth::id())
+                ->whereNotIn('id', $persistedWorkIds)
+                ->delete();
+        } else {
+            WorkExperience::where('user_id', Auth::id())->delete();
         }
 
 
@@ -2308,6 +2324,7 @@ class PDSController extends Controller
         // ------------------------------
         $civil_service_count = $c2_form_data['civil_service_count'] ?? 0;
         $all_cs_data = [];
+        $persistedCivilServiceIds = [];
 
         for ($i = 0; $i < $civil_service_count; $i++) {
 
@@ -2322,8 +2339,11 @@ class PDSController extends Controller
             ];
 
             $cs_id_temp = $c2_form_data['cs_eligibility_id'][$i] ?? null;
-            if (!empty($cs_id_temp)) {
-                $data_cs['id'] = $cs_id_temp;
+            $cs_id_temp = is_scalar($cs_id_temp) ? trim((string) $cs_id_temp) : '';
+            $cs_id = ctype_digit($cs_id_temp) ? (int) $cs_id_temp : 0;
+
+            if ($cs_id > 0) {
+                $data_cs['id'] = $cs_id;
             } else {
                 $data_cs['created_at'] = now();
             }
@@ -2335,8 +2355,20 @@ class PDSController extends Controller
                 $data_cs['id'] = $newRecord->id;
             }
 
+            if (!empty($data_cs['id'])) {
+                $persistedCivilServiceIds[] = (int) $data_cs['id'];
+            }
             $all_cs_data[] = $data_cs;
             // CivilServiceEligibility::upsert($data_cs, 'id');
+        }
+
+        // Keep DB rows in sync with submitted form rows.
+        if (!empty($persistedCivilServiceIds)) {
+            CivilServiceEligibility::where('user_id', Auth::id())
+                ->whereNotIn('id', $persistedCivilServiceIds)
+                ->delete();
+        } else {
+            CivilServiceEligibility::where('user_id', Auth::id())->delete();
         }
 
 

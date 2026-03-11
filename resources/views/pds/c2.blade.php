@@ -17,7 +17,7 @@
 
                 <!-- Action Buttons -->
                 <div class="flex flex-col sm:flex-row gap-3 mb-6">
-                    <button id="add-civil-service-btn" class="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 text-sm sm:text-base">
+                    <button type="button" id="add-civil-service-btn" class="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 text-sm sm:text-base">
                         <span class="material-icons mr-2 text-sm sm:text-base">add_circle</span>
                         Add Eligibility
                     </button>
@@ -74,7 +74,7 @@
 
                 <!-- Action Buttons -->
                 <div class="flex flex-col sm:flex-row gap-3 mb-6">
-                    <button id="add-work-exp-btn" class="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 text-sm sm:text-base">
+                    <button type="button" id="add-work-exp-btn" class="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 text-sm sm:text-base">
                         <span class="material-icons mr-2 text-sm sm:text-base">add_circle</span>
                         Add Work Experience
                     </button>
@@ -290,11 +290,17 @@
             }
 
             // Work Experience Add Button
-            document.getElementById('add-work-exp-btn').addEventListener('click', addWorkExperienceRow);
+            document.getElementById('add-work-exp-btn').addEventListener('click', function (event) {
+                event.preventDefault();
+                addWorkExperienceRow();
+            });
             //document.getElementById('floating-add-work').addEventListener('click', addWorkExperienceRow);
 
             // Civil Service Eligibility Add Button
-            document.getElementById('add-civil-service-btn').addEventListener('click', addCivilServiceRow);
+            document.getElementById('add-civil-service-btn').addEventListener('click', function (event) {
+                event.preventDefault();
+                addCivilServiceRow();
+            });
             //document.getElementById('floating-add-civil').addEventListener('click', addCivilServiceRow);
 
             // Clear buttons
@@ -455,7 +461,8 @@
                 work_exp_position = null,
                 work_exp_department = null,
                 work_exp_status = null,
-                work_exp_govt_service = null
+                work_exp_govt_service = null,
+                shouldScroll = true
             ) {
                 const tbody = workExpTable.querySelector('tbody');
                 const rowCount = tbody.children.length;
@@ -467,7 +474,7 @@
                 newRow.innerHTML = `
                     <input type="hidden" name="work_exp_count" value="${rowCount + 1}">
 
-                    <input type="hidden" name="work_exp_id[]" value="${(!is_new) ? work_exp_id : ''}">
+                    <input type="hidden" name="work_exp_id[]" value="${(!is_new && work_exp_id !== null && work_exp_id !== undefined && String(work_exp_id).toLowerCase() !== 'null') ? work_exp_id : ''}">
                     <!-- <td class="font-medium text-center">${rowCount + 1}</td> -->
                     <td>
                         <input type="date" name="work_exp_from[]" class="form-input" required value="${(!is_new) ? work_exp_from : ''}" />
@@ -509,9 +516,11 @@
                 updateEmptyState();
 
                 // Scroll to the new row
-                setTimeout(() => {
-                    newRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                }, 10);
+                if (shouldScroll) {
+                    setTimeout(() => {
+                        newRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }, 10);
+                }
             }
 
             function addCivilServiceRow(
@@ -522,7 +531,8 @@
                 cs_eligibility_date = null,
                 cs_eligibility_place = null,
                 cs_eligibility_license = null,
-                cs_eligibility_validity = null
+                cs_eligibility_validity = null,
+                shouldScroll = true
             ) {
                 const tbody = civilServiceTable.querySelector('tbody');
                 const rowCount = tbody.children.length;
@@ -533,7 +543,7 @@
                 newRow.innerHTML = `
                     <input type="hidden" name="civil_service_count" value="${rowCount + 1}">
 
-                    <input type="hidden" name="cs_eligibility_id[]" value="${(!is_new) ? cs_eligibility_id : ''}">
+                    <input type="hidden" name="cs_eligibility_id[]" value="${(!is_new && cs_eligibility_id !== null && cs_eligibility_id !== undefined && String(cs_eligibility_id).toLowerCase() !== 'null') ? cs_eligibility_id : ''}">
                     <td>
                         <input type="text" name="cs_eligibility_career[]" placeholder="Career Service/Board/Bar" class="form-input" required value="${(!is_new) ? cs_eligibility_career : ''}"/>
                     </td>
@@ -563,9 +573,11 @@
                 updateEmptyState();
 
                 // Scroll to the new row
-                setTimeout(() => {
-                    newRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                }, 10);
+                if (shouldScroll) {
+                    setTimeout(() => {
+                        newRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }, 10);
+                }
             }
 
             function clearWorkExperience() {
