@@ -10,140 +10,10 @@
   <script src="https://unpkg.com/alpinejs" defer></script>
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" />
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
 
-  <style>
-    html,
-    body {
-      height: 100%;
-      font-family: 'Montserrat', sans-serif;
-      overflow: hidden;
-    }
-
-    body {
-      margin: 0;
-      background-color: #04132f;
-      background-image: url('{{ asset('templates/template.png') }}');
-      background-position: center;
-      background-repeat: no-repeat;
-      background-size: cover;
-    }
-
-    [x-cloak] {
-      display: none !important;
-    }
-
-    .portal-page-bg {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      background:
-        radial-gradient(circle at 14% 74%, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0) 46%),
-        linear-gradient(120deg, rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0) 30%);
-    }
-
-    .portal-page-bg::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background:
-        radial-gradient(circle at 8% 70%, rgba(255, 255, 255, 0.28) 0 1px, rgba(255, 255, 255, 0) 2px);
-      background-size: 8px 8px;
-      opacity: 0.18;
-    }
-
-    .portal-page-bg::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background:
-        linear-gradient(180deg, rgba(9, 27, 64, 0.15) 0%, rgba(9, 27, 64, 0.42) 100%);
-      opacity: 0.45;
-    }
-
-    .portal-shell {
-      position: relative;
-      isolation: isolate;
-    }
-
-    .register-card {
-      position: relative;
-      overflow: hidden;
-      border: 1px solid rgba(213, 221, 237, 0.92);
-      background: linear-gradient(180deg, #f4f6fb 0%, #e9edf5 100%);
-      box-shadow: 0 28px 70px rgba(2, 14, 40, 0.24);
-      backdrop-filter: blur(4px);
-    }
-
-    .register-card::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.42) 0%, rgba(255, 255, 255, 0.04) 34%, rgba(255, 255, 255, 0) 100%),
-        radial-gradient(circle at 14% 78%, rgba(41, 91, 168, 0.28) 0%, rgba(41, 91, 168, 0) 40%);
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    .register-surface {
-      position: relative;
-      z-index: 1;
-    }
-
-    .register-fit {
-      transform-origin: top center;
-    }
-
-    @media (max-height: 940px) {
-      .register-fit {
-        transform: scale(0.94);
-      }
-    }
-
-    @media (max-height: 860px) {
-      .register-fit {
-        transform: scale(0.89);
-      }
-    }
-
-    @media (max-height: 790px) {
-      .register-fit {
-        transform: scale(0.84);
-      }
-    }
-
-    @media (max-width: 1023px) {
-      .register-card::before {
-        background:
-          linear-gradient(180deg, rgba(255, 255, 255, 0.34) 0%, rgba(255, 255, 255, 0.02) 44%, rgba(255, 255, 255, 0) 100%),
-          radial-gradient(circle at 18% 78%, rgba(41, 91, 168, 0.18) 0%, rgba(41, 91, 168, 0) 44%);
-      }
-    }
-
-    #registerForm .border-slate-300 {
-      border-color: #c5d0e4 !important;
-    }
-
-    #registerForm input.bg-white {
-      background-color: #f8faff !important;
-      color: #304a74;
-    }
-
-    #registerForm input.bg-white::placeholder {
-      color: #8394b1;
-    }
-
-    #registerForm .text-slate-600 {
-      color: #304a74 !important;
-    }
-
-    #registerForm .text-slate-500 {
-      color: #58729c !important;
-    }
-  </style>
 </head>
-<body class="relative h-screen overflow-hidden p-3 md:p-4">
+<body class="relative min-h-screen overflow-x-hidden bg-[#031029] p-3 md:p-4">
   @if(session('success'))
     <div x-data="{ show: true }" x-init="setTimeout(() => show = false, 4000)" x-show="show" x-transition
       class="fixed top-5 right-5 z-50 w-full max-w-sm rounded-xl border border-green-400 bg-green-100 px-4 py-3 text-green-700 shadow-lg">
@@ -165,17 +35,24 @@
   @endif
 
   <template x-if="showModal">
-    <div x-cloak>
+    <div>
       @include('partials.data_privacy_notice_signup_version')
     </div>
   </template>
 
-  <div aria-hidden="true" class="portal-page-bg"></div>
+  <div aria-hidden="true" class="pointer-events-none absolute inset-0">
+    <div class="absolute inset-0 bg-[linear-gradient(180deg,rgba(24,99,156,0.78)_0%,rgba(255,255,255,0.012)_24%,rgba(255,255,255,0)_100%)]"></div>
+    <div class="absolute inset-0 bg-[linear-gradient(90deg,rgba(3,13,33,0.28)_0%,rgba(3,13,33,0)_44%,rgba(3,13,33,0.2)_100%)]"></div>
+    <div class="absolute inset-0 opacity-35 bg-[radial-gradient(circle_at_76%_24%,rgba(255,255,255,0.16)_0%,rgba(255,255,255,0)_28%),linear-gradient(180deg,rgba(255,255,255,0.08)_0%,transparent_24%)]"></div>
+    <div class="absolute inset-0 opacity-20 mix-blend-soft-light bg-[radial-gradient(rgba(255,255,255,0.45)_0.55px,transparent_0.55px)] [background-size:9px_9px]"></div>
+  </div>
+  <div aria-hidden="true" class="pointer-events-none absolute right-[4%] top-1/2 z-0 h-[min(40rem,46vw)] w-[min(40rem,46vw)] -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(147,197,253,0.34)_0%,rgba(96,165,250,0.16)_34%,rgba(59,130,246,0.03)_62%,rgba(59,130,246,0)_72%)] blur-[14px]"></div>
 
-  <div class="portal-shell relative z-10 mx-auto flex h-[calc(100vh-1.5rem)] w-full max-w-[1240px] items-center justify-center">
-    <div class="register-card relative z-10 w-full overflow-hidden rounded-[22px]">
-      <section class="register-surface max-h-[calc(100vh-1.5rem)] overflow-hidden px-5 py-5 sm:px-8 sm:py-7 lg:px-10 lg:py-8">
-        <div class="register-fit mx-auto w-full">
+  <div class="relative z-10 mx-auto flex min-h-[calc(100vh-1.5rem)] w-full max-w-[1240px] items-center justify-center">
+    <div class="relative z-10 w-full overflow-hidden rounded-[22px] border border-white/20 bg-[linear-gradient(140deg,rgba(255,255,255,0.96)_0%,rgba(247,251,255,0.96)_100%)] shadow-[0_30px_85px_rgba(2,9,25,0.37)] backdrop-blur-[10px]">
+      <div aria-hidden="true" class="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.42)_0%,rgba(255,255,255,0.04)_34%,rgba(255,255,255,0)_100%),radial-gradient(circle_at_14%_78%,rgba(41,91,168,0.18)_0%,rgba(41,91,168,0)_40%)]"></div>
+      <section class="relative z-10 max-h-[calc(100vh-1.5rem)] overflow-y-auto bg-[linear-gradient(180deg,rgba(255,255,255,0.82)_0%,rgba(248,251,255,0.92)_100%)] px-5 py-5 sm:px-8 sm:py-7 lg:px-10 lg:py-8">
+        <div class="mx-auto w-full">
           <div class="mb-5 flex flex-col gap-4 border-b border-[#d6dceb] pb-4 lg:flex-row lg:items-start lg:justify-between">
             <div class="flex items-center gap-3">
               <div class="flex h-14 w-14 items-center justify-center">
@@ -183,7 +60,7 @@
               </div>
               <div>
                 <p class="text-xs font-semibold uppercase tracking-[0.3em] text-[#1d3f79]">DILG CAR</p>
-                <h2 class="mt-1 text-3xl font-extrabold tracking-tight text-[#162a56]">Create Applicant Account</h2>
+                <h2 class="mt-1 font-['Space_Grotesk'] text-3xl font-extrabold tracking-tight text-[#162a56]">Create Applicant Account</h2>
                 <p class="mt-1 max-w-2xl text-sm leading-relaxed text-[#4c638e]">
                   Set up your account for email verification, application tracking, and secure access to the recruitment portal.
                 </p>

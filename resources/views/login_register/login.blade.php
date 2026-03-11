@@ -10,7 +10,7 @@
   @endif
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" />
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
 
   <meta property="og:title" content="DILG - CAR Recruitment Selection and Placement Portal" />
   <meta property="og:description" content="Isa ka bang MATINO, MAHUSAY, at MAAASAHAN na manggagawang Pilipino?" />
@@ -26,142 +26,31 @@
   <meta name="twitter:description" content="Isa ka bang MATINO, MAHUSAY, at MAAASAHAN na manggagawang Pilipino?" />
   <meta name="twitter:image" content="{{ asset('images/dilg_rsp_thumbnail.png') }}" />
 
-  <style>
-    html,
-    body {
-      height: 100%;
-      font-family: 'Montserrat', sans-serif;
-      overflow: hidden;
-    }
-
-    body {
-      margin: 0;
-      background-color: #04132f;
-      background-image: url('{{ asset('templates/template.png') }}');
-      background-position: center;
-      background-repeat: no-repeat;
-      background-size: cover;
-    }
-
-    .portal-page-bg {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      background:
-        radial-gradient(circle at 18% 16%, rgba(96, 165, 250, 0.18) 0%, rgba(96, 165, 250, 0) 26%),
-        linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.012) 22%, rgba(255, 255, 255, 0) 100%),
-        linear-gradient(90deg, rgba(3, 13, 33, 0.22) 0%, rgba(3, 13, 33, 0) 38%, rgba(3, 13, 33, 0.14) 100%);
-    }
-
-    .portal-page-bg::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      opacity: 0.32;
-      background:
-        radial-gradient(circle at 74% 24%, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0) 28%),
-        linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, transparent 24%);
-    }
-
-    .portal-page-bg::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background:
-        radial-gradient(circle at 82% 58%, rgba(96, 165, 250, 0.10) 0%, rgba(96, 165, 250, 0) 24%),
-        linear-gradient(180deg, rgba(2, 9, 25, 0) 0%, rgba(2, 9, 25, 0.18) 100%);
-      opacity: 0.55;
-    }
-
-    .portal-shell {
-      position: relative;
-      isolation: isolate;
-    }
-
-    .portal-shell::before {
-      content: '';
-      position: absolute;
-      top: 50%;
-      right: 6%;
-      width: min(34rem, 42vw);
-      height: min(34rem, 42vw);
-      border-radius: 9999px;
-      transform: translateY(-50%);
-      background: radial-gradient(circle, rgba(147, 197, 253, 0.22) 0%, rgba(96, 165, 250, 0.12) 34%, rgba(59, 130, 246, 0.04) 54%, rgba(59, 130, 246, 0) 72%);
-      filter: blur(12px);
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    .portal-hero {
-      background:
-        linear-gradient(160deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0) 32%),
-        linear-gradient(180deg, #081c47 0%, #0d2b70 56%, #17438b 100%);
-      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
-    }
-
-    .portal-hero::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.03) 18%, rgba(255, 255, 255, 0) 44%);
-      opacity: 0.5;
-    }
-
-    .portal-form-surface {
-      background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.96) 100%);
-    }
-
-    .portal-brand-panel {
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 28%, rgba(255, 255, 255, 0.01) 100%);
-      box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.08),
-        0 24px 60px rgba(2, 12, 34, 0.18);
-      backdrop-filter: blur(4px);
-      overflow: hidden;
-    }
-
-    .portal-department-line {
-      display: block;
-      width: 100%;
-      font-size: clamp(0.5rem, 0.42rem + 0.18vw, 0.6rem);
-      letter-spacing: 0.015em;
-      line-height: 1.5;
-      white-space: nowrap;
-    }
-
-    @media (max-width: 1023px) {
-      .portal-shell::before {
-        right: 50%;
-        width: min(30rem, 82vw);
-        height: min(30rem, 82vw);
-        transform: translate(50%, -44%);
-      }
-    }
-  </style>
 </head>
-<body class="relative min-h-screen overflow-hidden p-4 md:p-6">
-  <div aria-hidden="true" class="portal-page-bg"></div>
+<body class="relative min-h-screen overflow-x-hidden overflow-y-auto bg-[radial-gradient(circle_at_85%_18%,rgba(79,172,254,0.24)_0%,rgba(79,172,254,0)_38%),radial-gradient(circle_at_12%_82%,rgba(15,100,201,0.22)_0%,rgba(15,100,201,0)_34%),linear-gradient(140deg,#031029_0%,#0a255f_46%,#12387e_100%)] p-3 font-['Montserrat'] md:p-6 lg:overflow-hidden">
+  <div aria-hidden="true" class="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(24,99,156,0.78)_0%,rgba(255,255,255,0.012)_24%,rgba(255,255,255,0)_100%),linear-gradient(90deg,rgba(3,13,33,0.28)_0%,rgba(3,13,33,0)_44%,rgba(3,13,33,0.2)_100%)]"></div>
+  <div aria-hidden="true" class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_76%_24%,rgba(255,255,255,0.16)_0%,rgba(255,255,255,0)_28%),linear-gradient(180deg,rgba(255,255,255,0.08)_0%,transparent_24%)] opacity-35"></div>
+  <div aria-hidden="true" class="pointer-events-none absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.45)_0.55px,transparent_0.55px)] opacity-20 mix-blend-soft-light [background-size:9px_9px]"></div>
 
-  <div class="portal-shell relative z-10 mx-auto flex min-h-[calc(100vh-2rem)] w-full max-w-7xl items-center justify-center">
-    <div class="relative z-10 grid w-full max-h-[calc(100vh-2rem)] overflow-hidden rounded-3xl border border-white/12 bg-white/96 shadow-[0_28px_90px_rgba(3,12,32,0.34)] backdrop-blur-sm lg:grid-cols-[minmax(0,0.94fr)_minmax(0,1.06fr)]">
-      <section class="portal-form-surface relative px-5 py-8 sm:px-8 lg:px-10 xl:px-12">
+  <div class="relative z-10 mx-auto flex min-h-[calc(100vh-1.5rem)] w-full max-w-7xl items-center justify-center isolate">
+    <div aria-hidden="true" class="pointer-events-none absolute left-1/2 top-[56%] z-0 h-[min(30rem,82vw)] w-[min(30rem,82vw)] -translate-x-1/2 -translate-y-[44%] rounded-full bg-[radial-gradient(circle,rgba(147,197,253,0.34)_0%,rgba(96,165,250,0.16)_34%,rgba(59,130,246,0.03)_62%,rgba(59,130,246,0)_72%)] blur-[14px] lg:hidden"></div>
+    <div aria-hidden="true" class="pointer-events-none absolute right-[4%] top-[52%] z-0 hidden h-[min(40rem,46vw)] w-[min(40rem,46vw)] -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(147,197,253,0.34)_0%,rgba(96,165,250,0.16)_34%,rgba(59,130,246,0.03)_62%,rgba(59,130,246,0)_72%)] blur-[14px] lg:block"></div>
+
+    <div class="relative z-10 grid w-full max-h-[calc(100vh-1.5rem)] overflow-hidden rounded-[1.9rem] border border-white/20 bg-[linear-gradient(140deg,rgba(255,255,255,0.96)_0%,rgba(247,251,255,0.96)_100%)] shadow-[0_30px_85px_rgba(2,9,25,0.37)] backdrop-blur-[10px] lg:grid-cols-[minmax(0,0.94fr)_minmax(0,1.06fr)]">
+      <section class="relative bg-[rgba(249,252,255,0.95)] px-5 py-8 sm:px-8 lg:bg-[linear-gradient(180deg,rgba(255,255,255,0.82)_0%,rgba(248,251,255,0.92)_100%)] lg:px-10 xl:px-12">
         <div class="mx-auto w-full max-w-lg">
           <div class="mb-6 flex items-center gap-3 lg:hidden">
             <img src="{{ asset('images/dilg_logo.png') }}" alt="DILG Logo" class="h-12 w-12" />
             <div>
               <p class="text-xs font-semibold uppercase tracking-[0.3em] text-[#0D2B70]">DILG CAR</p>
-              <p class="text-lg font-bold text-[#0D2B70]">Recruitment Portal</p>
+              <p class="text-lg font-bold tracking-[-0.01em] text-[#0D2B70] font-['Space_Grotesk']">Recruitment Portal</p>
             </div>
           </div>
 
-          <div class="rounded-[1.75rem] border border-slate-200/90 bg-white p-6 shadow-[0_18px_48px_rgba(15,23,42,0.08)] sm:p-7">
+          <div class="rounded-[1.75rem] border border-[#d6e2f3] bg-[linear-gradient(180deg,#ffffff_0%,#fdfefe_100%)] p-6 shadow-[0_14px_40px_rgba(12,39,88,0.09)] sm:p-7">
             <div class="mb-6">
               <p class="text-xs font-semibold uppercase tracking-[0.26em] text-slate-500">Applicant Access</p>
-              <h2 class="mt-2 text-3xl font-extrabold tracking-tight text-[#0D2B70]">User Login</h2>
+              <h2 class="mt-2 text-3xl font-extrabold tracking-tight text-[#0D2B70] font-['Space_Grotesk']">User Login</h2>
               <p class="mt-2 text-sm leading-6 text-slate-500">Sign in to continue to your applicant dashboard.</p>
             </div>
 
@@ -191,7 +80,7 @@
               @csrf
 
               <div>
-                <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">Email</label>
+                <label class="mb-1.5 block text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#52627d]">Email</label>
                 <div class="relative">
                   <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">
                     <i class="fa-solid fa-envelope"></i>
@@ -203,13 +92,13 @@
                     value="{{ old('email') }}"
                     required
                     autofocus
-                    class="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-700 outline-none transition focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20"
+                    class="w-full rounded-[0.85rem] border border-[#cdd9eb] bg-[#fbfdff] py-2.5 pl-10 pr-3 text-sm text-[#203457] outline-none transition-[border-color,box-shadow,background-color] hover:border-[#b5c8e7] hover:bg-white focus:border-[#0d2b70] focus:bg-white focus:ring-4 focus:ring-[#0d2b70]/15"
                   >
                 </div>
               </div>
 
               <div>
-                <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">Password</label>
+                <label class="mb-1.5 block text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#52627d]">Password</label>
                 <div class="relative">
                   <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">
                     <i class="fa-solid fa-lock"></i>
@@ -219,7 +108,7 @@
                     type="password"
                     name="password"
                     required
-                    class="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-10 pr-10 text-sm text-slate-700 outline-none transition focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20"
+                    class="w-full rounded-[0.85rem] border border-[#cdd9eb] bg-[#fbfdff] py-2.5 pl-10 pr-10 text-sm text-[#203457] outline-none transition-[border-color,box-shadow,background-color] hover:border-[#b5c8e7] hover:bg-white focus:border-[#0d2b70] focus:bg-white focus:ring-4 focus:ring-[#0d2b70]/15"
                   >
                   <button
                     type="button"
@@ -247,7 +136,7 @@
                 </div>
               @endif
 
-              <button type="submit" class="use-loader w-full rounded-xl bg-[#0D2B70] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0A2259]">
+              <button type="submit" class="use-loader w-full rounded-[0.85rem] bg-[linear-gradient(135deg,#0d2b70_0%,#174493_100%)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_9px_20px_rgba(13,43,112,0.26)] transition-[transform,box-shadow,filter] hover:-translate-y-px hover:brightness-[1.02] hover:shadow-[0_12px_26px_rgba(13,43,112,0.35)]">
                 Sign In
               </button>
             </form>
@@ -256,7 +145,7 @@
               <p class="text-xs uppercase tracking-wide text-slate-500">Alternative Access</p>
               <a
                 href="{{ route('google.login', [], false) }}"
-                class="use-loader mt-2 flex w-full items-center justify-center gap-3 rounded-xl border border-[#0D2B70]/15 bg-white px-4 py-2.5 text-sm font-semibold text-[#0D2B70] transition hover:bg-slate-50"
+                class="use-loader mt-2 flex w-full items-center justify-center gap-3 rounded-[0.85rem] border border-[#0d2b70]/20 bg-white px-4 py-2.5 text-sm font-semibold text-[#0D2B70] transition-[border-color,box-shadow,transform] hover:-translate-y-px hover:border-[#0d2b70]/35 hover:shadow-[0_10px_24px_rgba(13,43,112,0.12)]"
               >
                 <img src="{{ asset('images/google-icon.png') }}" alt="Google Icon" class="h-5 w-5">
                 Continue with Google
@@ -273,18 +162,20 @@
         </div>
       </section>
 
-      <section class="portal-hero relative hidden overflow-hidden px-5 py-10 text-white lg:flex lg:items-center lg:justify-center xl:px-6">
-        <div class="portal-brand-panel relative z-10 w-full max-w-[40rem] rounded-[2rem] px-5 py-10 text-center sm:px-6 xl:px-7 xl:py-12">
+      <section class="relative hidden overflow-hidden bg-[linear-gradient(145deg,rgba(255,255,255,0.1)_0%,rgba(255,255,255,0)_36%),linear-gradient(175deg,#081c47_0%,#0d2b70_54%,#18468f_100%)] px-5 py-10 text-white shadow-[inset_-1px_0_0_rgba(255,255,255,0.08)] lg:flex lg:items-center lg:justify-center xl:px-6">
+        <div aria-hidden="true" class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_14%,rgba(245,200,75,0.12)_0%,rgba(245,200,75,0)_28%),linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.03)_20%,rgba(255,255,255,0)_46%)] opacity-70"></div>
+        <div aria-hidden="true" class="pointer-events-none absolute -bottom-[4.5rem] -right-16 h-64 w-64 rounded-full border border-white/20 bg-[radial-gradient(circle,rgba(255,255,255,0.2)_0%,rgba(255,255,255,0)_68%)] opacity-60"></div>
+        <div class="relative z-10 w-full max-w-[40rem] overflow-hidden rounded-[2rem] border border-white/20 bg-[linear-gradient(145deg,rgba(2,16,42,0.3)_0%,rgba(2,16,42,0.14)_100%)] px-5 py-10 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_24px_60px_rgba(2,12,34,0.18)] backdrop-blur-[6px] sm:px-6 xl:px-7 xl:py-12">
           <img
             src="{{ asset('images/dilg_logo.png') }}"
             alt="DILG Logo"
             class="mx-auto h-24 w-24 rounded-full bg-white/10 p-3 shadow-[0_16px_32px_rgba(2,12,34,0.24)] xl:h-28 xl:w-28"
           />
           <p class="mt-6 text-sm font-semibold uppercase tracking-[0.42em] text-blue-100">DILG CAR</p>
-          <h3 class="mt-4 text-3xl font-extrabold leading-tight text-white xl:text-[2rem]">
+          <h3 class="mt-4 text-3xl font-extrabold leading-tight text-white font-['Space_Grotesk'] tracking-[-0.01em] xl:text-[2rem]">
             Recruitment Selection and Placement Portal
           </h3>
-          <p class="portal-department-line mt-5 font-semibold uppercase">
+          <p class="mt-5 block w-full whitespace-nowrap text-[clamp(0.5rem,0.42rem+0.18vw,0.6rem)] font-semibold uppercase leading-[1.5] tracking-[0.015em]">
             DEPARTMENT OF THE INTERIOR AND LOCAL GOVERNMENT CORDILLERA ADMINISTRATIVE REGION
           </p>
           <p class="mt-4 text-sm font-semibold uppercase tracking-[0.24em] text-yellow-200 xl:text-base">
