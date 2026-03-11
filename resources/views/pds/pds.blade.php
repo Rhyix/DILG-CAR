@@ -2090,7 +2090,7 @@
                     id="pdsPdfPreviewFrame"
                     title="PDS PDF Preview"
                     src="about:blank"
-                    data-preview-src="/export-pds?preview=1"
+                    data-preview-src="/export-pds?preview=1&force_fpdi=1"
                     class="w-full h-full"
                 ></iframe>
             </div>

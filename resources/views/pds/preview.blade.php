@@ -25,7 +25,7 @@
                         Print 
                     </button>
                     <a
-                        href="{{ route('export.pds', ['download' => 1]) }}"
+                        href="{{ route('export.pds', ['download' => 1, 'force_fpdi' => 1]) }}"
                         class="inline-flex items-center justify-center rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
                     >
                         Download
@@ -37,7 +37,7 @@
                 <iframe
                     id="previewPdfFrame"
                     title="PDS Preview PDF"
-                    src="{{ route('export.pds', ['preview' => 1]) }}"
+                    src="{{ route('export.pds', ['preview' => 1, 'force_fpdi' => 1]) }}"
                     class="w-full h-full"
                 ></iframe>
             </div>
@@ -46,7 +46,7 @@
 
     <script>
         function openCleanPrint() {
-            const printWindow = window.open(@json(route('export.pds', ['print' => 1])), '_blank', 'noopener');
+            const printWindow = window.open(@json(route('export.pds', ['print' => 1, 'force_fpdi' => 1])), '_blank', 'noopener');
             if (!printWindow) {
                 alert('Please allow pop-ups so the print version can open.');
             }

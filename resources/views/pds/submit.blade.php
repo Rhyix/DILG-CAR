@@ -176,7 +176,7 @@
         
         <div class="flex flex-wrap gap-3 mb-6">
             {{-- Download PDF button routed to currently logged-in user --}}
-            <button onclick="window.location.href='{{ route('export.pds', ['download' => 1]) }}'" class="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200">
+            <button onclick="window.location.href='{{ route('export.pds', ['download' => 1, 'force_fpdi' => 1]) }}'" class="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200">
                 <span class="material-icons mr-2">download</span>
                 Download PDF
             </button>

@@ -224,7 +224,9 @@ class ExportPDSController
         // Excel-path export currently supports only the first 21 L&D rows.
         // When L&D overflows, force FPDI so continuation pages are generated.
         // Keep Excel export for preview mode only; print/download mode relies on the clean PDF template.
-        $canUseExcelTemplate = !$useCleanTemplate && !$request->boolean('force_fpdi') && !$hasLNDOverflow;
+        // Default to FPDI for consistent coordinates/styling across accounts. Excel path is opt-in.
+        $forceFpdi = $request->has('force_fpdi') ? $request->boolean('force_fpdi') : true;
+        $canUseExcelTemplate = !$useCleanTemplate && !$forceFpdi && !$hasLNDOverflow;
         $excelExport = null;
         if ($canUseExcelTemplate) {
             $excelExport = $this->tryExportViaExcelTemplate(
@@ -1063,35 +1065,35 @@ private function writeAddresses($pdf, $residential, $permanent)
 
 private function writeFamilyBackground($pdf, $family)
 {
-    $this->writeFittedAt($pdf, $this->valueOrNa($family?->spouse_surname), 41.5, 166, 49);
+    $this->writeFittedAt($pdf, $this->valueOrNa($family?->spouse_surname), 41.5, 165, 49, 7.0);
 
-    $this->writeFittedAt($pdf, $this->valueOrNa($family?->spouse_first_name), 41.5, 171.5, 49);
+    $this->writeFittedAt($pdf, $this->valueOrNa($family?->spouse_first_name), 41.5, 170.5, 49, 7.0);
 
-    $this->writeFittedAt($pdf, $this->valueOrNa($family?->spouse_middle_name), 41.5, 177.5, 49);
+    $this->writeFittedAt($pdf, $this->valueOrNa($family?->spouse_middle_name), 41.5, 176.5, 49, 7.0);
 
-    $this->writeFittedAt($pdf, $this->valueOrNa($family?->spouse_name_extension), 90, 171.8, 28, 7.0, 5.0);
+    $this->writeFittedAt($pdf, $this->valueOrNa($family?->spouse_name_extension), 90, 171, 28, 7.0, 5.0);
 
-    $this->writeFittedAt($pdf, $this->valueOrNa($family?->spouse_occupation), 41.5, 183, 79);
+    $this->writeFittedAt($pdf, $this->valueOrNa($family?->spouse_occupation), 41.5, 182, 79, 7.0);
 
-    $this->writeFittedAt($pdf, $this->valueOrNa($family?->spouse_employer), 41.5, 188.8, 79);
+    $this->writeFittedAt($pdf, $this->valueOrNa($family?->spouse_employer), 41.5, 187.5, 79, 7.0);
 
-    $this->writeFittedAt($pdf, $this->valueOrNa($family?->spouse_business_address), 41.5, 194.6, 79, 7.0, 5.0);
+    $this->writeFittedAt($pdf, $this->valueOrNa($family?->spouse_business_address), 41.5, 193, 79, 7.0, 5.0);
 
-    $this->writeFittedAt($pdf, $this->valueOrNa($family?->spouse_telephone), 41.5, 200, 79);
+    $this->writeFittedAt($pdf, $this->valueOrNa($family?->spouse_telephone), 41.5, 199, 79, 7.0);
 
-    $this->writeFittedAt($pdf, $this->valueOrNa($family?->father_surname), 41.5, 205.8, 49);
+    $this->writeFittedAt($pdf, $this->valueOrNa($family?->father_surname), 41.5, 204.5, 49, 7.0);
 
-    $this->writeFittedAt($pdf, $this->valueOrNa($family?->father_first_name), 41.5, 211.6, 49);
+    $this->writeFittedAt($pdf, $this->valueOrNa($family?->father_first_name), 41.5, 210.5, 49, 7.0);
 
-    $this->writeFittedAt($pdf, $this->valueOrNa($family?->father_name_extension), 90, 211.9, 28, 7.0, 5.0);
+    $this->writeFittedAt($pdf, $this->valueOrNa($family?->father_name_extension), 90, 211, 28, 7.0, 5.0);
 
-    $this->writeFittedAt($pdf, $this->valueOrNa($family?->father_middle_name), 41.5, 217.5, 79);
+    $this->writeFittedAt($pdf, $this->valueOrNa($family?->father_middle_name), 41.5, 216, 79, 7.0);
 
-    $this->writeFittedAt($pdf, $this->valueOrNa($family?->mother_maiden_surname), 41.5, 228.5, 79);
+    $this->writeFittedAt($pdf, $this->valueOrNa($family?->mother_maiden_surname), 41.5, 227, 79, 7.0);
 
-    $this->writeFittedAt($pdf, $this->valueOrNa($family?->mother_maiden_first_name), 41.5, 234, 79);
+    $this->writeFittedAt($pdf, $this->valueOrNa($family?->mother_maiden_first_name), 41.5, 233.5, 79, 7.0);
 
-    $this->writeFittedAt($pdf, $this->valueOrNa($family?->mother_maiden_middle_name), 41.5, 239.8, 79);
+    $this->writeFittedAt($pdf, $this->valueOrNa($family?->mother_maiden_middle_name), 41.5, 238.5, 79, 7.0);
 
 }
 
@@ -1121,10 +1123,10 @@ private function writeChildrenChunk($pdf, $chunk)
         $this->writeFittedAt(
             $pdf,
             $this->dateOrNa($child['dob'] ?? null),
-            $startX_birthdate,
+            187,
             $currentY,
             22,
-            7.0,
+            8.0,
             5.0
         );
     }
@@ -1397,10 +1399,10 @@ private function writeCivilServiceEligibilityChunk($pdf, $chunk)
 
     // If all fields are empty, write N/A in the first row cells.
     if ($isEmpty) {
-        $this->writeWrapped($pdf, 'N/A', $careerWidth, 35, 24.5, 24.0, 7.0, 3.0); // Career Eligibility
-        $this->writeFittedAt($pdf, 'N/A', 78.5, 24.5, $ratingWidth, 8.0, 5.0); // Rating
-        $this->writeFittedAt($pdf, 'N/A', 100, 24.5, $dateWidth, 8.0, 3.6); // Date
-        $this->writeFittedAt($pdf, 'N/A', 125, 24.5, $placeWidth, 7.0, 4.5); // Place
+        $this->writeWrapped($pdf, 'N/A', $careerWidth, 35, 24.5, 24.0, 8.0, 3.0); // Career Eligibility
+        $this->writeFittedAt($pdf, 'N/A', 79, 24.5, $ratingWidth, 8.0, 5.0); // Rating
+        $this->writeFittedAt($pdf, 'N/A', 99, 24.5, $dateWidth, 8.0, 3.6); // Date
+        $this->writeFittedAt($pdf, 'N/A', 126, 24.5, $placeWidth, 8.0, 4.5); // Place
         $this->writeFittedAt($pdf, 'N/A', 153.5, 24.5, $licenseWidth, 8.0, 5.0); // License
         $this->writeFittedAt($pdf, 'N/A', 188, 24.5, $validityWidth, 8.0, 3.6); // Validity
         return;
@@ -1465,10 +1467,10 @@ private function writeWorkExperienceChunk($pdf, $chunk)
     if ($isEmpty) {
         $this->writeFittedAt($pdf, 'N/A', 9, 102, $fromWidth, 8.0, 3.6); // From
         $this->writeFittedAt($pdf, 'N/A', 27, 102, $toWidth, 8.0, 3.6); // To
-        $this->writeFittedAt($pdf, 'N/A', 61, 102, $positionWidth, 8.0, 5.0); // Position
-        $this->writeWrapped($pdf, 'N/A', $agencyWidth, 113, 102, 100.5, 6.0, 2.0); // Agency
+        $this->writeFittedAt($pdf, 'N/A', 63, 102, $positionWidth, 8.0, 5.0); // Position
+        $this->writeWrapped($pdf, 'N/A', $agencyWidth, 115, 102, 100.5, 6.0, 2.0); // Agency
         $this->writeFittedAt($pdf, 'N/A', 153, 102, $statusWidth, 8.0, 4.5); // Status
-        $this->writeFittedAt($pdf, 'N/A', 188, 102, $govWidth, 8.0, 5.0); // Government Service
+        $this->writeFittedAt($pdf, 'N/A', 189.5, 102, $govWidth, 8.0, 5.0); // Government Service
         return;
     }
 
@@ -1512,11 +1514,11 @@ private function writeVoluntaryWorkChunk($pdf, $chunk)
 
     // If all fields are empty, write N/A in the first-row cells.
     if ($isEmpty) {
-        $this->writeWrapped($pdf, 'N/A', 115, 50, $startY, $startY - 1.0, 8.0, 2); // Organization
-        $this->writeFittedAt($pdf, 'N/A', 99, $startY, 15.0, 8.0, 5.0); // From
-        $this->writeFittedAt($pdf, 'N/A', 115.5, $startY, 19.0, 8.0, 5.0); // To
-        $this->writeFittedAt($pdf, 'N/A', 131, $startY, 12.0, 7.0, 5.0); // Hours
-        $this->writeWrapped($pdf, 'N/A', 60, 175, $startY, $startY - 1.0, 7, 3); // Position
+        $this->writeWrapped($pdf, 'N/A', 115, 6, $startY, $startY - 1.0, 6, 2); // Organization
+        $this->writeFittedAt($pdf, 'N/A', 94.5, $startY, 15.0, 8.0, 5.0); // From
+        $this->writeFittedAt($pdf, 'N/A', 110.5, $startY, 19.0, 8.0, 5.0); // To
+        $this->writeFittedAt($pdf, 'N/A', 129, $startY, 12.0, 7.0, 5.0); // Hours
+        $this->writeWrapped($pdf, 'N/A', 60, 142, $startY, $startY - 1.0, 7, 3); // Position
         return;
     }
     // Render each voluntary work row
@@ -1532,7 +1534,7 @@ private function writeVoluntaryWorkChunk($pdf, $chunk)
 
         $this->writeFittedAt($pdf, $this->valueOrNa($vw['voluntary_hours'] ?? null), 129, $currentY, 12.0, 7.0, 5.0);
 
-        $this->writeWrapped($pdf, $this->valueOrNa($vw['voluntary_position'] ?? null), 60, 142, $currentY, $multiLineY, 7, 3);
+        $this->writeWrapped($pdf, $this->valueOrNa($vw['voluntary_position'] ?? null), 60, 145, $currentY, $multiLineY, 7, 3);
     }
 }
 
@@ -1553,12 +1555,12 @@ private function writeLearningAndDevelopmentChunk($pdf, $chunk)
 
     // If all fields are empty, write N/A in the first-row cells.
     if ($isEmpty) {
-        $this->writeWrapped($pdf, 'N/A', 105, 50, $startY, $startY - 1.0, 7.0, 2);
-        $this->writeFittedAt($pdf, 'N/A', 99, $startY, 18.0, 7.0, 5.0);
-        $this->writeFittedAt($pdf, 'N/A', 115.5, $startY, 15.0, 8.0, 5.0);
+        $this->writeWrapped($pdf, 'N/A', 105, 6, $startY, $startY - 1.0, 7.0, 2);
+        $this->writeFittedAt($pdf, 'N/A', 94.5, $startY, 15.0, 8.0, 5.0);
         $this->writeFittedAt($pdf, 'N/A', 110.5, $startY, 19.0, 8.0, 5.0);
-        $this->writeFittedAt($pdf, 'N/A', 131, $startY, 12.0, 7.0, 5.0);
-        $this->writeWrapped($pdf, 'N/A', 47.3, 175, $startY, $startY - 1.0, 7.0, 2);
+        $this->writeFittedAt($pdf, 'N/A', $x_hours, $startY, 12.0, 7.0, 5.0);
+        $this->writeFittedAt($pdf, 'N/A', $x_type, $startY, 18.0, 7.0, 5.0);
+        $this->writeWrapped($pdf, 'N/A', 47.3, $x_conducted - 2, $startY, $startY - 1.0, 7.0, 2);
         return;
     }
 
@@ -1567,17 +1569,17 @@ private function writeLearningAndDevelopmentChunk($pdf, $chunk)
         $currentY = $startY + ($index * $rowHeight);
         $multiLineY = $currentY - 1.0;
 
-        $this->writeWrapped($pdf, $this->valueOrNa($lnd['learning_title'] ?? null), 105, 6, $currentY, $multiLineY, 7.0, 2);
+        $this->writeWrapped($pdf, $this->valueOrNa($lnd['learning_title'] ?? null), 105, 6, 102.5, $multiLineY, 7.0, 2);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($lnd['learning_type'] ?? null), $x_type, $currentY, 18.0, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($lnd['learning_type'] ?? null), 146, 102.5, 18.0, 7.0, 5.0);
 
-        $this->writeFittedAt($pdf, $this->dateOrNa($lnd['learning_from'] ?? null), 94.5, $currentY, 15.0, 8.0, 5.0);
+        $this->writeFittedAt($pdf, $this->dateOrNa($lnd['learning_from'] ?? null), $x_from - 0.5, 102.5, 15.0, 8.0, 5.0);
 
-        $this->writeFittedAt($pdf, $this->dateOrNa($lnd['learning_to'] ?? null), 110.5, $currentY, 19.0, 8.0, 5.0);
+        $this->writeFittedAt($pdf, $this->dateOrNa($lnd['learning_to'] ?? null), $x_to, 102.5, 19.0, 8.0, 5.0);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($lnd['learning_hours'] ?? null), $x_hours, $currentY, 12.0, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($lnd['learning_hours'] ?? null), 129, 102.5, 12.0, 8.0, 5.0);
 
-        $this->writeWrapped($pdf, $this->valueOrNa($lnd['learning_conducted'] ?? null), 47.3, 159, $currentY, $multiLineY, 7.0, 2);
+        $this->writeWrapped($pdf, $this->valueOrNa($lnd['learning_conducted'] ?? null), 47.3, 160,  102.5, $currentY, $multiLineY, 7.0, 2);
     }
 }
 

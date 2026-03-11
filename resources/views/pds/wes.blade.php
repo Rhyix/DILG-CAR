@@ -155,7 +155,7 @@
                 <button type="button" @click="entry.duties.push('')" :disabled="!entry.isDisplayed"
                   class="border-2 border-[#002C76] bg-[#002C76] hover:bg-white text-sm hover:text-[#002C76] 
                       text-white px-4 py-2 rounded-md flex items-center gap-2">
-                  + Add dutyq
+                  + Add duty
                 </button>
               </div>
             </div>
