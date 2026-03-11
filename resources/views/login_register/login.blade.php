@@ -164,7 +164,7 @@
 
       <section class="relative hidden overflow-hidden bg-[linear-gradient(145deg,rgba(255,255,255,0.1)_0%,rgba(255,255,255,0)_36%),linear-gradient(175deg,#081c47_0%,#0d2b70_54%,#18468f_100%)] px-6 py-10 text-white shadow-[inset_-1px_0_0_rgba(255,255,255,0.08)] lg:flex lg:items-center lg:justify-center xl:px-8">
         <div aria-hidden="true" class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_14%,rgba(245,200,75,0.12)_0%,rgba(245,200,75,0)_28%),linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.03)_20%,rgba(255,255,255,0)_46%)] opacity-70"></div>
-        <div aria-hidden="true" class="pointer-events-none absolute -bottom-[4.5rem] -right-16 h-64 w-64 rounded-full border border-white/20 bg-[radial-gradient(circle,rgba(255,255,255,0.2)_0%,rgba(255,255,255,0)_68%)] opacity-60"></div>
+
         <div class="relative z-10 w-full max-w-[40rem] px-2 text-center sm:px-4 xl:px-6">
           <img
             src="{{ asset('images/dilg_logo.png') }}"

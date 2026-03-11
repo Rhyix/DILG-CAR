@@ -1254,7 +1254,7 @@ private function writeGraduateChunk($pdf, $chunk)
 
         $this->writeFittedAt($pdf, $this->valueOrNa($grad['year_graduated'] ?? null), 182, $currentYOther, 12, 7.0, 5.0);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($grad['academic_honors'] ?? null), 199, $currentYOther, 10.2, 5.0, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($grad['academic_honors'] ?? null), 199, $currentYOther, 10.2, 7.0, 5.0);
     }
 }
 
