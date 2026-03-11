@@ -24,9 +24,10 @@
 
     {{-- Search + Filter Card --}}
     <div class="flex-none bg-white border border-slate-200 rounded-2xl shadow-sm px-2 py-3 flex flex-col gap-3">
+        <div class="flex flex-col gap-2 lg:flex-row lg:items-end">
 
         {{-- Search --}}
-        <div>
+        <div class="min-w-0 flex-1">
             <p class="text-[0.65rem] font-semibold tracking-widest text-slate-400 uppercase mb-1.5">Search</p>
             <div class="relative">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -44,12 +45,12 @@
         </div>
 
         {{-- Filter Buttons Row --}}
-        <div class="flex flex-wrap items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2 lg:flex-nowrap">
 
             {{-- Vacancy Type Dropdown (Alpine) --}}
             <div class="relative" id="type-filter-group" x-data="{ open: false, label: 'All' }" @click.outside="open = false">
                 <button type="button" @click="open = !open"
-                    class="flex items-center gap-2 px-4 py-2 rounded-full border border-[#0D2B70] text-[#0D2B70] text-sm font-medium hover:bg-[#0D2B70]/5 transition-colors duration-150 select-none">
+                    class="flex h-[42px] items-center gap-2 whitespace-nowrap px-4 rounded-full border border-[#0D2B70] text-[#0D2B70] text-sm font-medium hover:bg-[#0D2B70]/5 transition-colors duration-150 select-none">
                     {{-- Briefcase icon --}}
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z" />
@@ -76,7 +77,7 @@
             @if($assignmentOptions->isNotEmpty())
             <div class="relative" x-data="{ open: false, label: 'All' }" @click.outside="open = false">
                 <button type="button" @click="open = !open"
-                    class="flex items-center gap-2 px-4 py-2 rounded-full border border-[#0D2B70] text-[#0D2B70] text-sm font-medium hover:bg-[#0D2B70]/5 transition-colors duration-150 select-none">
+                    class="flex h-[42px] items-center gap-2 whitespace-nowrap px-4 rounded-full border border-[#0D2B70] text-[#0D2B70] text-sm font-medium hover:bg-[#0D2B70]/5 transition-colors duration-150 select-none">
                     {{-- Filter icon --}}
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M3 4h18M7 8h10M11 12h2M13 16h-2" />
@@ -104,7 +105,7 @@
             {{-- Placeholder button when no assignments exist --}}
             <div class="relative" x-data="{ open: false }">
                 <button type="button"
-                    class="flex items-center gap-2 px-4 py-2 rounded-full border border-[#0D2B70] text-[#0D2B70] text-sm font-medium opacity-50 cursor-default select-none">
+                    class="flex h-[42px] items-center gap-2 whitespace-nowrap px-4 rounded-full border border-[#0D2B70] text-[#0D2B70] text-sm font-medium opacity-50 cursor-default select-none">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M3 4h18M7 8h10M11 12h2M13 16h-2" />
                     </svg>
@@ -116,6 +117,7 @@
             </div>
             @endif
 
+        </div>
         </div>
     </div>
 <!-- Table Position -->
