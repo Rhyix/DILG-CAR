@@ -44,14 +44,6 @@
                         </div>
                     </div>
 
-                    <div class="mt-10 pt-6">
-                        <p class="text-sm font-semibold uppercase tracking-[0.2em] text-yellow-200">Approval Workflow</p>
-                        <ul class="mt-4 space-y-2 text-sm text-blue-50">
-                            <li class="flex items-start gap-2"><i class="fa-solid fa-user-plus mt-0.5"></i><span>Register account details (no role selected).</span></li>
-                            <li class="flex items-start gap-2"><i class="fa-solid fa-hourglass-half mt-0.5"></i><span>Wait for superadmin approval.</span></li>
-                            <li class="flex items-start gap-2"><i class="fa-solid fa-shield-halved mt-0.5"></i><span>Access modules based on assigned role.</span></li>
-                        </ul>
-                    </div>
                 </div>
             </section>
 
@@ -433,4 +425,3 @@
     </script>
 </body>
 </html>
-
