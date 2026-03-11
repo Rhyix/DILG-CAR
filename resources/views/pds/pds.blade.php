@@ -53,14 +53,14 @@
                         <span class="material-icons text-lg sm:text-xl">picture_as_pdf</span>
                         Export to PDF
                     </a> -->
-                    <a
+                    {{-- <a
                         id="exportAnnexH1Btn"
                         href="{{ route('pds.export_annex_h1_excel') }}"
                         class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-lg border-2 border-emerald-700 bg-emerald-700 px-4 py-3 text-sm sm:text-base font-montserrat font-semibold text-white shadow-sm transition-all duration-200 hover:border-emerald-800 hover:bg-emerald-800 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-emerald-700/30"
                     >
                         <span class="material-icons text-lg sm:text-xl">download</span>
                         Export to Excel (unstable)
-                    </a>
+                    </a> --}}
                 <button
                         type="button"
                         id="importPdsExcelBtn" 
@@ -424,7 +424,7 @@
                               x-cloak
                               class="inline-flex items-center gap-1 rounded-full bg-amber-100 border border-amber-300 px-3 py-0.5 text-xs font-semibold text-amber-700">
                             <span class="material-icons" style="font-size:13px;">info</span>
-                            N/A â€” Not applicable for Single
+                            N/A &mdash; Not applicable for Single
                         </span>
                     </h3>
 
@@ -784,6 +784,18 @@
             errorEl.classList.toggle('hidden', !state.inlineMessage);
         }
     }
+    function formatPdsEducationDateForInput(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+
+        return `${year}-${month}-${day}`;
+    }
+    function addPdsEducationDays(date, days) {
+        const shifted = new Date(date);
+        shifted.setDate(shifted.getDate() + days);
+        return shifted;
+    }
     function validatePdsEducationDateRange(rangeEl) {
         if (!rangeEl) {
             return;
@@ -801,16 +813,16 @@
         const toDate = parsePdsEducationDate(toValue);
         const fromHasInvalidFormat = Boolean(fromValue && !fromDate);
         const toHasInvalidFormat = Boolean(toValue && !toDate);
-        const hasRangeError = Boolean(fromValue && toValue && fromDate && toDate && fromDate.getTime() > toDate.getTime());
+        const hasRangeError = Boolean(fromValue && toValue && fromDate && toDate && fromDate.getTime() >= toDate.getTime());
 
         if (toDate) {
-            fromInput.max = toValue;
+            fromInput.max = formatPdsEducationDateForInput(addPdsEducationDays(toDate, -1));
         } else {
             fromInput.removeAttribute('max');
         }
 
         if (fromDate) {
-            toInput.min = fromValue;
+            toInput.min = formatPdsEducationDateForInput(addPdsEducationDays(fromDate, 1));
         } else {
             toInput.removeAttribute('min');
         }
@@ -841,9 +853,9 @@
             togglePdsEducationDateRangeState(rangeEl, {
                 fromInvalid: true,
                 toInvalid: true,
-                fromMessage: 'The "From" date must not be later than the "To" date.',
-                toMessage: 'The "To" date must not be earlier than the "From" date.',
-                inlineMessage: 'From date must not be later than To date.',
+                fromMessage: 'The "From" date must be at least one day earlier than the "To" date.',
+                toMessage: 'The "To" date must be at least one day later than the "From" date.',
+                inlineMessage: 'From date must be at least one day earlier than To date.',
             });
             return;
         }

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Password;
 
 use Illuminate\Support\Facades\Mail;
 use App\Mail\OTPmail;
@@ -30,11 +31,13 @@ class RegisterController extends Controller
         $firstName = trim((string) ($request->input('first_name') ?? $request->input('fname') ?? ''));
         $middleName = trim((string) ($request->input('middle_name') ?? $request->input('middle_initial') ?? $request->input('mname') ?? ''));
         $lastName = trim((string) ($request->input('last_name') ?? $request->input('lname') ?? ''));
+        $phoneNumber = preg_replace('/\D+/', '', (string) $request->input('phone_number', ''));
 
         $request->merge([
             'first_name' => $firstName,
             'middle_name' => $middleName,
             'last_name' => $lastName,
+            'phone_number' => $phoneNumber,
         ]);
 
         $request->validate([
@@ -42,9 +45,11 @@ class RegisterController extends Controller
             'middle_name' => 'nullable|string|max:255',
             'last_name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:6|confirmed',
-            'phone_number' => 'nullable|string|max:20',
+            'password' => ['required', 'string', 'confirmed', Password::min(8)->mixedCase()->numbers()->symbols()],
+            'phone_number' => ['required', 'regex:/^09\d{9}$/'],
             'sex' => 'nullable|string|max:20',
+        ], [
+            'phone_number.regex' => 'Contact number must follow the format 09XX XXX XXXX.',
         ]);
 
         $fullName = trim(implode(' ', array_filter([

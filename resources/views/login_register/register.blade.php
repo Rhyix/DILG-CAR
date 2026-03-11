@@ -65,9 +65,9 @@
           </div>
         </div>
 
-        <form method="POST" action="{{ route('register') }}" autocomplete="off"
+        <form id="registerForm" method="POST" action="{{ route('register') }}" autocomplete="off"
           class="space-y-5"
-          x-on:submit.prevent="if (agreed && checkboxChecked) { isSubmitting = true; $el.submit(); }">
+          x-on:submit.prevent="submitForm($el)">
           @csrf
 
           <!-- Name fields (styled exactly like login email field) -->
@@ -139,24 +139,30 @@
             <span class="absolute inset-y-0 left-4 flex items-center">
               <i class="fas fa-phone text-yellow-400"></i>
             </span>
-            <input type="text" name="phone_number" placeholder="Enter Contact Number" value="{{ old('phone_number') }}" required
+            <input id="phone_number" type="text" name="phone_number" placeholder="09XX XXX XXXX" value="{{ old('phone_number') }}" required
               class="w-full bg-white border border-blue-400 rounded-full pl-12 pr-4 py-3 outline-none text-blue-900 placeholder:text-blue-800/60 focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
-              pattern="^09[0-9]{9}$"
-              title="Contact number must be 11 digits long and start with 09."
+              pattern="^09[0-9]{2}\s[0-9]{3}\s[0-9]{4}$"
+              title="Contact number must follow the format 09XX XXX XXXX."
+              aria-describedby="phone_number_hint phone_number_feedback"
               inputmode="numeric"
-              oninput="this.value = this.value.replace(/[^0-9]/g, '')"
-              maxlength="11"
+              autocomplete="tel"
+              maxlength="13"
             >
           </div>
+          <p id="phone_number_hint" class="text-xs text-blue-800/70 ml-3 -mt-2">Format: 09XX XXX XXXX</p>
+          <p id="phone_number_feedback" class="hidden text-red-600 text-sm ml-3 -mt-3" aria-live="polite"></p>
+          @error('phone_number') <p class="text-red-600 text-sm ml-3 -mt-2">{{ $message }}</p> @enderror
 
           <!-- Email (styled exactly like login email field) -->
           <div class="relative">
             <span class="absolute inset-y-0 left-4 flex items-center">
               <i class="fas fa-envelope text-yellow-400"></i>
             </span>
-            <input type="email" name="email" placeholder="Email Address" value="{{ old('email') }}" required
+            <input id="email" type="email" name="email" placeholder="Email Address" value="{{ old('email') }}" required
+              aria-describedby="email_feedback"
               class="w-full bg-white border border-blue-400 rounded-full pl-12 pr-4 py-3 outline-none text-blue-900 placeholder:text-blue-800/60 focus:ring-2 focus:ring-blue-600 focus:border-blue-600">
           </div>
+          <p id="email_feedback" class="hidden text-red-600 text-sm ml-3 -mt-3" aria-live="polite"></p>
           @error('email') <p class="text-red-600 text-sm ml-3 -mt-2">{{ $message }}</p> @enderror
 
           <!-- Password (styled exactly like login password field WITH toggle button) -->
@@ -171,13 +177,44 @@
               placeholder="Password" 
               required 
               minlength="8"
+              aria-describedby="password_requirements password_feedback"
               class="w-full bg-white border border-blue-400 rounded-full pl-12 pr-12 py-3 outline-none text-blue-900 placeholder:text-blue-800/60 focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
-              pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[@$!%*#?&]).{8,}"
-              title="Password must be at least 8 characters long, contain 1 uppercase letter, 1 number, and 1 special character.">
+              pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9\s]).{8,}"
+              title="Password must be at least 8 characters long and include uppercase and lowercase letters, a number, and a special character.">
             <button type="button" id="togglePassword" class="absolute inset-y-0 right-3 px-3 flex items-center text-blue-800/70 hover:text-blue-900">
               <i class="fas fa-eye"></i>
             </button>
           </div>
+          <div id="password_requirements" class="rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900 -mt-2">
+            <p class="font-semibold">Password must include:</p>
+            <div class="mt-2 space-y-2">
+              <div class="password-requirement flex items-center gap-2 text-blue-800/80" data-rule="length">
+                <span class="inline-flex h-5 w-5 items-center justify-center rounded-full border border-blue-200 text-[10px] text-blue-300">
+                  <i class="fas fa-check"></i>
+                </span>
+                <span>At least 8 characters</span>
+              </div>
+              <div class="password-requirement flex items-center gap-2 text-blue-800/80" data-rule="mixedCase">
+                <span class="inline-flex h-5 w-5 items-center justify-center rounded-full border border-blue-200 text-[10px] text-blue-300">
+                  <i class="fas fa-check"></i>
+                </span>
+                <span>Uppercase and lowercase letters</span>
+              </div>
+              <div class="password-requirement flex items-center gap-2 text-blue-800/80" data-rule="number">
+                <span class="inline-flex h-5 w-5 items-center justify-center rounded-full border border-blue-200 text-[10px] text-blue-300">
+                  <i class="fas fa-check"></i>
+                </span>
+                <span>At least 1 number</span>
+              </div>
+              <div class="password-requirement flex items-center gap-2 text-blue-800/80" data-rule="symbol">
+                <span class="inline-flex h-5 w-5 items-center justify-center rounded-full border border-blue-200 text-[10px] text-blue-300">
+                  <i class="fas fa-check"></i>
+                </span>
+                <span>At least 1 special character</span>
+              </div>
+            </div>
+          </div>
+          <p id="password_feedback" class="hidden text-red-600 text-sm ml-3 -mt-3" aria-live="polite"></p>
           @error('password') <p class="text-red-600 text-sm ml-3 -mt-2">{{ $message }}</p> @enderror
 
           <!-- Confirm Password (styled exactly like login password field WITH toggle button) -->
@@ -192,11 +229,13 @@
               placeholder="Confirm Password" 
               required 
               minlength="8"
+              aria-describedby="password_confirmation_feedback"
               class="w-full bg-white border border-blue-400 rounded-full pl-12 pr-12 py-3 outline-none text-blue-900 placeholder:text-blue-800/60 focus:ring-2 focus:ring-blue-600 focus:border-blue-600">
             <button type="button" id="togglePasswordConfirm" class="absolute inset-y-0 right-3 px-3 flex items-center text-blue-800/70 hover:text-blue-900">
               <i class="fas fa-eye"></i>
             </button>
           </div>
+          <p id="password_confirmation_feedback" class="hidden text-red-600 text-sm ml-3 -mt-3" aria-live="polite"></p>
           @error('password_confirmation') <p class="text-red-600 text-sm ml-3 -mt-2">{{ $message }}</p> @enderror
 
           <!-- Data Privacy (styled like remember me checkbox) -->
@@ -261,57 +300,264 @@
 
 @include('partials.loader')
 
-<!-- Password Toggle Scripts (exactly like login page) -->
+<!-- Form Scripts -->
 <script>
-  // Toggle for password field
-  const toggle = document.getElementById('togglePassword');
-  if (toggle) {
-    toggle.addEventListener('click', function () {
-      const input = document.getElementById('password');
-      if (!input) return;
-      const isPassword = input.getAttribute('type') === 'password';
-      input.setAttribute('type', isPassword ? 'text' : 'password');
-      this.setAttribute('aria-pressed', isPassword ? 'true' : 'false');
-      
-      const icon = this.querySelector('i');
-      if (icon) {
-        if (isPassword) {
-          icon.classList.remove('fa-eye');
-          icon.classList.add('fa-eye-slash');
-        } else {
-          icon.classList.remove('fa-eye-slash');
-          icon.classList.add('fa-eye');
-        }
+  const FIELD_BASE_CLASSES = ['border-blue-400', 'focus:ring-blue-600', 'focus:border-blue-600'];
+  const FIELD_ERROR_CLASSES = ['border-red-500', 'focus:ring-red-500', 'focus:border-red-500'];
+  const FIELD_SUCCESS_CLASSES = ['border-green-500', 'focus:ring-green-500', 'focus:border-green-500'];
+
+  function applyFieldClasses(input, classesToAdd) {
+    if (!input) return;
+    input.classList.remove(...FIELD_BASE_CLASSES, ...FIELD_ERROR_CLASSES, ...FIELD_SUCCESS_CLASSES);
+    input.classList.add(...classesToAdd);
+  }
+
+  function setFieldState(input, feedback, state, message = '') {
+    if (!input || !feedback) return state !== 'invalid';
+
+    if (state === 'invalid') {
+      applyFieldClasses(input, FIELD_ERROR_CLASSES);
+      input.setCustomValidity(message);
+      feedback.textContent = message;
+      feedback.classList.remove('hidden');
+      return false;
+    }
+
+    input.setCustomValidity('');
+    feedback.textContent = '';
+    feedback.classList.add('hidden');
+
+    if (state === 'valid') {
+      applyFieldClasses(input, FIELD_SUCCESS_CLASSES);
+    } else {
+      applyFieldClasses(input, FIELD_BASE_CLASSES);
+    }
+
+    return true;
+  }
+
+  function formatPhoneNumber(value) {
+    const digits = value.replace(/\D/g, '').slice(0, 11);
+    const parts = [];
+
+    if (digits.length > 0) parts.push(digits.slice(0, 4));
+    if (digits.length > 4) parts.push(digits.slice(4, 7));
+    if (digits.length > 7) parts.push(digits.slice(7, 11));
+
+    return parts.join(' ');
+  }
+
+  function validatePhoneNumber(force = false) {
+    const input = document.getElementById('phone_number');
+    const feedback = document.getElementById('phone_number_feedback');
+    if (!input || !feedback) return true;
+
+    input.value = formatPhoneNumber(input.value);
+    const normalized = input.value.replace(/\D/g, '');
+    const showFeedback = force || input.dataset.touched === 'true';
+
+    if (normalized === '') {
+      return force
+        ? setFieldState(input, feedback, 'invalid', 'Contact number is required.')
+        : setFieldState(input, feedback, 'neutral');
+    }
+
+    if (!/^09\d{9}$/.test(normalized)) {
+      return showFeedback
+        ? setFieldState(input, feedback, 'invalid', 'Enter a valid contact number using the format 09XX XXX XXXX.')
+        : setFieldState(input, feedback, 'neutral');
+    }
+
+    return setFieldState(input, feedback, 'valid');
+  }
+
+  function validateEmailAddress(force = false) {
+    const input = document.getElementById('email');
+    const feedback = document.getElementById('email_feedback');
+    if (!input || !feedback) return true;
+
+    const value = input.value.trim();
+    input.value = value;
+    const showFeedback = force || input.dataset.touched === 'true';
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (value === '') {
+      return force
+        ? setFieldState(input, feedback, 'invalid', 'Email address is required.')
+        : setFieldState(input, feedback, 'neutral');
+    }
+
+    if (!emailPattern.test(value)) {
+      return showFeedback
+        ? setFieldState(input, feedback, 'invalid', 'Enter a valid email address.')
+        : setFieldState(input, feedback, 'neutral');
+    }
+
+    return setFieldState(input, feedback, 'valid');
+  }
+
+  function updatePasswordRequirements() {
+    const input = document.getElementById('password');
+    if (!input) return { length: false, mixedCase: false, number: false, symbol: false };
+
+    const value = input.value;
+    const status = {
+      length: value.length >= 8,
+      mixedCase: /[a-z]/.test(value) && /[A-Z]/.test(value),
+      number: /\d/.test(value),
+      symbol: /[^A-Za-z0-9\s]/.test(value),
+    };
+
+    document.querySelectorAll('.password-requirement').forEach((item) => {
+      const isMet = Boolean(status[item.dataset.rule]);
+      const badge = item.querySelector('span');
+
+      item.classList.toggle('text-green-700', isMet);
+      item.classList.toggle('text-blue-800/80', !isMet);
+
+      if (badge) {
+        badge.classList.toggle('border-green-300', isMet);
+        badge.classList.toggle('bg-green-100', isMet);
+        badge.classList.toggle('text-green-600', isMet);
+        badge.classList.toggle('border-blue-200', !isMet);
+        badge.classList.toggle('bg-transparent', !isMet);
+        badge.classList.toggle('text-blue-300', !isMet);
       }
+    });
+
+    return status;
+  }
+
+  function validatePassword(force = false) {
+    const input = document.getElementById('password');
+    const feedback = document.getElementById('password_feedback');
+    if (!input || !feedback) return true;
+
+    const value = input.value;
+    const showFeedback = force || input.dataset.touched === 'true';
+    const requirements = updatePasswordRequirements();
+    const isValid = Object.values(requirements).every(Boolean);
+
+    if (value === '') {
+      return force
+        ? setFieldState(input, feedback, 'invalid', 'Password is required.')
+        : setFieldState(input, feedback, 'neutral');
+    }
+
+    if (!isValid) {
+      return showFeedback
+        ? setFieldState(input, feedback, 'invalid', 'Password must be at least 8 characters and include uppercase and lowercase letters, a number, and a special character.')
+        : setFieldState(input, feedback, 'neutral');
+    }
+
+    return setFieldState(input, feedback, 'valid');
+  }
+
+  function validatePasswordConfirmation(force = false) {
+    const passwordInput = document.getElementById('password');
+    const confirmInput = document.getElementById('password_confirmation');
+    const feedback = document.getElementById('password_confirmation_feedback');
+    if (!passwordInput || !confirmInput || !feedback) return true;
+
+    const value = confirmInput.value;
+    const showFeedback = force || confirmInput.dataset.touched === 'true';
+
+    if (value === '') {
+      return force
+        ? setFieldState(confirmInput, feedback, 'invalid', 'Please confirm your password.')
+        : setFieldState(confirmInput, feedback, 'neutral');
+    }
+
+    if (value !== passwordInput.value) {
+      return showFeedback
+        ? setFieldState(confirmInput, feedback, 'invalid', 'Passwords do not match.')
+        : setFieldState(confirmInput, feedback, 'neutral');
+    }
+
+    return setFieldState(confirmInput, feedback, 'valid');
+  }
+
+  function validateRegistrationForm(form) {
+    const isPhoneValid = validatePhoneNumber(true);
+    const isEmailValid = validateEmailAddress(true);
+    const isPasswordValid = validatePassword(true);
+    const isPasswordConfirmationValid = validatePasswordConfirmation(true);
+    const isFormValid = isPhoneValid && isEmailValid && isPasswordValid && isPasswordConfirmationValid && form.checkValidity();
+
+    if (!isFormValid) {
+      form.reportValidity();
+    }
+
+    return isFormValid;
+  }
+
+  function bindBlurValidation(input, validator, onInput) {
+    if (!input) return;
+
+    input.addEventListener('input', () => {
+      if (typeof onInput === 'function') {
+        onInput();
+      }
+
+      if (input.dataset.touched === 'true') {
+        validator(false);
+      }
+    });
+
+    input.addEventListener('blur', () => {
+      input.dataset.touched = 'true';
+      validator(false);
     });
   }
 
-  // Toggle for confirm password field
-  const toggleConfirm = document.getElementById('togglePasswordConfirm');
-  if (toggleConfirm) {
-    toggleConfirm.addEventListener('click', function () {
-      const input = document.getElementById('password_confirmation');
-      if (!input) return;
+  function setupPasswordToggle(buttonId, inputId) {
+    const button = document.getElementById(buttonId);
+    const input = document.getElementById(inputId);
+    if (!button || !input) return;
+
+    button.addEventListener('click', function () {
       const isPassword = input.getAttribute('type') === 'password';
       input.setAttribute('type', isPassword ? 'text' : 'password');
       this.setAttribute('aria-pressed', isPassword ? 'true' : 'false');
-      
+
       const icon = this.querySelector('i');
-      if (icon) {
-        if (isPassword) {
-          icon.classList.remove('fa-eye');
-          icon.classList.add('fa-eye-slash');
-        } else {
-          icon.classList.remove('fa-eye-slash');
-          icon.classList.add('fa-eye');
-        }
-      }
+      if (!icon) return;
+
+      icon.classList.toggle('fa-eye', !isPassword);
+      icon.classList.toggle('fa-eye-slash', isPassword);
     });
   }
-</script>
 
-<!-- AlpineJS Logic -->
-<script>
+  function initializeRegisterForm() {
+    const phoneInput = document.getElementById('phone_number');
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const passwordConfirmInput = document.getElementById('password_confirmation');
+
+    if (phoneInput) {
+      phoneInput.value = formatPhoneNumber(phoneInput.value);
+    }
+
+    bindBlurValidation(phoneInput, validatePhoneNumber, () => {
+      phoneInput.value = formatPhoneNumber(phoneInput.value);
+    });
+    bindBlurValidation(emailInput, validateEmailAddress);
+    bindBlurValidation(passwordInput, validatePassword, () => {
+      updatePasswordRequirements();
+
+      if (passwordConfirmInput && passwordConfirmInput.value !== '') {
+        validatePasswordConfirmation(false);
+      }
+    });
+    bindBlurValidation(passwordConfirmInput, validatePasswordConfirmation);
+
+    updatePasswordRequirements();
+    setupPasswordToggle('togglePassword', 'password');
+    setupPasswordToggle('togglePasswordConfirm', 'password_confirmation');
+  }
+
+  initializeRegisterForm();
+
   function signupPage({ hasErrors }) {
     return {
       showModal: false,
@@ -319,6 +565,18 @@
       checkboxChecked: false,
       hasErrors: hasErrors === 'true',
       isSubmitting: false,
+      submitForm(form) {
+        if (!(this.agreed && this.checkboxChecked)) {
+          return;
+        }
+
+        if (!validateRegistrationForm(form)) {
+          return;
+        }
+
+        this.isSubmitting = true;
+        form.submit();
+      },
       initModal() {
         if (!this.hasErrors && !localStorage.getItem('modalShown')) {
           this.showModal = true;

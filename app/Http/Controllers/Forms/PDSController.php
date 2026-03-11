@@ -188,12 +188,12 @@ class PDSController extends Controller
         $fromDate = $this->parseEducationDateForValidation($fromValue);
         $toDate = $this->parseEducationDateForValidation($toValue);
 
-        if (!$fromDate || !$toDate || !$fromDate->gt($toDate)) {
+        if (!$fromDate || !$toDate || !$fromDate->gte($toDate)) {
             return;
         }
 
-        $validator->errors()->add($fromField, 'The "From" date must not be later than the "To" date.');
-        $validator->errors()->add($toField, 'The "To" date must not be earlier than the "From" date.');
+        $validator->errors()->add($fromField, 'The "From" date must be at least one day earlier than the "To" date.');
+        $validator->errors()->add($toField, 'The "To" date must be at least one day later than the "From" date.');
     }
 
     private function validateEducationDateRanges(\Illuminate\Validation\Validator $validator, array $payload): void

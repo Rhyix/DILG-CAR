@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\SecureHeaders;
 use App\Http\Middleware\PreventBackHistory;
+use App\Http\Middleware\UseRequestAssetOrigin;
 use App\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -21,6 +22,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append(PreventBackHistory::class);
         $middleware->web(replace: [
             ValidateCsrfToken::class => VerifyCsrfToken::class,
+        ]);
+        $middleware->web(append: [
+            UseRequestAssetOrigin::class,
         ]);
         $middleware->alias([
             'admin.ability' => \App\Http\Middleware\EnsureAdminAbility::class,

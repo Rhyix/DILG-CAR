@@ -353,6 +353,7 @@
                                 <label class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">CONTACT NO. AND/OR EMAIL*</label>
                                 <p class="mt-2 text-xs text-gray-500">Format: 09XX XXX XXXX or enter a valid email address.</p>
                                 <p class="error-message {{ $errors->has('ref1_tel') ? '' : 'hidden' }}" data-reference-contact-error aria-live="polite">{{ $errors->first('ref1_tel') }}</p>
+                                
                             </div>
                             <div class="relative md:col-span-2">
                                 <input required type="text" name="ref1_address" required value="{{ old('ref1_address', $data['ref1_address'] ?? '') }}"
@@ -372,11 +373,6 @@
                                 <label class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Name*</label>
                             </div>
                             <div class="relative">
-<<<<<<< Updated upstream
-                                <input required type="tel" name="ref2_tel" required value="{{ old('ref2_tel', $data['ref2_tel'] ?? '') }}"
-                                placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
-                                <label class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">CONTACT NO. AND/OR EMAIL*.</label>
-=======
                                 <input
                                     required
                                     type="text"
@@ -389,7 +385,6 @@
                                 <label class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">CONTACT NO. AND/OR EMAIL*</label>
                                 <p class="mt-2 text-xs text-gray-500">Format: 09XX XXX XXXX or enter a valid email address.</p>
                                 <p class="error-message {{ $errors->has('ref2_tel') ? '' : 'hidden' }}" data-reference-contact-error aria-live="polite">{{ $errors->first('ref2_tel') }}</p>
->>>>>>> Stashed changes
                             </div>
                             <div class="relative md:col-span-2">
                                 <input required type="text" name="ref2_address" required value="{{ old('ref2_address', $data['ref2_address'] ?? '') }}"
@@ -409,11 +404,6 @@
                                 <label class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none ">Name*</label>
                             </div>
                             <div class="relative">
-<<<<<<< Updated upstream
-                                <input required type="tel" name="ref3_tel" required value="{{ old('ref3_tel', $data['ref3_tel'] ?? '') }}"
-                                placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
-                                <label class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">CONTACT NO. AND/OR EMAIL*</label>
-=======
                                 <input
                                     required
                                     type="text"
@@ -426,7 +416,6 @@
                                 <label class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">CONTACT NO. AND/OR EMAIL*</label>
                                 <p class="mt-2 text-xs text-gray-500">Format: 09XX XXX XXXX or enter a valid email address.</p>
                                 <p class="error-message {{ $errors->has('ref3_tel') ? '' : 'hidden' }}" data-reference-contact-error aria-live="polite">{{ $errors->first('ref3_tel') }}</p>
->>>>>>> Stashed changes
                             </div>
                             <div class="relative md:col-span-2">
                                 <input required type="text" name="ref3_address" required value="{{ old('ref3_address', $data['ref3_address'] ?? '') }}"
@@ -1082,7 +1071,6 @@
             if (!form) return;
 
             const autosaveUrl = @json(route('pds.autosave', ['section' => 'c4']));
-            const draftStatus = document.getElementById('draft-save-status');
             const LOCAL_DRAFT_KEY = @json('dilg-car:pds:c4:draft:' . (string) (Auth::id() ?? 'guest'));
             const AUTOSAVE_INTERVAL_MS = 15000;
             let isDirty = false;
@@ -1092,31 +1080,7 @@
             let isRestoringDraft = false;
             let draftVersion = 0;
 
-            function updateDraftStatus(message, tone = 'info') {
-                if (!draftStatus) {
-                    return;
-                }
-
-                draftStatus.textContent = message;
-                draftStatus.classList.remove('text-blue-700', 'text-emerald-700', 'text-amber-700', 'text-red-700');
-
-                if (tone === 'success') {
-                    draftStatus.classList.add('text-emerald-700');
-                    return;
-                }
-
-                if (tone === 'warning') {
-                    draftStatus.classList.add('text-amber-700');
-                    return;
-                }
-
-                if (tone === 'error') {
-                    draftStatus.classList.add('text-red-700');
-                    return;
-                }
-
-                draftStatus.classList.add('text-blue-700');
-            }
+            function updateDraftStatus() {}
 
             function formatDraftTime(timestamp) {
                 if (!timestamp) {
@@ -1323,13 +1287,11 @@
                 }
                 if (!navigator.onLine) {
                     persistLocalDraft(true);
-                    updateDraftStatus('Offline: draft saved on this device.', 'warning');
                     return;
                 }
 
                 inFlight = true;
                 const versionAtRequestStart = draftVersion;
-                updateDraftStatus('Syncing draft...', 'info');
                 try {
                     const formData = new FormData(form);
                     const response = await fetch(autosaveUrl, {
@@ -1342,15 +1304,12 @@
                         if (draftVersion === versionAtRequestStart) {
                             isDirty = false;
                             persistLocalDraft(false, payload?.saved_at ?? new Date().toISOString());
-                            updateDraftStatus(`Draft saved at ${formatDraftTime(payload?.saved_at)}.`, 'success');
                         }
                     } else {
                         persistLocalDraft(true);
-                        updateDraftStatus('Unable to sync right now. Draft saved on this device.', 'warning');
                     }
                 } catch (error) {
                     persistLocalDraft(true);
-                    updateDraftStatus('Connection issue: draft saved on this device.', 'warning');
                 } finally {
                     inFlight = false;
                     if (queued) {
@@ -1377,13 +1336,11 @@
             });
 
             window.addEventListener('online', () => {
-                updateDraftStatus('Connection restored. Syncing draft...', 'info');
                 saveDraft(true);
             });
 
             window.addEventListener('offline', () => {
                 persistLocalDraft(true);
-                updateDraftStatus('Offline: draft saved on this device.', 'warning');
             });
 
             window.addEventListener('pagehide', () => {
@@ -1401,4 +1358,5 @@
             });
         })();
     </script>
+    
     
