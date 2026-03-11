@@ -2388,43 +2388,51 @@ class PDSController extends Controller
         // ------------------------------
         // LEARNING AND DEVELOPMENT
         // ------------------------- -----
-        $data_learning = $request->all();
-        $entryCount = (int) ($data_learning['learning_entry_count'] ?? 0); // get from hidden field
-        //$entryCount = 1 + $entryCount;
+        $entryCount = max(0, (int) $request->input('learning_entry_count', 0)); // get from hidden field
 
         // If validation fails the inputted data in Learning and Development (L&D) Interventions table
         // c3.blade the data is already in session to auto populate the input fields.
+        $learningIndexes = [];
         $data_learning_arrays = [];
-        //dd($request->all());
         for ($i = 1; $i <= $entryCount; $i++) {
-            $data_learning_arrays[] = [
-                'learning_title' => $data_learning["learning_title_$i"],
-                'learning_type' => $data_learning["learning_type_$i"],
-                'learning_from' => $data_learning["learning_from_$i"],
-                'learning_to' => $data_learning["learning_to_$i"],
-                'learning_hours' => $data_learning["learning_hours_$i"],
-                'learning_conducted' => $data_learning["learning_conducted_$i"],
+            $row = [
+                'learning_title' => trim((string) $request->input("learning_title_$i", '')),
+                'learning_type' => trim((string) $request->input("learning_type_$i", '')),
+                'learning_from' => trim((string) $request->input("learning_from_$i", '')),
+                'learning_to' => trim((string) $request->input("learning_to_$i", '')),
+                'learning_hours' => trim((string) $request->input("learning_hours_$i", '')),
+                'learning_conducted' => trim((string) $request->input("learning_conducted_$i", '')),
             ];
+            if (!$this->hasAutosaveRowData($row)) {
+                continue;
+            }
+            $learningIndexes[] = $i;
+            $data_learning_arrays[] = $row;
         }
         session(['data_learning' => $data_learning_arrays]);
 
         // ---------------------------------------------------------------------------
         // VOLUNTARY WORK EXPERIENCE
         // ---------------------------------------------------------------------------
-        $data_vol = $request->all();
-        $entryCount_vol = (int) ($data_vol['voluntary_work_count'] ?? 0); // get from hidden field
+        $entryCount_vol = max(0, (int) $request->input('voluntary_work_count', 0)); // get from hidden field
 
         // If validation fails the inputted data in Voluntary Works table
         // c3.blade the data is already in session to auto populate the input fields.
+        $voluntaryIndexes = [];
         $data_voluntary_arrays = [];
         for ($i = 1; $i <= $entryCount_vol; $i++) {
-            $data_voluntary_arrays[] = [
-                'voluntary_org' => $data_vol["voluntary_org_$i"],
-                'voluntary_from' => $data_vol["voluntary_from_$i"],
-                'voluntary_to' => $data_vol["voluntary_to_$i"],
-                'voluntary_hours' => $data_vol["voluntary_hours_$i"],
-                'voluntary_position' => $data_vol["voluntary_position_$i"],
+            $row = [
+                'voluntary_org' => trim((string) $request->input("voluntary_org_$i", '')),
+                'voluntary_from' => trim((string) $request->input("voluntary_from_$i", '')),
+                'voluntary_to' => trim((string) $request->input("voluntary_to_$i", '')),
+                'voluntary_hours' => trim((string) $request->input("voluntary_hours_$i", '')),
+                'voluntary_position' => trim((string) $request->input("voluntary_position_$i", '')),
             ];
+            if (!$this->hasAutosaveRowData($row)) {
+                continue;
+            }
+            $voluntaryIndexes[] = $i;
+            $data_voluntary_arrays[] = $row;
         }
         session(['data_voluntary' => $data_voluntary_arrays]);
 
@@ -2474,7 +2482,7 @@ class PDSController extends Controller
 
         // LEARNING AND DEVELOPMENT VALIDATION
         $rules_data_learning = [];
-        for ($i = 1; $i <= $entryCount; $i++) {
+        foreach ($learningIndexes as $i) {
             $rules_data_learning["learning_title_$i"] = 'required|string|max:255';
             $rules_data_learning["learning_type_$i"] = 'required|string|max:100';
             $rules_data_learning["learning_from_$i"] = 'required|date';
@@ -2483,8 +2491,8 @@ class PDSController extends Controller
             $rules_data_learning["learning_conducted_$i"] = 'required|string|max:255';
         }
         $learningValidator = Validator::make($request->all(), $rules_data_learning);
-        $learningValidator->after(function (\Illuminate\Validation\Validator $validator) use ($request, $entryCount) {
-            for ($i = 1; $i <= $entryCount; $i++) {
+        $learningValidator->after(function (\Illuminate\Validation\Validator $validator) use ($request, $learningIndexes) {
+            foreach ($learningIndexes as $i) {
                 $fromRaw = trim((string) $request->input("learning_from_$i", ''));
                 $toRaw = trim((string) $request->input("learning_to_$i", ''));
                 if ($fromRaw === '' || $toRaw === '') {
@@ -2515,7 +2523,7 @@ class PDSController extends Controller
 
         // FOR session data in LEARNING AND DEVELOPMENT
         $data_learning_arrays = [];
-        for ($i = 1; $i <= $entryCount; $i++) {
+        foreach ($learningIndexes as $i) {
             $data_learning_arrays[] = [
                 'learning_title' => $validated_data_learning["learning_title_$i"],
                 'learning_type' => $validated_data_learning["learning_type_$i"],
@@ -2533,7 +2541,7 @@ class PDSController extends Controller
 
         // VOLUNTARY WORKS VALIDATION
         $rules_data_vol = [];
-        for ($i = 1; $i <= $entryCount_vol; $i++) {
+        foreach ($voluntaryIndexes as $i) {
             $rules_data_vol["voluntary_org_$i"] = 'required|string|max:255';
             $rules_data_vol["voluntary_from_$i"] = 'required|date';
             $rules_data_vol["voluntary_to_$i"] = "required|date|after:voluntary_from_$i";
@@ -2541,8 +2549,8 @@ class PDSController extends Controller
             $rules_data_vol["voluntary_position_$i"] = 'required|string|max:255';
         }
         $voluntaryValidator = Validator::make($request->all(), $rules_data_vol);
-        $voluntaryValidator->after(function (\Illuminate\Validation\Validator $validator) use ($request, $entryCount_vol) {
-            for ($i = 1; $i <= $entryCount_vol; $i++) {
+        $voluntaryValidator->after(function (\Illuminate\Validation\Validator $validator) use ($request, $voluntaryIndexes) {
+            foreach ($voluntaryIndexes as $i) {
                 $fromRaw = trim((string) $request->input("voluntary_from_$i", ''));
                 $toRaw = trim((string) $request->input("voluntary_to_$i", ''));
                 if ($fromRaw === '' || $toRaw === '') {
@@ -2573,7 +2581,7 @@ class PDSController extends Controller
 
         // FOR session data in VOLUNTARY WORK
         $data_voluntary_arrays = [];
-        for ($i = 1; $i <= $entryCount_vol; $i++) {
+        foreach ($voluntaryIndexes as $i) {
             $data_voluntary_arrays[] = [
                 'voluntary_org' => $validated_data_vol["voluntary_org_$i"],
                 'voluntary_from' => $validated_data_vol["voluntary_from_$i"],
@@ -2597,9 +2605,9 @@ class PDSController extends Controller
 
         // SAVE C3 to DB
         //LEARNING AND DEVELOPMENT
-        $c3_learning_and_development_data = session('data_learning');
+        $c3_learning_and_development_data = session('data_learning', []);
+        LearningAndDevelopment::where('user_id', Auth::id())->delete();
         if (!empty($c3_learning_and_development_data)) {
-            LearningAndDevelopment::where('user_id', Auth::id())->delete();
             LearningAndDevelopment::upsert(
                 $c3_learning_and_development_data,
                 ['learning_title', 'learning_from', 'user_id'], // Unique constraint
@@ -2608,9 +2616,9 @@ class PDSController extends Controller
         }
 
         //VOLUNTARY WORK
-        $c3_voluntary_data = session('data_voluntary');
+        $c3_voluntary_data = session('data_voluntary', []);
+        VoluntaryWork::where('user_id', Auth::id())->delete();
         if (!empty($c3_voluntary_data)) {
-            VoluntaryWork::where('user_id', Auth::id())->delete();
             VoluntaryWork::upsert(
                 $c3_voluntary_data,
                 ['voluntary_org', 'voluntary_from', 'user_id'], // Unique constraint
@@ -2642,7 +2650,6 @@ class PDSController extends Controller
         if (empty(session('data_learning')) && empty(session('data_voluntary')) && empty(session('data_otherInfo'))) {
             $this->c3GetDatabase();
         }
-        $this->syncLearningSessionFromDatabaseIfStale();
         $data_learning = session('data_learning', []);
         $data_voluntary = session('data_voluntary', []);
         $data_otherInfo = session('data_otherInfo', []);
@@ -5298,7 +5305,6 @@ class PDSController extends Controller
         if (empty(session('data_learning')) && empty(session('data_voluntary')) && empty(session('data_otherInfo'))) {
             $this->c3GetDatabase();
         }
-        $this->syncLearningSessionFromDatabaseIfStale();
         $data_learning = session('data_learning', []);
         $data_voluntary = session('data_voluntary', []);
         $data_otherInfo = session('data_otherInfo', []);
