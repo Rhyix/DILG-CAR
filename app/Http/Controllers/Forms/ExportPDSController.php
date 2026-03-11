@@ -1072,7 +1072,7 @@ private function writeEducationalBackground($pdf, $education)
                    !empty($education?->elem_academic_honors);
 
     if (!$hasElemData) {
-        $this->writeFittedAt($pdf, 'N/A', 41.5, 267, 49, 7.0, 5.0);
+        $this->writeFittedAt($pdf, 'N/A', 40.5, 263, 49, 8.0, 5.0);
     } else {
         $this->writeWrappedAt(
             $pdf,
@@ -1111,7 +1111,7 @@ private function writeEducationalBackground($pdf, $education)
                   !empty($education?->jhs_academic_honors);
 
     if (!$hasJHSData) {
-        $this->writeFittedAt($pdf, 'N/A', 40.5, 272, 49, 8.0, 5.0);
+        $this->writeFittedAt($pdf, 'N/A', 40.5, 271, 49, 8.0, 5.0);
     } else {
         $this->writeFittedAt($pdf, $this->valueOrNa($education?->jhs_school), 40.5, 271, 48, 6.5, 4.5);
         $this->writeFittedAt($pdf, $this->valueOrNa($education?->jhs_basic), 90, 271, 45, 6.5, 4.5);
@@ -1133,7 +1133,8 @@ private function writeVocationalChunk($pdf, $chunk)
     $startX_earned = 163.5;
     $startX_year_graduated = 183;
     $startX_honors = 194.2;
-    $startY = 281;
+    $startY_school_basic = 278.0;
+    $startY_other = 279.0;
     $lineHeight = 6;
 
     // Check if all vocational inputs are empty
@@ -1155,27 +1156,28 @@ private function writeVocationalChunk($pdf, $chunk)
 
     // If all are empty, write N/A once in the school column
     if ($isEmpty) {
-        $this->writeFittedAt($pdf, 'N/A', 40.5, 278, 50, 8.0, 5.0);
+        $this->writeFittedAt($pdf, 'N/A', 40.5, 278.5, 50, 8.0, 5.0);
         return;
     }
 
     // Otherwise, loop and write each row
-    foreach ($chunk as $index => $voc)
-    {
-        $currentY = $startY + ($index * $lineHeight);
+    foreach ($chunk as $index => $voc) {
+        $rowOffset = $index * $lineHeight;
+        $currentYSchoolBasic = $startY_school_basic + $rowOffset;
+        $currentYOther = $startY_other + $rowOffset;
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($voc['school'] ?? null), 40.5, 278, 48, 6.5, 4.5);
+        $this->writeFittedAt($pdf, $this->valueOrNa($voc['school'] ?? null), 40.5, $currentYSchoolBasic, 48, 6.5, 4.5);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($voc['basic'] ?? null), 90, 278, 45, 6.5, 4.5);
+        $this->writeFittedAt($pdf, $this->valueOrNa($voc['basic'] ?? null), 90, $currentYSchoolBasic, 45, 6.5, 4.5);
 
-        $this->writeFittedAt($pdf, $this->dateOrNa($voc['from'] ?? null, 'm/Y'), 136, 279, 27, 7.0, 5.0);
-        $this->writeFittedAt($pdf, $this->dateOrNa($voc['to'] ?? null, 'm/Y'), 149, 279, 31.5, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->dateOrNa($voc['from'] ?? null, 'm/Y'), 136, $currentYOther, 27, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->dateOrNa($voc['to'] ?? null, 'm/Y'), 149, $currentYOther, 31.5, 7.0, 5.0);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($voc['earned'] ?? null),  166, 279, 18, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($voc['earned'] ?? null), 166, $currentYOther, 18, 7.0, 5.0);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($voc['year_graduated'] ?? null), 182, 279,  12, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($voc['year_graduated'] ?? null), 182, $currentYOther, 12, 7.0, 5.0);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($voc['academic_honors'] ?? null), 199, 279, 8, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($voc['academic_honors'] ?? null), 199, $currentYOther, 8, 7.0, 5.0);
     }
 }
 
@@ -1187,7 +1189,8 @@ private function writeCollegeChunk($pdf, $chunk)
     $startX_earned = 163.5;
     $startX_year_graduated = 183;
     $startX_honors = 194.2;
-    $startY = 288.7;
+    $startY_school_basic = 285.0;
+    $startY_other = 286.5;
     $lineHeight = 6;
 
     // Check if all college entries are empty
@@ -1209,28 +1212,28 @@ private function writeCollegeChunk($pdf, $chunk)
 
     // If all are empty, write N/A in school column only
     if ($isEmpty) {
-        $this->writeFittedAt($pdf, 'N/A', 40.5, 285, 50, 8.0, 5.0);
+        $this->writeFittedAt($pdf, 'N/A', 40.5, 286, 50, 8.0, 5.0);
         return;
     }
 
     // Otherwise, render the college entries normally
-    foreach ($chunk as $index => $college)
-    {
-        $currentY = $startY + ((int)$index * $lineHeight);
+    foreach ($chunk as $index => $college) {
+        $rowOffset = $index * $lineHeight;
+        $currentYSchoolBasic = $startY_school_basic + $rowOffset;
+        $currentYOther = $startY_other + $rowOffset;
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($college['school'] ?? null), 40.5, 285, 48, 6.5, 4.5);
+        $this->writeFittedAt($pdf, $this->valueOrNa($college['school'] ?? null), 40.5, $currentYSchoolBasic, 48, 6.5, 4.5);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($college['basic'] ?? null), 90, 285, 45, 6.5, 4.5);
+        $this->writeFittedAt($pdf, $this->valueOrNa($college['basic'] ?? null), 90, $currentYSchoolBasic, 45, 6.5, 4.5);
 
-        $this->writeFittedAt($pdf, $this->dateOrNa($college['from'] ?? null, 'm/Y'), 136, 286.5, 27, 7.0, 5.0);
-        $this->writeFittedAt($pdf, $this->dateOrNa($college['to'] ?? null, 'm/Y'), 149, 286.5, 31.5, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->dateOrNa($college['from'] ?? null, 'm/Y'), 136, $currentYOther, 27, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->dateOrNa($college['to'] ?? null, 'm/Y'), 149, $currentYOther, 31.5, 7.0, 5.0);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($college['earned'] ?? null), 166, 286.5, 18, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($college['earned'] ?? null), 166, $currentYOther, 18, 7.0, 5.0);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($college['year_graduated'] ?? null), 182, 286.5, 12, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($college['year_graduated'] ?? null), 182, $currentYOther, 12, 7.0, 5.0);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($college['academic_honors'] ?? null), 199, 286.5, 8, 7.0, 5.0);
-
+        $this->writeFittedAt($pdf, $this->valueOrNa($college['academic_honors'] ?? null), 199, $currentYOther, 8, 7.0, 5.0);
     }
 }
 
@@ -1244,7 +1247,9 @@ private function writeGraduateChunk($pdf, $chunk)
     $startX_earned = 163.5;
     $startX_year_graduated = 183;
     $startX_honors = 194.2;
-    $startY = 296.0;
+    $startY_school = 293.0;
+    $startY_basic = 292.0;
+    $startY_other = 294.0;
     $lineHeight = 6;
 
     // Check if all grad entries are empty
@@ -1266,28 +1271,30 @@ private function writeGraduateChunk($pdf, $chunk)
 
     // If all are empty, write N/A in school column only
     if ($isEmpty) {
-        $this->writeFittedAt($pdf, 'N/A', 40.5, 293, 50, 8.0, 5.0);
+        $this->writeFittedAt($pdf, 'N/A', 40.5, 295, 50, 8.0, 5.0);
         return;
     }
 
     // Otherwise, loop through and write each graduate row
-    foreach ($chunk as $index => $grad)
-    {
-        $currentY = $startY + ($index * $lineHeight);
+    foreach ($chunk as $index => $grad) {
+        $rowOffset = $index * $lineHeight;
+        $currentYSchool = $startY_school + $rowOffset;
+        $currentYBasic = $startY_basic + $rowOffset;
+        $currentYOther = $startY_other + $rowOffset;
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($grad['school'] ?? null), 40.5, 293, 48, 6.5, 4.5);
+        $this->writeFittedAt($pdf, $this->valueOrNa($grad['school'] ?? null), 40.5, $currentYSchool, 48, 6.5, 4.5);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($grad['basic'] ?? null), 90, 292, 45, 6.5, 4.5);
+        $this->writeFittedAt($pdf, $this->valueOrNa($grad['basic'] ?? null), 90, $currentYBasic, 45, 6.5, 4.5);
 
-        $this->writeFittedAt($pdf, $this->dateOrNa($grad['from'] ?? null, 'm/Y'), 136, 294, 11, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->dateOrNa($grad['from'] ?? null, 'm/Y'), 136, $currentYOther, 11, 7.0, 5.0);
 
-        $this->writeFittedAt($pdf, $this->dateOrNa($grad['to'] ?? null, 'm/Y'), 149, 294, 11, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->dateOrNa($grad['to'] ?? null, 'm/Y'), 149, $currentYOther, 11, 7.0, 5.0);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($grad['earned'] ?? null), 166, 294, 18, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($grad['earned'] ?? null), 166, $currentYOther, 18, 7.0, 5.0);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($grad['year_graduated'] ?? null), 182, 294, 12, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($grad['year_graduated'] ?? null), 182, $currentYOther, 12, 7.0, 5.0);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($grad['academic_honors'] ?? null), 199, 294, 10.2, 5.0, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($grad['academic_honors'] ?? null), 199, $currentYOther, 10.2, 5.0, 5.0);
     }
 }
 
@@ -1343,7 +1350,7 @@ private function writeCivilServiceEligibilityChunk($pdf, $chunk)
 
     // If all fields are empty, write N/A in career field only.
     if ($isEmpty) {
-        $this->writeFittedAt($pdf, 'N/A', $startX_career, $startY, $careerWidth, 8.0, 5.0);
+        $this->writeFittedAt($pdf, 'N/A', 10.5, 25, $careerWidth, 8.0, 5.0);
         return;
     }
 
@@ -1426,7 +1433,7 @@ private function writeWorkExperienceChunk($pdf, $chunk)
         $currentY = $startY + ($index * $rowHeight);
 
         $this->writeFittedAt($pdf, $this->dateOrNa($we['work_exp_from'] ?? null), $x_from, $currentY, $fromWidth, 8.0, 3.6);
-        $this->writeFittedAt($pdf, $this->dateOrNa($we['work_exp_to'] ?? null), $x_to, $currentY, $toWidth, 7.0, 3.6);
+        $this->writeFittedAt($pdf, $this->dateOrNa($we['work_exp_to'] ?? null), $x_to, $currentY, $toWidth, 8.0, 3.6);
         $this->writeFittedAt($pdf, $this->valueOrNa($we['work_exp_position'] ?? null), $x_position, $currentY, $positionWidth, 7.0, 5.0);
 
         $this->writeWrapped(
@@ -1482,18 +1489,17 @@ private function writeVoluntaryWorkChunk($pdf, $chunk)
     // Render each voluntary work row
     foreach ($chunk as $index => $vw) {
         $currentY = $startY + ($index * $rowHeight);
-        $singleLineY = $currentY + 2.0;
         $multiLineY = $currentY - 1.0;
 
-        $this->writeWrapped($pdf, $this->valueOrNa($vw['voluntary_org'] ?? null), 115, 6, $singleLineY, $multiLineY, 6, 2);
+        $this->writeWrapped($pdf, $this->valueOrNa($vw['voluntary_org'] ?? null), 115, 6, $currentY, $multiLineY, 6, 2);
 
-        $this->writeFittedAt($pdf, $this->dateOrNa($vw['voluntary_from'] ?? null), 95, $singleLineY, 15.0, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->dateOrNa($vw['voluntary_from'] ?? null), 94.5, $currentY, 15.0, 8.0, 5.0);
 
-        $this->writeFittedAt($pdf, $this->dateOrNa($vw['voluntary_to'] ?? null), 110, $singleLineY, 19.0, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->dateOrNa($vw['voluntary_to'] ?? null), 110.5, $currentY, 19.0, 8.0, 5.0);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($vw['voluntary_hours'] ?? null), 128, $singleLineY, 12.0, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($vw['voluntary_hours'] ?? null), 129, $currentY, 12.0, 7.0, 5.0);
 
-        $this->writeWrapped($pdf, $this->valueOrNa($vw['voluntary_position'] ?? null), 60, 141, $singleLineY, $multiLineY, 7, 3);
+        $this->writeWrapped($pdf, $this->valueOrNa($vw['voluntary_position'] ?? null), 60, 142, $currentY, $multiLineY, 7, 3);
     }
 }
 
@@ -1507,7 +1513,7 @@ private function writeLearningAndDevelopmentChunk($pdf, $chunk)
     $x_type = 142;
     $x_conducted = 161;
 
-    $startY = 98;
+    $startY = 103;
     $rowHeight = 6.4;
 
     // Check if all learning/development fields are empty
@@ -1528,7 +1534,7 @@ private function writeLearningAndDevelopmentChunk($pdf, $chunk)
 
     // If all fields are empty, write N/A in the learning_title column only
     if ($isEmpty) {
-        $this->setXY($pdf, $x_title, $startY);
+        $this->setXY($pdf, 7.5, 103);
         $pdf->Write(0, 'N/A');
         return;
     }
@@ -1536,20 +1542,19 @@ private function writeLearningAndDevelopmentChunk($pdf, $chunk)
     // Otherwise, render the actual data
     foreach ($chunk as $index => $lnd) {
         $currentY = $startY + ($index * $rowHeight);
-        $singleLineY = $currentY + 6.0;
         $multiLineY = $currentY - 1.0;
 
-        $this->writeWrapped($pdf, $this->valueOrNa($lnd['learning_title'] ?? null), 105, 6, $singleLineY, $multiLineY, 6, 2);
+        $this->writeWrapped($pdf, $this->valueOrNa($lnd['learning_title'] ?? null), 105, 6, $currentY, $multiLineY, 7.0, 2);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($lnd['learning_type'] ?? null), $x_type, $singleLineY, 18.0, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($lnd['learning_type'] ?? null), $x_type, $currentY, 18.0, 7.0, 5.0);
 
-        $this->writeFittedAt($pdf, $this->dateOrNa($lnd['learning_from'] ?? null), 94.5, $singleLineY, 15.0, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->dateOrNa($lnd['learning_from'] ?? null), 94.5, $currentY, 15.0, 8.0, 5.0);
 
-        $this->writeFittedAt($pdf, $this->dateOrNa($lnd['learning_to'] ?? null), 110.5, $singleLineY, 19.0, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->dateOrNa($lnd['learning_to'] ?? null), 110.5, $currentY, 19.0, 8.0, 5.0);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($lnd['learning_hours'] ?? null), $x_hours, $singleLineY, 12.0, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($lnd['learning_hours'] ?? null), $x_hours, $currentY, 12.0, 7.0, 5.0);
 
-        $this->writeWrapped($pdf, $this->valueOrNa($lnd['learning_conducted'] ?? null), 47.3, 159, $singleLineY, $multiLineY, 6, 2);
+        $this->writeWrapped($pdf, $this->valueOrNa($lnd['learning_conducted'] ?? null), 47.3, 159, $currentY, $multiLineY, 7.0, 2);
     }
 }
 
@@ -1558,33 +1563,28 @@ private function writeLearningAndDevelopmentChunk($pdf, $chunk)
 private function writeOtherInformation($pdf, $skills, $distinctions, $organizations)
 {
     // Column anchors (short-bond 2025 layout)
-    $xSkill = 7.5;
-    $xDistinction = 61.5;
-    $xOrg = 162.0;
     $wSkill = 50.0;
     $wDistinction = 98.0;
     $wOrg = 41.5;
-    $startY = 255.7;
+    $startY = 256.0;
     $rowHeight = 6.15;
-    $textOffsetY = 2.2;
 
     $skills = array_values(array_filter(array_map(fn($v) => trim((string) $v), (array) $skills), fn($v) => $v !== ''));
     $distinctions = array_values(array_filter(array_map(fn($v) => trim((string) $v), (array) $distinctions), fn($v) => $v !== ''));
     $organizations = array_values(array_filter(array_map(fn($v) => trim((string) $v), (array) $organizations), fn($v) => $v !== ''));
 
     if (empty($skills) && empty($distinctions) && empty($organizations)) {
-        $firstRowY = $startY + $textOffsetY;
-        $this->writeCenteredFitted($pdf, 'N/A', $xSkill, $firstRowY, $wSkill);
-        $this->writeCenteredFitted($pdf, 'N/A', $xDistinction, $firstRowY, $wDistinction);
-        $this->writeCenteredFitted($pdf, 'N/A', $xOrg, $firstRowY, $wOrg);
+        $this->writeCenteredFitted($pdf, 'N/A', 7, 256, $wSkill);
+        $this->writeCenteredFitted($pdf, 'N/A', 60, 256, $wDistinction);
+        $this->writeCenteredFitted($pdf, 'N/A', 165, 256, $wOrg);
         return;
     }
 
     for ($i = 0; $i < 7; $i++) {
-        $y = $startY + $textOffsetY + ($i * $rowHeight);
-        $this->writeFittedAt($pdf, $skills[$i] ?? '', 6, 256, $wSkill, 7.0, 5.0);
-        $this->writeFittedAt($pdf, $distinctions[$i] ?? '', 60, 256, $wDistinction, 7.0, 5.0);
-        $this->writeFittedAt($pdf, $organizations[$i] ?? '', 160, 256, $wOrg, 6.5, 5.0);
+        $currentY = $startY + ($i * $rowHeight);
+        $this->writeFittedAt($pdf, $skills[$i] ?? '', 6, $currentY, $wSkill, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $distinctions[$i] ?? '', 60, $currentY, $wDistinction, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $organizations[$i] ?? '', 160, $currentY, $wOrg, 6.5, 5.0);
     }
 }
 

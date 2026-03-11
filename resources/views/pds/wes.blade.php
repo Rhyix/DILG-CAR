@@ -137,8 +137,8 @@
                       class="h-10 w-full border border-slate-200 rounded-lg px-3 py-2" x-model="entry.duties[dutyIndex]"
                       placeholder="Key responsibility">
                     <button type="button" @click="entry.duties.splice(dutyIndex, 1)" :disabled="!entry.isDisplayed"
-                      class="text-xs font-semibold text-red-600 px-2">
-                      Remove
+                      class="text-xs font-semibold text-white bg-red-600 px-2">
+                      x
                     </button>
                   </div>
                 </template>

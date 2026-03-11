@@ -22,7 +22,7 @@
                 <div class="mt-6 flex flex-wrap gap-3">
                     <a href="{{ route('job_vacancy') }}"
                         class="inline-flex items-center gap-2 bg-white text-[#0D2B70] px-5 py-2.5 rounded-lg font-bold text-sm hover:bg-gray-100 transition shadow-sm">
-                        <i data-feather="search" class="w-4 h-4"></i> Browse Jobs
+                        <i data-feather="search" class="w-4 h-4"></i> Search Jobs
                     </a>
                     <a href="{{ route('account.settings') }}"
                         class="inline-flex items-center gap-2 bg-[#ffffff20] text-white px-5 py-2.5 rounded-lg font-bold text-sm hover:bg-[#ffffff30] transition backdrop-blur-sm border border-white/20">

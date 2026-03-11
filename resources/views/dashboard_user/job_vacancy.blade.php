@@ -10,7 +10,7 @@
         <!-- Header Section -->
             <div class="flex-none flex items-center mb-4 sm:mb-5 space-x-4 max-w-full">
                 <h1 class="flex items-center gap-3 w-full border-b border-[#0D2B70] text-white text-2xl sm:text-3xl font-montserrat py-1.5 tracking-wide select-none">
-                    <span class="whitespace-nowrap text-[#0D2B70]">Browse Job Vacancies</span>
+                    <span class="whitespace-nowrap text-[#0D2B70]">Search Job Vacancies</span>
                 </h1>
             </div>
 

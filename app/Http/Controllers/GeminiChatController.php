@@ -14,7 +14,7 @@ class GeminiChatController extends Controller
     // Context about the web app features for applicants only
     $context = "Your name is Ana an assistant for the DILG Job Application System. Here are the features you should know:\n\n" .
     "👤 Applicant Features:\n" .
-    "- Browse Job Vacancies: Applicants can view open positions from the dashboard.\n" .
+    "- Search Job Vacancies: Applicants can view open positions from the dashboard.\n" .
     "- Apply for Jobs: One-click application process for registered users.\n" .
     "- Upload Required Documents: Upload PDS, application letters, and certificates (PDFs).\n" .
     "- Live Preview of PDFs: Users can preview uploaded documents directly in the app.\n" .

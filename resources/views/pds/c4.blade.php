@@ -365,7 +365,7 @@
                             <div class="relative">
                                 <input required type="tel" name="ref2_tel" required value="{{ old('ref2_tel', $data['ref2_tel'] ?? '') }}"
                                 placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
-                                <label class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Telephone No*.</label>
+                                <label class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">CONTACT NO. AND/OR EMAIL*.</label>
                             </div>
                             <div class="relative md:col-span-2">
                                 <input required type="text" name="ref2_address" required value="{{ old('ref2_address', $data['ref2_address'] ?? '') }}"
@@ -387,7 +387,7 @@
                             <div class="relative">
                                 <input required type="tel" name="ref3_tel" required value="{{ old('ref3_tel', $data['ref3_tel'] ?? '') }}"
                                 placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
-                                <label class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Telephone No.*</label>
+                                <label class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">CONTACT NO. AND/OR EMAIL*</label>
                             </div>
                             <div class="relative md:col-span-2">
                                 <input required type="text" name="ref3_address" required value="{{ old('ref3_address', $data['ref3_address'] ?? '') }}"
