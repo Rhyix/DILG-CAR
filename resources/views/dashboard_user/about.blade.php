@@ -85,52 +85,50 @@
     </section>
 
     <section class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div class="about-card rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
-            <div class="grid gap-6 lg:grid-cols-[0.75fr,1.25fr]">
-                <div>
-                    <p class="inline-flex rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-blue-700">Contact</p>
-                    <h3 class="mt-3 font-montserrat text-2xl font-extrabold text-slate-800">Contact Information</h3>
-                    <p class="mt-2 text-sm leading-relaxed text-slate-600">
-                        For official key contacts, visit
-                        <a href="https://car.dilg.gov.ph/key-officials/" target="_blank" rel="noopener"
-                            class="font-semibold text-blue-700 underline decoration-blue-300 underline-offset-2 transition hover:text-blue-900">
-                            DILG-CAR Key Officials
-                        </a>.
-                    </p>
+        <div class="grid gap-6 lg:grid-cols-[0.75fr,1.25fr]">
+            <div>
+                <p class="inline-flex rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-blue-700">Contact</p>
+                <h3 class="mt-3 font-montserrat text-2xl font-extrabold text-slate-800">Contact Information</h3>
+                <p class="mt-2 text-sm leading-relaxed text-slate-600">
+                    For official key contacts, visit
+                    <a href="https://car.dilg.gov.ph/key-officials/" target="_blank" rel="noopener"
+                        class="font-semibold text-blue-700 underline decoration-blue-300 underline-offset-2 transition hover:text-blue-900">
+                        DILG-CAR Key Officials
+                    </a>.
+                </p>
+            </div>
+
+            <div class="grid gap-4 sm:grid-cols-2">
+                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                    <h4 class="text-sm font-bold uppercase tracking-wide text-slate-700">General Email</h4>
+                    <a href="mailto:dilgcarcloud@gmail.com"
+                        class="mt-2 block break-all text-sm font-semibold text-blue-700 transition hover:text-blue-900 hover:underline">
+                        dilgcarcloud@gmail.com
+                    </a>
                 </div>
 
-                <div class="grid gap-4 sm:grid-cols-2">
-                    <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-                        <h4 class="text-sm font-bold uppercase tracking-wide text-slate-700">General Email</h4>
-                        <a href="mailto:dilgcarcloud@gmail.com"
-                            class="mt-2 block break-all text-sm font-semibold text-blue-700 transition hover:text-blue-900 hover:underline">
-                            dilgcarcloud@gmail.com
+                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                    <h4 class="text-sm font-bold uppercase tracking-wide text-slate-700">HR & Records</h4>
+                    <div class="mt-2 space-y-1">
+                        <a href="mailto:dilgcar.hr@gmail.com"
+                            class="block break-all text-sm font-semibold text-blue-700 transition hover:text-blue-900 hover:underline">
+                            dilgcar.hr@gmail.com
+                        </a>
+                        <a href="mailto:dilgcarfad@gmail.com"
+                            class="block break-all text-sm font-semibold text-blue-700 transition hover:text-blue-900 hover:underline">
+                            dilgcarfad@gmail.com
                         </a>
                     </div>
-
-                    <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-                        <h4 class="text-sm font-bold uppercase tracking-wide text-slate-700">HR & Records</h4>
-                        <div class="mt-2 space-y-1">
-                            <a href="mailto:dilgcar.hr@gmail.com"
-                                class="block break-all text-sm font-semibold text-blue-700 transition hover:text-blue-900 hover:underline">
-                                dilgcar.hr@gmail.com
-                            </a>
-                            <a href="mailto:dilgcarfad@gmail.com"
-                                class="block break-all text-sm font-semibold text-blue-700 transition hover:text-blue-900 hover:underline">
-                                dilgcarfad@gmail.com
-                            </a>
-                        </div>
-                    </div>
                 </div>
             </div>
+        </div>
 
-            <div class="mt-6 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-slate-700">
-                <span class="font-bold text-slate-800">CSC Career Opportunities:</span>
-                <a href="http://csc.gov.ph/career" target="_blank" rel="noopener"
-                    class="ml-2 font-semibold text-blue-700 underline decoration-blue-300 underline-offset-2 transition hover:text-blue-900">
-                    View Opportunities
-                </a>
-            </div>
+        <div class="mt-6 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-slate-700">
+            <span class="font-bold text-slate-800">CSC Career Opportunities:</span>
+            <a href="http://csc.gov.ph/career" target="_blank" rel="noopener"
+                class="ml-2 font-semibold text-blue-700 underline decoration-blue-300 underline-offset-2 transition hover:text-blue-900">
+                View Opportunities
+            </a>
         </div>
     </section>
 

@@ -44,9 +44,9 @@
                         </div>
                     </div>
 
-                    <div class="rounded-2xl border border-white/20 bg-[linear-gradient(145deg,rgba(2,16,42,0.3)_0%,rgba(2,16,42,0.14)_100%)] p-5 backdrop-blur-[6px]">
-                        <p class="text-sm font-semibold text-yellow-200">Approval Workflow</p>
-                        <ul class="mt-3 space-y-2 text-sm text-blue-50">
+                    <div class="mt-10 pt-6">
+                        <p class="text-sm font-semibold uppercase tracking-[0.2em] text-yellow-200">Approval Workflow</p>
+                        <ul class="mt-4 space-y-2 text-sm text-blue-50">
                             <li class="flex items-start gap-2"><i class="fa-solid fa-user-plus mt-0.5"></i><span>Register account details (no role selected).</span></li>
                             <li class="flex items-start gap-2"><i class="fa-solid fa-hourglass-half mt-0.5"></i><span>Wait for superadmin approval.</span></li>
                             <li class="flex items-start gap-2"><i class="fa-solid fa-shield-halved mt-0.5"></i><span>Access modules based on assigned role.</span></li>
@@ -65,7 +65,7 @@
                         </div>
                     </div>
 
-                    <div class="rounded-2xl border border-[#d6e2f3] bg-[linear-gradient(180deg,#ffffff_0%,#fdfefe_100%)] p-6 shadow-[0_14px_40px_rgba(12,39,88,0.09)]">
+                    <div>
                         <div class="mb-5">
                             <h2 class="text-2xl font-extrabold tracking-[-0.01em] text-[#0D2B70] font-['Space_Grotesk']">Admin Login</h2>
                             <p class="mt-1 text-sm text-slate-500">Sign in to continue to your assigned dashboard.</p>
@@ -132,7 +132,7 @@
                                 </div>
                             </div>
 
-                            <div class="flex items-center justify-between pt-1 text-sm">
+                            <!-- <div class="flex items-center justify-between pt-1 text-sm">
                                 <button
                                     type="button"
                                     class="font-semibold text-[#0D2B70] hover:underline"
@@ -140,8 +140,7 @@
                                 >
                                     Forgot Password?
                                 </button>
-                                <a href="{{ route('login.form') }}" class="font-semibold text-slate-500 hover:text-[#0D2B70] hover:underline">User Login</a>
-                            </div>
+                            </div> -->
 
                             @if(app()->environment('production'))
                                 <div class="pt-1">
