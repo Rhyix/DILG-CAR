@@ -40,14 +40,11 @@ class WorkExpSheetController extends Controller
 
         WorkExpSheet::where('user_id', $user_id)->delete();
 
-        if (empty($request->end_date)) {
-            $entry['end_date'] = null;
-        }
-
         $validated = $request->validate([
             'entries' => 'required|array|min:1',
             'entries.*.start_date' => 'required|date',
             'entries.*.end_date' => 'nullable|date|after_or_equal:entries.*.start_date',
+            'entries.*.present' => 'nullable|boolean',
             'entries.*.position' => 'required|string|max:255',
             'entries.*.office' => 'required|string|max:255',
             'entries.*.supervisor' => 'nullable|string|max:255',
@@ -60,17 +57,20 @@ class WorkExpSheetController extends Controller
         ]);
 
         foreach ($validated['entries'] as $work) {
+            $isPresent = (bool) ($work['present'] ?? false);
+            $endDate = $isPresent ? null : ($work['end_date'] ?? null);
+
             WorkExpSheet::create([
                 'user_id' => $user_id,
                 'start_date' => $work['start_date'],
-                'end_date' => $work['end_date'],
+                'end_date' => $endDate,
                 'position' => $work['position'],
                 'office' => $work['office'],
                 'supervisor' => $work['supervisor'],
                 'agency' => $work['agency'],
-                'accomplishments' => $work['accomplishments'],
-                'duties' => $work['duties'],
-                'isDisplayed' => $work['isDisplayed'],
+                'accomplishments' => $work['accomplishments'] ?? [],
+                'duties' => $work['duties'] ?? [],
+                'isDisplayed' => $work['isDisplayed'] ?? true,
             ]);
         }
 

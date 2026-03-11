@@ -68,11 +68,12 @@
                   <span class="text-center sm:pt-2 text-slate-400">to</span>
                   <div class="flex flex-col w-full">
                     <input :class="entry.present ? 'text-slate-400' : ''" :readonly="!entry.isDisplayed || entry.present"
-                      :required="!entry.present" :name="'entries[' + index + '][end_date]'" type="text"
+                      :disabled="!entry.isDisplayed || entry.present" :required="!entry.present" :name="'entries[' + index + '][end_date]'" type="text"
                       class="wes-date h-11 w-full border border-slate-200 rounded-lg px-3 py-2" x-model="entry.end_date"
                       placeholder="End date">
+                    <input type="hidden" :name="'entries[' + index + '][present]'" :value="entry.present ? 1 : 0">
                     <label class="text-xs mt-1 text-slate-500 flex items-center gap-2">
-                      <input type="checkbox" x-model="entry.present" @change="if(entry.present) entry.end_date = ''">
+                      <input type="checkbox" x-model="entry.present" @change="if (entry.present) { entry.end_date = '' }">
                       Present
                     </label>
                   </div>
@@ -117,15 +118,18 @@
                       class="h-10 w-full border border-slate-200 rounded-lg px-3 py-2"
                       x-model="entry.accomplishments[accIndex]" placeholder="Achievement or outcome">
                     <button type="button" @click="entry.accomplishments.splice(accIndex, 1)"
-                      :disabled="!entry.isDisplayed" class="border-2 border-red-600 hover:bg-red-600 hover:text-white 
-                      text-red-600 px-4 py-2 rounded-md flex items-center gap-2">
-                      x
+                      :disabled="!entry.isDisplayed" class="border-2 border-red-600 hover:bg-white bg-red-600 hover:text-red-700 text-white 
+                       px-4 py-2 rounded-md text-sm flex items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      Remove
                     </button>
                   </div>
                 </template>
                 <button type="button" @click="entry.accomplishments.push('')" :disabled="!entry.isDisplayed"
-                  class="border-2 border-[#002C76] hover:bg-[#002C76] text-sm hover:text-white 
-                      text-[#002C76] px-4 py-2 rounded-md flex items-center gap-2">
+                  class="border-2 border-[#002C76] bg-[#002C76] hover:bg-white text-sm hover:text-[#002C76] 
+                      text-white px-4 py-2 rounded-md flex items-center gap-2">
                   + Add accomplishment
                 </button>
               </div>
@@ -139,16 +143,19 @@
                       class="h-10 w-full border border-slate-200 rounded-lg px-3 py-2" x-model="entry.duties[dutyIndex]"
                       placeholder="Key responsibility">
                     <button type="button" @click="entry.duties.splice(dutyIndex, 1)" :disabled="!entry.isDisplayed"
-                      class="border-2 border-red-600 hover:bg-red-600 hover:text-white 
-                      text-red-600 px-4 py-2 rounded-md flex text-sm items-center gap-2">
-                      x
+                      class="border-2 border-red-600 hover:bg-white bg-red-600 hover:text-red-700 text-white 
+                       px-4 py-2 rounded-md flex text-sm items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                      </svg>
+                      Remove
                     </button>
                   </div>
                 </template>
                 <button type="button" @click="entry.duties.push('')" :disabled="!entry.isDisplayed"
-                  class="border-2 border-[#002C76] hover:bg-[#002C76] text-sm hover:text-white 
-                      text-[#002C76] px-4 py-2 rounded-md flex items-center gap-2">
-                  + Add duty
+                  class="border-2 border-[#002C76] bg-[#002C76] hover:bg-white text-sm hover:text-[#002C76] 
+                      text-white px-4 py-2 rounded-md flex items-center gap-2">
+                  + Add dutyq
                 </button>
               </div>
             </div>

@@ -779,6 +779,84 @@ class ExportPDSController
         return $text;
     }
 
+    private function hasMeaningfulValue($value): bool
+    {
+        $text = strtolower($this->normalizeScalarText($value));
+        return $text !== '' && $text !== 'null';
+    }
+
+    private function hasCivilServiceData(array $rows): bool
+    {
+        foreach ($rows as $row) {
+            if (
+                $this->hasMeaningfulValue($row['cs_eligibility_career'] ?? null) ||
+                $this->hasMeaningfulValue($row['cs_eligibility_rating'] ?? null) ||
+                $this->hasMeaningfulValue($row['cs_eligibility_date'] ?? null) ||
+                $this->hasMeaningfulValue($row['cs_eligibility_place'] ?? null) ||
+                $this->hasMeaningfulValue($row['cs_eligibility_license'] ?? null) ||
+                $this->hasMeaningfulValue($row['cs_eligibility_validity'] ?? null)
+            ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function hasWorkExperienceData(array $rows): bool
+    {
+        foreach ($rows as $row) {
+            if (
+                $this->hasMeaningfulValue($row['work_exp_from'] ?? null) ||
+                $this->hasMeaningfulValue($row['work_exp_to'] ?? null) ||
+                $this->hasMeaningfulValue($row['work_exp_position'] ?? null) ||
+                $this->hasMeaningfulValue($row['work_exp_department'] ?? null) ||
+                $this->hasMeaningfulValue($row['work_exp_status'] ?? null) ||
+                $this->normalizeGovServiceFlag($row['work_exp_govt_service'] ?? null, '') !== ''
+            ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function hasAnyRowData(array $rows, array $keys): bool
+    {
+        foreach ($rows as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            foreach ($keys as $key) {
+                if ($this->hasMeaningfulValue($row[$key] ?? null)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private function hasEducationObjectData($education, array $keys): bool
+    {
+        foreach ($keys as $key) {
+            if (is_object($education)) {
+                $value = $education->{$key} ?? null;
+            } elseif (is_array($education)) {
+                $value = $education[$key] ?? null;
+            } else {
+                $value = null;
+            }
+
+            if ($this->hasMeaningfulValue($value)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private function normalizeScalarText($value): string
     {
         if ($value === null) {
@@ -1024,18 +1102,12 @@ private function writeChildrenChunk($pdf, $chunk)
     $startY = 170.5;
     $lineHeight = 5.9;
 
-    // Check if all children entries are empty
-    $isEmpty = true;
-    foreach ($chunk as $child) {
-        if (!empty($child['name']) || !empty($child['dob'])) {
-            $isEmpty = false;
-            break;
-        }
-    }
+    $isEmpty = !$this->hasAnyRowData((array) $chunk, ['name', 'dob']);
 
-    // If all are empty, write N/A in the name column only
+    // If all are empty, write N/A in the first-row cells.
     if ($isEmpty) {
         $this->writeFittedAt($pdf, 'N/A', $startX_name, $startY, 58, 7.5, 5.0);
+        $this->writeFittedAt($pdf, 'N/A', $startX_birthdate, $startY, 22, 7.0, 5.0);
         return;
     }
 
@@ -1063,16 +1135,24 @@ private function writeChildrenChunk($pdf, $chunk)
 private function writeEducationalBackground($pdf, $education)
 {
     // === Elementary Section ===
-    $hasElemData = !empty($education?->elem_school) ||
-                   !empty($education?->elem_basic) ||
-                   !empty($education?->elem_from) ||
-                   !empty($education?->elem_to) ||
-                   !empty($education?->elem_earned) ||
-                   !empty($education?->elem_year_graduated) ||
-                   !empty($education?->elem_academic_honors);
+    $hasElemData = $this->hasEducationObjectData($education, [
+        'elem_school',
+        'elem_basic',
+        'elem_from',
+        'elem_to',
+        'elem_earned',
+        'elem_year_graduated',
+        'elem_academic_honors',
+    ]);
 
     if (!$hasElemData) {
-        $this->writeFittedAt($pdf, 'N/A', 40.5, 263, 49, 8.0, 5.0);
+        $this->writeFittedAt($pdf, 'N/A', 62, 263, 49, 8.0, 5.0); // School
+        $this->writeFittedAt($pdf, 'N/A', 110, 263, 45, 8.0, 4.5); // Basic Education
+        $this->writeFittedAt($pdf, 'N/A', 137.5, 263, 27, 8.0, 5.0); // From
+        $this->writeFittedAt($pdf, 'N/A', 150.5, 263, 31.5, 8.0, 5.0); // To
+        $this->writeFittedAt($pdf, 'N/A', 166, 263, 18, 8.0, 5.0); // Earned
+        $this->writeFittedAt($pdf, 'N/A', 183, 263, 12, 8.0, 5.0); // Year Graduated
+        $this->writeFittedAt($pdf, 'N/A', 200, 263, 13, 8.0, 5.0); // Academic Honors
     } else {
         $this->writeWrappedAt(
             $pdf,
@@ -1102,16 +1182,24 @@ private function writeEducationalBackground($pdf, $education)
     }
 
     // === Junior High Section ===
-    $hasJHSData = !empty($education?->jhs_school) ||
-                  !empty($education?->jhs_basic) ||
-                  !empty($education?->jhs_from) ||
-                  !empty($education?->jhs_to) ||
-                  !empty($education?->jhs_earned) ||
-                  !empty($education?->jhs_year_graduated) ||
-                  !empty($education?->jhs_academic_honors);
+    $hasJHSData = $this->hasEducationObjectData($education, [
+        'jhs_school',
+        'jhs_basic',
+        'jhs_from',
+        'jhs_to',
+        'jhs_earned',
+        'jhs_year_graduated',
+        'jhs_academic_honors',
+    ]);
 
     if (!$hasJHSData) {
-        $this->writeFittedAt($pdf, 'N/A', 40.5, 271, 49, 8.0, 5.0);
+        $this->writeFittedAt($pdf, 'N/A', 62, 271, 49, 8.0, 5.0); // School
+        $this->writeFittedAt($pdf, 'N/A', 110, 271, 45, 8.0, 4.5); // Basic Education
+        $this->writeFittedAt($pdf, 'N/A', 137.5, 271, 27, 8.0, 5.0); // From
+        $this->writeFittedAt($pdf, 'N/A', 150.5, 271, 31.5, 8.0, 5.0); // To
+        $this->writeFittedAt($pdf, 'N/A', 166, 271, 18, 8.0, 5.0); // Earned
+        $this->writeFittedAt($pdf, 'N/A', 183, 271, 12, 8.0, 5.0); // Year Graduated
+        $this->writeFittedAt($pdf, 'N/A', 200, 271, 13, 8.0, 5.0); // Academic Honors
     } else {
         $this->writeFittedAt($pdf, $this->valueOrNa($education?->jhs_school), 40.5, 271, 48, 6.5, 4.5);
         $this->writeFittedAt($pdf, $this->valueOrNa($education?->jhs_basic), 90, 271, 45, 6.5, 4.5);
@@ -1137,26 +1225,17 @@ private function writeVocationalChunk($pdf, $chunk)
     $startY_other = 279.0;
     $lineHeight = 6;
 
-    // Check if all vocational inputs are empty
-    $isEmpty = true;
-    foreach ($chunk as $voc) {
-        if (
-            !empty($voc['school']) ||
-            !empty($voc['basic']) ||
-            !empty($voc['from']) ||
-            !empty($voc['to']) ||
-            !empty($voc['earned']) ||
-            !empty($voc['year_graduated']) ||
-            !empty($voc['academic_honors'])
-        ) {
-            $isEmpty = false;
-            break;
-        }
-    }
+    $isEmpty = !$this->hasAnyRowData((array) $chunk, ['school', 'basic', 'from', 'to', 'earned', 'year_graduated', 'academic_honors']);
 
-    // If all are empty, write N/A once in the school column
+    // If all are empty, write N/A in the first-row cells.
     if ($isEmpty) {
-        $this->writeFittedAt($pdf, 'N/A', 40.5, 278.5, 50, 8.0, 5.0);
+        $this->writeFittedAt($pdf, 'N/A', 62, 278.5, 50, 8.0, 5.0); // School
+        $this->writeFittedAt($pdf, 'N/A', 110, 278.5, 45, 8.0, 4.5); // Basic Education
+        $this->writeFittedAt($pdf, 'N/A', 137.5, 279.0, 27, 8.0, 5.0); // From
+        $this->writeFittedAt($pdf, 'N/A', 150.5, 279.0, 31.5, 8.0, 5.0); // To
+        $this->writeFittedAt($pdf, 'N/A', 166, 279.0, 18, 8.0, 5.0); // Earned
+        $this->writeFittedAt($pdf, 'N/A', 183, 279.0, 12, 8.0, 5.0); // Year Graduated
+        $this->writeFittedAt($pdf, 'N/A', 200, 279.0, 13, 8.0, 5.0); // Academic Honors
         return;
     }
 
@@ -1193,26 +1272,17 @@ private function writeCollegeChunk($pdf, $chunk)
     $startY_other = 286.5;
     $lineHeight = 6;
 
-    // Check if all college entries are empty
-    $isEmpty = true;
-    foreach ($chunk as $college) {
-        if (
-            !empty($college['school']) ||
-            !empty($college['basic']) ||
-            !empty($college['from']) ||
-            !empty($college['to']) ||
-            !empty($college['earned']) ||
-            !empty($college['year_graduated']) ||
-            !empty($college['academic_honors'])
-        ) {
-            $isEmpty = false;
-            break;
-        }
-    }
+    $isEmpty = !$this->hasAnyRowData((array) $chunk, ['school', 'basic', 'from', 'to', 'earned', 'year_graduated', 'academic_honors']);
 
-    // If all are empty, write N/A in school column only
+    // If all are empty, write N/A in the first-row cells.
     if ($isEmpty) {
-        $this->writeFittedAt($pdf, 'N/A', 40.5, 286, 50, 8.0, 5.0);
+        $this->writeFittedAt($pdf, 'N/A', 62, 286, 50, 8.0, 5.0); // School
+        $this->writeFittedAt($pdf, 'N/A', 110, 286, 45, 8.0, 4.5); // Basic Education
+        $this->writeFittedAt($pdf, 'N/A', 137.5, 286.5, 27, 8.0, 5.0); // From
+        $this->writeFittedAt($pdf, 'N/A', 150.5, 286.5, 31.5, 8.0, 5.0); // To
+        $this->writeFittedAt($pdf, 'N/A', 166, 286.5, 18, 8.0, 5.0); // Earned
+        $this->writeFittedAt($pdf, 'N/A', 183, 286.5, 12, 8.0, 5.0); // Year Graduated
+        $this->writeFittedAt($pdf, 'N/A', 200, 286.5, 13, 8.0, 5.0); // Academic Honors
         return;
     }
 
@@ -1252,26 +1322,17 @@ private function writeGraduateChunk($pdf, $chunk)
     $startY_other = 294.0;
     $lineHeight = 6;
 
-    // Check if all grad entries are empty
-    $isEmpty = true;
-    foreach ($chunk as $grad) {
-        if (
-            !empty($grad['school']) ||
-            !empty($grad['basic']) ||
-            !empty($grad['from']) ||
-            !empty($grad['to']) ||
-            !empty($grad['earned']) ||
-            !empty($grad['year_graduated']) ||
-            !empty($grad['academic_honors'])
-        ) {
-            $isEmpty = false;
-            break;
-        }
-    }
+    $isEmpty = !$this->hasAnyRowData((array) $chunk, ['school', 'basic', 'from', 'to', 'earned', 'year_graduated', 'academic_honors']);
 
-    // If all are empty, write N/A in school column only
+   
     if ($isEmpty) {
-        $this->writeFittedAt($pdf, 'N/A', 40.5, 295, 50, 8.0, 5.0);
+        $this->writeFittedAt($pdf, 'N/A', 62, 295, 50, 8.0, 5.0); // School
+        $this->writeFittedAt($pdf, 'N/A', 110, 294.0, 45, 8.0, 4.5); // Basic Education
+        $this->writeFittedAt($pdf, 'N/A', 137.5, 294.0, 11, 8.0, 5.0); // From
+        $this->writeFittedAt($pdf, 'N/A', 150.5, 294.0, 11, 8.0, 5.0); // To
+        $this->writeFittedAt($pdf, 'N/A', 166, 294.0, 18, 8.0, 5.0); // Earned
+        $this->writeFittedAt($pdf, 'N/A', 183, 294.0, 12, 8.0, 5.0); // Year Graduated
+        $this->writeFittedAt($pdf, 'N/A', 199, 294.0, 10.2, 8.0, 5.0); // Academic Honors
         return;
     }
 
@@ -1332,25 +1393,16 @@ private function writeCivilServiceEligibilityChunk($pdf, $chunk)
     $licenseWidth = max(1.0, ($startX_validity - $startX_license) - $cellInset);
     $validityWidth = max(1.0, ($endX_validity - $startX_validity) - $cellInset);
 
-    // Check if all Civil Service entries are empty
-    $isEmpty = true;
-    foreach ($chunk as $cse) {
-        if (
-            !empty($cse['cs_eligibility_career']) ||
-            !empty($cse['cs_eligibility_rating']) ||
-            !empty($cse['cs_eligibility_date']) ||
-            !empty($cse['cs_eligibility_place']) ||
-            !empty($cse['cs_eligibility_license']) ||
-            !empty($cse['cs_eligibility_validity'])
-        ) {
-            $isEmpty = false;
-            break;
-        }
-    }
+    $isEmpty = !$this->hasCivilServiceData((array) $chunk);
 
-    // If all fields are empty, write N/A in career field only.
+    // If all fields are empty, write N/A in the first row cells.
     if ($isEmpty) {
-        $this->writeFittedAt($pdf, 'N/A', 10.5, 25, $careerWidth, 8.0, 5.0);
+        $this->writeWrapped($pdf, 'N/A', $careerWidth, 35, 24.5, 24.0, 7.0, 3.0); // Career Eligibility
+        $this->writeFittedAt($pdf, 'N/A', 78.5, 24.5, $ratingWidth, 8.0, 5.0); // Rating
+        $this->writeFittedAt($pdf, 'N/A', 100, 24.5, $dateWidth, 8.0, 3.6); // Date
+        $this->writeFittedAt($pdf, 'N/A', 125, 24.5, $placeWidth, 7.0, 4.5); // Place
+        $this->writeFittedAt($pdf, 'N/A', 153.5, 24.5, $licenseWidth, 8.0, 5.0); // License
+        $this->writeFittedAt($pdf, 'N/A', 188, 24.5, $validityWidth, 8.0, 3.6); // Validity
         return;
     }
 
@@ -1407,25 +1459,16 @@ private function writeWorkExperienceChunk($pdf, $chunk)
     $statusWidth = max(1.0, ($x_gov - $x_status) - $cellInset);
     $govWidth = max(1.0, ($x_gov_end - $x_gov) - $cellInset);
 
-    // Check if all work experience entries are empty
-    $isEmpty = true;
-    foreach ($chunk as $we) {
-        if (
-            !empty($we['work_exp_from']) ||
-            !empty($we['work_exp_to']) ||
-            !empty($we['work_exp_position']) ||
-            !empty($we['work_exp_department']) ||
-            !empty($we['work_exp_status']) ||
-            !empty($we['work_exp_govt_service'])
-        ) {
-            $isEmpty = false;
-            break;
-        }
-    }
+    $isEmpty = !$this->hasWorkExperienceData((array) $chunk);
 
-    // If all are empty, write N/A in the position field only.
+    // If all are empty, write N/A in the first row cells.
     if ($isEmpty) {
-        $this->writeFittedAt($pdf, 'N/A', $x_position, 102, $positionWidth, 8.0, 5.0);
+        $this->writeFittedAt($pdf, 'N/A', 9, 102, $fromWidth, 8.0, 3.6); // From
+        $this->writeFittedAt($pdf, 'N/A', 27, 102, $toWidth, 8.0, 3.6); // To
+        $this->writeFittedAt($pdf, 'N/A', 61, 102, $positionWidth, 8.0, 5.0); // Position
+        $this->writeWrapped($pdf, 'N/A', $agencyWidth, 113, 102, 100.5, 6.0, 2.0); // Agency
+        $this->writeFittedAt($pdf, 'N/A', 153, 102, $statusWidth, 8.0, 4.5); // Status
+        $this->writeFittedAt($pdf, 'N/A', 188, 102, $govWidth, 8.0, 5.0); // Government Service
         return;
     }
 
@@ -1465,25 +1508,15 @@ private function writeVoluntaryWorkChunk($pdf, $chunk)
     $startY = 30;
     $rowHeight = 7.25;
 
-    // Check if all voluntary work entries are empty
-    $isEmpty = true;
-    foreach ($chunk as $vw) {
-        if (
-            !empty($vw['voluntary_org']) ||
-            !empty($vw['voluntary_from']) ||
-            !empty($vw['voluntary_to']) ||
-            !empty($vw['voluntary_hours']) ||
-            !empty($vw['voluntary_position'])
-        ) {
-            $isEmpty = false;
-            break;
-        }
-    }
+    $isEmpty = !$this->hasAnyRowData((array) $chunk, ['voluntary_org', 'voluntary_from', 'voluntary_to', 'voluntary_hours', 'voluntary_position']);
 
-    // If all fields are empty, write "N/A" in organization column only
+    // If all fields are empty, write N/A in the first-row cells.
     if ($isEmpty) {
-        $this->setXY($pdf, $x_org, $startY);
-        $pdf->Write(0, 'N/A');
+        $this->writeWrapped($pdf, 'N/A', 115, 50, $startY, $startY - 1.0, 8.0, 2); // Organization
+        $this->writeFittedAt($pdf, 'N/A', 99, $startY, 15.0, 8.0, 5.0); // From
+        $this->writeFittedAt($pdf, 'N/A', 115.5, $startY, 19.0, 8.0, 5.0); // To
+        $this->writeFittedAt($pdf, 'N/A', 131, $startY, 12.0, 7.0, 5.0); // Hours
+        $this->writeWrapped($pdf, 'N/A', 60, 175, $startY, $startY - 1.0, 7, 3); // Position
         return;
     }
     // Render each voluntary work row
@@ -1516,26 +1549,16 @@ private function writeLearningAndDevelopmentChunk($pdf, $chunk)
     $startY = 103;
     $rowHeight = 6.4;
 
-    // Check if all learning/development fields are empty
-    $isEmpty = true;
-    foreach ($chunk as $lnd) {
-        if (
-            !empty($lnd['learning_title']) ||
-            !empty($lnd['learning_type']) ||
-            !empty($lnd['learning_from']) ||
-            !empty($lnd['learning_to']) ||
-            !empty($lnd['learning_hours']) ||
-            !empty($lnd['learning_conducted'])
-        ) {
-            $isEmpty = false;
-            break;
-        }
-    }
+    $isEmpty = !$this->hasAnyRowData((array) $chunk, ['learning_title', 'learning_type', 'learning_from', 'learning_to', 'learning_hours', 'learning_conducted']);
 
-    // If all fields are empty, write N/A in the learning_title column only
+    // If all fields are empty, write N/A in the first-row cells.
     if ($isEmpty) {
-        $this->setXY($pdf, 7.5, 103);
-        $pdf->Write(0, 'N/A');
+        $this->writeWrapped($pdf, 'N/A', 105, 50, $startY, $startY - 1.0, 7.0, 2);
+        $this->writeFittedAt($pdf, 'N/A', 99, $startY, 18.0, 7.0, 5.0);
+        $this->writeFittedAt($pdf, 'N/A', 115.5, $startY, 15.0, 8.0, 5.0);
+        $this->writeFittedAt($pdf, 'N/A', 110.5, $startY, 19.0, 8.0, 5.0);
+        $this->writeFittedAt($pdf, 'N/A', 131, $startY, 12.0, 7.0, 5.0);
+        $this->writeWrapped($pdf, 'N/A', 47.3, 175, $startY, $startY - 1.0, 7.0, 2);
         return;
     }
 
@@ -2396,6 +2419,10 @@ private function buildExcelCellMap(
         $this->mapSet($map, 'C1', "I{$row}", $this->excelValue($child['name'] ?? ''));
         $this->mapSet($map, 'C1', "M{$row}", $this->excelDate($child['dob'] ?? null));
     }
+    if (!$this->hasAnyRowData($children, ['name', 'dob'])) {
+        $this->mapSet($map, 'C1', 'I37', 'N/A');
+        $this->mapSet($map, 'C1', 'M37', 'N/A');
+    }
 
     $voc = $vocational[0] ?? [];
     $col = $college[0] ?? [];
@@ -2407,6 +2434,15 @@ private function buildExcelCellMap(
     $this->mapSet($map, 'C1', 'L54', $this->excelValue($educationalBackground?->elem_earned));
     $this->mapSet($map, 'C1', 'M54', $this->excelValue($educationalBackground?->elem_year_graduated));
     $this->mapSet($map, 'C1', 'N54', $this->excelValue($educationalBackground?->elem_academic_honors));
+    if (!$this->hasEducationObjectData($educationalBackground, ['elem_school', 'elem_basic', 'elem_from', 'elem_to', 'elem_earned', 'elem_year_graduated', 'elem_academic_honors'])) {
+        $this->mapSet($map, 'C1', 'D54', 'N/A');
+        $this->mapSet($map, 'C1', 'G54', 'N/A');
+        $this->mapSet($map, 'C1', 'J54', 'N/A');
+        $this->mapSet($map, 'C1', 'K54', 'N/A');
+        $this->mapSet($map, 'C1', 'L54', 'N/A');
+        $this->mapSet($map, 'C1', 'M54', 'N/A');
+        $this->mapSet($map, 'C1', 'N54', 'N/A');
+    }
 
     $this->mapSet($map, 'C1', 'D55', $this->excelValue($educationalBackground?->jhs_school));
     $this->mapSet($map, 'C1', 'G55', $this->excelValue($educationalBackground?->jhs_basic));
@@ -2415,6 +2451,15 @@ private function buildExcelCellMap(
     $this->mapSet($map, 'C1', 'L55', $this->excelValue($educationalBackground?->jhs_earned));
     $this->mapSet($map, 'C1', 'M55', $this->excelValue($educationalBackground?->jhs_year_graduated));
     $this->mapSet($map, 'C1', 'N55', $this->excelValue($educationalBackground?->jhs_academic_honors));
+    if (!$this->hasEducationObjectData($educationalBackground, ['jhs_school', 'jhs_basic', 'jhs_from', 'jhs_to', 'jhs_earned', 'jhs_year_graduated', 'jhs_academic_honors'])) {
+        $this->mapSet($map, 'C1', 'D55', 'N/A');
+        $this->mapSet($map, 'C1', 'G55', 'N/A');
+        $this->mapSet($map, 'C1', 'J55', 'N/A');
+        $this->mapSet($map, 'C1', 'K55', 'N/A');
+        $this->mapSet($map, 'C1', 'L55', 'N/A');
+        $this->mapSet($map, 'C1', 'M55', 'N/A');
+        $this->mapSet($map, 'C1', 'N55', 'N/A');
+    }
 
     $this->mapSet($map, 'C1', 'D56', $this->excelValue($voc['school'] ?? ''));
     $this->mapSet($map, 'C1', 'G56', $this->excelValue($voc['basic'] ?? ''));
@@ -2423,6 +2468,15 @@ private function buildExcelCellMap(
     $this->mapSet($map, 'C1', 'L56', $this->excelValue($voc['earned'] ?? ''));
     $this->mapSet($map, 'C1', 'M56', $this->excelValue($voc['year_graduated'] ?? ''));
     $this->mapSet($map, 'C1', 'N56', $this->excelValue($voc['academic_honors'] ?? ''));
+    if (!$this->hasAnyRowData([$voc], ['school', 'basic', 'from', 'to', 'earned', 'year_graduated', 'academic_honors'])) {
+        $this->mapSet($map, 'C1', 'D56', 'N/A');
+        $this->mapSet($map, 'C1', 'G56', 'N/A');
+        $this->mapSet($map, 'C1', 'J56', 'N/A');
+        $this->mapSet($map, 'C1', 'K56', 'N/A');
+        $this->mapSet($map, 'C1', 'L56', 'N/A');
+        $this->mapSet($map, 'C1', 'M56', 'N/A');
+        $this->mapSet($map, 'C1', 'N56', 'N/A');
+    }
 
     $this->mapSet($map, 'C1', 'D57', $this->excelValue($col['school'] ?? ''));
     $this->mapSet($map, 'C1', 'G57', $this->excelValue($col['basic'] ?? ''));
@@ -2431,6 +2485,15 @@ private function buildExcelCellMap(
     $this->mapSet($map, 'C1', 'L57', $this->excelValue($col['earned'] ?? ''));
     $this->mapSet($map, 'C1', 'M57', $this->excelValue($col['year_graduated'] ?? ''));
     $this->mapSet($map, 'C1', 'N57', $this->excelValue($col['academic_honors'] ?? ''));
+    if (!$this->hasAnyRowData([$col], ['school', 'basic', 'from', 'to', 'earned', 'year_graduated', 'academic_honors'])) {
+        $this->mapSet($map, 'C1', 'D57', 'N/A');
+        $this->mapSet($map, 'C1', 'G57', 'N/A');
+        $this->mapSet($map, 'C1', 'J57', 'N/A');
+        $this->mapSet($map, 'C1', 'K57', 'N/A');
+        $this->mapSet($map, 'C1', 'L57', 'N/A');
+        $this->mapSet($map, 'C1', 'M57', 'N/A');
+        $this->mapSet($map, 'C1', 'N57', 'N/A');
+    }
 
     $this->mapSet($map, 'C1', 'D58', $this->excelValue($grd['school'] ?? ''));
     $this->mapSet($map, 'C1', 'G58', $this->excelValue($grd['basic'] ?? ''));
@@ -2439,6 +2502,15 @@ private function buildExcelCellMap(
     $this->mapSet($map, 'C1', 'L58', $this->excelValue($grd['earned'] ?? ''));
     $this->mapSet($map, 'C1', 'M58', $this->excelValue($grd['year_graduated'] ?? ''));
     $this->mapSet($map, 'C1', 'N58', $this->excelValue($grd['academic_honors'] ?? ''));
+    if (!$this->hasAnyRowData([$grd], ['school', 'basic', 'from', 'to', 'earned', 'year_graduated', 'academic_honors'])) {
+        $this->mapSet($map, 'C1', 'D58', 'N/A');
+        $this->mapSet($map, 'C1', 'G58', 'N/A');
+        $this->mapSet($map, 'C1', 'J58', 'N/A');
+        $this->mapSet($map, 'C1', 'K58', 'N/A');
+        $this->mapSet($map, 'C1', 'L58', 'N/A');
+        $this->mapSet($map, 'C1', 'M58', 'N/A');
+        $this->mapSet($map, 'C1', 'N58', 'N/A');
+    }
     $this->mapSet($map, 'C1', 'J60', Carbon::now()->format('m/d/Y'));
 
     // C2
@@ -2452,8 +2524,13 @@ private function buildExcelCellMap(
         $this->mapSet($map, 'C2', "J{$excelRow}", $this->excelValue($row['cs_eligibility_license'] ?? ''));
         $this->mapSet($map, 'C2', "K{$excelRow}", $this->excelDate($row['cs_eligibility_validity'] ?? null));
     }
-    if (empty($cse)) {
+    if (!$this->hasCivilServiceData($cse)) {
         $this->mapSet($map, 'C2', 'B5', 'N/A');
+        $this->mapSet($map, 'C2', 'F5', 'N/A');
+        $this->mapSet($map, 'C2', 'G5', 'N/A');
+        $this->mapSet($map, 'C2', 'I5', 'N/A');
+        $this->mapSet($map, 'C2', 'J5', 'N/A');
+        $this->mapSet($map, 'C2', 'K5', 'N/A');
     }
 
     $we = array_slice($workExperienceRows, 0, 28);
@@ -2466,8 +2543,13 @@ private function buildExcelCellMap(
         $this->mapSet($map, 'C2', "J{$excelRow}", $this->excelValue($row['work_exp_status'] ?? ''));
         $this->mapSet($map, 'C2', "K{$excelRow}", $this->normalizeGovServiceFlag($row['work_exp_govt_service'] ?? null));
     }
-    if (empty($we)) {
+    if (!$this->hasWorkExperienceData($we)) {
+        $this->mapSet($map, 'C2', 'A18', 'N/A');
+        $this->mapSet($map, 'C2', 'C18', 'N/A');
         $this->mapSet($map, 'C2', 'D18', 'N/A');
+        $this->mapSet($map, 'C2', 'G18', 'N/A');
+        $this->mapSet($map, 'C2', 'J18', 'N/A');
+        $this->mapSet($map, 'C2', 'K18', 'N/A');
     }
     $this->mapSet($map, 'C2', 'I47', Carbon::now()->format('m/d/Y'));
 
@@ -2481,8 +2563,12 @@ private function buildExcelCellMap(
         $this->mapSet($map, 'C3', "G{$excelRow}", $this->excelValue($row['voluntary_hours'] ?? ''));
         $this->mapSet($map, 'C3', "H{$excelRow}", $this->excelValue($row['voluntary_position'] ?? ''));
     }
-    if (empty($vw)) {
+    if (!$this->hasAnyRowData($vw, ['voluntary_org', 'voluntary_from', 'voluntary_to', 'voluntary_hours', 'voluntary_position'])) {
         $this->mapSet($map, 'C3', 'B6', 'N/A');
+        $this->mapSet($map, 'C3', 'E6', 'N/A');
+        $this->mapSet($map, 'C3', 'F6', 'N/A');
+        $this->mapSet($map, 'C3', 'G6', 'N/A');
+        $this->mapSet($map, 'C3', 'H6', 'N/A');
     }
 
     $lnd = array_slice($lndRows, 0, 21);
@@ -2495,8 +2581,13 @@ private function buildExcelCellMap(
         $this->mapSet($map, 'C3', "H{$excelRow}", $this->excelValue($row['learning_type'] ?? ''));
         $this->mapSet($map, 'C3', "I{$excelRow}", $this->excelValue($row['learning_conducted'] ?? ''));
     }
-    if (empty($lnd)) {
+    if (!$this->hasAnyRowData($lnd, ['learning_title', 'learning_from', 'learning_to', 'learning_hours', 'learning_type', 'learning_conducted'])) {
         $this->mapSet($map, 'C3', 'B18', 'N/A');
+        $this->mapSet($map, 'C3', 'E18', 'N/A');
+        $this->mapSet($map, 'C3', 'F18', 'N/A');
+        $this->mapSet($map, 'C3', 'G18', 'N/A');
+        $this->mapSet($map, 'C3', 'H18', 'N/A');
+        $this->mapSet($map, 'C3', 'I18', 'N/A');
     }
 
     for ($i = 0; $i < 7; $i++) {
@@ -2652,6 +2743,10 @@ private function fillExcelC1(
         $sheet->setCellValue("I{$row}", $this->excelValue($child['name'] ?? ''));
         $sheet->setCellValue("M{$row}", $this->excelDate($child['dob'] ?? null));
     }
+    if (!$this->hasAnyRowData($children, ['name', 'dob'])) {
+        $sheet->setCellValue('I37', 'N/A');
+        $sheet->setCellValue('M37', 'N/A');
+    }
 
     $voc = $vocational[0] ?? [];
     $col = $college[0] ?? [];
@@ -2664,6 +2759,15 @@ private function fillExcelC1(
     $sheet->setCellValue('L54', $this->excelValue($educationalBackground?->elem_earned));
     $sheet->setCellValue('M54', $this->excelValue($educationalBackground?->elem_year_graduated));
     $sheet->setCellValue('N54', $this->excelValue($educationalBackground?->elem_academic_honors));
+    if (!$this->hasEducationObjectData($educationalBackground, ['elem_school', 'elem_basic', 'elem_from', 'elem_to', 'elem_earned', 'elem_year_graduated', 'elem_academic_honors'])) {
+        $sheet->setCellValue('D54', 'N/A');
+        $sheet->setCellValue('G54', 'N/A');
+        $sheet->setCellValue('J54', 'N/A');
+        $sheet->setCellValue('K54', 'N/A');
+        $sheet->setCellValue('L54', 'N/A');
+        $sheet->setCellValue('M54', 'N/A');
+        $sheet->setCellValue('N54', 'N/A');
+    }
 
     $sheet->setCellValue('D55', $this->excelValue($educationalBackground?->jhs_school));
     $sheet->setCellValue('G55', $this->excelValue($educationalBackground?->jhs_basic));
@@ -2672,6 +2776,15 @@ private function fillExcelC1(
     $sheet->setCellValue('L55', $this->excelValue($educationalBackground?->jhs_earned));
     $sheet->setCellValue('M55', $this->excelValue($educationalBackground?->jhs_year_graduated));
     $sheet->setCellValue('N55', $this->excelValue($educationalBackground?->jhs_academic_honors));
+    if (!$this->hasEducationObjectData($educationalBackground, ['jhs_school', 'jhs_basic', 'jhs_from', 'jhs_to', 'jhs_earned', 'jhs_year_graduated', 'jhs_academic_honors'])) {
+        $sheet->setCellValue('D55', 'N/A');
+        $sheet->setCellValue('G55', 'N/A');
+        $sheet->setCellValue('J55', 'N/A');
+        $sheet->setCellValue('K55', 'N/A');
+        $sheet->setCellValue('L55', 'N/A');
+        $sheet->setCellValue('M55', 'N/A');
+        $sheet->setCellValue('N55', 'N/A');
+    }
 
     $sheet->setCellValue('D56', $this->excelValue($voc['school'] ?? ''));
     $sheet->setCellValue('G56', $this->excelValue($voc['basic'] ?? ''));
@@ -2680,6 +2793,15 @@ private function fillExcelC1(
     $sheet->setCellValue('L56', $this->excelValue($voc['earned'] ?? ''));
     $sheet->setCellValue('M56', $this->excelValue($voc['year_graduated'] ?? ''));
     $sheet->setCellValue('N56', $this->excelValue($voc['academic_honors'] ?? ''));
+    if (!$this->hasAnyRowData([$voc], ['school', 'basic', 'from', 'to', 'earned', 'year_graduated', 'academic_honors'])) {
+        $sheet->setCellValue('D56', 'N/A');
+        $sheet->setCellValue('G56', 'N/A');
+        $sheet->setCellValue('J56', 'N/A');
+        $sheet->setCellValue('K56', 'N/A');
+        $sheet->setCellValue('L56', 'N/A');
+        $sheet->setCellValue('M56', 'N/A');
+        $sheet->setCellValue('N56', 'N/A');
+    }
 
     $sheet->setCellValue('D57', $this->excelValue($col['school'] ?? ''));
     $sheet->setCellValue('G57', $this->excelValue($col['basic'] ?? ''));
@@ -2688,6 +2810,15 @@ private function fillExcelC1(
     $sheet->setCellValue('L57', $this->excelValue($col['earned'] ?? ''));
     $sheet->setCellValue('M57', $this->excelValue($col['year_graduated'] ?? ''));
     $sheet->setCellValue('N57', $this->excelValue($col['academic_honors'] ?? ''));
+    if (!$this->hasAnyRowData([$col], ['school', 'basic', 'from', 'to', 'earned', 'year_graduated', 'academic_honors'])) {
+        $sheet->setCellValue('D57', 'N/A');
+        $sheet->setCellValue('G57', 'N/A');
+        $sheet->setCellValue('J57', 'N/A');
+        $sheet->setCellValue('K57', 'N/A');
+        $sheet->setCellValue('L57', 'N/A');
+        $sheet->setCellValue('M57', 'N/A');
+        $sheet->setCellValue('N57', 'N/A');
+    }
 
     $sheet->setCellValue('D58', $this->excelValue($grd['school'] ?? ''));
     $sheet->setCellValue('G58', $this->excelValue($grd['basic'] ?? ''));
@@ -2696,6 +2827,15 @@ private function fillExcelC1(
     $sheet->setCellValue('L58', $this->excelValue($grd['earned'] ?? ''));
     $sheet->setCellValue('M58', $this->excelValue($grd['year_graduated'] ?? ''));
     $sheet->setCellValue('N58', $this->excelValue($grd['academic_honors'] ?? ''));
+    if (!$this->hasAnyRowData([$grd], ['school', 'basic', 'from', 'to', 'earned', 'year_graduated', 'academic_honors'])) {
+        $sheet->setCellValue('D58', 'N/A');
+        $sheet->setCellValue('G58', 'N/A');
+        $sheet->setCellValue('J58', 'N/A');
+        $sheet->setCellValue('K58', 'N/A');
+        $sheet->setCellValue('L58', 'N/A');
+        $sheet->setCellValue('M58', 'N/A');
+        $sheet->setCellValue('N58', 'N/A');
+    }
 
     $sheet->setCellValue('J60', Carbon::now()->format('m/d/Y'));
 }
@@ -2712,8 +2852,13 @@ private function fillExcelC2($sheet, array $civilServiceRows, array $workExperie
         $sheet->setCellValue("J{$excelRow}", $this->excelValue($row['cs_eligibility_license'] ?? ''));
         $sheet->setCellValue("K{$excelRow}", $this->excelDate($row['cs_eligibility_validity'] ?? null));
     }
-    if (empty($cse)) {
+    if (!$this->hasCivilServiceData($cse)) {
         $sheet->setCellValue('B5', 'N/A');
+        $sheet->setCellValue('F5', 'N/A');
+        $sheet->setCellValue('G5', 'N/A');
+        $sheet->setCellValue('I5', 'N/A');
+        $sheet->setCellValue('J5', 'N/A');
+        $sheet->setCellValue('K5', 'N/A');
     }
 
     $we = array_slice($workExperienceRows, 0, 28);
@@ -2726,8 +2871,13 @@ private function fillExcelC2($sheet, array $civilServiceRows, array $workExperie
         $sheet->setCellValue("J{$excelRow}", $this->excelValue($row['work_exp_status'] ?? ''));
         $sheet->setCellValue("K{$excelRow}", isset($row['work_exp_govt_service']) ? ($row['work_exp_govt_service'] ? 'Y' : 'N') : '');
     }
-    if (empty($we)) {
+    if (!$this->hasWorkExperienceData($we)) {
+        $sheet->setCellValue('A18', 'N/A');
+        $sheet->setCellValue('C18', 'N/A');
         $sheet->setCellValue('D18', 'N/A');
+        $sheet->setCellValue('G18', 'N/A');
+        $sheet->setCellValue('J18', 'N/A');
+        $sheet->setCellValue('K18', 'N/A');
     }
 
     $sheet->setCellValue('I47', Carbon::now()->format('m/d/Y'));
@@ -2744,8 +2894,12 @@ private function fillExcelC3($sheet, array $voluntaryRows, array $lndRows, array
         $sheet->setCellValue("G{$excelRow}", $this->excelValue($row['voluntary_hours'] ?? ''));
         $sheet->setCellValue("H{$excelRow}", $this->excelValue($row['voluntary_position'] ?? ''));
     }
-    if (empty($vw)) {
+    if (!$this->hasAnyRowData($vw, ['voluntary_org', 'voluntary_from', 'voluntary_to', 'voluntary_hours', 'voluntary_position'])) {
         $sheet->setCellValue('B6', 'N/A');
+        $sheet->setCellValue('E6', 'N/A');
+        $sheet->setCellValue('F6', 'N/A');
+        $sheet->setCellValue('G6', 'N/A');
+        $sheet->setCellValue('H6', 'N/A');
     }
 
     $lnd = array_slice($lndRows, 0, 21);
@@ -2758,8 +2912,13 @@ private function fillExcelC3($sheet, array $voluntaryRows, array $lndRows, array
         $sheet->setCellValue("H{$excelRow}", $this->excelValue($row['learning_type'] ?? ''));
         $sheet->setCellValue("I{$excelRow}", $this->excelValue($row['learning_conducted'] ?? ''));
     }
-    if (empty($lnd)) {
+    if (!$this->hasAnyRowData($lnd, ['learning_title', 'learning_from', 'learning_to', 'learning_hours', 'learning_type', 'learning_conducted'])) {
         $sheet->setCellValue('B18', 'N/A');
+        $sheet->setCellValue('E18', 'N/A');
+        $sheet->setCellValue('F18', 'N/A');
+        $sheet->setCellValue('G18', 'N/A');
+        $sheet->setCellValue('H18', 'N/A');
+        $sheet->setCellValue('I18', 'N/A');
     }
 
     for ($i = 0; $i < 7; $i++) {

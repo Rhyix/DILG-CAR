@@ -107,7 +107,7 @@
             @csrf
 
             <!-- Voluntary Work Section -->
-            <section class="bg-white rounded-2xl shadow-xl p-4 sm:p-8 animate-slide-in">
+            <section class="bg-white rounded-2xl shadow-xl p-4 sm:p-8 animate-slide-in">`
                 <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
                     <div class="flex items-start sm:items-center">
                         <span
@@ -118,7 +118,7 @@
                     </div>
                     <button type="button" id="add-voluntary-btn"
                         class="w-full sm:w-auto flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 text-sm sm:text-base">
-                        <span class="material-icons mr-2 text-sm sm:text-base">add_circle</span>
+                            <span class="material-icons mr-2 text-sm sm:text-base">add_circle</span>z
                         Add Voluntary Work
                     </button>
                 </div>

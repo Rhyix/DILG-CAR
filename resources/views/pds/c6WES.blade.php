@@ -329,8 +329,9 @@
                 <input :readonly="!entry.isDisplayed" required :name="'entries[' + index + '][start_date]'" type="text" class="wes-date mobile-input h-11 w-full border rounded px-3 py-2" x-model="entry.start_date">
                 <span class="text-center sm:pt-2 mobile-duration-to text-gray-500">to</span>
                 <div class="flex flex-col w-full">
-                  <input :class="entry.present ? 'text-gray-400' : ''" :readonly="!entry.isDisplayed || entry.present" :required="!entry.present" :name="'entries[' + index + '][end_date]'" type="text" class="wes-date mobile-input w-full border rounded px-3 py-2" x-model="entry.end_date">
-                  <label class="text-xs mt-1"><input type="checkbox" x-model="entry.present" @change="if(entry.present) entry.end_date = ''"> Present</label>
+                  <input :class="entry.present ? 'text-gray-400' : ''" :readonly="!entry.isDisplayed || entry.present" :disabled="!entry.isDisplayed || entry.present" :required="!entry.present" :name="'entries[' + index + '][end_date]'" type="text" class="wes-date mobile-input w-full border rounded px-3 py-2" x-model="entry.end_date">
+                  <input type="hidden" :name="'entries[' + index + '][present]'" :value="entry.present ? 1 : 0">
+                  <label class="text-xs mt-1"><input type="checkbox" x-model="entry.present" @change="if (entry.present) { entry.end_date = '' }"> Present</label>
                 </div>
               </div>
             </div>
@@ -469,4 +470,3 @@
   </script>
 </body>
 </html>
-
