@@ -236,6 +236,11 @@
             text-transform: uppercase;
         }
 
+        input:not([type=email]):not([type=password]):not([type=hidden]):not([type=date]):not([type=datetime-local]):not([type=month]):not([type=week]):not([type=time]):not([type=number]):not([type=range]):not([type=color]):not([type=checkbox]):not([type=radio]):not([type=file]):not([data-uppercase=off]),
+        textarea:not([data-uppercase=off]) {
+            text-transform: uppercase;
+        }
+
         .floating-label-input {
             font-size: clamp(0.95rem, 0.9rem + 0.3vw, 1.1rem);
             line-height: 1.55;
@@ -1353,6 +1358,7 @@
         })();
     </script>
     @include('partials.loader')
+    @include('partials.pds_uppercase_inputs')
     @livewireScripts
 
 </body>

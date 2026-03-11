@@ -50,7 +50,7 @@
                 <p class="text-sm md:text-base text-gray-700 font-medium mb-2 leading-relaxed">
                     Saint Louis College<br>
                     City of San Fernando, La Union<br>
-                    BS in Information Technology <br>
+                    BS Information Technology <br>
                     On-the-Job Training (OJT) Trainees<br>
                     <span class="text-gray-500 text-sm">(Februay 2026 – May 2026)</span>
                 </p>

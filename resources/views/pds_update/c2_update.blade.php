@@ -540,7 +540,7 @@
             }
         });
     </script>
+    @include('partials.pds_uppercase_inputs')
     @include('partials.loader')
 </body>
 </html>
-

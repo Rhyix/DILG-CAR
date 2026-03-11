@@ -704,6 +704,7 @@
             </p>
             <p>CS Form No. 212 (Revised 2017). Read the attached guide to filling out the Personal Data Sheet before accomplishing the form.</p>
         </footer>
+        @include('partials.pds_uppercase_inputs')
         @include('partials.loader')
     </main>
 </body>

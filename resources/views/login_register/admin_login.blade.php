@@ -5,120 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Admin Access - DILG CAR Recruitment and Selection Portal</title>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        html,
-        body {
-            height: 100%;
-            font-family: 'Montserrat', sans-serif;
-            overflow: hidden;
-        }
-
-        body {
-            margin: 0;
-            background-color: #04132f;
-            background-image: url('{{ asset('templates/template.png') }}');
-            background-position: center;
-            background-repeat: no-repeat;
-            background-size: cover;
-        }
-
-        .admin-page-bg {
-            position: absolute;
-            inset: 0;
-            pointer-events: none;
-            background:
-                radial-gradient(circle at 18% 16%, rgba(96, 165, 250, 0.18) 0%, rgba(96, 165, 250, 0) 26%),
-                linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.012) 22%, rgba(255, 255, 255, 0) 100%),
-                linear-gradient(90deg, rgba(3, 13, 33, 0.22) 0%, rgba(3, 13, 33, 0) 38%, rgba(3, 13, 33, 0.14) 100%);
-        }
-
-        .admin-page-bg::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            opacity: 0.32;
-            background:
-                radial-gradient(circle at 74% 24%, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0) 28%),
-                linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, transparent 24%);
-        }
-
-        .admin-page-bg::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background:
-                radial-gradient(circle at 82% 58%, rgba(96, 165, 250, 0.10) 0%, rgba(96, 165, 250, 0) 24%),
-                linear-gradient(180deg, rgba(2, 9, 25, 0) 0%, rgba(2, 9, 25, 0.18) 100%);
-            opacity: 0.55;
-        }
-
-        .admin-shell {
-            position: relative;
-            isolation: isolate;
-        }
-
-        .admin-shell::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            right: 6%;
-            width: min(34rem, 42vw);
-            height: min(34rem, 42vw);
-            border-radius: 9999px;
-            transform: translateY(-50%);
-            background: radial-gradient(circle, rgba(147, 197, 253, 0.22) 0%, rgba(96, 165, 250, 0.12) 34%, rgba(59, 130, 246, 0.04) 54%, rgba(59, 130, 246, 0) 72%);
-            filter: blur(12px);
-            pointer-events: none;
-            z-index: 0;
-        }
-
-        .admin-hero {
-            background:
-                linear-gradient(160deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0) 32%),
-                linear-gradient(180deg, #081c47 0%, #0d2b70 56%, #17438b 100%);
-            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
-        }
-
-        .admin-hero::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background:
-                linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.03) 18%, rgba(255, 255, 255, 0) 44%);
-            opacity: 0.5;
-        }
-
-        @media (max-width: 1023px) {
-            .admin-shell::before {
-                right: 50%;
-                width: min(30rem, 82vw);
-                height: min(30rem, 82vw);
-                transform: translate(50%, -44%);
-            }
-        }
-
-        .requirement-valid {
-            color: #047857;
-        }
-
-        .requirement-invalid {
-            color: #64748b;
-        }
-    </style>
 </head>
 @php
     $registerErrors = $errors->getBag('adminRegister');
     $openRegisterModal = $registerErrors->any() || old('auth_tab') === 'register';
 @endphp
-<body class="relative min-h-screen overflow-hidden p-4 md:p-6">
-    <div aria-hidden="true" class="admin-page-bg"></div>
+<body class="relative min-h-screen overflow-x-hidden overflow-y-auto bg-[radial-gradient(circle_at_85%_18%,rgba(79,172,254,0.24)_0%,rgba(79,172,254,0)_38%),radial-gradient(circle_at_12%_82%,rgba(15,100,201,0.22)_0%,rgba(15,100,201,0)_34%),linear-gradient(140deg,#031029_0%,#0a255f_46%,#12387e_100%)] p-3 font-['Montserrat'] md:p-6 lg:overflow-hidden">
+    <div aria-hidden="true" class="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(24,99,156,0.78)_0%,rgba(255,255,255,0.012)_24%,rgba(255,255,255,0)_100%),linear-gradient(90deg,rgba(3,13,33,0.28)_0%,rgba(3,13,33,0)_44%,rgba(3,13,33,0.2)_100%)]"></div>
+    <div aria-hidden="true" class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_76%_24%,rgba(255,255,255,0.16)_0%,rgba(255,255,255,0)_28%),linear-gradient(180deg,rgba(255,255,255,0.08)_0%,transparent_24%)] opacity-35"></div>
+    <div aria-hidden="true" class="pointer-events-none absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.45)_0.55px,transparent_0.55px)] opacity-20 mix-blend-soft-light [background-size:9px_9px]"></div>
 
-    <div class="admin-shell relative z-10 mx-auto flex min-h-[calc(100vh-2rem)] w-full max-w-7xl items-center justify-center">
-        <div class="relative z-10 grid w-full max-h-[calc(100vh-2rem)] overflow-hidden rounded-3xl border border-white/12 bg-white/96 shadow-[0_28px_90px_rgba(3,12,32,0.34)] backdrop-blur-sm lg:grid-cols-[1.15fr_1fr]">
-            <section class="admin-hero relative hidden overflow-hidden px-8 py-10 text-white lg:block">
+    <div class="relative z-10 mx-auto flex min-h-[calc(100vh-1.5rem)] w-full max-w-7xl items-center justify-center isolate">
+        <div aria-hidden="true" class="pointer-events-none absolute left-1/2 top-[56%] z-0 h-[min(30rem,82vw)] w-[min(30rem,82vw)] -translate-x-1/2 -translate-y-[44%] rounded-full bg-[radial-gradient(circle,rgba(147,197,253,0.34)_0%,rgba(96,165,250,0.16)_34%,rgba(59,130,246,0.03)_62%,rgba(59,130,246,0)_72%)] blur-[14px] lg:hidden"></div>
+        <div aria-hidden="true" class="pointer-events-none absolute right-[4%] top-[52%] z-0 hidden h-[min(40rem,46vw)] w-[min(40rem,46vw)] -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(147,197,253,0.34)_0%,rgba(96,165,250,0.16)_34%,rgba(59,130,246,0.03)_62%,rgba(59,130,246,0)_72%)] blur-[14px] lg:block"></div>
+
+        <div class="relative z-10 grid w-full max-h-[calc(100vh-1.5rem)] overflow-hidden rounded-[1.9rem] border border-white/20 bg-[linear-gradient(140deg,rgba(255,255,255,0.96)_0%,rgba(247,251,255,0.96)_100%)] shadow-[0_30px_85px_rgba(2,9,25,0.37)] backdrop-blur-[10px] lg:grid-cols-[1.15fr_1fr]">
+            <section class="relative hidden overflow-hidden bg-[linear-gradient(145deg,rgba(255,255,255,0.1)_0%,rgba(255,255,255,0)_36%),linear-gradient(175deg,#081c47_0%,#0d2b70_54%,#18468f_100%)] px-8 py-10 text-white shadow-[inset_-1px_0_0_rgba(255,255,255,0.08)] lg:block xl:px-10 xl:py-12">
+                <div aria-hidden="true" class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_14%,rgba(245,200,75,0.12)_0%,rgba(245,200,75,0)_28%),linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.03)_20%,rgba(255,255,255,0)_46%)] opacity-70"></div>
+                <div aria-hidden="true" class="pointer-events-none absolute -bottom-[4.5rem] -right-16 h-64 w-64 rounded-full border border-white/20 bg-[radial-gradient(circle,rgba(255,255,255,0.2)_0%,rgba(255,255,255,0)_68%)] opacity-60"></div>
 
                 <div class="relative z-10 flex h-full flex-col justify-between">
                     <div>
@@ -126,18 +33,18 @@
                             <img src="{{ asset('images/dilg_logo.png') }}" alt="DILG Logo" class="h-14 w-14 rounded-full bg-white/10 p-1" />
                             <div>
                                 <p class="text-xs font-semibold uppercase tracking-[0.3em] text-blue-100">DILG CAR</p>
-                                <h1 class="text-2xl font-extrabold">Recruitment Portal</h1>
+                                <h1 class="text-2xl font-extrabold tracking-[-0.01em] font-['Space_Grotesk']">Recruitment Portal</h1>
                             </div>
                         </div>
                         <div class="mt-10 max-w-md space-y-4">
-                            <h2 class="text-3xl font-extrabold leading-tight">Access Portal</h2>
+                            <h2 class="text-3xl font-extrabold leading-tight tracking-[-0.01em] font-['Space_Grotesk']">Access Portal</h2>
                             <p class="text-sm leading-relaxed text-blue-100">
                                 Use this portal to sign in or register your employee account. New registrations are reviewed by the superadmin before role-based access is granted.
                             </p>
                         </div>
                     </div>
 
-                    <div class="rounded-2xl border border-white/15 bg-slate-950/15 p-5 backdrop-blur-sm">
+                    <div class="rounded-2xl border border-white/20 bg-[linear-gradient(145deg,rgba(2,16,42,0.3)_0%,rgba(2,16,42,0.14)_100%)] p-5 backdrop-blur-[6px]">
                         <p class="text-sm font-semibold text-yellow-200">Approval Workflow</p>
                         <ul class="mt-3 space-y-2 text-sm text-blue-50">
                             <li class="flex items-start gap-2"><i class="fa-solid fa-user-plus mt-0.5"></i><span>Register account details (no role selected).</span></li>
@@ -148,20 +55,20 @@
                 </div>
             </section>
 
-            <section class="relative bg-slate-50 px-5 py-8 sm:px-8 lg:px-10">
+            <section class="relative bg-[rgba(249,252,255,0.95)] px-5 py-8 sm:px-8 lg:bg-[linear-gradient(180deg,rgba(255,255,255,0.82)_0%,rgba(248,251,255,0.92)_100%)] lg:px-10">
                 <div class="mx-auto w-full max-w-xl">
                     <div class="mb-6 flex items-center gap-3 lg:hidden">
                         <img src="{{ asset('images/dilg_logo.png') }}" alt="DILG Logo" class="h-12 w-12" />
                         <div>
                             <p class="text-xs font-semibold uppercase tracking-[0.3em] text-[#0D2B70]">DILG CAR</p>
-                            <p class="text-lg font-bold text-[#0D2B70]">Access Portal</p>
+                            <p class="text-lg font-bold tracking-[-0.01em] text-[#0D2B70] font-['Space_Grotesk']">Access Portal</p>
                         </div>
                     </div>
 
-                    <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <div class="rounded-2xl border border-[#d6e2f3] bg-[linear-gradient(180deg,#ffffff_0%,#fdfefe_100%)] p-6 shadow-[0_14px_40px_rgba(12,39,88,0.09)]">
                         <div class="mb-5">
-                            <h2 class="text-2xl font-extrabold text-[#0D2B70]">Admin Login</h2>
-                            <p class="text-sm text-slate-500">Sign in to continue to your assigned dashboard.</p>
+                            <h2 class="text-2xl font-extrabold tracking-[-0.01em] text-[#0D2B70] font-['Space_Grotesk']">Admin Login</h2>
+                            <p class="mt-1 text-sm text-slate-500">Sign in to continue to your assigned dashboard.</p>
                         </div>
 
                         @if (session('status'))
@@ -180,12 +87,12 @@
                             </div>
                         @endif
 
-                        <form action="{{ route('admin.login.submit') }}" method="POST" class="space-y-4" autocomplete="off">
+                        <form id="adminLoginForm" action="{{ route('admin.login.submit') }}" method="POST" class="space-y-4" autocomplete="off">
                             @csrf
                             <input type="hidden" name="auth_tab" value="login">
 
                             <div>
-                                <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">Email</label>
+                                <label class="mb-1.5 block text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#52627d]">Email</label>
                                 <div class="relative">
                                     <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">
                                         <i class="fa-solid fa-envelope"></i>
@@ -195,13 +102,13 @@
                                         name="email"
                                         value="{{ old('email') }}"
                                         required
-                                        class="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-700 outline-none transition focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20"
+                                        class="w-full rounded-[0.85rem] border border-[#cdd9eb] bg-[#fbfdff] py-2.5 pl-10 pr-3 text-sm text-[#203457] outline-none transition-[border-color,box-shadow,background-color] hover:border-[#b5c8e7] hover:bg-white focus:border-[#0d2b70] focus:bg-white focus:ring-4 focus:ring-[#0d2b70]/15"
                                     >
                                 </div>
                             </div>
 
                             <div>
-                                <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">Password</label>
+                                <label class="mb-1.5 block text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#52627d]">Password</label>
                                 <div class="relative">
                                     <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">
                                         <i class="fa-solid fa-lock"></i>
@@ -211,7 +118,7 @@
                                         type="password"
                                         name="password"
                                         required
-                                        class="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-10 pr-10 text-sm text-slate-700 outline-none transition focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20"
+                                        class="w-full rounded-[0.85rem] border border-[#cdd9eb] bg-[#fbfdff] py-2.5 pl-10 pr-10 text-sm text-[#203457] outline-none transition-[border-color,box-shadow,background-color] hover:border-[#b5c8e7] hover:bg-white focus:border-[#0d2b70] focus:bg-white focus:ring-4 focus:ring-[#0d2b70]/15"
                                     >
                                     <button
                                         type="button"
@@ -242,7 +149,7 @@
                                 </div>
                             @endif
 
-                            <button type="submit" class="w-full rounded-xl bg-[#0D2B70] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0A2259]">
+                            <button type="submit" class="w-full rounded-[0.85rem] bg-[linear-gradient(135deg,#0d2b70_0%,#174493_100%)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_9px_20px_rgba(13,43,112,0.26)] transition-[transform,box-shadow,filter] hover:-translate-y-px hover:brightness-[1.02] hover:shadow-[0_12px_26px_rgba(13,43,112,0.35)]">
                                 Sign In
                             </button>
                         </form>
@@ -250,7 +157,7 @@
                         <div class="mt-5 border-t border-slate-200 pt-4">
                             <p class="text-xs uppercase tracking-wide text-slate-500">New Employee Account</p>
                             <button id="openRegisterModalBtn" type="button"
-                                class="mt-2 w-full rounded-xl border border-[#0D2B70] bg-white px-4 py-2.5 text-sm font-semibold text-[#0D2B70] transition hover:bg-[#0D2B70] hover:text-white">
+                                class="mt-2 w-full rounded-[0.85rem] border border-[#0d2b70]/45 bg-white px-4 py-2.5 text-sm font-semibold text-[#0D2B70] transition-[background-color,color,border-color] hover:border-[#0d2b70] hover:bg-[#0d2b70] hover:text-white">
                                 Register Employee Account
                             </button>
                         </div>
@@ -261,8 +168,8 @@
     </div>
 
     <div id="adminRegisterModal"
-        class="fixed inset-0 z-[12000] {{ $openRegisterModal ? 'flex' : 'hidden' }} items-center justify-center bg-slate-900/70 px-4 py-6">
-        <div class="w-full max-w-4xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+        class="fixed inset-0 z-[12000] {{ $openRegisterModal ? 'flex' : 'hidden' }} items-center justify-center bg-[linear-gradient(180deg,rgba(2,10,29,0.74)_0%,rgba(2,10,29,0.66)_100%)] px-4 py-6 backdrop-blur-[3px]">
+        <div class="w-full max-w-4xl overflow-hidden rounded-2xl border border-[#d8e3f3] bg-[linear-gradient(180deg,#ffffff_0%,#fbfdff_100%)] shadow-[0_24px_52px_rgba(7,24,58,0.3)]">
             <div class="flex items-center justify-between border-b border-slate-200 px-6 py-4">
                 <div>
                     <h3 class="text-lg font-bold text-[#0D2B70]">Employee Registration</h3>
@@ -292,70 +199,70 @@
 
                     <div class="grid gap-3 md:grid-cols-2">
                         <div>
-                            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">Email</label>
+                            <label class="mb-1.5 block text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#52627d]">Email</label>
                             <input type="email" name="email" value="{{ old('email') }}" required
-                                class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20">
+                                class="w-full rounded-[0.85rem] border border-[#cdd9eb] bg-[#fbfdff] px-3 py-2.5 text-sm text-[#203457] outline-none transition-[border-color,box-shadow,background-color] hover:border-[#b5c8e7] hover:bg-white focus:border-[#0d2b70] focus:bg-white focus:ring-4 focus:ring-[#0d2b70]/15">
                         </div>
                         <div>
-                            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">First Name</label>
+                            <label class="mb-1.5 block text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#52627d]">First Name</label>
                             <input type="text" name="first_name" value="{{ old('first_name') }}" required
-                                class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20">
+                                class="w-full rounded-[0.85rem] border border-[#cdd9eb] bg-[#fbfdff] px-3 py-2.5 text-sm text-[#203457] outline-none transition-[border-color,box-shadow,background-color] hover:border-[#b5c8e7] hover:bg-white focus:border-[#0d2b70] focus:bg-white focus:ring-4 focus:ring-[#0d2b70]/15">
                         </div>
                         <div>
-                            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">Last Name</label>
+                            <label class="mb-1.5 block text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#52627d]">Last Name</label>
                             <input type="text" name="last_name" value="{{ old('last_name') }}" required
-                                class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20">
+                                class="w-full rounded-[0.85rem] border border-[#cdd9eb] bg-[#fbfdff] px-3 py-2.5 text-sm text-[#203457] outline-none transition-[border-color,box-shadow,background-color] hover:border-[#b5c8e7] hover:bg-white focus:border-[#0d2b70] focus:bg-white focus:ring-4 focus:ring-[#0d2b70]/15">
                         </div>
                         <div>
-                            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">Middle Name</label>
+                            <label class="mb-1.5 block text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#52627d]">Middle Name</label>
                             <input type="text" name="middle_name" value="{{ old('middle_name') }}"
-                                class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20">
+                                class="w-full rounded-[0.85rem] border border-[#cdd9eb] bg-[#fbfdff] px-3 py-2.5 text-sm text-[#203457] outline-none transition-[border-color,box-shadow,background-color] hover:border-[#b5c8e7] hover:bg-white focus:border-[#0d2b70] focus:bg-white focus:ring-4 focus:ring-[#0d2b70]/15">
                         </div>
                         <div class="md:col-span-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
                             <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">Work Assignment</p>
                             <div class="grid gap-3 md:grid-cols-2">
                                 <div>
-                                    <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">Office</label>
+                                    <label class="mb-1.5 block text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#52627d]">Office</label>
                                     <input type="text" name="office" value="{{ old('office') }}" required placeholder="Enter office/unit"
-                                        class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20">
+                                        class="w-full rounded-[0.85rem] border border-[#cdd9eb] bg-[#fbfdff] px-3 py-2.5 text-sm text-[#203457] outline-none transition-[border-color,box-shadow,background-color] hover:border-[#b5c8e7] hover:bg-white focus:border-[#0d2b70] focus:bg-white focus:ring-4 focus:ring-[#0d2b70]/15">
                                 </div>
                                 <div>
-                                    <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">Designation</label>
+                                    <label class="mb-1.5 block text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#52627d]">Designation</label>
                                     <input type="text" name="designation" value="{{ old('designation') }}" required placeholder="Enter position/designation"
-                                        class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20">
+                                        class="w-full rounded-[0.85rem] border border-[#cdd9eb] bg-[#fbfdff] px-3 py-2.5 text-sm text-[#203457] outline-none transition-[border-color,box-shadow,background-color] hover:border-[#b5c8e7] hover:bg-white focus:border-[#0d2b70] focus:bg-white focus:ring-4 focus:ring-[#0d2b70]/15">
                                 </div>
                             </div>
                         </div>
                         <div>
-                            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">Password</label>
+                            <label class="mb-1.5 block text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#52627d]">Password</label>
                             <input id="registerPassword" type="password" name="password" required minlength="8"
-                                class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20">
+                                class="w-full rounded-[0.85rem] border border-[#cdd9eb] bg-[#fbfdff] px-3 py-2.5 text-sm text-[#203457] outline-none transition-[border-color,box-shadow,background-color] hover:border-[#b5c8e7] hover:bg-white focus:border-[#0d2b70] focus:bg-white focus:ring-4 focus:ring-[#0d2b70]/15">
                         </div>
                         <div>
-                            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">Confirm Password</label>
+                            <label class="mb-1.5 block text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#52627d]">Confirm Password</label>
                             <input id="registerPasswordConfirm" type="password" name="password_confirmation" required minlength="8"
-                                class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20">
+                                class="w-full rounded-[0.85rem] border border-[#cdd9eb] bg-[#fbfdff] px-3 py-2.5 text-sm text-[#203457] outline-none transition-[border-color,box-shadow,background-color] hover:border-[#b5c8e7] hover:bg-white focus:border-[#0d2b70] focus:bg-white focus:ring-4 focus:ring-[#0d2b70]/15">
                         </div>
                     </div>
 
                     <div id="adminPasswordRequirementsPanel" class="hidden rounded-xl border border-slate-200 bg-slate-50 p-4">
                         <p class="text-xs font-semibold uppercase tracking-wide text-slate-600">Password Requirements</p>
                         <ul id="passwordRequirements" class="mt-2 space-y-1 text-xs">
-                            <li data-rule="length" class="requirement requirement-invalid flex items-center gap-2"><i class="fa-regular fa-circle"></i><span>At least 8 characters</span></li>
-                            <li data-rule="upper" class="requirement requirement-invalid flex items-center gap-2"><i class="fa-regular fa-circle"></i><span>At least 1 uppercase letter</span></li>
-                            <li data-rule="lower" class="requirement requirement-invalid flex items-center gap-2"><i class="fa-regular fa-circle"></i><span>At least 1 lowercase letter</span></li>
-                            <li data-rule="number" class="requirement requirement-invalid flex items-center gap-2"><i class="fa-regular fa-circle"></i><span>At least 1 number</span></li>
-                            <li data-rule="special" class="requirement requirement-invalid flex items-center gap-2"><i class="fa-regular fa-circle"></i><span>At least 1 special character</span></li>
-                            <li data-rule="match" class="requirement requirement-invalid flex items-center gap-2"><i class="fa-regular fa-circle"></i><span>Password and confirm password must match</span></li>
+                            <li data-rule="length" class="flex items-center gap-2 text-slate-500"><i class="fa-regular fa-circle"></i><span>At least 8 characters</span></li>
+                            <li data-rule="upper" class="flex items-center gap-2 text-slate-500"><i class="fa-regular fa-circle"></i><span>At least 1 uppercase letter</span></li>
+                            <li data-rule="lower" class="flex items-center gap-2 text-slate-500"><i class="fa-regular fa-circle"></i><span>At least 1 lowercase letter</span></li>
+                            <li data-rule="number" class="flex items-center gap-2 text-slate-500"><i class="fa-regular fa-circle"></i><span>At least 1 number</span></li>
+                            <li data-rule="special" class="flex items-center gap-2 text-slate-500"><i class="fa-regular fa-circle"></i><span>At least 1 special character</span></li>
+                            <li data-rule="match" class="flex items-center gap-2 text-slate-500"><i class="fa-regular fa-circle"></i><span>Password and confirm password must match</span></li>
                         </ul>
                     </div>
 
                     <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                         <button id="cancelRegisterModalBtn" type="button"
-                            class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100">
+                            class="rounded-[0.85rem] border border-[#0d2b70]/45 bg-white px-4 py-2.5 text-sm font-semibold text-[#0D2B70] transition-[background-color,color,border-color] hover:border-[#0d2b70] hover:bg-[#0d2b70] hover:text-white">
                             Cancel
                         </button>
-                        <button type="submit" class="rounded-xl bg-[#0D2B70] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0A2259]">
+                        <button type="submit" class="rounded-[0.85rem] bg-[linear-gradient(135deg,#0d2b70_0%,#174493_100%)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_9px_20px_rgba(13,43,112,0.26)] transition-[transform,box-shadow,filter] hover:-translate-y-px hover:brightness-[1.02] hover:shadow-[0_12px_26px_rgba(13,43,112,0.35)]">
                             Create Account
                         </button>
                     </div>
@@ -364,8 +271,8 @@
         </div>
     </div>
 
-    <div id="adminForgotModal" class="fixed inset-0 z-[11000] hidden flex items-center justify-center bg-slate-900/60 px-4 py-6">
-        <div class="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
+    <div id="adminForgotModal" class="fixed inset-0 z-[11000] hidden flex items-center justify-center bg-[linear-gradient(180deg,rgba(2,10,29,0.74)_0%,rgba(2,10,29,0.66)_100%)] px-4 py-6 backdrop-blur-[3px]">
+        <div class="w-full max-w-md rounded-2xl border border-[#d8e3f3] bg-[linear-gradient(180deg,#ffffff_0%,#fbfdff_100%)] p-6 shadow-[0_24px_52px_rgba(7,24,58,0.3)]">
             <div class="flex items-start justify-between">
                 <h3 class="text-lg font-bold text-[#0D2B70]">Password Reset</h3>
                 <button type="button" class="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
@@ -376,7 +283,7 @@
             <p class="mt-3 text-sm text-slate-600">
                 Contact the superadmin to reset your account password.
             </p>
-            <button type="button" class="mt-6 w-full rounded-xl bg-[#0D2B70] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0A2259]"
+            <button type="button" class="mt-6 w-full rounded-[0.85rem] bg-[linear-gradient(135deg,#0d2b70_0%,#174493_100%)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_9px_20px_rgba(13,43,112,0.26)] transition-[transform,box-shadow,filter] hover:-translate-y-px hover:brightness-[1.02] hover:shadow-[0_12px_26px_rgba(13,43,112,0.35)]"
                 onclick="document.getElementById('adminForgotModal').classList.add('hidden')">
                 Close
             </button>
@@ -439,8 +346,8 @@
                 if (!ruleElement) return;
                 const icon = ruleElement.querySelector('i');
 
-                ruleElement.classList.toggle('requirement-valid', isValid);
-                ruleElement.classList.toggle('requirement-invalid', !isValid);
+                ruleElement.classList.toggle('text-emerald-700', isValid);
+                ruleElement.classList.toggle('text-slate-500', !isValid);
 
                 if (icon) {
                     icon.classList.toggle('fa-circle-check', isValid);
@@ -527,3 +434,4 @@
     </script>
 </body>
 </html>
+

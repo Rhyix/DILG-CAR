@@ -1947,6 +1947,7 @@ private function writeCenteredFitted($pdf, string $text, float $x, float $y, flo
 
 private function writeCenteredFittedSized($pdf, string $text, float $x, float $y, float $width, float $baseSize, float $minSize): void
 {
+    $text = mb_strtoupper($text);
     $maxWidth = max(1.0, $width - 0.5);
     [$lines, $size, $effectiveWidth] = $this->fitTextToLines($pdf, $text, $maxWidth, $baseSize, $minSize, 2);
     if (empty($lines)) {
@@ -1973,6 +1974,7 @@ private function writeCenteredFittedSized($pdf, string $text, float $x, float $y
 
 private function writeFittedAt($pdf, string $text, float $x, float $y, float $maxWidth, float $baseSize = 8.0, float $minSize = 5.0): void
 {
+    $text = mb_strtoupper($text);
     [$lines, $size, $effectiveWidth] = $this->fitTextToLines($pdf, $text, $maxWidth, $baseSize, $minSize, 2);
     if (empty($lines)) {
         $this->setFont($pdf, 'Arial', '', 8);
@@ -1993,6 +1995,7 @@ private function writeFittedAt($pdf, string $text, float $x, float $y, float $ma
 
 private function writeAt($pdf, string $text, float $x, float $y, ?float $maxWidth = null): void
 {
+    $text = mb_strtoupper($text);
     if ($maxWidth !== null) {
         $this->writeFittedAt($pdf, $text, $x, $y, $maxWidth);
         return;
@@ -2005,7 +2008,7 @@ private function writeAt($pdf, string $text, float $x, float $y, ?float $maxWidt
 
 private function writeWrapped($pdf, $text, $maxWidth, $x, $ySingle, $yMultiple, $font_size, $lineHeight)
 {
-    $text = trim((string) $text);
+    $text = mb_strtoupper(trim((string) $text));
     if ($text === '') {
         return;
     }

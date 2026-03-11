@@ -8,42 +8,9 @@
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" />
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
     @include('partials.global_toast')
 
-    <style>
-        html,
-        body {
-            height: 100%;
-            margin: 0;
-            font-family: 'Montserrat', sans-serif;
-            overflow: hidden;
-        }
-
-        body {
-            background-color: #04132f;
-            background-image: url('{{ asset('templates/template.png') }}');
-            background-position: center;
-            background-repeat: no-repeat;
-            background-size: cover;
-        }
-
-        .portal-page-bg {
-            position: absolute;
-            inset: 0;
-            pointer-events: none;
-            background:
-                radial-gradient(circle at 14% 74%, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0) 46%),
-                linear-gradient(120deg, rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0) 34%);
-        }
-
-        .otp-shell {
-            position: relative;
-            z-index: 1;
-            max-height: calc(100vh - 2rem);
-            overflow: hidden;
-        }
-    </style>
 </head>
 
 @if (!isset($status))
@@ -52,18 +19,25 @@
     </script>
 @endif
 
-<body class="relative min-h-screen p-4 md:p-6">
-    <div aria-hidden="true" class="portal-page-bg"></div>
+<body class="relative min-h-screen overflow-x-hidden bg-[#031029] p-4 md:p-6">
+    <div aria-hidden="true" class="pointer-events-none absolute inset-0">
+        <div class="absolute inset-0 bg-[linear-gradient(180deg,rgba(24,99,156,0.78)_0%,rgba(255,255,255,0.012)_24%,rgba(255,255,255,0)_100%)]"></div>
+        <div class="absolute inset-0 bg-[linear-gradient(90deg,rgba(3,13,33,0.28)_0%,rgba(3,13,33,0)_44%,rgba(3,13,33,0.2)_100%)]"></div>
+        <div class="absolute inset-0 opacity-35 bg-[radial-gradient(circle_at_76%_24%,rgba(255,255,255,0.16)_0%,rgba(255,255,255,0)_28%),linear-gradient(180deg,rgba(255,255,255,0.08)_0%,transparent_24%)]"></div>
+        <div class="absolute inset-0 opacity-20 mix-blend-soft-light bg-[radial-gradient(rgba(255,255,255,0.45)_0.55px,transparent_0.55px)] [background-size:9px_9px]"></div>
+    </div>
+    <div aria-hidden="true" class="pointer-events-none absolute right-[4%] top-1/2 z-0 h-[min(40rem,46vw)] w-[min(40rem,46vw)] -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(147,197,253,0.34)_0%,rgba(96,165,250,0.16)_34%,rgba(59,130,246,0.03)_62%,rgba(59,130,246,0)_72%)] blur-[14px]"></div>
 
-    <div class="otp-shell mx-auto flex min-h-[calc(100vh-2rem)] w-full max-w-6xl items-center justify-center">
-        <div class="grid w-full overflow-hidden rounded-3xl border border-white/15 bg-white/95 shadow-[0_30px_90px_rgba(2,12,34,0.35)] backdrop-blur-sm lg:grid-cols-[1fr_0.95fr]">
-            <section class="bg-gradient-to-br from-[#081c47] via-[#0d2b70] to-[#17438b] px-6 py-9 text-white sm:px-10 lg:px-12">
+    <div class="relative z-10 mx-auto flex min-h-[calc(100vh-1.5rem)] w-full max-w-6xl items-center justify-center">
+        <div class="grid w-full overflow-hidden rounded-[1.9rem] border border-white/20 bg-[linear-gradient(140deg,rgba(255,255,255,0.96)_0%,rgba(247,251,255,0.96)_100%)] shadow-[0_30px_85px_rgba(2,9,25,0.37)] backdrop-blur-[10px] lg:grid-cols-[1fr_0.95fr]">
+            <section class="relative overflow-hidden bg-[linear-gradient(145deg,rgba(255,255,255,0.1)_0%,rgba(255,255,255,0)_36%),linear-gradient(175deg,#081c47_0%,#0d2b70_54%,#18468f_100%)] px-6 py-9 text-white sm:px-10 lg:px-12">
+                <div aria-hidden="true" class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_14%,rgba(245,200,75,0.12)_0%,rgba(245,200,75,0)_28%),linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.03)_20%,rgba(255,255,255,0)_46%)] opacity-70"></div>
                 <div class="mx-auto flex h-full max-w-xl flex-col justify-center">
                     <div class="mb-8 flex items-center gap-4">
                         <img src="{{ asset('images/dilg_logo.png') }}" alt="DILG Logo" class="h-14 w-14 rounded-full bg-white/10 p-1 shadow-[0_10px_20px_rgba(2,12,34,0.25)]" />
                         <div>
                             <p class="text-xs font-semibold uppercase tracking-[0.34em] text-blue-100">DILG CAR</p>
-                            <h2 class="mt-1 text-2xl font-extrabold tracking-tight">OTP Verification</h2>
+                            <h2 class="mt-1 font-['Space_Grotesk'] text-2xl font-extrabold tracking-tight">OTP Verification</h2>
                         </div>
                     </div>
 
@@ -77,10 +51,10 @@
                 </div>
             </section>
 
-            <section class="bg-white px-6 py-9 sm:px-10 lg:px-12">
+            <section class="bg-[linear-gradient(180deg,rgba(255,255,255,0.82)_0%,rgba(248,251,255,0.92)_100%)] px-6 py-9 sm:px-10 lg:px-12">
                 <div class="mx-auto max-w-md">
                     <p class="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">Secure Access</p>
-                    <h3 class="mt-2 text-3xl font-extrabold tracking-tight text-[#0D2B70]">Enter Verification Code</h3>
+                    <h3 class="mt-2 font-['Space_Grotesk'] text-3xl font-extrabold tracking-tight text-[#0D2B70]">Enter Verification Code</h3>
                     <p class="mt-2 text-sm text-slate-600">Code sent to <span class="font-semibold">{{ $email ?? old('email') }}</span></p>
 
                     <form method="POST" action="{{ route('otp_check', [], false) }}" class="mt-7 space-y-5" autocomplete="off">
@@ -100,7 +74,7 @@
                                 maxlength="6"
                                 placeholder="Enter 6-digit OTP"
                                 autocomplete="one-time-code"
-                                class="w-full rounded-xl border border-slate-300 bg-white py-3 pl-12 pr-4 text-center text-lg tracking-[0.35em] text-[#0D2B70] outline-none transition focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20"
+                                class="w-full rounded-[0.85rem] border border-[#cdd9eb] bg-[#fbfdff] py-3 pl-12 pr-4 text-center text-lg tracking-[0.35em] text-[#0D2B70] outline-none transition hover:border-[#b5c8e7] hover:bg-white focus:border-[#0D2B70] focus:bg-white focus:ring-2 focus:ring-[#0D2B70]/20"
                             />
                         </div>
 
@@ -125,7 +99,7 @@
 
                         <button
                             type="submit"
-                            class="w-full rounded-xl bg-[#0D2B70] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#0A2259]">
+                            class="w-full rounded-[0.85rem] bg-[linear-gradient(135deg,#0d2b70_0%,#174493_100%)] px-4 py-3 text-sm font-semibold text-white shadow-[0_9px_20px_rgba(13,43,112,0.26)] transition hover:-translate-y-[1px] hover:brightness-[1.02] hover:shadow-[0_12px_26px_rgba(13,43,112,0.35)]">
                             Verify OTP
                         </button>
 

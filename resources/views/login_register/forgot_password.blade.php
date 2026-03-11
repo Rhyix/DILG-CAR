@@ -8,12 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
     @include('partials.global_toast')
 </head>
-<style>
-    .font-monserrat {
-          font-family: 'Montserrat', sans-serif;
-      }
-  </style>
-  <body class="bg-white h-screen flex flex-col">
+  <body class="flex h-screen flex-col bg-white font-['Montserrat']">
       <!-- Header Bar -->
       <header class="bg-[#002b6d] flex items-center h-20 px-6 space-x-6">
         <div class="flex-shrink-0">
@@ -25,9 +20,9 @@
                 />
         </div>
         <div class="flex flex-col text-white leading-tight max-w-lg">
-            <span class="font-bold text-sm font-monserrat">DEPARTMENT OF THE INTERIOR AND LOCAL GOVERNMENT</span>
-            <span class="text-xs opacity-70 font-monserrat">CORDILLERA ADMINISTRATIVE REGION</span>
-            <span class="font-bold text-yellow-400 text-xs font-monserrat">
+            <span class="text-sm font-bold">DEPARTMENT OF THE INTERIOR AND LOCAL GOVERNMENT</span>
+            <span class="text-xs opacity-70">CORDILLERA ADMINISTRATIVE REGION</span>
+            <span class="text-xs font-bold text-yellow-400">
                 RECRUITMENT SELECTION AND PLACEMENT PORTAL
             </span>
         </div>
@@ -38,8 +33,8 @@
         <form method="POST" action="{{ route('forgot.password.send.otp') }}">
         @csrf
         <div class="bg-[#002b6d] rounded-3xl py-5 px-8 flex flex-col items-center shadow-md w-auto h-auto">
-            <h1 class="text-white font-bold text-xl mb-1 text-center font-monserrat mt-10">FORGOT PASSWORD</h1>
-            <p class="text-white text-sm text-center mb-10 max-w-xs font-monserrat">
+            <h1 class="mb-1 mt-10 text-center text-xl font-bold text-white">FORGOT PASSWORD</h1>
+            <p class="mb-10 max-w-xs text-center text-sm text-white">
                 Please enter your email address that is registered with your account. We will send you a verification code to reset your password.
             </p>
             <input
@@ -50,10 +45,10 @@
                 pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$"
                 maxlength="255"
                 placeholder="Enter your email"
-                class="w-full max-w-xs py-2 px-6 rounded-full placeholder:font-semibold placeholder:text-gray-400 font-monserrat text-center focus:outline-none focus:ring-2 focus:ring-blue-400"
+                class="w-full max-w-xs rounded-full px-6 py-2 text-center placeholder:font-semibold placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400"
             />
                 @if ($errors->any())
-        <div class="text-red-500 text-sm mt-3 mb-3 font-monserrat">
+        <div class="mb-3 mt-3 text-sm text-red-500">
             <ul>
                 @foreach ($errors->all() as $error)
                     <li>{{ $error }}</li>
@@ -157,4 +152,3 @@ resendLink.addEventListener('click', function(e) {
 
 </body>
 </html>
-
