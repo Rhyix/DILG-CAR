@@ -84,7 +84,7 @@
         </div>
     </section>
 
-    <section class="mx-auto mt-8 max-w-7xl px-4 pb-10 sm:px-6 lg:px-8">
+    <section class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="about-card rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
             <div class="grid gap-6 lg:grid-cols-[0.75fr,1.25fr]">
                 <div>
