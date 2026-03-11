@@ -117,13 +117,15 @@
                       class="h-10 w-full border border-slate-200 rounded-lg px-3 py-2"
                       x-model="entry.accomplishments[accIndex]" placeholder="Achievement or outcome">
                     <button type="button" @click="entry.accomplishments.splice(accIndex, 1)"
-                      :disabled="!entry.isDisplayed" class="text-xs font-semibold text-red-600 px-2">
-                      Remove
+                      :disabled="!entry.isDisplayed" class="border-2 border-red-600 hover:bg-red-600 hover:text-white 
+                      text-red-600 px-4 py-2 rounded-md flex items-center gap-2">
+                      x
                     </button>
                   </div>
                 </template>
                 <button type="button" @click="entry.accomplishments.push('')" :disabled="!entry.isDisplayed"
-                  class="text-xs font-semibold text-[#002C76] hover:text-blue-800">
+                  class="border-2 border-[#002C76] hover:bg-[#002C76] text-sm hover:text-white 
+                      text-[#002C76] px-4 py-2 rounded-md flex items-center gap-2">
                   + Add accomplishment
                 </button>
               </div>
@@ -137,13 +139,15 @@
                       class="h-10 w-full border border-slate-200 rounded-lg px-3 py-2" x-model="entry.duties[dutyIndex]"
                       placeholder="Key responsibility">
                     <button type="button" @click="entry.duties.splice(dutyIndex, 1)" :disabled="!entry.isDisplayed"
-                      class="text-xs font-semibold text-white bg-red-600 px-2">
+                      class="border-2 border-red-600 hover:bg-red-600 hover:text-white 
+                      text-red-600 px-4 py-2 rounded-md flex text-sm items-center gap-2">
                       x
                     </button>
                   </div>
                 </template>
                 <button type="button" @click="entry.duties.push('')" :disabled="!entry.isDisplayed"
-                  class="text-xs font-semibold text-[#002C76] hover:text-blue-800">
+                  class="border-2 border-[#002C76] hover:bg-[#002C76] text-sm hover:text-white 
+                      text-[#002C76] px-4 py-2 rounded-md flex items-center gap-2">
                   + Add duty
                 </button>
               </div>

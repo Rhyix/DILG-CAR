@@ -1361,18 +1361,18 @@ private function writeCivilServiceEligibilityChunk($pdf, $chunk)
             $pdf,
             $this->valueOrNa($cse['cs_eligibility_career'] ?? null),
             $careerWidth,
-            $startX_career,
-            $currentY,
+            7,
+            24.5,
             $currentY - 0.5,
             7.0,
             3.0
         );
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($cse['cs_eligibility_rating'] ?? null), $startX_rating, $currentY, $ratingWidth, 8.0, 5.0);
-        $this->writeFittedAt($pdf, $this->dateOrNa($cse['cs_eligibility_date'] ?? null), $startX_date, $currentY, $dateWidth, 8.0, 3.6);
-        $this->writeFittedAt($pdf, $this->valueOrNa($cse['cs_eligibility_place'] ?? null), $startX_place, $currentY, $placeWidth, 7.0, 4.5);
-        $this->writeFittedAt($pdf, $this->valueOrNa($cse['cs_eligibility_license'] ?? null), $startX_license, $currentY, $licenseWidth, 8.0, 5.0);
-        $this->writeFittedAt($pdf, $this->dateOrNa($cse['cs_eligibility_validity'] ?? null), $startX_validity, $currentY, $validityWidth, 8.0, 3.6);
+        $this->writeFittedAt($pdf, $this->valueOrNa($cse['cs_eligibility_rating'] ?? null), 80, 24.5, $ratingWidth, 8.0, 5.0);
+        $this->writeFittedAt($pdf, $this->dateOrNa($cse['cs_eligibility_date'] ?? null), 95, 24.5, $dateWidth, 8.0, 3.6);
+        $this->writeFittedAt($pdf, $this->valueOrNa($cse['cs_eligibility_place'] ?? null), 125, 24.5, $placeWidth, 7.0, 4.5);
+        $this->writeFittedAt($pdf, $this->valueOrNa($cse['cs_eligibility_license'] ?? null), 153.5, 24.5, $licenseWidth, 8.0, 5.0);
+        $this->writeFittedAt($pdf, $this->dateOrNa($cse['cs_eligibility_validity'] ?? null), 183, 24.5, $validityWidth, 8.0, 3.6);
     }
 }
 
@@ -1425,30 +1425,30 @@ private function writeWorkExperienceChunk($pdf, $chunk)
 
     // If all are empty, write N/A in the position field only.
     if ($isEmpty) {
-        $this->writeFittedAt($pdf, 'N/A', $x_position, $startY, $positionWidth, 8.0, 5.0);
+        $this->writeFittedAt($pdf, 'N/A', $x_position, 102, $positionWidth, 8.0, 5.0);
         return;
     }
 
     foreach ($chunk as $index => $we) {
         $currentY = $startY + ($index * $rowHeight);
 
-        $this->writeFittedAt($pdf, $this->dateOrNa($we['work_exp_from'] ?? null), $x_from, $currentY, $fromWidth, 8.0, 3.6);
-        $this->writeFittedAt($pdf, $this->dateOrNa($we['work_exp_to'] ?? null), $x_to, $currentY, $toWidth, 8.0, 3.6);
-        $this->writeFittedAt($pdf, $this->valueOrNa($we['work_exp_position'] ?? null), $x_position, $currentY, $positionWidth, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->dateOrNa($we['work_exp_from'] ?? null), 5, 102, $fromWidth, 8.0, 3.6);
+        $this->writeFittedAt($pdf, $this->dateOrNa($we['work_exp_to'] ?? null), $x_to, 102, $toWidth, 8.0, 3.6);
+        $this->writeFittedAt($pdf, $this->valueOrNa($we['work_exp_position'] ?? null), $x_position, 102, $positionWidth, 7.0, 5.0);
 
         $this->writeWrapped(
             $pdf,
             $this->valueOrNa($we['work_exp_department'] ?? null),
             $agencyWidth,
             $x_agency,
-            $currentY,
+            102,
             $currentY - 1.5,
             6.0,
             2.0
         );
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($we['work_exp_status'] ?? null), $x_status, $currentY, $statusWidth, 8.0, 4.5);
-        $this->writeFittedAt($pdf, $this->normalizeGovServiceFlag($we['work_exp_govt_service'] ?? null, 'N/A'), $x_gov, $currentY, $govWidth, 8.0, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($we['work_exp_status'] ?? null), 147.5, 102, $statusWidth, 8.0, 4.5);
+        $this->writeFittedAt($pdf, $this->normalizeGovServiceFlag($we['work_exp_govt_service'] ?? null, 'N/A'), 189.5, 102 , $govWidth, 8.0, 5.0);
     }
 }
 
