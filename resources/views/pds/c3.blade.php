@@ -282,6 +282,7 @@
     document.addEventListener('DOMContentLoaded', function () {
 
         // Initialize containers
+        const form = document.getElementById('learning-form');
         const learningContainer = document.getElementById('learning-container');
         const voluntaryContainer = document.getElementById('voluntary-container');
         const learningEmpty = document.getElementById('learning-empty');
@@ -451,34 +452,82 @@
             updateHiddenEntryCount_voluntary();
         }
 
+        function parseDateInput(value) {
+            if (!value) return null;
+            const parsed = new Date(`${value}T00:00:00`);
+            return Number.isNaN(parsed.getTime()) ? null : parsed;
+        }
+
+        function formatDateInputValue(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
         function bindDateRangeValidation(entryEl, prefix) {
             if (!entryEl) return;
+            if (entryEl.dataset.dateValidationBound === '1') return;
+
             const fromInput = entryEl.querySelector(`input[name^="${prefix}_from_"]`);
             const toInput = entryEl.querySelector(`input[name^="${prefix}_to_"]`);
             if (!fromInput || !toInput) return;
 
-            const validate = () => {
+            const setErrorState = (input, message = '') => {
+                input.setCustomValidity(message);
+                input.classList.toggle('border-red-500', message !== '');
+                input.classList.toggle('focus:border-red-500', message !== '');
+            };
+
+            const validate = (showMessage = false) => {
                 const fromVal = (fromInput.value || '').trim();
                 const toVal = (toInput.value || '').trim();
+                const fromDate = parseDateInput(fromVal);
 
-                if (fromVal) {
-                    toInput.min = fromVal;
+                if (fromDate) {
+                    const minToDate = new Date(fromDate.getTime());
+                    minToDate.setDate(minToDate.getDate() + 1);
+                    toInput.min = formatDateInputValue(minToDate);
                 } else {
                     toInput.removeAttribute('min');
                 }
 
-                if (fromVal && toVal && toVal < fromVal) {
-                    toInput.setCustomValidity('The "To" date must not be earlier than the "From" date.');
-                } else {
-                    toInput.setCustomValidity('');
+                setErrorState(fromInput, '');
+                setErrorState(toInput, '');
+
+                if (!fromVal || !toVal) {
+                    return true;
                 }
+
+                const toDate = parseDateInput(toVal);
+                if (!fromDate || !toDate) {
+                    return true;
+                }
+
+                // Plus 1 day rule: TO must be at least one day after FROM.
+                if (toDate.getTime() <= fromDate.getTime()) {
+                    setErrorState(fromInput, 'The "From" date must be at least one day earlier than the "To" date.');
+                    setErrorState(toInput, 'The "To" date must be at least one day later than the "From" date.');
+                    if (showMessage) {
+                        toInput.reportValidity();
+                    }
+                    return false;
+                }
+
+                return true;
             };
 
-            fromInput.addEventListener('change', validate);
-            fromInput.addEventListener('input', validate);
-            toInput.addEventListener('change', validate);
-            toInput.addEventListener('input', validate);
-            validate();
+            const validateOnBlur = () => validate(true);
+            const validateSilently = () => validate(false);
+
+            fromInput.addEventListener('blur', validateOnBlur);
+            toInput.addEventListener('blur', validateOnBlur);
+            fromInput.addEventListener('change', validateSilently);
+            toInput.addEventListener('change', validateSilently);
+
+            entryEl.__validateDateRange = validate;
+            entryEl.dataset.dateValidationBound = '1';
+            validate(false);
         }
 
         const learningData = @json($data_learning);
@@ -623,6 +672,34 @@
         learningContainer.querySelectorAll('.entry-card').forEach(entry => bindDateRangeValidation(entry, 'learning'));
         voluntaryContainer.querySelectorAll('.entry-card').forEach(entry => bindDateRangeValidation(entry, 'voluntary'));
 
+        if (form) {
+            form.addEventListener('submit', function (event) {
+                const allEntries = [
+                    ...learningContainer.querySelectorAll('.entry-card'),
+                    ...voluntaryContainer.querySelectorAll('.entry-card'),
+                ];
+                let firstInvalidInput = null;
+
+                allEntries.forEach((entry) => {
+                    const validateFn = entry.__validateDateRange;
+                    const isValid = typeof validateFn === 'function' ? validateFn(false) : true;
+                    if (!isValid && !firstInvalidInput) {
+                        firstInvalidInput = entry.querySelector(
+                            'input[name^="learning_from_"], input[name^="learning_to_"], input[name^="voluntary_from_"], input[name^="voluntary_to_"]'
+                        );
+                    }
+                });
+
+                if (!firstInvalidInput) {
+                    return;
+                }
+
+                event.preventDefault();
+                firstInvalidInput.reportValidity();
+                firstInvalidInput.focus();
+            });
+        }
+
 
 
         function addField(containerId, fieldName, placeholder, value = '') {
@@ -663,6 +740,7 @@
 </script>
 <script>
     (function () {
+        function initAutosave() {
         const form = document.getElementById('learning-form');
         if (!form) return;
 
@@ -697,7 +775,8 @@
                 const response = await fetch(autosaveUrl, {
                     method: 'POST',
                     body: formData,
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    credentials: 'same-origin'
                 });
                 if (response.ok) {
                     isDirty = false;
@@ -713,6 +792,26 @@
             }
         }
 
+        async function flushDraftNow() {
+            while (inFlight) {
+                queued = true;
+                await new Promise((resolve) => setTimeout(resolve, 80));
+            }
+
+            await saveDraft(true);
+
+            while (inFlight || queued) {
+                if (!inFlight && queued) {
+                    queued = false;
+                    await saveDraft(true);
+                    continue;
+                }
+                await new Promise((resolve) => setTimeout(resolve, 80));
+            }
+        }
+
+        window.__pdsAutosaveNow = flushDraftNow;
+
         setInterval(() => saveDraft(false), AUTOSAVE_INTERVAL_MS);
 
         document.addEventListener('visibilitychange', () => {
@@ -721,10 +820,23 @@
             }
         });
 
+        window.addEventListener('pagehide', () => {
+            if (!isDirty || isSubmitting || !navigator.sendBeacon) return;
+            const formData = new FormData(form);
+            navigator.sendBeacon(autosaveUrl, formData);
+        });
+
         window.addEventListener('beforeunload', () => {
             if (!isDirty || isSubmitting || !navigator.sendBeacon) return;
             const formData = new FormData(form);
             navigator.sendBeacon(autosaveUrl, formData);
         });
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initAutosave, { once: true });
+        } else {
+            initAutosave();
+        }
     })();
 </script>

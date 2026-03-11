@@ -1756,6 +1756,8 @@
             }
         }
 
+        window.__pdsAutosaveNow = flushDraftBeforeExport;
+
         setInterval(() => saveDraft(false), AUTOSAVE_INTERVAL_MS);
 
         document.addEventListener('visibilitychange', () => {

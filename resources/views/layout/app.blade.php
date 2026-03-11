@@ -418,6 +418,38 @@
             }
         });
     </script>
+    <script>
+        (function () {
+            function clearPdsDraftStorage() {
+                const prefixes = ['dilg-car:pds:', 'pds:'];
+                const stores = [window.localStorage, window.sessionStorage];
+
+                stores.forEach((store) => {
+                    try {
+                        const keysToRemove = [];
+                        for (let i = 0; i < store.length; i += 1) {
+                            const key = store.key(i);
+                            if (!key) continue;
+                            if (prefixes.some((prefix) => key.startsWith(prefix))) {
+                                keysToRemove.push(key);
+                            }
+                        }
+                        keysToRemove.forEach((key) => store.removeItem(key));
+                    } catch (_) {
+                        // Ignore storage access errors.
+                    }
+                });
+            }
+
+            document.addEventListener('submit', function (event) {
+                const form = event.target;
+                if (!form || form.tagName !== 'FORM') return;
+                const action = (form.getAttribute('action') || '').toLowerCase();
+                if (!action.includes('/logout')) return;
+                clearPdsDraftStorage();
+            }, true);
+        })();
+    </script>
 
     @stack('scripts')
 </body>

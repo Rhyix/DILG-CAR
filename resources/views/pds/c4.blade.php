@@ -1190,6 +1190,7 @@
     </script>
     <script>
         (function () {
+            function initAutosave() {
             const form = document.getElementById('other-info-form');
             if (!form) return;
 
@@ -1488,6 +1489,26 @@
                 }
             }
 
+            async function flushDraftNow() {
+                while (inFlight) {
+                    queued = true;
+                    await new Promise((resolve) => setTimeout(resolve, 80));
+                }
+
+                await saveDraft(true);
+
+                while (inFlight || queued) {
+                    if (!inFlight && queued) {
+                        queued = false;
+                        await saveDraft(true);
+                        continue;
+                    }
+                    await new Promise((resolve) => setTimeout(resolve, 80));
+                }
+            }
+
+            window.__pdsAutosaveNow = flushDraftNow;
+
             const restoredDraft = restoreLocalDraftIfNeeded();
             if (restoredDraft && navigator.onLine) {
                 saveDraft(true);
@@ -1525,6 +1546,13 @@
                 const formData = new FormData(form);
                 navigator.sendBeacon(autosaveUrl, formData);
             });
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initAutosave, { once: true });
+            } else {
+                initAutosave();
+            }
         })();
     </script>
     

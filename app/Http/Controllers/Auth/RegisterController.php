@@ -86,6 +86,7 @@ class RegisterController extends Controller
         //info(now()->addMinutes(5));
         try {
             Mail::to($request->email)->send(new OTPmail($otp));
+            Log::info('Registration OTP mail sent.', ['email' => $request->email]);
         } catch (\Throwable $e) {
             Log::error('Failed to send registration OTP mail.', [
                 'email' => $request->email,
@@ -240,6 +241,7 @@ class RegisterController extends Controller
 
         try {
             Mail::to($data['email'])->send(new OTPmail($newOtp));
+            Log::info('Registration OTP mail resent.', ['email' => $data['email'] ?? null]);
         } catch (\Throwable $e) {
             Log::error('Failed to resend registration OTP mail.', [
                 'email' => $data['email'] ?? null,

@@ -785,7 +785,7 @@
         }
 
         // Free navigation to any section - no restrictions
-        function navigateToSection(sectionId) {
+        async function navigateToSection(sectionId) {
             console.log('Navigating to:', sectionId);
             
             // If clicking on current page, do nothing
@@ -817,6 +817,13 @@
             
             // Navigate to the actual URL
             if (urlMap[sectionId]) {
+                if (typeof window.__pdsAutosaveNow === 'function') {
+                    try {
+                        await window.__pdsAutosaveNow();
+                    } catch (error) {
+                        console.warn('Autosave flush before navigation failed:', error);
+                    }
+                }
                 window.location.href = urlMap[sectionId];
             } else {
                 console.error(`No URL mapping found for section: ${sectionId}`);
@@ -1311,6 +1318,38 @@
                     saveCore(c);
                 });
             });
+        })();
+    </script>
+    <script>
+        (function () {
+            function clearPdsDraftStorage() {
+                const prefixes = ['dilg-car:pds:', 'pds:'];
+                const stores = [window.localStorage, window.sessionStorage];
+
+                stores.forEach((store) => {
+                    try {
+                        const keysToRemove = [];
+                        for (let i = 0; i < store.length; i += 1) {
+                            const key = store.key(i);
+                            if (!key) continue;
+                            if (prefixes.some((prefix) => key.startsWith(prefix))) {
+                                keysToRemove.push(key);
+                            }
+                        }
+                        keysToRemove.forEach((key) => store.removeItem(key));
+                    } catch (_) {
+                        // Ignore storage access errors.
+                    }
+                });
+            }
+
+            document.addEventListener('submit', function (event) {
+                const form = event.target;
+                if (!form || form.tagName !== 'FORM') return;
+                const action = (form.getAttribute('action') || '').toLowerCase();
+                if (!action.includes('/logout')) return;
+                clearPdsDraftStorage();
+            }, true);
         })();
     </script>
     @include('partials.loader')

@@ -2193,6 +2193,73 @@ class PDSController extends Controller
     {
 
         //dd($request->except('_token'));
+        $validator = Validator::make($request->all(), [
+            'work_exp_from' => 'required|array|min:1',
+            'work_exp_from.*' => 'required|date_format:Y-m-d',
+            'work_exp_to' => 'required|array|min:1',
+            'work_exp_to.*' => 'required|date_format:Y-m-d',
+            'work_exp_position' => 'required|array|min:1',
+            'work_exp_position.*' => 'required|string|max:255',
+            'work_exp_department' => 'required|array|min:1',
+            'work_exp_department.*' => 'required|string|max:255',
+            'work_exp_status' => 'required|array|min:1',
+            'work_exp_status.*' => 'required|in:Permanent,Temporary,Casual,Contractual',
+            'work_exp_govt_service' => 'required|array|min:1',
+            'work_exp_govt_service.*' => 'required|in:Y,N',
+
+            'cs_eligibility_career' => 'required|array|min:1',
+            'cs_eligibility_career.*' => 'required|string|max:255',
+            'cs_eligibility_rating' => 'required|array|min:1',
+            'cs_eligibility_rating.*' => 'required|string|max:255',
+            'cs_eligibility_date' => 'required|array|min:1',
+            'cs_eligibility_date.*' => 'required|date_format:Y-m-d',
+            'cs_eligibility_place' => 'required|array|min:1',
+            'cs_eligibility_place.*' => 'required|string|max:255',
+            'cs_eligibility_license' => 'required|array|min:1',
+            'cs_eligibility_license.*' => 'required|string|max:255',
+            'cs_eligibility_validity' => 'required|array|min:1',
+            'cs_eligibility_validity.*' => 'required|date_format:Y-m-d',
+        ]);
+
+        $validator->after(function (\Illuminate\Validation\Validator $validator) use ($request) {
+            $fromDates = $request->input('work_exp_from', []);
+            $toDates = $request->input('work_exp_to', []);
+            if (!is_array($fromDates) || !is_array($toDates)) {
+                return;
+            }
+
+            $rowCount = min(count($fromDates), count($toDates));
+            for ($i = 0; $i < $rowCount; $i++) {
+                $fromRaw = trim((string) ($fromDates[$i] ?? ''));
+                $toRaw = trim((string) ($toDates[$i] ?? ''));
+                if ($fromRaw === '' || $toRaw === '') {
+                    continue;
+                }
+
+                try {
+                    $fromDate = Carbon::createFromFormat('Y-m-d', $fromRaw)->startOfDay();
+                    $toDate = Carbon::createFromFormat('Y-m-d', $toRaw)->startOfDay();
+                } catch (\Throwable $e) {
+                    continue;
+                }
+
+                // "Plus 1 day" rule: FROM must be strictly earlier than TO.
+                if (!$fromDate->lt($toDate)) {
+                    $rowNumber = $i + 1;
+                    $validator->errors()->add(
+                        "work_exp_from.$i",
+                        "Work Experience row {$rowNumber}: The FROM date must be at least one day earlier than the TO date."
+                    );
+                    $validator->errors()->add(
+                        "work_exp_to.$i",
+                        "Work Experience row {$rowNumber}: The TO date must be at least one day later than the FROM date."
+                    );
+                }
+            }
+        });
+
+        $validator->validate();
+
         $c2_form_data = $request->except('_token');
 
         // ------------------------------
@@ -2411,11 +2478,40 @@ class PDSController extends Controller
             $rules_data_learning["learning_title_$i"] = 'required|string|max:255';
             $rules_data_learning["learning_type_$i"] = 'required|string|max:100';
             $rules_data_learning["learning_from_$i"] = 'required|date';
-            $rules_data_learning["learning_to_$i"] = "required|date|after_or_equal:learning_from_$i";
+            $rules_data_learning["learning_to_$i"] = "required|date|after:learning_from_$i";
             $rules_data_learning["learning_hours_$i"] = 'required|numeric|min:1';
             $rules_data_learning["learning_conducted_$i"] = 'required|string|max:255';
         }
-        $validated_data_learning = $request->validate($rules_data_learning);
+        $learningValidator = Validator::make($request->all(), $rules_data_learning);
+        $learningValidator->after(function (\Illuminate\Validation\Validator $validator) use ($request, $entryCount) {
+            for ($i = 1; $i <= $entryCount; $i++) {
+                $fromRaw = trim((string) $request->input("learning_from_$i", ''));
+                $toRaw = trim((string) $request->input("learning_to_$i", ''));
+                if ($fromRaw === '' || $toRaw === '') {
+                    continue;
+                }
+
+                try {
+                    $fromDate = Carbon::parse($fromRaw)->startOfDay();
+                    $toDate = Carbon::parse($toRaw)->startOfDay();
+                } catch (\Throwable $e) {
+                    continue;
+                }
+
+                // Plus 1 day rule: TO must be at least one day later than FROM.
+                if ($toDate->lte($fromDate)) {
+                    $validator->errors()->add(
+                        "learning_from_$i",
+                        "Learning and Development row {$i}: FROM date must be at least one day earlier than TO date."
+                    );
+                    $validator->errors()->add(
+                        "learning_to_$i",
+                        "Learning and Development row {$i}: TO date must be at least one day later than FROM date."
+                    );
+                }
+            }
+        });
+        $validated_data_learning = $learningValidator->validate();
 
         // FOR session data in LEARNING AND DEVELOPMENT
         $data_learning_arrays = [];
@@ -2440,11 +2536,40 @@ class PDSController extends Controller
         for ($i = 1; $i <= $entryCount_vol; $i++) {
             $rules_data_vol["voluntary_org_$i"] = 'required|string|max:255';
             $rules_data_vol["voluntary_from_$i"] = 'required|date';
-            $rules_data_vol["voluntary_to_$i"] = "required|date|after_or_equal:voluntary_from_$i";
+            $rules_data_vol["voluntary_to_$i"] = "required|date|after:voluntary_from_$i";
             $rules_data_vol["voluntary_hours_$i"] = 'required|numeric|min:1';
             $rules_data_vol["voluntary_position_$i"] = 'required|string|max:255';
         }
-        $validated_data_vol = $request->validate($rules_data_vol);
+        $voluntaryValidator = Validator::make($request->all(), $rules_data_vol);
+        $voluntaryValidator->after(function (\Illuminate\Validation\Validator $validator) use ($request, $entryCount_vol) {
+            for ($i = 1; $i <= $entryCount_vol; $i++) {
+                $fromRaw = trim((string) $request->input("voluntary_from_$i", ''));
+                $toRaw = trim((string) $request->input("voluntary_to_$i", ''));
+                if ($fromRaw === '' || $toRaw === '') {
+                    continue;
+                }
+
+                try {
+                    $fromDate = Carbon::parse($fromRaw)->startOfDay();
+                    $toDate = Carbon::parse($toRaw)->startOfDay();
+                } catch (\Throwable $e) {
+                    continue;
+                }
+
+                // Plus 1 day rule: TO must be at least one day later than FROM.
+                if ($toDate->lte($fromDate)) {
+                    $validator->errors()->add(
+                        "voluntary_from_$i",
+                        "Voluntary Work row {$i}: FROM date must be at least one day earlier than TO date."
+                    );
+                    $validator->errors()->add(
+                        "voluntary_to_$i",
+                        "Voluntary Work row {$i}: TO date must be at least one day later than FROM date."
+                    );
+                }
+            }
+        });
+        $validated_data_vol = $voluntaryValidator->validate();
 
         // FOR session data in VOLUNTARY WORK
         $data_voluntary_arrays = [];
@@ -3357,15 +3482,93 @@ class PDSController extends Controller
 
                 $merged['user_id'] = Auth::id();
                 session(['form.c4' => $merged]);
+                break;
+            }
 
-                $dataToSave = $merged;
-                unset($dataToSave['criminal_35_b_array']);
-                unset($dataToSave['govt_id_date_not_applicable'], $dataToSave['govt_id_place_not_applicable']);
+            case 'wes': {
+                $incomingEntries = $request->input('entries', []);
+                if (!is_array($incomingEntries)) {
+                    $incomingEntries = [];
+                }
 
-                MiscInfos::updateOrCreate(
-                    ['user_id' => Auth::id()],
-                    $dataToSave
-                );
+                $sessionEntries = [];
+
+                foreach ($incomingEntries as $rawEntry) {
+                    if (!is_array($rawEntry)) {
+                        continue;
+                    }
+
+                    $startDateRaw = trim((string) ($rawEntry['start_date'] ?? ''));
+                    $endDateRaw = trim((string) ($rawEntry['end_date'] ?? ''));
+                    $position = trim((string) ($rawEntry['position'] ?? ''));
+                    $office = trim((string) ($rawEntry['office'] ?? ''));
+                    $supervisor = trim((string) ($rawEntry['supervisor'] ?? ''));
+                    $agency = trim((string) ($rawEntry['agency'] ?? ''));
+
+                    $present = in_array(
+                        strtolower(trim((string) ($rawEntry['present'] ?? '0'))),
+                        ['1', 'true', 'on', 'yes'],
+                        true
+                    );
+                    $isDisplayed = !in_array(
+                        strtolower(trim((string) ($rawEntry['isDisplayed'] ?? '1'))),
+                        ['0', 'false', 'off', 'no'],
+                        true
+                    );
+
+                    $accomplishmentsRaw = $rawEntry['accomplishments'] ?? [];
+                    if (!is_array($accomplishmentsRaw)) {
+                        $accomplishmentsRaw = [$accomplishmentsRaw];
+                    }
+                    $accomplishments = array_values(array_filter(array_map(
+                        static fn($value) => trim((string) $value),
+                        $accomplishmentsRaw
+                    ), static fn($value) => $value !== ''));
+
+                    $dutiesRaw = $rawEntry['duties'] ?? [];
+                    if (!is_array($dutiesRaw)) {
+                        $dutiesRaw = [$dutiesRaw];
+                    }
+                    $duties = array_values(array_filter(array_map(
+                        static fn($value) => trim((string) $value),
+                        $dutiesRaw
+                    ), static fn($value) => $value !== ''));
+
+                    $hasAnyData =
+                        $startDateRaw !== '' ||
+                        $endDateRaw !== '' ||
+                        $position !== '' ||
+                        $office !== '' ||
+                        $supervisor !== '' ||
+                        $agency !== '' ||
+                        !empty($accomplishments) ||
+                        !empty($duties);
+
+                    if (!$hasAnyData) {
+                        continue;
+                    }
+
+                    $sessionEntries[] = [
+                        'start_date' => $startDateRaw,
+                        'end_date' => $present ? null : $endDateRaw,
+                        'position' => $position,
+                        'office' => $office,
+                        'supervisor' => $supervisor,
+                        'agency' => $agency,
+                        'accomplishments' => !empty($accomplishments) ? $accomplishments : [''],
+                        'duties' => !empty($duties) ? $duties : [''],
+                        'isDisplayed' => $isDisplayed,
+                        'present' => $present,
+                    ];
+                }
+
+                session([
+                    'form.wes' => [
+                        'entries' => $sessionEntries,
+                        'saved_at' => now()->toIso8601String(),
+                    ],
+                ]);
+
                 break;
             }
 

@@ -247,6 +247,7 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize tables
+            const form = document.getElementById('myForm');
             const workExpTable = document.getElementById('work-exp-table');
             const civilServiceTable = document.getElementById('civil-service-table');
             const workExpEmpty = document.getElementById('work-exp-empty');
@@ -363,7 +364,89 @@
                 }
             });
 
+            form.addEventListener('submit', function (event) {
+                const workRows = workExpTable.querySelectorAll('tbody tr');
+                let firstInvalidInput = null;
+
+                workRows.forEach((row) => {
+                    const isValid = validateWorkExperienceDatePair(row, false);
+                    if (!isValid && !firstInvalidInput) {
+                        firstInvalidInput = row.querySelector('input[name="work_exp_from[]"], input[name="work_exp_to[]"]');
+                    }
+                });
+
+                if (!firstInvalidInput) {
+                    return;
+                }
+
+                event.preventDefault();
+                firstInvalidInput.reportValidity();
+                firstInvalidInput.focus();
+            });
+
             // Functions
+            function parseDateInput(value) {
+                if (!value) return null;
+                const parsed = new Date(`${value}T00:00:00`);
+                return Number.isNaN(parsed.getTime()) ? null : parsed;
+            }
+
+            function setWorkDateErrorState(input, message = '') {
+                if (!input) return;
+                input.setCustomValidity(message);
+                input.classList.toggle('border-red-500', message !== '');
+                input.classList.toggle('focus:border-red-500', message !== '');
+            }
+
+            function validateWorkExperienceDatePair(row, showMessage) {
+                const fromInput = row.querySelector('input[name="work_exp_from[]"]');
+                const toInput = row.querySelector('input[name="work_exp_to[]"]');
+                if (!fromInput || !toInput) {
+                    return true;
+                }
+
+                setWorkDateErrorState(fromInput, '');
+                setWorkDateErrorState(toInput, '');
+
+                if (!fromInput.value || !toInput.value) {
+                    return true;
+                }
+
+                const fromDate = parseDateInput(fromInput.value);
+                const toDate = parseDateInput(toInput.value);
+                if (!fromDate || !toDate) {
+                    return true;
+                }
+
+                // Plus 1 day rule: FROM must be earlier than TO by at least one day.
+                if (fromDate.getTime() >= toDate.getTime()) {
+                    setWorkDateErrorState(fromInput, 'FROM date must be at least 1 day earlier than TO date.');
+                    setWorkDateErrorState(toInput, 'TO date must be at least 1 day later than FROM date.');
+                    if (showMessage) {
+                        toInput.reportValidity();
+                    }
+                    return false;
+                }
+
+                return true;
+            }
+
+            function attachWorkExperienceDateValidation(row) {
+                const fromInput = row.querySelector('input[name="work_exp_from[]"]');
+                const toInput = row.querySelector('input[name="work_exp_to[]"]');
+                if (!fromInput || !toInput) {
+                    return;
+                }
+
+                const validateOnBlur = () => validateWorkExperienceDatePair(row, true);
+                const validateSilently = () => validateWorkExperienceDatePair(row, false);
+
+                fromInput.addEventListener('blur', validateOnBlur);
+                toInput.addEventListener('blur', validateOnBlur);
+                fromInput.addEventListener('change', validateSilently);
+                toInput.addEventListener('change', validateSilently);
+            }
+
             function addWorkExperienceRow(
                 is_new = true,
                 work_exp_id = null,
@@ -422,6 +505,7 @@
                 `;
 
                 tbody.appendChild(newRow);
+                attachWorkExperienceDateValidation(newRow);
                 updateEmptyState();
 
                 // Scroll to the new row
@@ -559,6 +643,7 @@
     </script>
     <script>
         (function () {
+            function initAutosave() {
             const form = document.getElementById('myForm');
             if (!form) return;
 
@@ -593,7 +678,8 @@
                     const response = await fetch(autosaveUrl, {
                         method: 'POST',
                         body: formData,
-                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                        credentials: 'same-origin'
                     });
                     if (response.ok) {
                         isDirty = false;
@@ -609,6 +695,26 @@
                 }
             }
 
+            async function flushDraftNow() {
+                while (inFlight) {
+                    queued = true;
+                    await new Promise((resolve) => setTimeout(resolve, 80));
+                }
+
+                await saveDraft(true);
+
+                while (inFlight || queued) {
+                    if (!inFlight && queued) {
+                        queued = false;
+                        await saveDraft(true);
+                        continue;
+                    }
+                    await new Promise((resolve) => setTimeout(resolve, 80));
+                }
+            }
+
+            window.__pdsAutosaveNow = flushDraftNow;
+
             setInterval(() => saveDraft(false), AUTOSAVE_INTERVAL_MS);
 
             document.addEventListener('visibilitychange', () => {
@@ -617,11 +723,24 @@
                 }
             });
 
+            window.addEventListener('pagehide', () => {
+                if (!isDirty || isSubmitting || !navigator.sendBeacon) return;
+                const formData = new FormData(form);
+                navigator.sendBeacon(autosaveUrl, formData);
+            });
+
             window.addEventListener('beforeunload', () => {
                 if (!isDirty || isSubmitting || !navigator.sendBeacon) return;
                 const formData = new FormData(form);
                 navigator.sendBeacon(autosaveUrl, formData);
             });
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initAutosave, { once: true });
+            } else {
+                initAutosave();
+            }
         })();
     </script>
 

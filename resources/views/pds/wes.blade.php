@@ -214,4 +214,106 @@
       }
     });
   </script>
+  <script>
+    (function () {
+      function initAutosave() {
+      const form = document.getElementById('workExperienceForm');
+      if (!form) return;
+
+      const autosaveUrl = @json(route('pds.autosave', ['section' => 'wes']));
+      const AUTOSAVE_INTERVAL_MS = 15000;
+      let isDirty = false;
+      let isSubmitting = false;
+      let inFlight = false;
+      let queued = false;
+
+      const markDirty = () => { isDirty = true; };
+      form.addEventListener('input', markDirty);
+      form.addEventListener('change', markDirty);
+      form.addEventListener('click', (event) => {
+        if (event.target.closest('button[type="button"], input[type="checkbox"]')) {
+          markDirty();
+        }
+      });
+      form.addEventListener('submit', () => { isSubmitting = true; });
+
+      async function saveDraft(force = false) {
+        if (isSubmitting) return;
+        if (!force && !isDirty) return;
+        if (inFlight) {
+          queued = true;
+          return;
+        }
+
+        inFlight = true;
+        try {
+          const formData = new FormData(form);
+          const response = await fetch(autosaveUrl, {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin'
+          });
+          if (response.ok) {
+            isDirty = false;
+          }
+        } catch (error) {
+          // Keep normal submit as fallback.
+        } finally {
+          inFlight = false;
+          if (queued) {
+            queued = false;
+            saveDraft(true);
+          }
+        }
+      }
+
+      async function flushDraftNow() {
+        while (inFlight) {
+          queued = true;
+          await new Promise((resolve) => setTimeout(resolve, 80));
+        }
+
+        await saveDraft(true);
+
+        while (inFlight || queued) {
+          if (!inFlight && queued) {
+            queued = false;
+            await saveDraft(true);
+            continue;
+          }
+          await new Promise((resolve) => setTimeout(resolve, 80));
+        }
+      }
+
+      window.__pdsAutosaveNow = flushDraftNow;
+
+      setInterval(() => saveDraft(false), AUTOSAVE_INTERVAL_MS);
+
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden && isDirty) {
+          saveDraft(true);
+        }
+      });
+
+      window.addEventListener('pagehide', () => {
+        if (!isDirty || isSubmitting || !navigator.sendBeacon) return;
+        const formData = new FormData(form);
+        navigator.sendBeacon(autosaveUrl, formData);
+      });
+
+      window.addEventListener('beforeunload', () => {
+        if (!isDirty || isSubmitting || !navigator.sendBeacon) return;
+        const formData = new FormData(form);
+        navigator.sendBeacon(autosaveUrl, formData);
+      });
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initAutosave, { once: true });
+      } else {
+        initAutosave();
+      }
+    })();
+  </script>
 @endsection

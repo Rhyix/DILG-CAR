@@ -200,8 +200,28 @@
             }
             const pdsMenuLinks = document.querySelectorAll('#pdsMenu a');
             pdsMenuLinks.forEach(link => {
-                link.addEventListener('click', () => {
+                link.addEventListener('click', async (e) => {
                     sessionStorage.setItem('pdsCollapsed', 'false');
+
+                    if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) {
+                        return;
+                    }
+
+                    const href = link.getAttribute('href');
+                    if (!href) {
+                        return;
+                    }
+
+                    e.preventDefault();
+                    if (typeof window.__pdsAutosaveNow === 'function') {
+                        try {
+                            await window.__pdsAutosaveNow();
+                        } catch (error) {
+                            console.warn('Autosave flush before sidebar navigation failed:', error);
+                        }
+                    }
+
+                    window.location.href = href;
                 });
             });
 

@@ -74,6 +74,9 @@ class WorkExpSheetController extends Controller
             ]);
         }
 
+        // Explicit save should supersede any transient autosave draft for WES.
+        $request->session()->forget('form.wes');
+
         $action = $existingEntries ? 'Update' : 'Create';
 
         activity()
@@ -106,7 +109,28 @@ class WorkExpSheetController extends Controller
      */
     public function show()
     {
-        $workEntries = WorkExpSheet::where('user_id', Auth::id())->get();
+        $sessionEntries = session('form.wes.entries', []);
+        if (is_array($sessionEntries) && count($sessionEntries) > 0) {
+            $workEntries = collect($sessionEntries)->map(function ($entry) {
+                return [
+                    'start_date' => $entry['start_date'] ?? null,
+                    'end_date' => $entry['end_date'] ?? null,
+                    'position' => $entry['position'] ?? '',
+                    'office' => $entry['office'] ?? '',
+                    'supervisor' => $entry['supervisor'] ?? '',
+                    'agency' => $entry['agency'] ?? '',
+                    'accomplishments' => is_array($entry['accomplishments'] ?? null)
+                        ? $entry['accomplishments']
+                        : [''],
+                    'duties' => is_array($entry['duties'] ?? null)
+                        ? $entry['duties']
+                        : [''],
+                    'isDisplayed' => (bool) ($entry['isDisplayed'] ?? true),
+                ];
+            });
+        } else {
+            $workEntries = WorkExpSheet::where('user_id', Auth::id())->get();
+        }
 
         //info($workEntries);
         return view('pds.wes', ['workEntries' => $workEntries]);
