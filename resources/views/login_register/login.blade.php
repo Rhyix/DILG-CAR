@@ -47,7 +47,7 @@
             </div>
           </div>
 
-          <div class="rounded-[1.75rem] border border-[#d6e2f3] bg-[linear-gradient(180deg,#ffffff_0%,#fdfefe_100%)] p-6 shadow-[0_14px_40px_rgba(12,39,88,0.09)] sm:p-7">
+          <div>
             <div class="mb-6">
               <p class="text-xs font-semibold uppercase tracking-[0.26em] text-slate-500">Applicant Access</p>
               <h2 class="mt-2 text-3xl font-extrabold tracking-tight text-[#0D2B70] font-['Space_Grotesk']">User Login</h2>
@@ -162,10 +162,10 @@
         </div>
       </section>
 
-      <section class="relative hidden overflow-hidden bg-[linear-gradient(145deg,rgba(255,255,255,0.1)_0%,rgba(255,255,255,0)_36%),linear-gradient(175deg,#081c47_0%,#0d2b70_54%,#18468f_100%)] px-5 py-10 text-white shadow-[inset_-1px_0_0_rgba(255,255,255,0.08)] lg:flex lg:items-center lg:justify-center xl:px-6">
+      <section class="relative hidden overflow-hidden bg-[linear-gradient(145deg,rgba(255,255,255,0.1)_0%,rgba(255,255,255,0)_36%),linear-gradient(175deg,#081c47_0%,#0d2b70_54%,#18468f_100%)] px-6 py-10 text-white shadow-[inset_-1px_0_0_rgba(255,255,255,0.08)] lg:flex lg:items-center lg:justify-center xl:px-8">
         <div aria-hidden="true" class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_14%,rgba(245,200,75,0.12)_0%,rgba(245,200,75,0)_28%),linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.03)_20%,rgba(255,255,255,0)_46%)] opacity-70"></div>
         <div aria-hidden="true" class="pointer-events-none absolute -bottom-[4.5rem] -right-16 h-64 w-64 rounded-full border border-white/20 bg-[radial-gradient(circle,rgba(255,255,255,0.2)_0%,rgba(255,255,255,0)_68%)] opacity-60"></div>
-        <div class="relative z-10 w-full max-w-[40rem] overflow-hidden rounded-[2rem] border border-white/20 bg-[linear-gradient(145deg,rgba(2,16,42,0.3)_0%,rgba(2,16,42,0.14)_100%)] px-5 py-10 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_24px_60px_rgba(2,12,34,0.18)] backdrop-blur-[6px] sm:px-6 xl:px-7 xl:py-12">
+        <div class="relative z-10 w-full max-w-[40rem] px-2 text-center sm:px-4 xl:px-6">
           <img
             src="{{ asset('images/dilg_logo.png') }}"
             alt="DILG Logo"
@@ -181,7 +181,6 @@
           <p class="mt-4 text-sm font-semibold uppercase tracking-[0.24em] text-yellow-200 xl:text-base">
             Matino, Mahusay, Maaasahan.
           </p>
-          
         </div>
       </section>
     </div>
