@@ -23,25 +23,26 @@
         <div aria-hidden="true" class="pointer-events-none absolute right-[4%] top-[52%] z-0 hidden h-[min(40rem,46vw)] w-[min(40rem,46vw)] -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(147,197,253,0.34)_0%,rgba(96,165,250,0.16)_34%,rgba(59,130,246,0.03)_62%,rgba(59,130,246,0)_72%)] blur-[14px] lg:block"></div>
 
         <div class="relative z-10 grid w-full max-h-[calc(100vh-1.5rem)] overflow-hidden rounded-[1.9rem] border border-white/20 bg-[linear-gradient(140deg,rgba(255,255,255,0.96)_0%,rgba(247,251,255,0.96)_100%)] shadow-[0_30px_85px_rgba(2,9,25,0.37)] backdrop-blur-[10px] lg:grid-cols-[1.15fr_1fr]">
-            <section class="relative hidden overflow-hidden bg-[linear-gradient(145deg,rgba(255,255,255,0.1)_0%,rgba(255,255,255,0)_36%),linear-gradient(175deg,#081c47_0%,#0d2b70_54%,#18468f_100%)] px-6 py-10 text-white shadow-[inset_-1px_0_0_rgba(255,255,255,0.08)] lg:flex lg:items-center lg:justify-center xl:px-8">
+            <section class="relative hidden overflow-hidden bg-[linear-gradient(145deg,rgba(255,255,255,0.1)_0%,rgba(255,255,255,0)_36%),linear-gradient(175deg,#081c47_0%,#0d2b70_54%,#18468f_100%)] px-8 py-10 text-white shadow-[inset_-1px_0_0_rgba(255,255,255,0.08)] lg:block xl:px-10 xl:py-12">
                 <div aria-hidden="true" class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_14%,rgba(245,200,75,0.12)_0%,rgba(245,200,75,0)_28%),linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.03)_20%,rgba(255,255,255,0)_46%)] opacity-70"></div>
 
-                <div class="relative z-10 w-full max-w-[40rem] px-2 text-center sm:px-4 xl:px-6">
-                    <img
-                        src="{{ asset('images/dilg_logo.png') }}"
-                        alt="DILG Logo"
-                        class="mx-auto h-24 w-24 rounded-full bg-white/10 p-3 shadow-[0_16px_32px_rgba(2,12,34,0.24)] xl:h-28 xl:w-28"
-                    />
-                    <p class="mt-6 text-sm font-semibold uppercase tracking-[0.42em] text-blue-100">DILG CAR</p>
-                    <h3 class="mt-4 text-3xl font-extrabold leading-tight text-white font-['Space_Grotesk'] tracking-[-0.01em] xl:text-[2rem]">
-                        Recruitment Selection and Placement Portal
-                    </h3>
-                    <p class="mt-5 block w-full whitespace-nowrap text-[clamp(0.5rem,0.42rem+0.18vw,0.6rem)] font-semibold uppercase leading-[1.5] tracking-[0.015em]">
-                        DEPARTMENT OF THE INTERIOR AND LOCAL GOVERNMENT CORDILLERA ADMINISTRATIVE REGION
-                    </p>
-                    <p class="mt-4 text-sm font-semibold uppercase tracking-[0.24em] text-yellow-200 xl:text-base">
-                        Matino, Mahusay, Maaasahan.
-                    </p>
+                <div class="relative z-10 flex h-full flex-col justify-between">
+                    <div>
+                        <div class="flex items-center gap-3">
+                            <img src="{{ asset('images/dilg_logo.png') }}" alt="DILG Logo" class="h-14 w-14 center rounded-full bg-white/10 p-1" />
+                            <div>
+                                <!-- <h1 class="text-2xl font-extrabold uppercase tracking-[0.3em] text-blue-100">Department of the Interior and Local Govenment</h1> -->
+                                <h1 class="text-2xl font-extrabold tracking-[-0.01em] font-['Space_Grotesk']">Department of the Interior and Local Govenment <br> Cordillera Administrative Region</h1>
+                            </div>
+                        </div>
+                        <div class="mt-10 max-w-md space-y-4">
+                            <!-- <h2 class="text-3xl font-extrabold leading-tight tracking-[-0.01em] font-['Space_Grotesk']">Access Portal</h2> -->
+                            <p class="mt-4 text-sm font-semibold uppercase tracking-[0.24em] text-yellow-200 xl:text-base">
+                                Matino, Mahusay, Maaasahan.
+                            </p>
+                        </div>
+                    </div>
+
                 </div>
             </section>
 
