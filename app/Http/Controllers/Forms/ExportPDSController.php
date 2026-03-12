@@ -1298,12 +1298,12 @@ private function writeCivilServiceEligibilityChunk($pdf, $chunk)
 
     // If all fields are empty, write N/A in the first row cells.
     if ($isEmpty) {
-        $this->writeFittedSingleLine($pdf, 'N/A', $startX_career, $firstRowY, $careerWidth, 7.0, 5.0); // Career
-        $this->writeFittedSingleLine($pdf, 'N/A', $startX_rating, $firstRowY, $ratingWidth, 8.0, 5.0); // Rating
-        $this->writeFittedSingleLine($pdf, 'N/A', $startX_date, $firstRowY, $dateWidth, 8.0, 5.0); // Date
-        $this->writeFittedSingleLine($pdf, 'N/A', $startX_place, $firstRowY, $placeWidth, 6.2, 4.8); // Place
-        $this->writeFittedSingleLine($pdf, 'N/A', $startX_license, $firstRowY, $licenseWidth, 8.0, 5.0); // License
-        $this->writeFittedSingleLine($pdf, 'N/A', $startX_validity, $firstRowY, $validityWidth, 8.0, 5.0); // Validity
+        $this->writeFittedSingleLine($pdf, 'N/A',33, $firstRowY, $careerWidth, 8.0, 5.0); // Career
+        $this->writeFittedSingleLine($pdf, 'N/A', 78, $firstRowY, $ratingWidth, 8.0, 5.0); // Rating
+        $this->writeFittedSingleLine($pdf, 'N/A', 100, $firstRowY, $dateWidth, 8.0, 5.0); // Date
+        $this->writeFittedSingleLine($pdf, 'N/A', 125, $firstRowY, $placeWidth, 8.0, 4.8); // Place
+        $this->writeFittedSingleLine($pdf, 'N/A', 153, $firstRowY, $licenseWidth, 8.0, 5.0); // License
+        $this->writeFittedSingleLine($pdf, 'N/A', 188, $firstRowY, $validityWidth, 8.0, 5.0); // Validity
         return;
     }
 
@@ -1358,12 +1358,12 @@ private function writeWorkExperienceChunk($pdf, $chunk)
 
     // If all are empty, write N/A in the first row cells.
     if ($isEmpty) {
-        $this->writeTruncatedAtSize($pdf, 'N/A', $x_from, $firstRowY, $fromWidth, 7.0); // From
-        $this->writeTruncatedAtSize($pdf, 'N/A', $x_to, $firstRowY, $toWidth, 7.0); // To
-        $this->writeTruncatedAtSize($pdf, 'N/A', $x_position, $firstRowY, $positionWidth, 7.0); // Position
-        $this->writeTruncatedAtSize($pdf, 'N/A', $x_agency, $firstRowY, $agencyWidth, 6.0); // Agency
-        $this->writeTruncatedAtSize($pdf, 'N/A', $x_status, $firstRowY, $statusWidth, 7.0); // Status
-        $this->writeTruncatedAtSize($pdf, 'N/A', $x_gov, $firstRowY, $govWidth, 7.0); // Government Service
+        $this->writeTruncatedAtSize($pdf, 'N/A', 9, $firstRowY, $fromWidth, 8.0); // From
+        $this->writeTruncatedAtSize($pdf, 'N/A', 26.5, $firstRowY, $toWidth, 8.0); // To
+        $this->writeTruncatedAtSize($pdf, 'N/A', 63, $firstRowY, $positionWidth, 8.0); // Position
+        $this->writeTruncatedAtSize($pdf, 'N/A', 114, $firstRowY, $agencyWidth, 8.0); // Agency
+        $this->writeTruncatedAtSize($pdf, 'N/A', 153, $firstRowY, $statusWidth, 8.0); // Status
+        $this->writeTruncatedAtSize($pdf, 'N/A', $x_gov, $firstRowY, $govWidth, 8.0); // Government Service
         return;
     }
 
@@ -1398,11 +1398,11 @@ private function writeVoluntaryWorkChunk($pdf, $chunk)
 
     // If all fields are empty, write N/A in the first-row cells.
     if ($isEmpty) {
-        $this->writeWrapped($pdf, 'N/A', 115, 6, $startY, $startY - 1.0, 6, 2); // Organization
+        $this->writeWrapped($pdf, 'N/A', 115, 6, $startY, $startY - 1.0, 8.0, 2); // Organization
         $this->writeFittedAt($pdf, 'N/A', 94.5, $startY, 15.0, 8.0, 5.0); // From
         $this->writeFittedAt($pdf, 'N/A', 110.5, $startY, 19.0, 8.0, 5.0); // To
-        $this->writeFittedAt($pdf, 'N/A', 129, $startY, 12.0, 7.0, 5.0); // Hours
-        $this->writeWrapped($pdf, 'N/A', 60, 142, $startY, $startY - 1.0, 7, 3); // Position
+        $this->writeFittedAt($pdf, 'N/A', 129, $startY, 12.0, 8.0, 5.0); // Hours
+        $this->writeWrapped($pdf, 'N/A', 60, 142, $startY, $startY - 1.0, 8.0, 3); // Position
         return;
     }
     // Render each voluntary work row
@@ -1410,15 +1410,15 @@ private function writeVoluntaryWorkChunk($pdf, $chunk)
         $currentY = $startY + ($index * $rowHeight);
         $multiLineY = $currentY - 1.0;
 
-        $this->writeWrapped($pdf, $this->valueOrNa($vw['voluntary_org'] ?? null), 115, 6, $currentY, $multiLineY, 6, 2);
+        $this->writeWrapped($pdf, $this->valueOrNa($vw['voluntary_org'] ?? null), 115, 6, $currentY, $multiLineY, 8.0, 2);
 
         $this->writeFittedAt($pdf, $this->dateOrNa($vw['voluntary_from'] ?? null), 94.5, $currentY, 15.0, 8.0, 5.0);
 
         $this->writeFittedAt($pdf, $this->dateOrNa($vw['voluntary_to'] ?? null), 110.5, $currentY, 19.0, 8.0, 5.0);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($vw['voluntary_hours'] ?? null), 129, $currentY, 12.0, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($vw['voluntary_hours'] ?? null), 129, $currentY, 12.0, 8.0, 5.0);
 
-        $this->writeWrapped($pdf, $this->valueOrNa($vw['voluntary_position'] ?? null), 60, 145, $currentY, $multiLineY, 7, 3);
+        $this->writeWrapped($pdf, $this->valueOrNa($vw['voluntary_position'] ?? null), 60, 145, $currentY, $multiLineY, 8.0, 3);
     }
 }
 
@@ -1446,12 +1446,12 @@ private function writeLearningAndDevelopmentChunk($pdf, $chunk)
 
     // If all fields are empty, write N/A in the first-row cells.
     if ($isEmpty) {
-        $this->writeTruncatedAtSize($pdf, 'N/A', $x_title, $startY, $titleWidth, 6.6);
-        $this->writeFittedAt($pdf, 'N/A', 94.5, $startY, 15.0, 8.0, 5.0);
-        $this->writeFittedAt($pdf, 'N/A', 110.5, $startY, 19.0, 8.0, 5.0);
-        $this->writeFittedAt($pdf, 'N/A', $x_hours, $startY, 12.0, 7.0, 5.0);
-        $this->writeFittedSingleLine($pdf, 'N/A', $x_type, $startY, $typeWidth, 6.2, 4.8);
-        $this->writeWrapped($pdf, 'N/A', $conductedWidth, $x_conducted, $startY, $startY - 1.0, 7.0, 2);
+        $this->writeTruncatedAtSize($pdf, 'N/A', $x_title, $startY, $titleWidth, 8.0); // Title
+        $this->writeFittedAt($pdf, 'N/A', 94.5, $startY, 15.0, 8.0, 5.0); // From
+        $this->writeFittedAt($pdf, 'N/A', 110.5, $startY, 19.0, 8.0, 5.0); // To
+        $this->writeFittedAt($pdf, 'N/A', $x_hours, $startY, 12.0, 8.0, 5.0); // Hours
+        $this->writeFittedSingleLine($pdf, 'N/A', $x_type, $startY, $typeWidth, 8.0, 4.8); // Type
+        $this->writeWrapped($pdf, 'N/A', $conductedWidth, $x_conducted, $startY, $startY - 1.0, 8.0, 2); // Conducted
         return;
     }
 
@@ -1475,7 +1475,7 @@ private function writeLearningAndDevelopmentChunk($pdf, $chunk)
             $x_type,
             $currentY,
             $typeWidth,
-            6.2,
+            8.0,
             4.8
         );
 
