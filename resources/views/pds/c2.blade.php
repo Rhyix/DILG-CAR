@@ -1,4 +1,4 @@
-﻿@extends('layout.pds_layout')
+@extends('layout.pds_layout')
 @section('title','Work Experience')
 @section('content')
 <!-- Main Content -->
@@ -707,22 +707,39 @@
                 }
             }
 
-            async function flushDraftNow() {
-                while (inFlight) {
-                    queued = true;
-                    await new Promise((resolve) => setTimeout(resolve, 80));
+            const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+            async function flushDraftNow(options = {}) {
+                const force = options.force === true;
+                const parsedMaxWaitMs = Number(options.maxWaitMs);
+                const maxWaitMs = Number.isFinite(parsedMaxWaitMs) && parsedMaxWaitMs > 0
+                    ? parsedMaxWaitMs
+                    : 1200;
+                const startedAt = Date.now();
+
+                while (inFlight && (Date.now() - startedAt) < maxWaitMs) {
+                    if (force) {
+                        queued = true;
+                    }
+                    await sleep(80);
                 }
 
-                await saveDraft(true);
+                if (inFlight) {
+                    return false;
+                }
 
-                while (inFlight || queued) {
+                await saveDraft(force);
+
+                while ((inFlight || queued) && (Date.now() - startedAt) < maxWaitMs) {
                     if (!inFlight && queued) {
                         queued = false;
-                        await saveDraft(true);
+                        await saveDraft(force);
                         continue;
                     }
-                    await new Promise((resolve) => setTimeout(resolve, 80));
+                    await sleep(80);
                 }
+
+                return !(inFlight || queued);
             }
 
             window.__pdsAutosaveNow = flushDraftNow;
@@ -755,4 +772,5 @@
             }
         })();
     </script>
+
 

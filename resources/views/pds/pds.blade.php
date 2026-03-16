@@ -1735,28 +1735,46 @@
             }
         }
 
-        async function flushDraftBeforeExport() {
-            // Wait for any in-progress autosave cycle to finish first.
-            while (inFlight) {
-                queued = true;
-                await new Promise((resolve) => setTimeout(resolve, 80));
+        const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+        async function flushDraftNow(options = {}) {
+            const force = options.force === true;
+            const parsedMaxWaitMs = Number(options.maxWaitMs);
+            const maxWaitMs = Number.isFinite(parsedMaxWaitMs) && parsedMaxWaitMs > 0
+                ? parsedMaxWaitMs
+                : 1200;
+            const startedAt = Date.now();
+
+            while (inFlight && (Date.now() - startedAt) < maxWaitMs) {
+                if (force) {
+                    queued = true;
+                }
+                await sleep(80);
             }
 
-            // Force one fresh save using latest form values.
-            await saveDraft(true);
+            if (inFlight) {
+                return false;
+            }
 
-            // If force-save got queued behind another in-flight request, drain it too.
-            while (inFlight || queued) {
+            await saveDraft(force);
+
+            while ((inFlight || queued) && (Date.now() - startedAt) < maxWaitMs) {
                 if (!inFlight && queued) {
                     queued = false;
-                    await saveDraft(true);
+                    await saveDraft(force);
                     continue;
                 }
-                await new Promise((resolve) => setTimeout(resolve, 80));
+                await sleep(80);
             }
+
+            return !(inFlight || queued);
         }
 
-        window.__pdsAutosaveNow = flushDraftBeforeExport;
+        async function flushDraftBeforeExport() {
+            await flushDraftNow({ force: true, maxWaitMs: 10000 });
+        }
+
+        window.__pdsAutosaveNow = flushDraftNow;
 
         setInterval(() => saveDraft(false), AUTOSAVE_INTERVAL_MS);
 

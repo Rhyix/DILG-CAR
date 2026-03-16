@@ -823,8 +823,16 @@
             // Navigate to the actual URL
             if (urlMap[sectionId]) {
                 if (typeof window.__pdsAutosaveNow === 'function') {
+                    const NAV_AUTOSAVE_MAX_WAIT_MS = 900;
                     try {
-                        await window.__pdsAutosaveNow();
+                        // Avoid blocking tab switches on a slow autosave response.
+                        await Promise.race([
+                            Promise.resolve(window.__pdsAutosaveNow({
+                                force: false,
+                                maxWaitMs: NAV_AUTOSAVE_MAX_WAIT_MS,
+                            })),
+                            new Promise((resolve) => setTimeout(resolve, NAV_AUTOSAVE_MAX_WAIT_MS + 150)),
+                        ]);
                     } catch (error) {
                         console.warn('Autosave flush before navigation failed:', error);
                     }
