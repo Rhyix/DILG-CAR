@@ -368,7 +368,7 @@
                     <div class="relative">
                         <input type="tel" style="-moz-appearance: textfield; -webkit-appearance: textfield;" pattern="^(?:0\d{9,10}|\(02\)\s?\d{4}\s?\d{4})$" maxlength="16" id="telephone_no" name="telephone_no" value="{{ old('telephone_no', session('form.c1.telephone_no')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
                         <label for="telephone_no" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">19. TELEPHONE NO.</label>
-                        <p class="mt-1 text-xs text-gray-500">Format: (02) XXXX XXXX</p>
+                        <p class="mt-1 text-xs text-gray-500">Format: (XX) XXXX XXXX</p>
                     </div>
                     <div class="relative">
                         <input required type="tel" style="-moz-appearance: textfield; -webkit-appearance: textfield;" maxlength="13" id="mobile_no" name="mobile_no" value="{{ old('mobile_no', session('form.c1.mobile_no')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base"

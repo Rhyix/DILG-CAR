@@ -16,12 +16,12 @@ class PdfUploadTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function createVacancy(string $vacancyId = 'VAC-001'): JobVacancy
+    private function createVacancy(string $vacancyId = 'VAC-001', string $vacancyType = 'COS'): JobVacancy
     {
         return JobVacancy::create([
             'vacancy_id' => $vacancyId,
             'position_title' => 'Test Vacancy',
-            'vacancy_type' => 'COS',
+            'vacancy_type' => $vacancyType,
             'monthly_salary' => 30000,
             'status' => 'OPEN',
             'closing_date' => now()->addWeek(),
@@ -35,6 +35,24 @@ class PdfUploadTest extends TestCase
             'to_office_address' => 'Baguio',
             'place_of_assignment' => 'Baguio',
         ]);
+    }
+
+    private function seedUploadedDocs(User $user, string $vacancyId, array $docTypes): void
+    {
+        foreach ($docTypes as $docType) {
+            UploadedDocument::create([
+                'user_id' => $user->id,
+                'vacancy_id' => $vacancyId,
+                'document_type' => $docType,
+                'original_name' => $docType . '.pdf',
+                'stored_name' => $docType . '.pdf',
+                'storage_path' => 'uploads/pds-files/' . $docType . '.pdf',
+                'mime_type' => 'application/pdf',
+                'file_size_8b' => 1024,
+                'status' => 'Pending',
+                'remarks' => '',
+            ]);
+        }
     }
 
     public function test_upload_accepts_valid_pdf_and_stores_metadata(): void
@@ -275,6 +293,111 @@ class PdfUploadTest extends TestCase
         $this->assertDatabaseMissing('uploaded_documents', [
             'user_id' => $user->id,
             'document_type' => 'application_letter',
+        ]);
+    }
+
+    public function test_finalize_pds_allows_submission_with_existing_required_docs_only(): void
+    {
+        Storage::fake('public');
+        $user = User::factory()->create();
+        $vacancy = $this->createVacancy('VAC-COS-EXIST', 'COS');
+        $this->seedUploadedDocs($user, $vacancy->vacancy_id, [
+            'passport_photo',
+            'signed_pds',
+            'signed_work_exp_sheet',
+            'photocopy_diploma',
+            'application_letter',
+            'cert_training',
+        ]);
+        $this->actingAs($user);
+
+        $response = $this->post(route('finalize_pds', ['go_to' => 'job_description']), [
+            'vacancy_id' => $vacancy->vacancy_id,
+            'doc_track' => 'COS',
+            'declaration' => '1',
+            'consent' => '1',
+            'confirmation' => '1',
+        ]);
+
+        $response->assertRedirect();
+        $this->assertDatabaseHas('applications', [
+            'user_id' => $user->id,
+            'vacancy_id' => $vacancy->vacancy_id,
+        ]);
+    }
+
+    public function test_finalize_pds_accepts_alias_key_for_required_cert_eligibility(): void
+    {
+        Storage::fake('public');
+        $user = User::factory()->create();
+        $vacancy = $this->createVacancy('VAC-PLA-ALIAS', 'Plantilla');
+        $this->seedUploadedDocs($user, $vacancy->vacancy_id, [
+            'application_letter',
+            'signed_pds',
+            'signed_work_exp_sheet',
+            'ipcr',
+            'non_academic',
+            'cert_training',
+            'designation_order',
+            'transcript_records',
+            'photocopy_diploma',
+            'cert_employment',
+            'passport_photo',
+        ]);
+        $this->actingAs($user);
+
+        $response = $this->post(route('finalize_pds', ['go_to' => 'job_description']), [
+            'vacancy_id' => $vacancy->vacancy_id,
+            'doc_track' => 'Plantilla',
+            'declaration' => '1',
+            'consent' => '1',
+            'confirmation' => '1',
+            'cert_uploads' => [
+                'cert_elegibility' => UploadedFile::fake()->createWithContent('cert_elegibility.pdf', "%PDF-1.7\n%TEST\n"),
+            ],
+        ]);
+
+        $response->assertRedirect();
+        $this->assertDatabaseHas('uploaded_documents', [
+            'user_id' => $user->id,
+            'vacancy_id' => $vacancy->vacancy_id,
+            'document_type' => 'cert_eligibility',
+        ]);
+    }
+
+    public function test_finalize_pds_allows_plantilla_submission_with_existing_required_docs_only(): void
+    {
+        Storage::fake('public');
+        $user = User::factory()->create();
+        $vacancy = $this->createVacancy('VAC-PLA-EXIST', 'Plantilla');
+        $this->seedUploadedDocs($user, $vacancy->vacancy_id, [
+            'application_letter',
+            'signed_pds',
+            'signed_work_exp_sheet',
+            'cert_eligibility',
+            'ipcr',
+            'non_academic',
+            'cert_training',
+            'designation_order',
+            'transcript_records',
+            'photocopy_diploma',
+            'cert_employment',
+            'passport_photo',
+        ]);
+        $this->actingAs($user);
+
+        $response = $this->post(route('finalize_pds', ['go_to' => 'job_description']), [
+            'vacancy_id' => $vacancy->vacancy_id,
+            'doc_track' => 'Plantilla',
+            'declaration' => '1',
+            'consent' => '1',
+            'confirmation' => '1',
+        ]);
+
+        $response->assertRedirect();
+        $this->assertDatabaseHas('applications', [
+            'user_id' => $user->id,
+            'vacancy_id' => $vacancy->vacancy_id,
         ]);
     }
 }

@@ -3805,6 +3805,37 @@ class PDSController extends Controller
         return false;
     }
 
+    private function resolveUploadedFileFromPayload(array $uploads, string $docType): ?UploadedFile
+    {
+        $candidates = array_merge([$docType], self::DOCUMENT_TYPE_ALIASES[$docType] ?? []);
+        foreach ($candidates as $candidate) {
+            $file = $uploads[$candidate] ?? null;
+            if ($file instanceof UploadedFile) {
+                return $file;
+            }
+        }
+
+        return null;
+    }
+
+    private function normalizeUploadAliasMap(array $uploads): array
+    {
+        foreach (self::DOCUMENT_TYPE_ALIASES as $docType => $aliases) {
+            if (array_key_exists($docType, $uploads)) {
+                continue;
+            }
+
+            foreach ($aliases as $alias) {
+                if (array_key_exists($alias, $uploads)) {
+                    $uploads[$docType] = $uploads[$alias];
+                    break;
+                }
+            }
+        }
+
+        return $uploads;
+    }
+
     private function resolveUploadedDocument($documents, string $docType): ?UploadedDocument
     {
         $doc = $documents[$docType] ?? null;
@@ -4097,49 +4128,12 @@ class PDSController extends Controller
         $requiredDocsByTrack = $this->getRequiredDocsByTrack();
         $requiredDocs = $requiredDocsByTrack[$docTrack];
         $documentLabels = $this->getDocumentLabelMap();
-        $existingDocs = $this->loadReusableUploadedDocumentsMap(
-            (int) Auth::id(),
-            !empty($applicationVacancyId) ? (string) $applicationVacancyId : null
-        );
-
-        $existingDocLookup = [];
-        foreach ($requiredDocs as $docType) {
-            if ($this->hasUploadedDocumentForType($existingDocs, $docType)) {
-                $existingDocLookup[$docType] = true;
-            }
+        $uploadedFilesPayload = $request->file('cert_uploads', []);
+        if (!is_array($uploadedFilesPayload)) {
+            $uploadedFilesPayload = [];
         }
-
-        // Count previously uploaded application letter from Applications records as existing.
-        if (in_array('application_letter', $requiredDocs, true) && !isset($existingDocLookup['application_letter'])) {
-            $hasApplicationLetter = Applications::where('user_id', Auth::id())
-                ->whereNotNull('file_storage_path')
-                ->exists();
-            if ($hasApplicationLetter) {
-                $existingDocLookup['application_letter'] = true;
-            }
-        }
-
-        $missingRequiredDocs = [];
-        foreach ($requiredDocs as $docType) {
-            if (!$request->hasFile("cert_uploads.$docType") && !isset($existingDocLookup[$docType])) {
-                $missingRequiredDocs[] = $docType;
-            }
-        }
-        if (!empty($missingRequiredDocs)) {
-            Log::warning('C5 missing required documents', [
-                'user_id' => Auth::id(),
-                'vacancy_id' => $applicationVacancyId,
-                'doc_track' => $docTrack,
-                'missing_docs' => $missingRequiredDocs,
-                'uploaded_keys' => array_keys($request->file('cert_uploads', [])),
-            ]);
-            $errors = [];
-            foreach ($missingRequiredDocs as $docType) {
-                $label = $documentLabels[$docType] ?? str_replace('_', ' ', $docType);
-                $errors["cert_uploads.$docType"] = "{$label} is required for {$docTrack} applications.";
-            }
-            return back()->withErrors($errors)->withInput();
-        }
+        $uploadedFilesPayload = $this->normalizeUploadAliasMap($uploadedFilesPayload);
+        $request->files->set('cert_uploads', $uploadedFilesPayload);
 
         /********************************
          * +++++ Required Documents
@@ -4169,27 +4163,47 @@ class PDSController extends Controller
             'cert_uploads.*.max' => 'Each file must be 10MB or smaller.',
         ]);
 
-        $normalizedUploads = $request->file('cert_uploads', []);
-        if (isset($normalizedUploads['cert_elegibility']) && !isset($normalizedUploads['cert_eligibility'])) {
-            $normalizedUploads['cert_eligibility'] = $normalizedUploads['cert_elegibility'];
-            unset($normalizedUploads['cert_elegibility']);
+        $existingDocs = $this->loadReusableUploadedDocumentsMap(
+            (int) Auth::id(),
+            !empty($applicationVacancyId) ? (string) $applicationVacancyId : null
+        );
+
+        $existingDocLookup = [];
+        foreach ($requiredDocs as $docType) {
+            if ($this->hasUploadedDocumentForType($existingDocs, $docType)) {
+                $existingDocLookup[$docType] = true;
+            }
         }
-        $request->files->set('cert_uploads', $normalizedUploads);
+
+        // Count previously uploaded application letter from Applications records as existing.
+        if (in_array('application_letter', $requiredDocs, true) && !isset($existingDocLookup['application_letter'])) {
+            $hasApplicationLetter = Applications::where('user_id', Auth::id())
+                ->whereNotNull('file_storage_path')
+                ->exists();
+            if ($hasApplicationLetter) {
+                $existingDocLookup['application_letter'] = true;
+            }
+        }
 
         $uploaded_files = [];
-        $files_with_upload_errors = [];
         $upload_errors = [];
+        $submittedUploadLookup = [];
+        $validUploadLookup = [];
         foreach (UploadedDocument::DOCUMENTS as $_access) {
-
-            // Files not present in the request should not be processed.
-            if (!$request->hasFile("cert_uploads.$_access")) {
+            if ($_access === 'isApproved') {
                 continue;
             }
 
+            // Files not present in the request should not be processed.
+            $_file = $this->resolveUploadedFileFromPayload($uploadedFilesPayload, (string) $_access);
+            if (!$_file) {
+                continue;
+            }
+            $submittedUploadLookup[$_access] = true;
+
             // Check if the requested file has any upload errors.
-            $_file = $request->file("cert_uploads.$_access");
             if (!$_file->isValid()) {
-                $files_with_upload_errors[] = $_access;
+                $upload_errors["cert_uploads.$_access"] = $this->resolveUploadErrorMessage($_file);
                 continue;
             }
 
@@ -4207,16 +4221,50 @@ class PDSController extends Controller
             }
 
             $uploaded_files[$_access] = $_file;
+            $validUploadLookup[$_access] = true;
         }
 
-        if (!empty($files_with_upload_errors)) {
-            foreach ($files_with_upload_errors as $field) {
-                $upload_errors["cert_uploads.$field"] = 'Upload failed. Please try again.';
+        $missingRequiredDocs = [];
+        foreach ($requiredDocs as $docType) {
+            if (isset($existingDocLookup[$docType])) {
+                continue;
             }
+            if (isset($validUploadLookup[$docType])) {
+                continue;
+            }
+            if (isset($submittedUploadLookup[$docType])) {
+                continue;
+            }
+            $missingRequiredDocs[] = $docType;
         }
 
-        if (!empty($upload_errors)) {
-            return back()->withErrors($upload_errors);
+        $errors = $upload_errors;
+        foreach ($missingRequiredDocs as $docType) {
+            $field = "cert_uploads.$docType";
+            if (isset($errors[$field])) {
+                continue;
+            }
+
+            $label = $documentLabels[$docType] ?? str_replace('_', ' ', $docType);
+            $errors[$field] = "{$label} is required for {$docTrack} applications.";
+        }
+
+        if (!empty($missingRequiredDocs)) {
+            Log::warning('C5 missing required documents', [
+                'user_id' => Auth::id(),
+                'vacancy_id' => $applicationVacancyId,
+                'doc_track' => $docTrack,
+                'missing_docs' => $missingRequiredDocs,
+                'existing_doc_keys' => array_keys($existingDocLookup),
+                'submitted_upload_keys' => array_keys($submittedUploadLookup),
+                'valid_upload_keys' => array_keys($validUploadLookup),
+                'upload_error_fields' => array_keys($upload_errors),
+                'raw_upload_keys' => array_keys($uploadedFilesPayload),
+            ]);
+        }
+
+        if (!empty($errors)) {
+            return back()->withErrors($errors)->withInput();
         }
 
         $storedPaths = [];
@@ -4934,6 +4982,19 @@ class PDSController extends Controller
         }
 
         return [true, null];
+    }
+
+    private function resolveUploadErrorMessage(UploadedFile $file): string
+    {
+        return match ($file->getError()) {
+            UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => 'Upload failed because the file is larger than the server limit.',
+            UPLOAD_ERR_PARTIAL => 'Upload was interrupted. Please try again.',
+            UPLOAD_ERR_NO_FILE => 'No file was uploaded.',
+            UPLOAD_ERR_NO_TMP_DIR => 'Upload failed because the server temporary folder is missing.',
+            UPLOAD_ERR_CANT_WRITE => 'Upload failed while writing the file. Please try again.',
+            UPLOAD_ERR_EXTENSION => 'Upload was blocked by a server extension.',
+            default => 'Upload failed. Please try again.',
+        };
     }
 
     private function resolveMimeType(string $path): ?string
