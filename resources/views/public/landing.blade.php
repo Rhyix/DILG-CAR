@@ -240,10 +240,10 @@
                             
                             // Expand vacancy type to full name
                             $vacancyTypeDisplay = match($typeNormalized) {
-                                'cos', 'contract of service' => 'CONTRACT OF SERVICE',
-                                'plantilla' => 'PLANTILLA',
-                                'permanent' => 'PERMANENT',
-                                default => strtoupper($vacancy->vacancy_type ?? ''),
+                                'cos', 'contract of service' => 'Contract of Service Position',
+                                'plantilla' => 'Plantilla Position',
+                                'permanent' => 'Permanent Position',
+                                default => strtoupper($vacancy->vacancy_type ?? '') . ' Position',
                             };
                         @endphp
                         @if(!$isClosed)
