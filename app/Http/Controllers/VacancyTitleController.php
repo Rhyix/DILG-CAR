@@ -25,8 +25,10 @@ class VacancyTitleController extends Controller
         }
         $validated = $request->validate([
             'position_title' => 'required|string|max:255|unique:vacancy_titles,position_title',
-            'salary_grade' => 'nullable|string|max:50',
+            'salary_grade' => ['required', 'regex:/^SG-([1-9]|[1-9][0-9])$/'],
             'monthly_salary' => 'required|numeric|min:0',
+        ], [
+            'salary_grade.regex' => 'Salary Grade/Pay Grade must be between SG-1 and SG-99.',
         ]);
         VacancyTitle::create($validated);
         return redirect()->route('admin.vacancy_titles.index')->with('success', 'Vacancy title created.');
@@ -40,8 +42,10 @@ class VacancyTitleController extends Controller
         $title = VacancyTitle::findOrFail($id);
         $validated = $request->validate([
             'position_title' => 'required|string|max:255|unique:vacancy_titles,position_title,' . $title->id,
-            'salary_grade' => 'nullable|string|max:50',
+            'salary_grade' => ['required', 'regex:/^SG-([1-9]|[1-9][0-9])$/'],
             'monthly_salary' => 'required|numeric|min:0',
+        ], [
+            'salary_grade.regex' => 'Salary Grade/Pay Grade must be between SG-1 and SG-99.',
         ]);
         $title->update($validated);
         return redirect()->route('admin.vacancy_titles.index')->with('success', 'Vacancy title updated.');
