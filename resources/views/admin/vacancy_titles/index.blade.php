@@ -29,11 +29,11 @@
                 <label class="block text-sm font-semibold text-gray-700">Salary Grade/Pay Grade<span class="text-red-600">*</span></label>
                 <div class="flex rounded border border-gray-300 overflow-hidden focus-within:ring-2 focus-within:ring-[#0D2B70]">
                     <span class="inline-flex items-center px-3 bg-gray-100 text-gray-600 font-semibold border-r border-gray-300 select-none">SG-</span>
-                    <input type="number" id="sg_number_create" min="1" max="99" required
+                    <input type="text" id="sg_number_create" inputmode="numeric" maxlength="2" pattern="[0-9]{1,2}" required
                         class="w-full px-3 py-2 focus:outline-none"
                         placeholder="18"
                         value="{{ old('salary_grade') ? preg_replace('/^SG-/i', '', old('salary_grade')) : '' }}"
-                        oninput="document.getElementById('salary_grade_hidden').value = this.value ? 'SG-' + this.value : ''">
+                        oninput="syncSalaryGrade(this, 'salary_grade_hidden')">
                 </div>
                 <input type="hidden" id="salary_grade_hidden" name="salary_grade" value="{{ old('salary_grade') }}">
             </div>
@@ -102,10 +102,10 @@
           <label class="block text-sm font-semibold text-gray-700">Salary Grade/Pay Grade<span class="text-red-600">*</span></label>
           <div class="flex rounded border border-gray-300 overflow-hidden focus-within:ring-2 focus-within:ring-[#0D2B70]">
               <span class="inline-flex items-center px-3 bg-gray-100 text-gray-600 font-semibold border-r border-gray-300 select-none">SG-</span>
-              <input type="number" id="edit_salary_grade" min="1" max="99" required
+              <input type="text" id="edit_salary_grade" inputmode="numeric" maxlength="2" pattern="[0-9]{1,2}" required
                   class="w-full px-3 py-2 focus:outline-none"
                   placeholder="18"
-                  oninput="document.getElementById('edit_salary_grade_hidden').value = this.value ? 'SG-' + this.value : ''">
+                  oninput="syncSalaryGrade(this, 'edit_salary_grade_hidden')">
           </div>
           <input type="hidden" id="edit_salary_grade_hidden" name="salary_grade">
         </div>
@@ -123,12 +123,30 @@
 </div>
 
 <script>
+function sanitizeSalaryGradeInput(rawValue) {
+  const digits = String(rawValue || '').replace(/\D/g, '').slice(0, 2);
+  if (!digits) {
+    return '';
+  }
+  const number = Number(digits);
+  if (!Number.isInteger(number) || number < 1 || number > 99) {
+    return '';
+  }
+  return String(number);
+}
+
+function syncSalaryGrade(input, hiddenId) {
+  const sanitized = sanitizeSalaryGradeInput(input.value);
+  input.value = sanitized;
+  document.getElementById(hiddenId).value = sanitized ? 'SG-' + sanitized : '';
+}
+
 function openEdit(id, title, sg, salary) {
   document.getElementById('editForm').action = "{{ url('/admin/utilities/vacancy-titles') }}/" + id;
   document.getElementById('edit_position_title').value = title;
-  const sgNum = (sg || '').replace(/^SG-/i, '');
+  const sgNum = sanitizeSalaryGradeInput((sg || '').replace(/^SG-/i, ''));
   document.getElementById('edit_salary_grade').value = sgNum;
-  document.getElementById('edit_salary_grade_hidden').value = sg || '';
+  document.getElementById('edit_salary_grade_hidden').value = sgNum ? 'SG-' + sgNum : '';
   document.getElementById('edit_monthly_salary').value = salary || 0;
   document.getElementById('editModal').classList.remove('hidden');
   document.getElementById('editModal').classList.add('flex');
@@ -137,5 +155,12 @@ function closeEdit() {
   document.getElementById('editModal').classList.add('hidden');
   document.getElementById('editModal').classList.remove('flex');
 }
+
+document.addEventListener('DOMContentLoaded', function () {
+  const createInput = document.getElementById('sg_number_create');
+  if (createInput) {
+    syncSalaryGrade(createInput, 'salary_grade_hidden');
+  }
+});
 </script>
 @endsection

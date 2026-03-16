@@ -8,7 +8,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Activitylog\Models\Activity;
-use Illuminate\Support\Facades\Http;
 
 
 class LoginController extends Controller
@@ -81,17 +80,6 @@ class LoginController extends Controller
     {
         $attempts = session()->get('login_attempts', 0);
 
-        // Enforce reCAPTCHA only in production environment
-        if (app()->environment('production')) {
-            $captcha = $request->input('g-recaptcha-response');
-
-            if (!$captcha || !$this->verifyRecaptcha($captcha, $request->ip())) {
-                return back()->withErrors([
-                    'captcha' => 'Please confirm you are not a robot.'
-                ]);
-            }
-        }
-
         // Logout admin if logged in
         if (Auth::guard('admin')->check()) {
             Auth::guard('admin')->logout();
@@ -162,19 +150,5 @@ class LoginController extends Controller
             ->withInput($request->only('email'));
     }
 
-
-    // reCAPTCHA verifier
-    protected function verifyRecaptcha($token, $ip)
-    {
-        $secret = env('RECAPTCHA_SECRET');
-
-        $response = Http::asForm()->post('https://www.google.com/recaptcha/api/siteverify', [
-            'secret' => $secret,
-            'response' => $token,
-            'remoteip' => $ip,
-        ]);
-
-        return $response->json('success');
-    }
 
 }

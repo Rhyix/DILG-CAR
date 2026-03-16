@@ -8,7 +8,6 @@ use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
@@ -197,16 +196,6 @@ class AdminAuthController extends Controller
 
     public function login(Request $request)
     {
-        if (app()->environment('production')) {
-            $captcha = $request->input('g-recaptcha-response');
-
-            if (!$captcha || !$this->verifyRecaptcha($captcha, $request->ip())) {
-                return back()->withErrors([
-                    'captcha' => 'Please confirm you are not a robot.',
-                ])->with('auth_tab', 'login');
-            }
-        }
-
         if (Auth::check()) {
             $this->clearPdsSessionCache($request);
             Auth::logout();
@@ -291,19 +280,6 @@ class AdminAuthController extends Controller
         }
 
         return view('admin.pending_dashboard', compact('admin'));
-    }
-
-    protected function verifyRecaptcha($token, $ip)
-    {
-        $secret = env('RECAPTCHA_SECRET');
-
-        $response = Http::asForm()->post('https://www.google.com/recaptcha/api/siteverify', [
-            'secret' => $secret,
-            'response' => $token,
-            'remoteip' => $ip,
-        ]);
-
-        return $response->json('success');
     }
 
     public function logout(Request $request)

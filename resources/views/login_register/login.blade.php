@@ -5,9 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>Login - DILG CAR Recruitment and Selection Portal</title>
-  @if(app()->environment('production'))
-    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
-  @endif
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" />
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
@@ -129,12 +126,6 @@
                 </label>
                 <a href="{{ route('forgot.password.form') }}" class="font-semibold text-[#0D2B70] hover:underline">Forgot Password?</a>
               </div>
-
-              @if(app()->environment('production'))
-                <div class="pt-1">
-                  <div class="g-recaptcha" data-sitekey="6LfpjpErAAAAADcMjUqP3AZmsMae7WvrjcA5OSvs" data-action="LOGIN"></div>
-                </div>
-              @endif
 
               <button type="submit" class="use-loader w-full rounded-[0.85rem] bg-[linear-gradient(135deg,#0d2b70_0%,#174493_100%)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_9px_20px_rgba(13,43,112,0.26)] transition-[transform,box-shadow,filter] hover:-translate-y-px hover:brightness-[1.02] hover:shadow-[0_12px_26px_rgba(13,43,112,0.35)]">
                 Sign In
