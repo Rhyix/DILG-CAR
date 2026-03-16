@@ -105,6 +105,9 @@
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <form id="learning-form" class="space-y-8" action="/pds/submit_c3/display_c4" method="POST">
             @csrf
+            @if(request()->boolean('simple'))
+                <input type="hidden" name="simple" value="1">
+            @endif
 
             <!-- Voluntary Work Section -->
             <section class="bg-white rounded-2xl shadow-xl p-4 sm:p-8 animate-slide-in">
@@ -584,7 +587,7 @@
         
         <!-- Number of Hours - Full width -->
         <div class="relative">
-            <input type="number" name="learning_hours_${entryCount_learning + 1}" value="${data?.learning_hours ?? ''}"
+            <input type="number" name="learning_hours_${entryCount_learning + 1}" value="${data?.learning_hours ?? ''}" min="1" max="32767" step="1"
             placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
             <label class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-xs sm:text-sm">Number of Hours</label>
         </div>
@@ -648,7 +651,7 @@
         
         <!-- Number of Hours - Full width on mobile -->
         <div class="relative">
-            <input type="number" name="voluntary_hours_${entryCount_voluntary + 1}" value="${data?.voluntary_hours ?? ''}"
+            <input type="number" name="voluntary_hours_${entryCount_voluntary + 1}" value="${data?.voluntary_hours ?? ''}" min="1" max="32767" step="1"
             placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
             <label class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-xs sm:text-sm">Number of Hours</label>
         </div>
