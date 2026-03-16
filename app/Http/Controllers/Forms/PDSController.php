@@ -44,6 +44,7 @@ class PDSController extends Controller
         'image/jpeg',
         'image/png',
     ];
+    private const SMALLINT_MAX = 32767;
     private const DOCUMENT_TYPE_ALIASES = [
         'cert_eligibility' => ['cert_elegibility'],
         'cert_employment' => ['certificate_employment'],
@@ -2519,10 +2520,15 @@ class PDSController extends Controller
             $rules_data_learning["learning_type_$i"] = 'required|string|max:100';
             $rules_data_learning["learning_from_$i"] = 'required|date';
             $rules_data_learning["learning_to_$i"] = "required|date|after:learning_from_$i";
-            $rules_data_learning["learning_hours_$i"] = 'required|numeric|min:1';
+            $rules_data_learning["learning_hours_$i"] = 'required|integer|min:1|max:' . self::SMALLINT_MAX;
             $rules_data_learning["learning_conducted_$i"] = 'required|string|max:255';
         }
-        $learningValidator = Validator::make($request->all(), $rules_data_learning);
+        $learningMessages = [];
+        foreach ($learningIndexes as $i) {
+            $learningMessages["learning_hours_$i.integer"] = "Learning and Development row {$i}: Number of hours must be a whole number.";
+            $learningMessages["learning_hours_$i.max"] = "Learning and Development row {$i}: Number of hours cannot exceed " . self::SMALLINT_MAX . '.';
+        }
+        $learningValidator = Validator::make($request->all(), $rules_data_learning, $learningMessages);
         $learningValidator->after(function (\Illuminate\Validation\Validator $validator) use ($request, $learningIndexes) {
             foreach ($learningIndexes as $i) {
                 $fromRaw = trim((string) $request->input("learning_from_$i", ''));
@@ -2577,10 +2583,15 @@ class PDSController extends Controller
             $rules_data_vol["voluntary_org_$i"] = 'required|string|max:255';
             $rules_data_vol["voluntary_from_$i"] = 'required|date';
             $rules_data_vol["voluntary_to_$i"] = "required|date|after:voluntary_from_$i";
-            $rules_data_vol["voluntary_hours_$i"] = 'required|numeric|min:1';
+            $rules_data_vol["voluntary_hours_$i"] = 'required|integer|min:1|max:' . self::SMALLINT_MAX;
             $rules_data_vol["voluntary_position_$i"] = 'required|string|max:255';
         }
-        $voluntaryValidator = Validator::make($request->all(), $rules_data_vol);
+        $voluntaryMessages = [];
+        foreach ($voluntaryIndexes as $i) {
+            $voluntaryMessages["voluntary_hours_$i.integer"] = "Voluntary Work row {$i}: Number of hours must be a whole number.";
+            $voluntaryMessages["voluntary_hours_$i.max"] = "Voluntary Work row {$i}: Number of hours cannot exceed " . self::SMALLINT_MAX . '.';
+        }
+        $voluntaryValidator = Validator::make($request->all(), $rules_data_vol, $voluntaryMessages);
         $voluntaryValidator->after(function (\Illuminate\Validation\Validator $validator) use ($request, $voluntaryIndexes) {
             foreach ($voluntaryIndexes as $i) {
                 $fromRaw = trim((string) $request->input("voluntary_from_$i", ''));
@@ -2633,45 +2644,58 @@ class PDSController extends Controller
             ->causedBy(Auth::user())
             ->log('Submitted C3 form data.');
 */
-        \App\Models\User::query()->whereKey(Auth::id())->update(['updated_at' => now()]);
-
-        // SAVE C3 to DB
-        //LEARNING AND DEVELOPMENT
         $c3_learning_and_development_data = session('data_learning', []);
-        LearningAndDevelopment::where('user_id', Auth::id())->delete();
-        if (!empty($c3_learning_and_development_data)) {
-            LearningAndDevelopment::upsert(
-                $c3_learning_and_development_data,
-                ['learning_title', 'learning_from', 'user_id'], // Unique constraint
-                ['learning_type', 'learning_hours', 'learning_to', 'learning_conducted'] // Fields to update
-            );
-        }
-
-        //VOLUNTARY WORK
         $c3_voluntary_data = session('data_voluntary', []);
-        VoluntaryWork::where('user_id', Auth::id())->delete();
-        if (!empty($c3_voluntary_data)) {
-            VoluntaryWork::upsert(
-                $c3_voluntary_data,
-                ['voluntary_org', 'voluntary_from', 'user_id'], // Unique constraint
-                ['voluntary_to', 'voluntary_hours', 'voluntary_position'] // Fields to update
-            );
-        }
-
-        //OTHER INFORMATION
         $c3_other_information_data = session('data_otherInfo');
-        if (!empty($c3_other_information_data)) {
-            Models\OtherInformation::updateOrCreate(
-                ['user_id' => Auth::id()],
-                [
-                    'skill' => $c3_other_information_data['skill'],
-                    'distinction' => $c3_other_information_data['distinction'],
-                    'organization' => $c3_other_information_data['organization'],
-                ]
-            );
+        try {
+            DB::transaction(function () use ($c3_learning_and_development_data, $c3_voluntary_data, $c3_other_information_data) {
+                \App\Models\User::query()->whereKey(Auth::id())->update(['updated_at' => now()]);
+
+                // SAVE C3 to DB
+                // LEARNING AND DEVELOPMENT
+                LearningAndDevelopment::where('user_id', Auth::id())->delete();
+                if (!empty($c3_learning_and_development_data)) {
+                    foreach ($c3_learning_and_development_data as $row) {
+                        LearningAndDevelopment::create($row);
+                    }
+                }
+
+                // VOLUNTARY WORK
+                VoluntaryWork::where('user_id', Auth::id())->delete();
+                if (!empty($c3_voluntary_data)) {
+                    foreach ($c3_voluntary_data as $row) {
+                        VoluntaryWork::create($row);
+                    }
+                }
+
+                // OTHER INFORMATION
+                if (!empty($c3_other_information_data)) {
+                    Models\OtherInformation::updateOrCreate(
+                        ['user_id' => Auth::id()],
+                        [
+                            'skill' => $c3_other_information_data['skill'],
+                            'distinction' => $c3_other_information_data['distinction'],
+                            'organization' => $c3_other_information_data['organization'],
+                        ]
+                    );
+                }
+            });
+        } catch (\Throwable $e) {
+            Log::error('C3 submit failed', [
+                'user_id' => Auth::id(),
+                'go_to' => $go_to,
+                'simple' => $request->input('simple'),
+                'learning_count' => is_array($c3_learning_and_development_data) ? count($c3_learning_and_development_data) : 0,
+                'voluntary_count' => is_array($c3_voluntary_data) ? count($c3_voluntary_data) : 0,
+                'error' => $e->getMessage(),
+            ]);
+
+            return back()->withErrors([
+                'c3_save' => 'Unable to save C3 data. Please check the number of hours and try again.',
+            ])->withInput();
         }
         $routeParams = [];
-        if ($request->query('simple')) {
+        if ($request->boolean('simple') || $request->query('simple')) {
             $routeParams['simple'] = 1;
         }
         return redirect()->route($go_to, $routeParams);
