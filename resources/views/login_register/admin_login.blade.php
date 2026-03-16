@@ -32,13 +32,13 @@
                         alt="DILG Logo"
                         class="mx-auto h-24 w-24 rounded-full bg-white/10 p-3 shadow-[0_16px_32px_rgba(2,12,34,0.24)] xl:h-28 xl:w-28"
                     />
-                    <p class="mt-6 text-sm font-semibold uppercase tracking-[0.42em] text-blue-100">DILG CAR</p>
+                    <p class="mt-6 text-sm uppercase tracking-[0.42em] text-blue-100">DEPARTMENT OF THE INTERIOR AND LOCAL GOVERNMENT - CORDILLERA ADMINISTRATIVE REGION</p>
                     <h3 class="mt-4 text-3xl font-extrabold leading-tight text-white font-['Space_Grotesk'] tracking-[-0.01em] xl:text-[2rem]">
                         Recruitment Selection and Placement Portal
                     </h3>
-                    <p class="mt-5 block w-full whitespace-nowrap text-[clamp(0.5rem,0.42rem+0.18vw,0.6rem)] font-semibold uppercase leading-[1.5] tracking-[0.015em]">
+                    <!-- <p class="mt-5 block w-full whitespace-nowrap text-[clamp(0.5rem,0.42rem+0.18vw,0.6rem)] font-semibold uppercase leading-[1.5] tracking-[0.015em]">
                         DEPARTMENT OF THE INTERIOR AND LOCAL GOVERNMENT CORDILLERA ADMINISTRATIVE REGION
-                    </p>
+                    </p> -->
                     <p class="mt-4 text-sm font-semibold uppercase tracking-[0.24em] text-yellow-200 xl:text-base">
                         Matino, Mahusay, Maaasahan.
                     </p>
