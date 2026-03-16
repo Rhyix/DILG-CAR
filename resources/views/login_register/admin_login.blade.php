@@ -132,12 +132,6 @@
                                 </button>
                             </div> -->
 
-                            @if(app()->environment('production'))
-                                <div class="pt-1">
-                                    <div class="g-recaptcha" data-sitekey="6LfpjpErAAAAADcMjUqP3AZmsMae7WvrjcA5OSvs" data-action="LOGIN"></div>
-                                </div>
-                            @endif
-
                             <button type="submit" class="w-full rounded-[0.85rem] bg-[linear-gradient(135deg,#0d2b70_0%,#174493_100%)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_9px_20px_rgba(13,43,112,0.26)] transition-[transform,box-shadow,filter] hover:-translate-y-px hover:brightness-[1.02] hover:shadow-[0_12px_26px_rgba(13,43,112,0.35)]">
                                 Sign In
                             </button>
@@ -279,9 +273,6 @@
         </div>
     </div>
 
-    @if(app()->environment('production'))
-        <script src="https://www.google.com/recaptcha/api.js" async defer></script>
-    @endif
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const registerModal = document.getElementById('adminRegisterModal');
