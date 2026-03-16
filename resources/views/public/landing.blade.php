@@ -227,13 +227,26 @@
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" id="vacancyGrid">
                     @forelse ($vacancies as $vacancy)
                         @php
+                            $closingDate = \Carbon\Carbon::parse($vacancy->closing_date);
+                            $today = \Carbon\Carbon::today();
+                            $isClosed = $closingDate->isPast();
+                            
                             $typeNormalized = strtolower(trim((string) ($vacancy->vacancy_type ?? '')));
                             $filterType = match($typeNormalized) {
                                 'permanent', 'plantilla' => 'permanent',
                                 'cos', 'contract of service' => 'cos',
                                 default => 'other',
                             };
+                            
+                            // Expand vacancy type to full name
+                            $vacancyTypeDisplay = match($typeNormalized) {
+                                'cos', 'contract of service' => 'CONTRACT OF SERVICE',
+                                'plantilla' => 'PLANTILLA',
+                                'permanent' => 'PERMANENT',
+                                default => strtoupper($vacancy->vacancy_type ?? ''),
+                            };
                         @endphp
+                        @if(!$isClosed)
                         <article
                             class="vacancy-card bg-white rounded-xl border border-gray-200 hover:border-[#0D2B70]/40 hover:shadow-md transition-all duration-200 cursor-pointer"
                             data-type="{{ $filterType }}"
@@ -249,15 +262,23 @@
                             ])) }}"
                         >
                             <div class="p-5 sm:p-6">
+                                @php
+                                    $daysUntilDeadline = $today->diffInDays($closingDate);
+                                    $isDeadlineSoon = $daysUntilDeadline <= 1 && $daysUntilDeadline > 0;
+                                @endphp
                                 <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                                     <div>
                                         <h3 class="font-bold text-[#0D2B70] text-lg sm:text-xl">{{ $vacancy->position_title }}</h3>
                                         <p class="text-gray-700 text-sm sm:text-base mt-1 font-medium">{{ $vacancy->office_assignment ?? 'DILG - CAR' }}</p>
-                                        <p class="text-[#0D2B70]/75 text-sm mt-1 italic">{{ $vacancy->vacancy_type }}</p>
+                                        <p class="text-[#0D2B70]/75 text-sm mt-1 italic">{{ $vacancyTypeDisplay }}</p>
                                     </div>
                                     <span class="text-[#0D2B70] font-bold text-base sm:text-lg bg-blue-50 px-4 py-2 rounded-lg w-fit whitespace-nowrap">
                                         @if($vacancy->salary_grade)
-                                            SG {{ substr($vacancy->salary_grade, 0, 2) }} - ₱{{ number_format((float) ($vacancy->monthly_salary ?? 2), 2) }}
+                                            @php
+                                                $gradeNum = preg_replace('/[^0-9]/', '', $vacancy->salary_grade);
+                                                if (empty($gradeNum)) $gradeNum = $vacancy->salary_grade;
+                                            @endphp
+                                            SG {{ $gradeNum }} - ₱{{ number_format((float) ($vacancy->monthly_salary ?? 2), 2) }}
                                         @else
                                             ₱{{ number_format((float) ($vacancy->monthly_salary ?? 0), 2) }}
                                         @endif
@@ -276,13 +297,32 @@
                                         </div>
                                     </div>
 
-                                    <span class="text-[#0D2B70] font-semibold hover:underline inline-flex items-center gap-2">
-                                        View details
-                                        <i data-feather="arrow-right" class="w-4 h-4"></i>
-                                    </span>
+                                    <div class="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
+                                        @if($isClosed)
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800">
+                                                <span class="w-2 h-2 bg-red-500 rounded-full mr-1.5"></span>
+                                                Closed
+                                            </span>
+                                        @elseif($isDeadlineSoon)
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-800">
+                                                <span class="w-2 h-2 bg-orange-500 rounded-full mr-1.5"></span>
+                                                Closing Soon
+                                            </span>
+                                        @else
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+                                                <span class="w-2 h-2 bg-green-500 rounded-full mr-1.5"></span>
+                                                Open
+                                            </span>
+                                        @endif
+                                        <span class="text-[#0D2B70] font-semibold hover:underline inline-flex items-center gap-2">
+                                            View details
+                                            <i data-feather="arrow-right" class="w-4 h-4"></i>
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         </article>
+                        @endif
                     @empty
                         <div class="text-center py-12 text-gray-500 flex flex-col items-center justify-center">
                             <div class="bg-gray-100 p-4 rounded-full mb-3">
