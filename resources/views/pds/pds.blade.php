@@ -1963,6 +1963,27 @@
             }
         };
 
+        const normalizeDateInputValue = (value) => {
+            const raw = typeof value === 'string' ? value.trim() : '';
+            if (!raw) return '';
+
+            if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+                return raw;
+            }
+
+            const ddMmYyyyDash = raw.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+            if (ddMmYyyyDash) {
+                return `${ddMmYyyyDash[3]}-${ddMmYyyyDash[2]}-${ddMmYyyyDash[1]}`;
+            }
+
+            const ddMmYyyySlash = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+            if (ddMmYyyySlash) {
+                return `${ddMmYyyySlash[3]}-${ddMmYyyySlash[2]}-${ddMmYyyySlash[1]}`;
+            }
+
+            return '';
+        };
+
         const fillChildren = async (children) => {
             if (!Array.isArray(children)) return;
             await ensureChildRows(children.length);
@@ -1985,7 +2006,7 @@
                     dispatchInputEvents(nameInputs[index]);
                 }
                 if (dobInputs[index]) {
-                    dobInputs[index].value = child?.dob || '';
+                    dobInputs[index].value = normalizeDateInputValue(child?.dob || '');
                     dispatchInputEvents(dobInputs[index]);
                 }
             });

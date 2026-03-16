@@ -1100,8 +1100,8 @@ private function writeEducationalBackground($pdf, $education)
         $this->writeFittedAt($pdf, 'N/A', 183, 271, 12, 8.0, 5.0); // Year Graduated
         $this->writeFittedAt($pdf, 'N/A', 200, 271, 13, 8.0, 5.0); // Academic Honors
     } else {
-        $this->writeFittedAt($pdf, $this->valueOrNa($education?->jhs_school), 40.5, 271, 48, 6.5, 4.5);
-        $this->writeFittedAt($pdf, $this->valueOrNa($education?->jhs_basic), 90, 271, 45, 6.5, 4.5);
+        $this->writeFittedAt($pdf, $this->valueOrNa($education?->jhs_school), 40.5, 271, 48, 7.0, 4.5);
+        $this->writeFittedAt($pdf, $this->valueOrNa($education?->jhs_basic), 90, 271, 45, 7.0, 4.5);
         $this->writeFittedAt($pdf, $this->dateOrNa($education?->jhs_from, 'm/Y'), 136, 271, 27, 7.0, 5.0);
         $this->writeFittedAt($pdf, $this->dateOrNa($education?->jhs_to, 'm/Y'), 149, 271, 31.5, 7.0, 5.0);
         $this->writeFittedAt($pdf, $this->valueOrNa($education?->jhs_earned), 166, 271, 18, 7.0, 5.0);
@@ -1144,9 +1144,9 @@ private function writeVocationalChunk($pdf, $chunk)
         $currentYSchoolBasic = $startY_school_basic + $rowOffset;
         $currentYOther = $startY_other + $rowOffset;
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($voc['school'] ?? null), 40.5, $currentYSchoolBasic, 48, 6.5, 4.5);
+        $this->writeFittedAt($pdf, $this->valueOrNa($voc['school'] ?? null), 40.5, $currentYSchoolBasic, 48, 7.0, 5.0);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($voc['basic'] ?? null), 90, $currentYSchoolBasic, 45, 6.5, 4.5);
+        $this->writeFittedAt($pdf, $this->valueOrNa($voc['basic'] ?? null), 90, $currentYSchoolBasic, 45, 7.0, 4.5);
 
         $this->writeFittedAt($pdf, $this->dateOrNa($voc['from'] ?? null, 'm/Y'), 136, $currentYOther, 27, 7.0, 5.0);
         $this->writeFittedAt($pdf, $this->dateOrNa($voc['to'] ?? null, 'm/Y'), 149, $currentYOther, 31.5, 7.0, 5.0);
@@ -1191,7 +1191,7 @@ private function writeCollegeChunk($pdf, $chunk)
         $currentYSchoolBasic = $startY_school_basic + $rowOffset;
         $currentYOther = $startY_other + $rowOffset;
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($college['school'] ?? null), 40.5, $currentYSchoolBasic, 48, 6.5, 4.5);
+        $this->writeFittedAt($pdf, $this->valueOrNa($college['school'] ?? null), 40.5, 286, 48, 7.0, 4.5);
 
         $this->writeFittedAt($pdf, $this->valueOrNa($college['basic'] ?? null), 90, $currentYSchoolBasic, 45, 6.5, 4.5);
 
@@ -1611,6 +1611,21 @@ private function WriteC4Information($pdf, $userId)
             'disability'    => ['yes' => [138.7, 171],  'no' => [166, 171.5]],
             'solo_parent'   => ['yes' => [138.7, 180.4],  'no' => [166, 180.5]],
         ];
+
+    $checkboxStates = [
+        'third_degree' => $this->hasAffirmativeSelection($misc->related_34_a ?? null),
+        'fourth_degree' => $this->hasAffirmativeSelection($misc->related_34_b ?? null),
+        'guilty' => $this->hasAffirmativeSelection($misc->guilty_35_a ?? null),
+        'charged' => $this->hasAffirmativeSelection($criminalDetailsRaw),
+        'convicted' => $this->hasAffirmativeSelection($misc->convicted_36 ?? null),
+        'separated' => $this->hasAffirmativeSelection($misc->separated_37 ?? null),
+        'candidate' => $this->hasAffirmativeSelection($misc->candidate_38 ?? null),
+        'resigned' => $this->hasAffirmativeSelection($misc->resigned_38_b ?? null),
+        'immigrant' => $this->hasAffirmativeSelection($misc->immigrant_39 ?? null),
+        'indigenous' => $this->hasAffirmativeSelection($misc->indigenous_40_a ?? null),
+        'disability' => $this->hasAffirmativeSelection($misc->pwd_40_b ?? null),
+        'solo_parent' => $this->hasAffirmativeSelection($misc->solo_parent_40_c ?? null),
+    ];
 
     foreach ($checkboxes as $key => $coord) {
         $answer = ($checkboxStates[$key] ?? false) ? 'yes' : 'no';

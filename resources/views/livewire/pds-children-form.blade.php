@@ -33,12 +33,13 @@
                 </div>
                 <!-- Date of Birth -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-500 mb-1">DATE OF BIRTH (dd/mm/yyyy)</label>
+                    <label class="block text-sm font-medium text-gray-500 mb-1">DATE OF BIRTH</label>
                     <input
                         name="children[{{ $index }}][dob]"
-                        type="text"
+                        type="date"
                         wire:model.lazy="children.{{ $index }}.dob"
                         class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition text-sm md:text-base edu-date"
+                        max="{{ now()->format('Y-m-d') }}"
                         data-child-dob="true">
                 </div>
             </div>

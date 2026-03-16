@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use Carbon\Carbon;
 use Illuminate\Validation\Rules\In;
 use Livewire\Component;
 
@@ -17,6 +18,32 @@ class PdsChildrenForm extends Component
         Info('Adding an empty child');
         
         $this->children[] = ['name' => '', 'dob' => ''];
+    }
+
+    private function normalizeDobForInput($value): string
+    {
+        $text = is_string($value) ? trim($value) : '';
+        if ($text === '') {
+            return '';
+        }
+
+        try {
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $text)) {
+                return Carbon::createFromFormat('Y-m-d', $text)->format('Y-m-d');
+            }
+
+            if (preg_match('/^\d{2}-\d{2}-\d{4}$/', $text)) {
+                return Carbon::createFromFormat('d-m-Y', $text)->format('Y-m-d');
+            }
+
+            if (preg_match('/^\d{2}\/\d{2}\/\d{4}$/', $text)) {
+                return Carbon::createFromFormat('d/m/Y', $text)->format('Y-m-d');
+            }
+
+            return Carbon::parse($text)->format('Y-m-d');
+        } catch (\Throwable $e) {
+            return '';
+        }
     }
 /*
     public function mount($children) {
@@ -37,7 +64,7 @@ class PdsChildrenForm extends Component
             $this->children = collect($children)->map(function ($child) {
                 return [
                     'name' => $child['name'] ?? '',
-                    'dob' => $child['dob'] ?? '',
+                    'dob' => $this->normalizeDobForInput($child['dob'] ?? ''),
                 ];
             })->toArray();
         }
