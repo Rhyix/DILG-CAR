@@ -1,18 +1,18 @@
 <!-- resources/views/partials/data_privacy_notice_signup_version.blade.php -->
 
-<div
-  x-show="showModal && !privacyMessage"
-  class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/65 px-4 py-6 backdrop-blur-[2px]"
-  x-transition:enter="transition ease-out duration-300"
-  x-transition:enter-start="opacity-0"
-  x-transition:enter-end="opacity-100"
-  x-transition:leave="transition ease-in duration-200"
-  x-transition:leave-start="opacity-100"
-  x-transition:leave-end="opacity-0"
-  @keydown.escape.window="showModal = false"
-  x-data="privacyTimer()"
-  x-init="initTimer()"
->
+<div x-data="privacyTimer()" x-init="initTimer()">
+  <!-- Privacy Notice Modal -->
+  <div
+    x-show="showModal && !privacyMessage"
+    class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/65 px-4 py-6 backdrop-blur-[2px]"
+    x-transition:enter="transition ease-out duration-300"
+    x-transition:enter-start="opacity-0"
+    x-transition:enter-end="opacity-100"
+    x-transition:leave="transition ease-in duration-200"
+    x-transition:leave-start="opacity-100"
+    x-transition:leave-end="opacity-0"
+    @keydown.escape.window="showModal = false"
+  >
   <div class="relative w-full max-w-2xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_22px_60px_rgba(2,10,32,0.35)]">
     <div class="border-b border-slate-200 bg-gradient-to-r from-slate-50 to-slate-100 px-6 py-5 sm:px-8">
       <button
@@ -99,12 +99,16 @@
     </div>
   </div>
 </div>
+</div>
 
 <script>
   function privacyTimer() {
     return {
       timeLeft: 5,
       privacyMessage: false,
+      showModal: true,
+      agreed: false,
+      checkboxChecked: false,
 
       initTimer() {
         this.timeLeft = 5;
@@ -132,6 +136,7 @@
       },
 
       disagreeClicked() {
+        console.log('Disagree clicked, setting privacyMessage to true');
         this.privacyMessage = true;
         this.showModal = false;
         
