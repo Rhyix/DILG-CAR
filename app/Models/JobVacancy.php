@@ -76,6 +76,14 @@ class JobVacancy extends Model
     }
 
     /**
+     * Get the position title without (COS N) suffix.
+     */
+    public function getPositionTitleAttribute($value)
+    {
+        return preg_replace('/\s*\([^)]*\)\s*$/', '', $value);
+    }
+
+    /**
      * Generate acronym based on position title.
      */
     public static function generateAcronym($title)

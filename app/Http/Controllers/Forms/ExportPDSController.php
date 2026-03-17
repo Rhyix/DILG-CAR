@@ -861,15 +861,9 @@ class ExportPDSController
         // Birth
         $this->writeFittedAt(
             $pdf,
-            $this->dateOrNa($info?->date_of_birth),
-            41.5,
-            66,
-            34,
-            8.0,
-            5.0
-        );
+            $this->dateOrNa($info?->date_of_birth), 41.5, 65, 34, 8.0, 5.0);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($info?->place_of_birth), 41.5, 75, 65);
+        $this->writeFittedAt($pdf, $this->valueOrNa($info?->place_of_birth), 41.5, 74, 65);
 
         // Sex
         $sex = $this->normalizedValue($info?->sex);
@@ -1259,7 +1253,7 @@ private function writeGraduateChunk($pdf, $chunk)
 }
 
 
-
+// Civil Service Eligibility Part
 private function writeCivilServiceEligibilityChunk($pdf, $chunk)
 {
     $startX_career = 8.0;
@@ -1321,6 +1315,7 @@ private function writeCivilServiceEligibilityChunk($pdf, $chunk)
     }
 }
 
+// Work Experience Part
 private function writeWorkExperienceChunk($pdf, $chunk)
 {
     $x_from = 5;
@@ -1381,6 +1376,7 @@ private function writeWorkExperienceChunk($pdf, $chunk)
     }
 }
 
+// Voluntary Work Part
 private function writeVoluntaryWorkChunk($pdf, $chunk)
 {
     // Column X positions
@@ -1422,6 +1418,8 @@ private function writeVoluntaryWorkChunk($pdf, $chunk)
     }
 }
 
+
+// Learning and Development Part
 private function writeLearningAndDevelopmentChunk($pdf, $chunk)
 {
     // Column X positions
@@ -1466,7 +1464,7 @@ private function writeLearningAndDevelopmentChunk($pdf, $chunk)
             $x_title,
             $currentY,
             $titleWidth,
-            6.6 
+            7.0 
         );
 
         $this->writeFittedSingleLine(
@@ -1475,7 +1473,7 @@ private function writeLearningAndDevelopmentChunk($pdf, $chunk)
             $x_type,
             $currentY,
             $typeWidth,
-            8.0,
+            7.0,
             4.8
         );
 
