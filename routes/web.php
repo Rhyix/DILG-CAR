@@ -44,9 +44,10 @@ use Illuminate\Support\Facades\Response;
 // ==================================================================================================
 Route::get('/', function () {
     $openVacancies = \App\Models\JobVacancy::where('status', 'OPEN')
-        ->whereDate('closing_date', '>=', now())
+        ->whereRaw('DATE(closing_date) >= DATE(NOW())')
+        ->orderByRaw("CASE WHEN DATE_ADD(closing_date, INTERVAL -1 DAY) <= NOW() THEN 0 ELSE 1 END")
         ->orderByDesc('created_at')
-        ->get();
+        ->paginate(12);
     if (Auth::guard('admin')->check()) {
         $user = Auth::guard('admin')->user();
         $approvalStatus = (string) ($user->approval_status ?? 'approved');

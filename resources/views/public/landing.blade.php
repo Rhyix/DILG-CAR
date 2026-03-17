@@ -17,13 +17,28 @@
 </head>
 <body class="bg-gradient-to-br from-blue-50 via-indigo-50 to-blue-100 text-gray-900 min-h-screen flex flex-col">
     @php
-        $vacancyTypeCounts = collect($vacancies)->groupBy(function ($vacancy) {
-            return strtolower(trim((string) ($vacancy->vacancy_type ?? '')));
-        })->map->count();
+        // Get the items on the current page
+        $pageItems = $vacancies->items();
+        
+        // Count by vacancy type for current page (excluding closed vacancies)
+        $vacancyTypeCounts = [];
+        $allCount = 0;
+        
+        foreach ($pageItems as $vacancy) {
+            $closingDate = \Carbon\Carbon::parse($vacancy->closing_date)->setTime(17, 0, 0);
+            $now = \Carbon\Carbon::now();
+            $isClosed = $now->greaterThan($closingDate);
+            
+            // Only count if not closed
+            if (!$isClosed) {
+                $type = strtolower(trim((string) ($vacancy->vacancy_type ?? '')));
+                $vacancyTypeCounts[$type] = ($vacancyTypeCounts[$type] ?? 0) + 1;
+                $allCount++;
+            }
+        }
 
-        $allCount = $vacancies->count();
-        $permanentCount = ($vacancyTypeCounts['permanent'] ?? 0) + ($vacancyTypeCounts['plantilla'] ?? 0);
-        $cosCount = ($vacancyTypeCounts['cos'] ?? 0) + ($vacancyTypeCounts['contract of service'] ?? 0);
+        $plantillaCount = ($vacancyTypeCounts['permanent'] ?? 0) + ($vacancyTypeCounts['plantilla'] ?? 0);
+        $cosCount = ($vacancyTypeCounts['cos'] ?? 0) + ($vacancyTypeCounts['contract of service'] ?? 0) + ($vacancyTypeCounts['contract'] ?? 0);
         $ojtCount = ($vacancyTypeCounts['ojt'] ?? 0) + ($vacancyTypeCounts['on-the-job training'] ?? 0);
         $contractualCount = $vacancyTypeCounts['contractual'] ?? 0;
 
@@ -186,7 +201,6 @@
                 <h1 class="text-4xl sm:text-5xl lg:text-6xl font-black text-white leading-tight mb-4">
                     Ang DILG ay Matino, Mahusay at Maaasahan
                 </h1>
-                <div class="w-20 h-1 bg-white/40 rounded-full"></div>
             </div>
         </div>
     </header>
@@ -205,7 +219,7 @@
                     <div class="flex flex-col sm:flex-row border-b border-[#0D2B70] flex-wrap items-start sm:items-center gap-4 sm:gap-2">
                         <div class="flex flex-wrap items-center gap-2 flex-1" id="filterButtons">
                             <button type="button" class="filter-btn px-4 py-2.5 bg-[#0D2B70] text-white rounded-full font-semibold text-sm shadow-sm active" data-filter="all">All Vacancies ({{ $allCount }})</button>
-                            <button type="button" class="filter-btn px-4 py-2.5 text-gray-600 bg-gray-100 rounded-full font-semibold text-sm" data-filter="permanent">Permanent ({{ $permanentCount }})</button>
+                            <button type="button" class="filter-btn px-4 py-2.5 text-gray-600 bg-gray-100 rounded-full font-semibold text-sm" data-filter="plantilla">Plantilla ({{ $plantillaCount }})</button>
                             <button type="button" class="filter-btn px-4 py-2.5 text-gray-600 bg-gray-100 rounded-full font-semibold text-sm" data-filter="cos">Contract of Service ({{ $cosCount }})</button>
                             <!-- <button type="button" class="filter-btn px-4 py-2.5 text-gray-600 bg-gray-100 rounded-full font-semibold text-sm" data-filter="ojt">On-the-Job Training ({{ $ojtCount }})</button> -->
                             <!-- <button type="button" class="filter-btn px-4 py-2.5 text-gray-600 bg-gray-100 rounded-full font-semibold text-sm" data-filter="contractual">Contractual ({{ $contractualCount }})</button> -->
@@ -227,22 +241,22 @@
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" id="vacancyGrid">
                     @forelse ($vacancies as $vacancy)
                         @php
-                            $closingDate = \Carbon\Carbon::parse($vacancy->closing_date);
-                            $today = \Carbon\Carbon::today();
-                            $isClosed = $closingDate->isPast();
+                            $closingDate = \Carbon\Carbon::parse($vacancy->closing_date)->setTime(17, 0, 0); // Set closing time to 5:00 PM
+                            $now = \Carbon\Carbon::now();
+                            $isClosed = $now->greaterThan($closingDate);
                             
                             $typeNormalized = strtolower(trim((string) ($vacancy->vacancy_type ?? '')));
                             $filterType = match($typeNormalized) {
-                                'permanent', 'plantilla' => 'permanent',
-                                'cos', 'contract of service' => 'cos',
+                                'permanent', 'plantilla' => 'plantilla',
+                                'cos', 'contract of service', 'contract' => 'cos',
                                 default => 'other',
                             };
                             
                             // Expand vacancy type to full name
                             $vacancyTypeDisplay = match($typeNormalized) {
-                                'cos', 'contract of service' => 'Contract of Service Position',
+                                'cos', 'contract of service', 'contract' => 'Contract of Service Position',
                                 'plantilla' => 'Plantilla Position',
-                                'permanent' => 'Permanent Position',
+                                'permanent' => 'Plantilla Position',
                                 default => strtoupper($vacancy->vacancy_type ?? '') . ' Position',
                             };
                         @endphp
@@ -262,9 +276,9 @@
                             ])) }}"
                         >
                             <div class="p-5 sm:p-6">
-                                @php
-                                    $daysUntilDeadline = $today->diffInDays($closingDate);
-                                    $isDeadlineSoon = $daysUntilDeadline <= 1 && $daysUntilDeadline > 0;
+                                @php 
+                                    $closingSoonStart = $closingDate->copy()->subDay()->startOfDay(); 
+                                    $isDeadlineSoon = $now->greaterThanOrEqualTo($closingSoonStart) && !$isClosed;
                                 @endphp
                                 <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                                     <div>
@@ -334,12 +348,12 @@
                     @endforelse
                 </div>
 
-                <div class="mt-8 text-right">
-                    <a href="{{ route('job_vacancy') }}" class="inline-flex items-center gap-3 text-base sm:text-lg text-[#0D2B70] font-semibold hover:underline bg-gray-50 border border-gray-200 px-5 py-3 rounded-full hover:bg-gray-100 transition-colors">
-                        View all vacancies
-                        <i data-feather="arrow-right" class="w-5 h-5"></i>
-                    </a>
+                <!-- Pagination -->
+                @if($vacancies->hasPages())
+                <div class="mt-12 flex justify-center">
+                    {{ $vacancies->links('pagination::tailwind') }}
                 </div>
+                @endif
             </div>
         </section>
     </main>

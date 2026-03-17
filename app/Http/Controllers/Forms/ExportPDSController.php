@@ -1495,7 +1495,7 @@ private function writeLearningAndDevelopmentChunk($pdf, $chunk)
 }
 
 
-
+// Other Information Part (Skills, Distinctions, Organizations)
 private function writeOtherInformation($pdf, $skills, $distinctions, $organizations)
 {
     // Column anchors (short-bond 2025 layout)
@@ -1525,7 +1525,7 @@ private function writeOtherInformation($pdf, $skills, $distinctions, $organizati
 }
 
 
-
+// C4 and References Part
 private function WriteC4Information($pdf, $userId)
 {
     $misc = MiscInfos::where('user_id', $userId)->first();
@@ -1654,7 +1654,7 @@ private function WriteC4Information($pdf, $userId)
         $x_name = 8.0;
         $x_address = 87.0;
         $x_telno = 134.0;
-        $y_refs = [206, 213, 220];
+        $y_refs = [205, 212, 219];
 
         foreach ($info['references'] as $i => $ref) {
             if ($i >= count($y_refs)) break;
@@ -1921,6 +1921,13 @@ private function writeCenteredFittedSized($pdf, string $text, float $x, float $y
 private function writeFittedAt($pdf, string $text, float $x, float $y, float $maxWidth, float $baseSize = 8.0, float $minSize = 5.0): void
 {
     $text = mb_strtoupper($text);
+    
+    // If text is 25+ characters, reduce font sizes for better fit
+    if (strlen($text) >= 25) {
+        $baseSize = min($baseSize, 6.0);
+        $minSize = min($minSize, 4.0);
+    }
+    
     [$lines, $size, $effectiveWidth] = $this->fitTextToLines($pdf, $text, $maxWidth, $baseSize, $minSize, 2);
     if (empty($lines)) {
         $this->setFont($pdf, 'Arial', '', 8);

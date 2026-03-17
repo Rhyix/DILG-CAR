@@ -42,6 +42,18 @@
 
     <section class="mx-auto mt-8 max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <article class="about-card group rounded-3xl border border-[#0D2B70]/15 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl md:p-8">
+                <div class="mb-5 inline-flex rounded-2xl bg-blue-50 p-3 text-[#0D2B70]">
+                    <svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                </div>
+                <h3 class="font-montserrat text-2xl font-extrabold text-[#0D2B70]">Mission</h3>
+                <p class="mt-4 text-sm leading-relaxed text-slate-700 sm:text-base">
+                    The Department shall ensure peace and order, public safety and security, uphold excellence in local governance and enable resilient and inclusive communities.
+                </p>
+            </article>
+
             <article class="about-card group rounded-3xl border border-red-100 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl md:p-8">
                 <div class="mb-5 inline-flex rounded-2xl bg-red-50 p-3 text-red-600">
                     <svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -52,18 +64,6 @@
                 <h3 class="font-montserrat text-2xl font-extrabold text-red-600">Vision</h3>
                 <p class="mt-4 text-sm leading-relaxed text-slate-700 sm:text-base">
                     A highly trusted Department and Partner in nurturing local governments and sustaining peaceful, safe, progressive, resilient, and inclusive communities towards a comfortable and secure life for Filipinos by 2040.
-                </p>
-            </article>
-
-            <article class="about-card group rounded-3xl border border-[#0D2B70]/15 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl md:p-8">
-                <div class="mb-5 inline-flex rounded-2xl bg-blue-50 p-3 text-[#0D2B70]">
-                    <svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                    </svg>
-                </div>
-                <h3 class="font-montserrat text-2xl font-extrabold text-[#0D2B70]">Mission</h3>
-                <p class="mt-4 text-sm leading-relaxed text-slate-700 sm:text-base">
-                    The Department shall ensure peace and order, public safety and security, uphold excellence in local governance and enable resilient and inclusive communities.
                 </p>
             </article>
 
