@@ -248,11 +248,15 @@
 
             <section class="rounded-xl border border-[#d3dbe9] bg-[#eef2f8] p-3 sm:p-4">
               <div class="flex items-start gap-2 rounded-lg border border-[#d2d9ea] bg-[#f2f5fb] px-3 py-2.5">
-                <input type="checkbox" id="agree" @click.prevent="showModal = true" :checked="checkboxChecked"
+                <input
+                  type="checkbox"
+                  id="agree"
+                  x-model="checkboxChecked"
+                  @change="agreed = checkboxChecked"
                   class="mt-0.5 rounded border-slate-300 text-[#0D2B70] focus:ring-[#0D2B70]/30">
                 <label for="agree" class="text-xs leading-relaxed text-slate-600 sm:text-sm">
                   I have read and agree to the
-                  <span @click="showModal = true" class="cursor-pointer font-semibold text-[#0D2B70] underline underline-offset-2 hover:text-[#0A2259]">Data Privacy Notice</span>
+                  <span @click.prevent.stop="showModal = true" class="cursor-pointer font-semibold text-[#0D2B70] underline underline-offset-2 hover:text-[#0A2259]">Data Privacy Notice</span>
                 </label>
               </div>
 
