@@ -2913,7 +2913,7 @@ class PDSController extends Controller
         // Validation for the data to be inserted in session to database
         $referenceContactRule = function ($attribute, $value, $fail) {
             if (!$this->isValidReferenceContact($value)) {
-                $fail('The ' . $this->referenceContactFieldLabel($attribute) . ' must be a valid email address or an 11-digit contact number in the format 09XX XXX XXXX.');
+                $fail('The ' . $this->referenceContactFieldLabel($attribute) . ' must be a valid email address or an 11-digit contact number in the format 09XX XXX XXXX or +63 9XX XXX XXXX.');
             }
         };
 
@@ -3054,17 +3054,24 @@ class PDSController extends Controller
             return false;
         }
 
-        if (filter_var($value, FILTER_VALIDATE_EMAIL)) {
-            return true;
-        }
-
         $digits = preg_replace('/\D+/', '', $value);
 
         if ($digits === null) {
             return false;
         }
 
-        return preg_match('/^09\d{9}$/', $digits) === 1;
+        // Only treat as phone number if digits start with "09" or "63" (representing +63)
+        if (preg_match('/^09\d{9}$/', $digits) === 1 || preg_match('/^639\d{9}$/', $digits) === 1) {
+            return true;
+        }
+
+        // Check if contains + for international format
+        if (strpos($value, '+63') !== false && preg_match('/^639\d{9}$/', $digits) === 1) {
+            return true;
+        }
+
+        // Otherwise, treat as email (allow spaces and various formats)
+        return filter_var($value, FILTER_VALIDATE_EMAIL) !== false || preg_match('/^[\w\s.+-]+@[\w.-]+\.[a-zA-Z]{2,}$/', $value) === 1;
     }
 
     private function referenceContactFieldLabel(string $attribute): string

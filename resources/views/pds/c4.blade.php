@@ -962,22 +962,31 @@
                     return true;
                 }
 
-                const isEmailValue = trimmedValue.includes('@') || /[A-Za-z]/.test(trimmedValue);
+                // Extract only digits to check if it starts with 09 or +63
+                const digits = trimmedValue.replace(/\D/g, '');
+                const startsWithPhone = /^09/.test(digits) || trimmedValue.includes('+63');
 
-                if (isEmailValue) {
-                    const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedValue);
-                    setReferenceContactValidity(input, isValidEmail ? '' : 'Enter a valid email address.');
-                    return isValidEmail;
+                // If it contains @ or starts with phone format, determine type
+                if (trimmedValue.includes('@') || startsWithPhone) {
+                    if (startsWithPhone) {
+                        // Treat as phone number
+                        input.value = formatReferencePhoneNumber(digits);
+                        const isValidPhoneNumber = /^09\d{9}$/.test(digits) || /^639\d{9}$/.test(digits);
+                        const message = isValidPhoneNumber ? '' : 'Enter an 11-digit contact number in the format 09XX XXX XXXX or +63 9XX XXX XXXX.';
+                        setReferenceContactValidity(input, message);
+                        return isValidPhoneNumber;
+                    } else {
+                        // Treat as email (allow spaces)
+                        const isValidEmail = /^[\w\s.+-]+@[\w.-]+\.[a-zA-Z]{2,}$/.test(trimmedValue);
+                        setReferenceContactValidity(input, isValidEmail ? '' : 'Enter a valid email address.');
+                        return isValidEmail;
+                    }
                 }
 
-                const digits = trimmedValue.replace(/\D/g, '');
+                // If no @ and doesn't start with phone pattern, treat as phone
                 input.value = formatReferencePhoneNumber(digits);
-
-                const isValidPhoneNumber = /^09\d{9}$/.test(digits);
-                const message = isValidPhoneNumber
-                    ? ''
-                    : 'Enter an 11-digit contact number in the format 09XX XXX XXXX.';
-
+                const isValidPhoneNumber = /^09\d{9}$/.test(digits) || /^639\d{9}$/.test(digits);
+                const message = isValidPhoneNumber ? '' : 'Enter an 11-digit contact number in the format 09XX XXX XXXX or +63 9XX XXX XXXX.';
                 setReferenceContactValidity(input, message);
                 return isValidPhoneNumber;
             }
