@@ -59,6 +59,7 @@ class SendExamNotification implements ShouldQueue
                 ->first();
 
             $token = $application ? $application->exam_token : null;
+            $expiresAt = $application ? $application->exam_token_expires_at : null;
             if (empty($token)) {
                 throw new \RuntimeException('Exam token not found for applicant.');
             }
@@ -85,6 +86,7 @@ class SendExamNotification implements ShouldQueue
                 'vacancy' => $vacancy,
                 'exam' => $examDetail,
                 'join_link' => $examLink,
+                'link_expires_at' => $expiresAt,
             ], function ($message) use ($user, $vacancy, $fromAddress, $fromName, $replyToAddress) {
                 $message->to($user->email, $user->name)
                     ->subject('Examination Schedule - ' . $vacancy->position_title);

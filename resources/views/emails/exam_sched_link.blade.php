@@ -174,8 +174,19 @@
 
             <a href="{{ $join_link ?? '#' }}" class="join-button">Access Exam Link</a>
 
+            @php
+              $expiryLabel = null;
+              if (!empty($link_expires_at)) {
+                try {
+                  $expiryLabel = \Carbon\Carbon::parse($link_expires_at)->format('F d, Y h:i A');
+                } catch (\Throwable $e) {
+                  $expiryLabel = $link_expires_at;
+                }
+              }
+            @endphp
+
             <p class="note" style="margin-top:10px;">
-                Important: The link expires in 2 minutes and can be used once on a single device.
+              Important: The link is single-use per device and remains valid until {{ $expiryLabel ?? 'the end of the scheduled exam window' }}.
             </p>
 
             <p class="note">

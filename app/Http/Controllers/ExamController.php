@@ -1589,8 +1589,8 @@ class ExamController extends Controller
                 }
 
                 try {
-                    // Queue delivery to keep Save & Notify responsive under larger applicant batches.
-                    Mail::to($user->email)->queue(new NotifyApplicantMail($vacancy_id, $user->id, $examDetail->id));
+                    // Send immediately so Save & Notify still works even when no queue worker runs.
+                    Mail::to($user->email)->send(new NotifyApplicantMail($vacancy_id, $user->id, $examDetail->id));
                     $sentCount++;
                 } catch (\Throwable $mailException) {
                     $failedCount++;
@@ -1742,9 +1742,24 @@ class ExamController extends Controller
                     continue;
                 }
 
-                // Generate token for this send.
+                // Generate token for this send with an expiry aligned to the exam window (not an ultra-short TTL).
                 $token = Str::random(64);
-                $expiresAt = now()->addMinutes(2);
+
+                $startAt = ($examDetail->date && $examDetail->time)
+                    ? \Carbon\Carbon::parse($examDetail->date . ' ' . $examDetail->time)
+                    : now();
+
+                $endAt = $examDetail->time_end
+                    ? \Carbon\Carbon::parse($examDetail->date . ' ' . $examDetail->time_end)
+                    : $startAt->copy()->addMinutes((int) ($examDetail->duration ?? 0));
+
+                $expiryBase = $endAt->greaterThan($startAt) ? $endAt : $startAt->copy()->addHours(6);
+                $expiresAt = $expiryBase->copy()->addMinutes(15);
+
+                if ($expiresAt->lessThanOrEqualTo(now())) {
+                    // Fallback if the computed window is already past (e.g., stale schedules).
+                    $expiresAt = now()->addHours(6);
+                }
 
                 $payload = [
                     'exam_token' => $token,
