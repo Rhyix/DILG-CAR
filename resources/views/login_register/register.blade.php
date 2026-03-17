@@ -1,5 +1,12 @@
 <!DOCTYPE html>
-<html lang="en" x-data="signupPage({ hasErrors: '{{ $errors->any() ? 'true' : 'false' }}' })" x-init="initModal()">
+<html
+  lang="en"
+  x-data="signupPage({ hasErrors: '{{ $errors->any() ? 'true' : 'false' }}' })"
+  x-init="initModal()"
+  @privacy-agreed.window="agreed = true; checkboxChecked = true; showModal = false"
+  @privacy-modal-closed.window="showModal = false"
+  @privacy-disagreed.window="agreed = false; checkboxChecked = false"
+>
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />

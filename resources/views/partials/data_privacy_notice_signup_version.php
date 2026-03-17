@@ -124,6 +124,7 @@
       closeModal() {
         if (this.timeLeft <= 0) {
           this.showModal = false;
+          this.$dispatch('privacy-modal-closed');
         }
       },
 
@@ -132,11 +133,13 @@
           this.showModal = false;
           this.agreed = true;
           this.checkboxChecked = true;
+          this.$dispatch('privacy-agreed');
         }
       },
 
       disagreeClicked() {
         console.log('Disagree clicked, setting privacyMessage to true');
+        this.$dispatch('privacy-disagreed');
         this.privacyMessage = true;
         this.showModal = false;
         
