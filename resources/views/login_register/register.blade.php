@@ -3,9 +3,9 @@
   lang="en"
   x-data="signupPage({ hasErrors: '{{ $errors->any() ? 'true' : 'false' }}' })"
   x-init="initModal()"
-  @privacy-agreed.window="agreed = true; checkboxChecked = true; showModal = false"
+  @privacy-agreed.window="checkboxChecked = true; showModal = false"
   @privacy-modal-closed.window="showModal = false"
-  @privacy-disagreed.window="agreed = false; checkboxChecked = false"
+  @privacy-disagreed.window="checkboxChecked = false"
 >
 <head>
   <meta charset="UTF-8" />
@@ -252,7 +252,6 @@
                   type="checkbox"
                   id="agree"
                   x-model="checkboxChecked"
-                  @change="agreed = checkboxChecked"
                   class="mt-0.5 rounded border-slate-300 text-[#0D2B70] focus:ring-[#0D2B70]/30">
                 <label for="agree" class="text-xs leading-relaxed text-slate-600 sm:text-sm">
                   I have read and agree to the
@@ -262,17 +261,17 @@
 
               <div class="mt-3 grid gap-2 sm:grid-cols-2">
                 <button type="submit"
-                  :disabled="!(agreed && checkboxChecked) || isSubmitting"
-                  :class="{ 'opacity-50 cursor-not-allowed': !(agreed && checkboxChecked), 'cursor-wait': isSubmitting }"
+                  :disabled="!checkboxChecked || isSubmitting"
+                  :class="{ 'opacity-50 cursor-not-allowed': !checkboxChecked, 'cursor-wait': isSubmitting }"
                   class="w-full rounded-lg bg-[#0D2B70] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0A2259]">
                   <span x-text="isSubmitting ? 'Processing...' : 'Create Account'"></span>
                 </button>
 
                 <a :class="{
-                    'opacity-50 cursor-not-allowed pointer-events-none': !(agreed && checkboxChecked),
+                    'opacity-50 cursor-not-allowed pointer-events-none': !checkboxChecked,
                     'use-loader flex w-full items-center justify-center gap-2 rounded-lg border border-[#c5d0e4] bg-[#f8faff] px-4 py-2.5 text-sm font-semibold text-[#0D2B70] transition hover:bg-[#eef3fb]': true
                   }"
-                  :href="(agreed && checkboxChecked) ? '{{ route('google.login', [], false) }}' : '#'">
+                  :href="checkboxChecked ? '{{ route('google.login', [], false) }}' : '#'">
                   <img src="{{ asset('images/google-icon.png') }}" alt="Google Icon" class="h-4 w-4">
                   Continue with Google
                 </a>
@@ -598,15 +597,58 @@
 
     initializeRegisterForm();
 
+    // Keep this global because the privacy modal is rendered inside <template x-if>,
+    // where inline <script> tags may not reliably execute in some production setups.
+    window.privacyTimer = window.privacyTimer || function privacyTimer() {
+      return {
+        timeLeft: 5,
+        privacyMessage: false,
+        showModal: true,
+
+        initTimer() {
+          this.timeLeft = 5;
+          const timer = setInterval(() => {
+            if (this.timeLeft > 0) {
+              this.timeLeft--;
+            } else {
+              clearInterval(timer);
+            }
+          }, 1000);
+        },
+
+        closeModal() {
+          if (this.timeLeft <= 0) {
+            this.showModal = false;
+            this.$dispatch('privacy-modal-closed');
+          }
+        },
+
+        agreeClicked() {
+          if (this.timeLeft <= 0) {
+            this.showModal = false;
+            this.$dispatch('privacy-agreed');
+          }
+        },
+
+        disagreeClicked() {
+          this.$dispatch('privacy-disagreed');
+          this.privacyMessage = true;
+          this.showModal = false;
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 3000);
+        },
+      };
+    };
+
     function signupPage({ hasErrors }) {
       return {
         showModal: false,
-        agreed: false,
         checkboxChecked: false,
         hasErrors: hasErrors === 'true',
         isSubmitting: false,
         submitForm(form) {
-          if (!(this.agreed && this.checkboxChecked)) {
+          if (!this.checkboxChecked) {
             return;
           }
 
