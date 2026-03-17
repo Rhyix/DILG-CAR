@@ -685,12 +685,10 @@ Route::get('/test-event', function () {
     broadcast(new PackageSent('test data', 'test'));
     return 'Event broadcasted';
 });
-Route::middleware([RedirectIfNotAdmin::class])->prefix('admin')->group(function () {
-    Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard_admin');
-});
 Route::get('/admin/reviewed_applicants', [AdminController::class, 'reviewedApplicants'])->middleware(ApplicantsAccess::class)->name('reviewed_applicants_legacy');
 
-Route::get('/dashboard/admin', [AdminController::class, 'dashboard'])->middleware(RedirectIfNotAdmin::class)->name('dashboard_admin');
+Route::redirect('/dashboard/admin', '/admin/dashboard')
+    ->middleware(RedirectIfNotAdmin::class);
 
 //Route::get('/dashboard-progress', [JobVacancyController::class, 'pdsAndWesProgress'])->name('dashboard.progress');
 //Route::get('/dashboard', [JobVacancyController::class, 'pdsAndWesProgress'])->name('dashboard_user');
