@@ -951,7 +951,7 @@
                 }
 
                 const digits = currentValue.replace(/\D/g, '').slice(0, 11);
-                input.value = formatReferencePhoneNumber(digits);
+                input.value = digits;
             }
 
             function validateReferenceContactInput(input) {
@@ -970,7 +970,6 @@
                 if (trimmedValue.includes('@') || startsWithPhone) {
                     if (startsWithPhone) {
                         // Treat as phone number
-                        input.value = formatReferencePhoneNumber(digits);
                         const isValidPhoneNumber = /^09\d{9}$/.test(digits) || /^639\d{9}$/.test(digits);
                         const message = isValidPhoneNumber ? '' : 'Enter an 11-digit contact number in the format 09XX XXX XXXX or +63 9XX XXX XXXX.';
                         setReferenceContactValidity(input, message);
@@ -984,7 +983,6 @@
                 }
 
                 // If no @ and doesn't start with phone pattern, treat as phone
-                input.value = formatReferencePhoneNumber(digits);
                 const isValidPhoneNumber = /^09\d{9}$/.test(digits) || /^639\d{9}$/.test(digits);
                 const message = isValidPhoneNumber ? '' : 'Enter an 11-digit contact number in the format 09XX XXX XXXX or +63 9XX XXX XXXX.';
                 setReferenceContactValidity(input, message);
