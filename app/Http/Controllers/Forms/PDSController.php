@@ -349,13 +349,22 @@ class PDSController extends Controller
             $user_personal_info['per_zipcode'] = ($user_personal_info['per_zipcode'] != '{*}') ? $user_personal_info['per_zipcode'] : null;
 
             $c1_full_info = array_merge($c1_full_info, $user_personal_info);
-        } elseif (!$this->isGoogleOAuthUser($current_user)) {
-            $c1_full_info = array_merge($c1_full_info, [
-                'surname' => trim((string) ($current_user->last_name ?? '')) ?: null,
-                'first_name' => trim((string) ($current_user->first_name ?? '')) ?: null,
-                'middle_name' => trim((string) ($current_user->middle_name ?? '')) ?: null,
-                'sex' => $this->normalizeSex((string) ($current_user->sex ?? '')) ?: null,
-            ]);
+        } else {
+            $userContactDefaults = [
+                'mobile_no' => $this->normalizeMobileInput((string) ($current_user->phone_number ?? '')) ?: null,
+                'email_address' => trim((string) ($current_user->email ?? '')) ?: null,
+            ];
+
+            if (!$this->isGoogleOAuthUser($current_user)) {
+                $userContactDefaults = array_merge([
+                    'surname' => trim((string) ($current_user->last_name ?? '')) ?: null,
+                    'first_name' => trim((string) ($current_user->first_name ?? '')) ?: null,
+                    'middle_name' => trim((string) ($current_user->middle_name ?? '')) ?: null,
+                    'sex' => $this->normalizeSex((string) ($current_user->sex ?? '')) ?: null,
+                ], $userContactDefaults);
+            }
+
+            $c1_full_info = array_merge($c1_full_info, $userContactDefaults);
         }
 
         $user_family_bg = $current_user->familyBackground?->attributesToArray();
