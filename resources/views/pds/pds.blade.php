@@ -1054,12 +1054,6 @@
         };
         el.addEventListener('input', handler);
         el.addEventListener('change', handler);
-        if (id === 'per_zipcode' || id === 'res_zipcode') {
-            el.dataset.autoFilled = '0';
-            el.addEventListener('input', () => {
-                el.dataset.autoFilled = '0';
-            });
-        }
     });
     function setRadio(name, val){
         if (!val) return;
@@ -1302,13 +1296,11 @@
     loadProvinces(perProvince, perProvinceName, (provCode) => {
         loadCities(provCode, perCity, perCityName, (cityCode) => {
             loadBarangays(cityCode, perBrgy, perBrgyName);
-            setZipByCityCode(cityCode, 'per_zipcode');
         });
     });
     loadProvinces(resProvince, resProvinceName, (provCode) => {
         loadCities(provCode, resCity, resCityName, (cityCode) => {
             loadBarangays(cityCode, resBrgy, resBrgyName);
-            setZipByCityCode(cityCode, 'res_zipcode');
         });
     });
     perProvince.addEventListener('change', e => {
@@ -1326,7 +1318,6 @@
         // Clear dependent field from state
         writeState('per_brgy', '');
         loadBarangays(code, perBrgy, null); 
-        setZipByCityCode(code, 'per_zipcode');
     });
     perBrgy.addEventListener('change', e => {
         writeState('per_brgy', perBrgy.value);
@@ -1347,95 +1338,10 @@
         // Clear dependent field from state
         writeState('res_brgy', '');
         loadBarangays(code, resBrgy, null); 
-        setZipByCityCode(code, 'res_zipcode');
     });
     resBrgy.addEventListener('change', e => {
         writeState('res_brgy', resBrgy.value);
     });
-    function setZipByCityCode(cityCode, zipInputId) {
-        if (!cityCode) return;
-        const zipInput = document.querySelector('#' + zipInputId);
-        if (!zipInput) return;
-
-        const normalizedCityCode = String(cityCode);
-        const currentValue = (zipInput.value || '').trim();
-        const wasAutoFilled = zipInput.dataset.autoFilled === '1';
-        const previousCityCode = String(zipInput.dataset.cityCode || '');
-        const cityChanged = previousCityCode !== normalizedCityCode;
-
-        if (!cityChanged && currentValue !== '' && !wasAutoFilled) {
-            return;
-        }
-
-        const zipRequestToken = `${Date.now()}-${Math.random()}`;
-        zipInput.dataset.zipRequestToken = zipRequestToken;
-
-        if (psgcClientCache.cityByCode.has(normalizedCityCode)) {
-            const cachedZip = String(psgcClientCache.cityByCode.get(normalizedCityCode) || '').trim();
-            if (cachedZip !== '') {
-                zipInput.value = cachedZip;
-                zipInput.dataset.autoFilled = '1';
-                zipInput.dataset.cityCode = normalizedCityCode;
-                zipInput.dispatchEvent(new Event('change'));
-                return;
-            }
-        }
-
-        fetch(psgcApiBase + '/cities-municipalities/' + encodeURIComponent(cityCode))
-            .then(r => r.ok ? r.json() : Promise.reject())
-            .then(obj => {
-                return (obj && obj.zip_code) ? String(obj.zip_code).trim() : '';
-            })
-            .then(zip => {
-                if (zipInput.dataset.zipRequestToken !== zipRequestToken) {
-                    return;
-                }
-
-                const latestValue = (zipInput.value || '').trim();
-                const latestAutoFilled = zipInput.dataset.autoFilled === '1';
-                if (!cityChanged && latestValue !== '' && !latestAutoFilled) {
-                    return;
-                }
-
-                if (zip && zip.trim() !== '') {
-                    psgcClientCache.cityByCode.set(normalizedCityCode, zip);
-                    persistPsgcClientCache();
-                    zipInput.value = zip;
-                    zipInput.dataset.autoFilled = '1';
-                    zipInput.dataset.cityCode = normalizedCityCode;
-                    zipInput.dispatchEvent(new Event('change'));
-                    return;
-                }
-
-                // Preserve manually-entered/copied ZIP values when PSGC has no ZIP for a city.
-                if (latestAutoFilled || latestValue === '') {
-                    zipInput.value = '';
-                    zipInput.dispatchEvent(new Event('change'));
-                }
-
-                zipInput.dataset.autoFilled = '0';
-                zipInput.dataset.cityCode = normalizedCityCode;
-            })
-            .catch(() => {
-                if (zipInput.dataset.zipRequestToken !== zipRequestToken) {
-                    return;
-                }
-
-                const latestValue = (zipInput.value || '').trim();
-                const latestAutoFilled = zipInput.dataset.autoFilled === '1';
-                if (!cityChanged && latestValue !== '' && !latestAutoFilled) {
-                    return;
-                }
-
-                // Preserve manually-entered/copied ZIP values when lookup fails.
-                if (latestAutoFilled || latestValue === '') {
-                    zipInput.value = '';
-                    zipInput.dispatchEvent(new Event('change'));
-                }
-                zipInput.dataset.autoFilled = '0';
-                zipInput.dataset.cityCode = normalizedCityCode;
-            });
-    }
     document.querySelector('#copy_res_to_per').addEventListener('click', async () => {
         document.querySelector('#per_house_no').value = document.querySelector('#res_house_no').value;
         document.querySelector('#per_street').value = document.querySelector('#res_street').value;
@@ -1480,8 +1386,6 @@
         const perZip = document.querySelector('#per_zipcode');
         if (resZip && perZip) {
             perZip.value = resZip.value;
-            perZip.dataset.autoFilled = resZip.dataset.autoFilled || '0';
-            perZip.dataset.cityCode = String(getSelectedCode(perCity) || '');
             perZip.dispatchEvent(new Event('change'));
         }
     });
