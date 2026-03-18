@@ -119,11 +119,11 @@
                             INVOLVEMENT IN CIVIC /<br class="hidden sm:block">NON-GOVERNMENT / PEOPLE / VOLUNTARY ORGANIZATION/S
                         </h2>
                     </div>
-                    <button type="button" id="add-voluntary-btn"
+                    <!-- <button type="button" id="add-voluntary-btn"
                         class="w-full sm:w-auto flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 text-sm sm:text-base">
                             <span class="material-icons mr-2 text-sm sm:text-base">add_circle</span>
                         Add Voluntary Work
-                    </button>
+                    </button> -->
                 </div>
 
                 <p class="text-gray-600 mb-6 text-xs sm:text-sm">
@@ -156,11 +156,11 @@
                         <h2 class="text-lg sm:text-2xl font-bold text-gray-900 leading-tight">VII. LEARNING AND DEVELOPMENT
                             (L&D) INTERVENTIONS /<br class="hidden sm:block">TRAINING PROGRAMS ATTENDED</h2>
                     </div>
-                    <button type="button" id="add-learning-btn"
+                    <!-- <button type="button" id="add-learning-btn"
                         class="w-full sm:w-auto flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 text-sm sm:text-base">
                         <span class="material-icons mr-2 text-sm sm:text-base">add_circle</span>
                         Add Training
-                    </button>
+                    </button> -->
                 </div>
 
                 <p class="text-gray-600 mb-6 text-xs sm:text-sm">

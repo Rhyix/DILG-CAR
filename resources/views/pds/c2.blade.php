@@ -36,16 +36,24 @@
 
                 <!-- Civil Service Table -->
                 <div class="overflow-x-auto rounded-lg shadow-sm border border-gray-200">
-                    <table id="civil-service-table" class="modern-table w-full min-w-[800px]">
+                    <table id="civil-service-table" class="modern-table civil-table w-full min-w-[1080px]">
                         <thead>
                             <tr>
                                 <th class="rounded-tl-lg text-xs sm:text-sm p-2 sm:p-3">27. CES/CSEE/CAREER SERVICE/RA 1080 (BOARD/ BAR)/UNDER SPECIAL LAWS/CATEGORY II/ IV ELIGIBILITY and ELIGIBILITIES FOR UNIFORMED PERSONNEL</th>
                                 <th class="text-xs sm:text-sm p-2 sm:p-3">RATING<br>(If Applicable)</th>
                                 <th class="text-xs sm:text-sm p-2 sm:p-3">DATE OF EXAMINATION / CONFERMENT</th>
                                 <th class="text-xs sm:text-sm p-2 sm:p-3">PLACE OF EXAMINATION / CONFERMENT</th>
-                                <th class="text-xs sm:text-sm p-2 sm:p-3">LICENSE<br>(if applicable) NUMBER</th>
-                                <th class="text-xs sm:text-sm p-2 sm:p-3">VALID UNTIL</th>
+                                <th class="text-xs sm:text-sm p-2 sm:p-3" colspan="2">LICENSE (IF APPLICABLE)</th>
                                 <th class="rounded-tr-lg text-center text-xs sm:text-sm p-2 sm:p-3">ACTIONS</th>
+                            </tr>
+                            <tr class="license-subhead border-l-gray-200 border-t border-b">
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th class="text-xs sm:text-sm p-1.5 sm:p-2">NUMBER</th>
+                                <th class="text-xs sm:text-sm p-1.5 sm:p-2">VALID UNTIL</th>
+                                <th></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -69,7 +77,7 @@
                 </div>
 
                 <p class="text-gray-600 mb-6 text-xs sm:text-sm">
-                    Include private employment. Start from your recent work. Description of duties should be indicated in the attached Work Experience sheet.
+                    Include private employment. Start from your recent work. Description of duties should be indicated in the attached Work Experience Sheet.
                 </p>
 
                 <!-- Action Buttons -->
@@ -188,15 +196,28 @@
         }
 
         .modern-table thead th {
-            background: linear-gradient(135deg, #3b82f6, #6366f1);
+            background: linear-gradient(135deg, #1c3faa, #1f74e1);
             color: white;
-            font-weight: 600;
-            padding: 1rem;
+            font-weight: 700;
+            padding: 0.85rem 0.9rem;
             text-align: left;
-            font-size: 0.875rem;
+            font-size: 0.85rem;
+            letter-spacing: 0.01em;
             position: sticky;
             top: 0;
             z-index: 10;
+        }
+
+        .civil-table thead th {
+            text-transform: uppercase;
+        }
+
+        .civil-table thead .license-subhead th {
+            background: linear-gradient(135deg, #1c3faa, #1f74e1);
+            color: #ffffff;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
         }
 
         .modern-table tbody tr {
@@ -204,24 +225,25 @@
         }
 
         .modern-table tbody tr:hover {
-            background-color: #f3f4f6;
+            background-color: #f3f6ff;
             transform: translateY(-1px);
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         }
 
         .modern-table tbody td {
-            padding: 0.75rem 1rem;
+            padding: 0.7rem 0.9rem;
             border-bottom: 1px solid #e5e7eb;
         }
 
         .modern-table input,
         .modern-table select {
             width: 100%;
-            padding: 0.5rem;
+            padding: 0.55rem 0.65rem;
             border: 1px solid #d1d5db;
-            border-radius: 0.375rem;
+            border-radius: 0.35rem;
             font-size: 0.875rem;
             transition: all 0.2s ease;
+            background-color: #fff;
         }
 
         .modern-table input:focus,
@@ -407,12 +429,18 @@
             function validateWorkExperienceDatePair(row, showMessage) {
                 const fromInput = row.querySelector('input[name="work_exp_from[]"]');
                 const toInput = row.querySelector('input[name="work_exp_to[]"]');
+                const presentToggle = row.querySelector('[data-present-toggle]');
                 if (!fromInput || !toInput) {
                     return true;
                 }
 
                 setWorkDateErrorState(fromInput, '');
                 setWorkDateErrorState(toInput, '');
+
+                if (presentToggle && presentToggle.checked) {
+                    toInput.setCustomValidity('');
+                    return true;
+                }
 
                 if (!fromInput.value || !toInput.value) {
                     return true;
@@ -440,6 +468,7 @@
             function attachWorkExperienceDateValidation(row) {
                 const fromInput = row.querySelector('input[name="work_exp_from[]"]');
                 const toInput = row.querySelector('input[name="work_exp_to[]"]');
+                const presentToggle = row.querySelector('[data-present-toggle]');
                 if (!fromInput || !toInput) {
                     return;
                 }
@@ -451,6 +480,33 @@
                 toInput.addEventListener('blur', validateOnBlur);
                 fromInput.addEventListener('change', validateSilently);
                 toInput.addEventListener('change', validateSilently);
+                presentToggle?.addEventListener('change', () => {
+                    applyPresentState(row, presentToggle.checked);
+                    validateSilently();
+                });
+            }
+
+            function applyPresentState(row, isPresent) {
+                const toInput = row.querySelector('input[name="work_exp_to[]"]');
+                const presentToggle = row.querySelector('[data-present-toggle]');
+                if (!toInput || !presentToggle) return;
+
+                if (isPresent) {
+                    // Keep last typed date so we can restore if unchecked.
+                    const previousDate = toInput.type === 'date' ? toInput.value : toInput.dataset.lastDate || '';
+                    toInput.dataset.lastDate = previousDate;
+                    toInput.type = 'text';
+                    toInput.value = 'PRESENT';
+                    toInput.readOnly = true;
+                    toInput.required = false;
+                    setWorkDateErrorState(toInput, '');
+                } else {
+                    const restoreDate = toInput.dataset.lastDate || '';
+                    toInput.type = 'date';
+                    toInput.readOnly = false;
+                    toInput.required = true;
+                    toInput.value = restoreDate;
+                }
             }
 
             function addWorkExperienceRow(
@@ -468,6 +524,7 @@
                 const rowCount = tbody.children.length;
                 const newRow = document.createElement('tr');
                 newRow.className = 'animate-fade-in';
+                const isPresentValue = (!is_new && typeof work_exp_to === 'string' && work_exp_to.toLowerCase() === 'present');
 
 
                 // the <input..$rowCount is for the C2Controller for monitoring the rowCount :: FOR DATABASE
@@ -477,20 +534,26 @@
                     <input type="hidden" name="work_exp_id[]" value="${(!is_new && work_exp_id !== null && work_exp_id !== undefined && String(work_exp_id).toLowerCase() !== 'null') ? work_exp_id : ''}">
                     <!-- <td class="font-medium text-center">${rowCount + 1}</td> -->
                     <td>
-                        <input type="date" name="work_exp_from[]" class="form-input" required value="${(!is_new) ? work_exp_from : ''}" />
+                        <input type="date" name="work_exp_from[]" class="form-input" value="${(!is_new) ? work_exp_from : ''}" />
                     </td>
                     <td>
-                        <input type="date" name="work_exp_to[]" class="form-input" required value="${(!is_new) ? work_exp_to : ''}"/>
+                        <div class="flex items-center gap-2">
+                            <input type="date" name="work_exp_to[]" class="form-input" value="${(!is_new && (String(work_exp_to).toLowerCase() !== 'present')) ? work_exp_to : ''}" data-work-to>
+                            <label class="inline-flex items-center gap-1 text-xs text-gray-700">
+                                <input type="checkbox" class="present-toggle h-4 w-4" data-present-toggle>
+                                <span>Present</span>
+                            </label>
+                        </div>
                     </td>
                     <td>
-                        <input type="text" name="work_exp_position[]"  placeholder="Position Title" class="form-input" required value="${(!is_new) ? work_exp_position : ''}"/>
+                        <input type="text" name="work_exp_position[]"  placeholder="Position Title" class="form-input" value="${(!is_new) ? work_exp_position : ''}"/>
                     </td>
                     <td>
-                        <input type="text" name="work_exp_department[]" placeholder="Department/Agency" class="form-input" required value="${(!is_new) ? work_exp_department : ''}"/>
+                        <input type="text" name="work_exp_department[]" placeholder="Department/Agency" class="form-input" value="${(!is_new) ? work_exp_department : ''}"/>
                     </td>
                     <td>
-                        <select name="work_exp_status[]" class="form-input" required >
-                            <option value="" disabled ${(is_new) ? 'selected' : ''}>Select</option>
+                        <select name="work_exp_status[]" class="form-input" >
+                            <option value="" ${(is_new) ? 'selected' : ''}>Select</option>
                             <option value="Permanent" ${(!is_new && work_exp_status == 'Permanent') ? 'selected' : ''}>Permanent</option>
                             <option value="Temporary" ${(!is_new && work_exp_status == 'Temporary') ? 'selected' : ''}>Temporary</option>
                             <option value="Casual" ${(!is_new && work_exp_status == 'Casual') ? 'selected' : ''}>Casual</option>
@@ -498,7 +561,7 @@
                         </select>
                     </td>
                     <td>
-                        <select name="work_exp_govt_service[]" class="form-input" required>
+                        <select name="work_exp_govt_service[]" class="form-input">
                             <option value="" ${(is_new) ? 'selected' : ''}>Y/N</option>
                             <option value="Y" ${(!is_new && work_exp_govt_service == 'Y') ? 'selected' : ''}>Yes</option>
                             <option value="N" ${(!is_new && work_exp_govt_service == 'N') ? 'selected' : ''}>No</option>
@@ -512,6 +575,11 @@
                 `;
 
                 tbody.appendChild(newRow);
+                const presentToggle = newRow.querySelector('[data-present-toggle]');
+                if (presentToggle) {
+                    presentToggle.checked = isPresentValue;
+                    applyPresentState(newRow, isPresentValue);
+                }
                 attachWorkExperienceDateValidation(newRow);
                 updateEmptyState();
 
@@ -548,19 +616,19 @@
                         <input type="text" name="cs_eligibility_career[]" placeholder="Career Service/Board/Bar" class="form-input" required value="${(!is_new) ? cs_eligibility_career : ''}"/>
                     </td>
                     <td>
-                        <input type="text" name="cs_eligibility_rating[]" placeholder="Rating %" class="form-input" required value="${(!is_new) ? cs_eligibility_rating : ''}"/>
+                        <input type="text" name="cs_eligibility_rating[]" placeholder="Rating %" class="form-input" value="${(!is_new) ? cs_eligibility_rating : ''}"/>
                     </td>
                     <td>
                         <input type="date" name="cs_eligibility_date[]" class="form-input" required value="${(!is_new) ? cs_eligibility_date : ''}"/>
                     </td>
                     <td>
-                        <input type="text" name="cs_eligibility_place[]" placeholder="Place of Examination" class="form-input" required value="${(!is_new) ? cs_eligibility_place : ''}"/>
+                        <input type="text" name="cs_eligibility_place[]" placeholder="Place of Examination / Conferment" class="form-input" required value="${(!is_new) ? cs_eligibility_place : ''}"/>
                     </td>
                     <td>
-                        <input type="text" name="cs_eligibility_license[]" placeholder="License No." class="form-input" required value="${(!is_new) ? cs_eligibility_license : ''}"/>
+                        <input type="text" name="cs_eligibility_license[]" placeholder="License No. (if applicable)" class="form-input" value="${(!is_new) ? cs_eligibility_license : ''}"/>
                     </td>
                     <td>
-                        <input type="date" name="cs_eligibility_validity[]" class="form-input" required value="${(!is_new) ? cs_eligibility_validity : ''}"/>
+                        <input type="date" name="cs_eligibility_validity[]" class="form-input" value="${(!is_new) ? cs_eligibility_validity : ''}"/>
                     </td>
                     <td class="text-center">
                         <button type="button" class="remove-row text-red-500 hover:text-red-700 transition-colors duration-200">

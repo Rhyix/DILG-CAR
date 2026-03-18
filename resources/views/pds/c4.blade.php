@@ -11,6 +11,9 @@
         </div>
     @endif
 <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        @php
+            $hasWorkExperience = !empty($data['work_experience'] ?? []) || !empty($data['work_exp'] ?? []) || !empty($data['work_exps'] ?? []);
+        @endphp
         <form id="other-info-form" class="space-y-8" action='/pds/submit_c4/display_wes' method="POST" enctype="multipart/form-data">
             @csrf
             <!-- IX: Related Third Degree Section -->
@@ -101,7 +104,7 @@
                             <span>No</span>
                         </label>
                     </div>
-                   <div id="criminal-details" class="detail-input hidden mt-4">
+                    <div id="criminal-details" class="detail-input hidden mt-4">
                         <label class="block text-sm font-medium text-gray-700 mb-2">If YES, give details:</label>
 
                         <!-- Date of Case -->
@@ -338,7 +341,7 @@
                             <div class="relative">
                                 <input required type="text" name="ref1_name" required value="{{ old('ref1_name', $data['ref1_name'] ?? '') }}"
                                 placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
-                                <label class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Name*</label>
+                                <label class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Name <span class="text-red-500">*</span></label>
                             </div>
                             <div class="relative">
                                 <input
@@ -350,7 +353,7 @@
                                     inputmode="text"
                                     class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer {{ $errors->has('ref1_tel') ? 'error-field' : '' }}"
                                     data-reference-contact>
-                                <label class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">CONTACT NO. AND/OR EMAIL*</label>
+                                <label class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">CONTACT NO. AND/OR EMAIL <span class="text-red-500">*</span></label>
                                 <p class="mt-2 text-xs text-gray-500">Format: 09XX XXX XXXX or enter a valid email address.</p>
                                 <p class="error-message {{ $errors->has('ref1_tel') ? '' : 'hidden' }}" data-reference-contact-error aria-live="polite">{{ $errors->first('ref1_tel') }}</p>
                                 
@@ -358,7 +361,7 @@
                             <div class="relative md:col-span-2">
                                 <input required type="text" name="ref1_address" required value="{{ old('ref1_address', $data['ref1_address'] ?? '') }}"
                                 placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
-                                <label class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Address*</label>
+                                <label class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Address <span class="text-red-500">*</span></label>
                             </div>
                         </div>
                     </div>
@@ -370,7 +373,7 @@
                             <div class="relative">
                                 <input required type="text" name="ref2_name" required value="{{ old('ref2_name', $data['ref2_name'] ?? '') }}"
                                 placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
-                                <label class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Name*</label>
+                                <label class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Name <span class="text-red-500">*</span></label>
                             </div>
                             <div class="relative">
                                 <input
@@ -382,14 +385,14 @@
                                     inputmode="text"
                                     class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer {{ $errors->has('ref2_tel') ? 'error-field' : '' }}"
                                     data-reference-contact>
-                                <label class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">CONTACT NO. AND/OR EMAIL*</label>
+                                <label class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">CONTACT NO. AND/OR EMAIL <span class="text-red-500">*</span></label>
                                 <p class="mt-2 text-xs text-gray-500">Format: 09XX XXX XXXX or enter a valid email address.</p>
                                 <p class="error-message {{ $errors->has('ref2_tel') ? '' : 'hidden' }}" data-reference-contact-error aria-live="polite">{{ $errors->first('ref2_tel') }}</p>
                             </div>
                             <div class="relative md:col-span-2">
                                 <input required type="text" name="ref2_address" required value="{{ old('ref2_address', $data['ref2_address'] ?? '') }}"
                                 placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
-                                <label class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Address*</label>
+                                <label class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Address <span class="text-red-500">*</span></label>
                             </div>
                         </div>
                     </div>
@@ -401,7 +404,7 @@
                             <div class="relative">
                                 <input required type="text" name="ref3_name" required value="{{ old('ref3_name', $data['ref3_name'] ?? '') }}"
                                 placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
-                                <label class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none ">Name*</label>
+                                <label class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none ">Name <span class="text-red-500">*</span></label>
                             </div>
                             <div class="relative">
                                 <input
@@ -413,14 +416,14 @@
                                     inputmode="text"
                                     class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer {{ $errors->has('ref3_tel') ? 'error-field' : '' }}"
                                     data-reference-contact>
-                                <label class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">CONTACT NO. AND/OR EMAIL*</label>
+                                <label class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">CONTACT NO. AND/OR EMAIL <span class="text-red-500">*</span></label>
                                 <p class="mt-2 text-xs text-gray-500">Format: 09XX XXX XXXX or enter a valid email address.</p>
                                 <p class="error-message {{ $errors->has('ref3_tel') ? '' : 'hidden' }}" data-reference-contact-error aria-live="polite">{{ $errors->first('ref3_tel') }}</p>
                             </div>
                             <div class="relative md:col-span-2">
                                 <input required type="text" name="ref3_address" required value="{{ old('ref3_address', $data['ref3_address'] ?? '') }}"
                                 placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
-                                <label class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Address*</label>
+                                <label class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Address <span class="text-red-500">*</span></label>
                             </div>
                         </div>
                     </div>
@@ -435,7 +438,7 @@
             <section class="bg-white rounded-2xl shadow-xl p-8 animate-slide-in">
                 <div class="flex items-center mb-6">
                     <span class="material-icons text-blue-600 mr-3 text-3xl">badge</span>
-                    <h2 class="text-2xl font-bold text-gray-900">Government Issued ID (i.e.Passport, GSIS, SSS, PRC, Driver's License, etc.)</h2>
+                    <h2 class="text-2xl font-bold text-gray-900">Government Issued IDs (i.e.Passport, GSIS, SSS, PRC, Driver's License, etc.)</h2>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -458,7 +461,7 @@
                             <option value="PhilSys/National ID" {{ $selectedIdNormalized === 'philsys/national id' ? 'selected' : '' }}>PhilSys/National ID</option>
                             <option value="other" {{ !in_array($selectedIdNormalized, $knownIdTypes, true) && $selectedIdNormalized !== '' ? 'selected' : '' }}>Other</option>
                         </select>
-                        <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">Government Issued ID:</label>
+                        <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">Government Issued ID: <span class="text-red-500">*</span></label>
                     </div>
 
                     <!-- If Other, Show Input Field -->
@@ -472,7 +475,7 @@
                     <div class="relative">
                         <input type="text" name="govt_id_number" required value="{{ old('govt_id_number', $data['govt_id_number'] ?? '') }}"
                         class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer" placeholder=" ">
-                        <label class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">ID/License/Passport No.:</label>
+                        <label class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">ID/License/Passport No.: <span class="text-red-500">*</span></label>
                     </div>
 
                     @php
@@ -499,7 +502,7 @@
                             {{ $isGovtDateNotApplicable ? 'disabled' : '' }}
                             class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
                         <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">Date of Issuance</label>
-                        <label class="mt-2 inline-flex items-center gap-2 text-xs text-gray-600">
+                        <!-- <label class="mt-2 inline-flex items-center gap-2 text-xs text-gray-600">
                             <input
                                 type="checkbox"
                                 id="govt_id_date_not_applicable"
@@ -508,7 +511,7 @@
                                 {{ $isGovtDateNotApplicable ? 'checked' : '' }}
                                 class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
                             <span>Check if not applicable</span>
-                        </label>
+                        </label> -->
                     </div>
 
                     <!-- Place Issued -->
@@ -522,8 +525,8 @@
                             {{ $isGovtPlaceNotApplicable ? 'disabled' : '' }}
                             class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer"
                             placeholder=" ">
-                        <label class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Place of Issuance</label>
-                        <label class="mt-2 inline-flex items-center gap-2 text-xs text-gray-600">
+                        <label class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Place of Issuance <span class="text-red-500">*</span></label>
+                        <!-- <label class="mt-2 inline-flex items-center gap-2 text-xs text-gray-600">
                             <input
                                 type="checkbox"
                                 id="govt_id_place_not_applicable"
@@ -532,7 +535,7 @@
                                 {{ $isGovtPlaceNotApplicable ? 'checked' : '' }}
                                 class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
                             <span>Check if not applicable</span>
-                        </label>
+                        </label> -->
                     </div>
                 </div>
             </section>
@@ -783,78 +786,74 @@
         let skipValidation = false;
 
         document.addEventListener('DOMContentLoaded', function() {
-            // Handle Yes/No questions with details
-            const radioQuestions = [
-                { name: 'related_34_b', detailId: 'related-details' },
-                { name: 'guilty_35_a', detailId: 'admin-details' },
-                { name: 'criminal_35_b', detailId: 'criminal-details' },
-                { name: 'convicted_36', detailId: 'convicted-details' },
-                { name: 'separated_37', detailId: 'separated-details' },
-                { name: 'candidate_38_a', detailId: 'candidate-details' },
-                { name: 'resigned_38_b', detailId: 'resign-details' },
-                { name: 'immigrant_39', detailId: 'immigrant-details' },
+            const detailConfigs = [
+                { name: 'related_34_b', detailId: 'related-details', toggleHidden: false },
+                { name: 'guilty_35_a', detailId: 'admin-details', toggleHidden: false },
+                { name: 'criminal_35_b', detailId: 'criminal-details', toggleHidden: true },
+                { name: 'convicted_36', detailId: 'convicted-details', toggleHidden: false },
+                { name: 'separated_37', detailId: 'separated-details', toggleHidden: false },
+                { name: 'candidate_38_a', detailId: 'candidate-details', toggleHidden: false },
+                { name: 'resigned_38_b', detailId: 'resign-details', toggleHidden: false },
+                { name: 'immigrant_39', detailId: 'immigrant-details', toggleHidden: false },
+                { name: 'indigenous_40_a', detailId: 'indigenous-details', toggleHidden: true },
+                { name: 'pwd_40_b', detailId: 'pwd-details', toggleHidden: true },
+                { name: 'solo_parent_40_c', detailId: 'solo-parent-details', toggleHidden: true },
             ];
 
+            function resetField(field) {
+                if (field.type === 'radio' || field.type === 'checkbox') {
+                    field.checked = false;
+                } else {
+                    field.value = '';
+                }
+            }
 
-            /*
-            radioQuestions.forEach(question => {
-                const radios = document.querySelectorAll(`input[name="${question.name}"]`);
-                const detailDiv = document.getElementById(question.detailId);
+            function toggleDetail(config, value) {
+                const detailDiv = document.getElementById(config.detailId);
+                if (!detailDiv) return;
 
-                radios.forEach(radio => {
-                    radio.addEventListener('change', function() {
-                        if (this.value === 'yes') {
-                            detailDiv.classList.add('show');
-                            const inputField = detailDiv.querySelector('input');
-                            if (inputField) {
-                                inputField.required = true;
-                            }
-                        } else {
-                            detailDiv.classList.remove('show');
-                            const inputField = detailDiv.querySelector('input');
-                            if (inputField) {
-                                inputField.required = false;
-                                inputField.value = '';
-                            }
-                        }
-                    });
-                });
-            });
-            */
-
-            radioQuestions.forEach(question => {
-                const radios = document.querySelectorAll(`input[name="${question.name}"]`);
-                const detailDiv = document.getElementById(question.detailId);
-
-                function toggleDetailDiv(value) {
-                    const inputField = detailDiv.querySelector('input, textarea');
-
-                    if (value === 'yes') {
-                        detailDiv.classList.add('show');
-                        if (inputField) {
-                            inputField.required = true;
-                        }
-                    } else {
-                        detailDiv.classList.remove('show');
-                        if (inputField) {
-                            inputField.required = false;
-                            inputField.value = '';
-                        }
-                    }
+                const fields = detailDiv.querySelectorAll('input, textarea, select');
+                const show = value === 'yes';
+                detailDiv.classList.toggle('show', show);
+                if (config.toggleHidden) {
+                    detailDiv.classList.toggle('hidden', !show);
                 }
 
-                // Attach event listener to each radio
-                radios.forEach(radio => {
-                    radio.addEventListener('change', function () {
-                        toggleDetailDiv(this.value);
-                    });
-
-                    // Run on page load if already selected
-                    if (radio.checked) {
-                        toggleDetailDiv(radio.value);
+                fields.forEach((field) => {
+                    field.required = show;
+                    if (!show && value === 'no') {
+                        resetField(field);
                     }
                 });
+            }
+
+            detailConfigs.forEach((config) => {
+                const radios = document.querySelectorAll(`input[name="${config.name}"]`);
+                const checkedRadio = Array.from(radios).find((radio) => radio.checked);
+
+                radios.forEach((radio) => {
+                    radio.addEventListener('change', () => toggleDetail(config, radio.value));
+                });
+
+                toggleDetail(config, checkedRadio ? checkedRadio.value : '');
             });
+
+            const hasWorkExperience = Boolean(@json($hasWorkExperience));
+            if (hasWorkExperience) {
+                const separatedYes = document.querySelector('input[name="separated_37"][value="yes"]');
+                const separatedNo = document.querySelector('input[name="separated_37"][value="no"]');
+                if (separatedYes) {
+                    separatedYes.checked = true;
+                    separatedYes.dispatchEvent(new Event('change', { bubbles: true }));
+                    if (separatedNo) {
+                        separatedNo.disabled = true;
+                    }
+                    const detailField = document.querySelector('#separated-details textarea, #separated-details input');
+                    if (detailField && detailField.value.trim() === '') {
+                        detailField.value = 'Set to "Yes" automatically because work experience records exist.';
+                    }
+                }
+            }
 
             /*
             // Photo upload functionality
@@ -1026,58 +1025,6 @@
         });
 
         document.addEventListener('DOMContentLoaded', function () {
-            // Single field: criminal_charged
-            const criminalYes = document.querySelector('input[name="criminal_35_b"][value="yes"]');
-            const criminalNo = document.querySelector('input[name="criminal_35_b"][value="no"]');
-            const criminalDetails = document.getElementById('criminal-details');
-
-            function toggleCriminalDetails() {
-                if (criminalYes.checked) {
-                    criminalDetails.classList.remove('hidden');
-                } else {
-                    criminalDetails.classList.add('hidden');
-                }
-            }
-
-            // Initial check
-            toggleCriminalDetails();
-            // Event listeners
-            criminalYes.addEventListener('change', toggleCriminalDetails);
-            criminalNo.addEventListener('change', toggleCriminalDetails);
-
-            // Reusable setup for other fields
-            function setupToggle(radioName, detailsId) {
-                const radioYes = document.querySelector(`input[name="${radioName}"][value="yes"]`);
-                const radioNo = document.querySelector(`input[name="${radioName}"][value="no"]`);
-                const detailsDiv = document.getElementById(detailsId);
-
-                function toggleDetails() {
-                    if (radioYes.checked) {
-                        detailsDiv.classList.remove('hidden');
-                        const inputField = detailsDiv.querySelector('input, textarea');
-                        if (inputField) inputField.required = true;
-                    } else {
-                        detailsDiv.classList.add('hidden');
-                        const inputField = detailsDiv.querySelector('input, textarea');
-                        if (inputField) {
-                            inputField.required = false;
-                            inputField.value = '';
-                        }
-                    }
-                }
-
-                toggleDetails();
-                radioYes.addEventListener('change', toggleDetails);
-                radioNo.addEventListener('change', toggleDetails);
-            }
-
-            // Apply to special status fields
-            setupToggle('indigenous_40_a', 'indigenous-details');
-            setupToggle('pwd_40_b', 'pwd-details');
-            setupToggle('solo_parent_40_c', 'solo-parent-details');
-        });
-
-        document.addEventListener('DOMContentLoaded', function () {
         const idSelect = document.getElementById('govt_id_type');
         const otherIdWrapper = document.getElementById('other-id-wrapper');
         const otherIdInput = document.getElementById('other_id_input');
@@ -1087,14 +1034,21 @@
         const govtDateNotApplicableCheckbox = document.getElementById('govt_id_date_not_applicable');
         const govtPlaceNotApplicableCheckbox = document.getElementById('govt_id_place_not_applicable');
 
-        idSelect.addEventListener('change', function () {
-            if (this.value === 'other') {
+        function handleIdSelectChange() {
+            const isOther = idSelect && idSelect.value === 'other';
+            if (isOther) {
                 otherIdWrapper.classList.remove('hidden');
             } else {
                 otherIdWrapper.classList.add('hidden');
                 otherIdInput.value = '';
             }
-        });
+            if (otherIdInput) {
+                otherIdInput.required = isOther;
+            }
+        }
+
+        idSelect?.addEventListener('change', handleIdSelectChange);
+        handleIdSelectChange();
 
         function upsertNotApplicableHiddenInput(fieldName, marker, shouldEnable) {
             if (!form) {
@@ -1172,7 +1126,7 @@
         syncGovtIssueNotApplicable();
 
         // Before form submission, replace `govt_id_type` value with `other_id_input` if 'Other' is selected
-        document.querySelector('form').addEventListener('submit', function (e) {
+        form?.addEventListener('submit', function (e) {
             syncGovtIssueNotApplicable();
 
             if (idSelect.value === 'other' && otherIdInput.value.trim() !== '') {

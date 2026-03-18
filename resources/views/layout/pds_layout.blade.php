@@ -492,7 +492,7 @@
         x-init="setTimeout(() => show = false, 3000)"
         x-show="show"
         x-transition
-        class="fixed top-5 right-5 z-100 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-xl shadow-lg w-full max-w-sm"
+        class="fixed top-5 right-5 z-[9999] bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-xl shadow-lg w-full max-w-sm"
     >
         <strong class="font-bold">Success!</strong>
         <p class="text-sm">{{ session('success') }}</p>
@@ -505,7 +505,7 @@
         x-init="setTimeout(() => show = false, 3000)"
         x-show="show"
         x-transition
-        class="fixed top-5 right-5 z-100 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl shadow-lg w-full max-w-sm"
+        class="fixed top-5 right-5 z-[9999] bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl shadow-lg w-full max-w-sm"
     >
         <strong class="font-bold">Whoops!</strong>
         <ul class="list-disc list-inside text-sm mt-1">
@@ -522,7 +522,7 @@
             x-init="setTimeout(() => show = false, 3000)"
             x-show="show"
             x-transition
-            class="fixed top-5 right-5 z-100 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl shadow-lg w-full max-w-sm"
+            class="fixed top-5 right-5 z-[9999] bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl shadow-lg w-full max-w-sm"
         >
             <strong class="font-bold">Whoops!</strong>
                     {{ session('error') }}

@@ -763,6 +763,9 @@ class PDSController extends Controller
         if ($raw === '') {
             return '';
         }
+        if (strtolower($raw) === 'present') {
+            return 'PRESENT';
+        }
         return $this->normalizeDateString($raw, 'd-m-Y');
     }
 
@@ -910,7 +913,7 @@ class PDSController extends Controller
         $civilStatus = strtolower(trim((string) ($c1['civil_status'] ?? '')));
         $isSingle = $civilStatus === 'single';
         $isMarried = $civilStatus === 'married';
-        $isWidowed = $civilStatus === 'widowed';
+        $isWidowed = in_array($civilStatus, ['widowed', 'widower'], true);
         $isSeparated = $civilStatus === 'separated';
         $isOther = $civilStatus === 'other';
 
@@ -1055,7 +1058,7 @@ class PDSController extends Controller
             'first_name' => 'required|max:255|string',
             'middle_name' => 'nullable|max:255|string',
             'name_extension' => 'nullable|max:255|string',
-            'civil_status' => 'required|string|in:single,married,widowed,separated,other',
+            'civil_status' => 'required|string|in:single,married,widowed,widower,separated,other',
             'date_of_birth' => 'required|date_format:d-m-Y',
             'place_of_birth' => 'required|max:255|string',
             'citizenship' => 'required|max:255|in:Filipino,Dual Citizenship',
@@ -1973,7 +1976,7 @@ class PDSController extends Controller
         return match ($normalized) {
             'single' => 'single',
             'married' => 'married',
-            'widowed' => 'widowed',
+            'widowed', 'widower' => 'widowed',
             'separated', 'seperated' => 'separated',
             'other', 'others', 'other/s' => 'other',
             default => '',
@@ -2204,18 +2207,29 @@ class PDSController extends Controller
 
         //dd($request->except('_token'));
         $validator = Validator::make($request->all(), [
-            'work_exp_from' => 'required|array|min:1',
-            'work_exp_from.*' => 'required|date_format:Y-m-d',
-            'work_exp_to' => 'required|array|min:1',
-            'work_exp_to.*' => 'required|date_format:Y-m-d',
-            'work_exp_position' => 'required|array|min:1',
-            'work_exp_position.*' => 'required|string|max:255',
-            'work_exp_department' => 'required|array|min:1',
-            'work_exp_department.*' => 'required|string|max:255',
-            'work_exp_status' => 'required|array|min:1',
-            'work_exp_status.*' => 'required|in:Permanent,Temporary,Casual,Contractual',
-            'work_exp_govt_service' => 'required|array|min:1',
-            'work_exp_govt_service.*' => 'required|in:Y,N',
+            'work_exp_from' => 'nullable|array',
+            'work_exp_from.*' => 'nullable|date_format:Y-m-d',
+            'work_exp_to' => 'nullable|array',
+            'work_exp_to.*' => ['nullable', 'string', function ($attribute, $value, $fail) {
+                $normalized = strtolower(trim((string) $value));
+                if ($normalized === 'present') {
+                    return;
+                }
+
+                try {
+                    Carbon::createFromFormat('Y-m-d', trim((string) $value));
+                } catch (\Throwable $e) {
+                    $fail('Inclusive date TO must be a valid date (YYYY-MM-DD) or marked as PRESENT.');
+                }
+            }],
+            'work_exp_position' => 'nullable|array',
+            'work_exp_position.*' => 'nullable|string|max:255',
+            'work_exp_department' => 'nullable|array',
+            'work_exp_department.*' => 'nullable|string|max:255',
+            'work_exp_status' => 'nullable|array',
+            'work_exp_status.*' => 'nullable|in:Permanent,Temporary,Casual,Contractual',
+            'work_exp_govt_service' => 'nullable|array',
+            'work_exp_govt_service.*' => 'nullable|in:Y,N',
 
             'cs_eligibility_career' => 'required|array|min:1',
             'cs_eligibility_career.*' => 'required|string|max:255',
@@ -2238,11 +2252,11 @@ class PDSController extends Controller
                 return;
             }
 
-            $rowCount = min(count($fromDates), count($toDates));
+            $rowCount = max(count($fromDates), count($toDates));
             for ($i = 0; $i < $rowCount; $i++) {
                 $fromRaw = trim((string) ($fromDates[$i] ?? ''));
                 $toRaw = trim((string) ($toDates[$i] ?? ''));
-                if ($fromRaw === '' || $toRaw === '') {
+                if ($fromRaw === '' || $toRaw === '' || strtolower($toRaw) === 'present') {
                     continue;
                 }
 
@@ -2271,6 +2285,11 @@ class PDSController extends Controller
         $validator->validate();
 
         $c2_form_data = $request->except('_token');
+        foreach (['work_exp_from','work_exp_to','work_exp_position','work_exp_department','work_exp_status','work_exp_govt_service'] as $key) {
+            if (!isset($c2_form_data[$key]) || !is_array($c2_form_data[$key])) {
+                $c2_form_data[$key] = [];
+            }
+        }
 
         // ------------------------------
         // WORK EXPERIENCE TABLE
@@ -2290,6 +2309,19 @@ class PDSController extends Controller
                 'work_exp_status' => trim(strip_tags($c2_form_data['work_exp_status'][$i])),
                 'work_exp_govt_service' => trim(strip_tags($c2_form_data['work_exp_govt_service'][$i]))
             ];
+
+            $hasWorkData = array_filter([
+                $data_work_exp['work_exp_from'],
+                $data_work_exp['work_exp_to'],
+                $data_work_exp['work_exp_position'],
+                $data_work_exp['work_exp_department'],
+                $data_work_exp['work_exp_status'],
+                $data_work_exp['work_exp_govt_service'],
+            ], static fn($v) => trim((string) $v) !== '');
+
+            if (empty($hasWorkData)) {
+                continue;
+            }
 
 
             // Check if the value of id is zero, a zero value means a record
@@ -2819,6 +2851,8 @@ class PDSController extends Controller
         $temp_40_a = $request->input('indigenous_40_a');
         $temp_40_b = $request->input('pwd_40_b');
         $temp_40_c = $request->input('solo_parent_40_c');
+        $rawGovtIdType = $request->input('govt_id_type');
+        $rawGovtIdTypeNormalized = strtolower(trim((string) $rawGovtIdType));
 
         // If "yes" was selected, use the text area instead
         $related_34_b = $this->userSelection($temp_34_b, $request, 'related_34_b_details');
@@ -2841,8 +2875,8 @@ class PDSController extends Controller
             $criminal_35_b = 'no';
         }
 
-        $govt_id_type = $request->input('govt_id_type');
-        if ($govt_id_type === 'other') {
+        $govt_id_type = $rawGovtIdType;
+        if ($rawGovtIdTypeNormalized === 'other') {
             $govt_id_type = $request->input('govt_id_other');
             //Updated value into the request for validation to work
             $request->merge(['govt_id_type' => $govt_id_type]);
@@ -2906,7 +2940,16 @@ class PDSController extends Controller
             'indigenous_40_a_details' => 'required_if:indigenous_40_a,yes|nullable|string|max:255',
             'pwd_40_b_details' => 'required_if:pwd_40_b,yes|nullable|string|max:255',
             'solo_parent_40_c_details' => 'required_if:solo_parent_40_c,yes|nullable|string|max:255',
-            'govt_id_other' => 'nullable|required_if:govt_id_type,other|string|max:255',
+            'govt_id_other' => [
+                'nullable',
+                'string',
+                'max:255',
+                function ($attribute, $value, $fail) use ($rawGovtIdTypeNormalized) {
+                    if ($rawGovtIdTypeNormalized === 'other' && trim((string) $value) === '') {
+                        $fail('Please specify the other Government Issued ID type.');
+                    }
+                },
+            ],
 
         ]);
 
@@ -2943,13 +2986,23 @@ class PDSController extends Controller
 
             'govt_id_type' => 'required|string|max:255',
             'govt_id_number' => 'required|string|max:50',
-            'govt_id_date_issued' => ['required', 'string', 'max:50', function ($attribute, $value, $fail) {
+            'govt_id_date_issued' => ['nullable', 'string', 'max:50', function ($attribute, $value, $fail) {
                 if (!$this->isValidGovtIdDateIssued($value)) {
                     $fail('The Date of Issuance must be a valid date or N/A.');
                 }
             }],
             'govt_id_place_issued' => 'required|string|max:255',
             'photo_upload' => 'nullable|string',
+            'govt_id_other' => [
+                'nullable',
+                'string',
+                'max:255',
+                function ($attribute, $value, $fail) use ($rawGovtIdTypeNormalized) {
+                    if ($rawGovtIdTypeNormalized === 'other' && trim((string) $value) === '') {
+                        $fail('Please specify the other Government Issued ID type.');
+                    }
+                },
+            ],
         ]);
 
         $validated_misc_data = $validator_misc_data->validated();
@@ -3089,7 +3142,7 @@ class PDSController extends Controller
         $value = trim((string) $value);
 
         if ($value === '') {
-            return 'N/A';
+            return '';
         }
 
         return $value;

@@ -879,6 +879,7 @@ class ExportPDSController
             'single' => [43.5, 85],
             'married' => [72.8, 85],
             'widowed' => [43.5, 89],
+            'widower' => [43.5, 89],
             'separated' => [72.8, 89],
             'other' => [43, 93],
             'other/s' => [43, 93],
