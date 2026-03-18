@@ -131,7 +131,7 @@
                 <!-- Personal Details -->
                 <div class="mobile-stack md:grid md:grid-cols-4 gap-4 rounded-lg p-4 sm:gap-6 mb-4 sm:mb-6">
                     <div class="relative">
-                        <input type="text" id="date_of_birth" name="date_of_birth" value="{{ old('date_of_birth', session('form.c1.date_of_birth')) }}" required class="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base">
+                        <input type="text" id="date_of_birth" name="date_of_birth" value="{{ old('date_of_birth', session('form.c1.date_of_birth')) }}" required autocomplete="bday" data-dob-input class="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base">
                         <label for="date_of_birth" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">3. DATE OF BIRTH <span class="text-red-500">*</span></label>
                         <!-- <label for="date_of_birth" class="absolute -top-2 left-3 bg-white px-1 text-xs text-gray-600 ml-[50%]">(dd/mm/yyyy) </label> -->
                     </div>
@@ -170,7 +170,7 @@
                     <!-- Physical Info -->
                     <div class="relative">
                         <input type="number" style="-moz-appearance: textfield; -webkit-appearance: textfield;" required step="0.01" id="height" name="height" value="{{ old('height', session('form.c1.height')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                        <label for="height" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">7. HEIGHT (m) <span class="text-red-500">*</span></label>
+                        <label for="height" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">7. HEIGHT (Cm) <span class="text-red-500">*</span></label>
                     </div>
                     <div class="relative">
                         <input type="number" style="-moz-appearance: textfield; -webkit-appearance: textfield;" required step="0.1" id="weight" name="weight" value="{{ old('weight', session('form.c1.weight')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
@@ -572,7 +572,7 @@
                             <label for="elem_school" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">School Name<span class="text-red-500">*</span></label>
                         </div>
                         <div class="relative md:col-span-2">
-                            <input type="text" id="elem_basic" name="elem_basic" value="{{ $elemBasicPrefill }}" placeholder=" " class="text-gray-500 floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
+                            <input type="text" id="elem_basic" name="elem_basic" value="PRIMARY" placeholder=" " readonly aria-readonly="true" class="text-gray-700 bg-gray-100 floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
                             <label for="elem_basic" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Basic Education/Degree/Course</label>
                         </div>
                         <div class="relative">
@@ -585,8 +585,8 @@
                             <p class="error-message hidden" data-education-date-error aria-live="polite"></p>
                         </div>
                         <div class="relative md:col-span-2">
-                            <input pattern="\d{4}" maxlength="4" type="text" inputmode="numeric" id="elem_year_graduated" name="elem_year_graduated" value="{{ old('elem_year_graduated', session('form.c1.elem_year_graduated')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                            <label for="elem_year_graduated" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Year Graduated</label>
+                            <input pattern="\d{4}" maxlength="4" type="text" inputmode="numeric" id="elem_year_graduated" name="elem_year_graduated" value="{{ old('elem_year_graduated', session('form.c1.elem_year_graduated')) }}" placeholder=" " required class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
+                            <label for="elem_year_graduated" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Year Graduated <span class="text-red-500">*</span></label>
                         </div>
                         <div class="relative md:col-span-2">
                             <input type="text" id="elem_earned" name="elem_earned" value="{{ old('elem_earned', session('form.c1.elem_earned')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
@@ -903,9 +903,67 @@
         rangeEls.forEach(bindPdsEducationDateRange);
     }
     window.initPdsEducationDateRanges = initPdsEducationDateRanges;
-    flatpickr("#date_of_birth", {dateFormat: "d-m-Y", allowInput: true});
+
+    function validateDobAge() {
+        const dobInput = document.querySelector('[data-dob-input]');
+        if (!dobInput) return true;
+
+        const raw = (dobInput.value || '').trim();
+        const dob = parsePdsEducationDate(raw);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const minDob = new Date(today);
+        minDob.setFullYear(minDob.getFullYear() - 18);
+
+        let message = '';
+        if (!dob) {
+            message = 'Enter a valid date in dd-mm-yyyy format.';
+        } else {
+            dob.setHours(0, 0, 0, 0);
+
+            if (dob.getTime() > today.getTime()) {
+                message = 'Date of birth cannot be in the future.';
+            } else if (dob.getTime() > minDob.getTime()) {
+                message = 'Applicant must be at least 18 years old.';
+            }
+        }
+
+        dobInput.setCustomValidity(message);
+        if (message) {
+            dobInput.reportValidity();
+            return false;
+        }
+
+        return true;
+    }
+
+    flatpickr('#date_of_birth', {
+        dateFormat: 'd-m-Y',
+        allowInput: true,
+        maxDate: 'today',
+        onChange: validateDobAge,
+        onClose: validateDobAge,
+    });
+
     document.addEventListener('DOMContentLoaded', function () {
         initPdsEducationDateRanges(document);
+
+        const dobInput = document.querySelector('[data-dob-input]');
+        if (dobInput) {
+            dobInput.addEventListener('blur', validateDobAge);
+            dobInput.addEventListener('input', () => dobInput.setCustomValidity(''));
+        }
+
+        const form = document.querySelector('#myForm');
+        if (form) {
+            form.addEventListener('submit', (event) => {
+                if (!validateDobAge()) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+            });
+        }
     });
     const psgcApiBase = @json(url('/psgc'));
     const perProvince = document.querySelector('#per_province');

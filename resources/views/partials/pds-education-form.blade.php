@@ -202,7 +202,7 @@
                                        class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base"
                                        {{ $education_type == 'college' ? 'required' : '' }}>
                                 <label class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">
-                                    Basic Education/Degree/Course{!! $education_type == 'college' ? '<span class="text-red-500">*</span>' : '' !!}
+                                    Degree/Course{!! $education_type == 'college' ? '<span class="text-red-500">*</span>' : '' !!}
                                 </label>
                             </div>
 
@@ -310,7 +310,7 @@
                                    class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base"
                                    {{ $education_type == 'college' ? 'required' : '' }}>
                             <label class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">
-                                Basic Education/Degree/Course{{ $education_type == 'college' ? '*' : '' }}
+                                Degree/Course{{ $education_type == 'college' ? '*' : '' }}
                             </label>
                         </div>
 

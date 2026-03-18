@@ -1365,7 +1365,6 @@
             }, true);
         })();
     </script>
-    @include('partials.loader')
     @include('partials.pds_uppercase_inputs')
     @livewireScripts
 
