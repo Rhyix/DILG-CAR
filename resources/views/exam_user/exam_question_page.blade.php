@@ -347,14 +347,14 @@
     window.allowFocusLoss = false;
     window.isSubmitting = false;
     window.allowFullscreenExit = false;
+    const examMaxViolations = Math.max(1, Number(@json((int) ($maxViolations ?? 12))) || 12);
 
     const antiCheat = (() => {
-        const MAX_GENERIC_VIOLATIONS = 12;
         const warningEl = document.getElementById('examWarningNotification');
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
         let active = false;
         let warningTimeout = null;
-        let genericViolations = 0;
+        let thresholdViolations = 0;
         const tabSwitchEvents = [];
         let hiddenAt = null;
         let violationCounter = 0;
@@ -363,6 +363,7 @@
         let resizeIgnoreUntil = 0;
         let devtoolsInterval = null;
         let lastDevtoolsWarningAt = 0;
+        let autoSubmitTriggered = false;
 
         function isExamActive() {
             return active && !window.allowFocusLoss && !window.isSubmitting;
@@ -411,22 +412,33 @@
                     vacancy_id: '{{ $vacancy_id }}',
                     ...payload
                 })
-            }).catch(() => {});
+            })
+            .then(response => response.ok ? response.json() : null)
+            .then(data => {
+                if (!data || !data.auto_submit || autoSubmitTriggered || !isExamActive()) return;
+                autoSubmitTriggered = true;
+                showWarning(`Maximum violations reached (${data.max_violations}). Submitting your exam now.`);
+                setTimeout(() => {
+                    if (!window.isSubmitting) window.prepareSubmit();
+                }, 800);
+            })
+            .catch(() => {});
         }
 
         function maybeAutoSubmit() {
-            if (!isExamActive()) return;
-            if (genericViolations >= MAX_GENERIC_VIOLATIONS) {
-                showWarning('Too many violations detected. Submitting your exam now.');
+            if (!isExamActive() || autoSubmitTriggered) return;
+            if (thresholdViolations >= examMaxViolations) {
+                autoSubmitTriggered = true;
+                showWarning(`Maximum violations reached (${examMaxViolations}). Submitting your exam now.`);
                 setTimeout(() => {
                     if (!window.isSubmitting) window.prepareSubmit();
                 }, 800);
             }
         }
 
-        function registerViolation(type, message, payload = {}, countForThreshold = true) {
+        function registerViolation(type, message, payload = {}) {
             if (!isExamActive()) return;
-            if (countForThreshold) genericViolations += 1;
+            thresholdViolations += 1;
             showWarning(message);
             logViolation(type, payload);
             maybeAutoSubmit();
@@ -468,8 +480,7 @@
                         duration_seconds: durationSeconds,
                         switch_count: switchCount,
                         total_switches: switchCount
-                    },
-                    false
+                    }
                 );
                 hiddenAt = null;
                 requestExamFullscreen();
@@ -491,16 +502,9 @@
 
             const key = event.key || '';
             const lower = key.toLowerCase();
-            const blockedDirect = ['f12', 'f11', 'printscreen', 'escape', 'control', 'alt', 'meta'];
-            const blockedCombos =
-                event.ctrlKey ||
-                event.altKey ||
-                event.metaKey ||
-                (event.shiftKey && ['f10'].includes(lower)) ||
-                (event.ctrlKey && event.shiftKey && ['i', 'j', 'c'].includes(lower)) ||
-                (event.ctrlKey && ['c', 'v', 'x', 'u', 's', 'a', 'p', 'r', 'w', 't', 'tab'].includes(lower));
+            const blockedDirect = ['f12', 'alt'];
 
-            if (blockedDirect.includes(lower) || blockedCombos) {
+            if (blockedDirect.includes(lower)) {
                 event.preventDefault();
                 event.stopPropagation();
                 registerViolation('blocked-key', 'Restricted keyboard shortcut detected.', {
@@ -906,4 +910,3 @@
 </script>
 @include('partials.loader')
 @endsection
-

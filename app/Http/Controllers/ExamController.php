@@ -407,6 +407,11 @@ class ExamController extends Controller
             $application->last_tab_violation_at = now();
             $application->save();
 
+            $maxViolations = (int) (ExamDetail::where('vacancy_id', $application->vacancy_id)->value('max_violations') ?? 12);
+            if ($maxViolations < 1) {
+                $maxViolations = 1;
+            }
+
             try {
                 ExamTabViolation::create([
                     'user_id' => $application->user_id,
@@ -454,6 +459,13 @@ class ExamController extends Controller
             } catch (\Throwable $e) {
                 Log::error('Failed to create admin notification for tab switch', ['error' => $e->getMessage()]);
             }
+
+            return response()->json([
+                'ok' => true,
+                'count' => (int) $application->tab_violations,
+                'max_violations' => $maxViolations,
+                'auto_submit' => (int) $application->tab_violations >= $maxViolations,
+            ]);
         }
 
         return response()->json(['ok' => true]);
@@ -877,6 +889,12 @@ class ExamController extends Controller
             ->where('user_id', $user->id)
             ->firstOrFail();
 
+        if (!empty($application->exam_attendance_status) || !is_null($application->exam_attendance_responded_at)) {
+            return redirect()
+                ->route('application_status', ['user' => $user->id, 'vacancy' => $vacancy_id])
+                ->with('success', 'Your exam attendance response has already been recorded.');
+        }
+
         $vacancy = JobVacancy::select('vacancy_id', 'position_title', 'vacancy_type')
             ->where('vacancy_id', $vacancy_id)
             ->firstOrFail();
@@ -933,7 +951,7 @@ class ExamController extends Controller
             : 'Your exam attendance has been marked as Will Not Attend.';
 
         return redirect()
-            ->route('exam.attendance.prompt', ['vacancy_id' => $vacancy_id])
+            ->route('application_status', ['user' => auth()->id(), 'vacancy' => $vacancy_id])
             ->with('success', $message);
     }
 
@@ -1247,11 +1265,12 @@ class ExamController extends Controller
 
         $total_seconds = $examDetail->duration * 60;
         $savedAnswers = is_array($application->answers) ? $application->answers : [];
+        $maxViolations = max(1, (int) ($examDetail->max_violations ?? 12));
 
         $examineeName = auth()->user()->name ?? 'Examinee';
         $examineeNumber = strtoupper('EXM-' . substr(hash('sha256', $vacancy_id . '-' . $user_id), 0, 8));
 
-        return view('exam_user.exam_question_page', compact('vacancy_id', 'examItems', 'remaining_seconds', 'vacancy', 'total_seconds', 'savedAnswers', 'examineeName', 'examineeNumber'));
+        return view('exam_user.exam_question_page', compact('vacancy_id', 'examItems', 'remaining_seconds', 'vacancy', 'total_seconds', 'savedAnswers', 'examineeName', 'examineeNumber', 'maxViolations'));
     }
 
     public function viewExam(Request $request, $vacancy_id, $user_id)
@@ -2041,6 +2060,7 @@ class ExamController extends Controller
                 'date' => 'required|date',
                 'place' => 'required|string',
                 'duration' => 'required|integer',
+                'max_violations' => 'required|integer|min:1',
                 'message' => 'nullable|string',
             ]);
 

@@ -200,6 +200,42 @@
                   </div>
                 </div>
 
+                @php
+                  $attendanceStatus = $application->exam_attendance_status;
+                  $attendanceLabel = match ($attendanceStatus) {
+                    'will_attend' => 'Will Attend',
+                    'will_not_attend' => 'Will Not Attend',
+                    default => 'No Response Yet',
+                  };
+                  $attendanceBadgeClass = match ($attendanceStatus) {
+                    'will_attend' => 'bg-green-100 text-green-800 border-green-300',
+                    'will_not_attend' => 'bg-red-100 text-red-800 border-red-300',
+                    default => 'bg-gray-100 text-gray-700 border-gray-300',
+                  };
+                @endphp
+
+                <div class="mb-6 rounded-xl border border-[#0D2B70]/15 bg-slate-50 p-5 shadow-sm">
+                  <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                    <div>
+                      <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Exam Attendance</p>
+                      <div class="mt-2 inline-flex rounded-full border px-4 py-2 text-sm font-semibold {{ $attendanceBadgeClass }}">
+                        {{ $attendanceLabel }}
+                      </div>
+                    </div>
+                    <div class="text-sm text-slate-600 md:text-right">
+                      <p class="font-semibold text-slate-700">Responded At</p>
+                      <p>{{ $application->exam_attendance_responded_at ? $application->exam_attendance_responded_at->format('F d, Y h:i A') : 'Not yet submitted' }}</p>
+                    </div>
+                  </div>
+
+                  @if($application->exam_attendance_remark)
+                    <div class="mt-4 rounded-lg border border-slate-200 bg-white px-4 py-3">
+                      <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Remark</p>
+                      <p class="mt-1 text-sm text-slate-700">{{ $application->exam_attendance_remark }}</p>
+                    </div>
+                  @endif
+                </div>
+
 
                 <!-- Action Buttons -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-6 mb-6">

@@ -18,6 +18,7 @@ class ExamDetail extends Model
         'place',
         'message',
         'duration',
+        'max_violations',
         'notified_at',
         'details_saved',
         'link_sent',
