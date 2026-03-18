@@ -199,7 +199,7 @@
             <!-- Main Heading -->
             <div class="max-w-4xl">
                 <h1 class="text-4xl sm:text-5xl lg:text-6xl font-black text-white leading-tight mb-4">
-                    Ang DILG ay Matino, Mahusay at Maaasahan
+                    Ang DILG ay Matino, Mahusay at Maasahan
                 </h1>
             </div>
         </div>

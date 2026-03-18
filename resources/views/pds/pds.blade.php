@@ -162,6 +162,7 @@
                             <option value="single" {{ old('civil_status', session('form.c1.civil_status')) == 'single' ? 'selected' : '' }}>Single</option>
                             <option value="married"{{ old('civil_status', session('form.c1.civil_status')) == 'married' ? 'selected' : '' }}>Married</option>
                             <option value="widowed"{{ old('civil_status', session('form.c1.civil_status')) == 'widowed' ? 'selected' : '' }}>Widowed</option>
+                            <option value="widower"{{ old('civil_status', session('form.c1.civil_status')) == 'widower' ? 'selected' : '' }}>Widower</option>
                             <option value="separated"{{ old('civil_status', session('form.c1.civil_status')) == 'separated' ? 'selected' : '' }}>Separated</option>
                             <option value="other"{{ old('civil_status', session('form.c1.civil_status')) == 'other' ? 'selected' : '' }}>Other/s</option>
                         </select>
