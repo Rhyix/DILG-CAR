@@ -95,7 +95,7 @@ class JobVacancyController extends Controller
     public function edit($vacancy_id)
     {
         $vacancy = JobVacancy::where('vacancy_id', $vacancy_id)->firstOrFail();
-        $signatories = \App\Models\Signatory::all();
+        $signatories = \App\Models\Signatory::query()->orderBy('id')->limit(1)->get();
         $vacancyType = (string) ($vacancy->vacancy_type ?? '');
         $view = strcasecmp(trim($vacancyType), 'Plantilla') === 0
             ? 'admin.vacancy_add_plantilla'

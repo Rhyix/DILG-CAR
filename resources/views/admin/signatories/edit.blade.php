@@ -4,7 +4,7 @@
 <div class="w-full space-y-6 font-montserrat" x-data="signatoryForm()">
     <div class="">
         <h1 class="flex items-center gap-3 w-full border-b border-[#0D2B70] text-white text-4xl font-montserrat py-2 tracking-wide select-none">
-            <span class="whitespace-nowrap text-[#0D2B70]">Edit Signatory</span>
+            <span class="whitespace-nowrap text-[#0D2B70]">Edit Regional Director</span>
         </h1>
 
         @if ($errors->any())
@@ -91,7 +91,7 @@
                     :class="hasChanges() 
                         ? 'bg-[#002C76] text-white hover:bg-blue-900'
                         : 'bg-gray-300 text-gray-500 cursor-not-allowed'">
-                    Update Signatory
+                    Update Regional Director
                 </button>
             </div>
         </form>
@@ -100,8 +100,8 @@
 
 <!-- CONFIRMATION MODAL -->
 <x-confirm-modal
-    title="Update Signatory"
-    message="Are you sure you want to update this signatory?"
+    title="Update Regional Director"
+    message="Are you sure you want to update the Regional Director record?"
     event="open-confirm-modal"
     confirm="confirm-update-signatory"
 />

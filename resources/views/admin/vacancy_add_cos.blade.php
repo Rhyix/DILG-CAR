@@ -173,17 +173,17 @@
             <div>
                 <label class="block">Name of Head</label>
                 <select id="signatory_select" name="to_person" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10">
-                    <option value="">-- Select a Signatory --</option>
+                    <option value="">-- Select Regional Director --</option>
                     @forelse($signatories as $signatory)
                         <option value="{{ $signatory->first_name }} {{ $signatory->middle_name }} {{ $signatory->last_name }}"
                             data-designation="{{ $signatory->designation }}"
                             data-office="{{ $signatory->office }}"
                             data-office_address="{{ $signatory->office_address }}"
-                            {{ old('to_person', $formSource?->to_person ?? '') === ($signatory->first_name . ' ' . $signatory->middle_name . ' ' . $signatory->last_name) ? 'selected' : '' }}>
+                            {{ old('to_person', $formSource?->to_person ?? '') === ($signatory->first_name . ' ' . $signatory->middle_name . ' ' . $signatory->last_name) || (count($signatories) === 1 && old('to_person', $formSource?->to_person ?? '') === '') ? 'selected' : '' }}>
                             {{ $signatory->first_name }} {{ $signatory->middle_name }} {{ $signatory->last_name }}
                         </option>
                     @empty
-                        <option value="">No signatories available</option>
+                        <option value="">No Regional Director configured</option>
                     @endforelse
                 </select>
             </div>
@@ -345,6 +345,10 @@ document.addEventListener("DOMContentLoaded", function() {
         // positionField.disabled = true;
         // officeField.disabled = true;
         // officeAddressField.disabled = true;
+    }
+
+    if (signatorySelect && signatorySelect.value === '' && signatorySelect.options.length > 1) {
+        signatorySelect.selectedIndex = 1;
     }
 
     signatorySelect.addEventListener('change', handleSignatoryChange);
