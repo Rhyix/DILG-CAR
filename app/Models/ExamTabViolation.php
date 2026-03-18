@@ -17,6 +17,7 @@ class ExamTabViolation extends Model
         'started_at',
         'ended_at',
         'duration_seconds',
+        'duration_milliseconds',
     ];
 
     protected $casts = [

@@ -405,6 +405,8 @@
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': csrfToken
                 },
+                credentials: 'same-origin',
+                keepalive: true,
                 body: JSON.stringify({
                     type,
                     count: violationCounter,
@@ -459,16 +461,19 @@
             } else if (hiddenAt) {
                 switchCount += 1;
                 const endedAt = new Date();
-                const durationSeconds = Math.max(0, Math.round((endedAt.getTime() - hiddenAt.getTime()) / 1000));
+                const durationMilliseconds = Math.max(0, endedAt.getTime() - hiddenAt.getTime());
+                const durationSeconds = Math.floor(durationMilliseconds / 1000);
                 tabSwitchEvents.push({
                     switch_count: switchCount,
                     started_at: hiddenAt.toISOString(),
                     ended_at: endedAt.toISOString(),
-                    duration_seconds: durationSeconds
+                    duration_seconds: durationSeconds,
+                    duration_milliseconds: durationMilliseconds
                 });
                 window.tabSwitchMetrics = {
                     total_switches: switchCount,
-                    total_hidden_seconds: tabSwitchEvents.reduce((sum, item) => sum + item.duration_seconds, 0),
+                    total_hidden_seconds: Number((tabSwitchEvents.reduce((sum, item) => sum + item.duration_milliseconds, 0) / 1000).toFixed(3)),
+                    total_hidden_milliseconds: tabSwitchEvents.reduce((sum, item) => sum + item.duration_milliseconds, 0),
                     events: [...tabSwitchEvents]
                 };
                 registerViolation(
@@ -478,6 +483,7 @@
                         started_at: hiddenAt.toISOString(),
                         ended_at: endedAt.toISOString(),
                         duration_seconds: durationSeconds,
+                        duration_milliseconds: durationMilliseconds,
                         switch_count: switchCount,
                         total_switches: switchCount
                     }

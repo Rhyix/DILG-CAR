@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\ExamProgressUpdated;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use App\Models\JobVacancy;
@@ -68,6 +69,59 @@ class ExamController extends Controller
         }
 
         return $requestRoot !== '' ? $requestRoot : null;
+    }
+
+    private function shouldBroadcastExamUpdates(): bool
+    {
+        return in_array((string) config('broadcasting.default'), ['reverb', 'pusher', 'ably'], true);
+    }
+
+    private function broadcastExamProgress(Applications $application, string $type, array $meta = []): void
+    {
+        if (!$this->shouldBroadcastExamUpdates()) {
+            return;
+        }
+
+        try {
+            broadcast(new ExamProgressUpdated(
+                vacancyId: (string) $application->vacancy_id,
+                userId: (int) $application->user_id,
+                type: $type,
+                status: is_string($application->status) ? $application->status : null,
+                tabViolations: is_numeric($application->tab_violations) ? (int) $application->tab_violations : null,
+                occurredAt: now()->toIso8601String(),
+                meta: $meta,
+            ));
+        } catch (\Throwable $e) {
+            Log::warning('Failed to broadcast exam progress update', [
+                'vacancy_id' => $application->vacancy_id,
+                'user_id' => $application->user_id,
+                'type' => $type,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    private function parseDurationMilliseconds(Request $request, ?string $startedAt, ?string $endedAt): ?int
+    {
+        $durationMs = $request->input('duration_milliseconds');
+
+        if (is_numeric($durationMs)) {
+            return max(0, (int) round((float) $durationMs));
+        }
+
+        if (!$startedAt || !$endedAt) {
+            return null;
+        }
+
+        try {
+            $started = \Carbon\Carbon::parse($startedAt);
+            $ended = \Carbon\Carbon::parse($endedAt);
+
+            return max(0, (int) ($ended->getTimestampMs() - $started->getTimestampMs()));
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     private function mapQualifiedApplicant(Applications $app): array
@@ -191,6 +245,9 @@ class ExamController extends Controller
         $answerRecord->status = 'submitted'; // Ensure status is updated to 'submitted'
         $answerRecord->exam_submitted_at = now();
         $answerRecord->save();
+        $this->broadcastExamProgress($answerRecord, 'submitted', [
+            'result' => $resultStr,
+        ]);
 
         //$message = "submitted successfully";
         //info($message);
@@ -268,6 +325,9 @@ class ExamController extends Controller
         $answerRecord->result = $resultStr;
         // Do NOT change status to submitted
         $answerRecord->save();
+        $this->broadcastExamProgress($answerRecord, 'autosaved', [
+            'result' => $resultStr,
+        ]);
 
         return response()->json(['success' => true]);
     }
@@ -392,7 +452,10 @@ class ExamController extends Controller
         $countFromClient = (int) ($request->input('count') ?? 0);
         $startedAt = $request->input('started_at');
         $endedAt = $request->input('ended_at');
-        $duration = $request->input('duration_seconds');
+        $durationMs = $this->parseDurationMilliseconds($request, $startedAt, $endedAt);
+        $durationSeconds = is_numeric($request->input('duration_seconds'))
+            ? max(0, (int) $request->input('duration_seconds'))
+            : ($durationMs !== null ? intdiv($durationMs, 1000) : null);
 
         $applicationQuery = Applications::where('user_id', $user?->id);
         if ($vacancyId) {
@@ -413,13 +476,19 @@ class ExamController extends Controller
             }
 
             try {
-                ExamTabViolation::create([
+                $violationPayload = [
                     'user_id' => $application->user_id,
                     'vacancy_id' => $application->vacancy_id,
                     'started_at' => $startedAt ? \Carbon\Carbon::parse($startedAt) : now(),
                     'ended_at' => $endedAt ? \Carbon\Carbon::parse($endedAt) : null,
-                    'duration_seconds' => is_numeric($duration) ? (int)$duration : null,
-                ]);
+                    'duration_seconds' => $durationSeconds,
+                ];
+
+                if (Schema::hasColumn('exam_tab_violations', 'duration_milliseconds')) {
+                    $violationPayload['duration_milliseconds'] = $durationMs;
+                }
+
+                ExamTabViolation::create($violationPayload);
             } catch (\Throwable $e) {
                 Log::error('Failed to persist exam tab violation', ['error' => $e->getMessage()]);
             }
@@ -432,10 +501,18 @@ class ExamController extends Controller
                     'user_id' => $application->user_id,
                     'count' => $application->tab_violations,
                     'time' => $request->input('time'),
-                    'duration_seconds' => $duration,
+                    'duration_seconds' => $durationSeconds,
+                    'duration_milliseconds' => $durationMs,
+                    'client_count' => $countFromClient,
                     'section' => 'Exam'
                 ])
                 ->log('Exam tab switch violation recorded.');
+
+            $this->broadcastExamProgress($application, 'tab-violation', [
+                'duration_seconds' => $durationSeconds,
+                'duration_milliseconds' => $durationMs,
+                'count' => (int) $application->tab_violations,
+            ]);
 
             // Broadcast-style admin notification (visible to all admins)
             try {
@@ -465,6 +542,8 @@ class ExamController extends Controller
                 'count' => (int) $application->tab_violations,
                 'max_violations' => $maxViolations,
                 'auto_submit' => (int) $application->tab_violations >= $maxViolations,
+                'duration_seconds' => $durationSeconds,
+                'duration_milliseconds' => $durationMs,
             ]);
         }
 
@@ -700,7 +779,8 @@ class ExamController extends Controller
         // Only fetch participants who have entered the lobby (read_at is not null)
         $participants = Applications::where('vacancy_id', $vacancy_id)
             ->whereNotNull('read_at')
-            ->with('user')
+            ->select('user_id', 'vacancy_id', 'status', 'scores', 'answers', 'result', 'read_at')
+            ->with('user:id,name')
             ->get();
 
         $examDetails = ExamDetail::where('vacancy_id', $vacancy_id)->first();
@@ -1168,8 +1248,11 @@ class ExamController extends Controller
             return redirect()->route('user.exam_question_page', ['vacancy_id' => $vacancy_id]);
         }
 
+        $enteredLobby = false;
         if ($application && is_null($application->read_at)) {
             $application->update(['read_at' => now()]);
+            $application->refresh();
+            $enteredLobby = true;
         }
 
         $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->first();
@@ -1184,6 +1267,10 @@ class ExamController extends Controller
             ->causedBy(auth()->user())
             ->withProperties(['vacancy_id' => $vacancy_id, 'section' => 'Exam'])
             ->log('Entered exam lobby.');
+
+        if ($enteredLobby) {
+            $this->broadcastExamProgress($application, 'entered-lobby');
+        }
 
         $examineeName = auth()->user()->name ?? 'Examinee';
         $examineeNumber = strtoupper('EXM-' . substr(hash('sha256', $vacancy_id . '-' . $user_id), 0, 8));
@@ -1229,6 +1316,7 @@ class ExamController extends Controller
 
             // Refresh application to get the new values
             $application->refresh();
+            $this->broadcastExamProgress($application, 'started-exam');
         }
 
         $now = now();
@@ -1414,16 +1502,23 @@ class ExamController extends Controller
             ];
         }
 
+        $hasDurationMilliseconds = Schema::hasColumn('exam_tab_violations', 'duration_milliseconds');
+        $logColumns = ['started_at', 'ended_at', 'duration_seconds', 'created_at'];
+        if ($hasDurationMilliseconds) {
+            $logColumns[] = 'duration_milliseconds';
+        }
+
         $logsRaw = \App\Models\ExamTabViolation::where('vacancy_id', $vacancy_id)
             ->where('user_id', $user_id)
             ->orderByDesc('created_at')
             ->limit(20)
-            ->get(['started_at', 'ended_at', 'duration_seconds', 'created_at']);
-        $logs = $logsRaw->map(function ($l) {
+            ->get($logColumns);
+        $logs = $logsRaw->map(function ($l) use ($hasDurationMilliseconds) {
             return [
                 'started_at_iso' => optional($l->started_at)->toIso8601String(),
                 'ended_at_iso' => optional($l->ended_at)->toIso8601String(),
                 'duration_seconds' => $l->duration_seconds,
+                'duration_milliseconds' => $hasDurationMilliseconds ? $l->duration_milliseconds : null,
                 'created_at_iso' => optional($l->created_at)->toIso8601String(),
             ];
         });
@@ -1700,6 +1795,10 @@ class ExamController extends Controller
         }
 
         try {
+            $validated = $request->validate([
+                'max_violations' => 'nullable|integer|min:1',
+            ]);
+
             $publicBaseUrl = $this->resolvePublicBaseUrl($request);
             // Check if details have been saved first
             $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->first();
@@ -1709,6 +1808,11 @@ class ExamController extends Controller
                     'success' => false,
                     'message' => 'Please save exam details first before sending links.'
                 ], 400);
+            }
+
+            if (array_key_exists('max_violations', $validated) && !is_null($validated['max_violations'])) {
+                $examDetail->max_violations = (int) $validated['max_violations'];
+                $examDetail->save();
             }
 
             $participants = $this->qualifiedApplicationsQuery($vacancy_id)

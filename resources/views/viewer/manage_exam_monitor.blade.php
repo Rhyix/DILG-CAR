@@ -88,9 +88,34 @@
     @include('partials.loader')
 </main>
 
+@php
+    $examRealtimeConnection = (string) config('broadcasting.default');
+    $examRealtimeOptions = (array) data_get(config('broadcasting.connections'), $examRealtimeConnection . '.options', []);
+    $examRealtimeKey = (string) data_get(config('broadcasting.connections'), $examRealtimeConnection . '.key', '');
+    $examRealtimeEnabled = in_array($examRealtimeConnection, ['reverb', 'pusher'], true) && $examRealtimeKey !== '';
+    $examRealtimeConfig = [
+        'enabled' => $examRealtimeEnabled,
+        'key' => $examRealtimeKey,
+        'wsHost' => (string) ($examRealtimeOptions['host'] ?? request()->getHost()),
+        'wsPort' => (int) ($examRealtimeOptions['port'] ?? 80),
+        'wssPort' => (int) ($examRealtimeOptions['port'] ?? 443),
+        'forceTLS' => (bool) ($examRealtimeOptions['useTLS'] ?? request()->isSecure()),
+    ];
+@endphp
+@if ($examRealtimeEnabled)
+    <script src="https://js.pusher.com/8.4.0/pusher.min.js"></script>
+@endif
 <script>
     const vacancyId = @json($vacancy->vacancy_id);
+    const examRealtimeConfig = @json($examRealtimeConfig);
     let lobbyPollingInterval = null;
+    let lobbyFetchInFlight = null;
+    let lobbyFetchQueued = false;
+    let lobbyFetchTimer = null;
+    let realtimeClient = null;
+    let realtimeConnected = false;
+    const FAST_POLL_MS = 3000;
+    const SAFETY_POLL_MS = 15000;
 
     function updateLastUpdatedTime() {
         const el = document.getElementById('monitorLastUpdated');
@@ -139,7 +164,74 @@
         `).join('');
     }
 
-    function fetchLobbyData(isManual = false) {
+    function getLobbyPollIntervalMs() {
+        return realtimeConnected ? SAFETY_POLL_MS : FAST_POLL_MS;
+    }
+
+    function queueLobbyFetch(reason = 'queued', delay = 0, isManual = false) {
+        if (lobbyFetchTimer) clearTimeout(lobbyFetchTimer);
+        lobbyFetchTimer = setTimeout(() => {
+            lobbyFetchTimer = null;
+            fetchLobbyData(isManual, reason);
+        }, delay);
+    }
+
+    function initRealtime() {
+        if (!examRealtimeConfig.enabled || typeof window.Pusher === 'undefined') return;
+
+        try {
+            realtimeClient = new window.Pusher(examRealtimeConfig.key, {
+                wsHost: examRealtimeConfig.wsHost,
+                wsPort: examRealtimeConfig.wsPort,
+                wssPort: examRealtimeConfig.wssPort,
+                forceTLS: !!examRealtimeConfig.forceTLS,
+                enabledTransports: ['ws', 'wss'],
+                authEndpoint: '/broadcasting/auth',
+                auth: {
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                    }
+                }
+            });
+
+            const monitorChannel = realtimeClient.subscribe(`private-exam-monitor.${vacancyId}`);
+            monitorChannel.bind('exam.progress.updated', () => {
+                queueLobbyFetch('realtime-event', 80);
+            });
+
+            realtimeClient.connection.bind('connected', () => {
+                realtimeConnected = true;
+                startLobbyPolling();
+                queueLobbyFetch('realtime-connected', 0);
+            });
+
+            realtimeClient.connection.bind('disconnected', () => {
+                realtimeConnected = false;
+                startLobbyPolling();
+            });
+
+            realtimeClient.connection.bind('unavailable', () => {
+                realtimeConnected = false;
+                startLobbyPolling();
+            });
+
+            realtimeClient.connection.bind('error', () => {
+                realtimeConnected = false;
+                startLobbyPolling();
+            });
+        } catch (error) {
+            console.error('Realtime init failed:', error);
+            realtimeConnected = false;
+            startLobbyPolling();
+        }
+    }
+
+    function fetchLobbyData(isManual = false, reason = 'manual') {
+        if (lobbyFetchInFlight) {
+            lobbyFetchQueued = true;
+            return lobbyFetchInFlight;
+        }
+
         const btn = document.getElementById('refreshMonitorBtn');
         const icon = btn?.querySelector('svg');
 
@@ -148,11 +240,12 @@
             icon?.classList.add('animate-spin');
         }
 
-        fetch(`/admin/exam_management/${vacancyId}/lobby-data`, {
+        lobbyFetchInFlight = fetch(`/admin/exam_management/${vacancyId}/lobby-data`, {
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
                 'Accept': 'application/json'
-            }
+            },
+            credentials: 'same-origin'
         })
         .then(response => response.json())
         .then(data => {
@@ -161,18 +254,25 @@
                 updateLastUpdatedTime();
             }
         })
-        .catch(error => console.error('Error fetching lobby data:', error))
+        .catch(error => console.error(`Error fetching lobby data (${reason}):`, error))
         .finally(() => {
+            lobbyFetchInFlight = null;
             if (isManual && btn) {
                 btn.disabled = false;
                 icon?.classList.remove('animate-spin');
             }
+            if (lobbyFetchQueued) {
+                lobbyFetchQueued = false;
+                queueLobbyFetch('queued', 120);
+            }
         });
+
+        return lobbyFetchInFlight;
     }
 
     function startLobbyPolling() {
         if (lobbyPollingInterval) clearInterval(lobbyPollingInterval);
-        lobbyPollingInterval = setInterval(fetchLobbyData, 10000);
+        lobbyPollingInterval = setInterval(() => fetchLobbyData(false, 'poll'), getLobbyPollIntervalMs());
     }
 
     function stopLobbyPolling() {
@@ -184,12 +284,13 @@
         if (document.hidden) {
             stopLobbyPolling();
         } else {
-            fetchLobbyData();
+            queueLobbyFetch('visibility', 0);
             startLobbyPolling();
         }
     });
 
-    updateLastUpdatedTime();
+    initRealtime();
     startLobbyPolling();
+    queueLobbyFetch('initial', 0);
 </script>
 @endsection

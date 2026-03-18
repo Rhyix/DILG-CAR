@@ -2,7 +2,7 @@
 <div class="rounded-xl border border-[#0D2B70] mt-2 overflow-hidden flex flex-col min-h-0 bg-white shadow-sm">
     <div class="bg-[#0D2B70] text-white flex-none hidden lg:block">
         <div class="flex items-center text-sm font-bold uppercase tracking-wider">
-            <div class="py-4 px-6 w-[20%]">Application No.</div>
+            <div class="py-4 px-6 w-[20%]">Vacancy No.</div>
             <div class="py-4 px-6 w-[30%]">Position Title</div>
             <div class="py-4 px-6 w-[25%]">Place of Assignment</div>
             <div class="py-4 px-6 w-[10%] text-center">Status</div>
@@ -14,10 +14,10 @@
         <div class="divide-y divide-gray-200 lg:divide-[#0D2B70]">
             @foreach ($applications as $application)
                 <div class="flex flex-col lg:flex-row lg:items-center text-[#0D2B70] hover:bg-blue-50 transition-colors duration-200 p-5 lg:p-0">
-                    <!-- App No -->
+                    <!-- Vacancy No -->
                     <div class="lg:py-4 lg:px-6 lg:w-[20%] mb-2 lg:mb-0 flex items-center lg:block">
-                        <span class="lg:hidden text-xs font-bold text-slate-400 uppercase tracking-wide w-32 shrink-0">Application No.</span>
-                        <span class="font-semibold">{{ $application->id ?? $application->application_no ?? 'N/A' }}</span>
+                        <span class="lg:hidden text-xs font-bold text-slate-400 uppercase tracking-wide w-32 shrink-0">Vacancy No.</span>
+                        <span class="font-semibold">{{ $application->vacancy_id ?? $application->vacancy->vacancy_id ?? 'N/A' }}</span>
                     </div>
 
                     <!-- Position -->

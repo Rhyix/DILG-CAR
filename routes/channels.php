@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Broadcast;
+use Illuminate\Support\Facades\Gate;
 
 Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
     return (int) $user->id === (int) $id;
@@ -9,3 +10,13 @@ Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
 Broadcast::channel('notifications.{id}', function ($user, $id) {
     return (int) $user->id === (int) $id;
 });
+
+Broadcast::channel('exam-monitor.{vacancyId}', function ($admin, $vacancyId) {
+    return Gate::forUser($admin)->allows('admin.exam.monitor')
+        || Gate::forUser($admin)->allows('admin.exam.manage');
+}, ['guards' => ['admin']]);
+
+Broadcast::channel('exam-participant.{vacancyId}.{userId}', function ($admin, $vacancyId, $userId) {
+    return Gate::forUser($admin)->allows('admin.exam.monitor')
+        || Gate::forUser($admin)->allows('admin.exam.manage');
+}, ['guards' => ['admin']]);

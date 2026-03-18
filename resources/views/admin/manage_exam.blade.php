@@ -568,7 +568,7 @@
                     <label for="max_violations" class="text-[#0D2B70] font-bold text-xs mb-1">Max Violations <span class="text-red-500">*</span></label>
                     <input type="number" id="max_violations" name="max_violations" min="1" step="1" required
                         value="{{ old('max_violations', $examDetails->max_violations ?? 12) }}"
-                        {{ ($isExamActive || $isExamCompleted || ($examDetails && $examDetails->details_saved)) ? 'disabled' : '' }}
+                        {{ ($isExamActive || $isExamCompleted) ? 'disabled' : '' }}
                         class="w-full px-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-[#0D2B70] disabled:bg-gray-100"
                         placeholder="Enter violation threshold" />
                     <p class="text-[10px] text-gray-500 mt-0.5">Exam auto-submits when this violation count is reached.</p>
@@ -651,6 +651,23 @@
         confirm="confirm-start-exam"
     />
 </main>
+@php
+    $examRealtimeConnection = (string) config('broadcasting.default');
+    $examRealtimeOptions = (array) data_get(config('broadcasting.connections'), $examRealtimeConnection . '.options', []);
+    $examRealtimeKey = (string) data_get(config('broadcasting.connections'), $examRealtimeConnection . '.key', '');
+    $examRealtimeEnabled = in_array($examRealtimeConnection, ['reverb', 'pusher'], true) && $examRealtimeKey !== '';
+    $examRealtimeConfig = [
+        'enabled' => $examRealtimeEnabled,
+        'key' => $examRealtimeKey,
+        'wsHost' => (string) ($examRealtimeOptions['host'] ?? request()->getHost()),
+        'wsPort' => (int) ($examRealtimeOptions['port'] ?? 80),
+        'wssPort' => (int) ($examRealtimeOptions['port'] ?? 443),
+        'forceTLS' => (bool) ($examRealtimeOptions['useTLS'] ?? request()->isSecure()),
+    ];
+@endphp
+@if ($examRealtimeEnabled)
+    <script src="https://js.pusher.com/8.4.0/pusher.min.js"></script>
+@endif
 <script>
     // Confirmation wrappers
     function triggerSendLinkConfirm(vacancyId) {
@@ -683,9 +700,13 @@
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                "Accept": "application/json"
             },
-            body: JSON.stringify({ vacancy_id: vacancyId })
+            body: JSON.stringify({
+                vacancy_id: vacancyId,
+                max_violations: document.getElementById('max_violations')?.value || null
+            })
         })
         .then(response => {
             if (!response.ok) {
@@ -808,18 +829,29 @@
         }
 
         const vacancyId = '{{ $vacancy->vacancy_id }}';
+        const submitAction = e.submitter?.value || '';
+        const isSaveNotify = submitAction === 'save_notify';
         const formData = new FormData(this);
+
+        // Disabled fields are excluded from FormData, so always append the persisted schedule values explicitly.
+        formData.set('place', document.getElementById('venue')?.value || '');
+        formData.set('date', document.getElementById('date')?.value || '');
+        formData.set('time', document.getElementById('time')?.value || '');
+        formData.set('time_end', document.getElementById('time_end_hidden')?.value || '');
+        formData.set('duration', document.getElementById('duration')?.value || '');
+        formData.set('message', document.getElementById('message')?.value || '');
+        formData.set('max_violations', document.getElementById('max_violations')?.value || '');
         
         // Append action if submitting via the Save & Notify button
-        if (e.submitter && e.submitter.name === 'action' && e.submitter.value === 'save_notify') {
+        if (isSaveNotify) {
             formData.append('notify', '1');
             console.log('Notify flag set to true');
         }
 
-        const saveButton = document.getElementById('saveNotifyButton');
-        const originalText = saveButton.innerHTML;
-        saveButton.disabled = true;
-        saveButton.innerHTML = '<span>Saving...</span>';
+        const submitButton = document.getElementById('saveNotifyButton');
+        const originalText = submitButton.innerHTML;
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<span>Saving...</span>';
 
         console.log('Sending request to:', `/admin/exam_management/${vacancyId}/details/save`);
 
@@ -857,27 +889,29 @@
         })
         .then(data => {
             console.log('Success response:', data);
-            saveButton.innerHTML = originalText;
+            submitButton.innerHTML = originalText;
             
             if (data.success) {
-                // Keep save button disabled permanently
-                saveButton.disabled = true;
-                saveButton.classList.add('opacity-50', 'cursor-not-allowed');
                 hasExamDetailsClient = true;
                 detailsSavedClient = true;
 
-                // Disable all form fields
+                const saveNotifyButton = document.getElementById('saveNotifyButton');
+                if (saveNotifyButton) {
+                    saveNotifyButton.disabled = true;
+                    saveNotifyButton.classList.add('opacity-50', 'cursor-not-allowed');
+                }
+
+                // Disable schedule fields after the main schedule is saved.
                 document.getElementById('venue').disabled = true;
                 document.getElementById('date').disabled = true;
                 document.getElementById('time').disabled = true;
                 document.getElementById('message').disabled = true;
                 const monitorEnd = document.getElementById('monitor_end');
                 if (monitorEnd) monitorEnd.disabled = true;
-                const maxViolationsInput = document.getElementById('max_violations');
-                if (maxViolationsInput) maxViolationsInput.disabled = true;
 
                 // Re-evaluate Send Link button state (uses latest lobby count)
                 updateSendLinkButtonState(currentLobbyCount);
+                validateForm();
                 
                 let msg = "Exam details saved successfully!";
                 if (data.notified) {
@@ -888,14 +922,14 @@
                 // Optionally reload the page to reflect changes
                 // window.location.reload();
             } else {
-                saveButton.disabled = false;
+                submitButton.disabled = false;
                 console.error('Save failed:', data.message);
                 showAppToast("Failed to save exam details: " + (data.message || 'Unknown error'));
             }
         })
         .catch(error => {
-            saveButton.innerHTML = originalText;
-            saveButton.disabled = false;
+            submitButton.innerHTML = originalText;
+            submitButton.disabled = false;
             console.error('Error caught:', error);
             console.error('Error message:', error.message);
             showAppToast("An error occurred while saving exam details.\n\nError: " + error.message + "\n\nPlease check the browser console and Laravel logs for more details.");
@@ -1133,7 +1167,7 @@
                     if (panelSchedule) panelSchedule.classList.add('hidden');
                     if (panelMonitor) panelMonitor.classList.remove('hidden');
                     if (panelAttendance) panelAttendance.classList.add('hidden');
-                    fetchLobbyData();
+                    queueLobbyFetch('tab-open', 0);
                     startLobbyPolling();
                     // Sync Monitor fields
                     syncMonitorFields();
@@ -1438,11 +1472,20 @@
     // ========================================
     // LOBBY POLLING & AJAX
     // ========================================
+    const vacancyId = @json($vacancy->vacancy_id);
+    const examRealtimeConfig = @json($examRealtimeConfig);
     let lobbyPollingInterval = null;
+    let lobbyFetchInFlight = null;
+    let lobbyFetchQueued = false;
+    let lobbyFetchTimer = null;
+    let realtimeClient = null;
+    let realtimeConnected = false;
+    const FAST_POLL_MS = 3000;
+    const SAFETY_POLL_MS = 15000;
 
     function startLobbyPolling() {
         if (lobbyPollingInterval) clearInterval(lobbyPollingInterval);
-        lobbyPollingInterval = setInterval(fetchLobbyData, 10000); // Poll every 10 seconds
+        lobbyPollingInterval = setInterval(() => fetchLobbyData(false, 'poll'), realtimeConnected ? SAFETY_POLL_MS : FAST_POLL_MS);
     }
 
     function stopLobbyPolling() {
@@ -1450,8 +1493,78 @@
         lobbyPollingInterval = null;
     }
 
-    function fetchLobbyData(isManual = false) {
-        const vacancyId = '{{ $vacancy->vacancy_id }}';
+    function queueLobbyFetch(reason = 'queued', delay = 0, isManual = false) {
+        if (lobbyFetchTimer) clearTimeout(lobbyFetchTimer);
+        lobbyFetchTimer = setTimeout(() => {
+            lobbyFetchTimer = null;
+            fetchLobbyData(isManual, reason);
+        }, delay);
+    }
+
+    function initLobbyRealtime() {
+        if (!examRealtimeConfig.enabled || typeof window.Pusher === 'undefined') return;
+
+        try {
+            realtimeClient = new window.Pusher(examRealtimeConfig.key, {
+                wsHost: examRealtimeConfig.wsHost,
+                wsPort: examRealtimeConfig.wsPort,
+                wssPort: examRealtimeConfig.wssPort,
+                forceTLS: !!examRealtimeConfig.forceTLS,
+                enabledTransports: ['ws', 'wss'],
+                authEndpoint: '/broadcasting/auth',
+                auth: {
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                    }
+                }
+            });
+
+            const monitorChannel = realtimeClient.subscribe(`private-exam-monitor.${vacancyId}`);
+            monitorChannel.bind('exam.progress.updated', () => {
+                if (document.getElementById('content-lobby').classList.contains('hidden')) return;
+                queueLobbyFetch('realtime-event', 80);
+            });
+
+            realtimeClient.connection.bind('connected', () => {
+                realtimeConnected = true;
+                if (!document.getElementById('content-lobby').classList.contains('hidden')) {
+                    startLobbyPolling();
+                    queueLobbyFetch('realtime-connected', 0);
+                }
+            });
+
+            realtimeClient.connection.bind('disconnected', () => {
+                realtimeConnected = false;
+                if (!document.getElementById('content-lobby').classList.contains('hidden')) {
+                    startLobbyPolling();
+                }
+            });
+
+            realtimeClient.connection.bind('unavailable', () => {
+                realtimeConnected = false;
+                if (!document.getElementById('content-lobby').classList.contains('hidden')) {
+                    startLobbyPolling();
+                }
+            });
+
+            realtimeClient.connection.bind('error', () => {
+                realtimeConnected = false;
+                if (!document.getElementById('content-lobby').classList.contains('hidden')) {
+                    startLobbyPolling();
+                }
+            });
+        } catch (error) {
+            console.error('Lobby realtime init failed:', error);
+            realtimeConnected = false;
+        }
+    }
+
+    function fetchLobbyData(isManual = false, reason = 'manual') {
+        if (lobbyFetchInFlight) {
+            lobbyFetchQueued = true;
+            return lobbyFetchInFlight;
+        }
+
         const btn = document.getElementById('refreshLobbyBtn');
         const icon = btn?.querySelector('svg');
 
@@ -1460,11 +1573,12 @@
             icon?.classList.add('animate-spin');
         }
 
-        fetch(`/admin/exam_management/${vacancyId}/lobby-data`, {
+        lobbyFetchInFlight = fetch(`/admin/exam_management/${vacancyId}/lobby-data`, {
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
                 'Accept': 'application/json'
-            }
+            },
+            credentials: 'same-origin'
         })
         .then(response => response.json())
         .then(data => {
@@ -1476,13 +1590,20 @@
                 updateStartButtonState();
             }
         })
-        .catch(error => console.error('Error fetching lobby data:', error))
+        .catch(error => console.error(`Error fetching lobby data (${reason}):`, error))
         .finally(() => {
+            lobbyFetchInFlight = null;
             if (isManual && btn) {
                 btn.disabled = false;
                 icon?.classList.remove('animate-spin');
             }
+            if (lobbyFetchQueued) {
+                lobbyFetchQueued = false;
+                queueLobbyFetch('queued', 120);
+            }
         });
+
+        return lobbyFetchInFlight;
     }
 
     function updateLastUpdatedTime() {
@@ -1556,11 +1677,13 @@
         } else {
              // Only resume if we are on the lobby tab
              if (!document.getElementById('content-lobby').classList.contains('hidden')) {
-                 fetchLobbyData();
+                 queueLobbyFetch('visibility', 0);
                  startLobbyPolling();
              }
         }
     });
+
+    initLobbyRealtime();
 
 </script>
 

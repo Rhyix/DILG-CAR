@@ -96,14 +96,41 @@
 </div>
 
 
+@php
+    $examRealtimeConnection = (string) config('broadcasting.default');
+    $examRealtimeOptions = (array) data_get(config('broadcasting.connections'), $examRealtimeConnection . '.options', []);
+    $examRealtimeKey = (string) data_get(config('broadcasting.connections'), $examRealtimeConnection . '.key', '');
+    $examRealtimeEnabled = in_array($examRealtimeConnection, ['reverb', 'pusher'], true) && $examRealtimeKey !== '';
+    $examRealtimeConfig = [
+        'enabled' => $examRealtimeEnabled,
+        'key' => $examRealtimeKey,
+        'wsHost' => (string) ($examRealtimeOptions['host'] ?? request()->getHost()),
+        'wsPort' => (int) ($examRealtimeOptions['port'] ?? 80),
+        'wssPort' => (int) ($examRealtimeOptions['port'] ?? 443),
+        'forceTLS' => (bool) ($examRealtimeOptions['useTLS'] ?? request()->isSecure()),
+    ];
+@endphp
+@if ($examRealtimeEnabled)
+    <script src="https://js.pusher.com/8.4.0/pusher.min.js"></script>
+@endif
 <script>
     const canManageExam = @json($canManageExam);
+    const examRealtimeConfig = @json($examRealtimeConfig);
+    const examViewVacancyId = @json($vacancy_id);
+    const examViewUserId = Number(@json((int) $user_id));
     let Questions = @json($examResults);
     let hasChanges = false;
 
     // This object stores the updated correctness per question
     const checkedAnswers = {};
     let pollingInterval = null;
+    let fetchInFlight = null;
+    let fetchQueued = false;
+    let fetchTimer = null;
+    let realtimeClient = null;
+    let realtimeConnected = false;
+    const FAST_POLL_MS = 2000;
+    const SAFETY_POLL_MS = 15000;
 
     let correctCount = 0;
     let final_score = 0;
@@ -135,23 +162,107 @@
 
         return `${datePart} ${timePart}`;
     }
-    function startPolling() {
-        if (pollingInterval) clearInterval(pollingInterval);
-        pollingInterval = setInterval(fetchAnswers, 5000); // Poll every 5 seconds
+    function formatDuration(durationSeconds, durationMilliseconds) {
+        if (durationMilliseconds !== null && durationMilliseconds !== undefined && durationMilliseconds !== '') {
+            const totalMs = Math.max(0, Number(durationMilliseconds) || 0);
+            const wholeSeconds = Math.floor(totalMs / 1000);
+            const ms = totalMs % 1000;
+            return `${wholeSeconds}s ${ms}ms`;
+        }
+
+        if (durationSeconds !== null && durationSeconds !== undefined && durationSeconds !== '') {
+            return `${durationSeconds}s`;
+        }
+
+        return 'Duration not captured';
     }
 
-    function fetchAnswers(isManual = false) {
+    function getPollIntervalMs() {
+        return realtimeConnected ? SAFETY_POLL_MS : FAST_POLL_MS;
+    }
+
+    function startPolling() {
+        if (pollingInterval) clearInterval(pollingInterval);
+        pollingInterval = setInterval(() => fetchAnswers(false, 'poll'), getPollIntervalMs());
+    }
+
+    function queueFetchAnswers(reason = 'queued', delay = 0, isManual = false) {
+        if (fetchTimer) clearTimeout(fetchTimer);
+        fetchTimer = setTimeout(() => {
+            fetchTimer = null;
+            fetchAnswers(isManual, reason);
+        }, delay);
+    }
+
+    function initRealtime() {
+        if (!examRealtimeConfig.enabled || typeof window.Pusher === 'undefined') return;
+
+        try {
+            realtimeClient = new window.Pusher(examRealtimeConfig.key, {
+                wsHost: examRealtimeConfig.wsHost,
+                wsPort: examRealtimeConfig.wsPort,
+                wssPort: examRealtimeConfig.wssPort,
+                forceTLS: !!examRealtimeConfig.forceTLS,
+                enabledTransports: ['ws', 'wss'],
+                authEndpoint: '/broadcasting/auth',
+                auth: {
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                    }
+                }
+            });
+
+            const participantChannel = realtimeClient.subscribe(`private-exam-participant.${examViewVacancyId}.${examViewUserId}`);
+            participantChannel.bind('exam.progress.updated', (event) => {
+                if (Number(event?.user_id) !== examViewUserId) return;
+                queueFetchAnswers('realtime-event', 80);
+            });
+
+            realtimeClient.connection.bind('connected', () => {
+                realtimeConnected = true;
+                startPolling();
+                queueFetchAnswers('realtime-connected', 0);
+            });
+
+            realtimeClient.connection.bind('disconnected', () => {
+                realtimeConnected = false;
+                startPolling();
+            });
+
+            realtimeClient.connection.bind('unavailable', () => {
+                realtimeConnected = false;
+                startPolling();
+            });
+
+            realtimeClient.connection.bind('error', () => {
+                realtimeConnected = false;
+                startPolling();
+            });
+        } catch (error) {
+            console.error('Realtime init failed:', error);
+            realtimeConnected = false;
+            startPolling();
+        }
+    }
+
+    function fetchAnswers(isManual = false, reason = 'manual') {
+        if (fetchInFlight) {
+            fetchQueued = true;
+            return fetchInFlight;
+        }
+
         const refreshEl = document.getElementById('last-refreshed');
         if(refreshEl) refreshEl.classList.add('animate-pulse', 'text-blue-600');
 
         const url = `{{ route('admin.view_exam.json', ['vacancy_id' => $vacancy_id, 'user_id' => $user_id]) }}?_=${Date.now()}`;
 
-        fetch(url, {
+        fetchInFlight = fetch(url, {
             cache: 'no-store',
             headers: {
                 'Accept': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'
-            }
+            },
+            credentials: 'same-origin'
         })
             .then(response => response.json())
             .then(data => {
@@ -165,7 +276,7 @@
                         logEl.innerHTML = data.tab_violation_logs.map(l => {
                             const startedIso = l.started_at_iso || l.started_at || null;
                             const started = formatManilaDateTime(startedIso);
-                            const dur = (l.duration_seconds !== null && l.duration_seconds !== undefined) ? `${l.duration_seconds}s` : '-';
+                            const dur = formatDuration(l.duration_seconds, l.duration_milliseconds);
                             return `<li class="text-xs text-gray-600"><span class="font-semibold">${started}</span> &bull; Duration: <span class="font-semibold">${dur}</span></li>`;
                         }).join('') || '<li class="text-xs text-gray-400">No tab switch logs</li>';
                     }
@@ -196,7 +307,19 @@
                     }
                 }
             })
-            .catch(err => console.error('Polling error:', err));
+            .catch(err => console.error(`Exam fetch error (${reason}):`, err))
+            .finally(() => {
+                if (refreshEl) {
+                    refreshEl.classList.remove('animate-pulse', 'text-blue-600');
+                }
+                fetchInFlight = null;
+                if (fetchQueued) {
+                    fetchQueued = false;
+                    queueFetchAnswers('queued', 120);
+                }
+            });
+
+        return fetchInFlight;
     }
 
     function updateAnswersUI() {
@@ -293,7 +416,9 @@
     // Optional: Apply on page load
     document.addEventListener("DOMContentLoaded", () => {
         renderAnswers();
+        initRealtime();
         startPolling();
+        queueFetchAnswers('initial', 0);
         if (canManageExam) {
             document.addEventListener('input', (e) => {
                 if (e.target && e.target.id && e.target.id.startsWith('score-input-')) {
@@ -305,6 +430,12 @@
                 form.addEventListener('submit', () => { hasChanges = false; });
             }
         }
+    });
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) return;
+        queueFetchAnswers('visibility', 0);
+        startPolling();
     });
 
     function renderAnswers() {
@@ -465,5 +596,3 @@
 />
 
 @endsection
-
-
