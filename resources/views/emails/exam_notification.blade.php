@@ -137,13 +137,16 @@
             </div>
             @endisset
 
-            @isset($confirmationLink)
-                <p style="text-align: center; margin-top: 20px;">Please confirm your attendance by clicking the button
-                    below:</p>
+            @isset($attendancePromptLink)
+                <p style="text-align: center; margin-top: 20px;">Please confirm whether you can attend the examination by
+                    clicking the button below:</p>
                 <div style="text-align: center;">
-                    <a href="{{ $confirmationLink }}" class="cta-button" style="background-color: #28a745;">Confirm
+                    <a href="{{ $attendancePromptLink }}" class="cta-button" style="background-color: #6c62ff;">Respond to
                         Attendance</a>
                 </div>
+                <p style="font-size: 12px; color: #666; text-align: center; margin-top: 12px;">
+                    You will be asked to log in first if you are not yet signed in.
+                </p>
             @endisset
 
             <div class="divider"></div>
@@ -152,7 +155,7 @@
             <ul>
                 <li>Please arrive at the exam venue at least 20 minutes before the scheduled time.</li>
                 <li>Bring a valid ID for verification purposes.</li>
-                <li>Bring a your own Laptop.</li>
+                <li>Bring your own Laptop.</li>
                 <li>The exam will be available only during the scheduled time.</li>
             </ul>
 
@@ -173,4 +176,3 @@
 </body>
 
 </html>
-

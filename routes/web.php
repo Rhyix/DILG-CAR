@@ -127,6 +127,7 @@ Route::get('/otp', [RegisterController::class, 'OTPForm'])->name('otp');
 Route::post('/otp', [RegisterController::class, 'OTPCheck'])->name('otp_check');
 
 Route::get('/exam/confirm/{token}', [ExamController::class, 'confirmNotification'])->name('exam.confirm_notification');
+Route::get('/exam/{vacancy_id}/attendance', [ExamController::class, 'attendancePrompt'])->name('exam.attendance.prompt');
 Route::post('/otp/resend', [RegisterController::class, 'resendOTP'])->name('otp_resend');
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login.form');
 Route::post('/login', [LoginController::class, 'login'])->name('login')->middleware('throttle:5,1');
@@ -362,6 +363,7 @@ Route::middleware(['auth', BlockIfAdmin::class])->group(function () {
     Route::get('/pds/c5', [Forms\PDSController::class, 'c5DisplayForm'])->name('display_c5');
     Route::post('/pds/finalize/{go_to}', [Forms\PDSController::class, 'finalizePDS'])->name('finalize_pds');
     Route::post('/application-status/{user_id}/{vacancy_id}/upload', [Forms\PDSController::class, 'uploadApplicationDocuments'])->name('application_status.upload');
+    Route::post('/exam/{vacancy_id}/attendance', [ExamController::class, 'submitAttendanceResponse'])->name('exam.attendance.respond');
 
     Route::get('/pds/submit', [Forms\PDSController::class, 'showSubmittedForm'])->name('display_final_pds');
 
@@ -522,6 +524,7 @@ Route::middleware([ViewerAccess::class, 'admin.ability:admin.exam.monitor'])->gr
     Route::post('/admin/exam_management/{vacancy_id}/details/save', [ExamController::class, 'saveExamDetails'])->name('admin.exam.details.save')->middleware(RedirectIfNotAdmin::class);
     Route::post('/admin/exam_management/{vacancy_id}/start', [ExamController::class, 'startExam'])->name('admin.exam_start')->middleware(RedirectIfNotAdmin::class);
     Route::post('/admin/exam_management/{vacancy_id}/notify-selected', [ExamController::class, 'notifySelectedApplicants'])->name('admin.exam.notify_selected')->middleware(RedirectIfNotAdmin::class);
+    Route::post('/admin/exam_management/{vacancy_id}/attendance/{user_id}', [ExamController::class, 'updateAttendanceStatus'])->name('admin.exam.attendance.update')->middleware(RedirectIfNotAdmin::class);
 
 
     // Exam Library Routes

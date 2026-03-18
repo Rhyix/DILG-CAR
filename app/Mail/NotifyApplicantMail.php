@@ -18,6 +18,7 @@ class NotifyApplicantMail extends Mailable
     public $vacancy_id;
     public $user_id;
     public $exam_id;
+    public $publicBaseUrl;
 
     public $vacancy;
     public $user;
@@ -26,11 +27,12 @@ class NotifyApplicantMail extends Mailable
     /**
      * Create a new message instance.
      */
-    public function __construct($vacancy_id, $user_id, $exam_id)
+    public function __construct($vacancy_id, $user_id, $exam_id, $publicBaseUrl = null)
     {
         $this->vacancy_id = $vacancy_id;
         $this->user_id = $user_id;
         $this->exam_id = $exam_id;
+        $this->publicBaseUrl = $publicBaseUrl ? rtrim((string) $publicBaseUrl, '/') : null;
 
         $this->vacancy = JobVacancy::where('vacancy_id', $this->vacancy_id)->firstOrFail();
         $this->user = User::findOrFail($this->user_id);
@@ -57,6 +59,13 @@ class NotifyApplicantMail extends Mailable
      */
     public function content(): Content
     {
+        $attendancePath = route('exam.attendance.prompt', [
+            'vacancy_id' => $this->vacancy_id,
+        ], false);
+        $appUrl = $this->publicBaseUrl ?: rtrim((string) config('app.url', ''), '/');
+        $attendancePromptLink = $appUrl !== ''
+            ? $appUrl . '/' . ltrim($attendancePath, '/')
+            : url($attendancePath);
 
         return new Content(
             view: 'emails.exam_notification',
@@ -64,6 +73,7 @@ class NotifyApplicantMail extends Mailable
                 'vacancy' => $this->vacancy,
                 'user' => $this->user,
                 'exam' => $this->exam,
+                'attendancePromptLink' => $attendancePromptLink,
             ]
         );
     }

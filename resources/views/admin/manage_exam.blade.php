@@ -27,6 +27,8 @@
             $isBeforeStart = false;
             $isWithinOneHourBeforeStart = false;
             $qualifiedCount = isset($qualifiedApplicants) ? $qualifiedApplicants->count() : 0;
+            $attendanceCount = isset($attendanceApplicants) ? $attendanceApplicants->count() : 0;
+            $willAttendCount = isset($attendanceApplicants) ? $attendanceApplicants->where('attendance_status', 'will_attend')->count() : 0;
             $lobbyCount = isset($participants) ? $participants->count() : 0;
             $questionsCount = \App\Models\ExamItems::where('vacancy_id', $vacancy->vacancy_id)->count();
             $hasQuestions = $questionsCount > 0;
@@ -143,6 +145,15 @@
                         </span>
                     @endif
                 </button>
+                <button id="tab-attendance" onclick="switchTab('attendance')"
+                    class="tab-button pb-2 font-bold text-gray-400 border-b-2 border-transparent hover:text-[#0D2B70] transition-all duration-200 text-sm uppercase tracking-wide">
+                    Attendance
+                    @if($attendanceCount > 0)
+                        <span id="attendanceCountBadge" class="ml-2 bg-[#0D2B70] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full align-middle">
+                            {{ $attendanceCount }}
+                        </span>
+                    @endif
+                </button>
                 <button id="tab-lobby" onclick="switchTab('lobby')"
                     class="tab-button pb-2 font-bold text-gray-400 border-b-2 border-transparent hover:text-[#0D2B70] transition-all duration-200 text-sm uppercase tracking-wide">
                     Exam Monitor
@@ -188,6 +199,7 @@
                                     <th class="py-3 px-6 font-normal">Name</th>
                                     <th class="py-3 px-6 font-normal">Email</th>
                                     <th class="py-3 px-6 font-normal">Application Date</th>
+                                    <th class="py-3 px-6 font-normal text-center">Attendance</th>
                                     <th class="py-3 px-6 font-normal text-center">Notification Status</th>
                                     <th class="py-3 px-6 font-normal text-center">Actions</th>
                                 </tr>
@@ -199,13 +211,27 @@
                                             <input type="checkbox" name="applicant_ids[]" value="{{ $applicant['id'] }}"
                                                 data-user-id="{{ $applicant['user_id'] }}"
                                                 data-link-sent="{{ $applicant['link_sent'] ? '1' : '0' }}"
+                                                data-attendance-status="{{ $applicant['attendance_status'] ?? '' }}"
+                                                data-can-receive-link="{{ $applicant['can_receive_exam_link'] ? '1' : '0' }}"
+                                                {{ $applicant['can_receive_exam_link'] ? '' : 'disabled' }}
                                                 onchange="updateSelectedCount()"
-                                                class="applicant-checkbox w-4 h-4 rounded border-gray-300 text-[#0D2B70] focus:ring-[#0D2B70] cursor-pointer">
+                                                title="{{ $applicant['can_receive_exam_link'] ? 'Eligible to receive exam link' : 'Only applicants marked as Will Attend can receive the exam link' }}"
+                                                class="applicant-checkbox w-4 h-4 rounded border-gray-300 text-[#0D2B70] focus:ring-[#0D2B70] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
                                         </td>
                                         <td class="py-2.5 px-6 font-semibold">{{ $applicant['name'] }}</td>
                                         <!-- <td class="py-2.5 px-6">{{ $applicant['email'] }}</td> -->
                                         <td class="py-2.5 px-6 max-w-[200px] truncate"> {{ $applicant['email'] }}</td>
                                         <td class="py-2.5 px-6">{{ $applicant['application_date'] }}</td>
+                                        <td class="py-2.5 px-6 text-center">
+                                            <div class="flex flex-col items-center gap-1">
+                                                <span class="px-3 py-1 rounded-full text-xs font-semibold {{ $applicant['attendance_badge_class'] }}">
+                                                    {{ $applicant['attendance_label'] }}
+                                                </span>
+                                                @if(!empty($applicant['attendance_responded_at']))
+                                                    <span class="text-[11px] text-gray-500">{{ $applicant['attendance_responded_at'] }}</span>
+                                                @endif
+                                            </div>
+                                        </td>
                                         <td class="py-2.5 px-6 text-center">
                                             @if($applicant['is_read'])
                                                 <span class="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 flex items-center justify-center gap-1"
@@ -243,8 +269,80 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="6" class="text-center py-10 text-gray-500 text-xl">
+                                        <td colspan="7" class="text-center py-10 text-gray-500 text-xl">
                                             No qualified applicants found.
+                                        </td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="content-attendance" class="tab-content hidden flex-1 flex flex-col min-h-0 overflow-hidden">
+                <div class="flex-1 flex flex-col min-h-0 overflow-hidden border border-[#0D2B70] rounded-xl">
+                    <div class="flex-1 overflow-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-[#0D2B70] text-white sticky top-0 z-10">
+                                <tr>
+                                    <th class="py-3 px-6 font-normal">Name</th>
+                                    <th class="py-3 px-6 font-normal">Email</th>
+                                    <th class="py-3 px-6 font-normal text-center">Attendance</th>
+                                    <th class="py-3 px-6 font-normal">Remark</th>
+                                    <th class="py-3 px-6 font-normal text-center">Responded At</th>
+                                    <th class="py-3 px-6 font-normal text-center">Override</th>
+                                </tr>
+                            </thead>
+                            <tbody id="attendance-applicants-list" class="divide-y divide-[#0D2B70]">
+                                @forelse ($attendanceApplicants as $applicant)
+                                    <tr id="attendance-row-{{ $applicant['user_id'] }}" class="text-[#0D2B70] hover:bg-blue-50 transition-colors duration-200">
+                                        <td class="py-2.5 px-6 font-semibold">{{ $applicant['name'] }}</td>
+                                        <td class="py-2.5 px-6 max-w-[220px] truncate">{{ $applicant['email'] }}</td>
+                                        <td class="py-2.5 px-6 text-center">
+                                            <span class="attendance-status-badge px-3 py-1 rounded-full text-xs font-semibold {{ $applicant['attendance_badge_class'] }}">
+                                                {{ $applicant['attendance_label'] }}
+                                            </span>
+                                        </td>
+                                        <td class="py-2.5 px-6 text-sm text-slate-600">
+                                            {{ $applicant['attendance_remark'] ?: 'None provided' }}
+                                        </td>
+                                        <td class="py-2.5 px-6 text-center text-sm text-slate-600">
+                                            {{ $applicant['attendance_responded_at'] ?: '-' }}
+                                        </td>
+                                        <td class="py-2.5 px-6">
+                                            <div class="flex items-center justify-center gap-2">
+                                                @php
+                                                    $isWillAttend = ($applicant['attendance_status'] ?? null) === 'will_attend';
+                                                    $isWillNotAttend = ($applicant['attendance_status'] ?? null) === 'will_not_attend';
+                                                @endphp
+                                                <button type="button"
+                                                    onclick="overrideAttendanceStatus({{ $applicant['user_id'] }}, 'will_attend')"
+                                                    title="{{ $isWillAttend ? 'Already marked as Will Attend' : 'Mark as Will Attend' }}"
+                                                    aria-label="Mark as Will Attend"
+                                                    {{ $isWillAttend ? 'disabled' : '' }}
+                                                    class="inline-flex h-10 w-10 items-center justify-center rounded-md border border-green-700 text-green-700 transition hover:bg-green-700 hover:text-white disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-green-700">
+                                                    <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                                        <path fill-rule="evenodd" d="M16.704 5.29a1 1 0 010 1.42l-7.2 7.2a1 1 0 01-1.415.005L3.3 9.206a1 1 0 111.4-1.428l4.08 4.002 6.5-6.49a1 1 0 011.424 0z" clip-rule="evenodd" />
+                                                    </svg>
+                                                </button>
+                                                <button type="button"
+                                                    onclick="overrideAttendanceStatus({{ $applicant['user_id'] }}, 'will_not_attend', @js($applicant['attendance_remark']))"
+                                                    title="{{ $isWillNotAttend ? 'Already marked as Will Not Attend' : 'Mark as Will Not Attend' }}"
+                                                    aria-label="Mark as Will Not Attend"
+                                                    {{ $isWillNotAttend ? 'disabled' : '' }}
+                                                    class="inline-flex h-10 w-10 items-center justify-center rounded-md border border-red-700 text-red-700 transition hover:bg-red-700 hover:text-white disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-red-700">
+                                                    <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                                        <path fill-rule="evenodd" d="M5.293 5.293a1 1 0 011.414 0L10 8.586l3.293-3.293a1 1 0 111.414 1.414L11.414 10l3.293 3.293a1 1 0 01-1.414 1.414L10 11.414l-3.293 3.293a1 1 0 01-1.414-1.414L8.586 10 5.293 6.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="6" class="py-10 text-center text-gray-500 text-xl">
+                                            No attendance responses yet.
                                         </td>
                                     </tr>
                                 @endforelse
@@ -469,7 +567,7 @@
                 <!-- ACTION BUTTONS: MONITOR -->
                 <div class="flex flex-col gap-2 mt-4">
                     <button type="button" id="sendLinkButton" onclick="triggerSendLinkConfirm('{{ $vacancy->vacancy_id }}')" 
-                            {{ (!$examDetails || !$examDetails->details_saved || $examDetails->link_sent || $isExamActive || $isExamCompleted || !$isExamDay || ($qualifiedCount < 1)) ? 'disabled' : '' }}
+                            {{ (!$examDetails || !$examDetails->details_saved || $examDetails->link_sent || $isExamActive || $isExamCompleted || !$isExamDay || ($willAttendCount < 1)) ? 'disabled' : '' }}
                             class="w-full py-2 bg-[#0D2B70] border-2 border-[#0D2B70] rounded-lg text-white font-bold text-sm hover:scale-[1.02] flex items-center justify-center gap-2 transition-transform disabled:opacity-50 disabled:hover:scale-100">
                         Send Link via Email
                     </button>
@@ -479,6 +577,28 @@
                             class="w-full py-2 bg-white border-2 border-[#0D2B70] rounded-lg text-[#0D2B70] font-bold text-sm hover:scale-[1.02] flex items-center justify-center gap-2 transition-transform disabled:opacity-50 disabled:hover:scale-100">
                         Start Exam
                     </button>
+                </div>
+            </div>
+
+            <!-- PANEL 3: ATTENDANCE SUMMARY (Hidden initially) -->
+            <div id="panel-attendance" class="flex flex-col gap-3 hidden">
+                <span class="text-xl text-[#0D2B70] font-bold border-b border-gray-200 pb-2 mb-1">
+                    Attendance Summary
+                </span>
+
+                <div class="grid gap-3">
+                    <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-4">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Responses</p>
+                        <p id="attendanceResponsesCount" class="mt-2 text-3xl font-bold text-[#0D2B70]">{{ $attendanceCount }}</p>
+                    </div>
+                    <div class="rounded-xl border border-green-200 bg-green-50 px-4 py-4">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-green-700">Will Attend</p>
+                        <p id="attendanceWillAttendCount" class="mt-2 text-3xl font-bold text-green-800">{{ $willAttendCount }}</p>
+                    </div>
+                    <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-4">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-red-700">Will Not Attend</p>
+                        <p id="attendanceWillNotAttendCount" class="mt-2 text-3xl font-bold text-red-800">{{ $attendanceCount - $willAttendCount }}</p>
+                    </div>
                 </div>
             </div>
 
@@ -510,7 +630,7 @@
     />
     <x-confirm-modal 
         title="Send Exam Links"
-        message="Send exam lobby links to all eligible participants?"
+        message="Send exam lobby links to all applicants marked as Will Attend?"
         event="open-send-link-confirm"
         confirm="confirm-send-link"
     />
@@ -733,6 +853,8 @@
                 // Keep save button disabled permanently
                 saveButton.disabled = true;
                 saveButton.classList.add('opacity-50', 'cursor-not-allowed');
+                hasExamDetailsClient = true;
+                detailsSavedClient = true;
 
                 // Disable all form fields
                 document.getElementById('venue').disabled = true;
@@ -770,30 +892,45 @@
 
     // Server-provided counts and flags for gating logic
     const qualifiedCount = @json(isset($qualifiedApplicants) ? $qualifiedApplicants->count() : 0);
+    let attendanceResponseCountClient = @json(isset($attendanceApplicants) ? $attendanceApplicants->count() : 0);
+    let willAttendCountClient = @json(isset($attendanceApplicants) ? $attendanceApplicants->where('attendance_status', 'will_attend')->count() : 0);
     let currentLobbyCount = @json(isset($participants) ? $participants->count() : 0);
-    const hasExamDetails = @json(!is_null($examDetails ?? null));
-    const detailsSavedConst = @json($examDetails && $examDetails->details_saved);
+    let hasExamDetailsClient = @json(!is_null($examDetails ?? null));
+    let detailsSavedClient = @json($examDetails && $examDetails->details_saved);
     const linkSentConst = @json($examDetails && $examDetails->link_sent);
     let linkSentClient = linkSentConst;
     const isExamActiveConst = @json($isExamActive);
     const isExamCompletedConst = @json($isExamCompleted);
     const isExamDayConst = @json($isExamDay);
-    const isBeforeStartConst = @json($isBeforeStart);
-    const isWithinOneHourConst = @json($isWithinOneHourBeforeStart);
     const hasQuestionsConst = @json($hasQuestions ?? false);
 
-    // Helper: update Send Link button state using lobby count and flags
+    function refreshAttendanceSummary() {
+        const responsesEl = document.getElementById('attendanceResponsesCount');
+        const willAttendEl = document.getElementById('attendanceWillAttendCount');
+        const willNotAttendEl = document.getElementById('attendanceWillNotAttendCount');
+        const badgeEl = document.getElementById('attendanceCountBadge');
+
+        if (responsesEl) responsesEl.textContent = attendanceResponseCountClient;
+        if (willAttendEl) willAttendEl.textContent = willAttendCountClient;
+        if (willNotAttendEl) willNotAttendEl.textContent = Math.max(attendanceResponseCountClient - willAttendCountClient, 0);
+
+        if (badgeEl) {
+            badgeEl.textContent = attendanceResponseCountClient;
+        }
+    }
+
+    // Helper: update Send Link button state using attendance responses and flags
     function updateSendLinkButtonState(participantsCount) {
         currentLobbyCount = participantsCount;
         const btn = document.getElementById('sendLinkButton');
         if (!btn) return;
-        const shouldEnable = hasExamDetails 
-            && detailsSavedConst 
-            && !linkSentClient 
-            && !isExamActiveConst 
-            && !isExamCompletedConst 
-            && isExamDayConst 
-            && qualifiedCount > 0;
+        const shouldEnable = hasExamDetailsClient
+            && detailsSavedClient
+            && !linkSentClient
+            && !isExamActiveConst
+            && !isExamCompletedConst
+            && isExamDayConst
+            && willAttendCountClient > 0;
         btn.disabled = !shouldEnable;
         btn.classList.toggle('opacity-50', !shouldEnable);
         btn.classList.toggle('cursor-not-allowed', !shouldEnable);
@@ -803,7 +940,7 @@
     function updateStartButtonState() {
         const btn = document.getElementById('startExamButton');
         if (!btn) return;
-        const shouldEnable = hasExamDetails
+        const shouldEnable = hasExamDetailsClient
             && linkSentClient
             && !isExamActiveConst
             && !isExamCompletedConst
@@ -839,10 +976,9 @@
         const allFilled = venue && date && time && message;
         
         // Only enable if all fields are filled AND details haven't been saved yet AND qualified applicants exist
-        const detailsSaved = {{ $examDetails && $examDetails->details_saved ? 'true' : 'false' }};
         const hasQualified = qualifiedCount > 0;
 
-        if (allFilled && !detailsSaved && hasQualified) {
+        if (allFilled && !detailsSavedClient && hasQualified) {
             saveButton.disabled = false;
             saveButton.classList.remove('opacity-50', 'cursor-not-allowed');
         } else {
@@ -944,9 +1080,10 @@
     // TAB SWITCHING
     // ========================================
     function switchTab(tab) {
-        const tabs = ['qualified', 'lobby'];
+        const tabs = ['qualified', 'attendance', 'lobby'];
         const panelSchedule = document.getElementById('panel-schedule');
         const panelMonitor = document.getElementById('panel-monitor');
+        const panelAttendance = document.getElementById('panel-attendance');
 
         tabs.forEach(t => {
             const tabBtn = document.getElementById(`tab-${t}`);
@@ -961,10 +1098,17 @@
                 if (t === 'qualified') {
                     if (panelSchedule) panelSchedule.classList.remove('hidden');
                     if (panelMonitor) panelMonitor.classList.add('hidden');
+                    if (panelAttendance) panelAttendance.classList.add('hidden');
+                    stopLobbyPolling();
+                } else if (t === 'attendance') {
+                    if (panelSchedule) panelSchedule.classList.add('hidden');
+                    if (panelMonitor) panelMonitor.classList.add('hidden');
+                    if (panelAttendance) panelAttendance.classList.remove('hidden');
                     stopLobbyPolling();
                 } else if (t === 'lobby') {
                     if (panelSchedule) panelSchedule.classList.add('hidden');
                     if (panelMonitor) panelMonitor.classList.remove('hidden');
+                    if (panelAttendance) panelAttendance.classList.add('hidden');
                     fetchLobbyData();
                     startLobbyPolling();
                     // Sync Monitor fields
@@ -1009,7 +1153,7 @@
     // CHECKBOX MANAGEMENT
     // ========================================
     function toggleSelectAll(checkbox) {
-        const checkboxes = document.querySelectorAll('.applicant-checkbox');
+        const checkboxes = document.querySelectorAll('.applicant-checkbox:not(:disabled)');
         checkboxes.forEach(cb => {
             cb.checked = checkbox.checked;
         });
@@ -1038,7 +1182,7 @@
 
         // Update select all checkbox state
         const selectAllCheckbox = document.getElementById('selectAll');
-        const totalCheckboxes = document.querySelectorAll('.applicant-checkbox');
+        const totalCheckboxes = document.querySelectorAll('.applicant-checkbox:not(:disabled)');
         // Prevent division by zero if no checkboxes exist
         if (totalCheckboxes.length > 0) {
             selectAllCheckbox.checked = count > 0 && count === totalCheckboxes.length;
@@ -1047,6 +1191,57 @@
             selectAllCheckbox.checked = false;
             selectAllCheckbox.indeterminate = false;
         }
+    }
+
+    function overrideAttendanceStatus(userId, attendanceStatus, existingRemark = '') {
+        const statusLabel = attendanceStatus === 'will_attend' ? 'Will Attend' : 'Will Not Attend';
+        let remark = existingRemark || '';
+
+        if (attendanceStatus === 'will_not_attend') {
+            const prompted = window.prompt('Enter a remark for marking this applicant as Will Not Attend.', remark);
+            if (prompted === null) {
+                return;
+            }
+            remark = prompted;
+            if (!remark.trim()) {
+                showAppToast('A remark is required when marking an applicant as Will Not Attend.');
+                return;
+            }
+        }
+
+        fetch(`/admin/exam_management/{{ $vacancy->vacancy_id }}/attendance/${userId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                attendance_status: attendanceStatus,
+                attendance_remark: remark
+            })
+        })
+        .then(async (response) => {
+            const data = await response.json();
+            if (!response.ok || !data.success) {
+                throw new Error(data.message || 'Failed to update attendance status.');
+            }
+            return data;
+        })
+        .then((data) => {
+            showAppToast(data.message || `Attendance updated to ${statusLabel}.`);
+            willAttendCountClient = Number(data.will_attend_count || 0);
+            if (attendanceStatus === 'will_attend') {
+                attendanceResponseCountClient = Math.max(attendanceResponseCountClient, 1);
+            }
+            refreshAttendanceSummary();
+            fetchQualifiedApplicants(document.getElementById('searchInputQualified')?.value || '');
+            window.location.reload();
+        })
+        .catch((error) => {
+            console.error('Attendance override failed:', error);
+            showAppToast(error.message || 'Unable to update attendance status.');
+        });
     }
 
     function notifySelected() {
@@ -1153,7 +1348,7 @@
         if (applicants.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="6" class="text-center py-10 text-gray-500 text-xl">
+                    <td colspan="7" class="text-center py-10 text-gray-500 text-xl">
                         No qualified applicants found.
                     </td>
                 </tr>
@@ -1167,12 +1362,24 @@
                     <input type="checkbox" name="applicant_ids[]" value="${app.id}"
                         data-user-id="${app.user_id}"
                         data-link-sent="${app.link_sent ? '1' : '0'}"
+                        data-attendance-status="${app.attendance_status || ''}"
+                        data-can-receive-link="${app.can_receive_exam_link ? '1' : '0'}"
+                        ${app.can_receive_exam_link ? '' : 'disabled'}
                         onchange="updateSelectedCount()"
-                        class="applicant-checkbox w-4 h-4 rounded border-gray-300 text-[#0D2B70] focus:ring-[#0D2B70] cursor-pointer">
+                        title="${app.can_receive_exam_link ? 'Eligible to receive exam link' : 'Only applicants marked as Will Attend can receive the exam link'}"
+                        class="applicant-checkbox w-4 h-4 rounded border-gray-300 text-[#0D2B70] focus:ring-[#0D2B70] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
                 </td>
                 <td class="py-2.5 px-6 font-semibold">${app.name}</td>
                 <td class="py-2.5 px-6">${app.email}</td>
                 <td class="py-2.5 px-6">${app.application_date}</td>
+                <td class="py-2.5 px-6 text-center">
+                    <div class="flex flex-col items-center gap-1">
+                        <span class="px-3 py-1 rounded-full text-xs font-semibold ${app.attendance_badge_class}">
+                            ${app.attendance_label}
+                        </span>
+                        ${app.attendance_responded_at ? `<span class="text-[11px] text-gray-500">${app.attendance_responded_at}</span>` : ''}
+                    </div>
+                </td>
                 <td class="py-2.5 px-6 text-center">
                     ${app.is_read ? 
                         `<span class="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 flex items-center justify-center gap-1" title="Confirmed">
@@ -1334,4 +1541,3 @@
 </script>
 
 @endsection
-

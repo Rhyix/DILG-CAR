@@ -44,6 +44,9 @@ class Applications extends Model
         'exam_token_used_ip',
         'exam_token_used_ua',
         'read_at',
+        'exam_attendance_status',
+        'exam_attendance_remark',
+        'exam_attendance_responded_at',
         'exam_started_at',
         'exam_end_time',
         'exam_submitted_at',
@@ -54,6 +57,7 @@ class Applications extends Model
     protected $casts = [
         'answers' => 'array',
         'scores' => 'array',
+        'exam_attendance_responded_at' => 'datetime',
     ];
 
     public function setStatusAttribute($value): void

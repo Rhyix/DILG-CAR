@@ -15,14 +15,106 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
 use App\Jobs\SendExamNotification;
 use App\Mail\NotifyApplicantMail;
+use App\Enums\ApplicationStatus;
 use Spatie\Activitylog\Models\Activity;
 use Illuminate\Support\Facades\Cookie;
 use App\Models\ExamTabViolation;
 
 class ExamController extends Controller
 {
+    private const ATTENDANCE_WILL_ATTEND = 'will_attend';
+    private const ATTENDANCE_WILL_NOT_ATTEND = 'will_not_attend';
+
+    private function qualifiedApplicationsQuery(string $vacancy_id)
+    {
+        return Applications::query()
+            ->where('vacancy_id', $vacancy_id)
+            ->statusEquals(ApplicationStatus::QUALIFIED->value);
+    }
+
+    private function attendanceStatusLabel(?string $status): string
+    {
+        return match ($status) {
+            self::ATTENDANCE_WILL_ATTEND => 'Will Attend',
+            self::ATTENDANCE_WILL_NOT_ATTEND => 'Will Not Attend',
+            default => 'No Response',
+        };
+    }
+
+    private function attendanceStatusBadgeClass(?string $status): string
+    {
+        return match ($status) {
+            self::ATTENDANCE_WILL_ATTEND => 'bg-green-100 text-green-800',
+            self::ATTENDANCE_WILL_NOT_ATTEND => 'bg-red-100 text-red-800',
+            default => 'bg-gray-100 text-gray-600',
+        };
+    }
+
+    private function canReceiveExamLink(Applications $application): bool
+    {
+        return $application->exam_attendance_status === self::ATTENDANCE_WILL_ATTEND;
+    }
+
+    private function resolvePublicBaseUrl(Request $request): ?string
+    {
+        $configured = rtrim((string) config('app.url', ''), '/');
+        $requestRoot = rtrim((string) $request->getSchemeAndHttpHost(), '/');
+
+        if ($configured !== '') {
+            return $configured;
+        }
+
+        return $requestRoot !== '' ? $requestRoot : null;
+    }
+
+    private function mapQualifiedApplicant(Applications $app): array
+    {
+        $attendanceStatus = $app->exam_attendance_status;
+
+        return [
+            'id' => $app->id,
+            'user_id' => $app->user_id,
+            'vacancy_id' => $app->vacancy_id,
+            'name' => $app->user->name ?? 'Unknown',
+            'email' => $app->user->email ?? 'N/A',
+            'application_date' => $app->created_at?->format('M d, Y') ?? '-',
+            'status' => $app->status,
+            'link_sent_at' => $app->link_sent_at,
+            'link_sent' => !is_null($app->link_sent_at),
+            'read_at' => $app->read_at,
+            'is_read' => !is_null($app->read_at),
+            'attendance_status' => $attendanceStatus,
+            'attendance_label' => $this->attendanceStatusLabel($attendanceStatus),
+            'attendance_badge_class' => $this->attendanceStatusBadgeClass($attendanceStatus),
+            'attendance_remark' => $app->exam_attendance_remark,
+            'attendance_responded_at' => optional($app->exam_attendance_responded_at)->format('M d, Y h:i A'),
+            'can_receive_exam_link' => $this->canReceiveExamLink($app),
+        ];
+    }
+
+    private function mapAttendanceApplicant(Applications $app): array
+    {
+        $attendanceStatus = $app->exam_attendance_status;
+
+        return [
+            'id' => $app->id,
+            'user_id' => $app->user_id,
+            'vacancy_id' => $app->vacancy_id,
+            'name' => $app->user->name ?? 'Unknown',
+            'email' => $app->user->email ?? 'N/A',
+            'attendance_status' => $attendanceStatus,
+            'attendance_label' => $this->attendanceStatusLabel($attendanceStatus),
+            'attendance_badge_class' => $this->attendanceStatusBadgeClass($attendanceStatus),
+            'attendance_remark' => $app->exam_attendance_remark,
+            'attendance_responded_at' => optional($app->exam_attendance_responded_at)->format('M d, Y h:i A'),
+            'can_receive_exam_link' => $this->canReceiveExamLink($app),
+            'link_sent' => !is_null($app->link_sent_at),
+        ];
+    }
+
     public function submit(Request $request, $vacancy_id)
     {    //dd($request->all());
 
@@ -677,29 +769,23 @@ class ExamController extends Controller
             $p->essay_score_str = $essayString;
         }
 
-        // Get qualified applicants for Tab 1
+        // Get qualified applicants and attendance responses for admin tabs
         $qualifiedApplicants = collect();
+        $attendanceApplicants = collect();
         if (!$isViewer) {
-            $qualifiedApplicants = Applications::where('vacancy_id', $vacancy_id)
-                ->where('status', 'qualified')
+            $qualifiedApplications = $this->qualifiedApplicationsQuery($vacancy_id)
                 ->with(['user'])
                 ->orderBy('created_at', 'desc')
-                ->get()
-                ->map(function ($app) {
-                    return [
-                        'id' => $app->id,
-                        'user_id' => $app->user_id,
-                        'vacancy_id' => $app->vacancy_id,
-                        'name' => $app->user->name ?? 'Unknown',
-                        'email' => $app->user->email ?? 'N/A',
-                        'application_date' => $app->created_at->format('M d, Y'),
-                        'status' => $app->status,
-                        'link_sent_at' => $app->link_sent_at,
-                        'link_sent' => !is_null($app->link_sent_at),
-                        'read_at' => $app->read_at,
-                        'is_read' => !is_null($app->read_at),
-                    ];
-                });
+                ->get();
+
+            $qualifiedApplicants = $qualifiedApplications
+                ->map(fn(Applications $app) => $this->mapQualifiedApplicant($app))
+                ->values();
+
+            $attendanceApplicants = $qualifiedApplications
+                ->filter(fn(Applications $app) => !empty($app->exam_attendance_status))
+                ->map(fn(Applications $app) => $this->mapAttendanceApplicant($app))
+                ->values();
         }
 
         activity()
@@ -734,6 +820,7 @@ class ExamController extends Controller
             'user_name' => $user_name,
             'examDetails' => $examDetails,
             'qualifiedApplicants' => $qualifiedApplicants,
+            'attendanceApplicants' => $attendanceApplicants,
             'notifiedByName' => $notifiedByName
         ]);
     }
@@ -747,8 +834,7 @@ class ExamController extends Controller
         $search = $request->get('search', '');
         $status = $request->get('status', '');
 
-        $query = Applications::where('vacancy_id', $vacancy_id)
-            ->where('status', 'qualified')
+        $query = $this->qualifiedApplicationsQuery($vacancy_id)
             ->with(['user', 'personalInformation']);
 
         // Apply search filter
@@ -762,21 +848,9 @@ class ExamController extends Controller
         $applicants = $query->orderBy('created_at', 'desc')->get();
 
         // Transform data for the view
-        $qualifiedApplicants = $applicants->map(function ($app) {
-            return [
-                'id' => $app->id,
-                'user_id' => $app->user_id,
-                'vacancy_id' => $app->vacancy_id,
-                'name' => $app->user->name ?? 'Unknown',
-                'email' => $app->user->email ?? 'N/A',
-                'application_date' => $app->created_at->format('M d, Y'),
-                'status' => $app->status,
-                'link_sent_at' => $app->link_sent_at,
-                'link_sent' => !is_null($app->link_sent_at),
-                'read_at' => $app->read_at,
-                'is_read' => !is_null($app->read_at),
-            ];
-        });
+        $qualifiedApplicants = $applicants
+            ->map(fn(Applications $app) => $this->mapQualifiedApplicant($app))
+            ->values();
 
         // If AJAX request, return JSON
         if ($request->ajax() || $request->wantsJson()) {
@@ -787,6 +861,126 @@ class ExamController extends Controller
         }
 
         return $qualifiedApplicants;
+    }
+
+    public function attendancePrompt(Request $request, $vacancy_id)
+    {
+        if (!auth()->check()) {
+            return redirect()->route('login.form', [
+                'redirect' => 'exam_attendance',
+                'vacancy' => $vacancy_id,
+            ]);
+        }
+
+        $user = auth()->user();
+        $application = $this->qualifiedApplicationsQuery($vacancy_id)
+            ->where('user_id', $user->id)
+            ->firstOrFail();
+
+        $vacancy = JobVacancy::select('vacancy_id', 'position_title', 'vacancy_type')
+            ->where('vacancy_id', $vacancy_id)
+            ->firstOrFail();
+        $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->first();
+
+        activity()
+            ->causedBy($user)
+            ->event('view')
+            ->withProperties(['vacancy_id' => $vacancy_id, 'section' => 'Exam Attendance'])
+            ->log('Viewed exam attendance prompt.');
+
+        return view('exam.attendance_prompt', [
+            'vacancy' => $vacancy,
+            'examDetail' => $examDetail,
+            'application' => $application,
+            'attendanceStatusLabel' => $this->attendanceStatusLabel($application->exam_attendance_status),
+        ]);
+    }
+
+    public function submitAttendanceResponse(Request $request, $vacancy_id)
+    {
+        $validated = $request->validate([
+            'attendance_status' => ['required', Rule::in([self::ATTENDANCE_WILL_ATTEND, self::ATTENDANCE_WILL_NOT_ATTEND])],
+            'attendance_remark' => ['nullable', 'string', 'max:1000', Rule::requiredIf(fn() => $request->input('attendance_status') === self::ATTENDANCE_WILL_NOT_ATTEND)],
+        ]);
+
+        $application = $this->qualifiedApplicationsQuery($vacancy_id)
+            ->where('user_id', auth()->id())
+            ->firstOrFail();
+
+        $attendanceStatus = $validated['attendance_status'];
+        $remark = $attendanceStatus === self::ATTENDANCE_WILL_NOT_ATTEND
+            ? trim((string) ($validated['attendance_remark'] ?? ''))
+            : null;
+
+        $application->update([
+            'exam_attendance_status' => $attendanceStatus,
+            'exam_attendance_remark' => $remark !== '' ? $remark : null,
+            'exam_attendance_responded_at' => now(),
+        ]);
+
+        activity()
+            ->causedBy(auth()->user())
+            ->event('save')
+            ->withProperties([
+                'vacancy_id' => $vacancy_id,
+                'attendance_status' => $attendanceStatus,
+                'section' => 'Exam Attendance',
+            ])
+            ->log('Submitted exam attendance response.');
+
+        $message = $attendanceStatus === self::ATTENDANCE_WILL_ATTEND
+            ? 'Your exam attendance has been marked as Will Attend.'
+            : 'Your exam attendance has been marked as Will Not Attend.';
+
+        return redirect()
+            ->route('exam.attendance.prompt', ['vacancy_id' => $vacancy_id])
+            ->with('success', $message);
+    }
+
+    public function updateAttendanceStatus(Request $request, $vacancy_id, $user_id)
+    {
+        if ($denied = $this->denyViewerAccess($request, 'Viewer cannot override attendance status.')) {
+            return $denied;
+        }
+
+        $validated = $request->validate([
+            'attendance_status' => ['required', Rule::in([self::ATTENDANCE_WILL_ATTEND, self::ATTENDANCE_WILL_NOT_ATTEND])],
+            'attendance_remark' => ['nullable', 'string', 'max:1000', Rule::requiredIf(fn() => $request->input('attendance_status') === self::ATTENDANCE_WILL_NOT_ATTEND)],
+        ]);
+
+        $application = $this->qualifiedApplicationsQuery($vacancy_id)
+            ->where('user_id', $user_id)
+            ->with('user')
+            ->firstOrFail();
+
+        $attendanceStatus = $validated['attendance_status'];
+        $remark = trim((string) ($validated['attendance_remark'] ?? ''));
+
+        $application->update([
+            'exam_attendance_status' => $attendanceStatus,
+            'exam_attendance_remark' => $attendanceStatus === self::ATTENDANCE_WILL_NOT_ATTEND && $remark !== '' ? $remark : null,
+            'exam_attendance_responded_at' => now(),
+        ]);
+
+        activity()
+            ->causedBy(auth('admin')->user())
+            ->event('update')
+            ->withProperties([
+                'vacancy_id' => $vacancy_id,
+                'user_id' => $user_id,
+                'attendance_status' => $attendanceStatus,
+                'section' => 'Exam Management',
+            ])
+            ->log('Overrode applicant exam attendance status.');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Attendance status updated.',
+            'attendance' => $this->mapAttendanceApplicant($application->fresh(['user'])),
+            'will_attend_count' => $this->qualifiedApplicationsQuery($vacancy_id)
+                ->where('exam_attendance_status', self::ATTENDANCE_WILL_ATTEND)
+                ->count(),
+        ]);
     }
 
     public function getLobbyData(Request $request, $vacancy_id)
@@ -910,6 +1104,12 @@ class ExamController extends Controller
             ->where('user_id', $user_id)
             ->firstOrFail();
 
+        if (!$this->canReceiveExamLink($application)) {
+            return redirect()
+                ->route('exam.attendance.prompt', ['vacancy_id' => $vacancy_id])
+                ->with('error', 'Only applicants marked as Will Attend can access the exam link.');
+        }
+
         $sessionKey = 'exam_access_' . $vacancy_id;
         $token = $request->query('token');
         $deviceId = Cookie::get('device_id');
@@ -979,6 +1179,12 @@ class ExamController extends Controller
         $application = Applications::where('vacancy_id', $vacancy_id)
             ->where('user_id', $user_id)
             ->firstOrFail();
+
+        if (!$this->canReceiveExamLink($application)) {
+            return redirect()
+                ->route('exam.attendance.prompt', ['vacancy_id' => $vacancy_id])
+                ->with('error', 'Only applicants marked as Will Attend can proceed to the exam.');
+        }
 
         // Check if already submitted
         if ($application->status === 'submitted') {
@@ -1475,6 +1681,7 @@ class ExamController extends Controller
         }
 
         try {
+            $publicBaseUrl = $this->resolvePublicBaseUrl($request);
             // Check if details have been saved first
             $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->first();
 
@@ -1485,15 +1692,20 @@ class ExamController extends Controller
                 ], 400);
             }
 
-            $participants = Applications::where('vacancy_id', $vacancy_id)->get();
+            $participants = $this->qualifiedApplicationsQuery($vacancy_id)
+                ->where('exam_attendance_status', self::ATTENDANCE_WILL_ATTEND)
+                ->get();
 
             if ($participants->isEmpty()) {
-                return response()->json(['success' => false, 'message' => 'No participants found for this vacancy.']);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No qualified applicants marked as Will Attend are eligible to receive the exam link yet.'
+                ], 400);
             }
 
             $userIds = $participants->pluck('user_id')->toArray();
 
-            $notificationResult = $this->sendRefinedNotifications($userIds, $vacancy_id, $examDetail);
+            $notificationResult = $this->sendRefinedNotifications($userIds, $vacancy_id, $examDetail, $publicBaseUrl);
             $sentCount = (int) ($notificationResult['sent'] ?? 0);
             $failedCount = (int) ($notificationResult['failed'] ?? 0);
             $skippedCount = (int) ($notificationResult['skipped'] ?? 0);
@@ -1558,6 +1770,7 @@ class ExamController extends Controller
     public function notifyApplicantsSchedule(Request $request, $vacancy_id)
     {
         try {
+            $publicBaseUrl = $this->resolvePublicBaseUrl($request);
             $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->first();
             if (!$examDetail || !$examDetail->details_saved) {
                 return response()->json([
@@ -1566,11 +1779,14 @@ class ExamController extends Controller
                 ], 400);
             }
 
-            $participants = Applications::where('vacancy_id', $vacancy_id)
+            $participants = $this->qualifiedApplicationsQuery($vacancy_id)
                 ->select('user_id')
                 ->get();
             if ($participants->isEmpty()) {
-                return response()->json(['success' => false, 'message' => 'No participants found for this vacancy.']);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No qualified applicants found for this vacancy.'
+                ], 400);
             }
 
             $usersById = User::query()
@@ -1590,7 +1806,7 @@ class ExamController extends Controller
 
                 try {
                     // Send immediately so Save & Notify still works even when no queue worker runs.
-                    Mail::to($user->email)->send(new NotifyApplicantMail($vacancy_id, $user->id, $examDetail->id));
+                    Mail::to($user->email)->send(new NotifyApplicantMail($vacancy_id, $user->id, $examDetail->id, $publicBaseUrl));
                     $sentCount++;
                 } catch (\Throwable $mailException) {
                     $failedCount++;
@@ -1658,12 +1874,16 @@ class ExamController extends Controller
         }
 
         try {
+            $publicBaseUrl = $this->resolvePublicBaseUrl($request);
             $validated = $request->validate([
                 'user_ids' => 'required|array',
                 'user_ids.*' => 'integer|exists:users,id'
             ]);
 
-            $userIds = $validated['user_ids'];
+            $requestedUserIds = collect($validated['user_ids'])
+                ->map(fn($id) => (int) $id)
+                ->unique()
+                ->values();
             $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->firstOrFail();
 
             if (!$examDetail->details_saved) {
@@ -1673,10 +1893,23 @@ class ExamController extends Controller
                 ], 400);
             }
 
-            $notificationResult = $this->sendRefinedNotifications($userIds, $vacancy_id, $examDetail);
+            $eligibleUserIds = $this->qualifiedApplicationsQuery($vacancy_id)
+                ->whereIn('user_id', $requestedUserIds)
+                ->where('exam_attendance_status', self::ATTENDANCE_WILL_ATTEND)
+                ->pluck('user_id')
+                ->all();
+
+            if (count($eligibleUserIds) === 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Selected applicants must be marked as Will Attend before an exam link can be sent.'
+                ], 400);
+            }
+
+            $notificationResult = $this->sendRefinedNotifications($eligibleUserIds, $vacancy_id, $examDetail, $publicBaseUrl);
             $sentCount = (int) ($notificationResult['sent'] ?? 0);
             $failedCount = (int) ($notificationResult['failed'] ?? 0);
-            $skippedCount = (int) ($notificationResult['skipped'] ?? 0);
+            $skippedCount = (int) ($notificationResult['skipped'] ?? 0) + ($requestedUserIds->count() - count($eligibleUserIds));
 
             if ($sentCount === 0) {
                 return response()->json([
@@ -1719,9 +1952,9 @@ class ExamController extends Controller
         }
     }
 
-    private function sendRefinedNotifications(array $userIds, string $vacancy_id, ExamDetail $examDetail)
+    private function sendRefinedNotifications(array $userIds, string $vacancy_id, ExamDetail $examDetail, ?string $publicBaseUrl = null)
     {
-        return DB::transaction(function () use ($userIds, $vacancy_id, $examDetail) {
+        return DB::transaction(function () use ($userIds, $vacancy_id, $examDetail, $publicBaseUrl) {
             $sender_email = auth('admin')->user()->email ?? config('mail.from.address');
             $applicationColumns = array_flip(Schema::getColumnListing('applications'));
             $result = [
@@ -1737,7 +1970,7 @@ class ExamController extends Controller
                     ->lockForUpdate()
                     ->first();
 
-                if (!$application) {
+                if (!$application || !$this->canReceiveExamLink($application)) {
                     $result['skipped']++;
                     continue;
                 }
@@ -1778,7 +2011,7 @@ class ExamController extends Controller
 
                 try {
                     // Send immediately so the endpoint reflects real delivery attempts.
-                    SendExamNotification::dispatchSync($vacancy_id, $user_id, $examDetail->id, $sender_email);
+                    SendExamNotification::dispatchSync($vacancy_id, $user_id, $examDetail->id, $sender_email, $publicBaseUrl);
                     $result['sent']++;
                 } catch (\Throwable $sendException) {
                     $result['failed']++;

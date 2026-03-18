@@ -50,6 +50,14 @@ class LoginController extends Controller
                     ]);
                 }
             }
+            if ($request->has('redirect') && $request->redirect === 'exam_attendance') {
+                $vacancyId = $request->get('vacancy');
+                if ($vacancyId) {
+                    return redirect()->route('exam.attendance.prompt', [
+                        'vacancy_id' => $vacancyId,
+                    ]);
+                }
+            }
             return redirect()->route('dashboard_user');
         }
 
@@ -70,6 +78,12 @@ class LoginController extends Controller
                 'target' => 'exam_lobby',
                 'vacancy' => $request->get('vacancy'),
                 'token' => $request->get('token'),
+            ]);
+        }
+        if ($request->has('redirect') && $request->redirect === 'exam_attendance') {
+            $request->session()->put('redirect_after_login', [
+                'target' => 'exam_attendance',
+                'vacancy' => $request->get('vacancy'),
             ]);
         }
 
@@ -128,6 +142,11 @@ class LoginController extends Controller
                     return redirect()->route('user.exam_lobby', [
                         'vacancy_id' => $redirectData['vacancy'],
                         'token' => $redirectData['token'] ?? null
+                    ]);
+                }
+                if ($redirectData['target'] === 'exam_attendance') {
+                    return redirect()->route('exam.attendance.prompt', [
+                        'vacancy_id' => $redirectData['vacancy'],
                     ]);
                 }
             }

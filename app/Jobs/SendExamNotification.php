@@ -21,16 +21,18 @@ class SendExamNotification implements ShouldQueue
     protected $userId;
     protected $examId;
     protected $senderEmail;
+    protected $publicBaseUrl;
 
     /**
      * Create a new job instance.
      */
-    public function __construct($vacancyId, $userId, $examId, $senderEmail)
+    public function __construct($vacancyId, $userId, $examId, $senderEmail, $publicBaseUrl = null)
     {
         $this->vacancyId = $vacancyId;
         $this->userId = $userId;
         $this->examId = $examId;
         $this->senderEmail = $senderEmail;
+        $this->publicBaseUrl = $publicBaseUrl ? rtrim((string) $publicBaseUrl, '/') : null;
     }
 
     /**
@@ -69,7 +71,7 @@ class SendExamNotification implements ShouldQueue
             ], false);
 
             // Always anchor externally shared links to APP_URL so they are reachable from other devices.
-            $appUrl = rtrim((string) config('app.url', ''), '/');
+            $appUrl = $this->publicBaseUrl ?: rtrim((string) config('app.url', ''), '/');
             $examLink = $appUrl !== ''
                 ? $appUrl . '/' . ltrim($examPath, '/')
                 : url($examPath);
