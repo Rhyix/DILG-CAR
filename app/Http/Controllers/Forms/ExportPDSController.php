@@ -1071,7 +1071,7 @@ private function writeEducationalBackground($pdf, $education)
         $this->writeFittedAt($pdf, $this->dateOrNa($education?->elem_to, 'm/Y'), 149,263, 31.5, 7.0, 5.0);
         $this->writeFittedAt($pdf, $this->valueOrNa($education?->elem_earned), 166, 263, 18, 7.0, 5.0);
         $this->writeFittedAt($pdf, $this->valueOrNa($education?->elem_year_graduated), 181, 263, 12, 7.0, 5.0);
-        $this->writeFittedAt($pdf, $this->valueOrNa($education?->elem_academic_honors), 198, 263, 13, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($education?->elem_academic_honors), 195, 263, 13, 7.0, 5.0);
     }
 
     // === Junior High Section ===
@@ -1100,7 +1100,7 @@ private function writeEducationalBackground($pdf, $education)
         $this->writeFittedAt($pdf, $this->dateOrNa($education?->jhs_to, 'm/Y'), 149, 271, 31.5, 7.0, 5.0);
         $this->writeFittedAt($pdf, $this->valueOrNa($education?->jhs_earned), 166, 271, 18, 7.0, 5.0);
         $this->writeFittedAt($pdf, $this->valueOrNa($education?->jhs_year_graduated), 182, 271, 12, 7.0, 5.0);
-        $this->writeFittedAt($pdf, $this->valueOrNa($education?->jhs_academic_honors), 199, 271, 13, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($education?->jhs_academic_honors), 195, 271, 13, 7.0, 5.0);
     }
 }
 
@@ -1149,7 +1149,7 @@ private function writeVocationalChunk($pdf, $chunk)
 
         $this->writeFittedAt($pdf, $this->valueOrNa($voc['year_graduated'] ?? null), 182, $currentYOther, 12, 7.0, 5.0);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($voc['academic_honors'] ?? null), 199, $currentYOther, 8, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($voc['academic_honors'] ?? null), 195, $currentYOther, 8, 7.0, 5.0);
     }
 }
 
@@ -1196,7 +1196,7 @@ private function writeCollegeChunk($pdf, $chunk)
 
         $this->writeFittedAt($pdf, $this->valueOrNa($college['year_graduated'] ?? null), 182, $currentYOther, 12, 7.0, 5.0);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($college['academic_honors'] ?? null), 199, $currentYOther, 8, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($college['academic_honors'] ?? null), 195, $currentYOther, 15, 7.0, 5.0);
     }
 }
 
@@ -1248,7 +1248,7 @@ private function writeGraduateChunk($pdf, $chunk)
 
         $this->writeFittedAt($pdf, $this->valueOrNa($grad['year_graduated'] ?? null), 182, $currentYOther, 12, 7.0, 5.0);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($grad['academic_honors'] ?? null), 199, $currentYOther, 10.2, 7.0, 5.0);
+        $this->writeFittedAt($pdf, $this->valueOrNa($grad['academic_honors'] ?? null), 195, $currentYOther, 15, 7.0, 5.0);
     }
 }
 
@@ -1921,9 +1921,15 @@ private function writeCenteredFittedSized($pdf, string $text, float $x, float $y
 private function writeFittedAt($pdf, string $text, float $x, float $y, float $maxWidth, float $baseSize = 8.0, float $minSize = 5.0): void
 {
     $text = mb_strtoupper($text);
+    $length = mb_strlen($text);
+
+    if ($length >= 15 && $maxWidth <= 14.0) {
+        $baseSize = min($baseSize, 6.5);
+        $minSize = min($minSize, 4.5);
+    }
     
     // If text is 25+ characters, reduce font sizes for better fit
-    if (strlen($text) >= 25) {
+    if ($length >= 25) {
         $baseSize = min($baseSize, 6.0);
         $minSize = min($minSize, 4.0);
     }
