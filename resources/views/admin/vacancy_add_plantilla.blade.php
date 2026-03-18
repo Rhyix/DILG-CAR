@@ -213,7 +213,7 @@
                             data-designation="{{ $signatory->designation }}"
                             data-office="{{ $signatory->office }}"
                             data-office_address="{{ $signatory->office_address }}"
-                            {{ old('to_person', $formSource?->to_person ?? '') === ($signatory->first_name . ' ' . $signatory->middle_name . ' ' . $signatory->last_name) ? 'selected' : '' }}>
+                            {{ old('to_person', $formSource?->to_person ?? '') === ($signatory->first_name . ' ' . $signatory->middle_name . ' ' . $signatory->last_name) || (count($signatories) === 1 && old('to_person', $formSource?->to_person ?? '') === '') ? 'selected' : '' }}>
                             {{ $signatory->first_name }} {{ $signatory->middle_name }} {{ $signatory->last_name }}
                         </option>
                     @empty
@@ -401,6 +401,10 @@ document.addEventListener("DOMContentLoaded", function() {
         // positionField.disabled = true;
         // officeField.disabled = true;
         // officeAddressField.disabled = true;
+    }
+
+    if (signatorySelect && signatorySelect.value === '' && signatorySelect.options.length > 1) {
+        signatorySelect.selectedIndex = 1;
     }
 
     signatorySelect.addEventListener('change', handleSignatoryChange);
