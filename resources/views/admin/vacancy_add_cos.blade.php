@@ -173,7 +173,7 @@
             <div>
                 <label class="block">Name of Head</label>
                 <select id="signatory_select" name="to_person" class="w-full border-2 border-[#002C76] rounded-md px-2 py-1 h-10">
-                    <option value="">-- Select a Signatory --</option>
+                    <option value="">-- Select Regional Director --</option>
                     @forelse($signatories as $signatory)
                         <option value="{{ $signatory->first_name }} {{ $signatory->middle_name }} {{ $signatory->last_name }}"
                             data-designation="{{ $signatory->designation }}"
@@ -183,7 +183,7 @@
                             {{ $signatory->first_name }} {{ $signatory->middle_name }} {{ $signatory->last_name }}
                         </option>
                     @empty
-                        <option value="">No signatories available</option>
+                        <option value="">No Regional Director configured</option>
                     @endforelse
                 </select>
             </div>

@@ -4,7 +4,7 @@
 <div class="w-full space-y-6 font-montserrat" x-data="logTable()">
     <div class="">
         <h1 class="flex items-center gap-3 w-full border-b border-[#0D2B70] text-white text-4xl font-montserrat py-2 tracking-wide select-none">
-            <span class="whitespace-nowrap text-[#0D2B70]">Add New Signatory</span>
+            <span class="whitespace-nowrap text-[#0D2B70]">Set Up Regional Director</span>
         </h1>
 
         @if ($errors->any())
@@ -86,7 +86,7 @@
                     @click.prevent="$dispatch('open-confirm-modal')"
                     type="submit"
                     class="px-6 py-2 bg-[#002C76] text-white rounded-lg hover:bg-blue-900 transition-colors">
-                    Create Signatory
+                    Save Regional Director
                 </button>
             </div>
         </form>
@@ -95,8 +95,8 @@
 
 <!-- CONFIRMATION MODAL -->
 <x-confirm-modal
-    title="Create Signatory"
-    message="Are you sure you want to create this signatory?"
+    title="Save Regional Director"
+    message="Are you sure you want to save this Regional Director record?"
     event="open-confirm-modal"
     confirm="confirm-create-signatory"
 />

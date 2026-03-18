@@ -429,7 +429,7 @@ Route::middleware([RedirectIfNotAdmin::class])->group(function () {
     });
 
     Route::get('/admin/vacancies_management/add/plantilla', function (\Illuminate\Http\Request $request) {
-        $signatories = \App\Models\Signatory::all();
+        $signatories = \App\Models\Signatory::query()->orderBy('id')->limit(1)->get();
         $templateVacancy = null;
         $reuseVacancyId = trim((string) $request->query('reuse', ''));
         if ($reuseVacancyId !== '') {
@@ -438,7 +438,7 @@ Route::middleware([RedirectIfNotAdmin::class])->group(function () {
         return view('admin.vacancy_add_plantilla', compact('signatories', 'templateVacancy'));
     })->name('addplantilla');
     Route::get('/admin/vacancies_management/add/cos', function (\Illuminate\Http\Request $request) {
-        $signatories = \App\Models\Signatory::all();
+        $signatories = \App\Models\Signatory::query()->orderBy('id')->limit(1)->get();
         $templateVacancy = null;
         $reuseVacancyId = trim((string) $request->query('reuse', ''));
         if ($reuseVacancyId !== '') {
