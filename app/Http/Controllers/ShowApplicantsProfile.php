@@ -9,6 +9,7 @@ use App\Models\JobVacancy;
 use App\Models\UploadedDocument;
 use App\Models\AdminVacancyAccess;
 use App\Models\User;
+use App\Services\ApplicantRecordDeletionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
@@ -559,6 +560,50 @@ class ShowApplicantsProfile extends Controller
         return view('admin.applicant_record_show', [
             'applicant' => $user,
         ]);
+    }
+
+    public function destroyApplicantRecord(Request $request, User $user, ApplicantRecordDeletionService $deletionService)
+    {
+        $user->loadMissing('personalInformation');
+
+        $personalInfo = $user->personalInformation;
+        $fullName = trim(implode(' ', array_filter([
+            trim((string) ($personalInfo?->first_name ?? '')),
+            filled($personalInfo?->middle_name) ? strtoupper(substr((string) $personalInfo->middle_name, 0, 1)) . '.' : '',
+            trim((string) ($personalInfo?->surname ?? '')),
+            trim((string) ($personalInfo?->name_extension ?? '')),
+        ])));
+        $displayName = $fullName !== '' ? $fullName : ((string) ($user->name ?: 'Applicant'));
+
+        try {
+            $deletionService->delete($user, Auth::guard('admin')->user());
+
+            $message = sprintf('Applicant record for %s has been permanently deleted.', $displayName);
+
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'message' => $message,
+                ]);
+            }
+
+            return redirect()
+                ->route('admin.applicant_records.index')
+                ->with('success', $message);
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            $message = 'Unable to delete the applicant record right now.';
+
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'message' => $message,
+                ], 500);
+            }
+
+            return redirect()
+                ->back()
+                ->with('error', $message);
+        }
     }
 
     public function hrDivisionAccessState()

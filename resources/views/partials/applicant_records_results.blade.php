@@ -15,6 +15,7 @@
     };
 @endphp
 
+<span class="hidden" data-total="{{ number_format($applicants->total()) }}"></span>
 
 <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
     <div class="overflow-x-auto">
@@ -58,8 +59,11 @@
                                     class="inline-flex items-center justify-center rounded-lg border border-[#0D2B70] bg-white px-3 py-2 text-sm font-semibold text-[#0D2B70] shadow-sm transition hover:bg-[#0D2B70] hover:text-white">
                                     View
                                 </a>
-                                <button type="button" disabled
-                                    class="inline-flex cursor-not-allowed items-center justify-center rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-400 shadow-sm opacity-80">
+                                <button type="button"
+                                    data-delete-applicant-url="{{ route('admin.applicant_records.destroy', $applicant) }}"
+                                    data-delete-applicant-name="{{ $buildApplicantName($applicant) }}"
+                                    data-delete-applicant-code="{{ $applicantCode }}"
+                                    class="inline-flex items-center justify-center rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-600 shadow-sm transition hover:border-rose-300 hover:bg-rose-100">
                                     Delete
                                 </button>
                             </div>

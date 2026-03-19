@@ -67,6 +67,83 @@
             @include('partials.applicant_records_results', ['applicants' => $applicants])
         </div>
     </div>
+
+    <div id="applicantDeleteModal" class="fixed inset-0 z-[80] hidden items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm">
+        <div class="w-full max-w-lg overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_30px_90px_-40px_rgba(15,23,42,0.65)]">
+            <div class="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-5">
+                <div>
+                    <p class="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">Delete Applicant Record</p>
+                    <h2 class="mt-1 text-xl font-semibold text-slate-900">Permanent deletion flow</h2>
+                </div>
+                <button type="button" id="applicantDeleteModalClose" class="inline-flex h-10 w-10 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <div class="px-6 py-5">
+                <section id="applicantDeleteStepConfirm" class="space-y-5">
+                    <div class="rounded-2xl border border-rose-100 bg-rose-50 px-4 py-4">
+                        <p class="text-sm font-semibold text-rose-700">You are about to permanently delete this applicant record.</p>
+                        <p class="mt-2 text-sm leading-6 text-rose-700/90">This removes the applicant account and all applicant-linked records from the portal.</p>
+                    </div>
+                    <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Applicant</p>
+                        <p id="deleteApplicantName" class="mt-2 text-base font-semibold text-slate-900">N/A</p>
+                        <p id="deleteApplicantCode" class="mt-1 text-sm text-slate-500">N/A</p>
+                    </div>
+                </section>
+
+                <section id="applicantDeleteStepChallenge" class="hidden space-y-5">
+                    <div class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4">
+                        <p class="text-sm font-semibold text-amber-800">Type the generated code exactly as shown to continue.</p>
+                        <p class="mt-2 text-sm leading-6 text-amber-800/90">This check is case-sensitive and uses 7 random letters.</p>
+                    </div>
+                    <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Verification Code</p>
+                        <div id="deleteApplicantChallengeCode" class="mt-3 rounded-2xl bg-white px-4 py-3 text-center font-mono text-2xl font-bold tracking-[0.35em] text-[#0D2B70] ring-1 ring-slate-200"></div>
+                    </div>
+                    <div>
+                        <label for="deleteApplicantChallengeInput" class="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                            Enter Code
+                        </label>
+                        <input id="deleteApplicantChallengeInput" type="text" autocomplete="off"
+                            class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm outline-none transition focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20"
+                            placeholder="Type the 7-letter code exactly" />
+                        <p id="deleteApplicantChallengeHint" class="mt-2 text-xs text-slate-500">Proceed becomes available only when the code matches exactly.</p>
+                    </div>
+                </section>
+
+                <section id="applicantDeleteStepWarning" class="hidden space-y-5">
+                    <div class="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-4">
+                        <p class="text-sm font-semibold text-rose-700">Final warning</p>
+                        <p class="mt-2 text-sm leading-6 text-rose-700/90">This action is permanent and cannot be undone from the admin panel.</p>
+                    </div>
+                    <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">The following records will be removed</p>
+                        <ul class="mt-3 space-y-2 text-sm leading-6 text-slate-700">
+                            <li>Applicant account details and profile information</li>
+                            <li>PDS records, work experience sheet, and related personal-information tables</li>
+                            <li>Applications, uploaded documents, gallery files, notifications, sessions, and exam-tab records</li>
+                        </ul>
+                    </div>
+                </section>
+            </div>
+
+            <div class="flex flex-col-reverse gap-3 border-t border-slate-100 bg-slate-50/70 px-6 py-4 sm:flex-row sm:items-center sm:justify-end">
+                <button type="button" id="applicantDeleteModalCancel" class="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">
+                    Cancel
+                </button>
+                <button type="button" id="applicantDeleteModalBack" class="hidden inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">
+                    Back
+                </button>
+                <button type="button" id="applicantDeleteModalPrimary" class="inline-flex items-center justify-center rounded-2xl bg-[#0D2B70] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0A235C]">
+                    Continue
+                </button>
+            </div>
+        </div>
+    </div>
 </main>
 
 <script>
@@ -80,10 +157,40 @@
         const searchSpinner = document.getElementById('applicantSearchSpinner');
         const totalLabel = document.getElementById('applicantRecordsTotal');
         const baseUrl = @json(route('admin.applicant_records.index'));
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
+
+        const deleteModal = document.getElementById('applicantDeleteModal');
+        const deleteModalClose = document.getElementById('applicantDeleteModalClose');
+        const deleteModalCancel = document.getElementById('applicantDeleteModalCancel');
+        const deleteModalBack = document.getElementById('applicantDeleteModalBack');
+        const deleteModalPrimary = document.getElementById('applicantDeleteModalPrimary');
+        const deleteApplicantName = document.getElementById('deleteApplicantName');
+        const deleteApplicantCode = document.getElementById('deleteApplicantCode');
+        const deleteChallengeCode = document.getElementById('deleteApplicantChallengeCode');
+        const deleteChallengeInput = document.getElementById('deleteApplicantChallengeInput');
+        const deleteChallengeHint = document.getElementById('deleteApplicantChallengeHint');
+
+        const deleteSteps = {
+            confirm: document.getElementById('applicantDeleteStepConfirm'),
+            challenge: document.getElementById('applicantDeleteStepChallenge'),
+            warning: document.getElementById('applicantDeleteStepWarning'),
+        };
+
+        if (deleteModal) {
+            document.body.appendChild(deleteModal);
+        }
 
         let debounceTimer = null;
         let activeController = null;
         let latestRequestId = 0;
+        let deleteRequestInFlight = false;
+        let deleteState = {
+            url: '',
+            name: '',
+            code: '',
+            challenge: '',
+            step: 'confirm',
+        };
 
         const errorState = `
             <section class="overflow-hidden rounded-2xl border border-rose-200 bg-white shadow-sm">
@@ -92,6 +199,18 @@
                 </div>
             </section>
         `;
+        const challengeCharacters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+
+        const showStatus = (type, message) => {
+            if (!message) return;
+
+            if (typeof window.showAppToast === 'function') {
+                window.showAppToast(message, type);
+                return;
+            }
+
+            window.alert(message);
+        };
 
         const setLoading = (isLoading) => {
             loadingOverlay.classList.toggle('hidden', !isLoading);
@@ -114,6 +233,100 @@
 
             const query = params.toString();
             return query ? `${baseUrl}?${query}` : baseUrl;
+        };
+
+        const generateChallengeCode = () => {
+            let code = '';
+
+            for (let index = 0; index < 7; index += 1) {
+                code += challengeCharacters[Math.floor(Math.random() * challengeCharacters.length)];
+            }
+
+            return code;
+        };
+
+        const updateDeleteModal = () => {
+            const isConfirmStep = deleteState.step === 'confirm';
+            const isChallengeStep = deleteState.step === 'challenge';
+            const isWarningStep = deleteState.step === 'warning';
+            const hasMatchingChallenge = deleteChallengeInput.value === deleteState.challenge;
+
+            deleteSteps.confirm.classList.toggle('hidden', !isConfirmStep);
+            deleteSteps.challenge.classList.toggle('hidden', !isChallengeStep);
+            deleteSteps.warning.classList.toggle('hidden', !isWarningStep);
+
+            deleteModalBack.classList.toggle('hidden', isConfirmStep || deleteRequestInFlight);
+
+            deleteModalPrimary.classList.remove('cursor-not-allowed', 'opacity-60', 'bg-slate-300', 'hover:bg-slate-300', 'bg-rose-600', 'hover:bg-rose-700', 'bg-[#0D2B70]', 'hover:bg-[#0A235C]');
+
+            if (isConfirmStep) {
+                deleteModalPrimary.textContent = 'Continue';
+                deleteModalPrimary.disabled = false;
+                deleteModalPrimary.classList.add('bg-[#0D2B70]', 'hover:bg-[#0A235C]');
+                return;
+            }
+
+            if (isChallengeStep) {
+                deleteModalPrimary.textContent = 'Proceed';
+                deleteModalPrimary.disabled = !hasMatchingChallenge;
+                deleteModalPrimary.classList.add(hasMatchingChallenge ? 'bg-[#0D2B70]' : 'bg-slate-300');
+                deleteModalPrimary.classList.add(hasMatchingChallenge ? 'hover:bg-[#0A235C]' : 'hover:bg-slate-300');
+
+                if (!hasMatchingChallenge) {
+                    deleteModalPrimary.classList.add('cursor-not-allowed', 'opacity-60');
+                }
+                return;
+            }
+
+            deleteModalPrimary.textContent = deleteRequestInFlight ? 'Deleting...' : 'Permanently Delete';
+            deleteModalPrimary.disabled = deleteRequestInFlight;
+            deleteModalPrimary.classList.add('bg-rose-600', 'hover:bg-rose-700');
+
+            if (deleteRequestInFlight) {
+                deleteModalPrimary.classList.add('cursor-not-allowed', 'opacity-60');
+            }
+        };
+
+        const closeDeleteModal = () => {
+            if (deleteRequestInFlight) return;
+
+            deleteModal.classList.add('hidden');
+            deleteModal.classList.remove('flex');
+
+            deleteState = {
+                url: '',
+                name: '',
+                code: '',
+                challenge: '',
+                step: 'confirm',
+            };
+
+            deleteChallengeInput.value = '';
+            deleteChallengeCode.textContent = '';
+            deleteChallengeHint.textContent = 'Proceed becomes available only when the code matches exactly.';
+            deleteChallengeHint.className = 'mt-2 text-xs text-slate-500';
+            updateDeleteModal();
+        };
+
+        const openDeleteModal = ({ url, name, code }) => {
+            deleteState = {
+                url,
+                name,
+                code,
+                challenge: '',
+                step: 'confirm',
+            };
+
+            deleteApplicantName.textContent = name;
+            deleteApplicantCode.textContent = `Applicant ID: ${code}`;
+            deleteChallengeInput.value = '';
+            deleteChallengeCode.textContent = '';
+            deleteChallengeHint.textContent = 'Proceed becomes available only when the code matches exactly.';
+            deleteChallengeHint.className = 'mt-2 text-xs text-slate-500';
+            updateDeleteModal();
+
+            deleteModal.classList.remove('hidden');
+            deleteModal.classList.add('flex');
         };
 
         const fetchResults = async (url = null) => {
@@ -179,7 +392,128 @@
             fetchResults(baseUrl);
         });
 
+        deleteChallengeInput.addEventListener('input', () => {
+            const isExactMatch = deleteChallengeInput.value === deleteState.challenge;
+
+            if (deleteChallengeInput.value === '') {
+                deleteChallengeHint.textContent = 'Proceed becomes available only when the code matches exactly.';
+                deleteChallengeHint.className = 'mt-2 text-xs text-slate-500';
+            } else if (isExactMatch) {
+                deleteChallengeHint.textContent = 'Code matched. You can proceed to the final warning.';
+                deleteChallengeHint.className = 'mt-2 text-xs text-emerald-600';
+            } else {
+                deleteChallengeHint.textContent = 'Code does not match yet. Case matters.';
+                deleteChallengeHint.className = 'mt-2 text-xs text-rose-600';
+            }
+
+            updateDeleteModal();
+        });
+
+        const triggerDeleteRequest = async () => {
+            deleteRequestInFlight = true;
+            deleteModalBack.disabled = true;
+            deleteModalCancel.disabled = true;
+            deleteModalClose.disabled = true;
+            updateDeleteModal();
+
+            try {
+                const response = await fetch(deleteState.url, {
+                    method: 'DELETE',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                });
+
+                const payload = await response.json().catch(() => ({}));
+
+                if (!response.ok) {
+                    throw new Error(payload.message ?? 'Unable to delete applicant record.');
+                }
+
+                deleteRequestInFlight = false;
+                deleteModalBack.disabled = false;
+                deleteModalCancel.disabled = false;
+                deleteModalClose.disabled = false;
+                closeDeleteModal();
+                showStatus('success', payload.message ?? 'Applicant record deleted.');
+                fetchResults(window.location.href);
+            } catch (error) {
+                deleteRequestInFlight = false;
+                deleteModalBack.disabled = false;
+                deleteModalCancel.disabled = false;
+                deleteModalClose.disabled = false;
+                updateDeleteModal();
+                showStatus('error', error.message ?? 'Unable to delete applicant record.');
+            }
+        };
+
+        const stepDeleteModalForward = () => {
+            if (deleteState.step === 'confirm') {
+                deleteState.challenge = generateChallengeCode();
+                deleteState.step = 'challenge';
+                deleteChallengeCode.textContent = deleteState.challenge;
+                deleteChallengeInput.value = '';
+                deleteChallengeInput.focus();
+                updateDeleteModal();
+                return;
+            }
+
+            if (deleteState.step === 'challenge') {
+                if (deleteChallengeInput.value !== deleteState.challenge) return;
+
+                deleteState.step = 'warning';
+                updateDeleteModal();
+                return;
+            }
+
+            triggerDeleteRequest();
+        };
+
+        const stepDeleteModalBackward = () => {
+            if (deleteRequestInFlight) return;
+
+            if (deleteState.step === 'warning') {
+                deleteState.step = 'challenge';
+                updateDeleteModal();
+                return;
+            }
+
+            if (deleteState.step === 'challenge') {
+                deleteState.step = 'confirm';
+                updateDeleteModal();
+            }
+        };
+
+        deleteModalPrimary.addEventListener('click', stepDeleteModalForward);
+        deleteModalBack.addEventListener('click', stepDeleteModalBackward);
+        deleteModalCancel.addEventListener('click', closeDeleteModal);
+        deleteModalClose.addEventListener('click', closeDeleteModal);
+        deleteModal.addEventListener('click', (event) => {
+            if (event.target === deleteModal) {
+                closeDeleteModal();
+            }
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                closeDeleteModal();
+            }
+        });
+
         resultsContainer.addEventListener('click', (event) => {
+            const deleteButton = event.target.closest('[data-delete-applicant-url]');
+            if (deleteButton) {
+                event.preventDefault();
+                openDeleteModal({
+                    url: deleteButton.dataset.deleteApplicantUrl ?? '',
+                    name: deleteButton.dataset.deleteApplicantName ?? 'Applicant',
+                    code: deleteButton.dataset.deleteApplicantCode ?? 'N/A',
+                });
+                return;
+            }
+
             const link = event.target.closest('a[href]');
             if (!link) return;
 
