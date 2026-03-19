@@ -199,7 +199,7 @@
             <!-- Main Heading -->
             <div class="max-w-4xl">
                 <h1 class="text-4xl sm:text-5xl lg:text-6xl font-black text-white leading-tight mb-4">
-                    Ang DILG ay Matino, Mahusay at Maasahan
+                    Ang DILG ay Matino, Mahusay at Maaasahan
                 </h1>
             </div>
         </div>
@@ -212,7 +212,7 @@
                     <div class="flex items-center justify-between gap-4">
                         <h2 class="text-2xl sm:text-3xl font-bold text-gray-800">Latest Jobs</h2>
                         <span class="hidden sm:inline-flex items-center rounded-full bg-[#0D2B70]/10 px-3 py-1 text-sm font-semibold text-[#0D2B70]">
-                            {{ $allCount }} Open Vacancy{{ $allCount === 1 ? '' : 'ies' }}
+                            {{ $allCount }} Open {{ $allCount === 1 ? 'Vacancy' : 'Vacancies' }}
                         </span>
                     </div>
 

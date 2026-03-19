@@ -3030,7 +3030,12 @@ class PDSController extends Controller
             );
         }
 
-        return redirect()->route($go_to);
+        $routeParams = [];
+        if ($request->boolean('simple') || $request->query('simple')) {
+            $routeParams['simple'] = 1;
+        }
+
+        return redirect()->route($go_to, $routeParams);
     }
 
     public function userSelection($sel, Request $request, string $textArea)

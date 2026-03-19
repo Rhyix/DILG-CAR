@@ -585,12 +585,12 @@
                             <p class="error-message hidden" data-education-date-error aria-live="polite"></p>
                         </div>
                         <div class="relative md:col-span-2">
-                            <input pattern="\d{4}" maxlength="4" type="text" inputmode="numeric" id="elem_year_graduated" name="elem_year_graduated" value="{{ old('elem_year_graduated', session('form.c1.elem_year_graduated')) }}" placeholder=" " required class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                            <label for="elem_year_graduated" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Year Graduated <span class="text-red-500">*</span></label>
+                            <input pattern="\d{4}" maxlength="4" type="text" inputmode="numeric" id="elem_year_graduated" name="elem_year_graduated" value="{{ old('elem_year_graduated', session('form.c1.elem_year_graduated')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
+                            <label for="elem_year_graduated" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Year Graduated</label>
                         </div>
                         <div class="relative md:col-span-2">
-                            <input type="text" id="elem_earned" name="elem_earned" value="{{ old('elem_earned', session('form.c1.elem_earned')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                            <label for="elem_earned" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-xs sm:text-sm">Highest Level/Units Earned (if not graduated)</label>
+                            <input required type="text" id="elem_earned" name="elem_earned" value="{{ old('elem_earned', session('form.c1.elem_earned')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
+                            <label for="elem_earned" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-xs sm:text-sm">Highest Level/Units Earned (if not graduated) <span class="text-red-500">*</span></label>
                         </div>
                         <div class="relative md:col-span-2">
                             <input type="text" id="elem_academic_honors" name="elem_academic_honors" value="{{ old('elem_academic_honors', session('form.c1.elem_academic_honors')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
@@ -629,8 +629,8 @@
                         </div>
 
                         <div class="relative md:col-span-2">
-                            <input type="text" id="jhs_earned" name="jhs_earned" value="{{ old('jhs_earned', session('form.c1.jhs_earned')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                            <label for="jhs_earned" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-xs sm:text-sm">Highest Level/Units Earned (if not graduated)</label>
+                            <input required type="text" id="jhs_earned" name="jhs_earned" value="{{ old('jhs_earned', session('form.c1.jhs_earned')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
+                            <label for="jhs_earned" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-xs sm:text-sm">Highest Level/Units Earned (if not graduated) <span class="text-red-500">*</span></label>
                         </div>
 
                         <div class="relative md:col-span-2">
@@ -641,7 +641,7 @@
                 </div>
 
                 <!-- Vocational / Trade Course Placeholder -->
-                <div class="mb-6">
+                <div class="mb-6 mt-[80px]">
                     @include('partials.pds-education-form', [
                         'education_type' => 'vocational',
                         'education_type_meta' => ['title' => 'Vocational / Trade Course'],
@@ -650,7 +650,7 @@
                 </div>
 
                 <!-- College Placeholder -->
-                <div class="mb-6">
+                <div class="mb-6 mt-[80px]">
                     @include('partials.pds-education-form', [
                         'education_type' => 'college',
                         'education_type_meta' => ['title' => 'College'],
@@ -659,7 +659,7 @@
                 </div>
 
                 <!-- Graduate Studies Placeholder -->
-                <div class="mb-6">
+                <div class="mb-6 mt-[80px]">
                 @include('partials.pds-education-form', [
                         'education_type' => 'grad',
                         'education_type_meta' => ['title' => 'Graduate Studies'],
@@ -1496,6 +1496,25 @@
             return el ? (el.value || el.textContent || '') : '';
         }
         function radioVal(name){ const el=document.querySelector('input[name="'+name+'"]:checked'); return el?el.value:''; }
+        function requireYearOrLevel(yearId, levelId) {
+            const year = document.getElementById(yearId);
+            const level = document.getElementById(levelId);
+            if (!year || !level) return true;
+
+            [year, level].forEach((el) => el.setCustomValidity(''));
+
+            const hasYear = String(year.value || '').trim().length > 0;
+            const hasLevel = String(level.value || '').trim().length > 0;
+
+            if (!hasYear && !hasLevel) {
+                const msg = 'Provide Year Graduated or Highest Level/Units Earned.';
+                year.setCustomValidity(msg);
+                level.setCustomValidity(msg);
+                return false;
+            }
+
+            return true;
+        }
         function requiredValid(){
             const form=document.getElementById('myForm'); if(!form) return false;
             const els=form.querySelectorAll('[required]');
@@ -1511,6 +1530,9 @@
                 if(!radioVal('dual_type')) ok=false;
                 const dc=document.getElementById('dual_country'); if(!dc || !dc.value.trim()) ok=false;
             }
+
+            const elemOk = requireYearOrLevel('elem_year_graduated', 'elem_earned');
+            const jhsOk = requireYearOrLevel('jhs_year_graduated', 'jhs_earned');
             
             // Check if we're in simple mode (preview should be available with basic info)
             const urlParams = new URLSearchParams(window.location.search);
@@ -1534,10 +1556,10 @@
                     }
                 });
                 
-                return basicOk;
+                return basicOk && elemOk && jhsOk;
             }
             
-            return ok;
+            return ok && elemOk && jhsOk;
         }
         function updatePreviewBtn(){
             const btn=document.getElementById('pdsPreviewBtn'); if(!btn) return;

@@ -16,6 +16,9 @@
         @endphp
         <form id="other-info-form" class="space-y-8" action='/pds/submit_c4/display_wes' method="POST" enctype="multipart/form-data">
             @csrf
+            @if(request()->boolean('simple'))
+                <input type="hidden" name="simple" value="1">
+            @endif
             <!-- IX: Related Third Degree Section -->
             <section class="bg-white rounded-2xl shadow-xl p-8 animate-slide-in">
                 <!-- NUMBER 34 -->
@@ -428,10 +431,10 @@
                         </div>
                     </div>
                 </div>
-            <div>
+            <!-- <div>
                 <p>42. I declare under oath that I have personally accomplished this Personal Data Sheet which is a true, correct, and complete statement pursuant to the provisions of pertinent laws, rules, and regulations of the Republic of the Philippines. I authorize the agency head/authorized representative to verify/validate the contents stated herein.          
                     I  agree that any misrepresentation made in this document and its attachments shall cause the filing of administrative/criminal case/s against me.</p>
-            </div>
+            </div> -->
             </section>
 
             <!-- Government ID Section -->
@@ -580,12 +583,35 @@
                     <span class="material-icons mr-2">arrow_back</span>
                     Previous
                 </button>
-                <button id="save-work-exp" type="submit" class="w-full sm:w-auto px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors duration-200 flex items-center justify-center">
+                <button id="save-work-exp" type="button" class="w-full sm:w-auto px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors duration-200 flex items-center justify-center">
                     Next
                     <span class="material-icons ml-2">arrow_forward</span>
                 </button>
             </div>
         </form>
+
+        <!-- Confirmation Modal -->
+        <div id="other-info-modal" class="hidden fixed inset-0 z-[2147483001] flex items-center justify-center px-4 pointer-events-none">
+            <div class="absolute inset-0 z-0 bg-slate-900/45 backdrop-blur-sm pointer-events-none"></div>
+            <div class="relative z-10 w-full max-w-3xl rounded-3xl bg-white shadow-2xl border border-slate-200 p-8 space-y-6 animate-fade-in pointer-events-auto" role="dialog" aria-modal="true">
+                <div class="flex items-start gap-4">
+                    <span class="material-icons text-blue-600 text-3xl">gavel</span>
+                    <div class="space-y-2">
+                        <h3 class="text-2xl font-black text-slate-900">Are you sure you want to submit?</h3>
+                        <div class="bg-blue-50 border border-blue-100 text-blue-900 rounded-2xl p-4 text-sm leading-relaxed">
+                            <p class="font-semibold mb-2">Oath & Legal Reminder</p>
+                            <p class="mb-2">42. I declare under oath that I have personally accomplished this Personal Data Sheet which is a true, correct, and complete statement pursuant to the provisions of pertinent laws, rules, and regulations of the Republic of the Philippines.</p>
+                            <p class="mb-2">I authorize the agency head/authorized representative to verify/validate the contents stated herein.</p>
+                            <p class="font-semibold">I agree that any misrepresentation made in this document and its attachments shall cause the filing of administrative/criminal case/s against me.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex flex-col sm:flex-row justify-end gap-3">
+                    <button type="button" id="other-info-cancel" class="px-4 py-2.5 rounded-lg border border-slate-200 text-slate-700 font-semibold hover:bg-slate-50 pointer-events-auto">Review</button>
+                    <button type="button" id="other-info-confirm" class="px-4 py-2.5 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 pointer-events-auto">I Declare</button>
+                </div>
+            </div>
+        </div>
 
         <!-- Warning Footer -->
         <footer class="mt-12 text-center text-sm text-gray-600">
@@ -598,8 +624,18 @@
     <!--include('partials.loader')-->
     @endsection
     <style>
-        body {
+    body {
             font-family: 'Inter', sans-serif;
+        }
+
+        .modal-open {
+            overflow: hidden;
+        }
+
+        .modal-open #sidebar {
+            filter: blur(6px);
+            opacity: 0.8;
+            transition: filter 0.2s ease, opacity 0.2s ease;
         }
 
         /* Custom animations */
@@ -838,23 +874,6 @@
                 toggleDetail(config, checkedRadio ? checkedRadio.value : '');
             });
 
-            const hasWorkExperience = Boolean(@json($hasWorkExperience));
-            if (hasWorkExperience) {
-                const separatedYes = document.querySelector('input[name="separated_37"][value="yes"]');
-                const separatedNo = document.querySelector('input[name="separated_37"][value="no"]');
-                if (separatedYes) {
-                    separatedYes.checked = true;
-                    separatedYes.dispatchEvent(new Event('change', { bubbles: true }));
-                    if (separatedNo) {
-                        separatedNo.disabled = true;
-                    }
-                    const detailField = document.querySelector('#separated-details textarea, #separated-details input');
-                    if (detailField && detailField.value.trim() === '') {
-                        detailField.value = 'Set to "Yes" automatically because work experience records exist.';
-                    }
-                }
-            }
-
             /*
             // Photo upload functionality
             const uploadArea = document.getElementById('photo-upload-area');
@@ -908,6 +927,78 @@
 
             const form = document.getElementById('other-info-form');
             const referenceContactInputs = Array.from(document.querySelectorAll('[data-reference-contact]'));
+            const nextBtn = document.getElementById('save-work-exp');
+            const modal = document.getElementById('other-info-modal');
+            const modalConfirm = document.getElementById('other-info-confirm');
+            const modalCancel = document.getElementById('other-info-cancel');
+            const focusTargets = [modalConfirm, modalCancel];
+            const toggleModal = (show) => {
+                if (!modal) return;
+                modal.classList.toggle('hidden', !show);
+                document.body.classList.toggle('modal-open', show);
+                if (show && modalConfirm) {
+                    try {
+                        modalConfirm.focus({ preventScroll: true });
+                    } catch (error) {
+                        modalConfirm.focus();
+                    }
+                } else {
+                    if (modalConfirm) modalConfirm.textContent = 'I Declare';
+                    if (modalCancel) modalCancel.textContent = 'Review';
+                }
+            };
+            if (nextBtn) {
+                nextBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    if (form && !form.reportValidity()) {
+                        return;
+                    }
+                    toggleModal(true);
+                });
+            }
+            const submitOtherInfoForm = () => {
+                if (!form) return;
+                if (typeof form.requestSubmit === 'function') {
+                    form.requestSubmit();
+                    return;
+                }
+                form.submit();
+            };
+
+            if (modalCancel) {
+                modalCancel.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    toggleModal(false);
+                });
+            }
+
+            if (modalConfirm) {
+                modalConfirm.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    toggleModal(false);
+                    submitOtherInfoForm();
+                });
+            }
+
+            document.addEventListener('keydown', (ev) => {
+                if (modal && modal.classList.contains('hidden')) return;
+                if (ev.key === 'Escape') {
+                    toggleModal(false);
+                }
+                if (ev.key === 'Tab' && focusTargets.filter(Boolean).length) {
+                    const focusable = focusTargets.filter(Boolean);
+                    const current = document.activeElement;
+                    const idx = focusable.indexOf(current);
+                    if (idx === -1) {
+                        focusable[0].focus();
+                        ev.preventDefault();
+                        return;
+                    }
+                    ev.preventDefault();
+                    const nextIdx = ev.shiftKey ? (idx - 1 + focusable.length) % focusable.length : (idx + 1) % focusable.length;
+                    focusable[nextIdx].focus();
+                }
+            });
 
             function formatReferencePhoneNumber(digits) {
                 const trimmedDigits = digits.replace(/\D/g, '').slice(0, 11);
@@ -1016,9 +1107,11 @@
                 }
 
                 // Simulate form submission
-                const submitBtn = e.submitter;
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = '<span class="material-icons mr-2 animate-spin">refresh</span>Submitting...';
+                const submitBtn = e.submitter || modalConfirm || nextBtn;
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<span class="material-icons mr-2 animate-spin">refresh</span>Submitting...';
+                }
 
                 form.submit();
             });
@@ -1535,4 +1628,3 @@
     </script>
     
     
-
