@@ -56,7 +56,7 @@
 
                     <select id="jobFilter" class="hidden">
                         <option value="" {{ session('vacancyFilterJob') == '' ? 'selected' : '' }}>All</option>
-                        <option value="COS" {{ session('vacancyFilterJob') == 'COS' ? 'selected' : '' }}>COS</option>
+                        <option value="COS" {{ session('vacancyFilterJob') == 'COS' ? 'selected' : '' }}>Contract of Service</option>
                         <option value="Plantilla" {{ session('vacancyFilterJob') == 'Plantilla' ? 'selected' : '' }}>PLANTILLA</option>
                     </select>
 
@@ -76,10 +76,10 @@
                         </button>
                         <button
                             onclick="document.getElementById('jobFilter').value = 'COS'; document.getElementById('jobFilter').dispatchEvent(new Event('change')); fetchVacancies();"
-                            @click="jobOpen = false; $el.closest('.relative').querySelector('button span span').innerText = 'COS'"
+                            @click="jobOpen = false; $el.closest('.relative').querySelector('button span span').innerText = 'Contract of Service'"
                             class="block w-full px-4 py-2 text-left text-sm font-semibold text-[#0D2B70] hover:bg-gray-100 {{ session('vacancyFilterJob') == 'COS' ? 'bg-gray-100' : '' }}"
                         >
-                            COS
+                            Contract of Service
                         </button>
                         <button
                             onclick="document.getElementById('jobFilter').value = 'Plantilla'; document.getElementById('jobFilter').dispatchEvent(new Event('change')); fetchVacancies();"

@@ -12,8 +12,14 @@
   </td>
   <td class="w-[25%] px-3 py-2 text-center">
     <p>{{ $vacancy->position_title }}</p>
+    @php
+      $vacancyTypeRaw = trim((string) ($vacancy->vacancy_type ?? ''));
+      $vacancyTypeLabel = strcasecmp($vacancyTypeRaw, 'cos') === 0
+        ? 'Contract of Service'
+        : ($vacancyTypeRaw !== '' ? $vacancyTypeRaw : '');
+    @endphp
     <p class="text-xs italic text-[#0D2B70]/70">
-      {{ $vacancy->vacancy_type }}@if(filled($vacancy->plantilla_item_no)), <span class="font-bold text-[#0D2B70]">{{ $vacancy->plantilla_item_no }}</span>@endif
+      {{ $vacancyTypeLabel }}@if(filled($vacancy->plantilla_item_no)), <span class="font-bold text-[#0D2B70]">{{ $vacancy->plantilla_item_no }}</span>@endif
     </p>
   </td>
   <td class="w-[15%] px-3 py-2 text-center">&#8369;{{ number_format($vacancy->monthly_salary, 2) }}</td>

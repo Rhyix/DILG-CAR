@@ -27,8 +27,14 @@
                     <!-- Position -->
                     <div class="lg:py-4 lg:px-6 lg:w-[30%] mb-2 lg:mb-0">
                         <span class="lg:hidden text-xs font-bold text-slate-400 uppercase tracking-wide block mb-1">Position</span>
+                        @php
+                            $vacTypeRaw = trim((string) ($application->vacancy->vacancy_type ?? ''));
+                            $vacTypeLabel = strcasecmp($vacTypeRaw, 'cos') === 0
+                                ? 'Contract of Service'
+                                : ($vacTypeRaw !== '' ? $vacTypeRaw : '');
+                        @endphp
                         <p class="font-bold lg:font-medium">{{ $application->vacancy->position_title ?? 'Position Title Unavailable' }}</p>
-                        <p class="text-[#0D2B70]/70 text-sm lg:text-[0.9rem] italic">{{ $application->vacancy->vacancy_type ?? '' }}</p>
+                        <p class="text-[#0D2B70]/70 text-sm lg:text-[0.9rem] italic">{{ $vacTypeLabel }}</p>
                     </div>
 
                     <!-- Place -->
