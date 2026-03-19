@@ -1009,15 +1009,29 @@ class ExamController extends Controller
             ->withProperties(['vacancy_id' => $vacancy_id, 'section' => 'Exam Management'])
             ->log('Managed exam participants and details.');
 
-        // Resolve last notifier for schedule notifications, if any
-        $notifiedByName = null;
-        if ($examDetails && $examDetails->notified_at) {
-            $lastSchedule = Activity::where('event', 'notify_schedule')
-                ->where('properties->vacancy_id', $vacancy_id)
-                ->orderBy('created_at', 'desc')
-                ->first();
-            if ($lastSchedule && $lastSchedule->causer) {
-                $notifiedByName = $lastSchedule->causer->name ?? $lastSchedule->causer->email ?? null;
+        $scheduleNotifiedByName = null;
+        $scheduleNotifiedAt = null;
+        $lastSchedule = Activity::where('event', 'notify_schedule')
+            ->where('properties->vacancy_id', $vacancy_id)
+            ->orderBy('created_at', 'desc')
+            ->first();
+        if ($lastSchedule) {
+            $scheduleNotifiedAt = $lastSchedule->created_at;
+            if ($lastSchedule->causer) {
+                $scheduleNotifiedByName = $lastSchedule->causer->name ?? $lastSchedule->causer->email ?? null;
+            }
+        }
+
+        $linkSentByName = null;
+        $linkSentAt = null;
+        $lastLinkSend = Activity::where('event', 'notify')
+            ->where('properties->vacancy_id', $vacancy_id)
+            ->orderBy('created_at', 'desc')
+            ->first();
+        if ($lastLinkSend) {
+            $linkSentAt = $lastLinkSend->created_at;
+            if ($lastLinkSend->causer) {
+                $linkSentByName = $lastLinkSend->causer->name ?? $lastLinkSend->causer->email ?? null;
             }
         }
 
@@ -1037,7 +1051,10 @@ class ExamController extends Controller
             'examDetails' => $examDetails,
             'qualifiedApplicants' => $qualifiedApplicants,
             'attendanceApplicants' => $attendanceApplicants,
-            'notifiedByName' => $notifiedByName
+            'scheduleNotifiedByName' => $scheduleNotifiedByName,
+            'scheduleNotifiedAt' => $scheduleNotifiedAt,
+            'linkSentByName' => $linkSentByName,
+            'linkSentAt' => $linkSentAt,
         ]);
     }
 

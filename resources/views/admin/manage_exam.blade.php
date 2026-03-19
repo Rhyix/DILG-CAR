@@ -550,12 +550,12 @@
                             </button>
                         </div>
                         <div>
-                            @if($examDetails && $examDetails->notified_at)
-                                <p class="text-xs text-gray-600 italic text-left mt-1">
-                                    <b>{{ $notifiedByName ?? 'An admin' }} </b> notified applicants on 
-                                    <b>{{ \Carbon\Carbon::parse($examDetails->notified_at)->format('M d, h:i A') }}</b>
-                                </p>
-                            @endif
+                            <p id="scheduleNotifyMeta" class="text-xs text-gray-600 italic text-left mt-1 {{ $scheduleNotifiedAt ? '' : 'hidden' }}">
+                                @if($scheduleNotifiedAt)
+                                    Sent by: <b id="scheduleNotifySender">{{ $scheduleNotifiedByName ?? 'An admin' }}</b>
+                                    on <b id="scheduleNotifyTime">{{ \Carbon\Carbon::parse($scheduleNotifiedAt)->format('M d, h:i A') }}</b>
+                                @endif
+                            </p>
                         </div>
                     </div>
                     
@@ -610,6 +610,12 @@
                             class="w-full py-2 bg-[#0D2B70] border-2 border-[#0D2B70] rounded-lg text-white font-bold text-sm hover:scale-[1.02] flex items-center justify-center gap-2 transition-transform disabled:opacity-50 disabled:hover:scale-100">
                         Send Link via Email
                     </button>
+                    <p id="sendLinkMeta" class="text-xs text-gray-600 italic text-left mt-1 {{ $linkSentAt ? '' : 'hidden' }}">
+                        @if($linkSentAt)
+                            Sent by: <b id="sendLinkSender">{{ $linkSentByName ?? 'An admin' }}</b>
+                            on <b id="sendLinkTime">{{ \Carbon\Carbon::parse($linkSentAt)->format('M d, h:i A') }}</b>
+                        @endif
+                    </p>
                     
                     <button type="button" id="startExamButton" onclick="triggerStartExamConfirm('{{ $vacancy->vacancy_id }}')" 
                             {{ (!$examDetails || !$examDetails->link_sent || $isExamActive || $isExamCompleted || !$isExamDay || !$hasQuestions || ($lobbyCount < 1)) ? 'disabled' : '' }}
@@ -769,6 +775,7 @@
         .then(data => {
             if(data.success) {
                 showAppToast(data.message || "Exam links sent successfully.");
+                updateSendLinkMeta(currentAdminDisplayName, data.link_sent_at || data.notified_at || null);
                 // Mark links as sent on client and update Start Exam state
                 linkSentClient = true;
                 updateStartButtonState();
@@ -995,6 +1002,7 @@
                 
                 let msg = "Exam details saved successfully!";
                 if (data.notified) {
+                    updateScheduleNotifyMeta(currentAdminDisplayName, data.notified_at || null);
                     msg += " " + (data.notify_message || "Applicants have been notified.");
                 }
                 showAppToast(msg);
@@ -1018,6 +1026,7 @@
 
     // Server-provided counts and flags for gating logic
     const qualifiedCount = @json(isset($qualifiedApplicants) ? $qualifiedApplicants->count() : 0);
+    const currentAdminDisplayName = @json(optional(auth('admin')->user())->name ?? optional(auth('admin')->user())->email ?? 'An admin');
     let attendanceResponseCountClient = @json(isset($attendanceApplicants) ? $attendanceApplicants->count() : 0);
     let willAttendCountClient = @json(isset($attendanceApplicants) ? $attendanceApplicants->where('attendance_status', 'will_attend')->count() : 0);
     let currentLobbyCount = @json(isset($participants) ? $participants->count() : 0);
@@ -1029,6 +1038,39 @@
     const isExamCompletedConst = @json($isExamCompleted);
     const isExamDayConst = @json($isExamDay);
     const hasQuestionsConst = @json($hasQuestions ?? false);
+
+    function formatMetaTimestamp(value) {
+        if (!value) return '';
+        const parsed = new Date(String(value).replace(' ', 'T'));
+        if (Number.isNaN(parsed.getTime())) return String(value);
+        return parsed.toLocaleString('en-US', {
+            month: 'short',
+            day: '2-digit',
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+        }).replace(',', '');
+    }
+
+    function updateScheduleNotifyMeta(sender, timestamp) {
+        const wrapper = document.getElementById('scheduleNotifyMeta');
+        const senderEl = document.getElementById('scheduleNotifySender');
+        const timeEl = document.getElementById('scheduleNotifyTime');
+        if (!wrapper || !senderEl || !timeEl || !timestamp) return;
+        senderEl.textContent = sender || 'An admin';
+        timeEl.textContent = formatMetaTimestamp(timestamp);
+        wrapper.classList.remove('hidden');
+    }
+
+    function updateSendLinkMeta(sender, timestamp) {
+        const wrapper = document.getElementById('sendLinkMeta');
+        const senderEl = document.getElementById('sendLinkSender');
+        const timeEl = document.getElementById('sendLinkTime');
+        if (!wrapper || !senderEl || !timeEl || !timestamp) return;
+        senderEl.textContent = sender || 'An admin';
+        timeEl.textContent = formatMetaTimestamp(timestamp);
+        wrapper.classList.remove('hidden');
+    }
 
     function refreshAttendanceSummary() {
         const responsesEl = document.getElementById('attendanceResponsesCount');
