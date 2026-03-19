@@ -283,34 +283,44 @@
             <div id="content-attendance" class="tab-content hidden flex-1 flex flex-col min-h-0 overflow-hidden">
                 <div class="flex-1 flex flex-col min-h-0 overflow-hidden border border-[#0D2B70] rounded-xl">
                     <div class="flex-1 overflow-auto">
-                        <table class="w-full text-left border-collapse">
+                        <table class="w-full table-fixed border-collapse text-left">
                             <thead class="bg-[#0D2B70] text-white sticky top-0 z-10">
                                 <tr>
-                                    <th class="py-3 px-6 font-normal">Name</th>
-                                    <th class="py-3 px-6 font-normal">Email</th>
-                                    <th class="py-3 px-6 font-normal text-center">Attendance</th>
-                                    <th class="py-3 px-6 font-normal">Remark</th>
-                                    <th class="py-3 px-6 font-normal text-center">Responded At</th>
-                                    <th class="py-3 px-6 font-normal text-center">Override</th>
+                                    <th class="w-[24%] py-3 px-6 font-normal">Name</th>
+                                    <th class="w-[18%] py-3 px-6 font-normal text-center">Attendance</th>
+                                    <th class="w-[20%] py-3 px-6 font-normal text-center">Responded</th>
+                                    <th class="w-[24%] py-3 px-6 font-normal">Remark</th>
+                                    <th class="w-[14%] py-3 px-6 font-normal text-center">Override</th>
                                 </tr>
                             </thead>
                             <tbody id="attendance-applicants-list" class="divide-y divide-[#0D2B70]">
                                 @forelse ($attendanceApplicants as $applicant)
-                                    <tr id="attendance-row-{{ $applicant['user_id'] }}" class="text-[#0D2B70] hover:bg-blue-50 transition-colors duration-200">
-                                        <td class="py-2.5 px-6 font-semibold">{{ $applicant['name'] }}</td>
-                                        <td class="py-2.5 px-6 max-w-[220px] truncate">{{ $applicant['email'] }}</td>
-                                        <td class="py-2.5 px-6 text-center">
-                                            <span class="attendance-status-badge px-3 py-1 rounded-full text-xs font-semibold {{ $applicant['attendance_badge_class'] }}">
+                                    <tr id="attendance-row-{{ $applicant['user_id'] }}" class="group text-[#0D2B70] hover:bg-blue-50 transition-colors duration-200">
+                                        <td class="w-[24%] py-2.5 px-6 font-semibold whitespace-nowrap overflow-hidden text-ellipsis">{{ $applicant['name'] }}</td>
+                                        <td class="w-[18%] py-2.5 px-6 text-center">
+                                            <span class="attendance-status-badge inline-flex whitespace-nowrap px-3 py-1 rounded-full text-xs font-semibold {{ $applicant['attendance_badge_class'] }}">
                                                 {{ $applicant['attendance_label'] }}
                                             </span>
                                         </td>
-                                        <td class="py-2.5 px-6 text-sm text-slate-600">
-                                            {{ $applicant['attendance_remark'] ?: 'None provided' }}
-                                        </td>
-                                        <td class="py-2.5 px-6 text-center text-sm text-slate-600">
+                                        <td class="w-[20%] py-2.5 px-6 text-center text-sm text-slate-600 whitespace-nowrap">
                                             {{ $applicant['attendance_responded_at'] ?: '-' }}
                                         </td>
-                                        <td class="py-2.5 px-6">
+                                        <td class="w-[24%] py-2.5 px-6 text-sm text-slate-600">
+                                            @php
+                                                $attendanceRemark = trim((string) ($applicant['attendance_remark'] ?: 'None provided'));
+                                                $hasAttendanceRemark = filled($applicant['attendance_remark']);
+                                            @endphp
+                                            <button
+                                                type="button"
+                                                class="attendance-remark-trigger inline-flex max-w-full items-center rounded-full border px-3 py-1 text-xs font-medium {{ $hasAttendanceRemark ? 'border-slate-200 bg-slate-50 text-slate-700 shadow-sm hover:border-[#0D2B70]/30 hover:bg-white' : 'border-slate-200 bg-slate-100 text-slate-500 italic' }}"
+                                                data-tooltip-title="Attendance Remark"
+                                                data-tooltip-content="{{ $attendanceRemark }}"
+                                                aria-label="View full attendance remark"
+                                            >
+                                                <span class="block max-w-full truncate whitespace-nowrap">{{ $attendanceRemark }}</span>
+                                            </button>
+                                        </td>
+                                        <td class="w-[14%] py-2.5 px-6">
                                             <div class="flex items-center justify-center gap-2">
                                                 @php
                                                     $isWillAttend = ($applicant['attendance_status'] ?? null) === 'will_attend';
@@ -651,6 +661,11 @@
         confirm="confirm-start-exam"
     />
 </main>
+<div id="attendanceRemarkTooltip"
+    class="pointer-events-none fixed z-[1200] hidden w-[24rem] max-w-[calc(100vw-2rem)] rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700 shadow-2xl ring-1 ring-slate-100">
+    <p id="attendanceRemarkTooltipTitle" class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Attendance Remark</p>
+    <p id="attendanceRemarkTooltipContent" class="mt-2 whitespace-pre-line break-words leading-relaxed"></p>
+</div>
 @php
     $examRealtimeConnection = (string) config('broadcasting.default');
     $examRealtimeOptions = (array) data_get(config('broadcasting.connections'), $examRealtimeConnection . '.options', []);
@@ -1469,6 +1484,72 @@
 
         updateSelectedCount();
     }
+
+    const attendanceRemarkTooltip = document.getElementById('attendanceRemarkTooltip');
+    const attendanceRemarkTooltipTitle = document.getElementById('attendanceRemarkTooltipTitle');
+    const attendanceRemarkTooltipContent = document.getElementById('attendanceRemarkTooltipContent');
+    let activeAttendanceRemarkTrigger = null;
+
+    function positionAttendanceRemarkTooltip(trigger) {
+        if (!attendanceRemarkTooltip || !trigger) return;
+
+        const rect = trigger.getBoundingClientRect();
+        const tooltipRect = attendanceRemarkTooltip.getBoundingClientRect();
+        const gap = 12;
+        const viewportPadding = 12;
+
+        let left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
+        left = Math.max(viewportPadding, Math.min(left, window.innerWidth - tooltipRect.width - viewportPadding));
+
+        let top = rect.bottom + gap;
+        if (top + tooltipRect.height > window.innerHeight - viewportPadding) {
+            top = rect.top - tooltipRect.height - gap;
+        }
+
+        top = Math.max(viewportPadding, top);
+
+        attendanceRemarkTooltip.style.left = `${left}px`;
+        attendanceRemarkTooltip.style.top = `${top}px`;
+    }
+
+    function showAttendanceRemarkTooltip(trigger) {
+        if (!attendanceRemarkTooltip || !trigger) return;
+
+        attendanceRemarkTooltipTitle.textContent = trigger.dataset.tooltipTitle || 'Attendance Remark';
+        attendanceRemarkTooltipContent.textContent = trigger.dataset.tooltipContent || '';
+        attendanceRemarkTooltip.classList.remove('hidden');
+        activeAttendanceRemarkTrigger = trigger;
+        positionAttendanceRemarkTooltip(trigger);
+    }
+
+    function hideAttendanceRemarkTooltip() {
+        attendanceRemarkTooltip?.classList.add('hidden');
+        activeAttendanceRemarkTrigger = null;
+    }
+
+    function bindAttendanceRemarkTooltips() {
+        document.querySelectorAll('.attendance-remark-trigger').forEach((trigger) => {
+            if (trigger.dataset.tooltipBound === '1') return;
+            trigger.dataset.tooltipBound = '1';
+
+            trigger.addEventListener('mouseenter', () => showAttendanceRemarkTooltip(trigger));
+            trigger.addEventListener('mouseleave', hideAttendanceRemarkTooltip);
+            trigger.addEventListener('focus', () => showAttendanceRemarkTooltip(trigger));
+            trigger.addEventListener('blur', hideAttendanceRemarkTooltip);
+        });
+    }
+
+    bindAttendanceRemarkTooltips();
+    window.addEventListener('scroll', () => {
+        if (activeAttendanceRemarkTrigger) {
+            positionAttendanceRemarkTooltip(activeAttendanceRemarkTrigger);
+        }
+    }, true);
+    window.addEventListener('resize', () => {
+        if (activeAttendanceRemarkTrigger) {
+            positionAttendanceRemarkTooltip(activeAttendanceRemarkTrigger);
+        }
+    });
     // ========================================
     // LOBBY POLLING & AJAX
     // ========================================

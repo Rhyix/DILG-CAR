@@ -113,11 +113,10 @@
                 </div>
 
                 <div id="remarkWrap" class="space-y-2">
-                    <label for="attendance_remark" class="text-sm font-semibold text-slate-900">Remark</label>
+                    <label for="attendance_remark" class="text-sm font-semibold text-slate-900">Remark<span style="color:red">*</span></label>
                     <textarea id="attendance_remark" name="attendance_remark" rows="4" maxlength="1000"
                         class="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-800 focus:border-[#0D2B70] focus:outline-none focus:ring-2 focus:ring-[#0D2B70]/20"
                         placeholder="Tell us why you cannot attend.">{{ old('attendance_remark', $application->exam_attendance_remark) }}</textarea>
-                    <p class="text-xs text-slate-500">Required only when selecting "No, I cannot attend".</p>
                 </div>
 
                 <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
@@ -126,7 +125,8 @@
                         Back to Dashboard
                     </a>
                     <button id="attendanceConfirmButton" type="button"
-                        class="inline-flex items-center justify-center rounded-2xl bg-[#0D2B70] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0A1F4D]">
+                        class="inline-flex items-center justify-center rounded-2xl bg-[#0D2B70] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0A1F4D] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 disabled:hover:bg-slate-300"
+                        disabled>
                         {{ !empty($hasExistingAttendanceResponse) ? 'Override Attendance Response' : 'Save Attendance Response' }}
                     </button>
                 </div>
@@ -154,6 +154,17 @@
         const remarkField = document.getElementById('attendance_remark');
         const radios = document.querySelectorAll('input[name="attendance_status"]');
 
+        function syncSubmitState() {
+            const selected = document.querySelector('input[name="attendance_status"]:checked');
+            const requiresRemark = selected && selected.value === 'will_not_attend';
+            const hasRemark = remarkField ? remarkField.value.trim() !== '' : false;
+            const canSubmit = !!selected && (!requiresRemark || hasRemark);
+
+            if (confirmButton) {
+                confirmButton.disabled = !canSubmit;
+            }
+        }
+
         function syncAttendanceRemark() {
             const selected = document.querySelector('input[name="attendance_status"]:checked');
             const showRemark = selected && selected.value === 'will_not_attend';
@@ -165,9 +176,12 @@
             if (remarkField) {
                 remarkField.required = !!showRemark;
             }
+
+            syncSubmitState();
         }
 
         radios.forEach((radio) => radio.addEventListener('change', syncAttendanceRemark));
+        remarkField?.addEventListener('input', syncSubmitState);
         syncAttendanceRemark();
 
         confirmButton?.addEventListener('click', function () {
