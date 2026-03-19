@@ -430,13 +430,31 @@
 
                                     <!-- Action Button -->
                                      <td class="py-2.5 px-3 md:py-3 md:px-6 text-center w-[25%]">
-                                        <a href="{{ route('admin.view_exam', ['vacancy_id' => $p->vacancy_id, 'user_id' => $p->user_id]) }}" target="_blank"
-                                            class="text-[#0D2B70] border border-[#0D2B70] font-bold py-1.5 px-3 md:py-2 md:px-6 rounded-md text-xs md:text-sm
-                                                transition-all duration-150 ease-[cubic-bezier(0.4,0,0.2,1)]
-                                                hover:scale-105 hover:bg-[#002C76] hover:text-white hover:shadow-md inline-flex items-center gap-1 md:gap-2">
-                                            <x-heroicon-o-eye class="w-3 h-3 md:w-4 md:h-4" />
-                                            <span class="hidden sm:inline">View</span>
-                                        </a>
+                                        @php
+                                            $resumeAction = (array) ($p->resume_action ?? []);
+                                        @endphp
+                                        <div class="flex flex-wrap items-center justify-center gap-2">
+                                            <a href="{{ route('admin.view_exam', ['vacancy_id' => $p->vacancy_id, 'user_id' => $p->user_id]) }}" target="_blank"
+                                                class="text-[#0D2B70] border border-[#0D2B70] font-bold py-1.5 px-3 md:py-2 md:px-6 rounded-md text-xs md:text-sm
+                                                    transition-all duration-150 ease-[cubic-bezier(0.4,0,0.2,1)]
+                                                    hover:scale-105 hover:bg-[#002C76] hover:text-white hover:shadow-md inline-flex items-center gap-1 md:gap-2">
+                                                <x-heroicon-o-eye class="w-3 h-3 md:w-4 md:h-4" />
+                                                <span class="hidden sm:inline">View</span>
+                                            </a>
+                                            @if(!empty($resumeAction['can_resume']))
+                                                <button
+                                                    type="button"
+                                                    onclick="triggerResumeExamConfirm({{ $p->user_id }})"
+                                                    title="Resume exam with {{ $resumeAction['remaining_label'] ?? 'saved' }} remaining"
+                                                    class="border border-emerald-700 bg-emerald-600 text-white font-bold py-1.5 px-3 md:py-2 md:px-4 rounded-md text-xs md:text-sm transition-all duration-150 hover:scale-105 hover:bg-emerald-700 hover:shadow-md inline-flex items-center gap-1 md:gap-2">
+                                                    <svg class="w-3 h-3 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-4.586-2.65A1 1 0 009 9.385v5.23a1 1 0 001.166.967l4.586-2.65a1 1 0 000-1.732z"></path>
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                    </svg>
+                                                    <span>Resume</span>
+                                                </button>
+                                            @endif
+                                        </div>
                                     </td>
                                     <!-- <td class="py-3 px-3 md:py-4 md:px-6 text-center w-[25%]">
                                         <button target="_blank" onclick="window.location.href='{{ route('admin.view_exam', ['vacancy_id' => $p->vacancy_id, 'user_id' => $p->user_id]) }}'"
@@ -661,6 +679,14 @@
         event="open-start-exam-confirm"
         confirm="confirm-start-exam"
     />
+    <x-confirm-modal
+        title="Resume Exam"
+        message="Resume this applicant's exam attempt from the saved progress and restore the remaining time captured when the tab-threshold auto-submit happened?"
+        event="open-resume-exam-confirm"
+        confirm="confirm-resume-exam"
+        confirmText="Resume"
+        tone="success"
+    />
 </main>
 <div id="attendanceRemarkTooltip"
     class="pointer-events-none fixed z-[1200] hidden w-[24rem] max-w-[calc(100vw-2rem)] rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700 shadow-2xl ring-1 ring-slate-100">
@@ -694,6 +720,10 @@
         window._pendingVacancyId = vacancyId;
         window.dispatchEvent(new CustomEvent('open-start-exam-confirm'));
     }
+    function triggerResumeExamConfirm(userId) {
+        window._pendingResumeUserId = userId;
+        window.dispatchEvent(new CustomEvent('open-resume-exam-confirm'));
+    }
     // Confirm handlers
     window.addEventListener('confirm-send-link', () => {
         const id = window._pendingVacancyId;
@@ -702,6 +732,10 @@
     window.addEventListener('confirm-start-exam', () => {
         const id = window._pendingVacancyId;
         if (id) startExam(id);
+    });
+    window.addEventListener('confirm-resume-exam', () => {
+        const userId = window._pendingResumeUserId;
+        if (userId) resumeApplicantExam(userId);
     });
 
     // Send exam link via email (executes after confirmation)
@@ -792,6 +826,36 @@
             startButton.disabled = false;
             startButton.innerHTML = originalText;
             showAppToast("An error occurred: " + error.message);
+        });
+    }
+
+    function resumeApplicantExam(userId) {
+        fetch(`/admin/exam_management/{{ $vacancy->vacancy_id }}/resume/${userId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({})
+        })
+        .then(async (response) => {
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok || !data.success) {
+                throw new Error(data.message || 'Failed to resume exam.');
+            }
+            return data;
+        })
+        .then((data) => {
+            showAppToast(data.message || 'Exam resumed successfully.');
+            queueLobbyFetch('resume-success', 0, true);
+        })
+        .catch((error) => {
+            console.error('Resume exam error:', error);
+            showAppToast(error.message || 'Unable to resume the exam.');
+        })
+        .finally(() => {
+            window._pendingResumeUserId = null;
         });
     }
 
@@ -1753,16 +1817,30 @@
 
                 <!-- Action Button -->
                 <td class="py-2.5 px-3 md:py-3 md:px-6 text-center w-[25%]">
-                     <button onclick="window.location.href='/admin/exam_management/${p.vacancy_id}/view_exam/${p.user_id}'"
-                        class="text-[#0D2B70] border border-[#0D2B70] font-bold py-1.5 px-3 md:py-2 md:px-6 rounded-md text-xs md:text-sm
-                            transition-all duration-150 ease-[cubic-bezier(0.4,0,0.2,1)]
-                            hover:scale-105 hover:bg-[#002C76] hover:text-white hover:shadow-md inline-flex items-center gap-1 md:gap-2">
-                        <svg class="w-3 h-3 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                        </svg>
-                        <span class="hidden sm:inline">View</span>
-                    </button>
+                    <div class="flex flex-wrap items-center justify-center gap-2">
+                        <button onclick="window.location.href='/admin/exam_management/${p.vacancy_id}/view_exam/${p.user_id}'"
+                            class="text-[#0D2B70] border border-[#0D2B70] font-bold py-1.5 px-3 md:py-2 md:px-6 rounded-md text-xs md:text-sm
+                                transition-all duration-150 ease-[cubic-bezier(0.4,0,0.2,1)]
+                                hover:scale-105 hover:bg-[#002C76] hover:text-white hover:shadow-md inline-flex items-center gap-1 md:gap-2">
+                            <svg class="w-3 h-3 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                            </svg>
+                            <span class="hidden sm:inline">View</span>
+                        </button>
+                        ${p.resume_action && p.resume_action.can_resume ? `
+                            <button type="button"
+                                onclick="triggerResumeExamConfirm(${p.user_id})"
+                                title="Resume exam with ${p.resume_action.remaining_label || 'saved'} remaining"
+                                class="border border-emerald-700 bg-emerald-600 text-white font-bold py-1.5 px-3 md:py-2 md:px-4 rounded-md text-xs md:text-sm transition-all duration-150 hover:scale-105 hover:bg-emerald-700 hover:shadow-md inline-flex items-center gap-1 md:gap-2">
+                                <svg class="w-3 h-3 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-4.586-2.65A1 1 0 009 9.385v5.23a1 1 0 001.166.967l4.586-2.65a1 1 0 000-1.732z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <span>Resume</span>
+                            </button>
+                        ` : ''}
+                    </div>
                 </td>
             </tr>
         `).join('');

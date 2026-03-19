@@ -525,6 +525,7 @@ Route::middleware([ViewerAccess::class, 'admin.ability:admin.exam.monitor'])->gr
     Route::post('/admin/exam_management/{vacancy_id}/start', [ExamController::class, 'startExam'])->name('admin.exam_start')->middleware(RedirectIfNotAdmin::class);
     Route::post('/admin/exam_management/{vacancy_id}/notify-selected', [ExamController::class, 'notifySelectedApplicants'])->name('admin.exam.notify_selected')->middleware(RedirectIfNotAdmin::class);
     Route::post('/admin/exam_management/{vacancy_id}/attendance/{user_id}', [ExamController::class, 'updateAttendanceStatus'])->name('admin.exam.attendance.update')->middleware(RedirectIfNotAdmin::class);
+    Route::post('/admin/exam_management/{vacancy_id}/resume/{user_id}', [ExamController::class, 'resumeApplicantExam'])->name('admin.exam.resume')->middleware(RedirectIfNotAdmin::class);
 
 
     // Exam Library Routes
@@ -610,7 +611,8 @@ Route::get('/exam/{vacancy_id}/lobby', [ExamController::class, 'examLobby'])->na
 Route::post('/exam/{vacancy_id}/submit', [ExamController::class, 'submit'])->name('exam.submit');
 Route::post('/exam/{vacancy_id}/autosave', [ExamController::class, 'autoSave'])->name('exam.autosave');
 Route::get('/exam/status/{vacancy_id}', [ExamController::class, 'checkExamStatus'])->name('exam.status.check');
-Route::get('/exam/{vacancy_id}/thankyou', fn() => view('exam_user.exam_thankyou'))->name('user.exam_thankyou');
+Route::get('/exam/{vacancy_id}/attempt-status', [ExamController::class, 'checkParticipantExamStatus'])->name('exam.attempt_status');
+Route::get('/exam/{vacancy_id}/thankyou', fn($vacancy_id) => view('exam_user.exam_thankyou', compact('vacancy_id')))->name('user.exam_thankyou');
 Route::post('/log-switch', [ExamController::class, 'logSwitch']);
 
 // ==================================================================================================

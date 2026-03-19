@@ -158,6 +158,95 @@ class ExamController extends Controller
         }
     }
 
+    private function resolveMaxViolations(string $vacancyId, ?ExamDetail $examDetail = null): int
+    {
+        $maxViolations = (int) (($examDetail?->max_violations) ?? ExamDetail::where('vacancy_id', $vacancyId)->value('max_violations') ?? 12);
+
+        return max(1, $maxViolations);
+    }
+
+    private function formatResumeDuration(int $seconds): string
+    {
+        $seconds = max(0, $seconds);
+        $hours = intdiv($seconds, 3600);
+        $minutes = intdiv($seconds % 3600, 60);
+        $remainingSeconds = $seconds % 60;
+
+        if ($hours > 0) {
+            return sprintf('%02d:%02d:%02d', $hours, $minutes, $remainingSeconds);
+        }
+
+        return sprintf('%02d:%02d', $minutes, $remainingSeconds);
+    }
+
+    private function resolveResumeExamState(Applications $application, ?ExamDetail $examDetail = null): array
+    {
+        $maxViolations = $this->resolveMaxViolations((string) $application->vacancy_id, $examDetail);
+        $tabViolations = (int) ($application->tab_violations ?? 0);
+
+        if (!ApplicationStatus::equals($application->status, ApplicationStatus::SUBMITTED)) {
+            return [
+                'can_resume' => false,
+                'reason' => 'Only submitted exam attempts can be resumed.',
+                'remaining_seconds' => 0,
+                'remaining_label' => null,
+                'max_violations' => $maxViolations,
+            ];
+        }
+
+        if ($tabViolations < $maxViolations) {
+            return [
+                'can_resume' => false,
+                'reason' => 'Only attempts auto-submitted by the tab-switch threshold can be resumed.',
+                'remaining_seconds' => 0,
+                'remaining_label' => null,
+                'max_violations' => $maxViolations,
+            ];
+        }
+
+        if (empty($application->exam_started_at) || empty($application->exam_submitted_at) || empty($application->exam_end_time)) {
+            return [
+                'can_resume' => false,
+                'reason' => 'The saved exam timing data is incomplete for this attempt.',
+                'remaining_seconds' => 0,
+                'remaining_label' => null,
+                'max_violations' => $maxViolations,
+            ];
+        }
+
+        try {
+            $submittedAt = \Carbon\Carbon::parse((string) $application->exam_submitted_at);
+            $endTime = \Carbon\Carbon::parse((string) $application->exam_end_time);
+            $remainingSeconds = max(0, $submittedAt->diffInSeconds($endTime, false));
+        } catch (\Throwable) {
+            return [
+                'can_resume' => false,
+                'reason' => 'The saved exam timing data could not be parsed.',
+                'remaining_seconds' => 0,
+                'remaining_label' => null,
+                'max_violations' => $maxViolations,
+            ];
+        }
+
+        if ($remainingSeconds < 1) {
+            return [
+                'can_resume' => false,
+                'reason' => 'There was no remaining exam time left when the auto-submit happened.',
+                'remaining_seconds' => 0,
+                'remaining_label' => null,
+                'max_violations' => $maxViolations,
+            ];
+        }
+
+        return [
+            'can_resume' => true,
+            'reason' => null,
+            'remaining_seconds' => $remainingSeconds,
+            'remaining_label' => $this->formatResumeDuration($remainingSeconds),
+            'max_violations' => $maxViolations,
+        ];
+    }
+
     private function mapQualifiedApplicant(Applications $app): array
     {
         $attendanceStatus = $app->exam_attendance_status;
@@ -813,7 +902,7 @@ class ExamController extends Controller
         // Only fetch participants who have entered the lobby (read_at is not null)
         $participants = Applications::where('vacancy_id', $vacancy_id)
             ->whereNotNull('read_at')
-            ->select('user_id', 'vacancy_id', 'status', 'scores', 'answers', 'result', 'read_at')
+            ->select('user_id', 'vacancy_id', 'status', 'scores', 'answers', 'result', 'read_at', 'exam_end_time', 'exam_submitted_at', 'tab_violations', 'exam_started_at')
             ->with('user:id,name')
             ->get();
 
@@ -893,6 +982,7 @@ class ExamController extends Controller
 
             $p->mc_score_str = $mcString;
             $p->essay_score_str = $essayString;
+            $p->resume_action = $this->resolveResumeExamState($p, $examDetails);
         }
 
         // Get qualified applicants and attendance responses for admin tabs
@@ -1159,7 +1249,7 @@ class ExamController extends Controller
              }
         }
 
-        $lobbyData = $participants->map(function ($p) use ($mcItemIds, $essayItemIds, $isExamExpired) {
+        $lobbyData = $participants->map(function ($p) use ($mcItemIds, $essayItemIds, $isExamExpired, $examDetail) {
             $statusColors = [
                 'ready' => '#4ade80',        // green-400
                 'in-progress' => '#facc15',  // yellow-400
@@ -1215,7 +1305,8 @@ class ExamController extends Controller
                 'essay_score' => $essayString,
                 'status' => $p->status ?? 'Pending',
                 'status_color' => $color,
-                'vacancy_id' => $p->vacancy_id // needed for view button link
+                'vacancy_id' => $p->vacancy_id,
+                'resume_action' => $this->resolveResumeExamState($p, $examDetail),
             ];
         });
 
@@ -1414,6 +1505,7 @@ class ExamController extends Controller
             abort(404);
         }
         $examItems = ExamItems::select('id', 'question', 'ans', 'is_essay', 'choices', 'essay_max_score')->where('vacancy_id', $vacancy_id)->get();
+        $examDetail = ExamDetail::select('vacancy_id', 'max_violations')->where('vacancy_id', $vacancy_id)->first();
         $positionTitle = JobVacancy::select('position_title')->where('vacancy_id', $vacancy_id)->firstOrFail();
         $userName = User::select('name')->find($user_id);
 
@@ -1482,6 +1574,72 @@ class ExamController extends Controller
             'userName' => $userName,
             'examineeCode' => $examineeCode,
             'application' => $application,
+            'resumeAction' => $this->resolveResumeExamState($application, $examDetail),
+        ]);
+    }
+
+    public function resumeApplicantExam(Request $request, $vacancy_id, $user_id)
+    {
+        if ($denied = $this->denyViewerAccess($request, 'Viewer cannot resume applicant exams.')) {
+            return $denied;
+        }
+
+        $application = Applications::where('vacancy_id', $vacancy_id)
+            ->where('user_id', $user_id)
+            ->firstOrFail();
+
+        $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->first();
+        $resumeAction = $this->resolveResumeExamState($application, $examDetail);
+
+        if (!($resumeAction['can_resume'] ?? false)) {
+            return response()->json([
+                'success' => false,
+                'message' => $resumeAction['reason'] ?? 'This exam attempt cannot be resumed.',
+            ], 422);
+        }
+
+        $remainingSeconds = (int) ($resumeAction['remaining_seconds'] ?? 0);
+
+        DB::transaction(function () use ($application, $remainingSeconds) {
+            ExamTabViolation::where('vacancy_id', $application->vacancy_id)
+                ->where('user_id', $application->user_id)
+                ->delete();
+
+            $application->update([
+                'status' => ApplicationStatus::IN_PROGRESS->value,
+                'exam_submitted_at' => null,
+                'exam_end_time' => now()->addSeconds($remainingSeconds),
+                'tab_violations' => 0,
+                'last_tab_violation_at' => null,
+            ]);
+        });
+
+        $application->refresh();
+        $this->broadcastExamProgress($application, 'resumed', [
+            'remaining_seconds' => $remainingSeconds,
+        ]);
+
+        activity()
+            ->causedBy(auth('admin')->user())
+            ->event('resume')
+            ->withProperties([
+                'vacancy_id' => $vacancy_id,
+                'user_id' => $user_id,
+                'remaining_seconds' => $remainingSeconds,
+                'tab_violations' => 0,
+                'section' => 'Exam Management',
+            ])
+            ->log('Resumed applicant exam attempt and reset tab-switch logs after tab-threshold auto-submit.');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Exam resumed. The applicant can continue from the saved progress.',
+            'status' => $application->status,
+            'remaining_seconds' => $remainingSeconds,
+            'remaining_label' => $this->formatResumeDuration($remainingSeconds),
+            'exam_end_time' => $application->exam_end_time
+                ? \Carbon\Carbon::parse((string) $application->exam_end_time)->toDateTimeString()
+                : null,
         ]);
     }
 
@@ -2348,6 +2506,41 @@ class ExamController extends Controller
 
         return response()->json([
             'started' => (bool) $examDetail->is_started
+        ]);
+    }
+
+    public function checkParticipantExamStatus(Request $request, $vacancy_id)
+    {
+        if (!auth()->check()) {
+            return response()->json([
+                'authenticated' => false,
+                'status' => null,
+                'resume_available' => false,
+            ], 401);
+        }
+
+        $application = Applications::select('status', 'exam_started_at')
+            ->where('vacancy_id', $vacancy_id)
+            ->where('user_id', auth()->id())
+            ->first();
+
+        if (!$application) {
+            return response()->json([
+                'authenticated' => true,
+                'status' => null,
+                'resume_available' => false,
+            ], 404);
+        }
+
+        $isInProgress = ApplicationStatus::equals($application->status, ApplicationStatus::IN_PROGRESS);
+
+        return response()->json([
+            'authenticated' => true,
+            'status' => $application->status,
+            'resume_available' => $isInProgress && !empty($application->exam_started_at),
+            'redirect_url' => $isInProgress
+                ? route('user.exam_question_page', ['vacancy_id' => $vacancy_id])
+                : null,
         ]);
     }
 

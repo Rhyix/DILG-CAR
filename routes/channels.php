@@ -16,7 +16,15 @@ Broadcast::channel('exam-monitor.{vacancyId}', function ($admin, $vacancyId) {
         || Gate::forUser($admin)->allows('admin.exam.manage');
 }, ['guards' => ['admin']]);
 
-Broadcast::channel('exam-participant.{vacancyId}.{userId}', function ($admin, $vacancyId, $userId) {
-    return Gate::forUser($admin)->allows('admin.exam.monitor')
-        || Gate::forUser($admin)->allows('admin.exam.manage');
-}, ['guards' => ['admin']]);
+Broadcast::channel('exam-participant.{vacancyId}.{userId}', function ($actor, $vacancyId, $userId) {
+    if ($actor instanceof \App\Models\User) {
+        return (int) $actor->id === (int) $userId;
+    }
+
+    if ($actor instanceof \App\Models\Admin) {
+        return Gate::forUser($actor)->allows('admin.exam.monitor')
+            || Gate::forUser($actor)->allows('admin.exam.manage');
+    }
+
+    return false;
+}, ['guards' => ['web', 'admin']]);

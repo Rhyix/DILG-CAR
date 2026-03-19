@@ -16,6 +16,7 @@
 @php
     $canManageExam = auth('admin')->check()
         && \Illuminate\Support\Facades\Gate::forUser(auth('admin')->user())->allows('admin.exam.manage');
+    $canResumeExam = $canManageExam && !empty($resumeAction['can_resume']);
 @endphp
 <div class="px-6 mb-6 flex justify-between items-center font-montserrat">
     <div class="flex items-center gap-4">
@@ -55,6 +56,14 @@
                 </svg>
             </button>
             @if ($canManageExam)
+                @if ($canResumeExam)
+                    <button type="button"
+                        onclick="triggerResumeExamConfirm()"
+                        title="Resume exam with {{ $resumeAction['remaining_label'] ?? 'saved' }} remaining"
+                        class="mt-2 px-3 py-2 rounded bg-emerald-600 text-white hover:bg-emerald-700 transition">
+                        Resume Exam
+                    </button>
+                @endif
                 <a href="{{ route('admin.view_exam.pdf', ['vacancy_id' => $vacancy_id, 'user_id' => $user_id]) }}" target="_blank"
                    class="mt-2 px-3 py-2 rounded bg-[#0D2B70] text-white hover:bg-[#002C76] transition">
                    Download PDF
@@ -564,6 +573,10 @@
         if (!canManageExam) return;
         window.dispatchEvent(new CustomEvent('open-save-scores-confirm'));
     }
+    function triggerResumeExamConfirm() {
+        if (!canManageExam) return;
+        window.dispatchEvent(new CustomEvent('open-resume-exam-confirm'));
+    }
     function triggerBackConfirm() {
         if (hasChanges) {
             window.dispatchEvent(new CustomEvent('open-leave-confirm'));
@@ -574,6 +587,35 @@
     window.addEventListener('confirm-save-scores', () => {
         const f = document.getElementById('saveScoresForm');
         if (f) f.submit();
+    });
+    window.addEventListener('confirm-resume-exam', () => {
+        fetch(`{{ route('admin.exam.resume', ['vacancy_id' => $vacancy_id, 'user_id' => $user_id]) }}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({})
+        })
+        .then(async (response) => {
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok || !data.success) {
+                throw new Error(data.message || 'Failed to resume exam.');
+            }
+            return data;
+        })
+        .then((data) => {
+            if (typeof window.showAppToast === 'function') {
+                window.showAppToast(data.message || 'Exam resumed successfully.', 'success');
+            }
+            window.location.href = `{{ route('admin.manage_exam', ['vacancy_id' => $vacancy_id]) }}`;
+        })
+        .catch((error) => {
+            if (typeof window.showAppToast === 'function') {
+                window.showAppToast(error.message || 'Unable to resume the exam.', 'error');
+            }
+        });
     });
     window.addEventListener('confirm-leave', () => {
         window.history.back();
@@ -593,6 +635,14 @@
     message="You have unsaved changes. Leave without saving?"
     event="open-leave-confirm"
     confirm="confirm-leave"
+/>
+<x-confirm-modal
+    title="Resume Exam"
+    message="Resume this applicant's exam attempt from the saved progress and restore the remaining time captured when the tab-threshold auto-submit happened?"
+    event="open-resume-exam-confirm"
+    confirm="confirm-resume-exam"
+    confirmText="Resume"
+    tone="success"
 />
 
 @endsection

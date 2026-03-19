@@ -145,11 +145,11 @@
     @include('partials.exam_timesup')
 </div>
 
-<div class="px-6 mt-2 max-w-3xl mx-auto">
-    <div id="saveNotification" class="hidden text-green-600 text-sm font-semibold transition-opacity duration-300">
+<div class="fixed bottom-6 right-6 z-50 w-[min(24rem,calc(100vw-2rem))] space-y-2">
+    <div id="saveNotification" class="hidden rounded-md border border-green-300 bg-green-50 px-4 py-3 text-sm font-semibold text-green-700 shadow-lg transition-opacity duration-300">
         Answers restored from your latest autosave.
     </div>
-    <div id="examWarningNotification" class="hidden mt-2 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
+    <div id="examWarningNotification" class="hidden rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 shadow-lg">
         Warning: Suspicious activity detected.
     </div>
 </div>
