@@ -24,6 +24,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\Rule;
 use Spatie\Activitylog\Models\Activity;
 use Carbon\Carbon;
 use App\Models\WorkExpSheet;
@@ -241,6 +242,10 @@ class JobVacancyController extends Controller
 
     public function update(Request $request, $vacancy_id)
     {
+        $vacancy = JobVacancy::where('vacancy_id', $vacancy_id)->firstOrFail();
+        $requiresCscFormUpload = strtoupper((string) $request->input('vacancy_type')) === 'PLANTILLA'
+            && (!$this->hasJobVacancyCscFormPathColumn() || empty($vacancy->csc_form_path));
+
         $validated = $request->validate([
             'vacancy_type' => 'required|in:Plantilla,COS',
             'position_title' => 'required|string|max:255',
@@ -251,7 +256,7 @@ class JobVacancyController extends Controller
             'qualification_education' => 'required|string',
             'qualification_experience' => 'required|string',
             'qualification_training' => 'required|string',
-            'qualification_eligibility' => 'required|string',
+            'qualification_eligibility' => 'nullable|string|required_if:vacancy_type,Plantilla',
 
             // Plantilla-only
             'competencies' => 'nullable|string',
@@ -266,12 +271,13 @@ class JobVacancyController extends Controller
             'to_office' => 'required|string',
             'to_office_address' => 'required|string',
 
-            'salary_grade' => 'nullable|string',
+            'salary_grade' => ['required', 'regex:/^SG-\\d{2}$/'],
             'pcn_no' => 'nullable|string',
             'plantilla_item_no' => 'nullable|string',
-            'csc_form' => 'nullable|file|mimes:pdf,doc,docx|max:10240',
+            'csc_form' => [Rule::requiredIf($requiresCscFormUpload), 'nullable', 'file', 'mimes:pdf,doc,docx', 'max:10240'],
         ]);
 
+<<<<<<< Updated upstream
         $vacancy = JobVacancy::where('vacancy_id', $vacancy_id)->firstOrFail();
         if (!$this->hrDivisionCanManageVacancy($vacancy)) {
             return $this->denyHrDivisionVacancyAccess(
@@ -286,6 +292,8 @@ class JobVacancyController extends Controller
                 ->with('error', 'HR Division can only update COS vacancies.');
         }
 
+=======
+>>>>>>> Stashed changes
         $changes = [];
         foreach ($validated as $key => $value) {
             if ($vacancy->$key != $value) {
@@ -314,7 +322,7 @@ class JobVacancyController extends Controller
             'qualification_education' => $validated['qualification_education'],
             'qualification_experience' => $validated['qualification_experience'],
             'qualification_training' => $validated['qualification_training'],
-            'qualification_eligibility' => $validated['qualification_eligibility'],
+            'qualification_eligibility' => $validated['qualification_eligibility'] ?? '',
 
             // Plantilla only
             'competencies' => $validated['competencies'] ?? null,
@@ -368,6 +376,8 @@ class JobVacancyController extends Controller
     public function storeVacancy(Request $request)
     {
         //try {
+        $requiresCscFormUpload = strtoupper((string) $request->input('vacancy_type')) === 'PLANTILLA';
+
         $validated = $request->validate([
             'position_title' => 'required|string|max:255',
             'vacancy_type' => 'required|in:COS,Plantilla',
@@ -376,14 +386,14 @@ class JobVacancyController extends Controller
             'closing_date' => 'required|date|after_or_equal:today',
             // 'status' => 'nullable|in:OPEN,CLOSED', // Status is auto-set to OPEN
             'monthly_salary' => 'required|numeric',
-            'salary_grade' => 'nullable|string',
+            'salary_grade' => ['required', 'regex:/^SG-\\d{2}$/'],
             'place_of_assignment' => 'required|string',
 
             // Qualification standards
             'qualification_education' => 'required|string',
             'qualification_training' => 'required|string',
             'qualification_experience' => 'required|string',
-            'qualification_eligibility' => 'required|string',
+            'qualification_eligibility' => 'nullable|string|required_if:vacancy_type,Plantilla',
 
             // Plantilla-only
             'competencies' => 'nullable|string',
@@ -400,7 +410,7 @@ class JobVacancyController extends Controller
             'to_office_address' => 'required|string',
 
             // CSC Form
-            'csc_form' => 'nullable|file|mimes:pdf,doc,docx|max:10240',
+            'csc_form' => [Rule::requiredIf($requiresCscFormUpload), 'nullable', 'file', 'mimes:pdf,doc,docx', 'max:10240'],
         ]);
 
         if ($this->isHrDivisionAdmin() && strcasecmp((string) ($validated['vacancy_type'] ?? ''), 'COS') !== 0) {
@@ -455,7 +465,7 @@ class JobVacancyController extends Controller
             'qualification_education' => $validated['qualification_education'],
             'qualification_training' => $validated['qualification_training'],
             'qualification_experience' => $validated['qualification_experience'],
-            'qualification_eligibility' => $validated['qualification_eligibility'],
+            'qualification_eligibility' => $validated['qualification_eligibility'] ?? '',
 
             // Plantilla only
             'competencies' => $validated['competencies'] ?? null,
@@ -567,10 +577,17 @@ class JobVacancyController extends Controller
                 'vacancy_id' => $vacancy->vacancy_id,
             ]),
         ];
+        $eligibilityGateState = [
+            'isEligible' => true,
+            'message' => null,
+            'requiredEligibilities' => [],
+            'applicantEligibilities' => [],
+        ];
 
         if (Auth::check()) {
             $docTrackMismatchState = $this->getDocumentTrackMismatchState((int) Auth::id(), (string) $vacancy->vacancy_type, (string) $vacancy->vacancy_id);
             $requiredDocsModalState = $this->getRequiredDocsModalState((int) Auth::id(), (string) $vacancy->vacancy_type, (string) $vacancy->vacancy_id);
+            $eligibilityGateState = $this->evaluateApplicantEligibilityForVacancy((int) Auth::id(), $vacancy);
         }
 
         return view('dashboard_user.job_description', [
@@ -584,6 +601,8 @@ class JobVacancyController extends Controller
             'docUploadRedirectUrl' => $requiredDocsModalState['redirectUrl'],
             'hasMissingRequiredDocs' => $requiredDocsModalState['hasMissing'],
             'requiredDocsPreview' => $requiredDocsModalState['previewDocs'],
+            'isEligibilityQualified' => $eligibilityGateState['isEligible'],
+            'eligibilityMismatchMessage' => $eligibilityGateState['message'],
         ]);
 
 
@@ -903,6 +922,20 @@ class JobVacancyController extends Controller
                     'vacancy_track' => $docTrackMismatchState['vacancyTrack'],
                     'redirect_url' => $docTrackMismatchState['redirectUrl'],
                 ]);
+        }
+
+        $eligibilityGate = $this->evaluateApplicantEligibilityForVacancy((int) Auth::id(), $vacancy);
+        if (!$eligibilityGate['isEligible']) {
+            Log::info('Apply blocked: civil service eligibility mismatch', [
+                'user_id' => Auth::id(),
+                'vacancy_id' => $vacancy_id,
+                'required_eligibilities' => $eligibilityGate['requiredEligibilities'],
+                'applicant_eligibilities' => $eligibilityGate['applicantEligibilities'],
+            ]);
+
+            return redirect()
+                ->route('job_description', ['id' => $vacancy->vacancy_id])
+                ->with('error', $eligibilityGate['message']);
         }
 
         $requiredDocumentIds = $this->getRequiredDocumentIdsForVacancyType((string) $vacancy->vacancy_type);
@@ -1737,6 +1770,155 @@ class JobVacancyController extends Controller
 
         $normalized = trim((string) $value);
         return $normalized !== '' && strtoupper($normalized) !== 'NOINPUT';
+    }
+
+    private function evaluateApplicantEligibilityForVacancy(int $userId, JobVacancy $vacancy): array
+    {
+        $requiredEligibilities = $this->extractVacancyEligibilityNames((string) ($vacancy->qualification_eligibility ?? ''));
+
+        // Vacancy has no explicit eligibility requirement.
+        if (empty($requiredEligibilities)) {
+            return [
+                'isEligible' => true,
+                'message' => null,
+                'requiredEligibilities' => [],
+                'applicantEligibilities' => [],
+            ];
+        }
+
+        $applicantEligibilities = $this->extractApplicantEligibilityNames($userId);
+
+        if (empty($applicantEligibilities)) {
+            return [
+                'isEligible' => false,
+                'message' => 'This vacancy requires civil service eligibility (' . implode(', ', $requiredEligibilities) . '). Please update your PDS Civil Service Eligibility (C2) before applying.',
+                'requiredEligibilities' => $requiredEligibilities,
+                'applicantEligibilities' => [],
+            ];
+        }
+
+        $requiredByKey = [];
+        foreach ($requiredEligibilities as $name) {
+            $key = $this->normalizeEligibilityKey($name);
+            if ($key !== '' && !array_key_exists($key, $requiredByKey)) {
+                $requiredByKey[$key] = $name;
+            }
+        }
+
+        $applicantByKey = [];
+        foreach ($applicantEligibilities as $name) {
+            $key = $this->normalizeEligibilityKey($name);
+            if ($key !== '' && !array_key_exists($key, $applicantByKey)) {
+                $applicantByKey[$key] = $name;
+            }
+        }
+
+        $matchedKeys = array_intersect(array_keys($requiredByKey), array_keys($applicantByKey));
+        if (!empty($matchedKeys)) {
+            return [
+                'isEligible' => true,
+                'message' => null,
+                'requiredEligibilities' => array_values($requiredByKey),
+                'applicantEligibilities' => array_values($applicantByKey),
+            ];
+        }
+
+        return [
+            'isEligible' => false,
+            'message' => 'Your declared civil service eligibility does not match this vacancy requirement. Required: '
+                . implode(', ', array_values($requiredByKey))
+                . '. Your current entries: '
+                . implode(', ', array_values($applicantByKey))
+                . '.',
+            'requiredEligibilities' => array_values($requiredByKey),
+            'applicantEligibilities' => array_values($applicantByKey),
+        ];
+    }
+
+    private function extractApplicantEligibilityNames(int $userId): array
+    {
+        $records = CivilServiceEligibility::query()
+            ->where('user_id', $userId)
+            ->pluck('cs_eligibility_career')
+            ->map(function ($value) {
+                return trim((string) $value);
+            })
+            ->filter()
+            ->values()
+            ->all();
+
+        return $this->uniqueEligibilityNames($records);
+    }
+
+    private function extractVacancyEligibilityNames(string $rawEligibility): array
+    {
+        $rawEligibility = trim($rawEligibility);
+        if ($rawEligibility === '') {
+            return [];
+        }
+
+        $parsed = json_decode($rawEligibility, true);
+        if (json_last_error() === JSON_ERROR_NONE) {
+            $jsonNames = [];
+
+            if (is_array($parsed)) {
+                if (array_key_exists('name', $parsed)) {
+                    $jsonNames[] = trim((string) ($parsed['name'] ?? ''));
+                } else {
+                    foreach ($parsed as $item) {
+                        if (is_string($item)) {
+                            $jsonNames[] = trim($item);
+                            continue;
+                        }
+
+                        if (is_array($item)) {
+                            $jsonNames[] = trim((string) ($item['name'] ?? ''));
+                        }
+                    }
+                }
+            }
+
+            $jsonNames = $this->uniqueEligibilityNames($jsonNames);
+            if (!empty($jsonNames)) {
+                return $jsonNames;
+            }
+        }
+
+        $legacyTokens = preg_split('/[\r\n;,]+/', $rawEligibility) ?: [];
+        $legacyTokens = array_map(static function ($token) {
+            return trim((string) $token);
+        }, $legacyTokens);
+
+        return $this->uniqueEligibilityNames($legacyTokens);
+    }
+
+    private function uniqueEligibilityNames(array $names): array
+    {
+        $deduped = [];
+        $seen = [];
+
+        foreach ($names as $name) {
+            $label = trim((string) $name);
+            $key = $this->normalizeEligibilityKey($label);
+            if ($label === '' || $key === '' || array_key_exists($key, $seen)) {
+                continue;
+            }
+
+            $seen[$key] = true;
+            $deduped[] = $label;
+        }
+
+        return $deduped;
+    }
+
+    private function normalizeEligibilityKey(?string $value): string
+    {
+        $normalized = strtolower(trim((string) $value));
+        if ($normalized === '') {
+            return '';
+        }
+
+        return preg_replace('/[^a-z0-9]+/', '', $normalized) ?? '';
     }
 
     public function calculatePdsProgress($userId)

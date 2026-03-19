@@ -231,7 +231,7 @@ $lockScreenScroll = request()->routeIs('vacancies_management')
 
             <!-- Main Content Scrollable -->
             <main id="page-shell"
-                class="page-enter flex-1 {{ $lockScreenScroll ? 'overflow-hidden pb-0' : 'overflow-y-auto pb-6 sm:pb-8 md:pb-10' }} @yield('main-padding', 'px-6 sm:px-8 md:px-10') pt-0 relative scroll-smooth">
+                class="page-enter flex-1 {{ $lockScreenScroll ? 'overflow-hidden pb-0' : 'overflow-y-auto overflow-x-hidden pb-6 sm:pb-8 md:pb-10' }} @yield('main-padding', 'px-6 sm:px-8 md:px-10') pt-0 relative scroll-smooth">
                 @yield('content')
             </main>
         </div>

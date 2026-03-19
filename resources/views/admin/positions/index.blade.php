@@ -5,10 +5,45 @@
 @section('content')
 <div class="h-full max-h-full w-full font-montserrat flex flex-col pb-4 gap-4 overflow-hidden">
     <div class="border-b border-[#0D2B70] pb-3 flex-none">
-        <h1 class="text-3xl font-semibold text-[#0D2B70]">Positions</h1>
-        <p class="text-sm text-slate-600 mt-2">
-            Existing positions from created vacancies. Use <span class="font-semibold">Reuse</span> to prefill a new vacancy form.
-        </p>
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+                <h1 class="text-3xl font-semibold text-[#0D2B70]">Positions</h1>
+                <p class="text-sm text-slate-600 mt-2">
+                    Existing positions from created vacancies. Add a new position or edit an existing one.
+                </p>
+            </div>
+
+            <div class="relative self-start" x-data="{ open: false }" @click.outside="open = false">
+                <button
+                    type="button"
+                    @click="open = !open"
+                    class="inline-flex h-[42px] items-center gap-2 rounded-full bg-[#0D2B70] px-4 text-sm font-semibold text-white hover:bg-[#0D2B70]/90 transition-colors">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>Add Position</span>
+                    <i class="fa-solid fa-chevron-down text-xs transition-transform duration-150" :class="open ? 'rotate-180' : ''"></i>
+                </button>
+
+                <div
+                    x-show="open"
+                    x-transition:enter="transition ease-out duration-100"
+                    x-transition:enter-start="opacity-0 scale-95"
+                    x-transition:enter-end="opacity-100 scale-100"
+                    x-transition:leave="transition ease-in duration-75"
+                    x-transition:leave-start="opacity-100 scale-100"
+                    x-transition:leave-end="opacity-0 scale-95"
+                    class="absolute right-0 top-full mt-2 z-30 min-w-[12rem] rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
+                    x-cloak>
+                    <a href="{{ route('addcos') }}"
+                        class="use-loader block px-4 py-2 text-sm font-medium text-[#0D2B70] hover:bg-[#0D2B70]/5 transition-colors">
+                        Add COS
+                    </a>
+                    <a href="{{ route('addplantilla') }}"
+                        class="use-loader block px-4 py-2 text-sm font-medium text-[#0D2B70] hover:bg-[#0D2B70]/5 transition-colors">
+                        Add Plantilla
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
 
     @php
@@ -127,12 +162,11 @@
             <!-- Table Header Position -->
                 <thead>
                     <tr>
-                        <th class="w-[20%] px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-left">Sample Vacancy ID</th>
-                        <th class="w-[28%] px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-left">Job Title</th>
-                        <th class="w-[14%] px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-left">Monthly Salary</th>
-                        <th class="w-[14%] px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-left">Last Used</th>
-                        <th class="w-[16%] px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-left">Place of Assignment</th>
-                        <th class="w-[8%] px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-center">Actions</th>
+                        <th class="w-[35%] px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-left">Job Title</th>
+                        <th class="w-[17%] px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-left">Monthly Salary</th>
+                        <th class="w-[18%] px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-left">Last Used</th>
+                        <th class="w-[20%] px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-left">Place of Assignment</th>
+                        <th class="w-[10%] px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-center">Actions</th>
                     </tr>
                 </thead>
             </table>
@@ -146,48 +180,37 @@
                             data-search="{{ strtolower(implode(' ', array_filter([(string)$position->vacancy_id, (string)$position->position_title, (string)$position->vacancy_type, $position->monthly_salary !== null ? number_format((float)$position->monthly_salary, 2) : '', (string)$position->place_of_assignment]))) }}"
                             data-type="{{ strtolower((string)$position->vacancy_type) }}"
                             data-assignment="{{ strtolower(trim((string)$position->place_of_assignment)) }}">
-                            <td class="w-[20%] px-3 py-2">
-                                <div class="flex items-center gap-2">
-                                    <div class="w-3 h-3 rounded-full {{ strtoupper((string) $position->status) === 'OPEN' ? 'bg-green-500' : 'bg-red-500' }}"></div>
-                                    <span>{{ $position->vacancy_id }}</span>
-                                </div>
-                            </td>
-                            <td class="w-[28%] px-3 py-2">
+                            <td class="w-[35%] px-3 py-2">
                                 <p class="font-medium">{{ $position->position_title }}</p>
                                 <p class="mt-0.5 text-xs italic text-[#0D2B70]/70">{{ strtoupper((string) $position->vacancy_type) }}</p>
                             </td>
-                            <td class="w-[14%] px-3 py-2">
+                            <td class="w-[17%] px-3 py-2">
                                 {{ $position->monthly_salary !== null ? 'PHP ' . number_format((float) $position->monthly_salary, 2) : 'N/A' }}
                             </td>
-                            <td class="w-[14%] px-3 py-2">
+                            <td class="w-[18%] px-3 py-2">
                                 {{ optional($position->updated_at)->format('F j, Y') ?: 'N/A' }}
                             </td>
-                            <td class="w-[16%] px-3 py-2">{{ $position->place_of_assignment ?: 'N/A' }}</td>
-                            <td class="w-[8%] px-3 py-2 text-center">
-                                @php
-                                    $reuseRoute = strtoupper((string) $position->vacancy_type) === 'PLANTILLA'
-                                        ? route('addplantilla', ['reuse' => $position->vacancy_id])
-                                        : route('addcos', ['reuse' => $position->vacancy_id]);
-                                @endphp
-                                <button
-                                    onclick="window.location.href='{{ $reuseRoute }}'"
-                                    class="use-loader text-[#0D2B70] py-1 px-3 rounded-md text-xl transition-all duration-150 ease-[cubic-bezier(0.4,0,0.2,1)] hover:scale-110"
-                                    aria-label="Reuse Position"
-                                    title="Reuse Position">
-                                    <i class="fa-solid fa-copy h-10 w-10"></i>
-                                </button>
+                            <td class="w-[20%] px-3 py-2">{{ $position->place_of_assignment ?: 'N/A' }}</td>
+                            <td class="w-[10%] px-3 py-2 text-center">
+                                <a
+                                    href="{{ route('vacancies.edit', ['vacancy_id' => $position->vacancy_id]) }}"
+                                    class="use-loader inline-flex items-center justify-center text-[#0D2B70] py-1 px-3 rounded-md text-xl transition-all duration-150 ease-[cubic-bezier(0.4,0,0.2,1)] hover:scale-110"
+                                    aria-label="Edit Position"
+                                    title="Edit Position">
+                                    <i class="fa-solid fa-pen-to-square h-10 w-10"></i>
+                                </a>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="py-10 text-center text-gray-500 text-2xl">
+                            <td colspan="5" class="py-10 text-center text-gray-500 text-2xl">
                                 <i data-feather="info" class="w-7 h-7 inline-block mr-2 text-gray-400"></i>
                                 No positions found
                             </td>
                         </tr>
                     @endforelse
                     <tr id="positions-no-results" class="hidden">
-                        <td colspan="6" class="py-10 text-center text-gray-500 text-2xl">
+                        <td colspan="5" class="py-10 text-center text-gray-500 text-2xl">
                             <i data-feather="search" class="w-7 h-7 inline-block mr-2 text-gray-400"></i>
                             No positions match your search
                         </td>

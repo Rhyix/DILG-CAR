@@ -131,7 +131,7 @@
             @endif
 
             @if(in_array($adminRole, ['superadmin', 'admin'], true))
-                <div x-data="{ submenuOpen: {{ (request()->routeIs('admin_activity_log') || request()->routeIs('signatories.*') || request()->routeIs('admin.reports.index') || request()->routeIs('admin.backup.index') || request()->routeIs('admin.positions.*') || request()->routeIs('admin.vacancy_titles.*')) ? 'true' : 'false' }} }" class="relative">
+                <div x-data="{ submenuOpen: {{ (request()->routeIs('admin_activity_log') || request()->routeIs('signatories.*') || request()->routeIs('admin.reports.index') || request()->routeIs('admin.backup.index') || request()->routeIs('admin.positions.*')) ? 'true' : 'false' }} }" class="relative">
                     <button @click="submenuOpen = !submenuOpen"
                         class="w-full group flex items-center justify-between rounded-md px-4 py-2 text-sm font-bold transition-all duration-200 text-[#002C76] hover:text-white hover:bg-[#002C76]">
                         <div class="flex items-center">
@@ -153,18 +153,6 @@
                             <i data-feather="edit-3" class="w-5 h-5 stroke-[2.5] flex-shrink-0"></i>
                             <span class="ml-3">SIGNATORIES</span>
                         </a>
-
-                        @if($adminRole === 'superadmin')
-                            <a href="{{ route('admin.vacancy_titles.index') }}"
-                                @click="mobileSidebarOpen = false"
-                                class="use-loader flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200
-                                    {{ request()->routeIs('admin.vacancy_titles.*')
-                                        ? 'bg-[#002C76] text-white'
-                                        : 'text-[#002C76] hover:text-white hover:bg-[#002C76]' }}">
-                                <i class="fa-solid fa-briefcase w-5 h-5 flex-shrink-0"></i>
-                                <span class="ml-3">VACANCY TITLES</span>
-                            </a>
-                        @endif
 
                         <a href="{{ route('admin.positions.index') }}"
                             @click="mobileSidebarOpen = false"

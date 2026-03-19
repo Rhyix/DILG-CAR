@@ -267,6 +267,57 @@
     </style>
 
     <script>
+        const CIVIL_SERVICE_ELIGIBILITY_OPTIONS = [
+            { name: 'CSC Professional Eligibility', legalBasis: 'CSR 2017/PD 807', level: 'Second Level' },
+            { name: 'Bar/Board Eligibility', legalBasis: 'RA 1080', level: 'Second Level' },
+            { name: 'Honor Graduate Eligibility', legalBasis: 'PD 907', level: 'Second Level' },
+            { name: 'Subprofessional (Sub-Prof) Eligibility', legalBasis: 'CSR 2017/PD 807', level: 'First Level' },
+            { name: 'Barangay Health Worker Eligibility', legalBasis: 'RA 7883', level: 'First Level' },
+            { name: 'Barangay Nutrition Scholar Eligibility', legalBasis: 'PD 1569', level: 'First Level' },
+            { name: 'Barangay Official Eligibility', legalBasis: 'RA 7160', level: 'First Level' },
+            { name: 'Sanggunian Member Eligibility', legalBasis: 'RA 10156', level: 'First Level' },
+            { name: 'Skills Eligibility-Category II', legalBasis: 'CSC MC 11, s.1996', level: 'First Level' },
+            { name: 'Electronic Data Processing Specialist Eligibility', legalBasis: 'CSC Res. 90-083', level: 'Second Level' },
+            { name: 'Foreign School Honor Graduate Eligibility', legalBasis: 'CSC Res. 1302714', level: 'Second Level' },
+            { name: 'Scientific and Technological Specialist Eligibility', legalBasis: 'PD 997', level: 'Second Level' },
+        ];
+
+        const CIVIL_SERVICE_ELIGIBILITY_OTHERS_VALUE = '__OTHERS__';
+
+        function normalizeCivilServiceEligibilityName(value) {
+            return String(value || '').trim().toLowerCase();
+        }
+
+        function escapeCivilServiceOptionHtml(value) {
+            return String(value || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function renderCivilServiceEligibilityOptions(selectedValue) {
+            const normalizedSelected = normalizeCivilServiceEligibilityName(selectedValue);
+            const hasPresetMatch = CIVIL_SERVICE_ELIGIBILITY_OPTIONS.some(
+                (option) => normalizeCivilServiceEligibilityName(option.name) === normalizedSelected
+            );
+            const selectedSelectValue = hasPresetMatch ? String(selectedValue || '').trim() : CIVIL_SERVICE_ELIGIBILITY_OTHERS_VALUE;
+
+            return `
+                <option value="" ${!selectedValue ? 'selected' : ''}>Select eligibility</option>
+                ${CIVIL_SERVICE_ELIGIBILITY_OPTIONS.map((option) => {
+                    const isSelected = selectedSelectValue === option.name;
+                    return `
+                        <option value="${escapeCivilServiceOptionHtml(option.name)}" ${isSelected ? 'selected' : ''}>
+                            ${escapeCivilServiceOptionHtml(option.name)} (${escapeCivilServiceOptionHtml(option.legalBasis)} | ${escapeCivilServiceOptionHtml(option.level)})
+                        </option>
+                    `;
+                }).join('')}
+                <option value="${CIVIL_SERVICE_ELIGIBILITY_OTHERS_VALUE}" ${selectedSelectValue === CIVIL_SERVICE_ELIGIBILITY_OTHERS_VALUE ? 'selected' : ''}>Others (Specify)</option>
+            `;
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize tables
             const form = document.getElementById('myForm');
@@ -613,7 +664,14 @@
 
                     <input type="hidden" name="cs_eligibility_id[]" value="${(!is_new && cs_eligibility_id !== null && cs_eligibility_id !== undefined && String(cs_eligibility_id).toLowerCase() !== 'null') ? cs_eligibility_id : ''}">
                     <td>
-                        <input type="text" name="cs_eligibility_career[]" placeholder="Career Service/Board/Bar" class="form-input" required value="${(!is_new) ? cs_eligibility_career : ''}"/>
+                        <div class="space-y-2">
+                            <select class="form-input" data-cs-career-select required>
+                                ${renderCivilServiceEligibilityOptions((!is_new) ? cs_eligibility_career : '')}
+                            </select>
+                            <input type="text" class="form-input hidden" data-cs-career-custom placeholder="Specify eligibility not on list">
+                            <input type="hidden" name="cs_eligibility_career[]" data-cs-career-value value="${(!is_new) ? escapeCivilServiceOptionHtml(cs_eligibility_career) : ''}">
+                            <p class="text-[11px] leading-4 text-gray-500">Select from the list. Choose Others if not listed.</p>
+                        </div>
                     </td>
                     <td>
                         <input type="text" name="cs_eligibility_rating[]" placeholder="Rating %" class="form-input" value="${(!is_new) ? cs_eligibility_rating : ''}"/>
@@ -638,6 +696,7 @@
                 `;
 
                 tbody.appendChild(newRow);
+                initializeCivilServiceCareerInput(newRow, (!is_new) ? cs_eligibility_career : '');
                 updateEmptyState();
 
                 // Scroll to the new row
@@ -646,6 +705,63 @@
                         newRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                     }, 10);
                 }
+            }
+
+            function initializeCivilServiceCareerInput(row, initialCareerValue = '') {
+                const selectEl = row.querySelector('[data-cs-career-select]');
+                const customInputEl = row.querySelector('[data-cs-career-custom]');
+                const hiddenInputEl = row.querySelector('[data-cs-career-value]');
+
+                if (!selectEl || !customInputEl || !hiddenInputEl) {
+                    return;
+                }
+
+                const normalizedInitial = normalizeCivilServiceEligibilityName(initialCareerValue);
+                const matchedPreset = CIVIL_SERVICE_ELIGIBILITY_OPTIONS.find(
+                    (item) => normalizeCivilServiceEligibilityName(item.name) === normalizedInitial
+                );
+
+                if (matchedPreset) {
+                    selectEl.value = matchedPreset.name;
+                    hiddenInputEl.value = matchedPreset.name;
+                    customInputEl.value = '';
+                    customInputEl.classList.add('hidden');
+                    customInputEl.required = false;
+                } else if (String(initialCareerValue || '').trim() !== '') {
+                    selectEl.value = CIVIL_SERVICE_ELIGIBILITY_OTHERS_VALUE;
+                    customInputEl.value = String(initialCareerValue || '').trim();
+                    customInputEl.classList.remove('hidden');
+                    customInputEl.required = true;
+                    hiddenInputEl.value = customInputEl.value;
+                } else {
+                    selectEl.value = '';
+                    customInputEl.value = '';
+                    customInputEl.classList.add('hidden');
+                    customInputEl.required = false;
+                    hiddenInputEl.value = '';
+                }
+
+                const syncHiddenValue = () => {
+                    const selectedValue = String(selectEl.value || '').trim();
+                    if (selectedValue === CIVIL_SERVICE_ELIGIBILITY_OTHERS_VALUE) {
+                        customInputEl.classList.remove('hidden');
+                        customInputEl.required = true;
+                        hiddenInputEl.value = String(customInputEl.value || '').trim();
+                        return;
+                    }
+
+                    customInputEl.classList.add('hidden');
+                    customInputEl.required = false;
+                    customInputEl.value = '';
+                    hiddenInputEl.value = selectedValue;
+                };
+
+                selectEl.addEventListener('change', syncHiddenValue);
+                customInputEl.addEventListener('input', function () {
+                    if (String(selectEl.value || '').trim() === CIVIL_SERVICE_ELIGIBILITY_OTHERS_VALUE) {
+                        hiddenInputEl.value = String(customInputEl.value || '').trim();
+                    }
+                });
             }
 
             function clearWorkExperience() {
@@ -840,5 +956,4 @@
             }
         })();
     </script>
-
 

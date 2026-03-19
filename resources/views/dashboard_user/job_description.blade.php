@@ -222,6 +222,11 @@
                                 class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-gray-400 text-white text-sm font-semibold cursor-not-allowed">
                                 <i data-feather="check-circle" class="w-4 h-4"></i> ALREADY APPLIED
                             </button>
+                        @elseif (!$isClosed && !($isEligibilityQualified ?? true))
+                            <button disabled
+                                class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-red-500 text-white text-sm font-semibold cursor-not-allowed">
+                                <i data-feather="x-circle" class="w-4 h-4"></i> NOT ELIGIBLE
+                            </button>
                         @elseif (!$isClosed)
                             <button type="button" onclick="openApplyModal()"
                                 class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-semibold transition">
@@ -239,6 +244,12 @@
                                 class="use-loader inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition">
                                 <i data-feather="file-text" class="w-4 h-4"></i> COMPLETE PDS
                             </button>
+                        @endif
+
+                        @if(!$isClosed && !$hasApplied && !($isEligibilityQualified ?? true))
+                            <div class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                                {{ $eligibilityMismatchMessage ?: 'Your declared civil service eligibility does not match this vacancy requirement.' }}
+                            </div>
                         @endif
                     </div>
                 </div>
