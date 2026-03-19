@@ -991,7 +991,8 @@ class AdminController extends Controller
                 $fileRevisionLockReason = $this->getNeedsRevisionRestrictionReason(
                     $application,
                     $fileRevisionRequestedCount,
-                    $fileRevisionSubmittedAt
+                    $fileRevisionSubmittedAt,
+                    true
                 );
 
                 $documents[] = [
@@ -1038,7 +1039,8 @@ class AdminController extends Controller
                 $revisionLockReason = $this->getNeedsRevisionRestrictionReason(
                     $application,
                     $revisionRequestedCount,
-                    $revisionSubmittedAt
+                    $revisionSubmittedAt,
+                    true
                 );
                 $documents[] = [
                     'id' => $docType,
@@ -1164,8 +1166,18 @@ class AdminController extends Controller
         }
     }
 
-    private function getNeedsRevisionRestrictionReason(?Applications $application, int $revisionRequestedCount, ?string $revisionSubmittedAt): ?string
+    private function getNeedsRevisionRestrictionReason(
+        ?Applications $application,
+        int $revisionRequestedCount,
+        ?string $revisionSubmittedAt,
+        bool $allowExistingActiveCycle = false
+    ): ?string
     {
+        $hasActiveRevisionCycle = $revisionRequestedCount >= 1 && empty($revisionSubmittedAt);
+        if ($allowExistingActiveCycle && $hasActiveRevisionCycle) {
+            return null;
+        }
+
         if ($this->hasRevisionDeadlinePassed($application)) {
             return 'Cannot set Needs Revision because the revision deadline has already passed.';
         }
@@ -1174,7 +1186,7 @@ class AdminController extends Controller
             return 'Cannot set Needs Revision again. This application has already exhausted the final revision opportunity.';
         }
 
-        if ($revisionRequestedCount >= 1 && empty($revisionSubmittedAt)) {
+        if ($hasActiveRevisionCycle) {
             return 'Needs Revision is already active for this document. Wait for the applicant to submit a revised file before setting it again.';
         }
 
@@ -1495,17 +1507,21 @@ class AdminController extends Controller
         $file_status = $documentStatuses['application_letter'] ?? null;
         $file_remarks = $documentRemarks['application_letter'] ?? null;
         $isFileNeedsRevision = in_array(strtolower(trim((string) $file_status)), ['needs revision', 'disapproved with deficiency'], true);
+        $fileRevisionRequestedCount = (int) ($application->file_revision_requested_count ?? 0);
+        $fileRevisionSubmittedAt = $application->file_revision_submitted_at ?? null;
+        $hasActiveFileRevisionCycle = $fileRevisionRequestedCount >= 1 && empty($fileRevisionSubmittedAt);
 
         if ($isFileNeedsRevision) {
             $fileRestrictionReason = $this->getNeedsRevisionRestrictionReason(
                 $application,
-                (int) ($application->file_revision_requested_count ?? 0),
-                $application->file_revision_submitted_at ?? null
+                $fileRevisionRequestedCount,
+                $fileRevisionSubmittedAt,
+                true
             );
             if (!is_null($fileRestrictionReason)) {
                 return redirect()->back()->with('error', $fileRestrictionReason)->withInput();
             }
-            if ($supportsAppRevisionTracking) {
+            if ($supportsAppRevisionTracking && !$hasActiveFileRevisionCycle) {
                 $this->markApplicationFileRevisionRequested($application);
             }
         }
@@ -1541,6 +1557,8 @@ class AdminController extends Controller
             if ($document) {
                 $doc_changes = [];
                 $isDocNeedsRevision = in_array(strtolower(trim((string) $status)), ['needs revision', 'disapproved with deficiency'], true);
+                $docRevisionState = null;
+                $hasActiveDocRevisionCycle = false;
                 if ($isDocNeedsRevision) {
                     $docRevisionState = $this->getUploadedDocumentRevisionState(
                         (int) $user_id,
@@ -1548,10 +1566,14 @@ class AdminController extends Controller
                         (string) $docType,
                         $document
                     );
+                    $docRevisionRequestedCount = (int) ($docRevisionState['requested_count'] ?? 0);
+                    $docRevisionSubmittedAt = $docRevisionState['submitted_at'] ?? null;
+                    $hasActiveDocRevisionCycle = $docRevisionRequestedCount >= 1 && empty($docRevisionSubmittedAt);
                     $docRestrictionReason = $this->getNeedsRevisionRestrictionReason(
                         $application,
-                        (int) ($docRevisionState['requested_count'] ?? 0),
-                        $docRevisionState['submitted_at'] ?? null
+                        $docRevisionRequestedCount,
+                        $docRevisionSubmittedAt,
+                        true
                     );
                     if (!is_null($docRestrictionReason)) {
                         return redirect()->back()->with('error', $docRestrictionReason)->withInput();
@@ -1580,7 +1602,7 @@ class AdminController extends Controller
                     $document->save();
                 }
 
-                if ($isDocNeedsRevision && $supportsDocRevisionTracking) {
+                if ($isDocNeedsRevision && $supportsDocRevisionTracking && !$hasActiveDocRevisionCycle) {
                     $this->markUploadedDocumentRevisionRequested((int) $user_id, (string) $vacancy_id, (string) $docType);
                 }
             }
@@ -1662,11 +1684,16 @@ class AdminController extends Controller
             && Schema::hasColumn('uploaded_documents', 'revision_submitted_at');
 
         if ($documentType === 'application_letter') {
+            $fileRevisionRequestedCount = (int) ($application->file_revision_requested_count ?? 0);
+            $fileRevisionSubmittedAt = $application->file_revision_submitted_at ?? null;
+            $hasActiveFileRevisionCycle = $fileRevisionRequestedCount >= 1 && empty($fileRevisionSubmittedAt);
+
             if ($request->has('status') && $isNeedsRevisionStatus) {
                 $restrictionReason = $this->getNeedsRevisionRestrictionReason(
                     $application,
-                    (int) ($application->file_revision_requested_count ?? 0),
-                    $application->file_revision_submitted_at ?? null
+                    $fileRevisionRequestedCount,
+                    $fileRevisionSubmittedAt,
+                    true
                 );
                 if (!is_null($restrictionReason)) {
                     return response()->json([
@@ -1681,7 +1708,7 @@ class AdminController extends Controller
             if ($request->has('remarks'))
                 $application->file_remarks = $remarks;
 
-            if ($request->has('status') && $isNeedsRevisionStatus && $supportsAppRevisionTracking) {
+            if ($request->has('status') && $isNeedsRevisionStatus && $supportsAppRevisionTracking && !$hasActiveFileRevisionCycle) {
                 $this->markApplicationFileRevisionRequested($application);
             }
 
@@ -1693,6 +1720,8 @@ class AdminController extends Controller
         } else {
             $uploadedDocuments = $this->loadUploadedDocumentsMap((int) $user_id, (string) $vacancy_id);
             $document = $this->resolveUploadedDocument($uploadedDocuments, $documentType);
+            $revisionState = null;
+            $hasActiveDocRevisionCycle = false;
 
             if ($request->has('status') && $isNeedsRevisionStatus) {
                 $revisionState = $this->getUploadedDocumentRevisionState(
@@ -1701,10 +1730,14 @@ class AdminController extends Controller
                     (string) $documentType,
                     $document
                 );
+                $docRevisionRequestedCount = (int) ($revisionState['requested_count'] ?? 0);
+                $docRevisionSubmittedAt = $revisionState['submitted_at'] ?? null;
+                $hasActiveDocRevisionCycle = $docRevisionRequestedCount >= 1 && empty($docRevisionSubmittedAt);
                 $restrictionReason = $this->getNeedsRevisionRestrictionReason(
                     $application,
-                    (int) ($revisionState['requested_count'] ?? 0),
-                    $revisionState['submitted_at'] ?? null
+                    $docRevisionRequestedCount,
+                    $docRevisionSubmittedAt,
+                    true
                 );
                 if (!is_null($restrictionReason)) {
                     return response()->json([
@@ -1731,7 +1764,7 @@ class AdminController extends Controller
                 $document->last_modified_by = $lastModifiedStr;
 
                 $document->save();
-                if ($request->has('status') && $isNeedsRevisionStatus && $supportsDocRevisionTracking) {
+                if ($request->has('status') && $isNeedsRevisionStatus && $supportsDocRevisionTracking && !$hasActiveDocRevisionCycle) {
                     $this->markUploadedDocumentRevisionRequested((int) $user_id, (string) $vacancy_id, (string) $documentType);
                 }
             } else {
@@ -1808,7 +1841,8 @@ class AdminController extends Controller
         $revisionLockReason = $this->getNeedsRevisionRestrictionReason(
             $application,
             $revisionRequestedCount,
-            $revisionSubmittedAt
+            $revisionSubmittedAt,
+            true
         );
 
         return response()->json([

@@ -942,14 +942,14 @@
 			// Enable/Disable Buttons and Update Text
 			if (btnVerify) {
 				const isVerified = (doc.status === 'Verified' || doc.status === 'Okay/Confirmed');
-				btnVerify.disabled = isVerified;
+				btnVerify.disabled = false;
 				btnVerify.textContent = isVerified ? 'Verified' : 'Verify';
+				btnVerify.classList.remove('opacity-50', 'cursor-not-allowed');
+				btnVerify.classList.add('hover:bg-green-50');
 				if (isVerified) {
-					btnVerify.classList.add('opacity-50', 'cursor-not-allowed', 'bg-green-50');
-					btnVerify.classList.remove('hover:bg-green-50');
+					btnVerify.classList.add('bg-green-50');
 				} else {
-					btnVerify.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-green-50');
-					btnVerify.classList.add('hover:bg-green-50');
+					btnVerify.classList.remove('bg-green-50');
 				}
 			}
 
