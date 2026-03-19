@@ -33,6 +33,7 @@ use App\Http\Controllers\BackupRestoreController;
 use App\Http\Controllers\PsgcController;
 use App\Http\Controllers\VacancyTitleController;
 use App\Http\Controllers\PositionUtilityController;
+use App\Http\Controllers\EligibilityPresetController;
 
 use App\Events\PackageSent;
 use Illuminate\Http\Request;
@@ -522,6 +523,10 @@ Route::middleware([RedirectIfNotAdmin::class])->group(function () {
     Route::get('/admin/utilities/reports/data', [App\Http\Controllers\ReportController::class, 'getData'])->name('admin.reports.data');
     Route::get('/admin/utilities/reports/export', [App\Http\Controllers\ReportController::class, 'export'])->name('admin.reports.export');
     Route::get('/admin/utilities/positions', [PositionUtilityController::class, 'index'])->name('admin.positions.index');
+    Route::get('/admin/utilities/eligibilities', [EligibilityPresetController::class, 'index'])->name('admin.eligibilities.index');
+    Route::post('/admin/utilities/eligibilities', [EligibilityPresetController::class, 'store'])->name('admin.eligibilities.store');
+    Route::put('/admin/utilities/eligibilities/{id}', [EligibilityPresetController::class, 'update'])->name('admin.eligibilities.update');
+    Route::delete('/admin/utilities/eligibilities/{id}', [EligibilityPresetController::class, 'destroy'])->name('admin.eligibilities.destroy');
 
     Route::middleware([EnsureSuperadmin::class])->group(function () {
         Route::get('/admin/utilities/backup-restore', [BackupRestoreController::class, 'index'])->name('admin.backup.index');
@@ -529,6 +534,7 @@ Route::middleware([RedirectIfNotAdmin::class])->group(function () {
         Route::post('/admin/utilities/backup-restore/restore', [BackupRestoreController::class, 'restore'])->name('admin.backup.restore');
     });
     Route::get('/admin/utilities/vacancy-titles/list', [VacancyTitleController::class, 'listJson'])->name('admin.vacancy_titles.list');
+    Route::get('/admin/utilities/eligibilities/list', [EligibilityPresetController::class, 'listJson'])->name('admin.eligibilities.list');
 
     // ==================================================================================================
     // SIGNATORY ROUTES
