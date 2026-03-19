@@ -31,7 +31,7 @@
                 </a>
             @endif
 
-            @if(in_array($adminRole, ['superadmin', 'admin'], true))
+            @if(in_array($adminRole, ['superadmin', 'admin', 'hr_division'], true))
                 <a href="{{ route('vacancies_management') }}" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200
                         {{ request()->routeIs('vacancies_management')
         ? 'bg-[#002C76] text-white shadow-md'

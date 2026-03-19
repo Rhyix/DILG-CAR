@@ -429,6 +429,12 @@ Route::middleware([RedirectIfNotAdmin::class])->group(function () {
     });
 
     Route::get('/admin/vacancies_management/add/plantilla', function (\Illuminate\Http\Request $request) {
+        $admin = Auth::guard('admin')->user();
+        if (($admin->role ?? null) === 'hr_division') {
+            return redirect()->route('vacancies_management')
+                ->with('error', 'Access denied. HR Division can only add COS vacancies.');
+        }
+
         $signatories = \App\Models\Signatory::query()->orderBy('id')->limit(1)->get();
         $templateVacancy = null;
         $reuseVacancyId = trim((string) $request->query('reuse', ''));
@@ -438,11 +444,58 @@ Route::middleware([RedirectIfNotAdmin::class])->group(function () {
         return view('admin.vacancy_add_plantilla', compact('signatories', 'templateVacancy'));
     })->name('addplantilla');
     Route::get('/admin/vacancies_management/add/cos', function (\Illuminate\Http\Request $request) {
+        $admin = Auth::guard('admin')->user();
         $signatories = \App\Models\Signatory::query()->orderBy('id')->limit(1)->get();
         $templateVacancy = null;
         $reuseVacancyId = trim((string) $request->query('reuse', ''));
         if ($reuseVacancyId !== '') {
-            $templateVacancy = \App\Models\JobVacancy::where('vacancy_id', $reuseVacancyId)->first();
+            $templateQuery = \App\Models\JobVacancy::query()
+                ->where('vacancy_id', $reuseVacancyId)
+                ->whereRaw('UPPER(vacancy_type) = ?', ['COS']);
+
+            if (($admin->role ?? null) === 'hr_division') {
+                $grantedVacancyIds = \Illuminate\Support\Facades\Schema::hasTable('admin_vacancy_accesses')
+                    ? \App\Models\AdminVacancyAccess::query()
+                        ->where('admin_id', $admin->id)
+                        ->pluck('vacancy_id')
+                        ->map(fn($value) => trim((string) $value))
+                        ->filter(fn($value) => $value !== '')
+                        ->unique()
+                        ->values()
+                        ->all()
+                    : [];
+
+                $supportsCreatorColumn = \Illuminate\Support\Facades\Schema::hasColumn('job_vacancies', 'created_by_admin_id');
+
+                $templateQuery->where(function ($query) use ($admin, $grantedVacancyIds, $supportsCreatorColumn) {
+                    $hasScope = false;
+
+                    if ($supportsCreatorColumn) {
+                        $query->where('created_by_admin_id', $admin->id);
+                        $hasScope = true;
+                    }
+
+                    if (!empty($grantedVacancyIds)) {
+                        if ($hasScope) {
+                            $query->orWhereIn('vacancy_id', $grantedVacancyIds);
+                        } else {
+                            $query->whereIn('vacancy_id', $grantedVacancyIds);
+                        }
+                        $hasScope = true;
+                    }
+
+                    if (!$hasScope) {
+                        $query->whereRaw('1 = 0');
+                    }
+                });
+            }
+
+            $templateVacancy = $templateQuery->first();
+
+            if (($admin->role ?? null) === 'hr_division' && !$templateVacancy) {
+                return redirect()->route('vacancies_management')
+                    ->with('error', 'Access denied. You can only reuse your own or assigned COS vacancies.');
+            }
         }
         return view('admin.vacancy_add_cos', compact('signatories', 'templateVacancy'));
     })->name('addcos');

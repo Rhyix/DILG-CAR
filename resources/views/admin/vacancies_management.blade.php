@@ -1,6 +1,9 @@
 ﻿@extends('layout.admin')
 @section('title', 'DILG - Job Vacancies Management')
 @section('content')
+@php
+    $isHrDivisionUser = $isHrDivisionUser ?? ((Auth::guard('admin')->user()->role ?? '') === 'hr_division');
+@endphp
 @include('partials.loader')
 <!-- max-w-7xl -->
 <!-- test -->
@@ -55,9 +58,13 @@
                     </button>
 
                     <select id="jobFilter" class="hidden">
-                        <option value="" {{ session('vacancyFilterJob') == '' ? 'selected' : '' }}>All</option>
-                        <option value="COS" {{ session('vacancyFilterJob') == 'COS' ? 'selected' : '' }}>Contract of Service</option>
-                        <option value="Plantilla" {{ session('vacancyFilterJob') == 'Plantilla' ? 'selected' : '' }}>PLANTILLA</option>
+                        @if($isHrDivisionUser)
+                            <option value="COS" selected>Contract of Service</option>
+                        @else
+                            <option value="" {{ session('vacancyFilterJob') == '' ? 'selected' : '' }}>All</option>
+                            <option value="COS" {{ session('vacancyFilterJob') == 'COS' ? 'selected' : '' }}>Contract of Service</option>
+                            <option value="Plantilla" {{ session('vacancyFilterJob') == 'Plantilla' ? 'selected' : '' }}>PLANTILLA</option>
+                        @endif
                     </select>
 
                     <div
@@ -67,27 +74,37 @@
                         x-transition
                         class="absolute left-0 z-50 mt-2 w-full min-w-[190px] rounded-xl border border-gray-200 bg-white shadow-lg sm:left-auto sm:right-0"
                     >
-                        <button
-                            onclick="document.getElementById('jobFilter').value = ''; document.getElementById('jobFilter').dispatchEvent(new Event('change')); fetchVacancies();"
-                            @click="jobOpen = false; $el.closest('.relative').querySelector('button span span').innerText = 'All'"
-                            class="block w-full px-4 py-2 text-left text-sm font-semibold text-[#0D2B70] hover:bg-gray-100 {{ session('vacancyFilterJob') == '' ? 'bg-gray-100' : '' }}"
-                        >
-                            All
-                        </button>
-                        <button
-                            onclick="document.getElementById('jobFilter').value = 'COS'; document.getElementById('jobFilter').dispatchEvent(new Event('change')); fetchVacancies();"
-                            @click="jobOpen = false; $el.closest('.relative').querySelector('button span span').innerText = 'Contract of Service'"
-                            class="block w-full px-4 py-2 text-left text-sm font-semibold text-[#0D2B70] hover:bg-gray-100 {{ session('vacancyFilterJob') == 'COS' ? 'bg-gray-100' : '' }}"
-                        >
-                            Contract of Service
-                        </button>
-                        <button
-                            onclick="document.getElementById('jobFilter').value = 'Plantilla'; document.getElementById('jobFilter').dispatchEvent(new Event('change')); fetchVacancies();"
-                            @click="jobOpen = false; $el.closest('.relative').querySelector('button span span').innerText = 'PLANTILLA'"
-                            class="block w-full px-4 py-2 text-left text-sm font-semibold text-[#0D2B70] hover:bg-gray-100 {{ session('vacancyFilterJob') == 'Plantilla' ? 'bg-gray-100' : '' }}"
-                        >
-                            PLANTILLA
-                        </button>
+                        @if($isHrDivisionUser)
+                            <button
+                                onclick="document.getElementById('jobFilter').value = 'COS'; document.getElementById('jobFilter').dispatchEvent(new Event('change')); fetchVacancies();"
+                                @click="jobOpen = false; $el.closest('.relative').querySelector('button span span').innerText = 'Contract of Service'"
+                                class="block w-full bg-gray-100 px-4 py-2 text-left text-sm font-semibold text-[#0D2B70] hover:bg-gray-100"
+                            >
+                                Contract of Service
+                            </button>
+                        @else
+                            <button
+                                onclick="document.getElementById('jobFilter').value = ''; document.getElementById('jobFilter').dispatchEvent(new Event('change')); fetchVacancies();"
+                                @click="jobOpen = false; $el.closest('.relative').querySelector('button span span').innerText = 'All'"
+                                class="block w-full px-4 py-2 text-left text-sm font-semibold text-[#0D2B70] hover:bg-gray-100 {{ session('vacancyFilterJob') == '' ? 'bg-gray-100' : '' }}"
+                            >
+                                All
+                            </button>
+                            <button
+                                onclick="document.getElementById('jobFilter').value = 'COS'; document.getElementById('jobFilter').dispatchEvent(new Event('change')); fetchVacancies();"
+                                @click="jobOpen = false; $el.closest('.relative').querySelector('button span span').innerText = 'Contract of Service'"
+                                class="block w-full px-4 py-2 text-left text-sm font-semibold text-[#0D2B70] hover:bg-gray-100 {{ session('vacancyFilterJob') == 'COS' ? 'bg-gray-100' : '' }}"
+                            >
+                                Contract of Service
+                            </button>
+                            <button
+                                onclick="document.getElementById('jobFilter').value = 'Plantilla'; document.getElementById('jobFilter').dispatchEvent(new Event('change')); fetchVacancies();"
+                                @click="jobOpen = false; $el.closest('.relative').querySelector('button span span').innerText = 'PLANTILLA'"
+                                class="block w-full px-4 py-2 text-left text-sm font-semibold text-[#0D2B70] hover:bg-gray-100 {{ session('vacancyFilterJob') == 'Plantilla' ? 'bg-gray-100' : '' }}"
+                            >
+                                PLANTILLA
+                            </button>
+                        @endif
                     </div>
                 </div>
 
@@ -174,12 +191,15 @@
                         <a href="{{ route('addcos') }}" class="use-loader block px-4 py-2 text-sm font-semibold text-[#0D2B70] hover:bg-gray-100">
                             Add COS Vacancy
                         </a>
-                        <a href="{{ route('addplantilla') }}" class="use-loader block px-4 py-2 text-sm font-semibold text-[#0D2B70] hover:bg-gray-100">
-                            Add Plantilla Vacancy
-                        </a>
+                        @unless($isHrDivisionUser)
+                            <a href="{{ route('addplantilla') }}" class="use-loader block px-4 py-2 text-sm font-semibold text-[#0D2B70] hover:bg-gray-100">
+                                Add Plantilla Vacancy
+                            </a>
+                        @endunless
                     </div>
                 </div>
 
+                @unless($isHrDivisionUser)
                 <!-- Download Template Button -->
                 <div x-data="{ open: false }" class="relative min-w-0">
                     <button
@@ -334,6 +354,7 @@
                         ])
                     </div>
                 </div>
+                @endunless
             </div>
         </div>
     </section>

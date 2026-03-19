@@ -11,6 +11,7 @@ class JobVacancy extends Model
 
     protected $fillable = [
         'vacancy_id',
+        'created_by_admin_id',
         'position_title',
         'vacancy_type',
         'pcn_no',
@@ -115,6 +116,11 @@ class JobVacancy extends Model
         return $this->hasMany(Applications::class, 'vacancy_id', 'vacancy_id');
     }
 
+    public function creator()
+    {
+        return $this->belongsTo(Admin::class, 'created_by_admin_id');
+    }
+
     public function getRouteKeyName()
     {
         return 'vacancy_id'; // or 'pcn_no' or any unique field
@@ -126,3 +132,4 @@ class JobVacancy extends Model
     }
 
 }
+

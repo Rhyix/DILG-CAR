@@ -12,6 +12,7 @@ class Vacancy extends Model
 
     protected $fillable = [
         'vacancy_id',
+        'created_by_admin_id',
         'position_title',
         'vacancy_type',
         'pcn_no',
@@ -44,3 +45,4 @@ class Vacancy extends Model
 
 
 }
+

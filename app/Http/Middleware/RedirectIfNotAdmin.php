@@ -55,6 +55,13 @@ class RedirectIfNotAdmin
                     'admin.account.settings',
                     'admin.account.settings.update',
                     'admin.account.password.update',
+                    'vacancies_management',
+                    'admin.vacancies.filter',
+                    'addcos',
+                    'vacancies.store',
+                    'vacancies.edit',
+                    'vacancies.update',
+                    'vacancies.delete',
                 ];
 
                 if (in_array($routeName, $hrDivisionAllowedRoutes, true)) {

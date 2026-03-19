@@ -49,14 +49,31 @@ class ShowApplicantsProfile extends Controller
             return [];
         }
 
-        if (!Schema::hasTable('admin_vacancy_accesses')) {
-            return [];
+        $grantedVacancyIds = [];
+        if (Schema::hasTable('admin_vacancy_accesses')) {
+            $grantedVacancyIds = AdminVacancyAccess::query()
+                ->where('admin_id', $admin->id)
+                ->pluck('vacancy_id')
+                ->map(fn($value) => (string) $value)
+                ->values()
+                ->all();
         }
 
-        return AdminVacancyAccess::query()
-            ->where('admin_id', $admin->id)
-            ->pluck('vacancy_id')
-            ->map(fn($value) => (string) $value)
+        $ownedVacancyIds = [];
+        if (Schema::hasColumn('job_vacancies', 'created_by_admin_id')) {
+            $ownedVacancyIds = JobVacancy::query()
+                ->whereRaw('UPPER(vacancy_type) = ?', ['COS'])
+                ->where('created_by_admin_id', $admin->id)
+                ->pluck('vacancy_id')
+                ->map(fn($value) => (string) $value)
+                ->values()
+                ->all();
+        }
+
+        return collect(array_merge($grantedVacancyIds, $ownedVacancyIds))
+            ->map(fn($value) => trim((string) $value))
+            ->filter(fn($value) => $value !== '')
+            ->unique()
             ->values()
             ->all();
     }
@@ -78,27 +95,45 @@ class ShowApplicantsProfile extends Controller
             return true;
         }
 
-        if (!Schema::hasTable('admin_vacancy_accesses')) {
-            return false;
-        }
-
         $vacancyId = trim((string) $vacancyId);
         if ($vacancyId === '') {
-            return false;
-        }
-
-        $hasGrant = AdminVacancyAccess::query()
-            ->where('admin_id', $admin->id)
-            ->where('vacancy_id', $vacancyId)
-            ->exists();
-
-        if (!$hasGrant) {
             return false;
         }
 
         return JobVacancy::query()
             ->where('vacancy_id', $vacancyId)
             ->whereRaw('UPPER(vacancy_type) = ?', ['COS'])
+            ->where(function ($query) use ($admin, $vacancyId) {
+                $hasScope = false;
+
+                if (Schema::hasColumn('job_vacancies', 'created_by_admin_id')) {
+                    $query->where('created_by_admin_id', $admin->id);
+                    $hasScope = true;
+                }
+
+                if (Schema::hasTable('admin_vacancy_accesses')) {
+                    if ($hasScope) {
+                        $query->orWhereExists(function ($sub) use ($admin, $vacancyId) {
+                            $sub->selectRaw('1')
+                                ->from('admin_vacancy_accesses')
+                                ->where('admin_vacancy_accesses.admin_id', $admin->id)
+                                ->where('admin_vacancy_accesses.vacancy_id', $vacancyId);
+                        });
+                    } else {
+                        $query->whereExists(function ($sub) use ($admin, $vacancyId) {
+                            $sub->selectRaw('1')
+                                ->from('admin_vacancy_accesses')
+                                ->where('admin_vacancy_accesses.admin_id', $admin->id)
+                                ->where('admin_vacancy_accesses.vacancy_id', $vacancyId);
+                        });
+                    }
+                    $hasScope = true;
+                }
+
+                if (!$hasScope) {
+                    $query->whereRaw('1 = 0');
+                }
+            })
             ->exists();
     }
 
@@ -230,7 +265,7 @@ class ShowApplicantsProfile extends Controller
     {
         if (!$this->hrDivisionCanAccessVacancy((string) $vacancy_id)) {
             return redirect()->route('applications_list')
-                ->with('error', 'Access denied. This COS vacancy is not assigned to your account.');
+                ->with('error', 'Access denied. This COS vacancy is not available to your HR Division account.');
         }
 
         logger()->info("Filtering applicants for vacancy: " . $vacancy_id);
@@ -270,7 +305,7 @@ class ShowApplicantsProfile extends Controller
     {
         if (!$this->hrDivisionCanAccessVacancy((string) $vacancy_id)) {
             return redirect()->route('applications_list')
-                ->with('error', 'Access denied. This COS vacancy is not assigned to your account.');
+                ->with('error', 'Access denied. This COS vacancy is not available to your HR Division account.');
         }
 
         $sortStatus = $request->input('sort_status');
@@ -507,7 +542,7 @@ class ShowApplicantsProfile extends Controller
     {
         if (!$this->hrDivisionCanAccessVacancy((string) $vacancy_id)) {
             return redirect()->route('applications_list')
-                ->with('error', 'Access denied. This COS vacancy is not assigned to your account.');
+                ->with('error', 'Access denied. This COS vacancy is not available to your HR Division account.');
         }
 
         $applications = Applications::with(['vacancy', 'personalInformation', 'user'])
@@ -543,7 +578,7 @@ class ShowApplicantsProfile extends Controller
     {
         if (!$this->hrDivisionCanAccessVacancy((string) $vacancy_id)) {
             return redirect()->route('applications_list')
-                ->with('error', 'Access denied. This COS vacancy is not assigned to your account.');
+                ->with('error', 'Access denied. This COS vacancy is not available to your HR Division account.');
         }
 
         $applications = Applications::with(['vacancy', 'personalInformation', 'user'])
@@ -651,3 +686,4 @@ class ShowApplicantsProfile extends Controller
     }
 
 }
+

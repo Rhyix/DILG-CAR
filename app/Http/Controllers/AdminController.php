@@ -849,27 +849,45 @@ class AdminController extends Controller
             return true;
         }
 
-        if (!Schema::hasTable('admin_vacancy_accesses')) {
-            return false;
-        }
-
         $vacancyId = trim((string) $vacancyId);
         if ($vacancyId === '') {
-            return false;
-        }
-
-        $hasGrant = AdminVacancyAccess::query()
-            ->where('admin_id', $admin->id)
-            ->where('vacancy_id', $vacancyId)
-            ->exists();
-
-        if (!$hasGrant) {
             return false;
         }
 
         return JobVacancy::query()
             ->where('vacancy_id', $vacancyId)
             ->whereRaw('UPPER(vacancy_type) = ?', ['COS'])
+            ->where(function ($query) use ($admin, $vacancyId) {
+                $hasScope = false;
+
+                if (Schema::hasColumn('job_vacancies', 'created_by_admin_id')) {
+                    $query->where('created_by_admin_id', $admin->id);
+                    $hasScope = true;
+                }
+
+                if (Schema::hasTable('admin_vacancy_accesses')) {
+                    if ($hasScope) {
+                        $query->orWhereExists(function ($sub) use ($admin, $vacancyId) {
+                            $sub->selectRaw('1')
+                                ->from('admin_vacancy_accesses')
+                                ->where('admin_vacancy_accesses.admin_id', $admin->id)
+                                ->where('admin_vacancy_accesses.vacancy_id', $vacancyId);
+                        });
+                    } else {
+                        $query->whereExists(function ($sub) use ($admin, $vacancyId) {
+                            $sub->selectRaw('1')
+                                ->from('admin_vacancy_accesses')
+                                ->where('admin_vacancy_accesses.admin_id', $admin->id)
+                                ->where('admin_vacancy_accesses.vacancy_id', $vacancyId);
+                        });
+                    }
+                    $hasScope = true;
+                }
+
+                if (!$hasScope) {
+                    $query->whereRaw('1 = 0');
+                }
+            })
             ->exists();
     }
 
@@ -879,7 +897,7 @@ class AdminController extends Controller
             return null;
         }
 
-        $message = 'Access denied. This COS vacancy is not assigned to your account.';
+        $message = 'Access denied. This COS vacancy is not available to your HR Division account.';
         if ($request->expectsJson() || $request->ajax()) {
             return response()->json([
                 'success' => false,

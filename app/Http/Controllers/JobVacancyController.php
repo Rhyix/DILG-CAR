@@ -8,6 +8,7 @@ use App\Models\JobVacancy;
 use App\Models\ExamDetail;
 use App\Models\ExamItems;
 use App\Models\Applications;
+use App\Models\AdminVacancyAccess;
 use Illuminate\Http\Request;
 use App\Models\Vacancy;
 use App\Models\UploadedDocument;
@@ -26,8 +27,6 @@ use Illuminate\Support\Facades\Schema;
 use Spatie\Activitylog\Models\Activity;
 use Carbon\Carbon;
 use App\Models\WorkExpSheet;
-
-use function Symfony\Component\String\s;
 
 class JobVacancyController extends Controller
 {
@@ -52,6 +51,118 @@ class JobVacancyController extends Controller
         'application_letter',
         'cert_training',
     ];
+
+    private function currentAdmin()
+    {
+        return Auth::guard('admin')->user();
+    }
+
+    private function isHrDivisionAdmin(): bool
+    {
+        return (($this->currentAdmin()->role ?? null) === 'hr_division');
+    }
+
+    private function supportsVacancyCreatorColumn(): bool
+    {
+        static $hasColumn = null;
+        if ($hasColumn !== null) {
+            return $hasColumn;
+        }
+
+        try {
+            $hasColumn = Schema::hasColumn('job_vacancies', 'created_by_admin_id');
+        } catch (\Throwable $e) {
+            $hasColumn = false;
+            Log::warning('Unable to detect job_vacancies.created_by_admin_id column.', [
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return $hasColumn;
+    }
+
+    private function hrDivisionGrantedVacancyIds(int $adminId): array
+    {
+        if ($adminId <= 0 || !Schema::hasTable('admin_vacancy_accesses')) {
+            return [];
+        }
+
+        return AdminVacancyAccess::query()
+            ->where('admin_id', $adminId)
+            ->pluck('vacancy_id')
+            ->map(fn($value) => trim((string) $value))
+            ->filter(fn($value) => $value !== '')
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    private function applyHrDivisionManagedVacancyScope($query, ?int $adminId = null): void
+    {
+        $adminId = $adminId ?? (int) ($this->currentAdmin()->id ?? 0);
+        $grantedVacancyIds = $this->hrDivisionGrantedVacancyIds($adminId);
+        $supportsCreatorColumn = $this->supportsVacancyCreatorColumn();
+
+        $query->whereRaw('UPPER(vacancy_type) = ?', ['COS'])
+            ->where(function ($subQuery) use ($adminId, $grantedVacancyIds, $supportsCreatorColumn) {
+                $hasScope = false;
+
+                if ($supportsCreatorColumn && $adminId > 0) {
+                    $subQuery->where('created_by_admin_id', $adminId);
+                    $hasScope = true;
+                }
+
+                if (!empty($grantedVacancyIds)) {
+                    if ($hasScope) {
+                        $subQuery->orWhereIn('vacancy_id', $grantedVacancyIds);
+                    } else {
+                        $subQuery->whereIn('vacancy_id', $grantedVacancyIds);
+                    }
+                    $hasScope = true;
+                }
+
+                if (!$hasScope) {
+                    $subQuery->whereRaw('1 = 0');
+                }
+            });
+    }
+
+    private function hrDivisionCanManageVacancy(JobVacancy $vacancy): bool
+    {
+        if (!$this->isHrDivisionAdmin()) {
+            return true;
+        }
+
+        if (strcasecmp((string) ($vacancy->vacancy_type ?? ''), 'COS') !== 0) {
+            return false;
+        }
+
+        $adminId = (int) ($this->currentAdmin()->id ?? 0);
+        if ($this->supportsVacancyCreatorColumn() && $adminId > 0 && (int) ($vacancy->created_by_admin_id ?? 0) === $adminId) {
+            return true;
+        }
+
+        if (!Schema::hasTable('admin_vacancy_accesses') || $adminId <= 0) {
+            return false;
+        }
+
+        return AdminVacancyAccess::query()
+            ->where('admin_id', $adminId)
+            ->where('vacancy_id', (string) $vacancy->vacancy_id)
+            ->exists();
+    }
+
+    private function denyHrDivisionVacancyAccess(Request $request, string $message)
+    {
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => false,
+                'message' => $message,
+            ], 403);
+        }
+
+        return redirect()->route('vacancies_management')->with('error', $message);
+    }
     public function jobVacancy()
     {
         $jobVacancies = JobVacancy::select('job_vacancies.*')
@@ -79,7 +190,14 @@ class JobVacancyController extends Controller
 
     public function jobVacancyManagement()
     {
-        $jobVacancies = JobVacancy::orderByRaw("CASE WHEN status = 'OPEN' THEN 1 ELSE 2 END")
+        $jobVacanciesQuery = JobVacancy::query();
+
+        if ($this->isHrDivisionAdmin()) {
+            $this->applyHrDivisionManagedVacancyScope($jobVacanciesQuery);
+        }
+
+        $jobVacancies = $jobVacanciesQuery
+            ->orderByRaw("CASE WHEN status = 'OPEN' THEN 1 ELSE 2 END")
             ->orderBy('closing_date', 'asc')
             ->get();
 
@@ -89,12 +207,22 @@ class JobVacancyController extends Controller
             ->log('Accessed job vacancy management page.');
         */
 
-        return view('admin.vacancies_management', ['vacancies' => $jobVacancies]);
+        return view('admin.vacancies_management', [
+            'vacancies' => $jobVacancies,
+            'isHrDivisionUser' => $this->isHrDivisionAdmin(),
+        ]);
     }
 
-    public function edit($vacancy_id)
+    public function edit(Request $request, $vacancy_id)
     {
         $vacancy = JobVacancy::where('vacancy_id', $vacancy_id)->firstOrFail();
+        if (!$this->hrDivisionCanManageVacancy($vacancy)) {
+            return $this->denyHrDivisionVacancyAccess(
+                $request,
+                'Access denied. You can only manage your own or assigned COS vacancies.'
+            );
+        }
+
         $signatories = \App\Models\Signatory::query()->orderBy('id')->limit(1)->get();
         $vacancyType = (string) ($vacancy->vacancy_type ?? '');
         $view = strcasecmp(trim($vacancyType), 'Plantilla') === 0
@@ -145,6 +273,18 @@ class JobVacancyController extends Controller
         ]);
 
         $vacancy = JobVacancy::where('vacancy_id', $vacancy_id)->firstOrFail();
+        if (!$this->hrDivisionCanManageVacancy($vacancy)) {
+            return $this->denyHrDivisionVacancyAccess(
+                $request,
+                'Access denied. You can only manage your own or assigned COS vacancies.'
+            );
+        }
+
+        if ($this->isHrDivisionAdmin() && strcasecmp((string) ($validated['vacancy_type'] ?? ''), 'COS') !== 0) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'HR Division can only update COS vacancies.');
+        }
 
         $changes = [];
         foreach ($validated as $key => $value) {
@@ -193,7 +333,7 @@ class JobVacancyController extends Controller
             'pcn_no' => $validated['pcn_no'] ?? null,
             'plantilla_item_no' => $validated['plantilla_item_no'] ?? null,
 
-            'last_modified_by' => Auth::user()?->name ?? 'System',
+            'last_modified_by' => Auth::guard('admin')->user()?->name ?? 'System',
         ];
 
         if ($this->hasJobVacancyLastModifiedAtColumn()) {
@@ -263,6 +403,12 @@ class JobVacancyController extends Controller
             'csc_form' => 'nullable|file|mimes:pdf,doc,docx|max:10240',
         ]);
 
+        if ($this->isHrDivisionAdmin() && strcasecmp((string) ($validated['vacancy_type'] ?? ''), 'COS') !== 0) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'HR Division can only create COS vacancies.');
+        }
+
         // 🔷 Generate vacancy_id
         /*
         $positionTitle = $validated['position_title'];
@@ -327,6 +473,10 @@ class JobVacancyController extends Controller
             'to_office_address' => $validated['to_office_address'],
         ];
 
+        if ($this->supportsVacancyCreatorColumn()) {
+            $vacancyData['created_by_admin_id'] = Auth::guard('admin')->id();
+        }
+
         // Some environments may not yet have the csc_form_path column.
         if ($hasCscFormPathColumn) {
             $vacancyData['csc_form_path'] = $request->hasFile('csc_form')
@@ -361,6 +511,12 @@ class JobVacancyController extends Controller
     public function delete(Request $request, $vacancy_id)
     {
         $vacancy = JobVacancy::where('vacancy_id', $vacancy_id)->firstOrFail();
+        if (!$this->hrDivisionCanManageVacancy($vacancy)) {
+            return $this->denyHrDivisionVacancyAccess(
+                $request,
+                'Access denied. You can only manage your own or assigned COS vacancies.'
+            );
+        }
 
         ExamDetail::where('vacancy_id', $vacancy_id)->delete();
         ExamItems::where('vacancy_id', $vacancy_id)->delete();
@@ -438,10 +594,18 @@ class JobVacancyController extends Controller
         $status = $request->get('status');
         $search = $request->get('search');
         $job = $request->get('job');
+        $isHrDivisionUser = $this->isHrDivisionAdmin();
 
-        $vacancies = JobVacancy::when($status, function ($query) use ($status) {
-            $query->where('status', $status);
-        })
+        $vacanciesQuery = JobVacancy::query();
+
+        if ($isHrDivisionUser) {
+            $this->applyHrDivisionManagedVacancyScope($vacanciesQuery);
+        }
+
+        $vacancies = $vacanciesQuery
+            ->when($status, function ($query) use ($status) {
+                $query->where('status', $status);
+            })
             ->when($job, function ($query) use ($job) {
                 $query->where('vacancy_type', $job);
             })
@@ -483,7 +647,10 @@ class JobVacancyController extends Controller
             ->log('Filtered job vacancies (admin).');
         */
 
-        return view('partials.admin_vacancy_list', compact('vacancies'))->render();
+        return view('partials.admin_vacancy_list', [
+            'vacancies' => $vacancies,
+            'isHrDivisionUser' => $isHrDivisionUser,
+        ])->render();
     }
 
 
