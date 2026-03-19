@@ -238,7 +238,7 @@
             <textarea name="expected_output" rows="3" class="{{ $fieldTextarea }}">{{ old('expected_output', $formSource?->expected_output ?? '') }}</textarea>
           </div>
           <div>
-            <label class="{{ $fieldLabel }}">Scope of Work <span class="text-red-600">*</span></label>
+            <label class="{{ $fieldLabel }}">Scope of Work or Duties and Responsibilities<span class="text-red-600">*</span></label>
             <textarea name="scope_of_work" rows="3" class="{{ $fieldTextarea }}">{{ old('scope_of_work', $formSource?->scope_of_work ?? '') }}</textarea>
           </div>
           <div>
