@@ -930,7 +930,7 @@ class JobVacancyController extends Controller
 
         $labelMap = [
             'application_letter' => 'Application Letter',
-            'signed_pds' => 'Signed Personal Data Sheet',
+            'signed_pds' => 'Signed and Subscribed Personal Data Sheet',
             'signed_work_exp_sheet' => 'Signed Work Experience Sheet',
             'pqe_result' => 'Pre-Qualifying Exam (PQE) Result',
             'cert_eligibility' => 'Certificate of Eligibility / Board Rating',
@@ -1090,7 +1090,7 @@ class JobVacancyController extends Controller
 
         $labelMap = [
             'application_letter' => 'Application Letter',
-            'signed_pds' => 'Signed Personal Data Sheet',
+            'signed_pds' => 'Signed and Subscribed Personal Data Sheet',
             'signed_work_exp_sheet' => 'Signed Work Experience Sheet',
             'pqe_result' => 'Pre-Qualifying Exam (PQE) Result',
             'cert_eligibility' => 'Certificate of Eligibility / Board Rating',
@@ -1413,7 +1413,7 @@ class JobVacancyController extends Controller
             'pqe_result' => 'Pre-Qualifying Exam (PQE) Result',
             'transcript_records' => 'Transcript of Records (Baccalaureate Degree)',
             'photocopy_diploma' => 'Diploma',
-            'signed_pds' => 'Signed Personal Data Sheet',
+            'signed_pds' => 'Signed and Subscribed Personal Data Sheet',
             'signed_work_exp_sheet' => 'Signed Work Experience Sheet',
             'cert_lgoo_induction' => 'Certificate of Completion of LGOO Induction Training',
             'passport_photo' => '2" x 2" or Passport Size Picture',

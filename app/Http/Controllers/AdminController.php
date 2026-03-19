@@ -44,7 +44,7 @@ class AdminController extends Controller
     private const APPROVABLE_ACCOUNT_TYPES = ['admin', 'hr_division', 'viewer'];
     private const DOCUMENT_LABELS = [
         'application_letter' => 'Application Letter',
-        'signed_pds' => 'Signed Personal Data Sheet',
+        'signed_pds' => 'Signed and Subscribed Personal Data Sheet',
         'signed_work_exp_sheet' => 'Signed Work Experience Sheet',
         'pqe_result' => 'Pre-Qualifying Exam (PQE) Result',
         'cert_eligibility' => 'Certificate of Eligibility / Board Rating',
