@@ -229,30 +229,30 @@
                             $displayName = $accountDisplayName ?: ($u?->name ?: 'N/A');
 
                             $avatar = $u?->avatar_path ? asset('storage/' . $u->avatar_path) : null;
-                            $initialFirstName = trim((string) ($u?->first_name ?? ''));
-                            $initialLastName = trim((string) ($u?->last_name ?? ''));
-
-                            $initials = strtoupper(
-                                mb_substr($initialFirstName, 0, 1) .
-                                mb_substr($initialLastName, 0, 1)
-                            );
-
-                            if ($initials === '') {
-                                $initialsSource = $displayName !== 'N/A' ? $displayName : 'N A';
-                                $initials = collect(preg_split('/\s+/', trim($initialsSource)))
-                                    ->filter()
-                                    ->map(fn($p) => mb_substr($p, 0, 1))
-                                    ->join('');
-                                $initials = strtoupper($initials !== '' ? $initials : 'NA');
-                            }
                         @endphp
-                        @if($avatar)
-                            <img src="{{ $avatar }}" alt="Avatar" class="w-8 h-8 rounded-full object-cover">
-                        @else
-                            <div
-                                class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">
-                                {{ $initials }}</div>
-                        @endif
+                        <div class="h-8 w-8 overflow-hidden rounded-full bg-slate-100 text-slate-500 flex items-center justify-center shrink-0">
+                            @if($avatar)
+                                <img
+                                    src="{{ $avatar }}"
+                                    alt="Avatar"
+                                    class="h-8 w-8 rounded-full object-cover"
+                                    onerror="this.classList.add('hidden'); this.nextElementSibling.classList.remove('hidden');"
+                                >
+                                <div class="hidden h-8 w-8 flex items-center justify-center bg-slate-100 text-slate-500">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M20 21a8 8 0 10-16 0"></path>
+                                        <circle cx="12" cy="7" r="4"></circle>
+                                    </svg>
+                                </div>
+                            @else
+                                <div class="h-8 w-8 flex items-center justify-center bg-slate-100 text-slate-500" aria-label="Profile placeholder">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M20 21a8 8 0 10-16 0"></path>
+                                        <circle cx="12" cy="7" r="4"></circle>
+                                    </svg>
+                                </div>
+                            @endif
+                        </div>
                         <span class="text-sm font-semibold">{{ $displayName }}</span>
                         <i data-feather="chevron-down" class="w-4 h-4"></i>
                     </button>
