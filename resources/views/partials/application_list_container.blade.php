@@ -1,3 +1,7 @@
+@php
+    $hasActiveFilters = $hasActiveFilters ?? false;
+@endphp
+
 @if ($applications->count() > 0)
 <div class="rounded-xl border border-[#0D2B70] mt-2 overflow-hidden flex flex-col min-h-0 bg-white shadow-sm">
     <div class="bg-[#0D2B70] text-white flex-none hidden lg:block">
@@ -80,7 +84,12 @@
 @else
     <div class="text-center text-gray-600 font-montserrat text-lg mt-10">
         <i data-feather="inbox" class="w-12 h-12 mx-auto mb-2 text-gray-400"></i>
-        <p class="font-semibold">No applications yet.</p>
-        <p class="text-sm text-gray-500">Browse available job vacancies and apply to get started!</p>
+        @if ($hasActiveFilters)
+            <p class="font-semibold">No applications matched your filters.</p>
+            <p class="text-sm text-gray-500">Try a different search term or clear one of the dropdown filters.</p>
+        @else
+            <p class="font-semibold">No applications yet.</p>
+            <p class="text-sm text-gray-500">Browse available job vacancies and apply to get started!</p>
+        @endif
     </div>
 @endif

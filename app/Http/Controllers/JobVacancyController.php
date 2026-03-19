@@ -879,18 +879,18 @@ class JobVacancyController extends Controller
 
     public function myApplications()
     {
-        $applications = Applications::where('user_id', Auth::id())
-            ->with('vacancy')
-            ->orderByRaw("CASE WHEN LOWER(TRIM(COALESCE(status, ''))) = 'not qualified' THEN 1 ELSE 0 END")
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $applications = $this->buildMyApplicationsQuery(request())->get();
+        $filterOptions = $this->getMyApplicationFilterOptions();
         /*
         activity()
             ->causedBy(auth()->user())
             ->log('Viewed my applications.');
         */
 
-        return view('dashboard_user.my_applications', compact('applications'));
+        return view('dashboard_user.my_applications', [
+            'applications' => $applications,
+            'filterOptions' => $filterOptions,
+        ]);
     }
 
     // USEREND application status
@@ -1667,21 +1667,87 @@ class JobVacancyController extends Controller
 
     public function sortMyApplications(Request $request)
     {
-        $sortOrder = $request->query('sort_order', 'latest');
+        $applications = $this->buildMyApplicationsQuery($request)->get();
+        $hasActiveFilters = $this->requestHasMyApplicationFilters($request);
 
-        $query = Applications::with('vacancy')
-            ->where('user_id', Auth::id());
+        return view('partials.application_list_container', [
+            'applications' => $applications,
+            'hasActiveFilters' => $hasActiveFilters,
+        ])->render();
+    }
 
-        $query->orderByRaw("CASE WHEN LOWER(TRIM(COALESCE(status, ''))) = 'not qualified' THEN 1 ELSE 0 END");
+    private function buildMyApplicationsQuery(Request $request)
+    {
+        $search = trim((string) $request->query('search', ''));
+        $place = trim((string) $request->query('place', ''));
+        $vacancyType = trim((string) $request->query('vacancy_type', ''));
+        $status = trim((string) $request->query('status', ''));
+        $sortOrder = strtolower(trim((string) $request->query('sort_order', 'latest')));
 
-        if ($sortOrder === 'oldest') {
-            $query->orderBy('created_at', 'asc');
-        } else {
-            $query->orderBy('created_at', 'desc');
+        $query = Applications::query()
+            ->where('user_id', Auth::id())
+            ->with('vacancy');
+
+        if ($search !== '') {
+            $query->where(function ($applicationQuery) use ($search) {
+                $applicationQuery
+                    ->where('vacancy_id', 'like', '%' . $search . '%')
+                    ->orWhereHas('vacancy', function ($vacancyQuery) use ($search) {
+                        $vacancyQuery->where('position_title', 'like', '%' . $search . '%');
+                    });
+            });
         }
 
-        $applications = $query->get();
+        if ($place !== '') {
+            $query->whereHas('vacancy', function ($vacancyQuery) use ($place) {
+                $vacancyQuery->where('place_of_assignment', $place);
+            });
+        }
 
-        return view('partials.application_list_container', compact('applications'))->render();
+        if ($vacancyType !== '') {
+            $query->whereHas('vacancy', function ($vacancyQuery) use ($vacancyType) {
+                $vacancyQuery->whereRaw("LOWER(TRIM(COALESCE(vacancy_type, ''))) = ?", [strtolower($vacancyType)]);
+            });
+        }
+
+        if ($status !== '') {
+            $query->whereRaw("LOWER(TRIM(COALESCE(status, ''))) = ?", [strtolower($status)]);
+        }
+
+        $query->orderByRaw("CASE WHEN LOWER(TRIM(COALESCE(status, ''))) = 'not qualified' THEN 1 ELSE 0 END");
+        $query->orderBy('created_at', $sortOrder === 'oldest' ? 'asc' : 'desc');
+
+        return $query;
+    }
+
+    private function getMyApplicationFilterOptions(): array
+    {
+        $userId = Auth::id();
+
+        $statuses = Applications::query()
+            ->where('user_id', $userId)
+            ->whereNotNull('status')
+            ->pluck('status')
+            ->map(fn($status) => trim((string) $status))
+            ->filter()
+            ->unique(fn($status) => strtolower($status))
+            ->sortBy(fn($status) => strtolower($status))
+            ->values();
+
+        return [
+            'vacancyTypes' => collect(['COS', 'Plantilla']),
+            'statuses' => $statuses,
+        ];
+    }
+
+    private function requestHasMyApplicationFilters(Request $request): bool
+    {
+        foreach (['search', 'place', 'vacancy_type', 'status'] as $key) {
+            if (trim((string) $request->query($key, '')) !== '') {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
