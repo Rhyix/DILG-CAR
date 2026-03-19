@@ -49,6 +49,7 @@
     <script src="https://unpkg.com/alpinejs" defer></script>
     <script src="https://unpkg.com/feather-icons"></script>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+    @vite(['resources/js/app.js'])
 
     <!-- Styles -->
     <style>
@@ -401,13 +402,23 @@
             const profileToggle = document.getElementById('profileToggle');
             const profileMenu = document.getElementById('profileMenu');
             profileToggle?.addEventListener('click', () => profileMenu.classList.toggle('hidden'));
-            setInterval(fetchCount, 60000);
+            setInterval(fetchCount, 15000);
             fetchCount();
             const isAuthed = @json(auth()->check());
             const channelId = @json(auth()->id());
             if (window.Echo && isAuthed && channelId) {
-                window.Echo.private('notifications.' + channelId).listen('.NewSystemNotification', () => {
+                window.Echo.private('notifications.' + channelId).listen('.NewSystemNotification', (event) => {
                     fetchCount();
+                    if (!notifMenu?.classList.contains('hidden')) {
+                        fetchItems(true);
+                    }
+                    if (typeof showAppToast === 'function') {
+                        const title = event?.data?.title ? String(event.data.title).trim() : 'New notification';
+                        const message = event?.data?.message ? String(event.data.message).trim() : '';
+                        const toastMessage = message !== '' ? `${title}: ${message}` : title;
+                        const toastType = event?.data?.level ? String(event.data.level).toLowerCase() : 'info';
+                        showAppToast(toastMessage, toastType);
+                    }
                 });
             }
         });

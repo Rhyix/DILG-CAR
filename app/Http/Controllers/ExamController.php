@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\UserNotificationPushed;
 use App\Events\ExamProgressUpdated;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
@@ -23,6 +24,7 @@ use App\Enums\ApplicationStatus;
 use Spatie\Activitylog\Models\Activity;
 use Illuminate\Support\Facades\Cookie;
 use App\Models\ExamTabViolation;
+use App\Models\Notification;
 
 class ExamController extends Controller
 {
@@ -69,6 +71,38 @@ class ExamController extends Controller
         }
 
         return $requestRoot !== '' ? $requestRoot : null;
+    }
+
+    private function createAttendancePromptNotification(int $userId, string $vacancyId, ?JobVacancy $vacancy = null): void
+    {
+        $vacancy ??= JobVacancy::select('vacancy_id', 'position_title')->where('vacancy_id', $vacancyId)->first();
+        $positionTitle = trim((string) ($vacancy?->position_title ?? 'your examination'));
+
+        $notification = Notification::create([
+            'notifiable_type' => User::class,
+            'notifiable_id' => $userId,
+            'type' => 'info',
+            'data' => [
+                'type' => 'exam_attendance_prompt',
+                'category' => 'exam_lifecycle',
+                'section' => 'Exam Management',
+                'vacancy_id' => $vacancyId,
+                'title' => 'Exam Attendance Confirmation',
+                'message' => 'Your exam schedule for ' . $positionTitle . ' is available. Please confirm your attendance.',
+                'level' => 'info',
+                'action_url' => route('exam.attendance.prompt', ['vacancy_id' => $vacancyId], false),
+            ],
+            'read_at' => null,
+        ]);
+
+        if ($this->shouldBroadcastRealtimeNotifications()) {
+            broadcast(new UserNotificationPushed($userId, (string) $notification->id, (array) $notification->data));
+        }
+    }
+
+    private function shouldBroadcastRealtimeNotifications(): bool
+    {
+        return in_array((string) config('broadcasting.default'), ['reverb', 'pusher', 'ably'], true);
     }
 
     private function shouldBroadcastExamUpdates(): bool
@@ -968,12 +1002,7 @@ class ExamController extends Controller
         $application = $this->qualifiedApplicationsQuery($vacancy_id)
             ->where('user_id', $user->id)
             ->firstOrFail();
-
-        if (!empty($application->exam_attendance_status) || !is_null($application->exam_attendance_responded_at)) {
-            return redirect()
-                ->route('application_status', ['user' => $user->id, 'vacancy' => $vacancy_id])
-                ->with('success', 'Your exam attendance response has already been recorded.');
-        }
+        $hasExistingAttendanceResponse = !empty($application->exam_attendance_status) || !is_null($application->exam_attendance_responded_at);
 
         $vacancy = JobVacancy::select('vacancy_id', 'position_title', 'vacancy_type')
             ->where('vacancy_id', $vacancy_id)
@@ -991,6 +1020,7 @@ class ExamController extends Controller
             'examDetail' => $examDetail,
             'application' => $application,
             'attendanceStatusLabel' => $this->attendanceStatusLabel($application->exam_attendance_status),
+            'hasExistingAttendanceResponse' => $hasExistingAttendanceResponse,
         ]);
     }
 
@@ -1004,6 +1034,7 @@ class ExamController extends Controller
         $application = $this->qualifiedApplicationsQuery($vacancy_id)
             ->where('user_id', auth()->id())
             ->firstOrFail();
+        $hadExistingAttendanceResponse = !empty($application->exam_attendance_status) || !is_null($application->exam_attendance_responded_at);
 
         $attendanceStatus = $validated['attendance_status'];
         $remark = $attendanceStatus === self::ATTENDANCE_WILL_NOT_ATTEND
@@ -1022,13 +1053,22 @@ class ExamController extends Controller
             ->withProperties([
                 'vacancy_id' => $vacancy_id,
                 'attendance_status' => $attendanceStatus,
+                'attendance_override' => $hadExistingAttendanceResponse,
                 'section' => 'Exam Attendance',
             ])
-            ->log('Submitted exam attendance response.');
+            ->log($hadExistingAttendanceResponse
+                ? 'Updated exam attendance response.'
+                : 'Submitted exam attendance response.');
 
-        $message = $attendanceStatus === self::ATTENDANCE_WILL_ATTEND
-            ? 'Your exam attendance has been marked as Will Attend.'
-            : 'Your exam attendance has been marked as Will Not Attend.';
+        if ($hadExistingAttendanceResponse) {
+            $message = $attendanceStatus === self::ATTENDANCE_WILL_ATTEND
+                ? 'Your exam attendance response has been updated to Will Attend.'
+                : 'Your exam attendance response has been updated to Will Not Attend.';
+        } else {
+            $message = $attendanceStatus === self::ATTENDANCE_WILL_ATTEND
+                ? 'Your exam attendance has been marked as Will Attend.'
+                : 'Your exam attendance has been marked as Will Not Attend.';
+        }
 
         return redirect()
             ->route('application_status', ['user' => auth()->id(), 'vacancy' => $vacancy_id])
@@ -1912,6 +1952,10 @@ class ExamController extends Controller
                 ], 400);
             }
 
+            $vacancy = JobVacancy::select('vacancy_id', 'position_title')
+                ->where('vacancy_id', $vacancy_id)
+                ->first();
+
             $usersById = User::query()
                 ->whereIn('id', $participants->pluck('user_id')->unique()->values())
                 ->get(['id', 'email'])
@@ -1930,6 +1974,7 @@ class ExamController extends Controller
                 try {
                     // Send immediately so Save & Notify still works even when no queue worker runs.
                     Mail::to($user->email)->send(new NotifyApplicantMail($vacancy_id, $user->id, $examDetail->id, $publicBaseUrl));
+                    $this->createAttendancePromptNotification((int) $user->id, (string) $vacancy_id, $vacancy);
                     $sentCount++;
                 } catch (\Throwable $mailException) {
                     $failedCount++;

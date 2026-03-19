@@ -138,10 +138,13 @@
             @endisset
 
             @isset($attendancePromptLink)
-                <p style="text-align: center; margin-top: 20px;">Please confirm whether you can attend the examination by
+                <p style="text-align: center; margin-top: 20px;">Arm whether you can attend the examination by
                     clicking the button below:</p>
+                <span style="text-align: center; display: block; margin-bottom: 12px; font-size: 12px; color: #ff1414; font-weight: bold;">
+                    NOTE: If you decide to change your attendance, you can return to this message and click the button again to update your response.
+                </span>
                 <div style="text-align: center;">
-                    <a href="{{ $attendancePromptLink }}" class="cta-button" style="background-color: #6c62ff;">Respond to
+                    <a href="{{ $attendancePromptLink }}" class="cta-button" style="background-color: #0D2B70; color: white;">Respond to
                         Attendance</a>
                 </div>
                 <p style="font-size: 12px; color: #666; text-align: center; margin-top: 12px;">

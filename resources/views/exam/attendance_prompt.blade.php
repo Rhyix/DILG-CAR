@@ -14,6 +14,12 @@
         </div>
 
         <div class="px-6 sm:px-8 py-6 space-y-6">
+            @if(!empty($hasExistingAttendanceResponse))
+                <div class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                    Your exam attendance response has already been recorded. You can still override your attendance below.
+                </div>
+            @endif
+
             @if(session('success'))
                 <div class="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
                     {{ session('success') }}
@@ -76,7 +82,7 @@
                 @endif
             </div>
 
-            <form method="POST" action="{{ route('exam.attendance.respond', ['vacancy_id' => $vacancy->vacancy_id]) }}" class="space-y-5">
+            <form id="attendanceResponseForm" method="POST" action="{{ route('exam.attendance.respond', ['vacancy_id' => $vacancy->vacancy_id]) }}" class="space-y-5">
                 @csrf
 
                 <div>
@@ -85,6 +91,7 @@
                         <label class="attendance-option flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200 px-4 py-4 transition hover:border-green-300 hover:bg-green-50">
                             <input type="radio" name="attendance_status" value="will_attend"
                                 {{ old('attendance_status', $application->exam_attendance_status) === 'will_attend' ? 'checked' : '' }}
+                                required
                                 class="mt-1 h-4 w-4 border-slate-300 text-green-600 focus:ring-green-500">
                             <span>
                                 <span class="block text-sm font-semibold text-slate-900">Yes, I can attend</span>
@@ -95,6 +102,7 @@
                         <label class="attendance-option flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200 px-4 py-4 transition hover:border-red-300 hover:bg-red-50">
                             <input type="radio" name="attendance_status" value="will_not_attend"
                                 {{ old('attendance_status', $application->exam_attendance_status) === 'will_not_attend' ? 'checked' : '' }}
+                                required
                                 class="mt-1 h-4 w-4 border-slate-300 text-red-600 focus:ring-red-500">
                             <span>
                                 <span class="block text-sm font-semibold text-slate-900">No, I cannot attend</span>
@@ -117,9 +125,9 @@
                         class="inline-flex items-center justify-center rounded-2xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
                         Back to Dashboard
                     </a>
-                    <button type="submit"
+                    <button id="attendanceConfirmButton" type="button"
                         class="inline-flex items-center justify-center rounded-2xl bg-[#0D2B70] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0A1F4D]">
-                        Save Attendance Response
+                        {{ !empty($hasExistingAttendanceResponse) ? 'Override Attendance Response' : 'Save Attendance Response' }}
                     </button>
                 </div>
             </form>
@@ -127,8 +135,21 @@
     </div>
 </div>
 
+<x-confirm-modal
+    :title="!empty($hasExistingAttendanceResponse) ? 'Confirm Attendance Override' : 'Confirm Attendance Response'"
+    :message="!empty($hasExistingAttendanceResponse)
+        ? 'You already responded to this attendance prompt. Do you want to override your previous attendance response?'
+        : 'Do you want to save your attendance response for this examination?'"
+    event="open-attendance-confirm-modal"
+    confirm="confirm-attendance-response"
+    :confirm-text="!empty($hasExistingAttendanceResponse) ? 'Yes, Override' : 'Yes, Save'"
+    cancel-text="Cancel"
+/>
+
 <script>
     (function () {
+        const form = document.getElementById('attendanceResponseForm');
+        const confirmButton = document.getElementById('attendanceConfirmButton');
         const remarkWrap = document.getElementById('remarkWrap');
         const remarkField = document.getElementById('attendance_remark');
         const radios = document.querySelectorAll('input[name="attendance_status"]');
@@ -148,6 +169,14 @@
 
         radios.forEach((radio) => radio.addEventListener('change', syncAttendanceRemark));
         syncAttendanceRemark();
+
+        confirmButton?.addEventListener('click', function () {
+            window.dispatchEvent(new CustomEvent('open-attendance-confirm-modal'));
+        });
+
+        window.addEventListener('confirm-attendance-response', function () {
+            form?.requestSubmit();
+        });
     })();
 </script>
 @endsection
