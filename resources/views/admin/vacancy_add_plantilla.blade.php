@@ -134,7 +134,7 @@
 
           <div class="grid gap-5 md:grid-cols-2">
             <div>
-              <label class="{{ $fieldLabel }}">PCN No.</label>
+              <label class="{{ $fieldLabel }}">Position Control Number</label>
               <input type="text" name="pcn_no" value="{{ old('pcn_no', $formSource?->pcn_no ?? '') }}" class="{{ $fieldInput }}">
             </div>
             <div>

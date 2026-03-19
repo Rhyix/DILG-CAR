@@ -9,6 +9,7 @@ use App\Models\ExamDetail;
 use App\Models\ExamItems;
 use App\Models\Applications;
 use App\Models\AdminVacancyAccess;
+use App\Models\VacancyTitle;
 use Illuminate\Http\Request;
 use App\Models\Vacancy;
 use App\Models\UploadedDocument;
@@ -164,6 +165,30 @@ class JobVacancyController extends Controller
 
         return redirect()->route('vacancies_management')->with('error', $message);
     }
+
+    private function syncVacancyTitleCompensationFromVacancyData(array $vacancyData): void
+    {
+        if (!Schema::hasTable('vacancy_titles')) {
+            return;
+        }
+
+        $positionTitle = trim((string) ($vacancyData['position_title'] ?? ''));
+        if ($positionTitle === '') {
+            return;
+        }
+
+        $salaryGrade = trim((string) ($vacancyData['salary_grade'] ?? ''));
+        $monthlySalary = (float) ($vacancyData['monthly_salary'] ?? 0);
+
+        VacancyTitle::query()->updateOrCreate(
+            ['position_title' => $positionTitle],
+            [
+                'salary_grade' => $salaryGrade !== '' ? $salaryGrade : null,
+                'monthly_salary' => $monthlySalary,
+            ]
+        );
+    }
+
     public function jobVacancy()
     {
         $jobVacancies = JobVacancy::select('job_vacancies.*')
@@ -277,8 +302,6 @@ class JobVacancyController extends Controller
             'csc_form' => [Rule::requiredIf($requiresCscFormUpload), 'nullable', 'file', 'mimes:pdf,doc,docx', 'max:10240'],
         ]);
 
-<<<<<<< Updated upstream
-        $vacancy = JobVacancy::where('vacancy_id', $vacancy_id)->firstOrFail();
         if (!$this->hrDivisionCanManageVacancy($vacancy)) {
             return $this->denyHrDivisionVacancyAccess(
                 $request,
@@ -292,8 +315,6 @@ class JobVacancyController extends Controller
                 ->with('error', 'HR Division can only update COS vacancies.');
         }
 
-=======
->>>>>>> Stashed changes
         $changes = [];
         foreach ($validated as $key => $value) {
             if ($vacancy->$key != $value) {
@@ -349,6 +370,7 @@ class JobVacancyController extends Controller
         }
 
         $vacancy->update($vacancyUpdateData);
+        $this->syncVacancyTitleCompensationFromVacancyData($vacancyUpdateData);
 
         // Handle CSC Form file upload only when the column exists in this database.
         if ($this->hasJobVacancyCscFormPathColumn() && request()->hasFile('csc_form')) {
@@ -495,6 +517,7 @@ class JobVacancyController extends Controller
         }
 
         $vacancy = JobVacancy::create($vacancyData);
+        $this->syncVacancyTitleCompensationFromVacancyData($vacancyData);
 
 
         ExamDetail::create(['vacancy_id' => $vacancy->vacancy_id]);
