@@ -40,7 +40,6 @@
         @foreach($newApplicants as $applicant)
             <div style="display: none;">
                 Name: {{ $applicant['name'] }} 
-                User ID: {{ $applicant['user_id'] }}
+                Applicant ID: {{ $applicant['applicant_code'] ?? $applicant['user_id'] }}
             </div>
 @endforeach
-

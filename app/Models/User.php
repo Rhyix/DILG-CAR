@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\ApplicantCodeService;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -22,6 +23,7 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $fillable = [
+        'applicant_code',
         'name',
         'first_name',
         'middle_name',
@@ -56,6 +58,13 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::created(function (self $user): void {
+            app(ApplicantCodeService::class)->assignIfMissing($user);
+        });
     }
 
     /**
@@ -159,6 +168,16 @@ class User extends Authenticatable
     public function documentGalleryItems(): HasMany
     {
         return $this->hasMany(DocumentGalleryItem::class, 'user_id');
+    }
+
+    /**
+     * Applicant application records.
+     *
+     * @return HasMany<Applications, User>
+     */
+    public function applications(): HasMany
+    {
+        return $this->hasMany(Applications::class, 'user_id');
     }
 
     public function notifications(): MorphMany

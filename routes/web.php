@@ -418,6 +418,7 @@ Route::middleware([RedirectIfNotAdmin::class])->group(function () {
     Route::put('/admin/account-settings/password', [AdminController::class, 'updateOwnPassword'])->name('admin.account.password.update');
     Route::middleware([EnsureSuperadmin::class])->group(function () {
         Route::get('/admin/admin_account_management', [AdminController::class, 'manage'])->name('admin_account_management');
+        Route::get('/admin/applicant-records', [ShowApplicantsProfile::class, 'applicantRecords'])->name('admin.applicant_records.index');
         Route::post('/admin/store', [AdminController::class, 'store'])->name('admin.store');
         Route::post('/admin/{id}/deactivate', [AdminController::class, 'deactivate'])->name('admin.deactivate');
         Route::post('/admin/{id}/activate', [AdminController::class, 'activate'])->name('admin.activate');

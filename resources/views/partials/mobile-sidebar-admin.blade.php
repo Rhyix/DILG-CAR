@@ -128,6 +128,16 @@
                     <i class="fa-solid fa-users-gear w-5 h-5 flex-shrink-0"></i>
                     <span class="ml-3">USER MANAGEMENT</span>
                 </a>
+
+                <a href="{{ route('admin.applicant_records.index') }}"
+                    @click="mobileSidebarOpen = false"
+                    class="use-loader flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200
+                        {{ request()->routeIs('admin.applicant_records.index')
+                            ? 'bg-[#002C76] text-white'
+                            : 'text-[#002C76] hover:text-white hover:bg-[#002C76]' }}">
+                    <i class="fa-solid fa-folder-open w-5 h-5 flex-shrink-0"></i>
+                    <span class="ml-3">APPLICANT RECORDS</span>
+                </a>
             @endif
 
             @if(in_array($adminRole, ['superadmin', 'admin'], true))

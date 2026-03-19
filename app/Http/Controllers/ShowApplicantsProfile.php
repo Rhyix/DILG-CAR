@@ -8,6 +8,7 @@ use App\Models\PersonalInformation;
 use App\Models\JobVacancy;
 use App\Models\UploadedDocument;
 use App\Models\AdminVacancyAccess;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
@@ -220,6 +221,7 @@ class ShowApplicantsProfile extends Controller
 
             return [
                 'user_id' => $application->user_id,
+                'applicant_code' => $application->user?->applicant_code,
                 'vacancy_id' => $application->vacancy_id,
                 'name' => $pi
                     ? trim("{$pi->first_name} " .
@@ -282,6 +284,7 @@ class ShowApplicantsProfile extends Controller
 
             return [
                 'user_id' => $application->user_id,
+                'applicant_code' => $application->user?->applicant_code,
                 'vacancy_id' => $application->vacancy_id,
                 'name' => $pi
                     ? trim("{$pi->first_name} " .
@@ -332,6 +335,7 @@ class ShowApplicantsProfile extends Controller
 
             return [
                 'user_id' => $application->user_id,
+                'applicant_code' => $application->user?->applicant_code,
                 'vacancy_id' => $application->vacancy_id,
                 'name' => $pi
                     ? trim("{$pi->first_name} " .
@@ -393,6 +397,7 @@ class ShowApplicantsProfile extends Controller
 
             return [
                 'user_id' => $application->user_id,
+                'applicant_code' => $application->user?->applicant_code,
                 'vacancy_id' => $application->vacancy_id,
                 'name' => $pi
                     ? trim("{$pi->first_name} " .
@@ -480,6 +485,49 @@ class ShowApplicantsProfile extends Controller
         ]);
     }
 
+    public function applicantRecords(Request $request)
+    {
+        $search = trim((string) $request->input('search', ''));
+        $sort = strtolower(trim((string) $request->input('sort', 'latest')));
+
+        $query = User::query()
+            ->with(['personalInformation'])
+            ->withCount('applications')
+            ->withMax('applications', 'created_at')
+            ->whereHas('applications');
+
+        if ($search !== '') {
+            $like = '%' . $search . '%';
+
+            $query->where(function ($subQuery) use ($like) {
+                $subQuery->where('name', 'LIKE', $like)
+                    ->orWhere('email', 'LIKE', $like)
+                    ->orWhereHas('personalInformation', function ($personalInfoQuery) use ($like) {
+                        $personalInfoQuery->where('first_name', 'LIKE', $like)
+                            ->orWhere('middle_name', 'LIKE', $like)
+                            ->orWhere('surname', 'LIKE', $like)
+                            ->orWhere('name_extension', 'LIKE', $like)
+                            ->orWhere('mobile_no', 'LIKE', $like)
+                            ->orWhere('email_address', 'LIKE', $like);
+                    });
+            });
+        }
+
+        if ($sort === 'oldest') {
+            $query->orderBy('applications_max_created_at');
+        } else {
+            $query->orderByDesc('applications_max_created_at');
+        }
+
+        $applicants = $query->paginate(15)->withQueryString();
+
+        return view('admin.applicant_records', [
+            'applicants' => $applicants,
+            'search' => $search,
+            'sort' => $sort,
+        ]);
+    }
+
     public function hrDivisionAccessState()
     {
         $admin = $this->currentAdmin();
@@ -523,6 +571,7 @@ class ShowApplicantsProfile extends Controller
 
             return [
                 'user_id' => $application->user_id,
+                'applicant_code' => $application->user?->applicant_code,
                 'vacancy_id' => $application->vacancy_id,
                 'name' => $pi
                     ? trim("{$pi->first_name} " .
@@ -556,6 +605,7 @@ class ShowApplicantsProfile extends Controller
 
             return [
                 'user_id' => $application->user_id,
+                'applicant_code' => $application->user?->applicant_code,
                 'vacancy_id' => $application->vacancy_id,
                 'name' => $pi
                     ? trim("{$pi->first_name} " .
@@ -686,4 +736,3 @@ class ShowApplicantsProfile extends Controller
     }
 
 }
-
