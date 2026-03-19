@@ -267,7 +267,7 @@
     </style>
 
     <script>
-        const CIVIL_SERVICE_ELIGIBILITY_OPTIONS = [
+        const DEFAULT_CIVIL_SERVICE_ELIGIBILITY_OPTIONS = [
             { name: 'CSC Professional Eligibility', legalBasis: 'CSR 2017/PD 807', level: 'Second Level' },
             { name: 'Bar/Board Eligibility', legalBasis: 'RA 1080', level: 'Second Level' },
             { name: 'Honor Graduate Eligibility', legalBasis: 'PD 907', level: 'Second Level' },
@@ -281,8 +281,42 @@
             { name: 'Foreign School Honor Graduate Eligibility', legalBasis: 'CSC Res. 1302714', level: 'Second Level' },
             { name: 'Scientific and Technological Specialist Eligibility', legalBasis: 'PD 997', level: 'Second Level' },
         ];
+        let CIVIL_SERVICE_ELIGIBILITY_OPTIONS = [...DEFAULT_CIVIL_SERVICE_ELIGIBILITY_OPTIONS];
 
         const CIVIL_SERVICE_ELIGIBILITY_OTHERS_VALUE = '__OTHERS__';
+
+        async function loadCivilServiceEligibilityOptions() {
+            try {
+                const response = await fetch(@json(route('pds.eligibilities.list')), {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    credentials: 'same-origin',
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load eligibility presets');
+                }
+
+                const payload = await response.json();
+                const fetchedOptions = Array.isArray(payload?.data) ? payload.data : [];
+
+                const normalized = fetchedOptions
+                    .map((item) => ({
+                        name: String(item?.name || '').trim(),
+                        legalBasis: String(item?.legal_basis || '').trim(),
+                        level: String(item?.level || '').trim(),
+                    }))
+                    .filter((item) => item.name !== '');
+
+                if (normalized.length > 0) {
+                    CIVIL_SERVICE_ELIGIBILITY_OPTIONS = normalized;
+                    return;
+                }
+            } catch (error) {
+                // Fallback to defaults if endpoint is unavailable.
+            }
+
+            CIVIL_SERVICE_ELIGIBILITY_OPTIONS = [...DEFAULT_CIVIL_SERVICE_ELIGIBILITY_OPTIONS];
+        }
 
         function normalizeCivilServiceEligibilityName(value) {
             return String(value || '').trim().toLowerCase();
@@ -318,13 +352,15 @@
             `;
         }
 
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
             // Initialize tables
             const form = document.getElementById('myForm');
             const workExpTable = document.getElementById('work-exp-table');
             const civilServiceTable = document.getElementById('civil-service-table');
             const workExpEmpty = document.getElementById('work-exp-empty');
             const civilServiceEmpty = document.getElementById('civil-service-empty');
+
+            await loadCivilServiceEligibilityOptions();
 
             // Check initial state
             updateEmptyState();
@@ -956,4 +992,3 @@
             }
         })();
     </script>
-

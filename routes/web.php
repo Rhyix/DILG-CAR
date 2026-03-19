@@ -348,6 +348,7 @@ Route::middleware(['auth', BlockIfAdmin::class])->group(function () {
     Route::post('/pds/import-c1-excel', [Forms\PDSController::class, 'importC1Excel'])->name('pds.import_c1_excel');
     Route::get('/pds/export-annex-h1-excel', [Forms\PDSController::class, 'exportAnnexH1Excel'])->name('pds.export_annex_h1_excel');
     Route::post('/pds/autosave/{section}', [Forms\PDSController::class, 'autosaveDraft'])->name('pds.autosave');
+    Route::get('/pds/utilities/eligibilities/list', [EligibilityPresetController::class, 'listJson'])->name('pds.eligibilities.list');
 
     Route::get('/pds/c2', [Forms\PDSController::class, 'c2DisplayForm'])->name('display_c2');
     Route::post('/pds/submit_c2/{go_to}', [Forms\PDSController::class, 'c2UpdateFormSession'])->name('submit_c2');

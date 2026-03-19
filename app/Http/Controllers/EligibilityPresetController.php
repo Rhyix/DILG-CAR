@@ -91,7 +91,7 @@ class EligibilityPresetController extends Controller
 
     public function listJson()
     {
-        if (!Auth::guard('admin')->check()) {
+        if (!Auth::guard('admin')->check() && !Auth::guard('web')->check()) {
             abort(403);
         }
 
@@ -105,4 +105,3 @@ class EligibilityPresetController extends Controller
         ]);
     }
 }
-
