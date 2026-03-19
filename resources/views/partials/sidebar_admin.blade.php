@@ -77,7 +77,7 @@
                         class="w-full group flex items-center justify-between rounded-md px-4 py-2 text-sm font-bold transition-all duration-200 text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md">
                         <div class="flex items-center">
                             <i class="fa-solid fa-screwdriver-wrench w-5 h-5 flex-shrink-0"></i>
-                            <span class="ml-3 uppercase">UTILITIES</span>
+                            <span class="ml-3 uppercase">UTILITIES TOOLS</span>
                         </div>
                         <div class="transition-transform duration-200" :class="{ 'rotate-180': submenuOpen }">
                             <i class="fa-solid fa-chevron-down w-5 h-5 stroke-[2.5] flex-shrink-0"></i>

@@ -381,7 +381,7 @@
                     </div>
                     <div class="relative">
                         <input type="email" id="email_address" name="email_address" value="{{ old('email_address', session('form.c1.email_address')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                        <label for="email_address" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">21. E-MAIL ADDRESS (if any)</label>
+                        <label for="email_address" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">21. E-MAIL ADDRESS</label>
                     </div>
                 </div>
             </section>
@@ -500,7 +500,7 @@
                     <div class="mobile-stack md:grid md:grid-cols-3 gap-4 sm:gap-6">
                         <div class="relative">
                             <input required type="text" id="mother_maiden_surname" name="mother_maiden_surname" value="{{ old('mother_maiden_surname', session('form.c1.mother_maiden_surname')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                            <label for="mother_maiden_surname" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">25. Mother's Maiden Surname<span class="text-red-500">*</span></label>
+                            <label for="mother_maiden_surname" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">25. Mother's Maiden Surname <span class="text-red-500">*</span></label>
                         </div>
                         <div class="relative">
                             <input required type="text" id="mother_maiden_first_name" name="mother_maiden_first_name" value="{{ old('mother_maiden_first_name', session('form.c1.mother_maiden_first_name')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
@@ -608,8 +608,11 @@
                             <label for="jhs_school" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">School Name<span class="text-red-500">*</span></label>
                         </div>
                         <div class="relative md:col-span-2">
-                            <input type="text" id="jhs_basic" name="jhs_basic" value="{{ $jhsBasicPrefill }}" placeholder=" " class="text-gray-500 floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                            <label for="jhs_basic" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Basic Education/Degree/Course</label>
+                            <label for="jhs_basic" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">Basic Education/Degree/Course</label>
+                            <select id="jhs_basic" name="jhs_basic" class="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all bg-white text-sm sm:text-base">
+                                <option value="JUNIOR HIGH SCHOOL" {{ $jhsBasicPrefill === 'JUNIOR HIGH SCHOOL' ? 'selected' : '' }}>Junior High School</option>
+                                <option value="SENIOR HIGH SCHOOL" {{ $jhsBasicPrefill === 'SENIOR HIGH SCHOOL' ? 'selected' : '' }}>Senior High School</option>
+                            </select>
                         </div>
                         <div class="relative">
                             <input required type="date" id="jhs_from" name="jhs_from" value="{{ $normalizeEducationDateForInput(old('jhs_from', session('form.c1.jhs_from'))) }}" data-education-date-role="from" autocomplete="off" class="edu-date w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base">
@@ -753,6 +756,38 @@
         }
 
         return parsed;
+    }
+    function updateSecondaryBasicEducation() {
+        const elemTo = document.getElementById('elem_to');
+        const jhsBasic = document.getElementById('jhs_basic');
+        if (!jhsBasic) return;
+
+        const parsed = elemTo ? parsePdsEducationDate(elemTo.value) : null;
+        const year = parsed ? parsed.getFullYear() : null;
+        const beforeSeniorSplit = year && year < 2016;
+
+        const desiredOptions = beforeSeniorSplit
+            ? ['HIGH SCHOOL']
+            : ['JUNIOR HIGH SCHOOL', 'SENIOR HIGH SCHOOL'];
+
+        const currentValue = jhsBasic.value || '';
+        const existingOptions = Array.from(jhsBasic.options).map((o) => o.value);
+        const optionsChanged = desiredOptions.length !== existingOptions.length || desiredOptions.some((v, i) => v !== existingOptions[i]);
+
+        if (optionsChanged) {
+            jhsBasic.innerHTML = '';
+            desiredOptions.forEach((val) => {
+                const opt = document.createElement('option');
+                opt.value = val;
+                opt.textContent = val.replace(/\bHIGH SCHOOL\b/, 'High School').replace(/JUNIOR/i, 'Junior').replace(/SENIOR/i, 'Senior');
+                jhsBasic.appendChild(opt);
+            });
+        }
+
+        const hasCurrent = desiredOptions.includes(currentValue);
+        if (!hasCurrent) {
+            jhsBasic.value = desiredOptions[0];
+        }
     }
     function togglePdsEducationDateRangeState(rangeEl, state) {
         const fromInput = rangeEl.querySelector('[data-education-date-role="from"]');
@@ -948,6 +983,14 @@
 
     document.addEventListener('DOMContentLoaded', function () {
         initPdsEducationDateRanges(document);
+
+        updateSecondaryBasicEducation();
+        const elemTo = document.getElementById('elem_to');
+        if (elemTo) {
+            ['change', 'blur'].forEach((evt) => {
+                elemTo.addEventListener(evt, updateSecondaryBasicEducation);
+            });
+        }
 
         const dobInput = document.querySelector('[data-dob-input]');
         if (dobInput) {

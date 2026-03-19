@@ -35,21 +35,13 @@
                             </a>
                         </div>
                     </div>
-                    <div class="flex items-center gap-4 bg-white/10 rounded-2xl px-5 py-4 border border-white/15 shadow-inner">
-                        <div class="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center text-lg font-bold">
-                            {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
-                        </div>
-                        <div>
-                            <p class="text-xs text-white/70">PDS Profile</p>
-                            <p class="text-2xl font-black leading-tight">{{ $pdsProgress }}% <span class="text-sm font-semibold">Completed</span></p>
-                        </div>
-                    </div>
                 </div>
                 <div class="absolute -left-10 -bottom-16 h-48 w-48 rounded-full bg-white/10 blur-3xl"></div>
                 <div class="absolute right-6 -top-10 h-32 w-32 rounded-full bg-white/15 blur-2xl"></div>
             </div>
 
             <!-- Quick Stats Grid -->
+            @php $actionRequiredCount = collect($deadlineCountdown ?? [])->count(); @endphp
             <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
                 <div class="group relative overflow-hidden rounded-2xl bg-white p-4 shadow-lg shadow-slate-200/70 border border-slate-100">
                     <div class="flex items-start justify-between">
@@ -103,31 +95,56 @@
                 <div class="group relative overflow-hidden rounded-2xl bg-white p-4 shadow-lg shadow-slate-200/70 border border-slate-100">
                     <div class="flex items-start justify-between">
                         <div class="flex items-center gap-3">
-                            <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-green-50 text-green-600">
-                                <i data-feather="file-text" class="w-5 h-5"></i>
-                            </span>
-                            <div>
-                                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">PDS Profile</p>
-                                <div class="flex items-end gap-2">
-                                    <p class="text-3xl font-extrabold text-[#0D2B70]">{{ $pdsProgress }}%</p>
-                                    <span class="text-xs font-semibold {{ $pdsProgress >= 100 ? 'text-green-600' : 'text-orange-500' }}">
-                                        {{ $pdsProgress >= 100 ? 'Completed' : 'Incomplete' }}
-                                    </span>
+                            <button type="button" id="action-required-card" class="flex items-center gap-3 text-left">
+                                <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-50 text-orange-600">
+                                    <i data-feather="alert-triangle" class="w-5 h-5"></i>
+                                </span>
+                                <div>
+                                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Action Required</p>
+                                    <div class="flex items-center gap-2">
+                                        <p class="text-3xl font-extrabold text-[#0D2B70]">{{ $actionRequiredCount }}</p>
+                                        <span class="text-[11px] font-semibold text-orange-600">Tap to view list</span>
+                                    </div>
                                 </div>
-                            </div>
+                            </button>
                         </div>
                     </div>
-                    <div class="mt-4 h-1.5 w-full rounded-full bg-slate-100">
-                        <div class="h-1.5 rounded-full bg-green-500 transition-all duration-500" style="width: {{ $pdsProgress }}%"></div>
-                    </div>
-                    <div class="absolute bottom-0 right-0 h-20 w-20 rounded-full bg-green-50/60 blur-3xl transition-transform duration-500 group-hover:scale-110"></div>
+                    <div class="absolute bottom-0 right-0 h-20 w-20 rounded-full bg-orange-50/60 blur-3xl transition-transform duration-500 group-hover:scale-110"></div>
                 </div>
             </div>
+
+            @if($actionRequiredCount > 0)
+                <div id="action-required-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center px-4">
+                    <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"></div>
+                    <div class="relative w-full max-w-xl rounded-2xl bg-white shadow-2xl border border-slate-100 p-6 space-y-4">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2 text-[#0D2B70] font-bold">
+                                <i data-feather="alert-circle" class="h-4 w-4 text-orange-500"></i>
+                                <span>Action Required</span>
+                                <span class="text-xs font-semibold text-orange-600">({{ $actionRequiredCount }})</span>
+                            </div>
+                            <button type="button" id="action-required-close" class="text-sm font-semibold text-slate-500 hover:text-slate-700">Close</button>
+                        </div>
+                        <div class="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+                            @foreach(collect($deadlineCountdown) as $deadline)
+                                @php
+                                    $daysRemaining = (int) ($deadline['days_remaining'] ?? 0);
+                                @endphp
+                                <div class="rounded-xl border border-orange-100 bg-orange-50 px-3 py-3">
+                                    <p class="text-[11px] font-bold uppercase tracking-wide text-orange-800">Due in {{ $daysRemaining }} {{ $daysRemaining === 1 ? 'Day' : 'Days' }}</p>
+                                    <p class="mt-1 text-sm font-bold text-[#0D2B70] leading-snug">{{ $deadline['position_title'] }}</p>
+                                    <p class="text-[11px] text-slate-600">Deadline: {{ \Carbon\Carbon::parse($deadline['deadline'])->format('M d, h:i A') }}</p>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+            @endif
 
             <!-- Main Content Layout -->
             <div class="grid grid-cols-1 xl:grid-cols-12 gap-4">
                 <!-- My Applications Section -->
-                <section class="xl:col-span-6 overflow-hidden rounded-2xl bg-white shadow-lg shadow-slate-200/70 border border-slate-100">
+                <section class="xl:col-span-7 overflow-hidden rounded-2xl bg-white shadow-lg shadow-slate-200/70 border border-slate-100">
                     <div class="flex items-center justify-between border-b border-slate-100 bg-slate-50/70 px-5 sm:px-6 py-3">
                         <div class="flex items-center gap-2 text-[#0D2B70] font-bold">
                             <i data-feather="briefcase" class="w-4 h-4"></i>
@@ -195,35 +212,8 @@
                     @endif
                 </section>
 
-                <!-- Middle Column: Action Required -->
-                <div class="xl:col-span-3 space-y-4">
-                    <div class="rounded-2xl bg-white shadow-lg shadow-slate-200/70 border border-slate-100 p-4">
-                        <div class="mb-3 flex items-center gap-2 font-bold text-[#0D2B70]">
-                            <i data-feather="alert-circle" class="h-4 w-4 text-orange-500"></i>
-                            Action Required
-                        </div>
-                        @if(count($deadlineCountdown) === 0)
-                            <p class="text-sm text-slate-500">No upcoming deadlines at the moment.</p>
-                        @else
-                            <div class="space-y-3">
-                                @foreach(collect($deadlineCountdown)->take(3) as $deadline)
-                                    @php
-                                        $daysRemaining = (int) ($deadline['days_remaining'] ?? 0);
-                                    @endphp
-                                    <div class="rounded-xl border border-orange-100 bg-orange-50 px-3 py-3">
-                                        <p class="text-[11px] font-bold uppercase tracking-wide text-orange-800">Due in {{ $daysRemaining }} {{ $daysRemaining === 1 ? 'Day' : 'Days' }}</p>
-                                        <p class="mt-1 text-sm font-bold text-[#0D2B70] leading-snug">{{ $deadline['position_title'] }}</p>
-                                        <p class="text-[11px] text-slate-600">Deadline: {{ \Carbon\Carbon::parse($deadline['deadline'])->format('M d, h:i A') }}</p>
-                                    </div>
-                                @endforeach
-                            </div>
-                        @endif
-                    </div>
-
-                </div>
-
                 <!-- Right Column: PDS Links -->
-                <div class="xl:col-span-3 space-y-4">
+                <div class="xl:col-span-5 space-y-4">
                     <div class="rounded-2xl bg-white shadow-lg shadow-slate-200/70 border border-slate-100 p-4">
                         <div class="mb-3 flex items-center justify-between">
                             <div class="flex items-center gap-2 font-bold text-[#0D2B70]">
@@ -276,6 +266,24 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             feather.replace();
+
+            const actionCard = document.getElementById('action-required-card');
+            const actionModal = document.getElementById('action-required-modal');
+            const actionClose = document.getElementById('action-required-close');
+            const openModal = () => {
+                if (!actionModal) return;
+                actionModal.classList.remove('hidden');
+            };
+            const closeModal = () => {
+                if (!actionModal) return;
+                actionModal.classList.add('hidden');
+            };
+            [actionCard, actionClose, actionModal].forEach((el) => {
+                if (!el) return;
+                if (el === actionCard) el.addEventListener('click', openModal);
+                if (el === actionClose) el.addEventListener('click', closeModal);
+                if (el === actionModal) el.addEventListener('click', (e) => { if (e.target === actionModal) closeModal(); });
+            });
 
             const normalizeNotificationUrl = window.normalizeNotificationUrl || ((targetUrl) => targetUrl || '');
             document.querySelectorAll('.js-recent-notification').forEach((item) => {
