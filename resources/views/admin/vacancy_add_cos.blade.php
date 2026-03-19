@@ -1,5 +1,6 @@
 @extends('layout.admin')
 @section('title', 'Job Details - COS Position')
+@section('main-padding', 'px-3 sm:px-4 md:px-5')
 @section('content')
 
 @if (session('success'))
@@ -27,7 +28,7 @@
   </div>
 @endif
 
-<main class="w-full max-w-full min-h-screen overflow-x-hidden rounded-2xl bg-slate-100 p-4 font-montserrat md:p-6 lg:p-8">
+<main class="w-full max-w-full min-h-screen overflow-x-hidden rounded-2xl bg-slate-100 p-2 font-montserrat md:p-3 lg:p-4">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
@@ -63,19 +64,19 @@
     $helperText = 'mt-1 text-xs leading-5 text-slate-500';
   @endphp
 
-  <div class="mx-auto w-full max-w-6xl min-w-0">
+  <div class="w-full min-w-0">
     <div class="mb-6">
       <div>
         <button type="button" onclick="handleBack()" class="use-loader mb-4 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900">
           <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-slate-600">&larr;</span>
           <span>Back to vacancies</span>
         </button>
-        <h1 class="text-3xl font-bold tracking-tight text-slate-900">
-          Contract of Service Position
-        </h1>
-        <p class="mt-2 text-sm text-slate-600">
-          Complete the details below to create or update this job posting.
-        </p>
+
+      <section class="flex-none flex items-center space-x-4 max-w-full">
+          <h1 class="flex items-center gap-3 w-full border-b border-[#0D2B70] text-white text-4xl font-montserrat py-2 tracking-wide select-none">
+              <span class="whitespace-nowrap text-[#0D2B70]">Contract of Service Position</span>
+          </h1>
+      </section>
       </div>
     </div>
 
@@ -354,7 +355,7 @@
             </button>
 
             <button id="vacancy-save-btn" type="button" disabled class="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 opacity-50 cursor-not-allowed">
-              <span id="save-icon">
+              <span id="save-icon   ">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
@@ -506,7 +507,7 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 
 // Structured eligibility UI state + interactions
-const predefinedEligibilities = [
+const defaultPredefinedEligibilities = [
     { name: 'CSC Professional Eligibility', legalBasis: 'CSR 2017/PD 807', level: 'Second Level' },
     { name: 'Bar/Board Eligibility', legalBasis: 'RA 1080', level: 'Second Level' },
     { name: 'Honor Graduate Eligibility', legalBasis: 'PD 907', level: 'Second Level' },
@@ -521,8 +522,30 @@ const predefinedEligibilities = [
     { name: 'Scientific and Technological Specialist Eligibility', legalBasis: 'PD 997', level: 'Second Level' },
 ];
 
+let predefinedEligibilities = [...defaultPredefinedEligibilities];
 let eligibilityState = [];
 let editingEligibilityId = null;
+
+async function loadPredefinedEligibilities() {
+    try {
+        const response = await fetch("{{ route('admin.eligibilities.list') }}");
+        const payload = await response.json();
+        if (payload?.success && Array.isArray(payload.data) && payload.data.length > 0) {
+            predefinedEligibilities = payload.data
+                .map(item => ({
+                    name: String(item.name || '').trim(),
+                    legalBasis: String(item.legal_basis || '').trim(),
+                    level: String(item.level || '').trim(),
+                }))
+                .filter(item => item.name !== '');
+            return;
+        }
+    } catch (error) {
+        // Keep defaults if endpoint is unavailable.
+    }
+
+    predefinedEligibilities = [...defaultPredefinedEligibilities];
+}
 
 function normalizeEligibilityName(value) {
     return String(value || '').trim().toLowerCase();
@@ -618,7 +641,7 @@ function hasEligibilityItems() {
 
 window.hasEligibilityItems = hasEligibilityItems;
 
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', async function () {
     const listEl = document.getElementById('eligibility-list');
     const hiddenEl = document.getElementById('qualification_eligibility_hidden');
     const selectEl = document.getElementById('eligibility-select');
@@ -635,6 +658,8 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!listEl || !hiddenEl || !selectEl || !addSelectedBtn || !addCustomBtn || !customEditor || !customNameEl || !customLegalEl || !customLevelEl || !customSaveBtn || !customCancelBtn || !addErrorEl) {
         return;
     }
+
+    await loadPredefinedEligibilities();
 
     function setAddError(message) {
         if (!message) {

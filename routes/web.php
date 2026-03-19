@@ -33,6 +33,7 @@ use App\Http\Controllers\BackupRestoreController;
 use App\Http\Controllers\PsgcController;
 use App\Http\Controllers\VacancyTitleController;
 use App\Http\Controllers\PositionUtilityController;
+use App\Http\Controllers\EligibilityPresetController;
 
 use App\Events\PackageSent;
 use Illuminate\Http\Request;
@@ -347,6 +348,7 @@ Route::middleware(['auth', BlockIfAdmin::class])->group(function () {
     Route::post('/pds/import-c1-excel', [Forms\PDSController::class, 'importC1Excel'])->name('pds.import_c1_excel');
     Route::get('/pds/export-annex-h1-excel', [Forms\PDSController::class, 'exportAnnexH1Excel'])->name('pds.export_annex_h1_excel');
     Route::post('/pds/autosave/{section}', [Forms\PDSController::class, 'autosaveDraft'])->name('pds.autosave');
+    Route::get('/pds/utilities/eligibilities/list', [EligibilityPresetController::class, 'listJson'])->name('pds.eligibilities.list');
 
     Route::get('/pds/c2', [Forms\PDSController::class, 'c2DisplayForm'])->name('display_c2');
     Route::post('/pds/submit_c2/{go_to}', [Forms\PDSController::class, 'c2UpdateFormSession'])->name('submit_c2');
@@ -600,6 +602,10 @@ Route::middleware([RedirectIfNotAdmin::class])->group(function () {
     Route::get('/admin/utilities/reports/export', [App\Http\Controllers\ReportController::class, 'export'])->name('admin.reports.export');
     Route::get('/admin/utilities/positions', [PositionUtilityController::class, 'index'])->name('admin.positions.index');
     Route::get('/admin/utilities/positions/list', [PositionUtilityController::class, 'listJson'])->name('admin.positions.list');
+    Route::get('/admin/utilities/eligibilities', [EligibilityPresetController::class, 'index'])->name('admin.eligibilities.index');
+    Route::post('/admin/utilities/eligibilities', [EligibilityPresetController::class, 'store'])->name('admin.eligibilities.store');
+    Route::put('/admin/utilities/eligibilities/{id}', [EligibilityPresetController::class, 'update'])->name('admin.eligibilities.update');
+    Route::delete('/admin/utilities/eligibilities/{id}', [EligibilityPresetController::class, 'destroy'])->name('admin.eligibilities.destroy');
 
     Route::middleware([EnsureSuperadmin::class])->group(function () {
         Route::get('/admin/utilities/backup-restore', [BackupRestoreController::class, 'index'])->name('admin.backup.index');
@@ -607,6 +613,7 @@ Route::middleware([RedirectIfNotAdmin::class])->group(function () {
         Route::post('/admin/utilities/backup-restore/restore', [BackupRestoreController::class, 'restore'])->name('admin.backup.restore');
     });
     Route::get('/admin/utilities/vacancy-titles/list', [VacancyTitleController::class, 'listJson'])->name('admin.vacancy_titles.list');
+    Route::get('/admin/utilities/eligibilities/list', [EligibilityPresetController::class, 'listJson'])->name('admin.eligibilities.list');
 
     // ==================================================================================================
     // SIGNATORY ROUTES
