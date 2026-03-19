@@ -588,6 +588,7 @@
                 <div class="flex flex-col gap-2 mt-4">
                     <button type="button" id="sendLinkButton" onclick="triggerSendLinkConfirm('{{ $vacancy->vacancy_id }}')" 
                             {{ (!$examDetails || !$examDetails->details_saved || $examDetails->link_sent || $isExamActive || $isExamCompleted || !$isExamDay || ($willAttendCount < 1)) ? 'disabled' : '' }}
+                            title="{{ $willAttendCount < 1 ? 'No applicants are marked as Will Attend yet.' : 'Send exam links to applicants marked as Will Attend.' }}"
                             class="w-full py-2 bg-[#0D2B70] border-2 border-[#0D2B70] rounded-lg text-white font-bold text-sm hover:scale-[1.02] flex items-center justify-center gap-2 transition-transform disabled:opacity-50 disabled:hover:scale-100">
                         Send Link via Email
                     </button>
@@ -985,14 +986,30 @@
         currentLobbyCount = participantsCount;
         const btn = document.getElementById('sendLinkButton');
         if (!btn) return;
+        const noWillAttendYet = willAttendCountClient < 1;
         const shouldEnable = hasExamDetailsClient
             && detailsSavedClient
             && !linkSentClient
             && !isExamActiveConst
             && !isExamCompletedConst
             && isExamDayConst
-            && willAttendCountClient > 0;
+            && !noWillAttendYet;
+
+        let disabledReason = 'Send exam links to applicants marked as Will Attend.';
+        if (!hasExamDetailsClient || !detailsSavedClient) {
+            disabledReason = 'Please save exam details first.';
+        } else if (linkSentClient) {
+            disabledReason = 'Exam links were already sent.';
+        } else if (isExamActiveConst || isExamCompletedConst) {
+            disabledReason = 'Exam links can no longer be sent for this schedule.';
+        } else if (!isExamDayConst) {
+            disabledReason = 'Exam links can only be sent on the scheduled exam day.';
+        } else if (noWillAttendYet) {
+            disabledReason = 'No applicants are marked as Will Attend yet.';
+        }
+
         btn.disabled = !shouldEnable;
+        btn.title = disabledReason;
         btn.classList.toggle('opacity-50', !shouldEnable);
         btn.classList.toggle('cursor-not-allowed', !shouldEnable);
     }
