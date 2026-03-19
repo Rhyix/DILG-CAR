@@ -262,6 +262,12 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('page-shell')?.classList.add('page-ready');
         });
 
+        @if (session('applicant_deletion_daily_notice'))
+            if (typeof window.showAppToast === 'function') {
+                window.showAppToast(@json(session('applicant_deletion_daily_notice')), 'success', 7000);
+            }
+        @endif
+
         document.querySelectorAll('a.use-loader').forEach(link => {
             link.addEventListener('click', function (e) {
                 if (this.target !== '_blank') {

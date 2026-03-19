@@ -24,6 +24,10 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'applicant_code',
+        'pending_deletion_at',
+        'deletion_due_at',
+        'deletion_warning_sent_at',
+        'deletion_requested_by_admin_id',
         'name',
         'first_name',
         'middle_name',
@@ -56,6 +60,9 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'pending_deletion_at' => 'datetime',
+            'deletion_due_at' => 'datetime',
+            'deletion_warning_sent_at' => 'datetime',
             'password' => 'hashed',
         ];
     }
@@ -188,5 +195,10 @@ class User extends Authenticatable
     public function unreadNotifications(): MorphMany
     {
         return $this->notifications()->whereNull('read_at');
+    }
+
+    public function isPendingDeletion(): bool
+    {
+        return !is_null($this->deletion_due_at);
     }
 }

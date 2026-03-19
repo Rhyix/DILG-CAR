@@ -2,32 +2,39 @@
 
 namespace App\Http\Middleware;
 
-use Closure;
-use Illuminate\Support\Facades\Cache;
-use Carbon\Carbon;
 use App\Models\JobVacancy;
+use App\Services\ApplicantDeletionWorkflowService;
+use Carbon\Carbon;
+use Closure;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 
 class RunDailyTask
 {
     public function handle($request, Closure $next)
     {
-        //info('RunDailyTask middleware triggered.');
-
         $lastRun = Cache::get('daily_task_last_run');
 
         if (!$lastRun || Carbon::parse($lastRun)->lt(Carbon::today())) {
-            // 🔥 Your 12mn logic here:
             JobVacancy::where('closing_date', '<', Carbon::now())
                 ->where('status', 'OPEN')
                 ->update(['status' => 'CLOSED']);
 
-            // update cache timestamp
+            $workflow = app(ApplicantDeletionWorkflowService::class);
+            $deletionResults = $workflow->processDailyTasks();
+
+            if (!empty($deletionResults['deleted']) && $request->hasSession() && Auth::guard('admin')->check()) {
+                $request->session()->flash(
+                    'applicant_deletion_daily_notice',
+                    'Scheduled deletion completed for ' . $workflow->summarizeLabels($deletionResults['deleted']) . '.'
+                );
+            }
+
             Cache::put('daily_task_last_run', Carbon::now());
 
             info('RunDailyTask!');
         }
 
-        //info('daily task executed.');
         return $next($request);
     }
 }

@@ -9,7 +9,7 @@ use App\Models\JobVacancy;
 use App\Models\UploadedDocument;
 use App\Models\AdminVacancyAccess;
 use App\Models\User;
-use App\Services\ApplicantRecordDeletionService;
+use App\Services\ApplicantDeletionWorkflowService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
@@ -262,6 +262,21 @@ class ShowApplicantsProfile extends Controller
         return $sortOrder === 'oldest'
             ? $applications->sortBy('created_at')
             : $applications->sortByDesc('created_at');
+    }
+
+    private function applicantDisplayName(User $user): string
+    {
+        $user->loadMissing('personalInformation');
+
+        $personalInfo = $user->personalInformation;
+        $fullName = trim(implode(' ', array_filter([
+            trim((string) ($personalInfo?->first_name ?? '')),
+            filled($personalInfo?->middle_name) ? strtoupper(substr((string) $personalInfo->middle_name, 0, 1)) . '.' : '',
+            trim((string) ($personalInfo?->surname ?? '')),
+            trim((string) ($personalInfo?->name_extension ?? '')),
+        ])));
+
+        return $fullName !== '' ? $fullName : ((string) ($user->name ?: 'Applicant'));
     }
 
     public function index(Request $request, $vacancy_id)
@@ -562,21 +577,55 @@ class ShowApplicantsProfile extends Controller
         ]);
     }
 
-    public function destroyApplicantRecord(Request $request, User $user, ApplicantRecordDeletionService $deletionService)
+    public function scheduleApplicantRecordDeletion(Request $request, User $user, ApplicantDeletionWorkflowService $workflow)
     {
-        $user->loadMissing('personalInformation');
+        if ($user->isPendingDeletion()) {
+            return response()->json([
+                'message' => 'This applicant is already set for deletion.',
+            ], 422);
+        }
 
-        $personalInfo = $user->personalInformation;
-        $fullName = trim(implode(' ', array_filter([
-            trim((string) ($personalInfo?->first_name ?? '')),
-            filled($personalInfo?->middle_name) ? strtoupper(substr((string) $personalInfo->middle_name, 0, 1)) . '.' : '',
-            trim((string) ($personalInfo?->surname ?? '')),
-            trim((string) ($personalInfo?->name_extension ?? '')),
-        ])));
-        $displayName = $fullName !== '' ? $fullName : ((string) ($user->name ?: 'Applicant'));
+        $displayName = $this->applicantDisplayName($user);
+        $deadline = $workflow->schedule($user, Auth::guard('admin')->user());
+
+        return response()->json([
+            'message' => sprintf(
+                'Applicant record for %s is set for deletion until %s.',
+                $displayName,
+                $deadline->format('M d, Y h:i A')
+            ),
+            'deadline' => $deadline->toIso8601String(),
+        ]);
+    }
+
+    public function cancelApplicantRecordDeletion(Request $request, User $user, ApplicantDeletionWorkflowService $workflow)
+    {
+        if (!$user->isPendingDeletion()) {
+            return response()->json([
+                'message' => 'This applicant is not currently set for deletion.',
+            ], 422);
+        }
+
+        $displayName = $this->applicantDisplayName($user);
+        $workflow->cancel($user, Auth::guard('admin')->user());
+
+        return response()->json([
+            'message' => sprintf('Scheduled deletion for %s has been cancelled.', $displayName),
+        ]);
+    }
+
+    public function destroyApplicantRecord(Request $request, User $user, ApplicantDeletionWorkflowService $workflow)
+    {
+        if ($user->isPendingDeletion()) {
+            return response()->json([
+                'message' => 'Cancel the scheduled deletion first if you need to change the deletion mode.',
+            ], 422);
+        }
+
+        $displayName = $this->applicantDisplayName($user);
 
         try {
-            $deletionService->delete($user, Auth::guard('admin')->user());
+            $workflow->deleteImmediately($user, Auth::guard('admin')->user());
 
             $message = sprintf('Applicant record for %s has been permanently deleted.', $displayName);
 
