@@ -2,6 +2,16 @@
 @section('title', 'Backup & Restore')
 @section('content')
 <div class="p-6 space-y-6 max-w-6xl mx-auto font-montserrat">
+    @php
+        $backupReminder = $backupReminder ?? [
+            'latest_backup_at' => null,
+            'days_since_last_backup' => null,
+            'is_overdue' => true,
+            'status_label' => 'No backup record found',
+            'reminder_message' => 'Backup is required to protect system data.',
+        ];
+    @endphp
+
     <div class="rounded-2xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#EAF2FF] shadow-sm">
         <div class="px-6 py-6 md:px-8 md:py-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
@@ -19,6 +29,33 @@
                 <span class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600">
                     Handle with care
                 </span>
+            </div>
+        </div>
+    </div>
+
+    <div class="rounded-xl border {{ $backupReminder['is_overdue'] ? 'border-amber-200 bg-amber-50' : 'border-emerald-200 bg-emerald-50' }} px-4 py-3">
+        <div class="flex items-start gap-3">
+            <span class="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full {{ $backupReminder['is_overdue'] ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700' }}">
+                <i data-feather="{{ $backupReminder['is_overdue'] ? 'alert-triangle' : 'shield' }}" class="w-4 h-4"></i>
+            </span>
+            <div class="text-sm">
+                <p class="font-semibold {{ $backupReminder['is_overdue'] ? 'text-amber-800' : 'text-emerald-800' }}">
+                    {{ $backupReminder['status_label'] }}
+                </p>
+                <p class="{{ $backupReminder['is_overdue'] ? 'text-amber-700' : 'text-emerald-700' }}">
+                    {{ $backupReminder['reminder_message'] }}
+                </p>
+                <p class="mt-1 text-xs text-slate-600">
+                    Last successful backup:
+                    @if(!empty($backupReminder['latest_backup_at']))
+                        {{ \Carbon\Carbon::parse($backupReminder['latest_backup_at'])->format('F j, Y g:i A') }}
+                        @if(!is_null($backupReminder['days_since_last_backup']))
+                            ({{ (int) $backupReminder['days_since_last_backup'] }} day(s) ago)
+                        @endif
+                    @else
+                        Not yet recorded
+                    @endif
+                </p>
             </div>
         </div>
     </div>

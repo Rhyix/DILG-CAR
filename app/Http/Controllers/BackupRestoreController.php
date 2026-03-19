@@ -2,20 +2,112 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Admin;
+use App\Models\Notification;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
+use Spatie\Activitylog\Models\Activity;
 
 class BackupRestoreController extends Controller
 {
+    private const BACKUP_REMINDER_DAYS = 30;
+
+    private function latestBackupAt(): ?Carbon
+    {
+        $latestBackup = Activity::query()
+            ->where('event', 'backup')
+            ->latest('created_at')
+            ->first(['created_at']);
+
+        if (!$latestBackup || empty($latestBackup->created_at)) {
+            return null;
+        }
+
+        return $latestBackup->created_at instanceof Carbon
+            ? $latestBackup->created_at
+            : Carbon::parse((string) $latestBackup->created_at);
+    }
+
+    private function buildBackupReminderState(): array
+    {
+        $latestBackupAt = $this->latestBackupAt();
+        if (!$latestBackupAt) {
+            return [
+                'latest_backup_at' => null,
+                'days_since_last_backup' => null,
+                'is_overdue' => true,
+                'status_label' => 'No backup record found',
+                'reminder_message' => 'No successful backup record was found. Please generate a full system backup now.',
+            ];
+        }
+
+        $daysSinceLastBackup = $latestBackupAt->diffInDays(now());
+        $isOverdue = $daysSinceLastBackup >= self::BACKUP_REMINDER_DAYS;
+
+        return [
+            'latest_backup_at' => $latestBackupAt,
+            'days_since_last_backup' => $daysSinceLastBackup,
+            'is_overdue' => $isOverdue,
+            'status_label' => $isOverdue
+                ? 'Backup overdue'
+                : 'Backup status healthy',
+            'reminder_message' => $isOverdue
+                ? "The last successful backup was {$daysSinceLastBackup} day(s) ago. Backup is required to protect system data."
+                : 'Backup cadence is within the recommended interval.',
+        ];
+    }
+
+    private function notifyOverdueBackupReminder(array $backupReminder): void
+    {
+        if (!(bool) ($backupReminder['is_overdue'] ?? false)) {
+            return;
+        }
+
+        $admin = Auth::guard('admin')->user();
+        if (!$admin || ($admin->role ?? null) !== 'superadmin') {
+            return;
+        }
+
+        $alreadyNotifiedToday = Notification::query()
+            ->where('notifiable_type', Admin::class)
+            ->where('notifiable_id', $admin->id)
+            ->where('data->category', 'backup_reminder')
+            ->whereDate('created_at', now()->toDateString())
+            ->exists();
+
+        if ($alreadyNotifiedToday) {
+            return;
+        }
+
+        Notification::create([
+            'notifiable_type' => Admin::class,
+            'notifiable_id' => $admin->id,
+            'type' => 'warning',
+            'data' => [
+                'category' => 'backup_reminder',
+                'title' => 'Backup Reminder',
+                'message' => (string) ($backupReminder['reminder_message'] ?? 'Backup is required to protect system data.'),
+                'action_url' => route('admin.backup.index', [], false),
+                'level' => 'warning',
+            ],
+        ]);
+    }
+
     public function index()
     {
         if ((Auth::guard('admin')->user()->role ?? null) !== 'superadmin') {
             abort(403);
         }
-        return view('admin.backup_restore');
+
+        $backupReminder = $this->buildBackupReminderState();
+        $this->notifyOverdueBackupReminder($backupReminder);
+
+        return view('admin.backup_restore', [
+            'backupReminder' => $backupReminder,
+        ]);
     }
 
     public function backup(Request $request)
@@ -140,6 +232,16 @@ class BackupRestoreController extends Controller
                 throw new \RuntimeException('Backup output is empty. Ensure mysqldump is installed or fallback had permissions.');
             }
 
+            activity()
+                ->event('backup')
+                ->causedBy(Auth::guard('admin')->user())
+                ->withProperties([
+                    'section' => 'Backup & Restore',
+                    'backup_file' => basename($file),
+                    'backup_generated_at' => now()->toDateTimeString(),
+                ])
+                ->log('Generated database backup.');
+
             return response()->download($file)->deleteFileAfterSend(true);
         } catch (\Throwable $e) {
             Log::error('Backup error: ' . $e->getMessage());
@@ -160,6 +262,7 @@ class BackupRestoreController extends Controller
             if (!is_file($file) || filesize($file) === 0) {
                 throw new \RuntimeException('Uploaded SQL file is empty or unreadable.');
             }
+            $uploadedFileName = (string) ($request->file('sql_file')->getClientOriginalName() ?? '');
             $conn = config('database.default');
             $cfg = config("database.connections.$conn");
             $db = $cfg['database'];
@@ -237,6 +340,16 @@ class BackupRestoreController extends Controller
                 DB::statement('SET FOREIGN_KEY_CHECKS=1');
             }
 
+            activity()
+                ->event('restore')
+                ->causedBy(Auth::guard('admin')->user())
+                ->withProperties([
+                    'section' => 'Backup & Restore',
+                    'restore_file' => $uploadedFileName,
+                    'restore_executed_at' => now()->toDateTimeString(),
+                ])
+                ->log('Restored database from uploaded backup.');
+
             return redirect()->route('admin.backup.index')->with('success', 'Database restored successfully.');
         } catch (\Throwable $e) {
             Log::error('Restore error: ' . $e->getMessage());
@@ -244,4 +357,3 @@ class BackupRestoreController extends Controller
         }
     }
 }
-
