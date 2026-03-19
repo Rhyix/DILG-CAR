@@ -2299,20 +2299,24 @@ class PDSController extends Controller
         $persistedWorkIds = [];
 
         for ($i = 0; $i < $work_exp_count; $i++) {
+            $workExpFrom = trim(strip_tags((string) ($c2_form_data['work_exp_from'][$i] ?? '')));
+            $workExpToRaw = trim(strip_tags((string) ($c2_form_data['work_exp_to'][$i] ?? '')));
+            $isPresentWorkExpTo = strtolower($workExpToRaw) === 'present';
 
             $data_work_exp = [
                 'user_id' => Auth::id(), // store the id of the current user
-                'work_exp_from' => trim(strip_tags($c2_form_data['work_exp_from'][$i])),
-                'work_exp_to' => trim(strip_tags($c2_form_data['work_exp_to'][$i])),
-                'work_exp_position' => trim(strip_tags($c2_form_data['work_exp_position'][$i])),
-                'work_exp_department' => trim(strip_tags($c2_form_data['work_exp_department'][$i])),
-                'work_exp_status' => trim(strip_tags($c2_form_data['work_exp_status'][$i])),
-                'work_exp_govt_service' => trim(strip_tags($c2_form_data['work_exp_govt_service'][$i]))
+                'work_exp_from' => $workExpFrom,
+                // DB column is DATE. Keep schema unchanged by converting PRESENT to a valid date.
+                'work_exp_to' => $isPresentWorkExpTo ? Carbon::today()->toDateString() : $workExpToRaw,
+                'work_exp_position' => trim(strip_tags((string) ($c2_form_data['work_exp_position'][$i] ?? ''))),
+                'work_exp_department' => trim(strip_tags((string) ($c2_form_data['work_exp_department'][$i] ?? ''))),
+                'work_exp_status' => trim(strip_tags((string) ($c2_form_data['work_exp_status'][$i] ?? ''))),
+                'work_exp_govt_service' => trim(strip_tags((string) ($c2_form_data['work_exp_govt_service'][$i] ?? '')))
             ];
 
             $hasWorkData = array_filter([
                 $data_work_exp['work_exp_from'],
-                $data_work_exp['work_exp_to'],
+                $workExpToRaw,
                 $data_work_exp['work_exp_position'],
                 $data_work_exp['work_exp_department'],
                 $data_work_exp['work_exp_status'],
@@ -2347,7 +2351,11 @@ class PDSController extends Controller
             if (!empty($data_work_exp['id'])) {
                 $persistedWorkIds[] = (int) $data_work_exp['id'];
             }
-            $all_wex_data[] = $data_work_exp;
+            $sessionWorkExp = $data_work_exp;
+            if ($isPresentWorkExpTo) {
+                $sessionWorkExp['work_exp_to'] = 'present';
+            }
+            $all_wex_data[] = $sessionWorkExp;
             // WorkExperience::upsert($data_work_exp, 'id');
         }
 

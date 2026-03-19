@@ -33,6 +33,29 @@
 
   @php
     $formSource = $vacancy ?? ($templateVacancy ?? null);
+    $isCreateMode = !isset($vacancy);
+    $positionMode = (bool) ($positionMode ?? false);
+    $disablePositionFields = $positionMode && $isCreateMode;
+    $defaultSignatory = $signatories->first();
+    $defaultToPerson = old(
+      'to_person',
+      $formSource?->to_person
+      ?? ($defaultSignatory ? trim(($defaultSignatory->first_name ?? '') . ' ' . ($defaultSignatory->middle_name ?? '') . ' ' . ($defaultSignatory->last_name ?? '')) : '')
+    );
+    $defaultToPosition = old('to_position', $formSource?->to_position ?? ($defaultSignatory->designation ?? ''));
+    $defaultToOffice = old('to_office', $formSource?->to_office ?? ($defaultSignatory->office ?? ''));
+    $defaultToOfficeAddress = old('to_office_address', $formSource?->to_office_address ?? ($defaultSignatory->office_address ?? ''));
+    $defaultClosingDate = old(
+      'closing_date',
+      isset($formSource) && !empty($formSource->closing_date)
+        ? \Carbon\Carbon::parse($formSource->closing_date)->format('Y-m-d')
+        : ($disablePositionFields ? now()->format('Y-m-d') : '')
+    );
+    $displayToPerson = $disablePositionFields ? '' : $defaultToPerson;
+    $displayToPosition = $disablePositionFields ? '' : $defaultToPosition;
+    $displayToOffice = $disablePositionFields ? '' : $defaultToOffice;
+    $displayToOfficeAddress = $disablePositionFields ? '' : $defaultToOfficeAddress;
+    $displayClosingDate = $disablePositionFields ? '' : $defaultClosingDate;
     $sectionTitle = 'text-lg font-semibold text-slate-900';
     $fieldLabel = 'mb-2 block text-sm font-medium text-slate-700';
     $fieldInput = 'h-11 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm text-slate-900 shadow-sm outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100';
@@ -81,9 +104,20 @@
         <div class="space-y-5">
           <div>
             <label class="{{ $fieldLabel }}">Position Title <span class="text-red-600">*</span></label>
-            <select id="position_title_select" name="position_title" required class="{{ $fieldInput }}">
-              <option value="">-- Select Position Title --</option>
-            </select>
+            @if($disablePositionFields)
+              <input
+                id="position_title_select"
+                type="text"
+                name="position_title"
+                required
+                value="{{ old('position_title', $formSource?->position_title ?? '') }}"
+                class="{{ $fieldInput }}"
+                placeholder="Enter position title">
+            @else
+              <select id="position_title_select" name="position_title" required class="{{ $fieldInput }}">
+                <option value="">-- Select Position Title --</option>
+              </select>
+            @endif
             <p id="position_title_error" class="mt-1 hidden text-sm text-red-600">Position title is required.</p>
           </div>
 
@@ -111,10 +145,17 @@
                 id="closing_date"
                 type="date"
                 name="closing_date"
-                value="{{ old('closing_date', isset($formSource) && !empty($formSource->closing_date) ? \Carbon\Carbon::parse($formSource->closing_date)->format('Y-m-d') : '') }}"
+                value="{{ $displayClosingDate }}"
                 placeholder="Select deadline"
+                {{ $disablePositionFields ? 'disabled' : '' }}
                 class="{{ $fieldInput }}">
+              @if($disablePositionFields)
+                <input type="hidden" name="closing_date" value="{{ $defaultClosingDate }}">
+              @endif
               <p id="closing_date_error" class="mt-1 hidden text-sm text-red-600">Deadline of application is required.</p>
+              @if($disablePositionFields)
+                <p class="{{ $helperText }}">Deadline is managed in Add Vacancy.</p>
+              @endif
             </div>
 
             <div>
@@ -248,49 +289,56 @@
         </div>
       </section>
 
-      <section class="w-full overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div class="mb-6 border-b border-slate-200 pb-5">
-          <h2 class="{{ $sectionTitle }}">Application Submission Details</h2>
-          <p class="mt-1 text-sm text-slate-600">
-            Provide the receiving office and contact person for applications.
-          </p>
-        </div>
-
-        <div class="grid gap-5 md:grid-cols-2">
-          <div>
-            <label class="{{ $fieldLabel }}">Name of Head <span class="text-red-600">*</span></label>
-            <select id="signatory_select" name="to_person" class="{{ $fieldInput }}">
-              <option value="">-- Select Regional Director --</option>
-              @forelse($signatories as $signatory)
-                <option value="{{ $signatory->first_name }} {{ $signatory->middle_name }} {{ $signatory->last_name }}"
-                  data-designation="{{ $signatory->designation }}"
-                  data-office="{{ $signatory->office }}"
-                  data-office_address="{{ $signatory->office_address }}"
-                  {{ old('to_person', $formSource?->to_person ?? '') === ($signatory->first_name . ' ' . $signatory->middle_name . ' ' . $signatory->last_name) || (count($signatories) === 1 && old('to_person', $formSource?->to_person ?? '') === '') ? 'selected' : '' }}>
-                  {{ $signatory->first_name }} {{ $signatory->middle_name }} {{ $signatory->last_name }}
-                </option>
-              @empty
-                <option value="">No Regional Director configured</option>
-              @endforelse
-            </select>
+      @if($disablePositionFields)
+        <input type="hidden" name="to_person" value="{{ $defaultToPerson }}">
+        <input type="hidden" name="to_position" value="{{ $defaultToPosition }}">
+        <input type="hidden" name="to_office" value="{{ $defaultToOffice }}">
+        <input type="hidden" name="to_office_address" value="{{ $defaultToOfficeAddress }}">
+      @else
+        <section class="w-full overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div class="mb-6 border-b border-slate-200 pb-5">
+            <h2 class="{{ $sectionTitle }}">Application Submission Details</h2>
+            <p class="mt-1 text-sm text-slate-600">
+              Provide the receiving office and contact person for applications.
+            </p>
           </div>
 
-          <div>
-            <label class="{{ $fieldLabel }}">Office <span class="text-red-600">*</span></label>
-            <input type="text" id="to_office" name="to_office" value="{{ old('to_office', $formSource?->to_office ?? '') }}" class="{{ $fieldInput }}">
-          </div>
+          <div class="grid gap-5 md:grid-cols-2">
+            <div>
+              <label class="{{ $fieldLabel }}">Name of Head <span class="text-red-600">*</span></label>
+              <select id="signatory_select" name="to_person" class="{{ $fieldInput }}">
+                <option value="">-- Select Regional Director --</option>
+                @forelse($signatories as $signatory)
+                  <option value="{{ $signatory->first_name }} {{ $signatory->middle_name }} {{ $signatory->last_name }}"
+                    data-designation="{{ $signatory->designation }}"
+                    data-office="{{ $signatory->office }}"
+                    data-office_address="{{ $signatory->office_address }}"
+                    {{ $displayToPerson === ($signatory->first_name . ' ' . $signatory->middle_name . ' ' . $signatory->last_name) || (!$disablePositionFields && count($signatories) === 1 && $displayToPerson === '') ? 'selected' : '' }}>
+                    {{ $signatory->first_name }} {{ $signatory->middle_name }} {{ $signatory->last_name }}
+                  </option>
+                @empty
+                  <option value="">No Regional Director configured</option>
+                @endforelse
+              </select>
+            </div>
 
-          <div>
-            <label class="{{ $fieldLabel }}">Designation <span class="text-red-600">*</span></label>
-            <input type="text" id="to_position" name="to_position" value="{{ old('to_position', $formSource?->to_position ?? '') }}" class="{{ $fieldInput }}">
-          </div>
+            <div>
+              <label class="{{ $fieldLabel }}">Office <span class="text-red-600">*</span></label>
+              <input type="text" id="to_office" name="to_office" value="{{ $displayToOffice }}" class="{{ $fieldInput }}">
+            </div>
 
-          <div>
-            <label class="{{ $fieldLabel }}">Office Address <span class="text-red-600">*</span></label>
-            <input type="text" id="to_office_address" name="to_office_address" value="{{ old('to_office_address', $formSource?->to_office_address ?? '') }}" class="{{ $fieldInput }}">
+            <div>
+              <label class="{{ $fieldLabel }}">Designation <span class="text-red-600">*</span></label>
+              <input type="text" id="to_position" name="to_position" value="{{ $displayToPosition }}" class="{{ $fieldInput }}">
+            </div>
+
+            <div>
+              <label class="{{ $fieldLabel }}">Office Address <span class="text-red-600">*</span></label>
+              <input type="text" id="to_office_address" name="to_office_address" value="{{ $displayToOfficeAddress }}" class="{{ $fieldInput }}">
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      @endif
     </form>
 
     <div class="sticky bottom-4 z-10 mt-6 w-full overflow-hidden rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-lg backdrop-blur">
@@ -395,14 +443,17 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {
-    flatpickr("#closing_date", {
-        monthSelectorType: "dropdown",
-        altInput: true,
-        altFormat: "F j, Y", // Pretty display
-        dateFormat: "Y-m-d", // Format sent to Laravel
-        minDate: "today",    // cannot pick past dates
-        maxDate: "2099-12-31"
-    });
+    const closingDateInput = document.getElementById('closing_date');
+    if (closingDateInput && !closingDateInput.disabled) {
+      flatpickr("#closing_date", {
+          monthSelectorType: "dropdown",
+          altInput: true,
+          altFormat: "F j, Y", // Pretty display
+          dateFormat: "Y-m-d", // Format sent to Laravel
+          minDate: "today",    // cannot pick past dates
+          maxDate: "2099-12-31"
+      });
+    }
 });
 
 // Auto-fill signatory fields
@@ -411,6 +462,14 @@ document.addEventListener("DOMContentLoaded", function() {
     const positionField = document.getElementById('to_position');
     const officeField = document.getElementById('to_office');
     const officeAddressField = document.getElementById('to_office_address');
+    const disablePositionFields = @json($disablePositionFields);
+
+    if (!signatorySelect || !positionField || !officeField || !officeAddressField) {
+        if (typeof checkAllFieldsFilled === 'function') {
+            checkAllFieldsFilled();
+        }
+        return;
+    }
 
     function handleSignatoryChange() {
         const selectedOption = signatorySelect.options[signatorySelect.selectedIndex];
@@ -433,7 +492,7 @@ document.addEventListener("DOMContentLoaded", function() {
         // officeAddressField.disabled = true;
     }
 
-    if (signatorySelect && signatorySelect.value === '' && signatorySelect.options.length > 1) {
+    if (!disablePositionFields && signatorySelect && signatorySelect.value === '' && signatorySelect.options.length > 1) {
         signatorySelect.selectedIndex = 1;
     }
 
@@ -691,6 +750,18 @@ document.addEventListener('DOMContentLoaded', function () {
         }).join('');
     }
 
+    window.setEligibilityFromRaw = function (rawValue) {
+        eligibilityState = parseInitialEligibility(rawValue);
+        editingEligibilityId = null;
+        syncEligibilityHiddenField();
+        renderEligibilityList();
+        renderEligibilitySelectOptions();
+        setAddError('');
+        if (typeof checkAllFieldsFilled === 'function') {
+            checkAllFieldsFilled();
+        }
+    };
+
     eligibilityState = parseInitialEligibility(hiddenEl.value);
     syncEligibilityHiddenField();
     renderEligibilityList();
@@ -825,6 +896,14 @@ function checkAllFieldsFilled() {
         'to_office',
         'to_office_address',
     ]);
+    const disablePositionFields = @json($disablePositionFields);
+    if (disablePositionFields) {
+      requiredFields.delete('closing_date');
+      requiredFields.delete('to_person');
+      requiredFields.delete('to_position');
+      requiredFields.delete('to_office');
+      requiredFields.delete('to_office_address');
+    }
     let allFilled = true;
     
     const inputs = form.querySelectorAll('input:not([type="hidden"]), select, textarea');
@@ -888,6 +967,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Validate and submit on confirm
 window.addEventListener('confirm-cos-save', () => {
+    const disablePositionFields = @json($disablePositionFields);
     const form = document.getElementById('vacancy-form');
     const errors = [];
     const show = (el, msg) => { if(el){ el.textContent = msg; el.classList.remove('hidden'); } };
@@ -909,7 +989,7 @@ window.addEventListener('confirm-cos-save', () => {
     // Validate basics
     if (!positionTitle || !positionTitle.value.trim()) { errors.push('Position title is required.'); show(eTitle, 'Position title is required.'); }
     if (!salaryGrade || !/^SG-\d{2}$/.test(String(salaryGrade.value || '').trim())) { errors.push('Salary grade must be in SG-00 format.'); show(eSalaryGrade, 'Salary grade must be in SG-00 format (example: SG-23).'); }
-    if (!closingDate.value) { errors.push('Deadline is required.'); show(eClosing, 'Deadline of application is required.'); }
+    if (!disablePositionFields && !closingDate.value) { errors.push('Deadline is required.'); show(eClosing, 'Deadline of application is required.'); }
     if (!place.value) { errors.push('Place of assignment is required.'); show(ePlace, 'Place of assignment is required.'); }
     // Salary checks
     const MAX = 1000000;
@@ -955,10 +1035,126 @@ document.addEventListener('DOMContentLoaded', async () => {
   const select = document.getElementById('position_title_select');
   const sg = document.getElementById('salary_grade');
   const sal = document.getElementById('monthly_salary');
+  const usePositionDropdown = @json(!$disablePositionFields);
+  const positionLookup = new Map();
+  const normalizeText = (value) => String(value || '').replace(/\s+/g, ' ').trim().toLowerCase();
+
   const formatSalaryGrade = (value) => {
     const digits = String(value || '').replace(/\D/g, '').slice(0, 2);
     return digits ? `SG-${digits}` : '';
   };
+
+  const triggerFieldEvents = (field) => {
+    if (!field) return;
+    field.dispatchEvent(new Event('input', { bubbles: true }));
+    field.dispatchEvent(new Event('change', { bubbles: true }));
+  };
+
+  const setSelectValue = (field, value) => {
+    if (!field) return;
+    const target = String(value || '').trim();
+    if (!target) {
+      field.value = '';
+      triggerFieldEvents(field);
+      return;
+    }
+
+    let matchedOption = Array.from(field.options || []).find((option) => normalizeText(option.value) === normalizeText(target));
+    if (!matchedOption) {
+      matchedOption = document.createElement('option');
+      matchedOption.value = target;
+      matchedOption.textContent = target;
+      field.appendChild(matchedOption);
+    }
+
+    field.value = matchedOption.value;
+    triggerFieldEvents(field);
+  };
+
+  const setValueByName = (name, value) => {
+    const field = document.querySelector(`[name="${name}"]`);
+    if (!field) return;
+
+    if (field.tagName === 'SELECT') {
+      setSelectValue(field, value);
+      return;
+    }
+
+    const nextValue = String(value ?? '');
+    if (name === 'closing_date' && field._flatpickr) {
+      field._flatpickr.setDate(nextValue, true, 'Y-m-d');
+      triggerFieldEvents(field);
+      return;
+    }
+
+    field.value = nextValue;
+    triggerFieldEvents(field);
+  };
+
+  const setValueById = (id, value) => {
+    const field = document.getElementById(id);
+    if (!field) return;
+    field.value = String(value ?? '');
+    triggerFieldEvents(field);
+  };
+
+  const applyPositionData = (record) => {
+    if (!record || typeof record !== 'object') return;
+
+    if (sg) {
+      sg.value = formatSalaryGrade(record.salary_grade || '');
+      triggerFieldEvents(sg);
+    }
+    if (sal) {
+      sal.value = record.monthly_salary ?? '';
+      triggerFieldEvents(sal);
+    }
+
+    setValueByName('closing_date', record.closing_date);
+    setValueByName('place_of_assignment', record.place_of_assignment);
+    setValueByName('qualification_education', record.qualification_education);
+    setValueByName('qualification_training', record.qualification_training);
+    setValueByName('qualification_experience', record.qualification_experience);
+    setValueByName('expected_output', record.expected_output);
+    setValueByName('scope_of_work', record.scope_of_work);
+    setValueByName('duration_of_work', record.duration_of_work);
+
+    const signatorySelect = document.getElementById('signatory_select');
+    const personName = String(record.to_person || '').trim();
+    if (signatorySelect) {
+      if (personName) {
+        let matchedOption = Array.from(signatorySelect.options || []).find((option) => normalizeText(option.value) === normalizeText(personName));
+        if (!matchedOption) {
+          matchedOption = document.createElement('option');
+          matchedOption.value = personName;
+          matchedOption.textContent = personName;
+          signatorySelect.appendChild(matchedOption);
+        }
+        matchedOption.dataset.designation = String(record.to_position || matchedOption.dataset.designation || '');
+        matchedOption.dataset.office = String(record.to_office || matchedOption.dataset.office || '');
+        matchedOption.dataset.office_address = String(record.to_office_address || matchedOption.dataset.office_address || '');
+        signatorySelect.value = matchedOption.value;
+      } else {
+        signatorySelect.value = '';
+      }
+      triggerFieldEvents(signatorySelect);
+    }
+
+    setValueById('to_position', record.to_position);
+    setValueById('to_office', record.to_office);
+    setValueById('to_office_address', record.to_office_address);
+
+    if (typeof window.setEligibilityFromRaw === 'function') {
+      window.setEligibilityFromRaw(record.qualification_eligibility || '');
+    } else {
+      setValueByName('qualification_eligibility', record.qualification_eligibility || '');
+    }
+
+    if (typeof checkAllFieldsFilled === 'function') {
+      checkAllFieldsFilled();
+    }
+  };
+
   if (sg) {
     sg.maxLength = 5;
     sg.inputMode = 'numeric';
@@ -970,23 +1166,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     sg.addEventListener('input', syncSalaryGrade);
     sg.addEventListener('blur', syncSalaryGrade);
   }
+  if (!select || !usePositionDropdown || String(select.tagName || '').toUpperCase() !== 'SELECT') {
+    return;
+  }
   try {
-    const res = await fetch("{{ route('admin.vacancy_titles.list') }}");
-  const data = await res.json();
-      if (data.success) {
+    const res = await fetch("{{ route('admin.positions.list', ['vacancy_type' => 'COS']) }}");
+    const data = await res.json();
+    if (data.success) {
       const opts = data.data || [];
       const current = "{{ old('position_title', $formSource?->position_title ?? '') }}";
       let currentFound = false;
       opts.forEach(o => {
+        const title = String(o.position_title || '').trim();
+        if (!title) {
+          return;
+        }
+        positionLookup.set(normalizeText(title), o);
+
         const opt = document.createElement('option');
-        opt.value = o.position_title;
-        opt.textContent = o.position_title;
-        if (current && current === o.position_title) opt.selected = true;
-        if (current && current === o.position_title) {
+        opt.value = title;
+        const vacancyType = String(o.vacancy_type || '').trim();
+        opt.textContent = vacancyType ? `${title} (${vacancyType})` : title;
+        if (current && normalizeText(current) === normalizeText(title)) {
+          opt.selected = true;
+        }
+        if (current && normalizeText(current) === normalizeText(title)) {
             currentFound = true;
         }
-        opt.dataset.sg = formatSalaryGrade(o.salary_grade || '');
-        opt.dataset.salary = o.monthly_salary || 0;
         select.appendChild(opt);
       });
       if (current && !currentFound) {
@@ -994,25 +1200,34 @@ document.addEventListener('DOMContentLoaded', async () => {
           fallbackOption.value = current;
           fallbackOption.textContent = current;
           fallbackOption.selected = true;
-          fallbackOption.dataset.sg = sg.value || '';
-          fallbackOption.dataset.salary = sal.value || '';
           select.appendChild(fallbackOption);
       }
-      // Initialize if current exists
-      const sel = select.options[select.selectedIndex];
-      if (sel && sel.dataset) {
-        sg.value = formatSalaryGrade(sel.dataset.sg || '');
-        sal.value = sel.dataset.salary || '';
+
+      const initialKey = normalizeText(select.value);
+      if (initialKey && positionLookup.has(initialKey)) {
+        applyPositionData(positionLookup.get(initialKey));
       }
+
       if (typeof checkAllFieldsFilled === 'function') {
           checkAllFieldsFilled();
       }
     }
-  } catch(e) {}
+  } catch (e) {}
+
   select.addEventListener('change', () => {
-    const sel = select.options[select.selectedIndex];
-    sg.value = formatSalaryGrade(sel?.dataset?.sg || '');
-    sal.value = sel?.dataset?.salary || '';
+    const record = positionLookup.get(normalizeText(select.value));
+    if (record) {
+      applyPositionData(record);
+      return;
+    }
+    if (sg) {
+      sg.value = formatSalaryGrade('');
+      triggerFieldEvents(sg);
+    }
+    if (sal) {
+      sal.value = '';
+      triggerFieldEvents(sal);
+    }
     if (typeof checkAllFieldsFilled === 'function') {
         checkAllFieldsFilled();
     }

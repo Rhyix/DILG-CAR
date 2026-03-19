@@ -441,7 +441,8 @@ Route::middleware([RedirectIfNotAdmin::class])->group(function () {
         if ($reuseVacancyId !== '') {
             $templateVacancy = \App\Models\JobVacancy::where('vacancy_id', $reuseVacancyId)->first();
         }
-        return view('admin.vacancy_add_plantilla', compact('signatories', 'templateVacancy'));
+        $positionMode = true;
+        return view('admin.vacancy_add_plantilla', compact('signatories', 'templateVacancy', 'positionMode'));
     })->name('addplantilla');
     Route::get('/admin/vacancies_management/add/cos', function (\Illuminate\Http\Request $request) {
         $admin = Auth::guard('admin')->user();
@@ -497,8 +498,84 @@ Route::middleware([RedirectIfNotAdmin::class])->group(function () {
                     ->with('error', 'Access denied. You can only reuse your own or assigned COS vacancies.');
             }
         }
-        return view('admin.vacancy_add_cos', compact('signatories', 'templateVacancy'));
+        $positionMode = true;
+        return view('admin.vacancy_add_cos', compact('signatories', 'templateVacancy', 'positionMode'));
     })->name('addcos');
+
+    Route::get('/admin/vacancies_management/add_vacancy/plantilla', function (\Illuminate\Http\Request $request) {
+        $admin = Auth::guard('admin')->user();
+        if (($admin->role ?? null) === 'hr_division') {
+            return redirect()->route('vacancies_management')
+                ->with('error', 'Access denied. HR Division can only add COS vacancies.');
+        }
+
+        $signatories = \App\Models\Signatory::query()->orderBy('id')->limit(1)->get();
+        $templateVacancy = null;
+        $reuseVacancyId = trim((string) $request->query('reuse', ''));
+        if ($reuseVacancyId !== '') {
+            $templateVacancy = \App\Models\JobVacancy::where('vacancy_id', $reuseVacancyId)->first();
+        }
+        $positionMode = false;
+        return view('admin.vacancy_add_plantilla', compact('signatories', 'templateVacancy', 'positionMode'));
+    })->name('vacancies.addplantilla');
+
+    Route::get('/admin/vacancies_management/add_vacancy/cos', function (\Illuminate\Http\Request $request) {
+        $admin = Auth::guard('admin')->user();
+        $signatories = \App\Models\Signatory::query()->orderBy('id')->limit(1)->get();
+        $templateVacancy = null;
+        $reuseVacancyId = trim((string) $request->query('reuse', ''));
+        if ($reuseVacancyId !== '') {
+            $templateQuery = \App\Models\JobVacancy::query()
+                ->where('vacancy_id', $reuseVacancyId)
+                ->whereRaw('UPPER(vacancy_type) = ?', ['COS']);
+
+            if (($admin->role ?? null) === 'hr_division') {
+                $grantedVacancyIds = \Illuminate\Support\Facades\Schema::hasTable('admin_vacancy_accesses')
+                    ? \App\Models\AdminVacancyAccess::query()
+                        ->where('admin_id', $admin->id)
+                        ->pluck('vacancy_id')
+                        ->map(fn($value) => trim((string) $value))
+                        ->filter(fn($value) => $value !== '')
+                        ->unique()
+                        ->values()
+                        ->all()
+                    : [];
+
+                $supportsCreatorColumn = \Illuminate\Support\Facades\Schema::hasColumn('job_vacancies', 'created_by_admin_id');
+
+                $templateQuery->where(function ($query) use ($admin, $grantedVacancyIds, $supportsCreatorColumn) {
+                    $hasScope = false;
+
+                    if ($supportsCreatorColumn) {
+                        $query->where('created_by_admin_id', $admin->id);
+                        $hasScope = true;
+                    }
+
+                    if (!empty($grantedVacancyIds)) {
+                        if ($hasScope) {
+                            $query->orWhereIn('vacancy_id', $grantedVacancyIds);
+                        } else {
+                            $query->whereIn('vacancy_id', $grantedVacancyIds);
+                        }
+                        $hasScope = true;
+                    }
+
+                    if (!$hasScope) {
+                        $query->whereRaw('1 = 0');
+                    }
+                });
+            }
+
+            $templateVacancy = $templateQuery->first();
+
+            if (($admin->role ?? null) === 'hr_division' && !$templateVacancy) {
+                return redirect()->route('vacancies_management')
+                    ->with('error', 'Access denied. You can only reuse your own or assigned COS vacancies.');
+            }
+        }
+        $positionMode = false;
+        return view('admin.vacancy_add_cos', compact('signatories', 'templateVacancy', 'positionMode'));
+    })->name('vacancies.addcos');
 
     Route::post('/admin/vacancies_management/add/cos/store', [JobVacancyController::class, 'storeVacancy'])->name('vacancies.store');
     // Route::put('/admin/vacancies_management/cos/{vacancy}/update', [JobVacancyController::class, 'update'])->name('vacancy.update');
@@ -522,6 +599,7 @@ Route::middleware([RedirectIfNotAdmin::class])->group(function () {
     Route::get('/admin/utilities/reports/data', [App\Http\Controllers\ReportController::class, 'getData'])->name('admin.reports.data');
     Route::get('/admin/utilities/reports/export', [App\Http\Controllers\ReportController::class, 'export'])->name('admin.reports.export');
     Route::get('/admin/utilities/positions', [PositionUtilityController::class, 'index'])->name('admin.positions.index');
+    Route::get('/admin/utilities/positions/list', [PositionUtilityController::class, 'listJson'])->name('admin.positions.list');
 
     Route::middleware([EnsureSuperadmin::class])->group(function () {
         Route::get('/admin/utilities/backup-restore', [BackupRestoreController::class, 'index'])->name('admin.backup.index');
