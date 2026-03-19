@@ -437,7 +437,7 @@ Route::middleware([RedirectIfNotAdmin::class])->group(function () {
                 ->with('error', 'Access denied. HR Division can only add COS vacancies.');
         }
 
-        $signatories = \App\Models\Signatory::query()->orderBy('id')->limit(1)->get();
+        $signatories = \App\Models\Signatory::query()->orderBy('id')->get();
         $templateVacancy = null;
         $reuseVacancyId = trim((string) $request->query('reuse', ''));
         if ($reuseVacancyId !== '') {
@@ -448,7 +448,7 @@ Route::middleware([RedirectIfNotAdmin::class])->group(function () {
     })->name('addplantilla');
     Route::get('/admin/vacancies_management/add/cos', function (\Illuminate\Http\Request $request) {
         $admin = Auth::guard('admin')->user();
-        $signatories = \App\Models\Signatory::query()->orderBy('id')->limit(1)->get();
+        $signatories = \App\Models\Signatory::query()->orderBy('id')->get();
         $templateVacancy = null;
         $reuseVacancyId = trim((string) $request->query('reuse', ''));
         if ($reuseVacancyId !== '') {
@@ -511,7 +511,7 @@ Route::middleware([RedirectIfNotAdmin::class])->group(function () {
                 ->with('error', 'Access denied. HR Division can only add COS vacancies.');
         }
 
-        $signatories = \App\Models\Signatory::query()->orderBy('id')->limit(1)->get();
+        $signatories = \App\Models\Signatory::query()->orderBy('id')->get();
         $templateVacancy = null;
         $reuseVacancyId = trim((string) $request->query('reuse', ''));
         if ($reuseVacancyId !== '') {
@@ -523,7 +523,7 @@ Route::middleware([RedirectIfNotAdmin::class])->group(function () {
 
     Route::get('/admin/vacancies_management/add_vacancy/cos', function (\Illuminate\Http\Request $request) {
         $admin = Auth::guard('admin')->user();
-        $signatories = \App\Models\Signatory::query()->orderBy('id')->limit(1)->get();
+        $signatories = \App\Models\Signatory::query()->orderBy('id')->get();
         $templateVacancy = null;
         $reuseVacancyId = trim((string) $request->query('reuse', ''));
         if ($reuseVacancyId !== '') {

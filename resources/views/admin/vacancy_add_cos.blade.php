@@ -1146,28 +1146,31 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const signatorySelect = document.getElementById('signatory_select');
     const personName = String(record.to_person || '').trim();
+    let matchedSignatory = null;
     if (signatorySelect) {
+      const signatoryOptions = Array.from(signatorySelect.options || []);
       if (personName) {
-        let matchedOption = Array.from(signatorySelect.options || []).find((option) => normalizeText(option.value) === normalizeText(personName));
-        if (!matchedOption) {
-          matchedOption = document.createElement('option');
-          matchedOption.value = personName;
-          matchedOption.textContent = personName;
-          signatorySelect.appendChild(matchedOption);
-        }
-        matchedOption.dataset.designation = String(record.to_position || matchedOption.dataset.designation || '');
-        matchedOption.dataset.office = String(record.to_office || matchedOption.dataset.office || '');
-        matchedOption.dataset.office_address = String(record.to_office_address || matchedOption.dataset.office_address || '');
-        signatorySelect.value = matchedOption.value;
-      } else {
+        matchedSignatory =
+          signatoryOptions.find((option) => normalizeText(option.value) === normalizeText(personName))
+          || signatoryOptions.find((option) => normalizeText(option.textContent || '') === normalizeText(personName))
+          || signatoryOptions.find((option) => normalizeText(option.dataset.designation || '') === normalizeText(personName));
+      }
+
+      if (matchedSignatory) {
+        signatorySelect.value = matchedSignatory.value;
+      } else if (personName === '') {
         signatorySelect.value = '';
+      } else if (!signatorySelect.value && signatoryOptions.length > 1) {
+        signatorySelect.selectedIndex = 1;
       }
       triggerFieldEvents(signatorySelect);
     }
 
-    setValueById('to_position', record.to_position);
-    setValueById('to_office', record.to_office);
-    setValueById('to_office_address', record.to_office_address);
+    if (!matchedSignatory) {
+      setValueById('to_position', record.to_position);
+      setValueById('to_office', record.to_office);
+      setValueById('to_office_address', record.to_office_address);
+    }
 
     if (typeof window.setEligibilityFromRaw === 'function') {
       window.setEligibilityFromRaw(record.qualification_eligibility || '');

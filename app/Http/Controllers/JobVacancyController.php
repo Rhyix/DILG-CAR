@@ -249,7 +249,7 @@ class JobVacancyController extends Controller
             );
         }
 
-        $signatories = \App\Models\Signatory::query()->orderBy('id')->limit(1)->get();
+        $signatories = \App\Models\Signatory::query()->orderBy('id')->get();
         $vacancyType = (string) ($vacancy->vacancy_type ?? '');
         $view = strcasecmp(trim($vacancyType), 'Plantilla') === 0
             ? 'admin.vacancy_add_plantilla'
