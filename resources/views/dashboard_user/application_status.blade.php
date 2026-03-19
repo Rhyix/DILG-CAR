@@ -126,6 +126,8 @@
                       <div class="text-sm font-semibold text-gray-700 mb-3">Deadline for Submission:</div>
                       @if($displayQsResult === 'Qualified')
                         <div class="text-sm text-green-600 font-semibold italic">Not applicable (Requirements complete)</div>
+                      @elseif($displayQsResult === 'Not Qualified')
+                        <div class="text-sm text-red-600 font-semibold italic">Not applicable (Application not qualified)</div>
                       @elseif($displayDeadlineDate || $displayDeadlineTime)
                         <div class="text-sm font-semibold text-[#002C76]">
                           {{ \Carbon\Carbon::parse($displayDeadlineDate . ' ' . ($displayDeadlineTime ?? '23:59:59'))->format('F d, Y h:i A') }}
@@ -149,7 +151,9 @@
                         <div class="flex items-center cursor-default">
                           @php
                             $resultStatus = $displayQsResult ?? 'Not Qualified';
-                            $textColor = $resultStatus === 'Qualified' ? 'text-green-600' : 'text-red-600';
+                            $textColor = $resultStatus === 'Qualified'
+                              ? 'text-green-600'
+                              : ($resultStatus === 'Needs Revisions' ? 'text-amber-600' : 'text-red-600');
                           @endphp
                           <span class="text-sm font-semibold {{ $textColor }}">{{ $resultStatus }}</span>
                         </div>

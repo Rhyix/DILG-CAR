@@ -105,18 +105,27 @@
 								<div
 									class="col-span-1 md:col-span-2 flex items-center justify-between bg-blue-50/50 p-4 rounded-lg">
 									<span class="text-sm font-bold text-[#002C76]">Overall Standard</span>
+									@php
+										$selectedQsResult = old('qs_result', $application->qs_result ?? 'Not Qualified');
+									@endphp
 									<div class="flex items-center gap-4 ml-auto">
 										<label
 											class="flex items-center gap-2 cursor-pointer result-radio-grp text-green-700 font-semibold text-sm">
 											<input type="radio" name="qs_result" value="Qualified"
 												class="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 focus:ring-green-500"
-												{{ old('qs_result', $application->qs_result ?? 'Not Qualified') === 'Qualified' ? 'checked' : '' }}> Qualified
+												{{ $selectedQsResult === 'Qualified' ? 'checked' : '' }}> Qualified
+										</label>
+										<label
+											class="flex items-center gap-2 cursor-pointer result-radio-grp text-amber-700 font-semibold text-sm">
+											<input type="radio" name="qs_result" value="Needs Revisions"
+												class="w-4 h-4 text-amber-600 bg-gray-100 border-gray-300 focus:ring-amber-500"
+												{{ $selectedQsResult === 'Needs Revisions' ? 'checked' : '' }}> Needs Revisions
 										</label>
 										<label
 											class="flex items-center gap-2 cursor-pointer result-radio-grp text-red-700 font-semibold text-sm">
 											<input type="radio" name="qs_result" value="Not Qualified"
 												class="w-4 h-4 text-red-600 bg-gray-100 border-gray-300 focus:ring-red-500"
-												{{ old('qs_result', $application->qs_result ?? 'Not Qualified') === 'Not Qualified' ? 'checked' : '' }}> Not Qualified
+												{{ $selectedQsResult === 'Not Qualified' ? 'checked' : '' }}> Not Qualified
 										</label>
 									</div>
 								</div>
@@ -468,6 +477,11 @@
 		let documents = @json($documents);
 		const requiredDocumentIds = @json($requiredDocumentIds ?? []);
 		const requiredDocumentSet = new Set(requiredDocumentIds);
+		const QS_RESULT_VALUES = Object.freeze({
+			QUALIFIED: 'Qualified',
+			NEEDS_REVISIONS: 'Needs Revisions',
+			NOT_QUALIFIED: 'Not Qualified',
+		});
 
 		function isRequiredDocument(docId) {
 			return requiredDocumentSet.has(docId);
@@ -557,9 +571,54 @@
 			}
 		}
 
-		function isDeadlineSectionHidden() {
-			const section = document.getElementById('notify-deadline-section');
-			return !!(section && section.classList.contains('hidden'));
+		function getSelectedQsResult() {
+			return document.querySelector('input[name="qs_result"]:checked')?.value || QS_RESULT_VALUES.NOT_QUALIFIED;
+		}
+
+		function syncNotifyActionRequirementsByQsResult() {
+			const selectedQsResult = getSelectedQsResult();
+			const actionReqEl = document.getElementById('notify-action-requirements');
+			const remarksSectionEl = document.getElementById('notify-remarks-section');
+			const clearDeadlineBtn = document.getElementById('clear-deadline-btn');
+			const dateInput = document.querySelector('input[name="deadline_date"]');
+			const timeInput = document.querySelector('input[name="deadline_time"]');
+			const isQualified = selectedQsResult === QS_RESULT_VALUES.QUALIFIED;
+			const needsRevisions = selectedQsResult === QS_RESULT_VALUES.NEEDS_REVISIONS;
+
+			if (actionReqEl) {
+				actionReqEl.classList.toggle('hidden', isQualified);
+			}
+			if (remarksSectionEl) {
+				remarksSectionEl.classList.toggle('hidden', isQualified);
+			}
+
+			if (needsRevisions) {
+				deadlineHiddenByChoice = false;
+				setDeadlineSectionHidden(false, false);
+				if (clearDeadlineBtn) {
+					clearDeadlineBtn.classList.add('hidden');
+					clearDeadlineBtn.disabled = true;
+				}
+				if (timeInput && !timeInput.value) {
+					timeInput.value = '17:00';
+				}
+			} else {
+				setDeadlineSectionHidden(true, false);
+				if (clearDeadlineBtn) {
+					clearDeadlineBtn.classList.remove('hidden');
+					clearDeadlineBtn.disabled = false;
+				}
+				if (dateInput) {
+					dateInput.value = '';
+					dateInput.classList.remove('border-red-500', 'ring-1', 'ring-red-400');
+				}
+				if (timeInput) {
+					timeInput.value = '';
+				}
+				document.getElementById('deadline-required-error')?.remove();
+			}
+
+			checkDeadline();
 		}
 
 		document.addEventListener('DOMContentLoaded', function () {
@@ -604,6 +663,10 @@
 					radio.addEventListener('change', checkOverallQualification);
 				});
 			});
+
+			document.querySelectorAll('input[name="qs_result"]').forEach(radio => {
+				radio.addEventListener('change', syncNotifyActionRequirementsByQsResult);
+			});
 		});
 
 		// --- QS Logic ---
@@ -622,6 +685,11 @@
 		}
 
 		function checkOverallQualification() {
+			const selectedQsResult = getSelectedQsResult();
+			if (selectedQsResult === QS_RESULT_VALUES.NEEDS_REVISIONS) {
+				return;
+			}
+
 			const { percentage } = getApplicationProgressStats();
 			if (percentage === 100) {
 				setQualificationFieldsState('Qualified');
@@ -1194,8 +1262,8 @@
 		}
 
 		async function notifyApplicant() {
-			// Validate: if deadline section is visible, a date must be selected
-			const deadlineEnabled = !isDeadlineSectionHidden();
+			const selectedQsResult = getSelectedQsResult();
+			const deadlineEnabled = selectedQsResult === QS_RESULT_VALUES.NEEDS_REVISIONS;
 			if (deadlineEnabled) {
 				const dateInput = document.querySelector('input[name="deadline_date"]');
 				if (!dateInput || !dateInput.value) {
@@ -1207,7 +1275,7 @@
 						errEl = document.createElement('p');
 						errEl.id = 'deadline-required-error';
 						errEl.className = 'text-red-500 text-xs mt-1 font-medium';
-						errEl.textContent = 'Please set a deadline date, or click Ã— to reject.'; 
+						errEl.textContent = 'Please set a deadline date for Needs Revisions.';
 						dateInput?.parentElement?.insertAdjacentElement('afterend', errEl);
 					}
 					dateInput?.addEventListener('input', () => {
@@ -1243,7 +1311,7 @@
 					qs_eligibility: document.querySelector('input[name="qs_eligibility"]:checked')?.value || 'na',
 					qs_experience: document.querySelector('input[name="qs_experience"]:checked')?.value || 'na',
 					qs_training: document.querySelector('input[name="qs_training"]:checked')?.value || 'na',
-					qs_result: document.querySelector('input[name="qs_result"]:checked')?.value || 'Not Qualified',
+					qs_result: selectedQsResult,
 				};
 
 				const response = await fetch(`/admin/applicant_status/${userId}/${vacancyId}/notify`, {
@@ -1365,29 +1433,8 @@
 			});
 			bodyEl.innerHTML = rowsHtml;
 
-			// Logic to hide/show Deadline and Remarks
-			const qsResultInput = document.querySelector('input[name="qs_result"]:checked');
-			const isQualified = qsResultInput && qsResultInput.value === 'Qualified';
-			const hasRevisions = notifyDocs.some(doc => doc.status === 'Needs Revision' || doc.status === 'Disapproved With Deficiency');
-
-			const actionReqEl = document.getElementById('notify-action-requirements');
-			const hideActionReq = isQualified && !hasRevisions;
-			if (actionReqEl) {
-				actionReqEl.classList.toggle('hidden', hideActionReq);
-			}
-
-			const remarksSectionEl = document.getElementById('notify-remarks-section');
-			if (remarksSectionEl) {
-				const hideRemarks = isQualified && !hasRevisions;
-				remarksSectionEl.classList.toggle('hidden', hideRemarks);
-			}
-
-			if (hideActionReq) {
-				deadlineHiddenByChoice = false;
-				setDeadlineSectionHidden(true, false);
-			} else {
-				setDeadlineSectionHidden(deadlineHiddenByChoice, true);
-			}
+			// Logic to hide/show action requirements based on Overall Standard result.
+			syncNotifyActionRequirementsByQsResult();
 
 			const modal = document.getElementById('notify-modal');
 			const appWrapper = document.getElementById('app-wrapper');
@@ -1690,4 +1737,3 @@
 		}
 	</style>
 @endsection
-

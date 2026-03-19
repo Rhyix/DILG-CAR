@@ -20,11 +20,14 @@ Reviewed by: {{ $reviewer_name ?? 'N/A' }}
   $revisionStatuses = ['needs revision', 'disapproved with deficiency', 'rejected', 'ggs'];
 
   $hasRevisions = $normalizedDocuments->contains(fn ($doc) => in_array($doc['status'], $revisionStatuses, true));
-  $isQualified = strtolower(trim((string) ($qs_result ?? ''))) === 'qualified';
+  $qsResultNormalized = strtolower(trim((string) ($qs_result ?? '')));
+  $isQualified = $qsResultNormalized === 'qualified';
+  $isNeedsRevisions = $qsResultNormalized === 'needs revisions';
   $noticeMode = strtolower(trim((string) ($compliance_notice_mode ?? 'default')));
   $isFinalWarning = $noticeMode === 'final_warning';
   $isFinalDisqualified = $noticeMode === 'disqualified_final';
-  $showActionRequirements = !$isFinalDisqualified && !$isQualified;
+  $isManualRejected = !$isFinalDisqualified && !$isQualified && !$isNeedsRevisions;
+  $showActionRequirements = !$isFinalDisqualified && $isNeedsRevisions;
   $displayDeadline = !empty($deadline) && $deadline !== 'No deadline set' ? $deadline : null;
   $displayRemarks = trim((string) ($application_remarks ?? ''));
 
@@ -68,7 +71,7 @@ Qualification Standards:
 - Training: {{ strtoupper((string) $qs_training) }}
 - Overall Result: {{ strtoupper((string) $qs_result) }}
 
-@if($isFinalDisqualified)
+@if($isFinalDisqualified || $isManualRejected)
 Action Required:
 - You are not qualified for this position.
 @elseif($showActionRequirements)

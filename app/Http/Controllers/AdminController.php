@@ -1409,13 +1409,19 @@ class AdminController extends Controller
 
         $request->validate([
             'status' => 'required|string',
-            'deadline_date' => 'nullable|date',
+            'deadline_date' => [
+                'nullable',
+                'date',
+                Rule::requiredIf(function () use ($request) {
+                    return strcasecmp((string) $request->input('qs_result'), 'Needs Revisions') === 0;
+                }),
+            ],
             'deadline_time' => 'nullable|date_format:H:i',
             'qs_education' => 'nullable|string',
             'qs_eligibility' => 'nullable|string',
             'qs_experience' => 'nullable|string',
             'qs_training' => 'nullable|string',
-            'qs_result' => 'nullable|string',
+            'qs_result' => ['nullable', 'string', Rule::in(['Qualified', 'Needs Revisions', 'Not Qualified'])],
             'application_remarks' => 'nullable|string',
         ]);
 
@@ -1899,17 +1905,28 @@ class AdminController extends Controller
 
         $validatedData = $request->validate([
             'deadline_enabled' => 'nullable|boolean',
-            'deadline_date' => 'nullable|date',
+            'deadline_date' => [
+                'nullable',
+                'date',
+                Rule::requiredIf(function () use ($request) {
+                    return strcasecmp((string) $request->input('qs_result'), 'Needs Revisions') === 0;
+                }),
+            ],
             'deadline_time' => 'nullable|date_format:H:i',
             'qs_education' => 'nullable|string',
             'qs_eligibility' => 'nullable|string',
             'qs_experience' => 'nullable|string',
             'qs_training' => 'nullable|string',
-            'qs_result' => 'nullable|string',
+            'qs_result' => ['required', 'string', Rule::in(['Qualified', 'Needs Revisions', 'Not Qualified'])],
         ]);
 
-        $deadlineEnabled = !array_key_exists('deadline_enabled', $validatedData)
-            || (bool) $validatedData['deadline_enabled'];
+        $selectedQsResult = trim((string) ($validatedData['qs_result'] ?? 'Not Qualified'));
+        if ($selectedQsResult === '') {
+            $selectedQsResult = 'Not Qualified';
+        }
+        $selectedQsResultNormalized = strtolower($selectedQsResult);
+        $deadlineEnabled = $selectedQsResultNormalized === 'needs revisions';
+
         if (!$deadlineEnabled) {
             $application->deadline_date = null;
             $application->deadline_time = null;
@@ -1920,9 +1937,9 @@ class AdminController extends Controller
                     : null;
             }
             if ($request->exists('deadline_time')) {
-                $application->deadline_time = $validatedData['deadline_time']
+                $application->deadline_time = !empty($validatedData['deadline_time'])
                     ? date('H:i', strtotime($validatedData['deadline_time']))
-                    : null;
+                    : '17:00';
             }
         }
 
@@ -1931,7 +1948,6 @@ class AdminController extends Controller
                 $application->$field = $validatedData[$field];
             }
         }
-        $isRejectedByNoDeadline = false;
         $application->save();
 
         // We trust the HR's explicitly validated QS variables instead of overwriting them.
@@ -1958,21 +1974,7 @@ class AdminController extends Controller
         $progressCount = "$verifiedCount/$totalDocuments";
 
         // --- Logic Check for Application Status Update ---
-        $hasNeedsRevision = false;
         $revisionStatusesNormalized = ['needs revision', 'disapproved with deficiency'];
-
-        foreach ($documents as $doc) {
-            $status = $doc['status'];
-
-            // Skip placeholders/unsubmitted documents for revision checks.
-            if ($status === 'Not Submitted' || ($status === 'Pending' && empty($doc['original_name']) && $doc['id'] !== 'application_letter')) {
-                continue;
-            }
-
-            if ($status === 'Needs Revision' || $status === 'Disapproved With Deficiency') {
-                $hasNeedsRevision = true;
-            }
-        }
 
         $hasFinalRevisionFailure = collect($documents)->contains(function ($doc) use ($revisionStatusesNormalized) {
             $status = strtolower(trim((string) ($doc['status'] ?? '')));
@@ -1986,45 +1988,43 @@ class AdminController extends Controller
             $application->deadline_time = null;
         }
 
-        if (!$hasFinalRevisionFailure && $progressPercentage === 100) {
-            $application->qs_education = 'yes';
-            $application->qs_eligibility = 'yes';
-            $application->qs_experience = 'yes';
-            $application->qs_training = 'yes';
-            $application->qs_result = 'Qualified';
+        $currentQsResultNormalized = strtolower(trim((string) ($application->qs_result ?? 'Not Qualified')));
+        $isQualifiedByQs = !$hasFinalRevisionFailure && $currentQsResultNormalized === 'qualified';
+        $isNeedsRevisionsByQs = !$hasFinalRevisionFailure && $currentQsResultNormalized === 'needs revisions';
+        $isRejectedByQs = $hasFinalRevisionFailure || $currentQsResultNormalized === 'not qualified';
+
+        if ($isRejectedByQs) {
+            $application->qs_result = 'Not Qualified';
+            $application->deadline_date = null;
+            $application->deadline_time = null;
+        } elseif ($isNeedsRevisionsByQs) {
+            $application->qs_result = 'Needs Revisions';
         }
 
-        $isQualifiedByQs = !$hasFinalRevisionFailure
-            && strcasecmp((string) ($application->qs_result ?? ''), 'Qualified') === 0;
-        $isRejectedByNoDeadline = !$deadlineEnabled
-            && !$hasFinalRevisionFailure
-            && !$isQualifiedByQs
-            && $hasNeedsRevision;
-        if ($isRejectedByNoDeadline) {
-            $application->qs_result = 'Not Qualified';
-        }
         if ($isQualifiedByQs) {
             // Qualified applicants no longer need a compliance deadline.
             $application->deadline_date = null;
             $application->deadline_time = null;
         }
 
-        $complianceNoticeMode = $hasFinalRevisionFailure
+        $complianceNoticeMode = $isRejectedByQs
             ? 'disqualified_final'
-            : ($hasNeedsRevision ? 'final_warning' : 'default');
+            : ($isNeedsRevisionsByQs ? 'final_warning' : 'default');
 
         // Logic:
-        // 1. If QS result is Qualified -> force Qualified status (used by Qualified tab queries)
-        // 2. Else if any document needs revision (first cycle only) -> Status = Compliance
-        // 3. Otherwise -> keep current status
+        // 1. Not Qualified -> reject application.
+        // 2. Qualified -> mark as qualified.
+        // 3. Needs Revisions -> move to compliance stage.
 
         $statusTransitions = app(ApplicationStatusTransitionService::class);
-        if ($isRejectedByNoDeadline || $hasFinalRevisionFailure) {
+        if ($isRejectedByQs) {
             $application->status = 'Not Qualified';
         } elseif ($isQualifiedByQs) {
             $application->status = ApplicationStatus::QUALIFIED->value;
-        } elseif ($hasNeedsRevision && !$hasFinalRevisionFailure) {
+        } elseif ($isNeedsRevisionsByQs) {
             if ($statusTransitions->canTransition($application->status, ApplicationStatus::COMPLIANCE->value)) {
+                $application->status = ApplicationStatus::COMPLIANCE->value;
+            } else {
                 $application->status = ApplicationStatus::COMPLIANCE->value;
             }
         }
@@ -2065,11 +2065,11 @@ class AdminController extends Controller
         $messageTitle = 'Application Status Update';
         $messageBody = 'Your application has been reviewed. Please see the updated status.';
         $messageLevel = 'info';
-        if ($hasFinalRevisionFailure || $isRejectedByNoDeadline) {
+        if ($isRejectedByQs) {
             $messageTitle = 'Application Not Qualified';
             $messageBody = 'I am sorry to inform you that, you are not qualified for this position.';
             $messageLevel = 'error';
-        } elseif ($hasNeedsRevision) {
+        } elseif ($isNeedsRevisionsByQs) {
             $messageTitle = 'Final Opportunity to Comply';
             $messageBody = "This is your final opportunity to comply. Once your document/s are marked as 'Needs Revision' again, you will be considered not qualified and will no longer have the opportunity to comply again.";
             $messageLevel = 'warning';
