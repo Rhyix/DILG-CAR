@@ -222,12 +222,15 @@
         return in_array($doc['status'], $verifiedStatuses, true);
       });
 
-    $isQualified = strtolower(trim((string) ($qs_result ?? ''))) === 'qualified';
+    $qsResultNormalized = strtolower(trim((string) ($qs_result ?? '')));
+    $isQualified = $qsResultNormalized === 'qualified';
+    $isNeedsRevisions = $qsResultNormalized === 'needs revisions';
     $noticeMode = strtolower(trim((string) ($compliance_notice_mode ?? 'default')));
     $isFinalWarning = $noticeMode === 'final_warning';
     $isFinalDisqualified = $noticeMode === 'disqualified_final';
-    $showActionRequirements = !$isFinalDisqualified && !$isQualified;
-    $documentSubmissionStatus = $isFinalDisqualified
+    $isManualRejected = !$isFinalDisqualified && !$isQualified && !$isNeedsRevisions;
+    $showActionRequirements = !$isFinalDisqualified && $isNeedsRevisions;
+    $documentSubmissionStatus = ($isFinalDisqualified || $isManualRejected)
       ? 'NOT QUALIFIED'
       : ($isQualified ? 'COMPLETE' : ($showActionRequirements ? 'INCOMPLETE' : 'COMPLETE'));
 
@@ -382,7 +385,7 @@
         <tr>
           <td class="status-label">{{ $documentSubmissionStatus }}</td>
           <td>
-            @if($isFinalDisqualified)
+            @if($isFinalDisqualified || $isManualRejected)
               <p class="action-text"><strong>I am sorry to inform you that, you are not qualified for this position.</strong></p>
               @if($displayRemarks !== '')
                 <p class="action-text"><strong>Remarks:</strong> {{ $displayRemarks }}</p>
