@@ -188,11 +188,11 @@
                         x-transition
                         class="absolute left-0 z-50 mt-2 w-full min-w-[190px] rounded-xl border border-gray-200 bg-white shadow-lg sm:left-auto sm:right-0"
                     >
-                        <a href="{{ route('addcos') }}" class="use-loader block px-4 py-2 text-sm font-semibold text-[#0D2B70] hover:bg-gray-100">
+                        <a href="{{ route('vacancies.addcos') }}" class="use-loader block px-4 py-2 text-sm font-semibold text-[#0D2B70] hover:bg-gray-100">
                             Add COS Vacancy
                         </a>
                         @unless($isHrDivisionUser)
-                            <a href="{{ route('addplantilla') }}" class="use-loader block px-4 py-2 text-sm font-semibold text-[#0D2B70] hover:bg-gray-100">
+                            <a href="{{ route('vacancies.addplantilla') }}" class="use-loader block px-4 py-2 text-sm font-semibold text-[#0D2B70] hover:bg-gray-100">
                                 Add Plantilla Vacancy
                             </a>
                         @endunless
