@@ -7,12 +7,14 @@
   <td class="w-[10%] px-3 py-2 text-center font-semibold">
     <div class="flex items-center justify-center gap-1.5">
       <div class="h-2.5 w-2.5 rounded-full {{ $vacancy->status === 'OPEN' ? 'bg-green-500' : 'bg-red-500' }}"></div>
-      {{ $vacancy->plantilla_item_no }}
+      {{ $vacancy->vacancy_id }}
     </div>
   </td>
   <td class="w-[25%] px-3 py-2 text-center">
     <p>{{ $vacancy->position_title }}</p>
-    <p class="text-xs italic text-[#0D2B70]/70">{{ $vacancy->vacancy_type }}</p>
+    <p class="text-xs italic text-[#0D2B70]/70">
+      {{ $vacancy->vacancy_type }}@if(filled($vacancy->plantilla_item_no)), <span class="font-bold text-[#0D2B70]">{{ $vacancy->plantilla_item_no }}</span>@endif
+    </p>
   </td>
   <td class="w-[15%] px-3 py-2 text-center">&#8369;{{ number_format($vacancy->monthly_salary, 2) }}</td>
   <td class="w-[15%] px-3 py-2 text-center">{{ \Carbon\Carbon::parse($vacancy->closing_date)->format('F j, Y') }}</td>

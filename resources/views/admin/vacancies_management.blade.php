@@ -21,7 +21,7 @@
                 <input
                     id="searchInput"
                     type="search"
-                    placeholder="Search by item no. or job title"
+                    placeholder="Search by vacancy no. or job title"
                     aria-label="Search"
                     value="{{ session('vacancyFilterSearch') }}"
                     class="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-11 pr-4 text-sm text-slate-700 shadow-sm outline-none transition focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20"
@@ -388,7 +388,7 @@
             <table class="w-full border-collapse table-fixed">
                 <thead class="bg-[#0D2B70] text-white sticky top-0 z-10"> 
                     <tr>
-                        <th class="px-3 py-2 text-[11px] font-semibold text-center w-[10%]">Plantilla Item No.</th>
+                        <th class="px-3 py-2 text-[11px] font-semibold text-center w-[10%]">Vacancy Number</th>
                         <th class="px-3 py-2 text-[11px] font-semibold text-center w-[25%]">Job Title</th>
                         <th class="px-3 py-2 text-[11px] font-semibold text-center w-[15%]">Monthly Salary</th>
                         <th class="px-3 py-2 text-[11px] font-semibold text-center w-[15%]">Closing Date</th>
@@ -495,4 +495,3 @@
 </script>
 @endpush
 @endsection
-
