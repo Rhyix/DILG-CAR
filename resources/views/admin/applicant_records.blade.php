@@ -1,23 +1,6 @@
 @extends('layout.admin')
 @section('title', 'DILG - Applicant Records')
 
-@php
-    $buildApplicantName = static function ($applicant) {
-        $pi = $applicant->personalInformation;
-
-        if (!$pi) {
-            return $applicant->name ?: 'N/A';
-        }
-
-        return trim(
-            ($pi->first_name ?? '') . ' ' .
-            ($pi->middle_name ? strtoupper(substr($pi->middle_name, 0, 1)) . '. ' : '') .
-            ($pi->surname ?? '') . ' ' .
-            ($pi->name_extension ?? '')
-        ) ?: ($applicant->name ?: 'N/A');
-    };
-@endphp
-
 @section('content')
 <main class="mx-auto w-full">
     <section class="flex-none flex items-center space-x-4 max-w-full">
@@ -28,18 +11,21 @@
 
     <section class="mt-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <div class="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-            <form method="GET" action="{{ route('admin.applicant_records.index') }}" class="flex w-full flex-col gap-3 lg:flex-row lg:items-end">
+            <form id="applicantRecordsForm" method="GET" action="{{ route('admin.applicant_records.index') }}" class="flex w-full flex-col gap-3 lg:flex-row lg:items-end">
                 <div class="relative w-full lg:max-w-md">
                     <label for="applicantSearchInput" class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                         Search
                     </label>
                     <input id="applicantSearchInput" name="search" type="search" value="{{ $search }}"
                         placeholder="Search applicant name, email, or mobile number"
-                        class="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-11 pr-4 text-sm text-slate-700 shadow-sm outline-none transition focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20" />
+                        class="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-11 pr-11 text-sm text-slate-700 shadow-sm outline-none transition focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20" />
                     <svg class="pointer-events-none absolute left-3 top-[39px] h-5 w-5 -translate-y-1/2 text-slate-400"
                         xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
                     </svg>
+                    <div id="applicantSearchSpinner" class="pointer-events-none absolute right-3 top-[39px] hidden -translate-y-1/2 text-[#0D2B70]">
+                        <div class="h-4 w-4 animate-spin rounded-full border-2 border-[#0D2B70]/20 border-t-[#0D2B70]"></div>
+                    </div>
                 </div>
 
                 <div class="w-full sm:max-w-[220px]">
@@ -54,81 +40,157 @@
                 </div>
 
                 <div class="flex shrink-0 items-center gap-2">
-                    <button type="submit"
-                        class="inline-flex items-center justify-center rounded-xl bg-[#0D2B70] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0A235C]">
-                        Apply
-                    </button>
-                    <a href="{{ route('admin.applicant_records.index') }}"
+                    <a id="applicantResetBtn" href="{{ route('admin.applicant_records.index') }}"
                         class="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">
                         Reset
                     </a>
                 </div>
             </form>
-        </div>
 
-        <div class="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3">
-            <p class="text-sm text-slate-600">
-                Unique applicants with at least one submitted application.
-            </p>
-            <p class="text-sm font-semibold text-[#0D2B70]">
+            <p id="applicantRecordsTotal" class="shrink-0 text-sm font-semibold text-[#0D2B70] xl:pb-2">
                 Total: {{ number_format($applicants->total()) }}
             </p>
         </div>
     </section>
 
-    <section class="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-slate-200">
-                <thead class="bg-slate-50">
-                    <tr>
-                        <th class="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">Applicant</th>
-                        <th class="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">Email</th>
-                        <th class="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">Mobile</th>
-                        <th class="px-5 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-500">Applications</th>
-                        <th class="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">Last Applied</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100">
-                    @forelse ($applicants as $applicant)
-                        @php
-                            $personalInfo = $applicant->personalInformation;
-                            $email = $personalInfo?->email_address ?: $applicant->email ?: 'N/A';
-                            $mobile = $personalInfo?->mobile_no ?: $applicant->phone_number ?: 'N/A';
-                            $applicantCode = $applicant->applicant_code ?: ('USER-' . $applicant->id);
-                            $lastApplied = $applicant->applications_max_created_at
-                                ? \Illuminate\Support\Carbon::parse($applicant->applications_max_created_at)->format('M d, Y h:i A')
-                                : 'N/A';
-                        @endphp
-                        <tr class="hover:bg-slate-50/80">
-                            <td class="px-5 py-4 align-top">
-                                <div class="font-semibold text-slate-800">{{ $buildApplicantName($applicant) }}</div>
-                                <div class="mt-1 text-xs uppercase tracking-wide text-slate-500">Applicant ID: {{ $applicantCode }}</div>
-                            </td>
-                            <td class="px-5 py-4 align-top text-sm text-slate-700">{{ $email }}</td>
-                            <td class="px-5 py-4 align-top text-sm text-slate-700">{{ $mobile }}</td>
-                            <td class="px-5 py-4 align-top text-center">
-                                <span class="inline-flex min-w-[42px] items-center justify-center rounded-full bg-[#0D2B70]/10 px-3 py-1 text-sm font-semibold text-[#0D2B70]">
-                                    {{ $applicant->applications_count }}
-                                </span>
-                            </td>
-                            <td class="px-5 py-4 align-top text-sm text-slate-700">{{ $lastApplied }}</td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="5" class="px-5 py-10 text-center text-sm font-medium text-slate-500">
-                                No applicant records found.
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
+    <div id="applicantRecordsResultsWrapper" class="relative mt-4">
+        <div id="applicantRecordsLoading" class="pointer-events-none absolute inset-0 z-10 hidden rounded-2xl bg-white/70 backdrop-blur-[1px]">
+            <div class="flex h-full items-center justify-center">
+                <div class="flex items-center gap-3 rounded-full border border-slate-200 bg-white px-4 py-2 shadow-sm">
+                    <div class="h-5 w-5 animate-spin rounded-full border-2 border-[#0D2B70]/20 border-t-[#0D2B70]"></div>
+                    <span class="text-sm font-semibold text-[#0D2B70]">Loading applicant records...</span>
+                </div>
+            </div>
         </div>
 
-        @if ($applicants->hasPages())
-            <div class="border-t border-slate-200 px-5 py-4">
-                {{ $applicants->links() }}
-            </div>
-        @endif
-    </section>
+        <div id="applicantRecordsResults">
+            @include('partials.applicant_records_results', ['applicants' => $applicants])
+        </div>
+    </div>
 </main>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const form = document.getElementById('applicantRecordsForm');
+        const searchInput = document.getElementById('applicantSearchInput');
+        const sortSelect = document.getElementById('applicantSort');
+        const resetBtn = document.getElementById('applicantResetBtn');
+        const resultsContainer = document.getElementById('applicantRecordsResults');
+        const loadingOverlay = document.getElementById('applicantRecordsLoading');
+        const searchSpinner = document.getElementById('applicantSearchSpinner');
+        const totalLabel = document.getElementById('applicantRecordsTotal');
+        const baseUrl = @json(route('admin.applicant_records.index'));
+
+        let debounceTimer = null;
+        let activeController = null;
+        let latestRequestId = 0;
+
+        const errorState = `
+            <section class="overflow-hidden rounded-2xl border border-rose-200 bg-white shadow-sm">
+                <div class="px-5 py-10 text-center text-sm font-medium text-rose-600">
+                    Unable to load applicant records. Please try again.
+                </div>
+            </section>
+        `;
+
+        const setLoading = (isLoading) => {
+            loadingOverlay.classList.toggle('hidden', !isLoading);
+            searchSpinner.classList.toggle('hidden', !isLoading);
+        };
+
+        const syncTotalLabel = () => {
+            const totalSource = resultsContainer.querySelector('[data-total]');
+            if (!totalSource || !totalLabel) return;
+            totalLabel.textContent = `Total: ${totalSource.dataset.total ?? '0'}`;
+        };
+
+        const buildUrl = () => {
+            const params = new URLSearchParams();
+            const search = searchInput.value.trim();
+            const sort = sortSelect.value.trim();
+
+            if (search !== '') params.set('search', search);
+            if (sort !== '') params.set('sort', sort);
+
+            const query = params.toString();
+            return query ? `${baseUrl}?${query}` : baseUrl;
+        };
+
+        const fetchResults = async (url = null) => {
+            if (activeController) activeController.abort();
+            activeController = new AbortController();
+            const requestId = ++latestRequestId;
+            const targetUrl = url ?? buildUrl();
+
+            setLoading(true);
+
+            try {
+                const response = await fetch(targetUrl, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    signal: activeController.signal
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Request failed with status ${response.status}`);
+                }
+
+                const html = await response.text();
+                if (requestId !== latestRequestId) return;
+
+                resultsContainer.innerHTML = html;
+                syncTotalLabel();
+                window.history.replaceState({}, '', targetUrl);
+            } catch (error) {
+                if (error.name === 'AbortError') return;
+                resultsContainer.innerHTML = errorState;
+            } finally {
+                if (requestId === latestRequestId) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        const debouncedFetch = () => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => fetchResults(), 400);
+        };
+
+        form.addEventListener('submit', (event) => {
+            event.preventDefault();
+        });
+
+        searchInput.addEventListener('input', debouncedFetch);
+        searchInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+            }
+        });
+
+        sortSelect.addEventListener('change', () => {
+            fetchResults();
+        });
+
+        resetBtn.addEventListener('click', (event) => {
+            event.preventDefault();
+            searchInput.value = '';
+            sortSelect.value = 'latest';
+            fetchResults(baseUrl);
+        });
+
+        resultsContainer.addEventListener('click', (event) => {
+            const link = event.target.closest('a[href]');
+            if (!link) return;
+
+            const href = link.getAttribute('href') ?? '';
+            if (!href.includes('page=')) return;
+
+            event.preventDefault();
+            fetchResults(link.href);
+        });
+
+        syncTotalLabel();
+    });
+</script>
 @endsection

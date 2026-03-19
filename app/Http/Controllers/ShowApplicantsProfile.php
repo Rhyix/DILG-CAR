@@ -493,8 +493,7 @@ class ShowApplicantsProfile extends Controller
         $query = User::query()
             ->with(['personalInformation'])
             ->withCount('applications')
-            ->withMax('applications', 'created_at')
-            ->whereHas('applications');
+            ->withMax('applications', 'created_at');
 
         if ($search !== '') {
             $like = '%' . $search . '%';
@@ -514,17 +513,51 @@ class ShowApplicantsProfile extends Controller
         }
 
         if ($sort === 'oldest') {
-            $query->orderBy('applications_max_created_at');
+            $query->orderByRaw('CASE WHEN applications_max_created_at IS NULL THEN 1 ELSE 0 END')
+                ->orderBy('applications_max_created_at')
+                ->orderBy('created_at');
         } else {
-            $query->orderByDesc('applications_max_created_at');
+            $query->orderByRaw('CASE WHEN applications_max_created_at IS NULL THEN 1 ELSE 0 END')
+                ->orderByDesc('applications_max_created_at')
+                ->orderByDesc('created_at');
         }
 
         $applicants = $query->paginate(15)->withQueryString();
+
+        if ($request->ajax()) {
+            return response()->view('partials.applicant_records_results', [
+                'applicants' => $applicants,
+            ]);
+        }
 
         return view('admin.applicant_records', [
             'applicants' => $applicants,
             'search' => $search,
             'sort' => $sort,
+        ]);
+    }
+
+    public function showApplicantRecord(User $user)
+    {
+        $user->load([
+            'personalInformation',
+            'familyBackground',
+            'educationalBackground',
+            'workExperience' => fn ($query) => $query->orderByDesc('work_exp_to')->orderByDesc('work_exp_from'),
+            'civilServiceEligibility' => fn ($query) => $query->orderByDesc('cs_eligibility_date'),
+            'learningAndDevelopment' => fn ($query) => $query->orderByDesc('learning_to')->orderByDesc('learning_from'),
+            'voluntaryWork' => fn ($query) => $query->orderByDesc('voluntary_to')->orderByDesc('voluntary_from'),
+            'otherInformation',
+            'relatedQuestions',
+            'miscInfos',
+            'profile',
+            'applications' => fn ($query) => $query->with('vacancy')->orderByDesc('created_at'),
+        ]);
+        $user->loadCount('applications');
+        $user->loadMax('applications', 'created_at');
+
+        return view('admin.applicant_record_show', [
+            'applicant' => $user,
         ]);
     }
 

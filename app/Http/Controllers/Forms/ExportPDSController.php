@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Controllers\Forms;
 
+use App\Models\User;
 use App\Models\PersonalInformation;
 use App\Models\FamilyBackground;
 use App\Models\EducationalBackground;
@@ -78,15 +79,27 @@ class ExportPDSController
         $pdf->Write(0, Carbon::now()->format('m/d/Y'));
     }
 
-    public function exportPDS(Request $request)
+    private function resolveTargetUser(Request $request, $id = null): User
+    {
+        if (Auth::guard('admin')->check()) {
+            abort_unless($id !== null, 404);
+            return User::findOrFail((int) $id);
+        }
+
+        $user = Auth::user();
+        if (!$user) {
+            abort(401);
+        }
+
+        return $user;
+    }
+
+    public function exportPDS(Request $request, $id = null)
     {
         $this->clampedCoordinates = 0;
         $this->clampSamples = [];
 
-        $user = Auth::user(); // Get currently authenticated user
-        if (!$user) {
-            abort(401);
-        }
+        $user = $this->resolveTargetUser($request, $id);
 
         $isPreview = $request->boolean('preview');
         $isDownload = $request->boolean('download');

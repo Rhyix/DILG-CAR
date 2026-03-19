@@ -22,6 +22,7 @@ use App\Http\Controllers\{
     ImportController,
     SignatoryController,
 };
+use App\Http\Controllers\Forms\ExportPDSController;
 use App\Http\Middleware\RedirectIfNotAdmin;
 use App\Http\Middleware\ViewerAccess;
 use App\Http\Middleware\BlockIfAdmin;
@@ -419,6 +420,8 @@ Route::middleware([RedirectIfNotAdmin::class])->group(function () {
     Route::middleware([EnsureSuperadmin::class])->group(function () {
         Route::get('/admin/admin_account_management', [AdminController::class, 'manage'])->name('admin_account_management');
         Route::get('/admin/applicant-records', [ShowApplicantsProfile::class, 'applicantRecords'])->name('admin.applicant_records.index');
+        Route::get('/admin/applicant-records/{user}', [ShowApplicantsProfile::class, 'showApplicantRecord'])->name('admin.applicant_records.show');
+        Route::get('/admin/applicant-records/{user}/pds', [ExportPDSController::class, 'exportPDS'])->name('admin.applicant_records.pds');
         Route::post('/admin/store', [AdminController::class, 'store'])->name('admin.store');
         Route::post('/admin/{id}/deactivate', [AdminController::class, 'deactivate'])->name('admin.deactivate');
         Route::post('/admin/{id}/activate', [AdminController::class, 'activate'])->name('admin.activate');
