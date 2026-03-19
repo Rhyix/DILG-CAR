@@ -7,6 +7,7 @@ use App\Models\Admin;
 use App\Models\User;
 use App\Models\JobVacancy;
 use App\Models\Applications;
+use App\Models\ExamDetail;
 use App\Models\Notification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
@@ -81,7 +82,10 @@ class ExamNotificationTest extends TestCase
         // saveExamDetails(notify=1) sends exam schedule mails immediately.
         Mail::assertSent(NotifyApplicantMail::class, function ($mail) use ($user, $vacancy) {
             return $mail->user_id === $user->id
-                && $mail->vacancy_id === $vacancy->vacancy_id;
+                && $mail->vacancy_id === $vacancy->vacancy_id
+                && $mail->senderName === 'Test Admin'
+                && str_contains($mail->render(), 'Sent by:')
+                && str_contains($mail->render(), 'Test Admin');
         });
 
         // Check Exam Detail Updated
@@ -162,7 +166,102 @@ class ExamNotificationTest extends TestCase
 
         Mail::assertSent(NotifyApplicantMail::class, function ($mail) use ($user, $vacancy) {
             return $mail->user_id === $user->id
-                && $mail->vacancy_id === $vacancy->vacancy_id;
+                && $mail->vacancy_id === $vacancy->vacancy_id
+                && $mail->senderName === 'Notify Admin'
+                && str_contains($mail->render(), 'Sent by:')
+                && str_contains($mail->render(), 'Notify Admin');
         });
+    }
+
+    public function test_sending_exam_link_creates_clickable_in_app_notification_for_applicant(): void
+    {
+        Queue::fake();
+
+        $admin = Admin::create([
+            'username' => 'link_notify_admin',
+            'name' => 'Link Notify Admin',
+            'office' => 'HR',
+            'designation' => 'Officer',
+            'email' => 'link-notify-admin@dilg.gov.ph',
+            'password' => bcrypt('password123'),
+            'role' => 'admin',
+            'is_active' => true,
+        ]);
+
+        $vacancy = JobVacancy::create([
+            'vacancy_id' => 'TEST-LINK-NOTIF-001',
+            'position_title' => 'Administrative Officer',
+            'vacancy_type' => 'Plantilla',
+            'monthly_salary' => 42000,
+            'status' => 'OPEN',
+            'closing_date' => now()->addWeek(),
+            'qualification_education' => 'Bachelor',
+            'qualification_training' => 'None',
+            'qualification_experience' => '1 year',
+            'qualification_eligibility' => 'None',
+            'to_person' => 'HR Officer',
+            'to_position' => 'HR',
+            'to_office' => 'DILG',
+            'to_office_address' => 'Baguio',
+            'place_of_assignment' => 'Baguio',
+        ]);
+
+        ExamDetail::create([
+            'vacancy_id' => $vacancy->vacancy_id,
+            'place' => 'Regional Office',
+            'date' => now()->addDays(3)->toDateString(),
+            'time' => '09:00',
+            'time_end' => '10:00',
+            'duration' => 60,
+            'details_saved' => true,
+        ]);
+
+        $user = User::factory()->create(['email' => 'exam-link-applicant@example.com']);
+        $application = Applications::create([
+            'vacancy_id' => $vacancy->vacancy_id,
+            'user_id' => $user->id,
+            'status' => 'Qualified',
+            'exam_attendance_status' => 'will_attend',
+        ]);
+
+        $response = $this->actingAs($admin, 'admin')
+            ->postJson(route('admin.exam.notify_selected', ['vacancy_id' => $vacancy->vacancy_id]), [
+                'user_ids' => [$user->id],
+            ]);
+
+        $response->assertOk()
+            ->assertJson(['success' => true]);
+
+        $application->refresh();
+        $this->assertNotNull($application->exam_token);
+
+        $notification = Notification::query()
+            ->where('notifiable_type', User::class)
+            ->where('notifiable_id', $user->id)
+            ->where('data->type', 'exam_link_available')
+            ->latest()
+            ->first();
+
+        $this->assertNotNull($notification);
+        $this->assertSame('Exam Link Available', $notification->data['title'] ?? null);
+        $this->assertSame(
+            route('user.exam_lobby', ['vacancy_id' => $vacancy->vacancy_id, 'token' => $application->exam_token], false),
+            $notification->data['action_url'] ?? null
+        );
+    }
+
+    public function test_exam_sched_link_view_displays_sender_name(): void
+    {
+        $html = view('emails.exam_sched_link', [
+            'user' => (object) ['name' => 'Applicant Name'],
+            'vacancy' => (object) ['position_title' => 'Administrative Officer'],
+            'exam' => (object) ['date' => now()->toDateString(), 'time' => '09:00', 'place' => 'Regional Office'],
+            'join_link' => 'https://example.com/exam-link',
+            'link_expires_at' => now()->addHour(),
+            'senderName' => 'Link Notify Admin',
+        ])->render();
+
+        $this->assertStringContainsString('Sent by:', $html);
+        $this->assertStringContainsString('Link Notify Admin', $html);
     }
 }

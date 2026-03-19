@@ -73,6 +73,19 @@ class ExamController extends Controller
         return $requestRoot !== '' ? $requestRoot : null;
     }
 
+    private function resolveNotificationSenderName(): string
+    {
+        $admin = auth('admin')->user();
+
+        $senderName = trim((string) ($admin->name ?? $admin->username ?? $admin->email ?? ''));
+
+        if ($senderName !== '') {
+            return $senderName;
+        }
+
+        return trim((string) config('mail.from.name', 'DILG-CAR Recruitment Team'));
+    }
+
     private function createAttendancePromptNotification(int $userId, string $vacancyId, ?JobVacancy $vacancy = null): void
     {
         $vacancy ??= JobVacancy::select('vacancy_id', 'position_title')->where('vacancy_id', $vacancyId)->first();
@@ -91,6 +104,37 @@ class ExamController extends Controller
                 'message' => 'Your exam schedule for ' . $positionTitle . ' is available. Please confirm your attendance.',
                 'level' => 'info',
                 'action_url' => route('exam.attendance.prompt', ['vacancy_id' => $vacancyId], false),
+            ],
+            'read_at' => null,
+        ]);
+
+        if ($this->shouldBroadcastRealtimeNotifications()) {
+            broadcast(new UserNotificationPushed($userId, (string) $notification->id, (array) $notification->data));
+        }
+    }
+
+    private function createExamLinkNotification(int $userId, string $vacancyId, string $token, ?JobVacancy $vacancy = null): void
+    {
+        $vacancy ??= JobVacancy::select('vacancy_id', 'position_title')->where('vacancy_id', $vacancyId)->first();
+        $positionTitle = trim((string) ($vacancy?->position_title ?? 'your examination'));
+        $actionUrl = route('user.exam_lobby', [
+            'vacancy_id' => $vacancyId,
+            'token' => $token,
+        ], false);
+
+        $notification = Notification::create([
+            'notifiable_type' => User::class,
+            'notifiable_id' => $userId,
+            'type' => 'info',
+            'data' => [
+                'type' => 'exam_link_available',
+                'category' => 'exam_lifecycle',
+                'section' => 'Exam Management',
+                'vacancy_id' => $vacancyId,
+                'title' => 'Exam Link Available',
+                'message' => 'Your exam link for ' . $positionTitle . ' is now available. Tap this notification to open the exam lobby.',
+                'level' => 'info',
+                'action_url' => $actionUrl,
             ],
             'read_at' => null,
         ]);
@@ -2043,7 +2087,8 @@ class ExamController extends Controller
 
             $userIds = $participants->pluck('user_id')->toArray();
 
-            $notificationResult = $this->sendRefinedNotifications($userIds, $vacancy_id, $examDetail, $publicBaseUrl);
+            $senderName = $this->resolveNotificationSenderName();
+            $notificationResult = $this->sendRefinedNotifications($userIds, $vacancy_id, $examDetail, $publicBaseUrl, $senderName);
             $sentCount = (int) ($notificationResult['sent'] ?? 0);
             $failedCount = (int) ($notificationResult['failed'] ?? 0);
             $skippedCount = (int) ($notificationResult['skipped'] ?? 0);
@@ -2109,6 +2154,7 @@ class ExamController extends Controller
     {
         try {
             $publicBaseUrl = $this->resolvePublicBaseUrl($request);
+            $senderName = $this->resolveNotificationSenderName();
             $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->first();
             if (!$examDetail || !$examDetail->details_saved) {
                 return response()->json([
@@ -2148,7 +2194,7 @@ class ExamController extends Controller
 
                 try {
                     // Send immediately so Save & Notify still works even when no queue worker runs.
-                    Mail::to($user->email)->send(new NotifyApplicantMail($vacancy_id, $user->id, $examDetail->id, $publicBaseUrl));
+                    Mail::to($user->email)->send(new NotifyApplicantMail($vacancy_id, $user->id, $examDetail->id, $publicBaseUrl, $senderName));
                     $this->createAttendancePromptNotification((int) $user->id, (string) $vacancy_id, $vacancy);
                     $sentCount++;
                 } catch (\Throwable $mailException) {
@@ -2218,6 +2264,7 @@ class ExamController extends Controller
 
         try {
             $publicBaseUrl = $this->resolvePublicBaseUrl($request);
+            $senderName = $this->resolveNotificationSenderName();
             $validated = $request->validate([
                 'user_ids' => 'required|array',
                 'user_ids.*' => 'integer|exists:users,id'
@@ -2249,7 +2296,7 @@ class ExamController extends Controller
                 ], 400);
             }
 
-            $notificationResult = $this->sendRefinedNotifications($eligibleUserIds, $vacancy_id, $examDetail, $publicBaseUrl);
+            $notificationResult = $this->sendRefinedNotifications($eligibleUserIds, $vacancy_id, $examDetail, $publicBaseUrl, $senderName);
             $sentCount = (int) ($notificationResult['sent'] ?? 0);
             $failedCount = (int) ($notificationResult['failed'] ?? 0);
             $skippedCount = (int) ($notificationResult['skipped'] ?? 0) + ($requestedUserIds->count() - count($eligibleUserIds));
@@ -2295,11 +2342,13 @@ class ExamController extends Controller
         }
     }
 
-    private function sendRefinedNotifications(array $userIds, string $vacancy_id, ExamDetail $examDetail, ?string $publicBaseUrl = null)
+    private function sendRefinedNotifications(array $userIds, string $vacancy_id, ExamDetail $examDetail, ?string $publicBaseUrl = null, ?string $senderName = null)
     {
-        return DB::transaction(function () use ($userIds, $vacancy_id, $examDetail, $publicBaseUrl) {
+        return DB::transaction(function () use ($userIds, $vacancy_id, $examDetail, $publicBaseUrl, $senderName) {
             $sender_email = auth('admin')->user()->email ?? config('mail.from.address');
+            $senderName ??= $this->resolveNotificationSenderName();
             $applicationColumns = array_flip(Schema::getColumnListing('applications'));
+            $vacancy = JobVacancy::select('vacancy_id', 'position_title')->where('vacancy_id', $vacancy_id)->first();
             $result = [
                 'sent' => 0,
                 'failed' => 0,
@@ -2354,7 +2403,8 @@ class ExamController extends Controller
 
                 try {
                     // Send immediately so the endpoint reflects real delivery attempts.
-                    SendExamNotification::dispatchSync($vacancy_id, $user_id, $examDetail->id, $sender_email, $publicBaseUrl);
+                    SendExamNotification::dispatchSync($vacancy_id, $user_id, $examDetail->id, $sender_email, $publicBaseUrl, $senderName);
+                    $this->createExamLinkNotification((int) $user_id, $vacancy_id, $token, $vacancy);
                     $result['sent']++;
                 } catch (\Throwable $sendException) {
                     $result['failed']++;

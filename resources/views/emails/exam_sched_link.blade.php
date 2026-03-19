@@ -198,6 +198,9 @@
                 If you have any questions or concerns, please feel free to reply to this email.
             </p>
             <p>
+                <strong>Sent by:</strong> {{ $senderName ?? 'DILG-CAR Recruitment Team' }}
+            </p>
+            <p>
                 We look forward to seeing you. Thank you.<br>
                 <strong>– DILG-CAR</strong>
             </p>

@@ -19,6 +19,7 @@ class NotifyApplicantMail extends Mailable
     public $user_id;
     public $exam_id;
     public $publicBaseUrl;
+    public $senderName;
 
     public $vacancy;
     public $user;
@@ -27,12 +28,13 @@ class NotifyApplicantMail extends Mailable
     /**
      * Create a new message instance.
      */
-    public function __construct($vacancy_id, $user_id, $exam_id, $publicBaseUrl = null)
+    public function __construct($vacancy_id, $user_id, $exam_id, $publicBaseUrl = null, $senderName = null)
     {
         $this->vacancy_id = $vacancy_id;
         $this->user_id = $user_id;
         $this->exam_id = $exam_id;
         $this->publicBaseUrl = $publicBaseUrl ? rtrim((string) $publicBaseUrl, '/') : null;
+        $this->senderName = trim((string) ($senderName ?: config('mail.from.name', 'DILG-CAR Recruitment Team')));
 
         $this->vacancy = JobVacancy::where('vacancy_id', $this->vacancy_id)->firstOrFail();
         $this->user = User::findOrFail($this->user_id);
@@ -74,6 +76,7 @@ class NotifyApplicantMail extends Mailable
                 'user' => $this->user,
                 'exam' => $this->exam,
                 'attendancePromptLink' => $attendancePromptLink,
+                'senderName' => $this->senderName,
             ]
         );
     }

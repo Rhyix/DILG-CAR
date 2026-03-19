@@ -166,6 +166,8 @@
 
             <p>Good luck with your exam!</p>
 
+            <p><strong>Sent by:</strong> {{ $senderName ?? 'DILG-CAR Recruitment Team' }}</p>
+
             <p>Best regards,<br>
                 <strong>DILG-CAR Recruitment Team</strong>
             </p>

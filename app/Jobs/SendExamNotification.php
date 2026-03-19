@@ -22,17 +22,19 @@ class SendExamNotification implements ShouldQueue
     protected $examId;
     protected $senderEmail;
     protected $publicBaseUrl;
+    protected $senderName;
 
     /**
      * Create a new job instance.
      */
-    public function __construct($vacancyId, $userId, $examId, $senderEmail, $publicBaseUrl = null)
+    public function __construct($vacancyId, $userId, $examId, $senderEmail, $publicBaseUrl = null, $senderName = null)
     {
         $this->vacancyId = $vacancyId;
         $this->userId = $userId;
         $this->examId = $examId;
         $this->senderEmail = $senderEmail;
         $this->publicBaseUrl = $publicBaseUrl ? rtrim((string) $publicBaseUrl, '/') : null;
+        $this->senderName = trim((string) ($senderName ?: config('mail.from.name', 'DILG-CAR Recruitment Team')));
     }
 
     /**
@@ -89,6 +91,7 @@ class SendExamNotification implements ShouldQueue
                 'exam' => $examDetail,
                 'join_link' => $examLink,
                 'link_expires_at' => $expiresAt,
+                'senderName' => $this->senderName,
             ], function ($message) use ($user, $vacancy, $fromAddress, $fromName, $replyToAddress) {
                 $message->to($user->email, $user->name)
                     ->subject('Examination Schedule - ' . $vacancy->position_title);
