@@ -706,7 +706,7 @@
                             </select>
                             <input type="text" class="form-input hidden" data-cs-career-custom placeholder="Specify eligibility not on list">
                             <input type="hidden" name="cs_eligibility_career[]" data-cs-career-value value="${(!is_new) ? escapeCivilServiceOptionHtml(cs_eligibility_career) : ''}">
-                            <p class="text-[11px] leading-4 text-gray-500">Choose Others if not listed.</p>
+                            <p class="text-[11px] leading-4 text-gray-500">Select from the list. Choose Others if not listed.</p>
                         </div>
                     </td>
                     <td>
