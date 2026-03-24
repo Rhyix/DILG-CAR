@@ -193,7 +193,9 @@
                             <td class="w-[20%] px-3 py-2">{{ $position->place_of_assignment ?: 'N/A' }}</td>
                             <td class="w-[10%] px-3 py-2 text-center">
                                 <a
-                                    href="{{ route('vacancies.edit', ['vacancy_id' => $position->vacancy_id]) }}"
+                                    href="{{ strcasecmp((string) $position->vacancy_type, 'COS') === 0
+                                        ? route('addcos', ['reuse_title' => $position->id])
+                                        : route('addplantilla', ['reuse_title' => $position->id]) }}"
                                     class="use-loader inline-flex items-center justify-center text-[#0D2B70] py-1 px-3 rounded-md text-xl transition-all duration-150 ease-[cubic-bezier(0.4,0,0.2,1)] hover:scale-110"
                                     aria-label="Edit Position"
                                     title="Edit Position">

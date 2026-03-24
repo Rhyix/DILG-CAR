@@ -1,5 +1,14 @@
 <!-- resources/views/partials/mobile-sidebar-admin.blade.php -->
-@php $adminRole = Auth::guard('admin')->user()->role ?? null; @endphp
+@php
+    $adminRole = Auth::guard('admin')->user()->role ?? null;
+    $isPositionsContext = request()->routeIs('admin.positions.*')
+        || request()->routeIs('addcos')
+        || request()->routeIs('addplantilla');
+    $isVacanciesContext = request()->routeIs('vacancies_management')
+        || request()->routeIs('vacancies.addcos')
+        || request()->routeIs('vacancies.addplantilla')
+        || request()->routeIs('vacancies.edit');
+@endphp
 
 <div class="lg:hidden" x-data="{ mobileSidebarOpen: false }">
     <aside
@@ -86,7 +95,7 @@
                 <a href="{{ route('vacancies_management') }}"
                     @click="mobileSidebarOpen = false"
                     class="use-loader flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200
-                        {{ request()->routeIs('vacancies_management')
+                        {{ $isVacanciesContext
         ? 'bg-[#002C76] text-white'
         : 'text-[#002C76] hover:text-white hover:bg-[#002C76]' }}">
                     <i data-feather="archive" class="w-5 h-5 stroke-[3] flex-shrink-0"></i>
@@ -141,7 +150,7 @@
             @endif
 
             @if(in_array($adminRole, ['superadmin', 'admin'], true))
-                <div x-data="{ submenuOpen: {{ (request()->routeIs('admin_activity_log') || request()->routeIs('signatories.*') || request()->routeIs('admin.reports.index') || request()->routeIs('admin.backup.index') || request()->routeIs('admin.positions.*')) ? 'true' : 'false' }} }" class="relative">
+                <div x-data="{ submenuOpen: {{ (request()->routeIs('admin_activity_log') || request()->routeIs('signatories.*') || request()->routeIs('admin.reports.index') || request()->routeIs('admin.backup.index') || $isPositionsContext) ? 'true' : 'false' }} }" class="relative">
                     <button @click="submenuOpen = !submenuOpen"
                         class="w-full group flex items-center justify-between rounded-md px-4 py-2 text-sm font-bold transition-all duration-200 text-[#002C76] hover:text-white hover:bg-[#002C76]">
                         <div class="flex items-center">
@@ -167,7 +176,7 @@
                         <a href="{{ route('admin.positions.index') }}"
                             @click="mobileSidebarOpen = false"
                             class="use-loader flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200
-                                {{ request()->routeIs('admin.positions.*')
+                                {{ $isPositionsContext
                                     ? 'bg-[#002C76] text-white'
                                     : 'text-[#002C76] hover:text-white hover:bg-[#002C76]' }}">
                             <i class="fa-solid fa-layer-group w-5 h-5 flex-shrink-0"></i>

@@ -446,8 +446,12 @@ Route::middleware([RedirectIfNotAdmin::class])->group(function () {
 
         $signatories = \App\Models\Signatory::query()->orderBy('id')->get();
         $templateVacancy = null;
+        $reuseTitleId = (int) $request->query('reuse_title', 0);
+        if ($reuseTitleId > 0 && \Illuminate\Support\Facades\Schema::hasTable('vacancy_titles')) {
+            $templateVacancy = \App\Models\VacancyTitle::query()->find($reuseTitleId);
+        }
         $reuseVacancyId = trim((string) $request->query('reuse', ''));
-        if ($reuseVacancyId !== '') {
+        if (!$templateVacancy && $reuseVacancyId !== '') {
             $templateVacancy = \App\Models\JobVacancy::where('vacancy_id', $reuseVacancyId)->first();
         }
         $positionMode = true;
@@ -457,8 +461,15 @@ Route::middleware([RedirectIfNotAdmin::class])->group(function () {
         $admin = Auth::guard('admin')->user();
         $signatories = \App\Models\Signatory::query()->orderBy('id')->get();
         $templateVacancy = null;
+        $reuseTitleId = (int) $request->query('reuse_title', 0);
+        if ($reuseTitleId > 0 && \Illuminate\Support\Facades\Schema::hasTable('vacancy_titles')) {
+            $templateTitle = \App\Models\VacancyTitle::query()->find($reuseTitleId);
+            if ($templateTitle && strcasecmp((string) $templateTitle->vacancy_type, 'COS') === 0) {
+                $templateVacancy = $templateTitle;
+            }
+        }
         $reuseVacancyId = trim((string) $request->query('reuse', ''));
-        if ($reuseVacancyId !== '') {
+        if (!$templateVacancy && $reuseVacancyId !== '') {
             $templateQuery = \App\Models\JobVacancy::query()
                 ->where('vacancy_id', $reuseVacancyId)
                 ->whereRaw('UPPER(vacancy_type) = ?', ['COS']);

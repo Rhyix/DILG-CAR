@@ -69,7 +69,7 @@
       <div>
         <button type="button" onclick="handleBack()" class="use-loader mb-4 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900">
           <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-slate-600">&larr;</span>
-          <span>Back to vacancies</span>
+          <span>Go back</span>
         </button>
 
       <section class="flex-none flex items-center space-x-4 max-w-full">
@@ -93,6 +93,8 @@
       @endif
 
       <input type="hidden" name="vacancy_type" value="COS">
+      <input type="hidden" name="position_mode" value="{{ $positionMode ? '1' : '0' }}">
+      <input type="hidden" name="position_title_id" value="{{ old('position_title_id', $positionMode ? ($formSource?->id ?? '') : '') }}">
 
       <section class="w-full overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <div class="mb-6 border-b border-slate-200 pb-5">
@@ -161,10 +163,21 @@
 
             <div>
               <label class="{{ $fieldLabel }}">Place of Assignment <span class="text-red-600">*</span></label>
+              @php
+                $placeOptions = ['DILG-CAR','DILG-CAR Regional Office','Apayao Provincial Office','Abra Provincial Office','Mountain Province Provincial Office','Ifugao Provincial Office','Kalinga Provincial Office','Benguet Provincial Office','Baguio City Office'];
+                $selectedPlace = trim((string) old('place_of_assignment', $formSource?->place_of_assignment ?? ''));
+                $selectedPlaceLower = strtolower($selectedPlace);
+                $hasSelectedPlace = collect($placeOptions)->contains(
+                  fn($place) => strtolower(trim((string) $place)) === $selectedPlaceLower
+                );
+              @endphp
               <select id="place_of_assignment" name="place_of_assignment" required class="{{ $fieldInput }}">
-                <option disabled {{ old('place_of_assignment', $formSource?->place_of_assignment ?? '') == '' ? 'selected' : '' }}>Place of Assignment</option>
-                @foreach(['DILG-CAR','DILG-CAR Regional Office','Apayao Provincial Office','Abra Provincial Office','Mountain Province Provincial Office','Ifugao Provincial Office','Kalinga Provincial Office','Benguet Provincial Office','Baguio City Office'] as $place)
-                  <option value="{{ $place }}" {{ old('place_of_assignment', $formSource?->place_of_assignment ?? '') == $place ? 'selected' : '' }}>{{ $place }}</option>
+                <option value="" disabled {{ $selectedPlace === '' ? 'selected' : '' }}>Place of Assignment</option>
+                @if($selectedPlace !== '' && !$hasSelectedPlace)
+                  <option value="{{ $selectedPlace }}" selected>{{ $selectedPlace }}</option>
+                @endif
+                @foreach($placeOptions as $place)
+                  <option value="{{ $place }}" {{ strtolower(trim((string) $place)) === $selectedPlaceLower ? 'selected' : '' }}>{{ $place }}</option>
                 @endforeach
               </select>
               <p id="place_of_assignment_error" class="mt-1 hidden text-sm text-red-600">Place of assignment is required.</p>
@@ -355,7 +368,7 @@
             </button>
 
             <button id="vacancy-save-btn" type="button" disabled class="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 opacity-50 cursor-not-allowed">
-              <span id="save-icon   ">
+              <span id="save-icon">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
@@ -394,23 +407,10 @@
 
 <script>
     function goBack() {
-        // Avoid going back to same page (due to reload after save)
-        const currentUrl = window.location.href;
-        const referrer = document.referrer;
-        const savedReferrer = sessionStorage.getItem('lastValidReferrer');
-
-        const fallbackUrl = "{{ route('vacancies_management') }}";
-        const target = (referrer && referrer !== currentUrl)
-        ? referrer
-        : (savedReferrer && savedReferrer !== currentUrl)
-            ? savedReferrer
-            : fallbackUrl;
-
-        if (target) {
-        window.location.href = target;
-        } else {
-        window.location.href = fallbackUrl;
-        }
+        const positionMode = @json($positionMode);
+        window.location.href = positionMode
+            ? "{{ route('admin.positions.index') }}"
+            : "{{ route('vacancies_management') }}";
     }
 
     function handleBack() {
@@ -916,6 +916,9 @@ function checkAllFieldsFilled() {
         'qualification_education',
         'qualification_training',
         'qualification_experience',
+        'expected_output',
+        'scope_of_work',
+        'duration_of_work',
         'to_person',
         'to_position',
         'to_office',
@@ -1030,11 +1033,13 @@ window.addEventListener('confirm-cos-save', () => {
         const loader = document.getElementById('save-loader');
         const text = document.getElementById('save-text');
         
-        btn.disabled = true;
-        btn.classList.add('opacity-75', 'cursor-not-allowed');
-        icon.classList.add('hidden');
-        loader.classList.remove('hidden');
-        text.textContent = 'SAVING...';
+        if (btn) {
+            btn.disabled = true;
+            btn.classList.add('opacity-75', 'cursor-not-allowed');
+        }
+        if (icon) icon.classList.add('hidden');
+        if (loader) loader.classList.remove('hidden');
+        if (text) text.textContent = 'SAVING...';
         
         form.submit();
     }
@@ -1066,7 +1071,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const formatSalaryGrade = (value) => {
     const digits = String(value || '').replace(/\D/g, '').slice(0, 2);
-    return digits ? `SG-${digits}` : '';
+    return digits ? `SG-${digits.padStart(2, '0')}` : '';
   };
 
   const triggerFieldEvents = (field) => {
@@ -1125,6 +1130,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const applyPositionData = (record) => {
     if (!record || typeof record !== 'object') return;
+    const hasProp = (key) => Object.prototype.hasOwnProperty.call(record, key);
 
     if (sg) {
       sg.value = formatSalaryGrade(record.salary_grade || '');
@@ -1135,19 +1141,19 @@ document.addEventListener('DOMContentLoaded', async () => {
       triggerFieldEvents(sal);
     }
 
-    setValueByName('closing_date', record.closing_date);
-    setValueByName('place_of_assignment', record.place_of_assignment);
-    setValueByName('qualification_education', record.qualification_education);
-    setValueByName('qualification_training', record.qualification_training);
-    setValueByName('qualification_experience', record.qualification_experience);
-    setValueByName('expected_output', record.expected_output);
-    setValueByName('scope_of_work', record.scope_of_work);
-    setValueByName('duration_of_work', record.duration_of_work);
+    if (hasProp('closing_date')) setValueByName('closing_date', record.closing_date);
+    if (hasProp('place_of_assignment')) setValueByName('place_of_assignment', record.place_of_assignment);
+    if (hasProp('qualification_education')) setValueByName('qualification_education', record.qualification_education);
+    if (hasProp('qualification_training')) setValueByName('qualification_training', record.qualification_training);
+    if (hasProp('qualification_experience')) setValueByName('qualification_experience', record.qualification_experience);
+    if (hasProp('expected_output')) setValueByName('expected_output', record.expected_output);
+    if (hasProp('scope_of_work')) setValueByName('scope_of_work', record.scope_of_work);
+    if (hasProp('duration_of_work')) setValueByName('duration_of_work', record.duration_of_work);
 
     const signatorySelect = document.getElementById('signatory_select');
-    const personName = String(record.to_person || '').trim();
+    const personName = hasProp('to_person') ? String(record.to_person || '').trim() : '';
     let matchedSignatory = null;
-    if (signatorySelect) {
+    if (signatorySelect && hasProp('to_person')) {
       const signatoryOptions = Array.from(signatorySelect.options || []);
       if (personName) {
         matchedSignatory =
@@ -1167,15 +1173,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     if (!matchedSignatory) {
-      setValueById('to_position', record.to_position);
-      setValueById('to_office', record.to_office);
-      setValueById('to_office_address', record.to_office_address);
+      if (hasProp('to_position')) setValueById('to_position', record.to_position);
+      if (hasProp('to_office')) setValueById('to_office', record.to_office);
+      if (hasProp('to_office_address')) setValueById('to_office_address', record.to_office_address);
     }
 
-    if (typeof window.setEligibilityFromRaw === 'function') {
-      window.setEligibilityFromRaw(record.qualification_eligibility || '');
-    } else {
-      setValueByName('qualification_eligibility', record.qualification_eligibility || '');
+    if (hasProp('qualification_eligibility')) {
+      if (typeof window.setEligibilityFromRaw === 'function') {
+        window.setEligibilityFromRaw(record.qualification_eligibility || '');
+      } else {
+        setValueByName('qualification_eligibility', record.qualification_eligibility || '');
+      }
     }
 
     if (typeof checkAllFieldsFilled === 'function') {

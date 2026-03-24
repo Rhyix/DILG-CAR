@@ -48,9 +48,17 @@
     $defaultToOfficeAddress = old('to_office_address', $formSource?->to_office_address ?? ($defaultSignatory->office_address ?? ''));
     $defaultClosingDate = old(
       'closing_date',
-      isset($formSource) && !empty($formSource->closing_date)
+      (!$isCreateMode && isset($formSource) && !empty($formSource->closing_date))
         ? \Carbon\Carbon::parse($formSource->closing_date)->format('Y-m-d')
-        : ($disablePositionFields ? now()->format('Y-m-d') : '')
+        : (
+          $disablePositionFields
+            ? (
+              isset($formSource) && !empty($formSource->closing_date)
+                ? \Carbon\Carbon::parse($formSource->closing_date)->format('Y-m-d')
+                : now()->format('Y-m-d')
+            )
+            : ''
+        )
     );
     $displayToPerson = $disablePositionFields ? '' : $defaultToPerson;
     $displayToPosition = $disablePositionFields ? '' : $defaultToPosition;
@@ -68,7 +76,7 @@
       <div>
         <button type="button" onclick="handleBack()" class="use-loader mb-4 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900">
           <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-slate-600">&larr;</span>
-          <span>Back to vacancies</span>
+          <span>Go back</span>
         </button>
 
       <section class="flex-none flex items-center space-x-4 max-w-full">
@@ -101,6 +109,8 @@
       @endif
 
       <input type="hidden" name="vacancy_type" value="Plantilla">
+      <input type="hidden" name="position_mode" value="{{ $positionMode ? '1' : '0' }}">
+      <input type="hidden" name="position_title_id" value="{{ old('position_title_id', $positionMode ? ($formSource?->id ?? '') : '') }}">
 
       <section class="w-full overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <div class="mb-6 border-b border-slate-200 pb-5">
@@ -168,10 +178,21 @@
 
             <div>
               <label class="{{ $fieldLabel }}">Place of Assignment <span class="text-red-600">*</span></label>
+              @php
+                $placeOptions = ['DILG-CAR','DILG-CAR Regional Office','Apayao Provincial Office','Abra Provincial Office','Mountain Province Provincial Office','Ifugao Provincial Office','Kalinga Provincial Office','Benguet Provincial Office','Baguio City Office'];
+                $selectedPlace = trim((string) old('place_of_assignment', $formSource?->place_of_assignment ?? ''));
+                $selectedPlaceLower = strtolower($selectedPlace);
+                $hasSelectedPlace = collect($placeOptions)->contains(
+                  fn($place) => strtolower(trim((string) $place)) === $selectedPlaceLower
+                );
+              @endphp
               <select id="place_of_assignment" name="place_of_assignment" required class="{{ $fieldInput }}">
-                <option disabled {{ old('place_of_assignment', $formSource?->place_of_assignment ?? '') == '' ? 'selected' : '' }}>Place of Assignment</option>
-                @foreach (['DILG-CAR','DILG-CAR Regional Office','Apayao Provincial Office','Abra Provincial Office','Mountain Province Provincial Office','Ifugao Provincial Office','Kalinga Provincial Office','Benguet Provincial Office','Baguio City Office'] as $office)
-                  <option value="{{ $office }}" {{ old('place_of_assignment', $formSource?->place_of_assignment ?? '') == $office ? 'selected' : '' }}>{{ $office }}</option>
+                <option value="" disabled {{ $selectedPlace === '' ? 'selected' : '' }}>Place of Assignment</option>
+                @if($selectedPlace !== '' && !$hasSelectedPlace)
+                  <option value="{{ $selectedPlace }}" selected>{{ $selectedPlace }}</option>
+                @endif
+                @foreach ($placeOptions as $office)
+                  <option value="{{ $office }}" {{ strtolower(trim((string) $office)) === $selectedPlaceLower ? 'selected' : '' }}>{{ $office }}</option>
                 @endforeach
               </select>
               <p id="place_of_assignment_error" class="mt-1 hidden text-sm text-red-600">Place of assignment is required.</p>
@@ -359,22 +380,23 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
           </svg>
           <span id="csc_form_filename_plantilla" class="truncate">
-            @if(isset($vacancy) && $vacancy->csc_form_path)
-              {{ basename($vacancy->csc_form_path) }}
+            @if(!empty($formSource?->csc_form_path))
+              {{ basename($formSource->csc_form_path) }}
             @else
               Choose a file to upload...
             @endif
           </span>
         </label>
         <input id="csc_form_upload_plantilla" type="file" name="csc_form" accept=".pdf,.doc,.docx" class="sr-only"
-          data-has-existing="{{ (isset($vacancy) && $vacancy->csc_form_path) ? '1' : '0' }}"
-          {{ (isset($vacancy) && $vacancy->csc_form_path) ? '' : 'required' }}
-          onchange="document.getElementById('csc_form_filename_plantilla').textContent = this.files[0] ? this.files[0].name : 'Choose a file to upload...'; if (typeof checkAllFieldsFilled === 'function') { checkAllFieldsFilled(); }">
+          data-has-existing="{{ !empty($formSource?->csc_form_path) ? '1' : '0' }}"
+          data-existing-filename="{{ !empty($formSource?->csc_form_path) ? basename($formSource->csc_form_path) : '' }}"
+          {{ !empty($formSource?->csc_form_path) ? '' : 'required' }}
+          onchange="document.getElementById('csc_form_filename_plantilla').textContent = this.files[0] ? this.files[0].name : ((this.dataset.hasExisting === '1' && this.dataset.existingFilename) ? this.dataset.existingFilename : 'Choose a file to upload...'); if (typeof checkAllFieldsFilled === 'function') { checkAllFieldsFilled(); }">
         <p id="csc_form_error" class="mt-2 hidden text-sm text-red-600">CSC form attachment is required for Plantilla.</p>
-        @if(isset($vacancy) && $vacancy->csc_form_path)
+        @if(!empty($formSource?->csc_form_path))
           <p class="mt-2 text-xs text-slate-500">
             Current file:
-            <a href="{{ Storage::url($vacancy->csc_form_path) }}" target="_blank" class="text-[#0D2B70] underline">{{ basename($vacancy->csc_form_path) }}</a>
+            <a href="{{ Storage::url($formSource->csc_form_path) }}" target="_blank" class="text-[#0D2B70] underline">{{ basename($formSource->csc_form_path) }}</a>
             - Upload a new file to replace it.
           </p>
         @endif
@@ -433,23 +455,10 @@
 
 <script>
     function goBack() {
-        // Avoid going back to same page (due to reload after save)
-        const currentUrl = window.location.href;
-        const referrer = document.referrer;
-        const savedReferrer = sessionStorage.getItem('lastValidReferrer');
-
-        const fallbackUrl = "{{ route('vacancies_management') }}";
-        const target = (referrer && referrer !== currentUrl)
-        ? referrer
-        : (savedReferrer && savedReferrer !== currentUrl)
-            ? savedReferrer
-            : fallbackUrl;
-
-        if (target) {
-            window.location.href = target;
-        } else {
-            window.location.href = fallbackUrl;
-        }
+        const positionMode = @json($positionMode);
+        window.location.href = positionMode
+            ? "{{ route('admin.positions.index') }}"
+            : "{{ route('vacancies_management') }}";
     }
 
     function handleBack() {
@@ -503,42 +512,37 @@ document.addEventListener("DOMContentLoaded", function() {
     const officeAddressField = document.getElementById('to_office_address');
     const disablePositionFields = @json($disablePositionFields);
 
-    if (!signatorySelect || !positionField || !officeField || !officeAddressField) {
-        if (typeof checkAllFieldsFilled === 'function') {
-            checkAllFieldsFilled();
+    if (signatorySelect && positionField && officeField && officeAddressField) {
+        function handleSignatoryChange() {
+            const selectedOption = signatorySelect.options[signatorySelect.selectedIndex];
+            
+            if (selectedOption.value === '') {
+                // No selection - clear fields but keep disabled
+                positionField.value = '';
+                officeField.value = '';
+                officeAddressField.value = '';
+            } else {
+                // Selection made - populate fields (remain disabled)
+                positionField.value = selectedOption.dataset.designation;
+                officeField.value = selectedOption.dataset.office;
+                officeAddressField.value = selectedOption.dataset.office_address;
+            }
+            
+            // Always keep these fields disabled
+            // positionField.disabled = true;
+            // officeField.disabled = true;
+            // officeAddressField.disabled = true;
         }
-        return;
-    }
 
-    function handleSignatoryChange() {
-        const selectedOption = signatorySelect.options[signatorySelect.selectedIndex];
-        
-        if (selectedOption.value === '') {
-            // No selection - clear fields but keep disabled
-            positionField.value = '';
-            officeField.value = '';
-            officeAddressField.value = '';
-        } else {
-            // Selection made - populate fields (remain disabled)
-            positionField.value = selectedOption.dataset.designation;
-            officeField.value = selectedOption.dataset.office;
-            officeAddressField.value = selectedOption.dataset.office_address;
+        if (!disablePositionFields && signatorySelect.value === '' && signatorySelect.options.length > 1) {
+            signatorySelect.selectedIndex = 1;
         }
-        
-        // Always keep these fields disabled
-        // positionField.disabled = true;
-        // officeField.disabled = true;
-        // officeAddressField.disabled = true;
+
+        signatorySelect.addEventListener('change', handleSignatoryChange);
+        // Initialize on page load
+        handleSignatoryChange();
     }
 
-    if (!disablePositionFields && signatorySelect && signatorySelect.value === '' && signatorySelect.options.length > 1) {
-        signatorySelect.selectedIndex = 1;
-    }
-
-    signatorySelect.addEventListener('change', handleSignatoryChange);
-
-    // Initialize on page load
-    handleSignatoryChange();
     if (typeof checkAllFieldsFilled === 'function') {
         checkAllFieldsFilled();
     }
@@ -547,11 +551,46 @@ document.addEventListener("DOMContentLoaded", function() {
     const titleSelect = document.getElementById('position_title_select');
     const sgField = document.getElementById('salary_grade');
     const salField = document.getElementById('monthly_salary');
+    const cscInputField = document.getElementById('csc_form_upload_plantilla');
+    const cscFilenameField = document.getElementById('csc_form_filename_plantilla');
     const positionLookup = new Map();
     const normalizeText = (value) => String(value || '').replace(/\s+/g, ' ').trim().toLowerCase();
+    const extractFileName = (path) => {
+        const raw = String(path || '').trim();
+        if (!raw) return '';
+        const parts = raw.split(/[\\/]/);
+        return parts[parts.length - 1] || '';
+    };
+    const defaultCscLabel = 'Choose a file to upload...';
+    const initialHasExistingCsc = cscInputField?.dataset?.hasExisting === '1';
+    const initialCscFilename = String(cscInputField?.dataset?.existingFilename || '').trim();
+    const initialCscLabel = cscFilenameField
+        ? String(cscFilenameField.textContent || '').trim() || defaultCscLabel
+        : defaultCscLabel;
+    const setCscTemplateState = (path, restoreInitial = false) => {
+        if (!cscInputField || !cscFilenameField) return;
+
+        if (restoreInitial) {
+            cscInputField.dataset.hasExisting = initialHasExistingCsc ? '1' : '0';
+            cscInputField.dataset.existingFilename = initialCscFilename;
+            cscInputField.required = !initialHasExistingCsc;
+            cscInputField.value = '';
+            cscFilenameField.textContent = initialHasExistingCsc && initialCscFilename ? initialCscLabel : defaultCscLabel;
+            return;
+        }
+
+        const templatePath = String(path || '').trim();
+        const templateFilename = extractFileName(templatePath);
+        const hasExisting = templateFilename !== '';
+        cscInputField.dataset.hasExisting = hasExisting ? '1' : '0';
+        cscInputField.dataset.existingFilename = templateFilename;
+        cscInputField.required = !hasExisting;
+        cscInputField.value = '';
+        cscFilenameField.textContent = hasExisting ? templateFilename : defaultCscLabel;
+    };
     const formatSalaryGrade = (value) => {
         const digits = String(value || '').replace(/\D/g, '').slice(0, 2);
-        return digits ? `SG-${digits}` : '';
+        return digits ? `SG-${digits.padStart(2, '0')}` : '';
     };
     const triggerFieldEvents = (field) => {
         if (!field) return;
@@ -605,6 +644,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     const applyPositionData = (record) => {
         if (!record || typeof record !== 'object') return;
+        const hasProp = (key) => Object.prototype.hasOwnProperty.call(record, key);
 
         if (sgField) {
             sgField.value = formatSalaryGrade(record.salary_grade || '');
@@ -615,18 +655,19 @@ document.addEventListener("DOMContentLoaded", function() {
             triggerFieldEvents(salField);
         }
 
-        setValueByName('closing_date', record.closing_date);
-        setValueByName('place_of_assignment', record.place_of_assignment);
-        setValueByName('pcn_no', record.pcn_no);
-        setValueByName('plantilla_item_no', record.plantilla_item_no);
-        setValueByName('qualification_education', record.qualification_education);
-        setValueByName('qualification_training', record.qualification_training);
-        setValueByName('qualification_experience', record.qualification_experience);
-        setValueByName('competencies', record.competencies);
+        // For vacancy-mode add/edit, deadline must be set manually by the user.
+        if (hasProp('closing_date') && @json($positionMode)) setValueByName('closing_date', record.closing_date);
+        if (hasProp('place_of_assignment')) setValueByName('place_of_assignment', record.place_of_assignment);
+        if (hasProp('pcn_no')) setValueByName('pcn_no', record.pcn_no);
+        if (hasProp('plantilla_item_no')) setValueByName('plantilla_item_no', record.plantilla_item_no);
+        if (hasProp('qualification_education')) setValueByName('qualification_education', record.qualification_education);
+        if (hasProp('qualification_training')) setValueByName('qualification_training', record.qualification_training);
+        if (hasProp('qualification_experience')) setValueByName('qualification_experience', record.qualification_experience);
+        if (hasProp('competencies')) setValueByName('competencies', record.competencies);
 
-        const personName = String(record.to_person || '').trim();
+        const personName = hasProp('to_person') ? String(record.to_person || '').trim() : '';
         let matchedSignatory = null;
-        if (signatorySelect) {
+        if (signatorySelect && hasProp('to_person')) {
             const signatoryOptions = Array.from(signatorySelect.options || []);
             if (personName) {
                 matchedSignatory =
@@ -646,16 +687,20 @@ document.addEventListener("DOMContentLoaded", function() {
         }
 
         if (!matchedSignatory) {
-            setValueById('to_position', record.to_position);
-            setValueById('to_office', record.to_office);
-            setValueById('to_office_address', record.to_office_address);
+            if (hasProp('to_position')) setValueById('to_position', record.to_position);
+            if (hasProp('to_office')) setValueById('to_office', record.to_office);
+            if (hasProp('to_office_address')) setValueById('to_office_address', record.to_office_address);
         }
 
-        if (typeof window.setEligibilityFromRaw === 'function') {
-            window.setEligibilityFromRaw(record.qualification_eligibility || '');
-        } else {
-            setValueByName('qualification_eligibility', record.qualification_eligibility || '');
+        if (hasProp('qualification_eligibility')) {
+            if (typeof window.setEligibilityFromRaw === 'function') {
+                window.setEligibilityFromRaw(record.qualification_eligibility || '');
+            } else {
+                setValueByName('qualification_eligibility', record.qualification_eligibility || '');
+            }
         }
+
+        setCscTemplateState(hasProp('csc_form_path') ? record.csc_form_path : '');
 
         if (typeof checkAllFieldsFilled === 'function') {
             checkAllFieldsFilled();
@@ -727,6 +772,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 salField.value = '';
                 triggerFieldEvents(salField);
             }
+            setCscTemplateState('', true);
             if (typeof checkAllFieldsFilled === 'function') {
                 checkAllFieldsFilled();
             }
@@ -1182,14 +1228,20 @@ function checkAllFieldsFilled() {
         }
     });
 
-    if (requiredFields.has('qualification_eligibility') && typeof hasEligibilityItems === 'function' && !hasEligibilityItems()) {
-        allFilled = false;
+    if (requiredFields.has('qualification_eligibility')) {
+        const hiddenEligibility = document.getElementById('qualification_eligibility_hidden');
+        const selectEligibility = document.getElementById('eligibility-select');
+        const hasItems = typeof hasEligibilityItems === 'function' && hasEligibilityItems();
+        const hasHiddenValue = Boolean(String(hiddenEligibility?.value || '').trim());
+        const hasSelectedValue = Boolean(String(selectEligibility?.value || '').trim());
+        if (!(hasItems || hasHiddenValue || hasSelectedValue)) {
+            allFilled = false;
+        }
     }
 
-    const cscInput = document.getElementById('csc_form_upload_plantilla');
-    const hasExistingCsc = cscInput?.dataset?.hasExisting === '1';
-    const hasSelectedCsc = Boolean(cscInput?.files && cscInput.files.length > 0);
-    if (!(hasExistingCsc || hasSelectedCsc)) {
+    // Defer strict CSC validation to confirm handler to avoid false disabled states
+    // caused by browser file input state timing.
+    if (!document.getElementById('csc_form_upload_plantilla')) {
         allFilled = false;
     }
     
@@ -1257,7 +1309,27 @@ window.addEventListener('confirm-plantilla-save', () => {
     if (!salaryGrade || !/^SG-\d{2}$/.test(String(salaryGrade.value || '').trim())) { errors.push('Salary grade must be in SG-00 format.'); show(eSalaryGrade, 'Salary grade must be in SG-00 format (example: SG-23).'); }
     if (!disablePositionFields && !closingDate.value) { errors.push('Deadline is required.'); show(eClosing, 'Deadline of application is required.'); }
     if (!place.value) { errors.push('Place of assignment is required.'); show(ePlace, 'Place of assignment is required.'); }
-    if (typeof hasEligibilityItems === 'function' && !hasEligibilityItems()) { errors.push('At least one eligibility is required.'); show(eEligibility, 'At least one eligibility is required.'); }
+    let hasEligibilityValue = typeof hasEligibilityItems === 'function' && hasEligibilityItems();
+    const eligibilityHidden = document.getElementById('qualification_eligibility_hidden');
+    const eligibilitySelect = document.getElementById('eligibility-select');
+    if (!hasEligibilityValue && String(eligibilityHidden?.value || '').trim() !== '') {
+        hasEligibilityValue = true;
+    }
+    if (!hasEligibilityValue && String(eligibilitySelect?.value || '').trim() !== '') {
+        // If admin selected one from dropdown but skipped "Add Selected",
+        // convert it into a valid hidden payload on save.
+        const selectedName = String(eligibilitySelect.value || '').trim();
+        if (eligibilityHidden) {
+            eligibilityHidden.value = JSON.stringify([{
+                name: selectedName,
+                legalBasis: '',
+                level: '',
+                isCustom: false,
+            }]);
+        }
+        hasEligibilityValue = true;
+    }
+    if (!hasEligibilityValue) { errors.push('At least one eligibility is required.'); show(eEligibility, 'At least one eligibility is required.'); }
     const cscInput = document.getElementById('csc_form_upload_plantilla');
     const hasExistingCsc = cscInput?.dataset?.hasExisting === '1';
     const hasSelectedCsc = Boolean(cscInput?.files && cscInput.files.length > 0);

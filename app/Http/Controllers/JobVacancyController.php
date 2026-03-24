@@ -177,15 +177,107 @@ class JobVacancyController extends Controller
             return;
         }
 
-        $salaryGrade = trim((string) ($vacancyData['salary_grade'] ?? ''));
+        $salaryGrade = $this->normalizeSalaryGrade((string) ($vacancyData['salary_grade'] ?? ''));
         $monthlySalary = (float) ($vacancyData['monthly_salary'] ?? 0);
 
+        $updates = [
+            'salary_grade' => $salaryGrade !== '' ? $salaryGrade : null,
+            'monthly_salary' => $monthlySalary,
+        ];
+
+        $optionalColumns = [
+            'vacancy_type',
+            'pcn_no',
+            'plantilla_item_no',
+            'closing_date',
+            'place_of_assignment',
+            'qualification_education',
+            'qualification_training',
+            'qualification_experience',
+            'qualification_eligibility',
+            'competencies',
+            'expected_output',
+            'scope_of_work',
+            'duration_of_work',
+            'to_person',
+            'to_position',
+            'to_office',
+            'to_office_address',
+            'csc_form_path',
+        ];
+
+        foreach ($optionalColumns as $column) {
+            if (array_key_exists($column, $vacancyData) && Schema::hasColumn('vacancy_titles', $column)) {
+                $updates[$column] = $vacancyData[$column];
+            }
+        }
+
+        VacancyTitle::query()->updateOrCreate(['position_title' => $positionTitle], $updates);
+    }
+
+    private function normalizeSalaryGrade(string $value): string
+    {
+        $raw = strtoupper(trim($value));
+        if (preg_match('/^(?:SG-)?(\d{1,2})$/', $raw, $matches) !== 1) {
+            return $raw;
+        }
+
+        return 'SG-' . str_pad((string) ((int) $matches[1]), 2, '0', STR_PAD_LEFT);
+    }
+
+    private function upsertPositionTemplate(array $validated, ?string $cscFormPath = null, ?int $positionTitleId = null): void
+    {
+        if (!Schema::hasTable('vacancy_titles')) {
+            return;
+        }
+
+        $data = [
+            'position_title' => trim((string) ($validated['position_title'] ?? '')),
+            'salary_grade' => $this->normalizeSalaryGrade((string) ($validated['salary_grade'] ?? '')),
+            'monthly_salary' => (float) ($validated['monthly_salary'] ?? 0),
+        ];
+
+        $optionalPayload = [
+            'vacancy_type',
+            'pcn_no',
+            'plantilla_item_no',
+            'closing_date',
+            'place_of_assignment',
+            'qualification_education',
+            'qualification_training',
+            'qualification_experience',
+            'qualification_eligibility',
+            'competencies',
+            'expected_output',
+            'scope_of_work',
+            'duration_of_work',
+            'to_person',
+            'to_position',
+            'to_office',
+            'to_office_address',
+        ];
+
+        foreach ($optionalPayload as $column) {
+            if (Schema::hasColumn('vacancy_titles', $column)) {
+                $data[$column] = $validated[$column] ?? null;
+            }
+        }
+
+        if ($cscFormPath !== null && Schema::hasColumn('vacancy_titles', 'csc_form_path')) {
+            $data['csc_form_path'] = $cscFormPath;
+        }
+
+        if ($positionTitleId && $positionTitleId > 0) {
+            $existing = VacancyTitle::query()->find($positionTitleId);
+            if ($existing) {
+                $existing->update($data);
+                return;
+            }
+        }
+
         VacancyTitle::query()->updateOrCreate(
-            ['position_title' => $positionTitle],
-            [
-                'salary_grade' => $salaryGrade !== '' ? $salaryGrade : null,
-                'monthly_salary' => $monthlySalary,
-            ]
+            ['position_title' => $data['position_title']],
+            $data
         );
     }
 
@@ -287,9 +379,9 @@ class JobVacancyController extends Controller
             'competencies' => 'nullable|string',
 
             // COS only
-            'scope_of_work' => 'nullable|string',
-            'expected_output' => 'nullable|string',
-            'duration_of_work' => 'nullable|string',
+            'scope_of_work' => 'nullable|string|required_if:vacancy_type,COS',
+            'expected_output' => 'nullable|string|required_if:vacancy_type,COS',
+            'duration_of_work' => 'nullable|string|required_if:vacancy_type,COS',
 
             'to_person' => 'required|string',
             'to_position' => 'required|string',
@@ -398,7 +490,140 @@ class JobVacancyController extends Controller
     public function storeVacancy(Request $request)
     {
         //try {
-        $requiresCscFormUpload = strtoupper((string) $request->input('vacancy_type')) === 'PLANTILLA';
+        $positionMode = $request->boolean('position_mode');
+        if (!$positionMode) {
+            $referer = (string) $request->headers->get('referer', '');
+            if (
+                $referer !== ''
+                && (
+                    str_contains($referer, '/admin/vacancies_management/add/cos')
+                    || str_contains($referer, '/admin/vacancies_management/add/plantilla')
+                )
+            ) {
+                $positionMode = true;
+            }
+        }
+        $positionTitleId = (int) $request->input('position_title_id', 0);
+        $templateCscFormPath = null;
+        if (
+            !$positionMode
+            && strtoupper((string) $request->input('vacancy_type')) === 'PLANTILLA'
+            && Schema::hasTable('vacancy_titles')
+            && Schema::hasColumn('vacancy_titles', 'csc_form_path')
+        ) {
+            $positionTitle = trim((string) $request->input('position_title', ''));
+            if ($positionTitle !== '') {
+                $templateQuery = VacancyTitle::query()
+                    ->where('position_title', $positionTitle)
+                    ->whereNotNull('csc_form_path')
+                    ->whereRaw("TRIM(COALESCE(csc_form_path, '')) != ''");
+
+                if (Schema::hasColumn('vacancy_titles', 'vacancy_type')) {
+                    $templateQuery->where(function ($q) {
+                        $q->whereRaw("UPPER(TRIM(COALESCE(vacancy_type, ''))) = 'PLANTILLA'")
+                            ->orWhereNull('vacancy_type')
+                            ->orWhereRaw("TRIM(COALESCE(vacancy_type, '')) = ''");
+                    });
+                }
+
+                $templateTitle = $templateQuery
+                    ->orderByDesc('updated_at')
+                    ->orderByDesc('id')
+                    ->first();
+
+                $templateCscFormPath = trim((string) ($templateTitle?->csc_form_path ?? ''));
+            }
+        }
+
+        if ($templateCscFormPath === '' && !$positionMode && strtoupper((string) $request->input('vacancy_type')) === 'PLANTILLA' && $this->hasJobVacancyCscFormPathColumn()) {
+            $positionTitle = trim((string) $request->input('position_title', ''));
+            if ($positionTitle !== '') {
+                $templateVacancy = JobVacancy::query()
+                    ->where('position_title', $positionTitle)
+                    ->whereRaw("UPPER(TRIM(COALESCE(vacancy_type, ''))) = 'PLANTILLA'")
+                    ->whereNotNull('csc_form_path')
+                    ->whereRaw("TRIM(COALESCE(csc_form_path, '')) != ''")
+                    ->orderByDesc('updated_at')
+                    ->first();
+                $templateCscFormPath = trim((string) ($templateVacancy?->csc_form_path ?? ''));
+            }
+        }
+
+        if ($templateCscFormPath !== '' && !Storage::disk('public')->exists($templateCscFormPath)) {
+            $templateCscFormPath = '';
+        }
+
+        $requiresCscFormUpload = !$positionMode
+            && strtoupper((string) $request->input('vacancy_type')) === 'PLANTILLA'
+            && $templateCscFormPath === '';
+        $existingPositionTemplate = null;
+        if ($positionMode && $positionTitleId > 0 && Schema::hasTable('vacancy_titles')) {
+            $existingPositionTemplate = VacancyTitle::query()->find($positionTitleId);
+        }
+        $requiresPositionModeCscFormUpload = $positionMode
+            && strtoupper((string) $request->input('vacancy_type')) === 'PLANTILLA'
+            && (
+                !Schema::hasColumn('vacancy_titles', 'csc_form_path')
+                || !$existingPositionTemplate
+                || empty($existingPositionTemplate->csc_form_path)
+            );
+
+        if ($positionMode) {
+            if (!Schema::hasTable('vacancy_titles')) {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', 'Positions table is missing. Run migrations first.');
+            }
+
+            $validated = $request->validate([
+                'position_title' => 'required|string|max:255',
+                'vacancy_type' => 'required|in:COS,Plantilla',
+                'pcn_no' => 'nullable|string',
+                'plantilla_item_no' => 'nullable|string',
+                'closing_date' => 'required|date',
+                'monthly_salary' => 'required|numeric|min:0',
+                'salary_grade' => ['required', 'regex:/^SG-\d{2}$/'],
+                'place_of_assignment' => 'required|string',
+                'qualification_education' => 'required|string',
+                'qualification_training' => 'required|string',
+                'qualification_experience' => 'required|string',
+                'qualification_eligibility' => 'nullable|string|required_if:vacancy_type,Plantilla',
+                'competencies' => 'nullable|string',
+                'expected_output' => 'nullable|string|required_if:vacancy_type,COS',
+                'scope_of_work' => 'nullable|string|required_if:vacancy_type,COS',
+                'duration_of_work' => 'nullable|string|required_if:vacancy_type,COS',
+                'to_person' => 'nullable|string',
+                'to_position' => 'nullable|string',
+                'to_office' => 'nullable|string',
+                'to_office_address' => 'nullable|string',
+                'csc_form' => [Rule::requiredIf($requiresPositionModeCscFormUpload), 'nullable', 'file', 'mimes:pdf,doc,docx', 'max:10240'],
+            ]);
+
+            if ($this->isHrDivisionAdmin() && strcasecmp((string) ($validated['vacancy_type'] ?? ''), 'COS') !== 0) {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', 'HR Division can only create COS positions.');
+            }
+
+            $cscFormPath = null;
+            if ($request->hasFile('csc_form') && Schema::hasColumn('vacancy_titles', 'csc_form_path')) {
+                $cscFormPath = $request->file('csc_form')->store('csc_forms', 'public');
+            }
+
+            $this->upsertPositionTemplate($validated, $cscFormPath, $positionTitleId > 0 ? $positionTitleId : null);
+
+            activity()
+                ->event('create')
+                ->causedBy(auth('admin')->user())
+                ->withProperties([
+                    'position_title' => $validated['position_title'],
+                    'vacancy_type' => $validated['vacancy_type'],
+                    'section' => 'Positions',
+                ])
+                ->log('Created or updated position template.');
+
+            return redirect()->route('admin.positions.index')->with('success', 'Position saved successfully.');
+        }
 
         $validated = $request->validate([
             'position_title' => 'required|string|max:255',
@@ -421,9 +646,9 @@ class JobVacancyController extends Controller
             'competencies' => 'nullable|string',
 
             // COS-only
-            'expected_output' => 'nullable|string',
-            'scope_of_work' => 'nullable|string',
-            'duration_of_work' => 'nullable|string',
+            'expected_output' => 'nullable|string|required_if:vacancy_type,COS',
+            'scope_of_work' => 'nullable|string|required_if:vacancy_type,COS',
+            'duration_of_work' => 'nullable|string|required_if:vacancy_type,COS',
 
             // Application submission
             'to_person' => 'required|string',
@@ -513,7 +738,7 @@ class JobVacancyController extends Controller
         if ($hasCscFormPathColumn) {
             $vacancyData['csc_form_path'] = $request->hasFile('csc_form')
                 ? $request->file('csc_form')->store('csc_forms', 'public')
-                : null;
+                : ($templateCscFormPath !== '' ? $templateCscFormPath : null);
         }
 
         $vacancy = JobVacancy::create($vacancyData);
@@ -571,6 +796,10 @@ class JobVacancyController extends Controller
     public function jobDescription(Request $request, $vacancy_id)
     {
         $vacancy = JobVacancy::where('vacancy_id', $vacancy_id)->firstOrFail();
+        $requiredEligibilityNames = $this->extractVacancyEligibilityNames((string) ($vacancy->qualification_eligibility ?? ''));
+        $qualificationEligibilityDisplay = !empty($requiredEligibilityNames)
+            ? implode(', ', $requiredEligibilityNames)
+            : (trim((string) ($vacancy->qualification_eligibility ?? '')) ?: 'Not specified');
 
         $hasPDS = PersonalInformation::where('user_id', Auth::id())->exists();
         $hasCompletedPdsForApply = Auth::check()
@@ -615,6 +844,7 @@ class JobVacancyController extends Controller
 
         return view('dashboard_user.job_description', [
             'vacancy' => $vacancy,
+            'qualificationEligibilityDisplay' => $qualificationEligibilityDisplay,
             'hasPDS' => $hasPDS,
             'hasCompletedPdsForApply' => $hasCompletedPdsForApply,
             'hasApplied' => $hasApplied,
@@ -713,12 +943,20 @@ class JobVacancyController extends Controller
                     ->orWhere('vacancy_type', 'like', "%{$s}%");
             });
         }
-        if ($request->status) {
-            $vacancies->where('job_vacancies.status', $request->status);
+        $status = trim((string) $request->input('status', ''));
+        if ($status !== '') {
+            $vacancies->whereRaw(
+                "UPPER(TRIM(COALESCE(job_vacancies.status, ''))) = ?",
+                [strtoupper($status)]
+            );
         }
 
-        if ($request->type) {
-            $vacancies->where('vacancy_type', $request->type);
+        $type = trim((string) $request->input('type', ''));
+        if ($type !== '') {
+            $vacancies->whereRaw(
+                "LOWER(TRIM(COALESCE(vacancy_type, ''))) = ?",
+                [strtolower($type)]
+            );
         }
 
         if ($request->place) {

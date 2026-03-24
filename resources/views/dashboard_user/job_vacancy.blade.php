@@ -159,7 +159,7 @@
                     type: type,
                     salary: salary,
                     place: place,
-                    search: searchPreviously uploaded required
+                    search: search
                 });
 
                 fetch(`/job-vacancies/filter?${params.toString()}`)
@@ -199,4 +199,3 @@
         </script>
 
 @endsection
-

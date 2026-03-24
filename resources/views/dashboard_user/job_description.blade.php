@@ -136,7 +136,7 @@
                         </div>
                         <div class="rounded-xl border border-slate-200 p-3 bg-slate-50/70">
                             <p class="text-xs uppercase tracking-wide text-slate-500">Eligibility</p>
-                            <p class="text-sm text-slate-700 mt-1">{{ $vacancy->qualification_eligibility ?: 'Not specified' }}</p>
+                            <p class="text-sm text-slate-700 mt-1">{{ $qualificationEligibilityDisplay ?? ($vacancy->qualification_eligibility ?: 'Not specified') }}</p>
                         </div>
                     </div>
 
