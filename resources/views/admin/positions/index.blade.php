@@ -3,6 +3,10 @@
 @section('main-padding', 'px-5')
 
 @section('content')
+@php
+    $adminRole = Auth::guard('admin')->user()->role ?? null;
+    $isHrDivisionUser = $adminRole === 'hr_division';
+@endphp
 <div class="h-full max-h-full w-full font-montserrat flex flex-col pb-4 gap-4 overflow-hidden">
     <div class="border-b border-[#0D2B70] pb-3 flex-none">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -37,10 +41,12 @@
                         class="use-loader block px-4 py-2 text-sm font-medium text-[#0D2B70] hover:bg-[#0D2B70]/5 transition-colors">
                         Add COS
                     </a>
-                    <a href="{{ route('addplantilla') }}"
-                        class="use-loader block px-4 py-2 text-sm font-medium text-[#0D2B70] hover:bg-[#0D2B70]/5 transition-colors">
-                        Add Plantilla
-                    </a>
+                    @unless($isHrDivisionUser)
+                        <a href="{{ route('addplantilla') }}"
+                            class="use-loader block px-4 py-2 text-sm font-medium text-[#0D2B70] hover:bg-[#0D2B70]/5 transition-colors">
+                            Add Plantilla
+                        </a>
+                    @endunless
                 </div>
             </div>
         </div>
@@ -193,7 +199,7 @@
                             <td class="w-[20%] px-3 py-2">{{ $position->place_of_assignment ?: 'N/A' }}</td>
                             <td class="w-[10%] px-3 py-2 text-center">
                                 <a
-                                    href="{{ strcasecmp((string) $position->vacancy_type, 'COS') === 0
+                                    href="{{ $isHrDivisionUser || strcasecmp((string) $position->vacancy_type, 'COS') === 0
                                         ? route('addcos', ['reuse_title' => $position->id])
                                         : route('addplantilla', ['reuse_title' => $position->id]) }}"
                                     class="use-loader inline-flex items-center justify-center text-[#0D2B70] py-1 px-3 rounded-md text-xl transition-all duration-150 ease-[cubic-bezier(0.4,0,0.2,1)] hover:scale-110"

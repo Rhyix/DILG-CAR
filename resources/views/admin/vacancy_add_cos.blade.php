@@ -1069,9 +1069,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   const positionLookup = new Map();
   const normalizeText = (value) => String(value || '').replace(/\s+/g, ' ').trim().toLowerCase();
 
-  const formatSalaryGrade = (value) => {
-    const digits = String(value || '').replace(/\D/g, '').slice(0, 2);
-    return digits ? `SG-${digits.padStart(2, '0')}` : '';
+  const extractSalaryGradeDigits = (value) => String(value || '').replace(/\D/g, '').slice(0, 2);
+  const formatSalaryGrade = (value, padToTwoDigits = true) => {
+    const digits = extractSalaryGradeDigits(value);
+    if (!digits) return '';
+    return `SG-${padToTwoDigits ? digits.padStart(2, '0') : digits}`;
   };
 
   const triggerFieldEvents = (field) => {
@@ -1194,13 +1196,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (sg) {
     sg.maxLength = 5;
     sg.inputMode = 'numeric';
-    const syncSalaryGrade = () => {
-      sg.value = formatSalaryGrade(sg.value);
+    const normalizeSalaryGradeInput = () => {
+      sg.value = formatSalaryGrade(sg.value, false);
+      if (typeof checkAllFieldsFilled === 'function') checkAllFieldsFilled();
+    };
+    const finalizeSalaryGrade = () => {
+      sg.value = formatSalaryGrade(sg.value, true);
       if (typeof checkAllFieldsFilled === 'function') checkAllFieldsFilled();
     };
     sg.value = formatSalaryGrade(sg.value);
-    sg.addEventListener('input', syncSalaryGrade);
-    sg.addEventListener('blur', syncSalaryGrade);
+    sg.addEventListener('input', normalizeSalaryGradeInput);
+    sg.addEventListener('blur', finalizeSalaryGrade);
   }
   if (!select || !usePositionDropdown || String(select.tagName || '').toUpperCase() !== 'SELECT') {
     return;

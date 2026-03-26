@@ -99,6 +99,33 @@ class JobVacancyController extends Controller
             ->all();
     }
 
+    private function grantHrDivisionAccessToVacancy(string $vacancyId, ?int $adminId = null): void
+    {
+        if (!$this->isHrDivisionAdmin()) {
+            return;
+        }
+
+        $adminId = $adminId ?? (int) ($this->currentAdmin()->id ?? 0);
+        $vacancyId = trim($vacancyId);
+
+        if ($adminId <= 0 || $vacancyId === '' || !Schema::hasTable('admin_vacancy_accesses')) {
+            return;
+        }
+
+        try {
+            AdminVacancyAccess::query()->firstOrCreate([
+                'admin_id' => $adminId,
+                'vacancy_id' => $vacancyId,
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('Unable to auto-grant HR Division vacancy access.', [
+                'admin_id' => $adminId,
+                'vacancy_id' => $vacancyId,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
     private function applyHrDivisionManagedVacancyScope($query, ?int $adminId = null): void
     {
         $adminId = $adminId ?? (int) ($this->currentAdmin()->id ?? 0);
@@ -742,6 +769,8 @@ class JobVacancyController extends Controller
         }
 
         $vacancy = JobVacancy::create($vacancyData);
+        $vacancy->refresh();
+        $this->grantHrDivisionAccessToVacancy((string) ($vacancy->vacancy_id ?? ''));
         $this->syncVacancyTitleCompensationFromVacancyData($vacancyData);
 
 

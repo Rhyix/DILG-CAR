@@ -50,6 +50,16 @@
                 </a>
             @endif
 
+            @if($adminRole === 'hr_division')
+                <a href="{{ route('admin.positions.index') }}" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200
+                        {{ $isPositionsContext
+        ? 'bg-[#002C76] text-white shadow-md'
+        : 'text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md' }}">
+                    <i class="fa-solid fa-layer-group w-5 h-5 flex-shrink-0"></i>
+                    <span class="ml-3">POSITIONS</span>
+                </a>
+            @endif
+
             @if(in_array($adminRole, ['superadmin', 'admin', 'hr_division'], true))
                 <a href="{{ route('applications_list') }}" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200
                         {{ request()->routeIs('applications_list') || request()->routeIs('admin.applicant_status*')

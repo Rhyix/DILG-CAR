@@ -13,10 +13,16 @@ use Illuminate\Support\Facades\Schema;
 
 class PositionUtilityController extends Controller
 {
+    private function isHrDivision(): bool
+    {
+        $role = Auth::guard('admin')->user()->role ?? null;
+        return $role === 'hr_division';
+    }
+
     private function canManagePositions(): bool
     {
         $role = Auth::guard('admin')->user()->role ?? null;
-        return in_array($role, ['superadmin', 'admin'], true);
+        return in_array($role, ['superadmin', 'admin', 'hr_division'], true);
     }
 
     private function hasPositionsTable(): bool
@@ -69,6 +75,15 @@ class PositionUtilityController extends Controller
         }
 
         return VacancyTitle::query()->select($columns);
+    }
+
+    private function applyHrDivisionPositionScope(Builder $query): void
+    {
+        if (!$this->isHrDivision() || !$this->hasPositionsColumn('vacancy_type')) {
+            return;
+        }
+
+        $query->whereRaw('UPPER(TRIM(COALESCE(vacancy_type, ""))) = ?', ['COS']);
     }
 
     private function mapPositionRecord(VacancyTitle $row): VacancyTitle
@@ -178,6 +193,8 @@ class PositionUtilityController extends Controller
             ]);
         }
 
+        $this->applyHrDivisionPositionScope($query);
+
         if ($search !== '') {
             $query->where(function ($q) use ($search) {
                 $q->where('position_title', 'like', '%' . $search . '%')
@@ -222,6 +239,8 @@ class PositionUtilityController extends Controller
                 'data' => [],
             ]);
         }
+
+        $this->applyHrDivisionPositionScope($query);
 
         $type = strtoupper(trim((string) $request->query('vacancy_type', '')));
         $allowedTypes = ['COS', 'PLANTILLA'];

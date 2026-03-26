@@ -58,10 +58,13 @@ class RedirectIfNotAdmin
                     'vacancies_management',
                     'admin.vacancies.filter',
                     'addcos',
+                    'vacancies.addcos',
                     'vacancies.store',
                     'vacancies.edit',
                     'vacancies.update',
                     'vacancies.delete',
+                    'admin.positions.index',
+                    'admin.positions.list',
                 ];
 
                 if (in_array($routeName, $hrDivisionAllowedRoutes, true)) {
@@ -69,7 +72,7 @@ class RedirectIfNotAdmin
                 }
 
                 return redirect()->route('applications_list')
-                    ->with('error', 'Access denied. HR Division can access dashboard and applicants management only.');
+                    ->with('error', 'Access denied. HR Division can access dashboard, vacancies, positions, and applicants management only.');
             }
 
             return redirect()->route('admin.login')

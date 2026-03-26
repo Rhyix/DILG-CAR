@@ -588,9 +588,11 @@ document.addEventListener("DOMContentLoaded", function() {
         cscInputField.value = '';
         cscFilenameField.textContent = hasExisting ? templateFilename : defaultCscLabel;
     };
-    const formatSalaryGrade = (value) => {
-        const digits = String(value || '').replace(/\D/g, '').slice(0, 2);
-        return digits ? `SG-${digits.padStart(2, '0')}` : '';
+    const extractSalaryGradeDigits = (value) => String(value || '').replace(/\D/g, '').slice(0, 2);
+    const formatSalaryGrade = (value, padToTwoDigits = true) => {
+        const digits = extractSalaryGradeDigits(value);
+        if (!digits) return '';
+        return `SG-${padToTwoDigits ? digits.padStart(2, '0') : digits}`;
     };
     const triggerFieldEvents = (field) => {
         if (!field) return;
@@ -710,13 +712,17 @@ document.addEventListener("DOMContentLoaded", function() {
     if (sgField) {
         sgField.maxLength = 5;
         sgField.inputMode = 'numeric';
-        const syncSalaryGrade = () => {
-            sgField.value = formatSalaryGrade(sgField.value);
+        const normalizeSalaryGradeInput = () => {
+            sgField.value = formatSalaryGrade(sgField.value, false);
+            if (typeof checkAllFieldsFilled === 'function') checkAllFieldsFilled();
+        };
+        const finalizeSalaryGrade = () => {
+            sgField.value = formatSalaryGrade(sgField.value, true);
             if (typeof checkAllFieldsFilled === 'function') checkAllFieldsFilled();
         };
         sgField.value = formatSalaryGrade(sgField.value);
-        sgField.addEventListener('input', syncSalaryGrade);
-        sgField.addEventListener('blur', syncSalaryGrade);
+        sgField.addEventListener('input', normalizeSalaryGradeInput);
+        sgField.addEventListener('blur', finalizeSalaryGrade);
     }
     if (titleSelect && String(titleSelect.tagName || '').toUpperCase() === 'SELECT') {
         fetch("{{ route('admin.positions.list', ['vacancy_type' => 'Plantilla']) }}")
