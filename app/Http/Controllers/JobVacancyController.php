@@ -895,6 +895,7 @@ class JobVacancyController extends Controller
         $status = $request->get('status');
         $search = $request->get('search');
         $job = $request->get('job');
+        $place = $request->get('place');
         $isHrDivisionUser = $this->isHrDivisionAdmin();
 
         $vacanciesQuery = JobVacancy::query();
@@ -909,6 +910,9 @@ class JobVacancyController extends Controller
             })
             ->when($job, function ($query) use ($job) {
                 $query->where('vacancy_type', $job);
+            })
+            ->when($place, function ($query) use ($place) {
+                $query->where('place_of_assignment', $place);
             })
             ->when($search, function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
@@ -942,6 +946,7 @@ class JobVacancyController extends Controller
         session(['vacancyFilterSearch' => $search]);
         session(['vacancyFilterJob' => $job]);
         session(['vacancyFilterStatus' => $status]);
+        session(['vacancyFilterPlace' => $place]);
 
         /*activity()
             ->causedBy(auth()->user())
