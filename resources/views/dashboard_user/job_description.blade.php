@@ -67,6 +67,13 @@
         $monthlySalaryDisplay = is_numeric($salaryValue)
             ? 'PHP ' . number_format((float) $salaryValue, 2)
             : ((string) ($salaryValue ?: 'Not specified'));
+        $qualificationChecksForPanel = is_array($qualificationChecks ?? null) ? $qualificationChecks : [];
+        $qualificationLabelMap = [
+            'education' => 'Education',
+            'training' => 'Training',
+            'experience' => 'Experience',
+            'eligibility' => 'Eligibility',
+        ];
     @endphp
 
     <main class="flex-1 min-w-0 font-montserrat mr-4 space-y-5 pb-6">
@@ -136,7 +143,7 @@
                         </div>
                         <div class="rounded-xl border border-slate-200 p-3 bg-slate-50/70">
                             <p class="text-xs uppercase tracking-wide text-slate-500">Eligibility</p>
-                            <p class="text-sm text-slate-700 mt-1">{{ $qualificationEligibilityDisplay ?? ($vacancy->qualification_eligibility ?: 'Not specified') }}</p>
+                            <p class="text-sm text-slate-700 mt-1 leading-6">{!! nl2br(e($qualificationEligibilityDisplay ?? ($vacancy->qualification_eligibility ?: 'Not specified'))) !!}</p>
                         </div>
                     </div>
 
@@ -248,11 +255,49 @@
 
                         @if(!$isClosed && !$hasApplied && !($isEligibilityQualified ?? true))
                             <div class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-                                {{ $eligibilityMismatchMessage ?: 'Your declared civil service eligibility does not match this vacancy requirement.' }}
+                                {{ $eligibilityMismatchMessage ?: 'You are missing one or more required qualifications for this position.' }}
                             </div>
                         @endif
                     </div>
                 </div>
+
+                @if(!$isClosed && !$hasApplied && !empty($qualificationChecksForPanel))
+                    <div class="rounded-2xl border border-[#0D2B70]/20 bg-white p-5 shadow-sm">
+                        <h3 class="text-base font-bold text-[#0D2B70]">Qualification Check</h3>
+                        <div class="mt-3 space-y-2">
+                            @foreach($qualificationLabelMap as $field => $label)
+                                @php
+                                    $check = $qualificationChecksForPanel[$field] ?? null;
+                                    $status = is_array($check) ? ($check['status'] ?? 'na') : 'na';
+                                    $required = is_array($check) ? (bool) ($check['required'] ?? false) : false;
+                                    $met = is_array($check) ? (bool) ($check['met'] ?? false) : true;
+                                    $requirementText = trim((string) (($check['requirement'] ?? '') ?: ''));
+                                @endphp
+                                <div class="rounded-lg border border-slate-200 px-3 py-2">
+                                    <div class="flex items-center justify-between gap-2">
+                                        <p class="text-sm font-semibold text-slate-700">{{ $label }}</p>
+                                        @if(!$required || $status === 'na')
+                                            <span class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-semibold text-gray-600">
+                                                Not Required
+                                            </span>
+                                        @elseif($met)
+                                            <span class="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+                                                Met
+                                            </span>
+                                        @else
+                                            <span class="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-700">
+                                                Missing
+                                            </span>
+                                        @endif
+                                    </div>
+                                    @if($requirementText !== '')
+                                        <p class="mt-1 text-xs text-slate-500">Required: {{ $requirementText }}</p>
+                                    @endif
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
 
                 <div class="rounded-2xl border border-[#0D2B70]/20 bg-white p-5 shadow-sm">
                     <h3 class="text-base font-bold text-[#0D2B70]">Vacancy Snapshot</h3>

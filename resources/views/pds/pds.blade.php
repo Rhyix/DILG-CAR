@@ -131,7 +131,7 @@
                 <!-- Personal Details -->
                 <div class="mobile-stack md:grid md:grid-cols-4 gap-4 rounded-lg p-4 sm:gap-6 mb-4 sm:mb-6">
                     <div class="relative">
-                        <input type="text" id="date_of_birth" name="date_of_birth" value="{{ old('date_of_birth', session('form.c1.date_of_birth')) }}" required autocomplete="bday" data-dob-input class="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base">
+                        <input type="text" id="date_of_birth" name="date_of_birth" value="{{ old('date_of_birth', session('form.c1.date_of_birth')) }}" required autocomplete="bday" inputmode="numeric" data-uppercase="off" data-dob-input class="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base">
                         <label for="date_of_birth" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">3. DATE OF BIRTH <span class="text-red-500">*</span></label>
                         <!-- <label for="date_of_birth" class="absolute -top-2 left-3 bg-white px-1 text-xs text-gray-600 ml-[50%]">(dd/mm/yyyy) </label> -->
                     </div>
@@ -939,7 +939,7 @@
     }
     window.initPdsEducationDateRanges = initPdsEducationDateRanges;
 
-    function validateDobAge() {
+    function validateDobAge(showMessage = true) {
         const dobInput = document.querySelector('[data-dob-input]');
         if (!dobInput) return true;
 
@@ -965,7 +965,7 @@
         }
 
         dobInput.setCustomValidity(message);
-        if (message) {
+        if (message && showMessage) {
             dobInput.reportValidity();
             return false;
         }
@@ -976,9 +976,10 @@
     flatpickr('#date_of_birth', {
         dateFormat: 'd-m-Y',
         allowInput: true,
+        disableMobile: true,
         maxDate: 'today',
-        onChange: validateDobAge,
-        onClose: validateDobAge,
+        onChange: () => validateDobAge(false),
+        onClose: () => validateDobAge(true),
     });
 
     document.addEventListener('DOMContentLoaded', function () {
@@ -994,14 +995,14 @@
 
         const dobInput = document.querySelector('[data-dob-input]');
         if (dobInput) {
-            dobInput.addEventListener('blur', validateDobAge);
+            dobInput.addEventListener('blur', () => validateDobAge(true));
             dobInput.addEventListener('input', () => dobInput.setCustomValidity(''));
         }
 
         const form = document.querySelector('#myForm');
         if (form) {
             form.addEventListener('submit', (event) => {
-                if (!validateDobAge()) {
+                if (!validateDobAge(true)) {
                     event.preventDefault();
                     event.stopPropagation();
                 }
