@@ -29,6 +29,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        date_default_timezone_set(config('app.timezone', 'Asia/Manila'));
+
         Applications::observe(ApplicationObserver::class);
         UploadedDocument::observe(UploadedDocumentObserver::class);
 

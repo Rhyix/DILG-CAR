@@ -346,7 +346,7 @@
           let documents = @json($documents);
           const requiredDocumentIds = @json($requiredDocumentIds ?? []);
           let requiredDocumentSet = new Set(requiredDocumentIds);
-          const isPastDeadline = @json($isPastDeadline);
+          let isPastDeadline = @json($isPastDeadline);
           let isFinalRevisionDisqualified = @json($isFinalRevisionDisqualified ?? false);
           let currentSelectedDoc = null;
 
@@ -395,7 +395,7 @@
             const btn = document.getElementById('upload-new-document-btn');
             if (!btn) return;
 
-            const shouldShow = !!doc && isRevisionStatus(doc.status) && !isFinalRevisionDisqualified;
+            const shouldShow = !!doc && isRevisionStatus(doc.status) && !isFinalRevisionDisqualified && !isPastDeadline;
             btn.classList.toggle('hidden', !shouldShow);
             btn.disabled = !shouldShow;
           }
@@ -545,7 +545,7 @@
             const uploadForm = document.getElementById('document-upload-form');
 
             uploadButton?.addEventListener('click', function () {
-              if (isFinalRevisionDisqualified) return;
+              if (isFinalRevisionDisqualified || isPastDeadline) return;
               if (!currentSelectedDoc || !isRevisionStatus(currentSelectedDoc.status)) return;
               if (!uploadInput) return;
 
@@ -555,7 +555,7 @@
             });
 
             uploadInput?.addEventListener('change', function () {
-              if (isFinalRevisionDisqualified) return;
+              if (isFinalRevisionDisqualified || isPastDeadline) return;
               if (!uploadInput.files || uploadInput.files.length === 0) return;
               if (!currentSelectedDoc || !isRevisionStatus(currentSelectedDoc.status)) return;
               if (!uploadForm) return;
@@ -592,6 +592,9 @@
                         }
                         if (data.application && Object.prototype.hasOwnProperty.call(data.application, 'final_revision_disqualified')) {
                             isFinalRevisionDisqualified = !!data.application.final_revision_disqualified;
+                        }
+                        if (data.application && Object.prototype.hasOwnProperty.call(data.application, 'is_past_deadline')) {
+                            isPastDeadline = !!data.application.is_past_deadline;
                         }
 
                         // Update documents array (required first, optional last)
@@ -637,6 +640,9 @@
                         }
                         if (data.application && Object.prototype.hasOwnProperty.call(data.application, 'final_revision_disqualified')) {
                             isFinalRevisionDisqualified = !!data.application.final_revision_disqualified;
+                        }
+                        if (data.application && Object.prototype.hasOwnProperty.call(data.application, 'is_past_deadline')) {
+                            isPastDeadline = !!data.application.is_past_deadline;
                         }
 
                         // Update documents array (required first, optional last)

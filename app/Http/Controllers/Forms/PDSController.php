@@ -3855,6 +3855,24 @@ class PDSController extends Controller
         return $requestedCount >= 2 && $this->hasSatisfiedLatestRevisionRequest($requestedAt, $submittedAt);
     }
 
+    private function hasRevisionDeadlinePassed(?Applications $application): bool
+    {
+        if (!$application || empty($application->deadline_date) || empty($application->deadline_time)) {
+            return false;
+        }
+
+        try {
+            $timezone = (string) config('app.timezone', 'Asia/Manila');
+            $deadline = Carbon::parse(
+                $application->deadline_date . ' ' . $application->deadline_time,
+                $timezone
+            );
+            return Carbon::now($timezone)->greaterThan($deadline);
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
     private function hasFinalRevisionDisqualification(Applications $application, string $vacancyId): bool
     {
         if ($this->isRevisionComplianceLocked(
@@ -5278,6 +5296,16 @@ class PDSController extends Controller
         $application = Applications::where('user_id', $user_id)
             ->where('vacancy_id', $vacancy_id)
             ->firstOrFail();
+
+        if ((int) Auth::id() !== (int) $application->user_id) {
+            abort(403, 'Unauthorized access to this application.');
+        }
+
+        if ($this->hasRevisionDeadlinePassed($application)) {
+            return redirect()->back()->withErrors([
+                'deadline' => 'Revision deadline already passed (Philippine Standard Time). Upload is no longer allowed.',
+            ]);
+        }
 
         if ($this->hasFinalRevisionDisqualification($application, (string) $vacancy_id)) {
             return redirect()->back()->withErrors([
