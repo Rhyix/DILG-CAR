@@ -11,16 +11,44 @@
         $openPasswordModal = !empty($passwordErrors);
         $galleryItems = $galleryItems ?? collect();
         $documentTypeOptions = $documentTypeOptions ?? [];
+        $openDocumentGallery = session()->has('document_gallery_success')
+            || $errors->has('gallery_document')
+            || $errors->has('document_type')
+            || $errors->has('replacement_gallery_document');
     @endphp
 
     <main class="mx-auto w-full max-w-5xl px-4 pb-8 sm:px-8"
-        x-data="{ showEditModal: {{ $openEditModal ? 'true' : 'false' }}, showPasswordModal: {{ $openPasswordModal ? 'true' : 'false' }} }"
+        x-data="{ showEditModal: {{ $openEditModal ? 'true' : 'false' }}, showPasswordModal: {{ $openPasswordModal ? 'true' : 'false' }}, activeSection: '{{ $openDocumentGallery ? 'gallery' : 'account' }}' }"
         x-on:force-close-edit-modal.window="showEditModal = false"
         x-effect="document.documentElement.classList.toggle('overflow-hidden', showEditModal || showPasswordModal); document.body.classList.toggle('overflow-hidden', showEditModal || showPasswordModal)">
         <section class="mb-4 flex items-center space-x-4">
             <h1 class="flex w-full items-center gap-3 border-b border-[#0D2B70] pb-2 text-3xl font-montserrat font-bold tracking-wide text-[#0D2B70]">
                 Account Settings
             </h1>
+        </section>
+
+        <section class="mb-6 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+            <div class="flex flex-wrap gap-2">
+                <button type="button"
+                    @click="activeSection = 'account'"
+                    :class="activeSection === 'account'
+                        ? 'border-[#0D2B70] bg-[#0D2B70] text-white shadow-sm'
+                        : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'"
+                    class="rounded-full border px-4 py-2 text-sm font-semibold transition">
+                    Account Settings
+                </button>
+                <button type="button"
+                    @click="activeSection = 'gallery'"
+                    :class="activeSection === 'gallery'
+                        ? 'border-[#0D2B70] bg-[#0D2B70] text-white shadow-sm'
+                        : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'"
+                    class="rounded-full border px-4 py-2 text-sm font-semibold transition">
+                    Document Gallery
+                </button>
+            </div>
+            <p class="mt-3 text-sm text-slate-500">
+                Use the pills above to switch between your profile details and your saved documents.
+            </p>
         </section>
 
         @if (session('settings_success'))
@@ -42,7 +70,8 @@
         @endif
 
         @php
-            $avatar = $user->avatar_path ? asset('storage/' . $user->avatar_path) : null;
+            $hasStoredAvatar = filled($user->avatar_path) && \Illuminate\Support\Facades\Storage::disk('public')->exists($user->avatar_path);
+            $avatar = $hasStoredAvatar ? asset('storage/' . $user->avatar_path) : null;
             $profile = $user->profile;
             $personalInfo = $personalInfo ?? $user->personalInformation;
             $isGoogleSignup = $isGoogleSignup ?? false;
@@ -69,38 +98,28 @@
             ], fn($part) => $part !== '');
             $pdsName = $pdsNameParts ? trim(implode(' ', $pdsNameParts)) : null;
 
+            $accountFirstName = trim((string) ($user->first_name ?? ''));
+            $accountLastName = trim((string) ($user->last_name ?? ''));
             $accountMiddleInitial = filled($user->middle_name)
                 ? mb_substr(trim($user->middle_name), 0, 1) . '.'
                 : '';
             $accountNameParts = array_filter([
-                trim($user->first_name ?? ''),
+                $accountFirstName,
                 $accountMiddleInitial,
-                trim($user->last_name ?? ''),
+                $accountLastName,
             ], fn($part) => $part !== '');
             $accountDisplayName = $accountNameParts ? trim(implode(' ', $accountNameParts)) : 'N/A';
 
-            $displayName = $usePdsProfile ? ($pdsName ?: 'N/A') : ($allowAccountFallback ? $accountDisplayName : 'N/A');
-
             $accountEmail = $user->email ?: 'N/A';
-            $displayEmail = $usePdsProfile
-                ? ($personalInfo?->email_address ?: $accountEmail)
-                : $accountEmail;
-
-            $pdsPhone = $personalInfo?->mobile_no ?: $personalInfo?->telephone_no;
             $accountPhone = $user->phone_number ?: ($profile?->phone ?: 'N/A');
-            $displayPhone = $usePdsProfile
-                ? ($pdsPhone ?: $accountPhone)
-                : $accountPhone;
-
-            $initialsSource = $displayName !== 'N/A' ? $displayName : 'N A';
-            $initials = collect(preg_split('/\s+/', trim($initialsSource)))
-                ->filter()
-                ->map(fn($p) => mb_substr($p, 0, 1))
-                ->join('');
+            $initials = strtoupper(
+                mb_substr($accountFirstName, 0, 1) .
+                mb_substr($accountLastName, 0, 1)
+            );
             $initials = $initials !== '' ? $initials : 'NA';
         @endphp
 
-        <section class="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section class="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" x-show="activeSection === 'account'" x-transition>
             <div class="flex flex-wrap items-start justify-between gap-4">
                 <div>
                     <h2 class="text-lg font-bold text-[#0D2B70]">Profile Details</h2>
@@ -120,11 +139,11 @@
                     </div>
                     <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
                         <p class="text-xs uppercase tracking-wide text-slate-500">Email</p>
-                        <p class="mt-1 break-all text-sm font-semibold text-slate-800">{{ $displayEmail }}</p>
+                        <p class="mt-1 break-all text-sm font-semibold text-slate-800">{{ $accountEmail }}</p>
                     </div>
                     <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
                         <p class="text-xs uppercase tracking-wide text-slate-500">Phone</p>
-                        <p class="mt-1 text-sm font-semibold text-slate-800">{{ $displayPhone }}</p>
+                        <p class="mt-1 text-sm font-semibold text-slate-800">{{ $accountPhone }}</p>
                     </div>
                 </div>
 
@@ -135,7 +154,7 @@
                         @if ($avatar)
                             <img src="{{ $avatar }}" alt="Avatar" class="h-48 w-48 rounded-full object-cover ring-2 ring-blue-100">
                         @else
-                            <div class="flex h-48 w-48 items-center justify-center rounded-full bg-blue-600 text-2xl font-bold text-white ring-2 ring-blue-100">
+                            <div class="flex h-48 w-48 items-center justify-center rounded-full bg-blue-600 text-4xl font-bold text-white ring-2 ring-blue-100">
                                 {{ $initials }}
                             </div>
                         @endif
@@ -158,163 +177,205 @@
             </div>
         </section>
 
-        @php
-            $formatGalleryBytes = function ($bytes) {
-                $size = (float) ($bytes ?? 0);
-                if ($size < 1024) {
-                    return (int) $size . ' B';
-                }
-                if ($size < 1048576) {
-                    return number_format($size / 1024, 2) . ' KB';
-                }
-                return number_format($size / 1048576, 2) . ' MB';
-            };
-            $uploadedGalleryByType = $galleryItems
-                ->filter(fn ($item) => filled($item->document_type))
-                ->sortByDesc('updated_at')
-                ->unique('document_type')
-                ->keyBy('document_type');
-        @endphp
-
-
-        <section class="mb-4 flex items-center space-x-4">
-            <h1 class="flex w-full items-center gap-3 border-b border-[#0D2B70] pb-2 text-3xl font-montserrat font-bold tracking-wide text-[#0D2B70]">
-                                Document Gallery
-            </h1>
-        </section>
-        <section class="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <!-- <div class="flex flex-wrap items-start justify-between gap-4">
+        <section class="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" x-show="activeSection === 'gallery'" x-transition
+            x-data="documentGalleryManager()" @submit="handleSubmit($event)">
+            <div class="mb-4 flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 pb-4">
                 <div>
                     <h2 class="text-lg font-bold text-[#0D2B70]">Document Gallery</h2>
-                    <p class="mt-1 text-sm text-slate-500">Store documents here so you can quickly reuse them later.</p>
+                    <p class="mt-1 text-sm text-slate-500">Save, reuse, and restore your uploaded documents here.</p>
                 </div>
-                <span class="inline-flex rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
+                <span class="inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
                     Reusable Files
                 </span>
-            </div> -->
-
-            <div class="mt-2 rounded-xl border border-slate-200 bg-white p-4" x-data="{ showChecklist: false }">
-                <button type="button" @click="showChecklist = !showChecklist"
-                    class="flex w-full items-center justify-between gap-3 text-left">
-                    <div>
-                        <h3 class="text-sm font-bold text-[#0D2B70]">Document Checklist</h3>
-                        <p class="mt-1 text-xs text-slate-500">Green means uploaded. Gray means empty.</p>
-                    </div>
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-600 transition-transform duration-200"
-                        viewBox="0 0 20 20" fill="currentColor" :class="showChecklist ? 'rotate-180' : ''"
-                        aria-hidden="true">
-                        <path fill-rule="evenodd"
-                            d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
-                            clip-rule="evenodd" />
-                    </svg>
-                </button>
-                <div class="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3" x-show="showChecklist" x-transition
-                    style="display: none;">
-                    @foreach ($documentTypeOptions as $docType)
-                        @php
-                            $isUploadedType = $uploadedGalleryByType->has($docType);
-                        @endphp
-                        <div class="flex items-center justify-between rounded-lg border px-3 py-2 {{ $isUploadedType ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 bg-slate-50' }}">
-                            <span class="text-xs font-semibold {{ $isUploadedType ? 'text-emerald-700' : 'text-slate-600' }}">
-                                {{ ucwords(str_replace('_', ' ', $docType)) }}
-                            </span>
-                            <span class="text-[11px] font-bold {{ $isUploadedType ? 'text-emerald-700' : 'text-slate-500' }}">
-                                {{ $isUploadedType ? 'Uploaded' : 'Empty' }}
-                            </span>
-                        </div>
-                    @endforeach
-                </div>
             </div>
-
-            <form method="POST" action="{{ route('profile.document_gallery.store') }}" enctype="multipart/form-data"
-                class="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                @csrf
-                <div class="grid gap-3 md:grid-cols-[1fr,1fr,auto]">
-                    <div>
-                        <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">Document Type</label>
-                        <select name="document_type" required
-                            class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20">
-                            <option value="" {{ old('document_type') === null || old('document_type') === '' ? 'selected' : '' }} disabled>Select a document type</option>
-                            @foreach ($documentTypeOptions as $docType)
-                                @php
-                                    $docTypeTaken = $uploadedGalleryByType->has($docType);
-                                @endphp
-                                <option value="{{ $docType }}" {{ old('document_type') === $docType ? 'selected' : '' }} {{ $docTypeTaken ? 'disabled' : '' }}>
-                                    {{ ucwords(str_replace('_', ' ', $docType)) }}{{ $docTypeTaken ? ' (Uploaded)' : '' }}
-                                </option>
-                            @endforeach
-                        </select>
+            <div x-show="successMessage" x-transition class="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700" x-text="successMessage"></div>
+            <div x-show="errorMessages.length" x-transition class="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                <template x-for="message in errorMessages" :key="message">
+                    <p x-text="message"></p>
+                </template>
+            </div>
+            <div x-show="isSubmitting" x-transition class="mb-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+                Updating document gallery...
+            </div>
+            <div x-ref="galleryContent">
+                @include('profile.partials.document_gallery_content')
+            </div>
+            <div x-show="toastVisible" x-transition.opacity.duration.200ms
+                class="fixed right-4 top-24 z-[1100] w-full max-w-sm rounded-2xl border px-4 py-3 shadow-xl"
+                :class="toastType === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-rose-200 bg-rose-50 text-rose-800'">
+                <div class="flex items-start gap-3">
+                    <div class="mt-0.5">
+                        <svg x-show="toastType === 'success'" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <svg x-show="toastType !== 'success'" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z" />
+                        </svg>
                     </div>
-                    <div>
-                        <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">Upload File</label>
-                        <input type="file" name="gallery_document" accept=".pdf,.jpg,.jpeg,.png" required
-                            class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700">
-                    </div>
-                    <div class="flex items-end">
-                        <button type="submit"
-                            class="w-full rounded-xl bg-[#0D2B70] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0A2259] md:w-auto">
-                            Save to Gallery
-                        </button>
+                    <div class="min-w-0">
+                        <p class="text-sm font-semibold" x-text="toastType === 'success' ? 'Success' : 'Action needed'"></p>
+                        <p class="mt-1 text-sm" x-text="toastMessage"></p>
                     </div>
                 </div>
-                <p class="mt-2 text-xs text-slate-500">Allowed files: PDF, JPG, JPEG, PNG. Max size: 10MB. One file per document type.</p>
-                @error('gallery_document')
-                    <p class="mt-2 text-sm text-rose-600">{{ $message }}</p>
-                @enderror
-                @error('document_type')
-                    <p class="mt-2 text-sm text-rose-600">{{ $message }}</p>
-                @enderror
-            </form>
-
-            <div class="mt-4">
-                @if ($galleryItems->isEmpty())
-                    <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
-                        No saved documents yet. Upload files above to build your reusable document gallery.
-                    </div>
-                @else
-                    <div class="grid gap-3 md:grid-cols-2">
-                        @foreach ($galleryItems as $item)
-                            <article class="rounded-xl border border-slate-200 bg-white p-4">
-                                <div class="flex items-start justify-between gap-3">
-                                    <div class="min-w-0">
-                                        <p class="truncate text-sm font-semibold text-slate-800">{{ $item->original_name }}</p>
-                                        <p class="mt-1 text-xs text-slate-500">
-                                            {{ $item->document_type ? ucwords(str_replace('_', ' ', $item->document_type)) : 'General / Unclassified' }}
-                                        </p>
-                                        <p class="mt-1 text-xs text-slate-500">
-                                            {{ $formatGalleryBytes($item->file_size_8b) }} • {{ optional($item->created_at)->format('M d, Y h:i A') }}
-                                        </p>
-                                    </div>
-                                    <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-semibold uppercase text-slate-600">
-                                        {{ strtoupper(pathinfo((string) $item->original_name, PATHINFO_EXTENSION) ?: 'FILE') }}
-                                    </span>
-                                </div>
-
-                                <div class="mt-3 flex flex-wrap items-center gap-2">
-                                    <a href="{{ route('profile.document_gallery.preview', $item->id) }}" target="_blank" rel="noopener"
-                                        class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50">
-                                        Preview
-                                    </a>
-                                    <a href="{{ route('profile.document_gallery.download', $item->id) }}"
-                                        class="rounded-lg border border-blue-300 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-100">
-                                        Download
-                                    </a>
-                                    <form method="POST" action="{{ route('profile.document_gallery.delete', $item->id) }}">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit"
-                                            onclick="return confirm('Delete this saved document?')"
-                                            class="rounded-lg border border-rose-300 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-100">
-                                            Delete
-                                        </button>
-                                    </form>
-                                </div>
-                            </article>
-                        @endforeach
-                    </div>
-                @endif
             </div>
         </section>
+
+        @once
+            <script>
+                document.addEventListener('alpine:init', () => {
+                    Alpine.data('documentGalleryManager', () => ({
+                        isSubmitting: false,
+                        successMessage: '',
+                        errorMessages: [],
+                        toastVisible: false,
+                        toastMessage: '',
+                        toastType: 'success',
+                        toastTimer: null,
+                        showToast(message, type = 'success') {
+                            this.toastMessage = message;
+                            this.toastType = type;
+                            this.toastVisible = true;
+
+                            if (this.toastTimer) {
+                                clearTimeout(this.toastTimer);
+                            }
+
+                            this.toastTimer = setTimeout(() => {
+                                this.toastVisible = false;
+                            }, 3200);
+                        },
+                        async handleSubmit(event) {
+                            const form = event.target.closest('form[data-gallery-async]');
+                            if (!form) {
+                                return;
+                            }
+
+                            event.preventDefault();
+
+                            if (this.isSubmitting) {
+                                return;
+                            }
+
+                            this.successMessage = '';
+                            this.errorMessages = [];
+                            this.isSubmitting = true;
+
+                            const submitButton = event.submitter || form.querySelector('button[type="submit"]');
+                            const hasInlineLoader = submitButton && submitButton.hasAttribute('data-gallery-loading-button');
+                            const buttonLabel = hasInlineLoader ? submitButton.querySelector('.js-gallery-btn-label') : null;
+                            const buttonLoader = hasInlineLoader ? submitButton.querySelector('.js-gallery-btn-loader') : null;
+
+                            if (submitButton) {
+                                submitButton.disabled = true;
+                            }
+
+                            if (hasInlineLoader && buttonLabel && buttonLoader) {
+                                buttonLabel.classList.add('hidden');
+                                buttonLoader.classList.remove('hidden');
+                                buttonLoader.classList.add('inline-flex');
+                            }
+
+                            try {
+                                const response = await fetch(form.action, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Accept': 'application/json',
+                                        'X-Requested-With': 'XMLHttpRequest',
+                                    },
+                                    body: new FormData(form),
+                                });
+
+                                const payload = await response.json().catch(() => ({}));
+
+                                if (!response.ok) {
+                                    this.errorMessages = Object.values(payload.errors || {}).flat();
+                                    if (!this.errorMessages.length) {
+                                        this.errorMessages = [payload.message || 'We could not update the document gallery right now.'];
+                                    }
+                                    this.showToast(this.errorMessages[0], 'error');
+                                    return;
+                                }
+
+                                if (payload.html && this.$refs.galleryContent) {
+                                    this.$refs.galleryContent.innerHTML = payload.html;
+                                    if (window.Alpine) {
+                                        window.Alpine.initTree(this.$refs.galleryContent);
+                                    }
+                                }
+
+                                this.successMessage = payload.message || 'Document gallery updated.';
+                                this.showToast(this.successMessage, 'success');
+                            } catch (error) {
+                                this.errorMessages = ['We could not update the document gallery right now.'];
+                                this.showToast(this.errorMessages[0], 'error');
+                            } finally {
+                                if (hasInlineLoader && buttonLabel && buttonLoader) {
+                                    buttonLabel.classList.remove('hidden');
+                                    buttonLoader.classList.add('hidden');
+                                    buttonLoader.classList.remove('inline-flex');
+                                }
+                                if (submitButton) {
+                                    submitButton.disabled = false;
+                                }
+                                this.isSubmitting = false;
+                            }
+                        },
+                    }));
+
+                    Alpine.data('savedDocumentsSearch', () => ({
+                        searchTerm: '',
+                        appliedSearch: '',
+                        isSearchPending: false,
+                        searchTimer: null,
+                        escapeHtml(value) {
+                            return String(value ?? '')
+                                .replace(/&/g, '&amp;')
+                                .replace(/</g, '&lt;')
+                                .replace(/>/g, '&gt;')
+                                .replace(/"/g, '&quot;')
+                                .replace(/'/g, '&#039;');
+                        },
+                        escapeRegex(value) {
+                            return String(value ?? '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                        },
+                        queueSearch() {
+                            if (this.searchTimer) {
+                                clearTimeout(this.searchTimer);
+                            }
+                            this.isSearchPending = true;
+                            this.searchTimer = setTimeout(() => {
+                                this.appliedSearch = this.searchTerm.trim().toLowerCase();
+                                this.isSearchPending = false;
+                            }, 300);
+                        },
+                        matchesDocument(searchText) {
+                            if (!this.appliedSearch) {
+                                return true;
+                            }
+                            return String(searchText || '').includes(this.appliedSearch);
+                        },
+                        highlightText(value) {
+                            const safeValue = this.escapeHtml(value);
+                            if (!this.appliedSearch) {
+                                return safeValue;
+                            }
+
+                            const regex = new RegExp(this.escapeRegex(this.appliedSearch), 'ig');
+                            return safeValue.replace(regex, (match) =>
+                                `<mark class="rounded bg-amber-200 px-1 text-slate-900">${match}</mark>`
+                            );
+                        },
+                        hasMatches() {
+                            if (!this.appliedSearch || !this.$refs.availableDocumentsGrid) {
+                                return true;
+                            }
+                            return Array.from(this.$refs.availableDocumentsGrid.querySelectorAll('[data-search-text]'))
+                                .some((item) => item.dataset.searchText.includes(this.appliedSearch));
+                        },
+                    }));
+                });
+            </script>
+        @endonce
 
         <template x-teleport="body">
         <div x-show="showEditModal" x-transition.opacity class="fixed inset-0 z-[1000] bg-slate-900/60"
