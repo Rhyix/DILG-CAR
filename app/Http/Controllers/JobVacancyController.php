@@ -2178,33 +2178,6 @@ class JobVacancyController extends Controller
 
         $profile = $this->buildApplicantEducationProfile($userId);
         $requirementLower = strtolower($requirement);
-<<<<<<< Updated upstream
-        $ruleCode = $this->resolveEducationRequirementRule($requirementLower);
-
-        $met = match ($ruleCode) {
-            'post_graduate' => (bool) ($profile['hasGraduateStudies'] ?? false),
-            'law_degree' => (bool) ($profile['hasLawDegree'] ?? false),
-            'college_2nd_year_or_higher' => (bool) ($profile['hasCollegeSecondYearOrHigher'] ?? false),
-            'college_2nd_year_or_higher_or_shs' => (bool) ($profile['hasCollegeSecondYearOrHigher'] ?? false)
-                || (bool) ($profile['hasShsCompleted'] ?? false),
-            'college_graduate_or_higher' => (bool) ($profile['hasCollegeGraduateOrHigher'] ?? false),
-            'college_level_or_higher' => (bool) ($profile['hasCollegeLevelOrHigher'] ?? false),
-            'high_school_or_higher' => (bool) ($profile['hasHighSchoolOrHigher'] ?? false),
-            'elementary_or_higher' => (bool) ($profile['hasElementaryOrHigher'] ?? false),
-            default => (bool) ($profile['hasAnyEducation'] ?? false),
-        };
-        $explanation = match ($ruleCode) {
-            'post_graduate' => 'Requires graduate studies (masteral/doctoral or equivalent).',
-            'law_degree' => 'Requires law degree track (LLB/JD/Attorney equivalent).',
-            'college_2nd_year_or_higher' => 'Requires at least second-year college level or higher.',
-            'college_2nd_year_or_higher_or_shs' => 'Accepts either SHS/Grade 12 completion or second-year college and above.',
-            'college_graduate_or_higher' => 'Requires college graduation (or higher studies).',
-            'college_level_or_higher' => 'Requires college-level education (or higher).',
-            'high_school_or_higher' => 'Requires high school/secondary completion or higher.',
-            'elementary_or_higher' => 'Requires at least elementary completion.',
-            default => 'Requires any meaningful education record.',
-        };
-=======
         $mentionsSeniorHighAlternative = $this->textContainsAny($requirementLower, ['senior high', 'grade 12']);
         $mentionsHighSchoolAlternative = str_contains($requirementLower, 'high school');
 
@@ -2232,7 +2205,9 @@ class JobVacancyController extends Controller
         } else {
             $met = $profile['hasAnyEducation'];
         }
->>>>>>> Stashed changes
+
+        $ruleCode = null;
+        $explanation = null;
 
         return [
             'required' => true,
@@ -2501,31 +2476,22 @@ class JobVacancyController extends Controller
 
     private function buildApplicantEducationProfile(int $userId): array
     {
+        $defaultProfile = [
+            'hasElementaryOrHigher' => false,
+            'hasSeniorHighOrHigher' => false,
+            'hasHighSchoolOrHigher' => false,
+            'hasCollegeEntryOrHigher' => false,
+            'hasCollegeDegreeOrHigher' => false,
+            'hasBachelorOrHigher' => false,
+            'hasAtLeastTwoYearsCollege' => false,
+            'hasGrad' => false,
+            'hasLawDegree' => false,
+            'hasAnyEducation' => false,
+        ];
+
         $education = EducationalBackground::query()->where('user_id', $userId)->first();
         if (!$education) {
-            return [
-                'hasElementaryOrHigher' => false,
-                'hasSeniorHighOrHigher' => false,
-                'hasHighSchoolOrHigher' => false,
-<<<<<<< Updated upstream
-                'hasCollegeLevelOrHigher' => false,
-                'hasCollegeSecondYearOrHigher' => false,
-                'hasCollegeGraduateOrHigher' => false,
-                'hasGraduateStudies' => false,
-                'hasLawDegree' => false,
-                'hasShsCompleted' => false,
-                'hasAnyEducation' => false,
-                'maxCollegeYearLevel' => 0,
-                // Backward-compatible aliases.
-                'hasCollegeOrHigher' => false,
-=======
-                'hasCollegeEntryOrHigher' => false,
-                'hasCollegeDegreeOrHigher' => false,
-                'hasBachelorOrHigher' => false,
-                'hasAtLeastTwoYearsCollege' => false,
->>>>>>> Stashed changes
-                'hasGrad' => false,
-            ];
+            return $defaultProfile;
         }
 
         $hasElementary = $this->hasMeaningfulValue($education->elem_school)
@@ -2551,39 +2517,12 @@ class JobVacancyController extends Controller
                 && ($this->hasMeaningfulValue($education->shs_school) || $this->hasMeaningfulValue($education->shs_basic) || $this->hasMeaningfulValue($education->shs_earned));
         }
 
-        $hasJhsOrHsCompleted = $hasSecondaryRecord && !$mentionsShsTrack;
+        $hasLegacyHighSchoolFromSecondary = $hasSecondaryRecord
+            && !$mentionsShsTrack
+            && $this->secondaryBasicIsLegacyHighSchool((string) ($education->jhs_basic ?? ''));
         $hasVocational = $this->hasMeaningfulValue($education->vocational);
-<<<<<<< Updated upstream
-
-        $collegeEntries = $this->normalizeEducationEntries($education->college);
-        $hasCollegeLevel = !empty($collegeEntries);
-        $maxCollegeYearLevel = 0;
-        $hasCollegeGraduate = false;
-        foreach ($collegeEntries as $entry) {
-            $entryText = $this->educationEntryText($entry, ['school', 'basic', 'earned', 'year_graduated']);
-            $maxCollegeYearLevel = max($maxCollegeYearLevel, $this->parseMaxEducationYearLevelFromText($entryText));
-
-            if ($this->hasMeaningfulValue($entry['year_graduated'] ?? null) || $this->textHasEducationCompletionCue($entryText)) {
-                $hasCollegeGraduate = true;
-            }
-        }
-
-        $hasGraduateStudies = $this->hasMeaningfulValue($education->grad);
-        if (!$hasGraduateStudies) {
-            $gradEntries = $this->normalizeEducationEntries($education->grad);
-            $hasGraduateStudies = !empty($gradEntries);
-        }
-
-        $hasCollegeSecondYearOrHigher = $hasCollegeGraduate || $maxCollegeYearLevel >= 2 || $hasGraduateStudies;
-        $hasCollegeGraduateOrHigher = $hasCollegeGraduate || $hasGraduateStudies;
-        $hasCollegeLevelOrHigher = $hasCollegeLevel || $hasCollegeGraduateOrHigher;
-
-=======
         $hasCollege = $this->hasMeaningfulValue($education->college);
         $hasGrad = $this->hasMeaningfulValue($education->grad);
-        $hasSeniorHighFromSecondary = $hasJhs && $this->secondaryBasicIsSeniorHigh((string) ($education->jhs_basic ?? ''));
-        $hasLegacyHighSchoolFromSecondary = $hasJhs
-            && $this->secondaryBasicIsLegacyHighSchool((string) ($education->jhs_basic ?? ''));
         $hasCollegeDegree = $this->hasCollegeDegree($education->college);
         $collegeYearsCompleted = $this->estimateHighestCollegeYearsCompleted($education->college);
         if ($hasGrad || $hasCollegeDegree) {
@@ -2591,7 +2530,6 @@ class JobVacancyController extends Controller
             $collegeYearsCompleted = max($collegeYearsCompleted, 4);
         }
         $hasAtLeastTwoYearsCollege = $collegeYearsCompleted >= 2;
->>>>>>> Stashed changes
         $hasLawDegree = $this->valueContainsAnyKeyword(
             [
                 $education->college,
@@ -2604,133 +2542,28 @@ class JobVacancyController extends Controller
             ['bachelor of laws', 'llb', 'juris doctor', 'attorney', 'law']
         );
 
-<<<<<<< Updated upstream
-        $hasHighSchoolOrHigher = $hasJhsOrHsCompleted || $hasShsCompleted || $hasVocational || $hasCollegeLevelOrHigher || $hasGraduateStudies;
-        $hasCollegeOrHigher = $hasCollegeLevelOrHigher; // backward-compatible alias
-        $hasGrad = $hasGraduateStudies; // backward-compatible alias
-=======
-        $hasSeniorHighOrHigher = $hasShs || $hasSeniorHighFromSecondary || $hasVocational || $hasCollege || $hasGrad;
+        $hasSeniorHighOrHigher = $hasShsCompleted || $hasVocational || $hasCollege || $hasGrad;
         $hasHighSchoolOrHigher = $hasLegacyHighSchoolFromSecondary || $hasSeniorHighOrHigher;
         $hasCollegeEntryOrHigher = $hasCollege || $hasGrad;
         $hasCollegeDegreeOrHigher = $hasCollegeDegree || $hasGrad;
         $hasBachelorOrHigher = $hasCollegeDegreeOrHigher || $hasLawDegree;
->>>>>>> Stashed changes
         $hasElementaryOrHigher = $hasElementary || $hasHighSchoolOrHigher;
-        $hasAnyEducation = $hasElementary || $hasSecondaryRecord || $hasVocational || $hasCollegeLevelOrHigher || $hasGraduateStudies;
+        $hasAnyEducation = $hasElementary || $hasSecondaryRecord || $hasVocational || $hasCollege || $hasGrad;
 
         return [
             'hasElementaryOrHigher' => $hasElementaryOrHigher,
             'hasSeniorHighOrHigher' => $hasSeniorHighOrHigher,
             'hasHighSchoolOrHigher' => $hasHighSchoolOrHigher,
-<<<<<<< Updated upstream
-            'hasCollegeLevelOrHigher' => $hasCollegeLevelOrHigher,
-            'hasCollegeSecondYearOrHigher' => $hasCollegeSecondYearOrHigher,
-            'hasCollegeGraduateOrHigher' => $hasCollegeGraduateOrHigher,
-            'hasGraduateStudies' => $hasGraduateStudies,
-            'hasLawDegree' => $hasLawDegree,
-            'hasShsCompleted' => $hasShsCompleted,
-            'hasAnyEducation' => $hasAnyEducation,
-            'maxCollegeYearLevel' => $maxCollegeYearLevel,
-            // Backward-compatible aliases.
-            'hasCollegeOrHigher' => $hasCollegeOrHigher,
-=======
             'hasCollegeEntryOrHigher' => $hasCollegeEntryOrHigher,
             'hasCollegeDegreeOrHigher' => $hasCollegeDegreeOrHigher,
             'hasBachelorOrHigher' => $hasBachelorOrHigher,
             'hasAtLeastTwoYearsCollege' => $hasAtLeastTwoYearsCollege,
->>>>>>> Stashed changes
             'hasGrad' => $hasGrad,
+            'hasLawDegree' => $hasLawDegree,
+            'hasAnyEducation' => $hasAnyEducation,
         ];
     }
 
-<<<<<<< Updated upstream
-    private function resolveEducationRequirementRule(string $requirementLower): string
-    {
-        if ($this->textContainsAny($requirementLower, ['master', 'masteral', 'doctoral', 'doctor', 'phd'])) {
-            return 'post_graduate';
-        }
-
-        if ($this->textContainsAny($requirementLower, ['bachelor of laws', 'llb', 'juris doctor', 'attorney'])) {
-            return 'law_degree';
-        }
-
-        $mentionsCollege = $this->textContainsAny($requirementLower, ['college', 'bachelor', 'degree']);
-        $mentionsCollegeGraduate = $mentionsCollege && $this->textContainsAny($requirementLower, ['graduate', 'graduated', 'degree holder']);
-        $mentionsTwoYearsCollege = $mentionsCollege && $this->textContainsAny($requirementLower, [
-            '2 years',
-            'two years',
-            '2-year',
-            '2nd year',
-            'second year',
-            'two-year',
-            'completion of two years',
-        ]);
-        $mentionsHighSchoolAlternative = $this->textContainsAny($requirementLower, ['senior high', 'grade 12', 'high school']);
-
-        if ($mentionsTwoYearsCollege && $mentionsHighSchoolAlternative) {
-            return 'college_2nd_year_or_higher_or_shs';
-        }
-
-        if ($mentionsTwoYearsCollege) {
-            return 'college_2nd_year_or_higher';
-        }
-
-        if ($mentionsCollegeGraduate) {
-            return 'college_graduate_or_higher';
-        }
-
-        if ($mentionsCollege) {
-            return 'college_level_or_higher';
-        }
-
-        if ($mentionsHighSchoolAlternative) {
-            return 'high_school_or_higher';
-        }
-
-        if (str_contains($requirementLower, 'elementary')) {
-            return 'elementary_or_higher';
-        }
-
-        return 'any';
-    }
-
-    private function normalizeEducationEntries($value): array
-    {
-        if (!is_array($value)) {
-            return [];
-        }
-
-        if (array_key_exists('school', $value) || array_key_exists('basic', $value) || array_key_exists('earned', $value)) {
-            return [$value];
-        }
-
-        $entries = [];
-        foreach ($value as $entry) {
-            if (is_array($entry)) {
-                $entries[] = $entry;
-            }
-        }
-
-        return $entries;
-    }
-
-    private function educationEntryText(array $entry, array $keys): string
-    {
-        $parts = [];
-        foreach ($keys as $key) {
-            $value = trim((string) ($entry[$key] ?? ''));
-            if ($value !== '') {
-                $parts[] = $value;
-            }
-        }
-
-        return strtolower(trim(implode(' ', $parts)));
-    }
-
-    private function parseMaxEducationYearLevelFromText(string $text): int
-    {
-        $normalized = strtolower(trim($text));
-=======
     private function hasCollegeDegree($entries): bool
     {
         if (!is_array($entries)) {
@@ -2831,50 +2664,10 @@ class JobVacancyController extends Controller
     private function extractYearsFromEducationLevelText(string $value): int
     {
         $normalized = strtolower(trim($value));
->>>>>>> Stashed changes
         if ($normalized === '') {
             return 0;
         }
 
-<<<<<<< Updated upstream
-        $max = 0;
-        if (preg_match_all('/\b([1-9])\s*(?:st|nd|rd|th)?\s*year\b/', $normalized, $matches) >= 1) {
-            foreach ((array) ($matches[1] ?? []) as $digit) {
-                $max = max($max, (int) $digit);
-            }
-        }
-
-        if ($this->textContainsAny($normalized, ['first year', '1st year'])) {
-            $max = max($max, 1);
-        }
-        if ($this->textContainsAny($normalized, ['second year', '2nd year', 'two years'])) {
-            $max = max($max, 2);
-        }
-        if ($this->textContainsAny($normalized, ['third year', '3rd year', 'three years'])) {
-            $max = max($max, 3);
-        }
-        if ($this->textContainsAny($normalized, ['fourth year', '4th year', 'four years'])) {
-            $max = max($max, 4);
-        }
-
-        return $max;
-    }
-
-    private function textHasEducationCompletionCue(string $text): bool
-    {
-        return $this->textContainsAny($text, [
-            'graduate',
-            'graduated',
-            'degree',
-            'bachelor',
-            'bs ',
-            'ab ',
-            'b.s.',
-            'a.b.',
-            'completed',
-            'completion',
-        ]);
-=======
         if (preg_match('/\b([1-9]|10)(?:st|nd|rd|th)?\s*year\b/i', $normalized, $matches) === 1) {
             return (int) $matches[1];
         }
@@ -2933,7 +2726,6 @@ class JobVacancyController extends Controller
         } catch (\Throwable $e) {
             return null;
         }
->>>>>>> Stashed changes
     }
 
     private function valueContainsAnyKeyword($value, array $keywords): bool

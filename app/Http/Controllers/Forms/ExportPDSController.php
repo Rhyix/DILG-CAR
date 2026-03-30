@@ -1381,12 +1381,12 @@ private function writeWorkExperienceChunk($pdf, $chunk)
         // Use linear row stepping to keep all rows on the same baseline.
         $rowY = $currentY - 1.75;
 
-        $this->writeTruncatedAtSize($pdf, $this->dateOrNa($we['work_exp_from'] ?? null),5, $rowY, $fromWidth, 7.0);
-        $this->writeTruncatedAtSize($pdf, $this->dateOrNa($we['work_exp_to'] ?? null), 38, $rowY, $toWidth, 7.0);
-        $this->writeTruncatedAtSize($pdf, $this->valueOrNa($we['work_exp_position'] ?? null), 63, $rowY, $positionWidth, 7.0);
-        $this->writeTruncatedAtSize($pdf, $this->valueOrNa($we['work_exp_department'] ?? null), $x_agency, $rowY, $agencyWidth, 6.0);
-        $this->writeTruncatedAtSize($pdf, $this->valueOrNa($we['work_exp_status'] ?? null), $x_status, $rowY, $statusWidth, 7.0);
-        $this->writeTruncatedAtSize($pdf, $this->normalizeGovServiceFlag($we['work_exp_govt_service'] ?? null, 'N/A'), $x_gov, $rowY, $govWidth, 7.0);
+        $this->writeTruncatedAtSize($pdf, $this->dateOrNa($we['work_exp_from'] ?? null), 7, $rowY, $fromWidth, 7.0);
+        $this->writeTruncatedAtSize($pdf, $this->dateOrNa($we['work_exp_to'] ?? null), 26, $rowY, $toWidth, 7.0);
+        $this->writeTruncatedAtSize($pdf, $this->valueOrNa($we['work_exp_position'] ?? null), 45, $rowY, $positionWidth, 7.0);
+        $this->writeTruncatedAtSize($pdf, $this->valueOrNa($we['work_exp_department'] ?? null), 103, $rowY, $agencyWidth, 6.0);
+        $this->writeTruncatedAtSize($pdf, $this->valueOrNa($we['work_exp_status'] ?? null), 160, $rowY, $statusWidth, 7.0);
+        $this->writeTruncatedAtSize($pdf, $this->normalizeGovServiceFlag($we['work_exp_govt_service'] ?? null, 'N/A'), 195, $rowY, $govWidth, 7.0);
     }
 }
 
@@ -1484,7 +1484,7 @@ private function writeLearningAndDevelopmentChunk($pdf, $chunk)
         $this->writeFittedSingleLine(
             $pdf,
             $this->valueOrNa($lnd['learning_type'] ?? null),
-            $x_type,
+            142.5,
             $currentY,
             $typeWidth,
             7.0,
@@ -1831,7 +1831,8 @@ private function fitTextToLines(
 
     $effectiveMaxWidth = $this->getEffectiveMaxWidth($maxWidth);
     $startSize = max((float) $baseSize, (float) $minSize);
-    $endSize = max(4.5, (float) $minSize);
+    // Allow slightly smaller text so very long values can still stay inside fixed boxes.
+    $endSize = max(3.8, (float) $minSize);
     $chosenLines = [$display];
     $chosenSize = $startSize;
 
@@ -1955,7 +1956,7 @@ private function writeFittedAt($pdf, string $text, float $x, float $y, float $ma
     }
 
     $this->setFont($pdf, 'Arial', '', $size);
-    $lineHeight = count($lines) > 1 ? max(1.8, $size * 0.32) : 0.0;
+    $lineHeight = count($lines) > 1 ? max(1.5, $size * 0.30) : 0.0;
     $currentY = $y - ((count($lines) - 1) * $lineHeight * 0.45);
     foreach ($lines as $line) {
         $this->setXY($pdf, $x, $currentY);
@@ -1975,31 +1976,8 @@ private function writeFittedSingleLine(
     float $baseSize = 8.0,
     float $minSize = 5.0
 ): void {
-    $text = mb_strtoupper(trim($text));
-    if ($text === '') {
-        $this->setFont($pdf, 'Arial', '', 8);
-        return;
-    }
-
-    $effectiveWidth = max(1.0, $this->getEffectiveMaxWidth($maxWidth));
-    $startSize = max((float) $baseSize, (float) $minSize);
-    $endSize = max(4.5, (float) $minSize);
-    $chosenSize = $startSize;
-
-    for ($size = $startSize; $size >= $endSize; $size -= 0.5) {
-        $this->setFont($pdf, 'Arial', '', $size);
-        if ($pdf->GetStringWidth($text) <= $effectiveWidth) {
-            $chosenSize = $size;
-            break;
-        }
-        $chosenSize = $size;
-    }
-
-    $this->setFont($pdf, 'Arial', '', $chosenSize);
-    $line = $this->truncateToWidth($pdf, $text, $effectiveWidth);
-    $this->setXY($pdf, $x, $y);
-    $pdf->Cell($effectiveWidth, 0, $line, 0, 0, 'L');
-    $this->setFont($pdf, 'Arial', '', 8);
+    // Keep API name for compatibility, but allow wrapping to a second line on overflow.
+    $this->writeFittedAt($pdf, $text, $x, $y, $maxWidth, $baseSize, max(3.8, $minSize));
 }
 
 private function writeTruncatedAtSize(
@@ -2010,18 +1988,8 @@ private function writeTruncatedAtSize(
     float $maxWidth,
     float $fontSize = 7.0
 ): void {
-    $text = mb_strtoupper(trim($text));
-    if ($text === '') {
-        $this->setFont($pdf, 'Arial', '', 8);
-        return;
-    }
-
-    $effectiveWidth = max(1.0, $this->getEffectiveMaxWidth($maxWidth));
-    $this->setFont($pdf, 'Arial', '', max(4.5, $fontSize));
-    $line = $this->truncateToWidth($pdf, $text, $effectiveWidth);
-    $this->setXY($pdf, $x, $y);
-    $pdf->Cell($effectiveWidth, 0, $line, 0, 0, 'L');
-    $this->setFont($pdf, 'Arial', '', 8);
+    // Keep API name for compatibility, but use wrapped fitted text for long values.
+    $this->writeFittedAt($pdf, $text, $x, $y, $maxWidth, max(4.5, $fontSize), 3.8);
 }
 
 private function writeAt($pdf, string $text, float $x, float $y, ?float $maxWidth = null): void
@@ -2045,11 +2013,11 @@ private function writeWrapped($pdf, $text, $maxWidth, $x, $ySingle, $yMultiple, 
     }
     $maxWidth = $this->getEffectiveMaxWidth((float) $maxWidth);
 
-    $minFont = 5.0;
+    $minFont = 3.8;
     $targetLines = 3;
 
     // Try full single-line size first.
-    $this->setFont($pdf, 'Arial', '', 8);
+    $this->setFont($pdf, 'Arial', '', max($minFont, (float) $font_size));
     if ($pdf->GetStringWidth($text) <= $maxWidth) {
         $this->setXY($pdf, $x, $ySingle);
         $pdf->Write(0, $text);
@@ -2075,7 +2043,7 @@ private function writeWrapped($pdf, $text, $maxWidth, $x, $ySingle, $yMultiple, 
         $chosenLines = array_slice($chosenLines, 0, $targetLines);
         $last = rtrim((string) end($chosenLines));
         $last = preg_replace('/[\\s\\.]+$/', '', $last);
-        $chosenLines[$targetLines - 1] = $last . '...';
+        $chosenLines[$targetLines - 1] = $this->appendEllipsisToFit($pdf, $last, $maxWidth);
     }
 
     $this->setFont($pdf, 'Arial', '', $chosenSize);
@@ -2134,7 +2102,8 @@ private function splitTextByWidth($pdf, string $text, float $maxWidth): array
         // Hard-wrap oversized single tokens.
         if ($pdf->GetStringWidth($word) > $maxWidth) {
             $buffer = '';
-            foreach (str_split($word) as $char) {
+            $chars = preg_split('//u', $word, -1, PREG_SPLIT_NO_EMPTY) ?: str_split($word);
+            foreach ($chars as $char) {
                 $next = $buffer . $char;
                 if ($pdf->GetStringWidth($next) <= $maxWidth) {
                     $buffer = $next;
