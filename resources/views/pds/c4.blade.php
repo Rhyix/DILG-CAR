@@ -502,7 +502,6 @@
                             id="govt_id_date_issued"
                             name="govt_id_date_issued"
                             value="{{ $govtDateIssuedValue }}"
-                            {{ $isGovtDateNotApplicable ? 'disabled' : '' }}
                             class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
                         <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">Date of Issuance</label>
                         <!-- <label class="mt-2 inline-flex items-center gap-2 text-xs text-gray-600">

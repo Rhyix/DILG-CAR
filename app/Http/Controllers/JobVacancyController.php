@@ -16,6 +16,7 @@ use App\Models\UploadedDocument;
 use App\Models\PersonalInformation;
 use App\Models\WorkExperience;
 use App\Models\CivilServiceEligibility;
+use App\Models\LearningAndDevelopment;
 use App\Models\VoluntaryWork;
 use App\Models\OtherInformation;
 use App\Models\FamilyBackground;
@@ -531,7 +532,7 @@ class JobVacancyController extends Controller
             }
         }
         $positionTitleId = (int) $request->input('position_title_id', 0);
-        $templateCscFormPath = null;
+        $templateCscFormPath = '';
         if (
             !$positionMode
             && strtoupper((string) $request->input('vacancy_type')) === 'PLANTILLA'
@@ -576,7 +577,7 @@ class JobVacancyController extends Controller
             }
         }
 
-        if ($templateCscFormPath !== '' && !Storage::disk('public')->exists($templateCscFormPath)) {
+        if ($templateCscFormPath !== '' && !Storage::disk('public')->exists((string) $templateCscFormPath)) {
             $templateCscFormPath = '';
         }
 
@@ -825,9 +826,9 @@ class JobVacancyController extends Controller
     public function jobDescription(Request $request, $vacancy_id)
     {
         $vacancy = JobVacancy::where('vacancy_id', $vacancy_id)->firstOrFail();
-        $requiredEligibilityNames = $this->extractVacancyEligibilityNames((string) ($vacancy->qualification_eligibility ?? ''));
-        $qualificationEligibilityDisplay = !empty($requiredEligibilityNames)
-            ? implode(', ', $requiredEligibilityNames)
+        $requiredEligibilityItems = $this->extractVacancyEligibilityItems((string) ($vacancy->qualification_eligibility ?? ''));
+        $qualificationEligibilityDisplay = !empty($requiredEligibilityItems)
+            ? $this->formatVacancyEligibilityDisplay($requiredEligibilityItems)
             : (trim((string) ($vacancy->qualification_eligibility ?? '')) ?: 'Not specified');
 
         $hasPDS = PersonalInformation::where('user_id', Auth::id())->exists();
@@ -858,17 +859,16 @@ class JobVacancyController extends Controller
                 'vacancy_id' => $vacancy->vacancy_id,
             ]),
         ];
-        $eligibilityGateState = [
-            'isEligible' => true,
+        $qualificationGateState = [
+            'isQualified' => true,
             'message' => null,
-            'requiredEligibilities' => [],
-            'applicantEligibilities' => [],
+            'checks' => [],
         ];
 
         if (Auth::check()) {
             $docTrackMismatchState = $this->getDocumentTrackMismatchState((int) Auth::id(), (string) $vacancy->vacancy_type, (string) $vacancy->vacancy_id);
             $requiredDocsModalState = $this->getRequiredDocsModalState((int) Auth::id(), (string) $vacancy->vacancy_type, (string) $vacancy->vacancy_id);
-            $eligibilityGateState = $this->evaluateApplicantEligibilityForVacancy((int) Auth::id(), $vacancy);
+            $qualificationGateState = $this->evaluateApplicantQualificationGateForVacancy((int) Auth::id(), $vacancy);
         }
 
         return view('dashboard_user.job_description', [
@@ -883,8 +883,9 @@ class JobVacancyController extends Controller
             'docUploadRedirectUrl' => $requiredDocsModalState['redirectUrl'],
             'hasMissingRequiredDocs' => $requiredDocsModalState['hasMissing'],
             'requiredDocsPreview' => $requiredDocsModalState['previewDocs'],
-            'isEligibilityQualified' => $eligibilityGateState['isEligible'],
-            'eligibilityMismatchMessage' => $eligibilityGateState['message'],
+            'isEligibilityQualified' => $qualificationGateState['isQualified'],
+            'eligibilityMismatchMessage' => $qualificationGateState['message'],
+            'qualificationChecks' => $qualificationGateState['checks'],
         ]);
 
 
@@ -1219,18 +1220,17 @@ class JobVacancyController extends Controller
                 ]);
         }
 
-        $eligibilityGate = $this->evaluateApplicantEligibilityForVacancy((int) Auth::id(), $vacancy);
-        if (!$eligibilityGate['isEligible']) {
-            Log::info('Apply blocked: civil service eligibility mismatch', [
+        $qualificationGate = $this->evaluateApplicantQualificationGateForVacancy((int) Auth::id(), $vacancy);
+        if (!$qualificationGate['isQualified']) {
+            Log::info('Apply blocked: qualification requirements not met', [
                 'user_id' => Auth::id(),
                 'vacancy_id' => $vacancy_id,
-                'required_eligibilities' => $eligibilityGate['requiredEligibilities'],
-                'applicant_eligibilities' => $eligibilityGate['applicantEligibilities'],
+                'qualification_checks' => $qualificationGate['checks'],
             ]);
 
             return redirect()
                 ->route('job_description', ['id' => $vacancy->vacancy_id])
-                ->with('error', $eligibilityGate['message']);
+                ->with('error', $qualificationGate['message']);
         }
 
         $requiredDocumentIds = $this->getRequiredDocumentIdsForVacancyType((string) $vacancy->vacancy_type);
@@ -2086,6 +2086,490 @@ class JobVacancyController extends Controller
         return $normalized !== '' && strtoupper($normalized) !== 'NOINPUT';
     }
 
+    private function evaluateApplicantQualificationGateForVacancy(int $userId, JobVacancy $vacancy): array
+    {
+        $educationCheck = $this->evaluateEducationRequirementForApplicant($userId, $vacancy->qualification_education ?? null);
+        $experienceCheck = $this->evaluateExperienceRequirementForApplicant($userId, $vacancy->qualification_experience ?? null);
+        $trainingCheck = $this->evaluateTrainingRequirementForApplicant($userId, $vacancy->qualification_training ?? null);
+        $eligibilityState = $this->evaluateApplicantEligibilityForVacancy($userId, $vacancy);
+
+        $eligibilityRequired = !empty($eligibilityState['requiredEligibilities'] ?? []);
+        $eligibilityCheck = [
+            'required' => $eligibilityRequired,
+            'met' => !$eligibilityRequired || (bool) ($eligibilityState['isEligible'] ?? false),
+            'status' => !$eligibilityRequired
+                ? 'na'
+                : ((bool) ($eligibilityState['isEligible'] ?? false) ? 'yes' : 'no'),
+            'requirement' => $eligibilityRequired
+                ? implode(', ', (array) ($eligibilityState['requiredEligibilities'] ?? []))
+                : null,
+            'message' => $eligibilityState['message'] ?? null,
+            'required_values' => array_values((array) ($eligibilityState['requiredEligibilities'] ?? [])),
+            'applicant_values' => array_values((array) ($eligibilityState['applicantEligibilities'] ?? [])),
+        ];
+
+        $checks = [
+            'education' => $educationCheck,
+            'training' => $trainingCheck,
+            'experience' => $experienceCheck,
+            'eligibility' => $eligibilityCheck,
+        ];
+
+        $missingLabels = [];
+        foreach ($checks as $field => $check) {
+            if (($check['required'] ?? false) && !($check['met'] ?? false)) {
+                $label = ucfirst($field);
+                $requirement = trim((string) ($check['requirement'] ?? ''));
+                $missingLabels[] = $requirement !== ''
+                    ? "{$label} ({$requirement})"
+                    : $label;
+            }
+        }
+
+        $isQualified = empty($missingLabels);
+        $message = null;
+        if (!$isQualified) {
+            $message = 'You cannot apply because you are missing required qualification(s): '
+                . implode('; ', $missingLabels)
+                . '. Please update your PDS entries and try again.';
+        }
+
+        return [
+            'isQualified' => $isQualified,
+            'message' => $message,
+            'checks' => $checks,
+        ];
+    }
+
+    private function evaluateEducationRequirementForApplicant(int $userId, ?string $rawRequirement): array
+    {
+        $requirement = $this->normalizeQualificationRequirement($rawRequirement);
+        if ($requirement === null) {
+            return [
+                'required' => false,
+                'met' => true,
+                'status' => 'na',
+                'requirement' => null,
+            ];
+        }
+
+        $profile = $this->buildApplicantEducationProfile($userId);
+        $requirementLower = strtolower($requirement);
+        $mentionsHighSchoolAlternative = $this->textContainsAny($requirementLower, ['senior high', 'grade 12', 'high school']);
+
+        $met = false;
+        if ($this->textContainsAny($requirementLower, ['master', 'masteral', 'doctoral', 'doctor', 'phd'])) {
+            $met = $profile['hasGrad'];
+        } elseif ($this->textContainsAny($requirementLower, ['bachelor of laws', 'llb', 'juris doctor', 'attorney'])) {
+            $met = $profile['hasLawDegree'];
+        } elseif (str_contains($requirementLower, '2 years') && str_contains($requirementLower, 'college')) {
+            $met = $profile['hasCollegeOrHigher']
+                || ($mentionsHighSchoolAlternative && $profile['hasHighSchoolOrHigher']);
+        } elseif ($this->textContainsAny($requirementLower, ['bachelor', 'college'])) {
+            $met = $profile['hasCollegeOrHigher'];
+        } elseif ($mentionsHighSchoolAlternative) {
+            $met = $profile['hasHighSchoolOrHigher'];
+        } elseif (str_contains($requirementLower, 'elementary')) {
+            $met = $profile['hasElementaryOrHigher'];
+        } else {
+            $met = $profile['hasAnyEducation'];
+        }
+
+        return [
+            'required' => true,
+            'met' => $met,
+            'status' => $met ? 'yes' : 'no',
+            'requirement' => $requirement,
+        ];
+    }
+
+    private function evaluateExperienceRequirementForApplicant(int $userId, ?string $rawRequirement): array
+    {
+        $requirement = $this->normalizeQualificationRequirement($rawRequirement);
+        if ($requirement === null) {
+            return [
+                'required' => false,
+                'met' => true,
+                'status' => 'na',
+                'requirement' => null,
+                'actual_months' => 0,
+                'required_months' => null,
+            ];
+        }
+
+        $workExperiences = WorkExperience::query()
+            ->where('user_id', $userId)
+            ->get();
+
+        $totalMonths = $this->sumApplicantExperienceMonths($workExperiences);
+        $requirementLower = strtolower($requirement);
+        $topicKeywords = $this->resolveExperienceTopicKeywords($requirementLower);
+        $requiresTopicMatch = !empty($topicKeywords);
+        $matchedTopicMonths = $requiresTopicMatch
+            ? $this->sumApplicantExperienceMonths($workExperiences, $topicKeywords)
+            : 0;
+        $hasTopicMatch = !$requiresTopicMatch || $matchedTopicMonths > 0;
+        $requiredMonths = $this->parseQualificationRequirementMonths($requirement);
+        if ($requiredMonths !== null && $requiresTopicMatch) {
+            // Topic-specific experience duration: only matching records count.
+            $met = $matchedTopicMonths >= $requiredMonths;
+        } elseif ($requiredMonths !== null) {
+            // Duration without explicit topic: use overall declared experience.
+            $met = $totalMonths >= $requiredMonths;
+        } elseif ($requiresTopicMatch) {
+            $met = $hasTopicMatch;
+        } else {
+            $met = $workExperiences->isNotEmpty();
+        }
+
+        return [
+            'required' => true,
+            'met' => $met,
+            'status' => $met ? 'yes' : 'no',
+            'requirement' => $requirement,
+            'actual_months' => $totalMonths,
+            'required_months' => $requiredMonths,
+            'matched_topic_months' => $requiresTopicMatch ? $matchedTopicMonths : null,
+            'requires_topic_match' => $requiresTopicMatch,
+            'topic_match_met' => $hasTopicMatch,
+        ];
+    }
+
+    private function resolveExperienceTopicKeywords(string $requirementLower): ?array
+    {
+        if ($this->textContainsAny($requirementLower, [
+            'management and supervision',
+            'management',
+            'managerial',
+            'supervision',
+            'supervisory',
+        ])) {
+            return [
+                'management',
+                'managerial',
+                'supervision',
+                'supervisory',
+            ];
+        }
+
+        if ($this->textContainsAny($requirementLower, [
+            'lgoo',
+            'local governance',
+            'governance operations',
+            'community development',
+            'strategic thinking',
+            'planning',
+        ])) {
+            return [
+                'lgoo',
+                'local governance',
+                'governance operations',
+                'community development',
+                'strategic thinking',
+                'planning',
+            ];
+        }
+
+        return null;
+    }
+
+    private function sumApplicantExperienceMonths($records, ?array $keywords = null): int
+    {
+        $totalMonths = 0;
+        foreach ($records as $work) {
+            if (!empty($keywords) && !$this->experienceRecordMatchesKeywords($work, $keywords)) {
+                continue;
+            }
+
+            $fromRaw = trim((string) ($work->work_exp_from ?? ''));
+            if ($fromRaw === '') {
+                continue;
+            }
+
+            try {
+                $from = Carbon::parse($fromRaw);
+            } catch (\Throwable $e) {
+                continue;
+            }
+
+            $toRaw = trim((string) ($work->work_exp_to ?? ''));
+            if ($toRaw === '' || strtolower($toRaw) === 'present') {
+                $to = Carbon::now();
+            } else {
+                try {
+                    $to = Carbon::parse($toRaw);
+                } catch (\Throwable $e) {
+                    continue;
+                }
+            }
+
+            if ($to->lessThan($from)) {
+                continue;
+            }
+
+            $totalMonths += $from->diffInMonths($to) + 1;
+        }
+
+        return $totalMonths;
+    }
+
+    private function experienceRecordMatchesKeywords($work, array $keywords): bool
+    {
+        $haystack = strtolower(trim(implode(' ', [
+            (string) ($work->work_exp_position ?? ''),
+            (string) ($work->work_exp_department ?? ''),
+            (string) ($work->work_exp_status ?? ''),
+        ])));
+
+        return $this->textContainsAny($haystack, $keywords);
+    }
+
+    private function evaluateTrainingRequirementForApplicant(int $userId, ?string $rawRequirement): array
+    {
+        $requirement = $this->normalizeQualificationRequirement($rawRequirement);
+        if ($requirement === null) {
+            return [
+                'required' => false,
+                'met' => true,
+                'status' => 'na',
+                'requirement' => null,
+                'actual_hours' => 0,
+                'required_hours' => null,
+            ];
+        }
+
+        $records = LearningAndDevelopment::query()
+            ->where('user_id', $userId)
+            ->get();
+
+        $totalHours = $this->sumApplicantTrainingHours($records);
+        $requiredHours = $this->parseQualificationRequirementHours($requirement);
+        $requirementLower = strtolower($requirement);
+        $topicKeywords = $this->resolveTrainingTopicKeywords($requirementLower);
+        $requiresTopicMatch = !empty($topicKeywords);
+        $matchedTopicHours = $requiresTopicMatch
+            ? $this->sumApplicantTrainingHours($records, $topicKeywords)
+            : 0;
+        $hasTopicMatch = !$requiresTopicMatch || $matchedTopicHours > 0;
+
+        if ($requiredHours !== null && $requiresTopicMatch) {
+            // Topic-specific hours requirement: only count hours from matching training records.
+            $met = $matchedTopicHours >= $requiredHours;
+        } elseif ($requiredHours !== null) {
+            $met = $totalHours >= $requiredHours;
+        } elseif ($requiresTopicMatch) {
+            $met = $hasTopicMatch;
+        } else {
+            $met = $records->isNotEmpty();
+        }
+
+        return [
+            'required' => true,
+            'met' => $met,
+            'status' => $met ? 'yes' : 'no',
+            'requirement' => $requirement,
+            'actual_hours' => $totalHours,
+            'required_hours' => $requiredHours,
+            'matched_topic_hours' => $requiresTopicMatch ? $matchedTopicHours : null,
+            'requires_topic_match' => $requiresTopicMatch,
+            'topic_match_met' => $hasTopicMatch,
+        ];
+    }
+
+    private function resolveTrainingTopicKeywords(string $requirementLower): ?array
+    {
+        if ($this->textContainsAny($requirementLower, [
+            'lgoo',
+            'local governance',
+            'governance operations',
+            'community development',
+            'strategic thinking',
+        ])) {
+            return [
+                'lgoo',
+                'local governance',
+                'governance operations',
+                'community development',
+                'strategic thinking',
+            ];
+        }
+
+        if ($this->textContainsAny($requirementLower, [
+            'management and supervision',
+            'management',
+            'managerial',
+            'supervision',
+            'supervisory',
+        ])) {
+            return [
+                'management',
+                'managerial',
+                'supervision',
+                'supervisory',
+            ];
+        }
+
+        return null;
+    }
+
+    private function sumApplicantTrainingHours($records, ?array $keywords = null): int
+    {
+        $hours = (float) $records->sum(function ($row) use ($keywords) {
+            if (!empty($keywords) && !$this->trainingRecordMatchesKeywords($row, $keywords)) {
+                return 0;
+            }
+
+            $value = $row->learning_hours ?? 0;
+            return is_numeric($value) ? (float) $value : 0;
+        });
+
+        return (int) round($hours);
+    }
+
+    private function trainingRecordMatchesKeywords($row, array $keywords): bool
+    {
+        $haystack = strtolower(trim(implode(' ', [
+            (string) ($row->learning_title ?? ''),
+            (string) ($row->learning_type ?? ''),
+            (string) ($row->learning_conducted ?? ''),
+        ])));
+
+        return $this->textContainsAny($haystack, $keywords);
+    }
+
+    private function buildApplicantEducationProfile(int $userId): array
+    {
+        $education = EducationalBackground::query()->where('user_id', $userId)->first();
+        if (!$education) {
+            return [
+                'hasElementaryOrHigher' => false,
+                'hasHighSchoolOrHigher' => false,
+                'hasCollegeOrHigher' => false,
+                'hasGrad' => false,
+                'hasLawDegree' => false,
+                'hasAnyEducation' => false,
+            ];
+        }
+
+        $hasElementary = $this->hasMeaningfulValue($education->elem_school)
+            || $this->hasMeaningfulValue($education->elem_year_graduated)
+            || $this->hasMeaningfulValue($education->elem_earned);
+        $hasJhs = $this->hasMeaningfulValue($education->jhs_school)
+            || $this->hasMeaningfulValue($education->jhs_year_graduated)
+            || $this->hasMeaningfulValue($education->jhs_earned);
+        $hasShs = $this->hasMeaningfulValue($education->shs_school)
+            || $this->hasMeaningfulValue($education->shs_year_graduated)
+            || $this->hasMeaningfulValue($education->shs_earned);
+        $hasVocational = $this->hasMeaningfulValue($education->vocational);
+        $hasCollege = $this->hasMeaningfulValue($education->college);
+        $hasGrad = $this->hasMeaningfulValue($education->grad);
+        $hasLawDegree = $this->valueContainsAnyKeyword(
+            [
+                $education->college,
+                $education->grad,
+                $education->elem_earned,
+                $education->jhs_earned,
+                $education->shs_earned,
+            ],
+            ['bachelor of laws', 'llb', 'juris doctor', 'attorney', 'law']
+        );
+
+        $hasHighSchoolOrHigher = $hasJhs || $hasShs || $hasVocational || $hasCollege || $hasGrad;
+        $hasCollegeOrHigher = $hasCollege || $hasGrad;
+        $hasElementaryOrHigher = $hasElementary || $hasHighSchoolOrHigher;
+        $hasAnyEducation = $hasElementary || $hasJhs || $hasShs || $hasVocational || $hasCollege || $hasGrad;
+
+        return [
+            'hasElementaryOrHigher' => $hasElementaryOrHigher,
+            'hasHighSchoolOrHigher' => $hasHighSchoolOrHigher,
+            'hasCollegeOrHigher' => $hasCollegeOrHigher,
+            'hasGrad' => $hasGrad,
+            'hasLawDegree' => $hasLawDegree,
+            'hasAnyEducation' => $hasAnyEducation,
+        ];
+    }
+
+    private function valueContainsAnyKeyword($value, array $keywords): bool
+    {
+        if (is_array($value)) {
+            foreach ($value as $item) {
+                if ($this->valueContainsAnyKeyword($item, $keywords)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        $text = strtolower(trim((string) $value));
+        if ($text === '') {
+            return false;
+        }
+
+        return $this->textContainsAny($text, $keywords);
+    }
+
+    private function textContainsAny(string $text, array $keywords): bool
+    {
+        foreach ($keywords as $keyword) {
+            if (str_contains($text, strtolower((string) $keyword))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function normalizeQualificationRequirement(?string $value): ?string
+    {
+        $normalized = trim((string) $value);
+        if ($normalized === '') {
+            return null;
+        }
+
+        $normalized = preg_replace('/\s+/', ' ', $normalized) ?? $normalized;
+        $lower = strtolower($normalized);
+
+        if (in_array($lower, ['na', 'n/a', 'none', 'not applicable', 'nil', '-'], true)) {
+            return null;
+        }
+
+        if (str_contains($lower, 'none required') || str_contains($lower, 'not required')) {
+            return null;
+        }
+
+        return $normalized;
+    }
+
+    private function parseQualificationRequirementMonths(string $value): ?int
+    {
+        $lower = strtolower($value);
+        if (preg_match('/(\d+(?:\.\d+)?)/', $lower, $matches) === 1) {
+            $amount = (float) $matches[1];
+            if (str_contains($lower, 'month')) {
+                return (int) round($amount);
+            }
+            if (str_contains($lower, 'year') || str_contains($lower, 'yr')) {
+                return (int) round($amount * 12);
+            }
+        }
+
+        return null;
+    }
+
+    private function parseQualificationRequirementHours(string $value): ?int
+    {
+        $lower = strtolower($value);
+        if (preg_match('/\bhours?\b|\bhrs?\b/', $lower) !== 1) {
+            return null;
+        }
+
+        if (preg_match('/(\d+(?:\.\d+)?)/', $lower, $matches) === 1) {
+            return (int) round((float) $matches[1]);
+        }
+
+        return null;
+    }
+
     private function evaluateApplicantEligibilityForVacancy(int $userId, JobVacancy $vacancy): array
     {
         $requiredEligibilities = $this->extractVacancyEligibilityNames((string) ($vacancy->qualification_eligibility ?? ''));
@@ -2166,35 +2650,74 @@ class JobVacancyController extends Controller
 
     private function extractVacancyEligibilityNames(string $rawEligibility): array
     {
-        $rawEligibility = trim($rawEligibility);
-        if ($rawEligibility === '') {
+        $items = $this->extractVacancyEligibilityItems($rawEligibility);
+        if (empty($items)) {
             return [];
         }
 
+        $names = array_map(static function (array $item) {
+            return trim((string) ($item['name'] ?? ''));
+        }, $items);
+
+        return $this->uniqueEligibilityNames($names);
+    }
+
+    private function extractVacancyEligibilityItems(string $rawEligibility): array
+    {
+        $normalizedRequirement = $this->normalizeQualificationRequirement($rawEligibility);
+        if ($normalizedRequirement === null) {
+            return [];
+        }
+
+        $rawEligibility = $normalizedRequirement;
+        $items = [];
         $parsed = json_decode($rawEligibility, true);
-        if (json_last_error() === JSON_ERROR_NONE) {
-            $jsonNames = [];
 
-            if (is_array($parsed)) {
-                if (array_key_exists('name', $parsed)) {
-                    $jsonNames[] = trim((string) ($parsed['name'] ?? ''));
-                } else {
-                    foreach ($parsed as $item) {
-                        if (is_string($item)) {
-                            $jsonNames[] = trim($item);
-                            continue;
-                        }
-
-                        if (is_array($item)) {
-                            $jsonNames[] = trim((string) ($item['name'] ?? ''));
-                        }
+        if (json_last_error() === JSON_ERROR_NONE && is_array($parsed)) {
+            $source = array_key_exists('name', $parsed) ? [$parsed] : $parsed;
+            foreach ($source as $entry) {
+                if (is_string($entry)) {
+                    $name = trim($entry);
+                    if ($name === '') {
+                        continue;
                     }
+                    $items[] = [
+                        'name' => $name,
+                        'legal_basis' => '',
+                        'level' => '',
+                    ];
+                    continue;
                 }
+
+                if (!is_array($entry)) {
+                    continue;
+                }
+
+                $name = trim((string) ($entry['name'] ?? ''));
+                if ($name === '') {
+                    continue;
+                }
+
+                $items[] = [
+                    'name' => $name,
+                    'legal_basis' => trim((string) ($entry['legalBasis'] ?? $entry['legal_basis'] ?? '')),
+                    'level' => trim((string) ($entry['level'] ?? '')),
+                ];
             }
 
-            $jsonNames = $this->uniqueEligibilityNames($jsonNames);
-            if (!empty($jsonNames)) {
-                return $jsonNames;
+            $deduped = [];
+            $seen = [];
+            foreach ($items as $item) {
+                $key = $this->normalizeEligibilityKey((string) ($item['name'] ?? ''));
+                if ($key === '' || array_key_exists($key, $seen)) {
+                    continue;
+                }
+                $seen[$key] = true;
+                $deduped[] = $item;
+            }
+
+            if (!empty($deduped)) {
+                return $deduped;
             }
         }
 
@@ -2202,8 +2725,44 @@ class JobVacancyController extends Controller
         $legacyTokens = array_map(static function ($token) {
             return trim((string) $token);
         }, $legacyTokens);
+        $legacyTokens = $this->uniqueEligibilityNames($legacyTokens);
 
-        return $this->uniqueEligibilityNames($legacyTokens);
+        return array_map(static function ($name) {
+            return [
+                'name' => $name,
+                'legal_basis' => '',
+                'level' => '',
+            ];
+        }, $legacyTokens);
+    }
+
+    private function formatVacancyEligibilityDisplay(array $items): string
+    {
+        $lines = [];
+
+        foreach ($items as $item) {
+            $name = trim((string) ($item['name'] ?? ''));
+            if ($name === '') {
+                continue;
+            }
+
+            $parts = [];
+            $legalBasis = trim((string) ($item['legal_basis'] ?? ''));
+            $level = trim((string) ($item['level'] ?? ''));
+
+            if ($legalBasis !== '') {
+                $parts[] = 'Legal Basis: ' . $legalBasis;
+            }
+            if ($level !== '') {
+                $parts[] = 'Level: ' . $level;
+            }
+
+            $lines[] = empty($parts)
+                ? $name
+                : $name . ' (' . implode(' | ', $parts) . ')';
+        }
+
+        return empty($lines) ? 'Not specified' : implode("\n", $lines);
     }
 
     private function uniqueEligibilityNames(array $names): array
