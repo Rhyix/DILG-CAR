@@ -53,8 +53,9 @@
         $hasMissingRequiredDocsForModal = (bool) ($hasMissingRequiredDocs ?? false);
         $hasIncompletePdsForApply = !($hasCompletedPdsForApply ?? false);
 
-        $isClosed = strtolower((string) $vacancy->status) === 'closed';
-        $status = $isClosed ? 'CLOSED' : 'OPEN';
+        $statusRaw = strtolower(trim((string) $vacancy->status));
+        $isClosed = in_array($statusRaw, ['closed', 'no', '0', 'inactive'], true);
+        $status = $isClosed ? 'Closed' : 'Open';
         $typeIsPlantilla = strcasecmp(trim((string) $vacancy->vacancy_type), 'plantilla') === 0;
         $typeIsCos = strcasecmp(trim((string) $vacancy->vacancy_type), 'cos') === 0;
         $typeLabel = $typeIsCos
@@ -268,7 +269,7 @@
                             @foreach($qualificationLabelMap as $field => $label)
                                 @php
                                     $check = $qualificationChecksForPanel[$field] ?? null;
-                                    $status = is_array($check) ? ($check['status'] ?? 'na') : 'na';
+                                    $checkStatus = is_array($check) ? ($check['status'] ?? 'na') : 'na';
                                     $required = is_array($check) ? (bool) ($check['required'] ?? false) : false;
                                     $met = is_array($check) ? (bool) ($check['met'] ?? false) : true;
                                     $requirementText = trim((string) (($check['requirement'] ?? '') ?: ''));
@@ -276,7 +277,7 @@
                                 <div class="rounded-lg border border-slate-200 px-3 py-2">
                                     <div class="flex items-center justify-between gap-2">
                                         <p class="text-sm font-semibold text-slate-700">{{ $label }}</p>
-                                        @if(!$required || $status === 'na')
+                                        @if(!$required || $checkStatus === 'na')
                                             <span class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-semibold text-gray-600">
                                                 Not Required
                                             </span>
