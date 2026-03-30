@@ -57,13 +57,13 @@ class ExportPDSController
     private function getPage2FooterDateX(): float
     {
         // Adjust page-2 footer date X here without affecting other pages.
-        return 145;
+        return 159;
     }
 
     private function getPage2FooterDateY(): float
     {
         // Adjust page-2 footer date Y here without affecting other pages.
-        return $this->isShortBondTemplate ? 273.2 : 291;
+        return  319;
     }
 
     private function writeFooterDate(Fpdi $pdf): void
@@ -1074,7 +1074,7 @@ private function writeEducationalBackground($pdf, $education)
         $this->writeWrappedAt(
             $pdf,
             $this->valueOrNa($education?->elem_basic),
-            90,
+            105,
             263,
             45,
             6.5,
@@ -1109,7 +1109,7 @@ private function writeEducationalBackground($pdf, $education)
         $this->writeFittedAt($pdf, 'N/A', 200, 271, 13, 8.0, 5.0); // Academic Honors
     } else {
         $this->writeFittedAt($pdf, $this->valueOrNa($education?->jhs_school), 40.5, 271, 48, 7.0, 4.5);
-        $this->writeFittedAt($pdf, $this->valueOrNa($education?->jhs_basic), 90, 271, 45, 7.0, 4.5);
+        $this->writeFittedAt($pdf, $this->valueOrNa($education?->jhs_basic), 102, 271, 45, 7.0, 4.5);
         $this->writeFittedAt($pdf, $this->dateOrNa($education?->jhs_from, 'm/Y'), 136, 271, 27, 7.0, 5.0);
         $this->writeFittedAt($pdf, $this->dateOrNa($education?->jhs_to, 'm/Y'), 149, 271, 31.5, 7.0, 5.0);
         $this->writeFittedAt($pdf, $this->valueOrNa($education?->jhs_earned), 166, 271, 18, 7.0, 5.0);
@@ -1154,7 +1154,7 @@ private function writeVocationalChunk($pdf, $chunk)
 
         $this->writeFittedAt($pdf, $this->valueOrNa($voc['school'] ?? null), 40.5, $currentYSchoolBasic, 48, 7.0, 5.0);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($voc['basic'] ?? null), 90, $currentYSchoolBasic, 45, 7.0, 4.5);
+        $this->writeFittedAt($pdf, $this->valueOrNa($voc['basic'] ?? null), 105, $currentYSchoolBasic, 45, 7.0, 4.5);
 
         $this->writeFittedAt($pdf, $this->dateOrNa($voc['from'] ?? null, 'm/Y'), 136, $currentYOther, 27, 7.0, 5.0);
         $this->writeFittedAt($pdf, $this->dateOrNa($voc['to'] ?? null, 'm/Y'), 149, $currentYOther, 31.5, 7.0, 5.0);
@@ -1201,7 +1201,7 @@ private function writeCollegeChunk($pdf, $chunk)
 
         $this->writeFittedAt($pdf, $this->valueOrNa($college['school'] ?? null), 40.5, 286, 48, 7.0, 4.5);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($college['basic'] ?? null), 90, $currentYSchoolBasic, 45, 6.5, 4.5);
+        $this->writeFittedAt($pdf, $this->valueOrNa($college['basic'] ?? null), 105, $currentYSchoolBasic, 45, 6.5, 4.5);
 
         $this->writeFittedAt($pdf, $this->dateOrNa($college['from'] ?? null, 'm/Y'), 136, $currentYOther, 27, 7.0, 5.0);
         $this->writeFittedAt($pdf, $this->dateOrNa($college['to'] ?? null, 'm/Y'), 149, $currentYOther, 31.5, 7.0, 5.0);
@@ -1252,7 +1252,7 @@ private function writeGraduateChunk($pdf, $chunk)
 
         $this->writeFittedAt($pdf, $this->valueOrNa($grad['school'] ?? null), 40.5, $currentYSchool, 48, 6.5, 4.5);
 
-        $this->writeFittedAt($pdf, $this->valueOrNa($grad['basic'] ?? null), 90, $currentYBasic, 45, 6.5, 4.5);
+        $this->writeFittedAt($pdf, $this->valueOrNa($grad['basic'] ?? null), 105, $currentYBasic, 45, 6.5, 4.5);
 
         $this->writeFittedAt($pdf, $this->dateOrNa($grad['from'] ?? null, 'm/Y'), 136, $currentYOther, 11, 7.0, 5.0);
 
@@ -1270,7 +1270,7 @@ private function writeGraduateChunk($pdf, $chunk)
 // Civil Service Eligibility Part
 private function writeCivilServiceEligibilityChunk($pdf, $chunk)
 {
-    $startX_career = 8.0;
+    $startX_career = 10.0;
     $startX_rating = 71.0;
     $startX_date = 94.0;
     $startX_place = 115;
@@ -1280,7 +1280,7 @@ private function writeCivilServiceEligibilityChunk($pdf, $chunk)
 
     // Re-anchor to the 2025 short-bond grid to prevent left/right spillover.
     if ($this->isShortBondTemplate) {
-        $startX_career = 20.5;
+        $startX_career = 19;
         $startX_rating = 83.0;
         $startX_date = 104.7;
         $startX_place = 127.4;
@@ -1306,7 +1306,7 @@ private function writeCivilServiceEligibilityChunk($pdf, $chunk)
 
     // If all fields are empty, write N/A in the first row cells.
     if ($isEmpty) {
-        $this->writeFittedSingleLine($pdf, 'N/A',33, $firstRowY, $careerWidth, 8.0, 5.0); // Career
+        $this->writeFittedSingleLine($pdf, 'N/A', 33, $firstRowY, $careerWidth, 8.0, 5.0); // Career
         $this->writeFittedSingleLine($pdf, 'N/A', 78, $firstRowY, $ratingWidth, 8.0, 5.0); // Rating
         $this->writeFittedSingleLine($pdf, 'N/A', 100, $firstRowY, $dateWidth, 8.0, 5.0); // Date
         $this->writeFittedSingleLine($pdf, 'N/A', 125, $firstRowY, $placeWidth, 8.0, 4.8); // Place
@@ -1320,12 +1320,12 @@ private function writeCivilServiceEligibilityChunk($pdf, $chunk)
         // Explicit downward bias per row so lower rows sit visibly lower in their cells.
         $rowY = $currentY - 0.6 + ($index * $perRowDownShift);
 
-        $this->writeFittedSingleLine($pdf, $this->valueOrNa($cse['cs_eligibility_career'] ?? null), $startX_career, $rowY, $careerWidth, 7.0, 5.0);
-        $this->writeFittedSingleLine($pdf, $this->valueOrNa($cse['cs_eligibility_rating'] ?? null), $startX_rating, $rowY, $ratingWidth, 8.0, 5.0);
-        $this->writeFittedSingleLine($pdf, $this->dateOrNa($cse['cs_eligibility_date'] ?? null), $startX_date, $rowY, $dateWidth, 8.0, 5.0);
-        $this->writeFittedSingleLine($pdf, $this->valueOrNa($cse['cs_eligibility_place'] ?? null), $startX_place, $rowY, $placeWidth, 6.2, 4.8);
-        $this->writeFittedSingleLine($pdf, $this->valueOrNa($cse['cs_eligibility_license'] ?? null), $startX_license, $rowY, $licenseWidth, 8.0, 5.0);
-        $this->writeFittedSingleLine($pdf, $this->dateOrNa($cse['cs_eligibility_validity'] ?? null), $startX_validity, $rowY, $validityWidth, 8.0, 5.0);
+        $this->writeFittedSingleLine($pdf, $this->valueOrNa($cse['cs_eligibility_career'] ?? null), 5, $rowY, $careerWidth, 7.0, 5.0);
+        $this->writeFittedSingleLine($pdf, $this->valueOrNa($cse['cs_eligibility_rating'] ?? null), 88, $rowY, $ratingWidth, 8.0, 5.0);
+        $this->writeFittedSingleLine($pdf, $this->dateOrNa($cse['cs_eligibility_date'] ?? null), 105, $rowY, $dateWidth, 8.0, 5.0);
+        $this->writeFittedSingleLine($pdf, $this->valueOrNa($cse['cs_eligibility_place'] ?? null), 135, $rowY, $placeWidth, 6.2, 4.8);
+        $this->writeFittedSingleLine($pdf, $this->valueOrNa($cse['cs_eligibility_license'] ?? null), 163, $rowY, $licenseWidth, 8.0, 5.0);
+        $this->writeFittedSingleLine($pdf, $this->dateOrNa($cse['cs_eligibility_validity'] ?? null), 190, $rowY, $validityWidth, 8.0, 5.0);
     }
 }
 
@@ -1350,7 +1350,7 @@ private function writeWorkExperienceChunk($pdf, $chunk)
         $x_gov_end = 195.9;
     }
 
-    $startY = 103.3;
+    $startY = 113;
     $rowHeight = 6.66;
     $cellInset = 0.5;
     $maxRowsPerPage = 28;
@@ -1367,12 +1367,12 @@ private function writeWorkExperienceChunk($pdf, $chunk)
 
     // If all are empty, write N/A in the first row cells.
     if ($isEmpty) {
-        $this->writeTruncatedAtSize($pdf, 'N/A', 9, $firstRowY, $fromWidth, 8.0); // From
-        $this->writeTruncatedAtSize($pdf, 'N/A', 26.5, $firstRowY, $toWidth, 8.0); // To
-        $this->writeTruncatedAtSize($pdf, 'N/A', 63, $firstRowY, $positionWidth, 8.0); // Position
-        $this->writeTruncatedAtSize($pdf, 'N/A', 114, $firstRowY, $agencyWidth, 8.0); // Agency
-        $this->writeTruncatedAtSize($pdf, 'N/A', 153, $firstRowY, $statusWidth, 8.0); // Status
-        $this->writeTruncatedAtSize($pdf, 'N/A', $x_gov, $firstRowY, $govWidth, 8.0); // Government Service
+        $this->writeTruncatedAtSize($pdf, 'N/A', 5, $firstRowY, $fromWidth, 8.0); // From
+        $this->writeTruncatedAtSize($pdf, 'N/A', 26, $firstRowY, $toWidth, 8.0); // To
+        $this->writeTruncatedAtSize($pdf, 'N/A', 43, $firstRowY, $positionWidth, 8.0); // Position
+        $this->writeTruncatedAtSize($pdf, 'N/A', 102, $firstRowY, $agencyWidth, 8.0); // Agency
+        $this->writeTruncatedAtSize($pdf, 'N/A', 158, $firstRowY, $statusWidth, 8.0); // Status
+        $this->writeTruncatedAtSize($pdf, 'N/A', 185, $firstRowY, $govWidth, 8.0); // Government Service
         return;
     }
 
@@ -1381,9 +1381,9 @@ private function writeWorkExperienceChunk($pdf, $chunk)
         // Use linear row stepping to keep all rows on the same baseline.
         $rowY = $currentY - 1.75;
 
-        $this->writeTruncatedAtSize($pdf, $this->dateOrNa($we['work_exp_from'] ?? null), $x_from, $rowY, $fromWidth, 7.0);
-        $this->writeTruncatedAtSize($pdf, $this->dateOrNa($we['work_exp_to'] ?? null), $x_to, $rowY, $toWidth, 7.0);
-        $this->writeTruncatedAtSize($pdf, $this->valueOrNa($we['work_exp_position'] ?? null), $x_position, $rowY, $positionWidth, 7.0);
+        $this->writeTruncatedAtSize($pdf, $this->dateOrNa($we['work_exp_from'] ?? null),5, $rowY, $fromWidth, 7.0);
+        $this->writeTruncatedAtSize($pdf, $this->dateOrNa($we['work_exp_to'] ?? null), 38, $rowY, $toWidth, 7.0);
+        $this->writeTruncatedAtSize($pdf, $this->valueOrNa($we['work_exp_position'] ?? null), 63, $rowY, $positionWidth, 7.0);
         $this->writeTruncatedAtSize($pdf, $this->valueOrNa($we['work_exp_department'] ?? null), $x_agency, $rowY, $agencyWidth, 6.0);
         $this->writeTruncatedAtSize($pdf, $this->valueOrNa($we['work_exp_status'] ?? null), $x_status, $rowY, $statusWidth, 7.0);
         $this->writeTruncatedAtSize($pdf, $this->normalizeGovServiceFlag($we['work_exp_govt_service'] ?? null, 'N/A'), $x_gov, $rowY, $govWidth, 7.0);
