@@ -139,6 +139,20 @@ class PDSController extends Controller
         return $value;
     }
 
+    private function normalizeWorkExperienceEndDateForDatabase(?string $value): ?string
+    {
+        $raw = trim((string) ($value ?? ''));
+        if ($raw === '') {
+            return $value;
+        }
+
+        if (strtolower($raw) === 'present') {
+            return Carbon::today()->toDateString();
+        }
+
+        return $this->normalizeDateForDatabase($raw);
+    }
+
     private function parseEducationDateForValidation($value): ?Carbon
     {
         $value = is_string($value) ? trim($value) : null;
@@ -4716,7 +4730,7 @@ class PDSController extends Controller
 
                         $workRow['user_id'] = Auth::id();
                         $workRow['work_exp_from'] = $this->normalizeDateForDatabase($workRow['work_exp_from'] ?? null);
-                        $workRow['work_exp_to'] = $this->normalizeDateForDatabase($workRow['work_exp_to'] ?? null);
+                        $workRow['work_exp_to'] = $this->normalizeWorkExperienceEndDateForDatabase($workRow['work_exp_to'] ?? null);
 
                         WorkExperience::upsert($workRow, 'id');
                     }

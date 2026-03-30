@@ -400,6 +400,7 @@ Route::middleware(['auth', BlockIfAdmin::class])->group(function () {
     Route::post('/profile/edit', [ProfileController::class, 'update'])->name('profile.update');
     Route::post('/profile/avatar', [ProfileController::class, 'avatar'])->name('profile.avatar');
     Route::post('/profile/document-gallery', [ProfileController::class, 'storeGalleryDocument'])->name('profile.document_gallery.store');
+    Route::post('/profile/document-gallery/{item}/replace', [ProfileController::class, 'replaceGalleryDocument'])->name('profile.document_gallery.replace');
     Route::get('/profile/document-gallery/{item}/preview', [ProfileController::class, 'previewGalleryDocument'])->name('profile.document_gallery.preview');
     Route::get('/profile/document-gallery/{item}/download', [ProfileController::class, 'downloadGalleryDocument'])->name('profile.document_gallery.download');
     Route::delete('/profile/document-gallery/{item}', [ProfileController::class, 'deleteGalleryDocument'])->name('profile.document_gallery.delete');

@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
 class ProfileController extends Controller
@@ -34,20 +35,13 @@ class ProfileController extends Controller
         $user = Auth::user();
         $user->loadMissing(['profile', 'personalInformation']);
         $isGoogleSignup = Hash::check('google-oauth', (string) $user->password);
-        $galleryItems = DocumentGalleryItem::where('user_id', $user->id)
-            ->latest('updated_at')
-            ->get();
-        $documentTypeOptions = array_values(array_filter(
-            UploadedDocument::DOCUMENTS,
-            fn ($docType) => $docType !== 'isApproved'
-        ));
+        $galleryViewData = $this->getDocumentGalleryViewData($user);
 
         return view('profile.account_settings', [
             'user' => $user,
             'personalInfo' => $user->personalInformation,
             'isGoogleSignup' => $isGoogleSignup,
-            'galleryItems' => $galleryItems,
-            'documentTypeOptions' => $documentTypeOptions,
+            ...$galleryViewData,
         ]);
     }
 
@@ -163,36 +157,29 @@ class ProfileController extends Controller
 
     public function storeGalleryDocument(Request $request)
     {
-        $documentTypeOptions = array_values(array_filter(
-            UploadedDocument::DOCUMENTS,
-            fn ($docType) => $docType !== 'isApproved'
-        ));
-
-        $validated = $request->validate([
+        $documentTypeOptions = $this->getDocumentGalleryViewData(Auth::user())['documentTypeOptions'];
+        $validator = Validator::make($request->all(), [
             'gallery_document' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
             'document_type' => ['required', 'string', 'in:' . implode(',', $documentTypeOptions)],
         ]);
+        if ($validator->fails()) {
+            return $this->documentGalleryValidationResponse($request, $validator->errors()->toArray());
+        }
 
         $user = Auth::user();
+        $validated = $validator->validated();
         $documentType = (string) $validated['document_type'];
         $existingType = DocumentGalleryItem::where('user_id', $user->id)
             ->where('document_type', $documentType)
             ->exists();
         if ($existingType) {
-            return redirect()
-                ->route('account.settings')
-                ->withErrors(['document_type' => 'A file for this document type already exists. Remove it first before uploading another.'])
-                ->withInput();
+            return $this->documentGalleryValidationResponse($request, [
+                'document_type' => ['A file for this document type already exists. Remove it first before uploading another.'],
+            ]);
         }
 
         $file = $request->file('gallery_document');
-        $originalName = $file->getClientOriginalName();
-        $extension = strtolower((string) $file->getClientOriginalExtension());
-        $baseName = pathinfo($originalName, PATHINFO_FILENAME);
-        $safeBaseName = Str::of($baseName)->replaceMatches('/[^A-Za-z0-9\-_]+/', '_')->trim('_')->limit(50, '');
-        $safeBaseName = $safeBaseName === '' ? 'document' : (string) $safeBaseName;
-        $storedName = now()->format('YmdHis') . '_' . Str::random(8) . '_' . $safeBaseName . ($extension !== '' ? ".{$extension}" : '');
-        $storagePath = $file->storeAs("document_gallery/{$user->id}", $storedName, 'public');
+        ['original_name' => $originalName, 'stored_name' => $storedName, 'storage_path' => $storagePath] = $this->storeGalleryFile($file, (int) $user->id);
 
         DocumentGalleryItem::create([
             'user_id' => $user->id,
@@ -204,9 +191,38 @@ class ProfileController extends Controller
             'file_size_8b' => (int) $file->getSize(),
         ]);
 
-        return redirect()
-            ->route('account.settings')
-            ->with('document_gallery_success', 'Document uploaded to your gallery.');
+        return $this->documentGallerySuccessResponse($request, 'Document uploaded to your gallery.');
+    }
+
+    public function replaceGalleryDocument(Request $request, DocumentGalleryItem $item)
+    {
+        if ((int) $item->user_id !== (int) Auth::id()) {
+            abort(403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'replacement_gallery_document' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
+        ]);
+        if ($validator->fails()) {
+            return $this->documentGalleryValidationResponse($request, $validator->errors()->toArray());
+        }
+
+        $file = $validator->validated()['replacement_gallery_document'];
+        ['original_name' => $originalName, 'stored_name' => $storedName, 'storage_path' => $storagePath] = $this->storeGalleryFile($file, (int) $item->user_id);
+
+        if (!empty($item->storage_path) && Storage::disk('public')->exists($item->storage_path)) {
+            Storage::disk('public')->delete($item->storage_path);
+        }
+
+        $item->forceFill([
+            'original_name' => $originalName,
+            'stored_name' => $storedName,
+            'storage_path' => $storagePath,
+            'mime_type' => $file->getClientMimeType() ?: 'application/octet-stream',
+            'file_size_8b' => (int) $file->getSize(),
+        ])->save();
+
+        return $this->documentGallerySuccessResponse($request, 'Missing document restored successfully.');
     }
 
     public function previewGalleryDocument(DocumentGalleryItem $item)
@@ -249,7 +265,7 @@ class ProfileController extends Controller
         return Storage::disk('public')->download($item->storage_path, $item->original_name);
     }
 
-    public function deleteGalleryDocument(DocumentGalleryItem $item)
+    public function deleteGalleryDocument(Request $request, DocumentGalleryItem $item)
     {
         if ((int) $item->user_id !== (int) Auth::id()) {
             abort(403);
@@ -261,8 +277,81 @@ class ProfileController extends Controller
 
         $item->delete();
 
+        return $this->documentGallerySuccessResponse($request, 'Document removed from your gallery.');
+    }
+
+    private function getDocumentGalleryViewData($user): array
+    {
+        $galleryItems = DocumentGalleryItem::where('user_id', $user->id)
+            ->latest('updated_at')
+            ->get()
+            ->map(function (DocumentGalleryItem $item) {
+                $storagePath = trim((string) $item->storage_path);
+                $item->file_missing_from_storage = $storagePath === ''
+                    || strtoupper($storagePath) === 'NOINPUT'
+                    || !Storage::disk('public')->exists($storagePath);
+
+                return $item;
+            });
+        $documentTypeOptions = array_values(array_filter(
+            UploadedDocument::DOCUMENTS,
+            fn ($docType) => $docType !== 'isApproved'
+        ));
+
+        return [
+            'galleryItems' => $galleryItems,
+            'documentTypeOptions' => $documentTypeOptions,
+        ];
+    }
+
+    private function documentGallerySuccessResponse(Request $request, string $message)
+    {
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => $message,
+                'html' => $this->renderDocumentGalleryHtml(Auth::user()),
+            ]);
+        }
+
         return redirect()
             ->route('account.settings')
-            ->with('document_gallery_success', 'Document removed from your gallery.');
+            ->with('document_gallery_success', $message);
+    }
+
+    private function documentGalleryValidationResponse(Request $request, array $errors)
+    {
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => collect($errors)->flatten()->first() ?: 'Please check the document details and try again.',
+                'errors' => $errors,
+            ], 422);
+        }
+
+        return redirect()
+            ->route('account.settings')
+            ->withErrors($errors)
+            ->withInput();
+    }
+
+    private function renderDocumentGalleryHtml($user): string
+    {
+        return view('profile.partials.document_gallery_content', $this->getDocumentGalleryViewData($user))->render();
+    }
+
+    private function storeGalleryFile($file, int $userId): array
+    {
+        $originalName = $file->getClientOriginalName();
+        $extension = strtolower((string) $file->getClientOriginalExtension());
+        $baseName = pathinfo($originalName, PATHINFO_FILENAME);
+        $safeBaseName = Str::of($baseName)->replaceMatches('/[^A-Za-z0-9\-_]+/', '_')->trim('_')->limit(50, '');
+        $safeBaseName = $safeBaseName === '' ? 'document' : (string) $safeBaseName;
+        $storedName = now()->format('YmdHis') . '_' . Str::random(8) . '_' . $safeBaseName . ($extension !== '' ? ".{$extension}" : '');
+        $storagePath = $file->storeAs("document_gallery/{$userId}", $storedName, 'public');
+
+        return [
+            'original_name' => $originalName,
+            'stored_name' => $storedName,
+            'storage_path' => $storagePath,
+        ];
     }
 }
