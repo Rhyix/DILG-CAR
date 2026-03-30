@@ -294,6 +294,9 @@ class ExamController extends Controller
     private function mapQualifiedApplicant(Applications $app): array
     {
         $attendanceStatus = $app->exam_attendance_status;
+        $attendancePromptNotification = $this->resolveAttendancePromptNotification($app);
+        $attendancePromptSentAt = $attendancePromptNotification?->created_at;
+        $hasAttendanceResponse = !empty($attendanceStatus) || !is_null($app->exam_attendance_responded_at);
 
         return [
             'id' => $app->id,
@@ -312,8 +315,33 @@ class ExamController extends Controller
             'attendance_badge_class' => $this->attendanceStatusBadgeClass($attendanceStatus),
             'attendance_remark' => $app->exam_attendance_remark,
             'attendance_responded_at' => optional($app->exam_attendance_responded_at)->format('M d, Y h:i A'),
+            'attendance_prompt_sent' => !is_null($attendancePromptSentAt),
+            'attendance_prompt_sent_at' => optional($attendancePromptSentAt)->format('Y-m-d H:i:s'),
+            'has_attendance_response' => $hasAttendanceResponse,
             'can_receive_exam_link' => $this->canReceiveExamLink($app),
         ];
+    }
+
+    private function resolveAttendancePromptNotification(Applications $app)
+    {
+        $user = $app->user;
+
+        if ($user && $user->relationLoaded('notifications')) {
+            return $user->notifications
+                ->sortByDesc('created_at')
+                ->first(function ($notification) use ($app) {
+                    return data_get($notification, 'data.type') === 'exam_attendance_prompt'
+                        && (string) data_get($notification, 'data.vacancy_id') === (string) $app->vacancy_id;
+                });
+        }
+
+        return Notification::query()
+            ->where('notifiable_type', User::class)
+            ->where('notifiable_id', $app->user_id)
+            ->where('data->type', 'exam_attendance_prompt')
+            ->where('data->vacancy_id', $app->vacancy_id)
+            ->latest()
+            ->first();
     }
 
     private function mapAttendanceApplicant(Applications $app): array
@@ -1034,7 +1062,14 @@ class ExamController extends Controller
         $attendanceApplicants = collect();
         if (!$isViewer) {
             $qualifiedApplications = $this->qualifiedApplicationsQuery($vacancy_id)
-                ->with(['user'])
+                ->with([
+                    'user',
+                    'user.notifications' => function ($query) use ($vacancy_id) {
+                        $query->where('data->type', 'exam_attendance_prompt')
+                            ->where('data->vacancy_id', $vacancy_id)
+                            ->latest();
+                    },
+                ])
                 ->orderBy('created_at', 'desc')
                 ->get();
 
@@ -1112,7 +1147,15 @@ class ExamController extends Controller
         $status = $request->get('status', '');
 
         $query = $this->qualifiedApplicationsQuery($vacancy_id)
-            ->with(['user', 'personalInformation']);
+            ->with([
+                'user',
+                'personalInformation',
+                'user.notifications' => function ($query) use ($vacancy_id) {
+                    $query->where('data->type', 'exam_attendance_prompt')
+                        ->where('data->vacancy_id', $vacancy_id)
+                        ->latest();
+                },
+            ]);
 
         // Apply search filter
         if (!empty($search)) {

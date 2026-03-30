@@ -174,16 +174,6 @@
                                 d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
                         </svg>
                     </form>
-
-                    <!-- Bulk Actions -->
-                    <div class="flex items-center gap-2">
-                        <span id="selectedCount" class="text-sm text-[#0D2B70] font-semibold">0 selected</span>
-                        <button id="notifySelectedButton" onclick="notifySelected()" disabled
-                            class="px-3 py-1 bg-[#0D2B70] text-white text-xs font-bold rounded shadow-sm opacity-50 cursor-not-allowed transition-all hover:bg-[#002C76] flex items-center gap-1 ml-2">
-                            <x-heroicon-o-paper-airplane class="w-3 h-3 transform rotate-90" />
-                            Send Link
-                        </button>
-                    </div>
                 </div>
 
                 <!-- Table Container -->
@@ -192,58 +182,32 @@
                         <table class="w-full text-left border-collapse">
                             <thead class="bg-[#0D2B70] text-white sticky top-0 z-10">
                                 <tr>
-                                    <th class="py-3 px-4 font-normal w-12">
-                                        <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)"
-                                            class="w-4 h-4 rounded border-gray-300 text-[#0D2B70] focus:ring-[#0D2B70] cursor-pointer">
-                                    </th>
                                     <th class="py-3 px-6 font-normal">Name</th>
                                     <th class="py-3 px-6 font-normal">Email</th>
                                     <th class="py-3 px-6 font-normal">Application Date</th>
                                     <th class="py-3 px-6 font-normal text-center">Attendance</th>
-                                    <th class="py-3 px-6 font-normal text-center">Notification Status</th>
                                     <th class="py-3 px-6 font-normal text-center">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="qualified-applicants-list" class="divide-y divide-[#0D2B70]">
                                 @forelse ($qualifiedApplicants as $applicant)
                                     <tr class="text-[#0D2B70] select-none hover:bg-blue-50 transition-colors duration-200">
-                                        <td class="py-2.5 px-4">
-                                            <input type="checkbox" name="applicant_ids[]" value="{{ $applicant['id'] }}"
-                                                data-user-id="{{ $applicant['user_id'] }}"
-                                                data-link-sent="{{ $applicant['link_sent'] ? '1' : '0' }}"
-                                                data-attendance-status="{{ $applicant['attendance_status'] ?? '' }}"
-                                                data-can-receive-link="{{ $applicant['can_receive_exam_link'] ? '1' : '0' }}"
-                                                {{ $applicant['can_receive_exam_link'] ? '' : 'disabled' }}
-                                                onchange="updateSelectedCount()"
-                                                title="{{ $applicant['can_receive_exam_link'] ? 'Eligible to receive exam link' : 'Only applicants marked as Will Attend can receive the exam link' }}"
-                                                class="applicant-checkbox w-4 h-4 rounded border-gray-300 text-[#0D2B70] focus:ring-[#0D2B70] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
-                                        </td>
                                         <td class="py-2.5 px-6 font-semibold">{{ $applicant['name'] }}</td>
                                         <!-- <td class="py-2.5 px-6">{{ $applicant['email'] }}</td> -->
                                         <td class="py-2.5 px-6 max-w-[200px] truncate"> {{ $applicant['email'] }}</td>
                                         <td class="py-2.5 px-6">{{ $applicant['application_date'] }}</td>
                                         <td class="py-2.5 px-6 text-center">
-                                            <div class="flex flex-col items-center gap-1">
-                                                <span class="px-3 py-1 rounded-full text-xs font-semibold {{ $applicant['attendance_badge_class'] }}">
-                                                    {{ $applicant['attendance_label'] }}
-                                                </span>
-                                                @if(!empty($applicant['attendance_responded_at']))
-                                                    <span class="text-[11px] text-gray-500">{{ $applicant['attendance_responded_at'] }}</span>
-                                                @endif
-                                            </div>
-                                        </td>
-                                        <td class="py-2.5 px-6 text-center">
-                                            @if($applicant['is_read'])
+                                            @if($applicant['has_attendance_response'])
                                                 <span class="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 flex items-center justify-center gap-1"
-                                                    title="Confirmed: {{ \Carbon\Carbon::parse($applicant['read_at'])->format('M d, Y h:i A') }}">
+                                                    title="Confirmed: {{ $applicant['attendance_responded_at'] ?: 'N/A' }}">
                                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                                                     Confirmed
                                                 </span>
-                                            @elseif($applicant['link_sent'])
+                                            @elseif($applicant['attendance_prompt_sent'])
                                                 <span class="px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 flex items-center justify-center gap-1"
-                                                    title="Sent: {{ $applicant['link_sent_at'] ? \Carbon\Carbon::parse($applicant['link_sent_at'])->format('M d, Y h:i A') : 'N/A' }}">
+                                                    title="Sent: {{ $applicant['attendance_prompt_sent_at'] ? \Carbon\Carbon::parse($applicant['attendance_prompt_sent_at'])->format('M d, Y h:i A') : 'N/A' }}">
                                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                                    Pending
+                                                    Sent
                                                 </span>
                                             @else
                                                 <span class="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">
@@ -269,7 +233,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="7" class="text-center py-10 text-gray-500 text-xl">
+                                        <td colspan="5" class="text-center py-10 text-gray-500 text-xl">
                                             No qualified applicants found.
                                         </td>
                                     </tr>
@@ -469,9 +433,9 @@
                                 @endforeach
                             @else
                                 <tr>
-                                    <td colspan="4" class="py-10 text-center text-gray-500">
-                                        <p class="text-xl font-semibold">There are no participants yet.</p>
-                                    </td>
+                                            <td colspan="5" class="py-10 text-center text-gray-500">
+                                                <p class="text-xl font-semibold">There are no participants yet.</p>
+                                            </td>
                                 </tr>
                             @endif
                         </tbody>
@@ -604,6 +568,13 @@
 
                 <!-- ACTION BUTTONS: MONITOR -->
                 <div class="flex flex-col gap-2 mt-4">
+                    <button type="button" id="openMonitorRecipientModalButton" onclick="openMonitorRecipientModal()"
+                            {{ ($qualifiedCount < 1) ? 'disabled' : '' }}
+                            title="{{ $qualifiedCount < 1 ? 'No qualified applicants are available yet.' : 'Choose which applicants should receive exam links.' }}"
+                            class="w-full py-2 bg-white border-2 border-[#0D2B70] rounded-lg text-[#0D2B70] font-bold text-sm hover:scale-[1.02] flex items-center justify-center gap-2 transition-transform disabled:opacity-50 disabled:hover:scale-100">
+                        <x-heroicon-o-user-group class="w-4 h-4" />
+                        Send Selected Links
+                    </button>
                     <button type="button" id="sendLinkButton" onclick="triggerSendLinkConfirm('{{ $vacancy->vacancy_id }}')" 
                             {{ (!$examDetails || !$examDetails->details_saved || $examDetails->link_sent || $isExamActive || $isExamCompleted || !$isExamDay || ($willAttendCount < 1)) ? 'disabled' : '' }}
                             title="{{ $willAttendCount < 1 ? 'No applicants are marked as Will Attend yet.' : 'Send exam links to applicants marked as Will Attend.' }}"
@@ -650,22 +621,101 @@
             </form>
         </div>
                                         
-
-
-
-
-
-
-
-
-
-
-
-                                        
     </div>
 
 
     @include('partials.loader')
+    <div id="monitorRecipientModal" class="hidden fixed inset-0 z-[10040] backdrop-blur-sm p-4 opacity-0 transition-opacity duration-200">
+        <div class="flex min-h-full items-center justify-center">
+            <div id="monitorRecipientModalPanel" class="flex max-h-[85vh] w-full max-w-[54rem] translate-y-4 transform flex-col overflow-hidden rounded-2xl bg-white opacity-0 shadow-2xl ring-1 ring-black/5 transition duration-200 ease-out sm:scale-95">
+                <div class="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 sm:px-6">
+                    <div>
+                        <h3 class="text-xl font-bold text-[#0D2B70]">Send Exam Links</h3>
+                        <p class="mt-1 text-sm text-slate-500">Select applicants marked as Will Attend, then send their exam lobby links from this list.</p>
+                    </div>
+                    <button type="button" onclick="closeMonitorRecipientModal()"
+                        class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+                        aria-label="Close send exam links modal">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div class="flex-1 overflow-hidden px-5 pb-5 pt-4 sm:px-6">
+                    <div class="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <p class="text-sm text-slate-500">
+                            Applicants who are still waiting on attendance confirmation will stay disabled here.
+                        </p>
+                        <div class="flex items-center justify-end gap-3">
+                            <span id="monitorSelectedCount" class="rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-[#0D2B70]">0 selected</span>
+                            <button id="monitorNotifySelectedButton" type="button" onclick="notifySelected()" disabled
+                                class="inline-flex items-center gap-2 whitespace-nowrap rounded-lg bg-[#0D2B70] px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#002C76] disabled:cursor-not-allowed disabled:opacity-50">
+                                <x-heroicon-o-paper-airplane class="w-4 h-4 transform rotate-90" />
+                                Send Link
+                            </button>
+                        </div>
+                    </div>
+                    <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                        <div class="max-h-[48vh] overflow-auto">
+                            <table class="w-full table-fixed border-collapse text-left">
+                                <thead class="sticky top-0 z-10 bg-slate-100 text-[#0D2B70]">
+                                    <tr>
+                                        <th class="w-14 py-3 px-4 font-normal">
+                                            <input type="checkbox" id="monitorSelectAll" onchange="toggleSelectAll(this)"
+                                                class="w-4 h-4 rounded border-gray-300 text-[#0D2B70] focus:ring-[#0D2B70] cursor-pointer">
+                                        </th>
+                                        <th class="w-[40%] py-3 px-4 font-normal">Name</th>
+                                        <th class="w-[24%] py-3 px-4 font-normal text-center">Attendance</th>
+                                        <th class="w-[24%] py-3 px-4 font-normal text-center">Exam Link</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="monitor-recipient-list" class="divide-y divide-slate-200">
+                                    @foreach ($qualifiedApplicants as $applicant)
+                                        <tr class="text-[#0D2B70] hover:bg-slate-50 transition-colors duration-150">
+                                            <td class="py-3 px-4">
+                                                <input type="checkbox" value="{{ $applicant['id'] }}"
+                                                    data-user-id="{{ $applicant['user_id'] }}"
+                                                    data-can-receive-link="{{ $applicant['can_receive_exam_link'] ? '1' : '0' }}"
+                                                    {{ $applicant['can_receive_exam_link'] ? '' : 'disabled' }}
+                                                    onchange="updateSelectedCount()"
+                                                    title="{{ $applicant['can_receive_exam_link'] ? 'Eligible to receive exam link' : 'Only applicants marked as Will Attend can receive the exam link' }}"
+                                                    class="monitor-applicant-checkbox w-4 h-4 rounded border-gray-300 text-[#0D2B70] focus:ring-[#0D2B70] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
+                                            </td>
+                                            <td class="py-3 px-4 font-semibold truncate">{{ $applicant['name'] }}</td>
+                                            <td class="py-3 px-4 text-center">
+                                                <span class="inline-flex items-center justify-center rounded-full px-3 py-1 text-xs font-semibold {{ $applicant['attendance_badge_class'] }}">
+                                                    {{ $applicant['attendance_label'] }}
+                                                </span>
+                                            </td>
+                                            <td class="py-3 px-4 text-center">
+                                                @if($applicant['is_read'])
+                                                    <span class="inline-flex items-center justify-center rounded-full px-3 py-1 text-xs font-semibold bg-green-100 text-green-800">
+                                                        Opened
+                                                    </span>
+                                                @elseif($applicant['link_sent'])
+                                                    <span class="inline-flex items-center justify-center rounded-full px-3 py-1 text-xs font-semibold bg-blue-100 text-blue-800">
+                                                        Sent
+                                                    </span>
+                                                @elseif($applicant['can_receive_exam_link'])
+                                                    <span class="inline-flex items-center justify-center rounded-full px-3 py-1 text-xs font-semibold bg-amber-100 text-amber-800">
+                                                        Ready to Send
+                                                    </span>
+                                                @else
+                                                    <span class="inline-flex items-center justify-center rounded-full px-3 py-1 text-xs font-semibold bg-slate-100 text-slate-500">
+                                                        Waiting
+                                                    </span>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     <!-- Confirmation Modals -->
     <x-confirm-modal 
         title="Save & Notify Applicants"
@@ -779,6 +829,7 @@
                 // Mark links as sent on client and update Start Exam state
                 linkSentClient = true;
                 updateStartButtonState();
+                refreshMonitorRecipients();
                 // Keep Send Link button disabled
                 sendLinkButton.innerHTML = originalText;
             } else {
@@ -1003,6 +1054,7 @@
                 let msg = "Exam details saved successfully!";
                 if (data.notified) {
                     updateScheduleNotifyMeta(currentAdminDisplayName, data.notified_at || null);
+                    fetchQualifiedApplicants(document.getElementById('searchInputQualified')?.value || '');
                     msg += " " + (data.notify_message || "Applicants have been notified.");
                 }
                 showAppToast(msg);
@@ -1026,6 +1078,7 @@
 
     // Server-provided counts and flags for gating logic
     const qualifiedCount = @json(isset($qualifiedApplicants) ? $qualifiedApplicants->count() : 0);
+    const initialQualifiedApplicants = @json(isset($qualifiedApplicants) ? $qualifiedApplicants->values() : []);
     const currentAdminDisplayName = @json(optional(auth('admin')->user())->name ?? optional(auth('admin')->user())->email ?? 'An admin');
     let attendanceResponseCountClient = @json(isset($attendanceApplicants) ? $attendanceApplicants->count() : 0);
     let willAttendCountClient = @json(isset($attendanceApplicants) ? $attendanceApplicants->where('attendance_status', 'will_attend')->count() : 0);
@@ -1187,6 +1240,8 @@
     validateForm();
     updateSendLinkButtonState(currentLobbyCount);
     updateStartButtonState();
+    renderMonitorRecipients(initialQualifiedApplicants);
+    updateSelectedCount();
     // Sync initial state
     syncMonitorFields();
 
@@ -1344,12 +1399,52 @@
         if (timeEndInput && monitorEnd) monitorEnd.value = timeEndInput.value || '';
     }
 
+    function openMonitorRecipientModal() {
+        const modal = document.getElementById('monitorRecipientModal');
+        const panel = document.getElementById('monitorRecipientModalPanel');
+        if (!modal) return;
+
+        window.clearTimeout(window._monitorRecipientModalTimer);
+        refreshMonitorRecipients();
+        modal.classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+        requestAnimationFrame(() => {
+            modal.classList.remove('opacity-0');
+            modal.classList.add('opacity-100');
+
+            if (panel) {
+                panel.classList.remove('opacity-0', 'translate-y-4', 'sm:scale-95');
+                panel.classList.add('opacity-100', 'translate-y-0', 'sm:scale-100');
+            }
+        });
+    }
+
+    function closeMonitorRecipientModal() {
+        const modal = document.getElementById('monitorRecipientModal');
+        const panel = document.getElementById('monitorRecipientModalPanel');
+        if (!modal) return;
+
+        modal.classList.remove('opacity-100');
+        modal.classList.add('opacity-0');
+
+        if (panel) {
+            panel.classList.remove('opacity-100', 'translate-y-0', 'sm:scale-100');
+            panel.classList.add('opacity-0', 'translate-y-4', 'sm:scale-95');
+        }
+
+        window.clearTimeout(window._monitorRecipientModalTimer);
+        window._monitorRecipientModalTimer = window.setTimeout(() => {
+            modal.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+        }, 200);
+    }
+
 
     // ========================================
     // CHECKBOX MANAGEMENT
     // ========================================
     function toggleSelectAll(checkbox) {
-        const checkboxes = document.querySelectorAll('.applicant-checkbox:not(:disabled)');
+        const checkboxes = document.querySelectorAll('.monitor-applicant-checkbox:not(:disabled)');
         checkboxes.forEach(cb => {
             cb.checked = checkbox.checked;
         });
@@ -1357,13 +1452,15 @@
     }
 
     function updateSelectedCount() {
-        const checkboxes = document.querySelectorAll('.applicant-checkbox:checked');
+        const checkboxes = document.querySelectorAll('.monitor-applicant-checkbox:checked');
         const count = checkboxes.length;
-        const countDisplay = document.getElementById('selectedCount');
-        countDisplay.textContent = `${count} selected`;
+        const countDisplay = document.getElementById('monitorSelectedCount');
+        if (countDisplay) {
+            countDisplay.textContent = `${count} selected`;
+        }
 
         // Update button state
-        const notifyBtn = document.getElementById('notifySelectedButton');
+        const notifyBtn = document.getElementById('monitorNotifySelectedButton');
         if (notifyBtn) {
             if (count > 0) {
                 notifyBtn.disabled = false;
@@ -1377,8 +1474,11 @@
         }
 
         // Update select all checkbox state
-        const selectAllCheckbox = document.getElementById('selectAll');
-        const totalCheckboxes = document.querySelectorAll('.applicant-checkbox:not(:disabled)');
+        const selectAllCheckbox = document.getElementById('monitorSelectAll');
+        const totalCheckboxes = document.querySelectorAll('.monitor-applicant-checkbox:not(:disabled)');
+        if (!selectAllCheckbox) {
+            return;
+        }
         // Prevent division by zero if no checkboxes exist
         if (totalCheckboxes.length > 0) {
             selectAllCheckbox.checked = count > 0 && count === totalCheckboxes.length;
@@ -1432,7 +1532,7 @@
             }
             refreshAttendanceSummary();
             fetchQualifiedApplicants(document.getElementById('searchInputQualified')?.value || '');
-            window.location.reload();
+            refreshMonitorRecipients();
         })
         .catch((error) => {
             console.error('Attendance override failed:', error);
@@ -1441,16 +1541,12 @@
     }
 
     function notifySelected() {
-        const selectedCheckboxes = document.querySelectorAll('.applicant-checkbox:checked');
+        const selectedCheckboxes = document.querySelectorAll('.monitor-applicant-checkbox:checked');
         const userIds = Array.from(selectedCheckboxes).map(cb => cb.dataset.userId);
 
         if (userIds.length === 0) return;
 
-        if (!confirm(`Are you sure you want to send exam links to ${userIds.length} selected applicants?`)) {
-            return;
-        }
-
-        const btn = document.getElementById('notifySelectedButton');
+        const btn = document.getElementById('monitorNotifySelectedButton');
         const originalContent = btn.innerHTML;
         const originalOpacity = btn.classList.contains('opacity-50'); 
         
@@ -1471,11 +1567,11 @@
         .then(data => {
             if (data.success) {
                 showAppToast(data.message);
-                // Refresh list
+                // Refresh both tables
                 const search = document.getElementById('searchInputQualified').value;
                 fetchQualifiedApplicants(search);
-                // Reset Selection
-                document.getElementById('selectAll').checked = false;
+                refreshMonitorRecipients();
+                closeMonitorRecipientModal();
             } else {
                 showAppToast('Error: ' + data.message);
             }
@@ -1544,7 +1640,7 @@
         if (applicants.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="7" class="text-center py-10 text-gray-500 text-xl">
+                    <td colspan="5" class="text-center py-10 text-gray-500 text-xl">
                         No qualified applicants found.
                     </td>
                 </tr>
@@ -1554,59 +1650,121 @@
 
         tbody.innerHTML = applicants.map(app => `
             <tr class="text-[#0D2B70] select-none hover:bg-blue-50 transition-colors duration-200">
-                <td class="py-2.5 px-4">
-                    <input type="checkbox" name="applicant_ids[]" value="${app.id}"
-                        data-user-id="${app.user_id}"
-                        data-link-sent="${app.link_sent ? '1' : '0'}"
-                        data-attendance-status="${app.attendance_status || ''}"
-                        data-can-receive-link="${app.can_receive_exam_link ? '1' : '0'}"
-                        ${app.can_receive_exam_link ? '' : 'disabled'}
-                        onchange="updateSelectedCount()"
-                        title="${app.can_receive_exam_link ? 'Eligible to receive exam link' : 'Only applicants marked as Will Attend can receive the exam link'}"
-                        class="applicant-checkbox w-4 h-4 rounded border-gray-300 text-[#0D2B70] focus:ring-[#0D2B70] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
-                </td>
                 <td class="py-2.5 px-6 font-semibold">${app.name}</td>
-                <td class="py-2.5 px-6">${app.email}</td>
+                <td class="py-2.5 px-6 max-w-[200px] truncate">${app.email}</td>
                 <td class="py-2.5 px-6">${app.application_date}</td>
                 <td class="py-2.5 px-6 text-center">
-                    <div class="flex flex-col items-center gap-1">
-                        <span class="px-3 py-1 rounded-full text-xs font-semibold ${app.attendance_badge_class}">
-                            ${app.attendance_label}
-                        </span>
-                        ${app.attendance_responded_at ? `<span class="text-[11px] text-gray-500">${app.attendance_responded_at}</span>` : ''}
-                    </div>
-                </td>
-                <td class="py-2.5 px-6 text-center">
-                    ${app.is_read ? 
-                        `<span class="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 flex items-center justify-center gap-1" title="Confirmed">
+                    ${app.has_attendance_response
+                        ? `<span class="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 flex items-center justify-center gap-1" title="Confirmed: ${app.attendance_responded_at || 'N/A'}">
                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                             Confirmed
-                        </span>` : 
-                        (app.link_sent ? 
-                            `<span class="px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 flex items-center justify-center gap-1" title="Pending">
+                        </span>`
+                        : (app.attendance_prompt_sent
+                            ? `<span class="px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 flex items-center justify-center gap-1" title="Sent: ${app.attendance_prompt_sent_at || 'N/A'}">
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                Pending
-                            </span>` :
-                            `<span class="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">Not Sent</span>`
+                                Sent
+                            </span>`
+                            : `<span class="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">Not Sent</span>`
                         )
                     }
                 </td>
                 <td class="py-2.5 px-6 text-center">
-                    <button
-                        onclick="window.location.href='/admin/applicant_status/${app.user_id}/${app.vacancy_id}'"
+                    <a
+                        href="/admin/applicant_status/${app.user_id}/${app.vacancy_id}"
+                        target="_blank"
                         class="text-[#0D2B70] border border-[#0D2B70] font-bold py-1 px-4 rounded-md text-sm transition-all duration-300 hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md flex items-center gap-2 mx-auto">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                         </svg>
                         <span>View</span>
-                    </button>
+                    </a>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function refreshMonitorRecipients() {
+        fetch(`/admin/exam_management/{{ $vacancy->vacancy_id }}/qualified?`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                renderMonitorRecipients(data.applicants);
+            }
+        })
+        .catch(error => console.error('Error refreshing monitor recipients:', error));
+    }
+
+    function renderMonitorRecipients(applicants) {
+        const tbody = document.getElementById('monitor-recipient-list');
+        if (!tbody) return;
+
+        if (!applicants.length) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="4" class="py-8 text-center text-sm text-slate-500">
+                        No applicants available for link selection yet.
+                    </td>
+                </tr>
+            `;
+            updateSelectedCount();
+            return;
+        }
+
+        tbody.innerHTML = applicants.map(app => `
+            <tr class="text-[#0D2B70] hover:bg-slate-50 transition-colors duration-150">
+                <td class="py-2.5 px-4">
+                    <input type="checkbox" value="${app.id}"
+                        data-user-id="${app.user_id}"
+                        data-can-receive-link="${app.can_receive_exam_link ? '1' : '0'}"
+                        ${app.can_receive_exam_link ? '' : 'disabled'}
+                        onchange="updateSelectedCount()"
+                        title="${app.can_receive_exam_link ? 'Eligible to receive exam link' : 'Only applicants marked as Will Attend can receive the exam link'}"
+                        class="monitor-applicant-checkbox w-4 h-4 rounded border-gray-300 text-[#0D2B70] focus:ring-[#0D2B70] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
+                </td>
+                <td class="py-2.5 px-4 font-semibold truncate">${app.name}</td>
+                <td class="py-2.5 px-4 text-center">
+                    <span class="inline-flex items-center justify-center rounded-full px-3 py-1 text-xs font-semibold ${app.attendance_badge_class}">
+                        ${app.attendance_label}
+                    </span>
+                </td>
+                <td class="py-2.5 px-4 text-center">
+                    ${app.is_read
+                        ? `<span class="inline-flex items-center justify-center rounded-full px-3 py-1 text-xs font-semibold bg-green-100 text-green-800">Opened</span>`
+                        : (app.link_sent
+                            ? `<span class="inline-flex items-center justify-center rounded-full px-3 py-1 text-xs font-semibold bg-blue-100 text-blue-800">Sent</span>`
+                            : (app.can_receive_exam_link
+                                ? `<span class="inline-flex items-center justify-center rounded-full px-3 py-1 text-xs font-semibold bg-amber-100 text-amber-800">Ready to Send</span>`
+                                : `<span class="inline-flex items-center justify-center rounded-full px-3 py-1 text-xs font-semibold bg-slate-100 text-slate-500">Waiting</span>`
+                            )
+                        )
+                    }
                 </td>
             </tr>
         `).join('');
 
         updateSelectedCount();
     }
+
+    const monitorRecipientModal = document.getElementById('monitorRecipientModal');
+    if (monitorRecipientModal) {
+        monitorRecipientModal.addEventListener('click', function (event) {
+            if (event.target === monitorRecipientModal) {
+                closeMonitorRecipientModal();
+            }
+        });
+    }
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && monitorRecipientModal && !monitorRecipientModal.classList.contains('hidden')) {
+            closeMonitorRecipientModal();
+        }
+    });
 
     const attendanceRemarkTooltip = document.getElementById('attendanceRemarkTooltip');
     const attendanceRemarkTooltipTitle = document.getElementById('attendanceRemarkTooltipTitle');
@@ -1824,7 +1982,7 @@
         if (participants.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="4" class="py-10 text-center text-gray-500">
+                    <td colspan="5" class="py-10 text-center text-gray-500">
                         <p class="text-xl font-semibold">There are no participants yet.</p>
                     </td>
                 </tr>
