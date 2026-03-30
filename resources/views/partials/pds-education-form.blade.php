@@ -298,7 +298,7 @@
                                    class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base"
                                    {{ $education_type == 'college' ? 'required' : '' }}>
                             <label class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">
-                                School Name{{ $education_type == 'college' ? '*' : '' }}
+                                School Name{!! $education_type == 'college' ? ' <span class="text-red-500">*</span>' : '' !!}
                             </label>
                         </div>
 
@@ -310,7 +310,7 @@
                                    class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base"
                                    {{ $education_type == 'college' ? 'required' : '' }}>
                             <label class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">
-                                Degree/Course{{ $education_type == 'college' ? '*' : '' }}
+                                Degree/Course{!! $education_type == 'college' ? ' <span class="text-red-500">*</span>' : '' !!}
                             </label>
                         </div>
 
@@ -324,7 +324,7 @@
                                     class="edu-date w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base"
                                     {{ $education_type == 'college' ? 'required' : '' }}>
                             <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">
-                                From{{ $education_type == 'college' ? '*' : '' }}
+                                From{!! $education_type == 'college' ? ' <span class="text-red-500">*</span>' : '' !!}
                             </label>
                         </div>
 
@@ -338,7 +338,7 @@
                                     class="edu-date w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base"
                                     {{ $education_type == 'college' ? 'required' : '' }}>
                              <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">
-                                 To{{ $education_type == 'college' ? '*' : '' }}
+                                 To{!! $education_type == 'college' ? ' <span class="text-red-500">*</span>' : '' !!}
                              </label>
                              <p class="error-message hidden" data-education-date-error aria-live="polite"></p>
                          </div>
@@ -366,7 +366,7 @@
                                    class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base"
                                    {{ $education_type == 'college' ? 'required' : '' }}>
                             <label class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-xs sm:text-sm">
-                                Highest Level/Units Earned (if not graduated){{ $education_type == 'college' ? '*' : '' }}
+                                Highest Level/Units Earned (if not graduated){!! $education_type == 'college' ? ' <span class="text-red-500">*</span>' : '' !!}
                             </label>
                         </div>
 
