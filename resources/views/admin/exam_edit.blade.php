@@ -874,7 +874,71 @@
                     console.log(message);
                 },
 
-                confirmAction() {
+                normalizeQuestion(question) {
+                    const type = String(question?.type || 'MCQ').toLowerCase() === 'essay' ? 'Essay' : 'MCQ';
+                    const text = typeof question?.duration === 'string'
+                        ? question.duration
+                        : (typeof question?.text === 'string' ? question.text : '');
+
+                    let choices = Array.isArray(question?.choices)
+                        ? question.choices.map(choice => String(choice ?? ''))
+                        : [];
+
+                    let correctAnswer = Number.isInteger(question?.correctAnswer)
+                        ? question.correctAnswer
+                        : parseInt(question?.correctAnswer, 10);
+
+                    if (!Number.isInteger(correctAnswer)) {
+                        correctAnswer = -1;
+                    }
+
+                    let answer = typeof question?.answer === 'string' ? question.answer : '';
+
+                    if (type === 'Essay') {
+                        choices = [];
+                        correctAnswer = -1;
+                        answer = '';
+                    } else {
+                        if (choices.length === 0) {
+                            choices = ['Option 1'];
+                        }
+
+                        if (correctAnswer < 0 || correctAnswer >= choices.length) {
+                            correctAnswer = answer ? choices.indexOf(answer) : -1;
+                        }
+
+                        answer = correctAnswer >= 0 ? choices[correctAnswer] : answer;
+                    }
+
+                    const essayMaxValue = question?.essayMax;
+                    const parsedEssayMax = essayMaxValue === '' || essayMaxValue === null || essayMaxValue === undefined
+                        ? null
+                        : parseInt(essayMaxValue, 10);
+
+                    return {
+                        text,
+                        duration: text,
+                        type,
+                        answer,
+                        choices,
+                        correctAnswer,
+                        essayMax: type === 'Essay' && Number.isInteger(parsedEssayMax)
+                            ? Math.max(0, parsedEssayMax)
+                            : null
+                    };
+                },
+
+                markCurrentStateAsSaved() {
+                    this.questions = this.questions.map(question => this.normalizeQuestion(question));
+                    this.originalQuestionsSnapshot = JSON.stringify(this.questions);
+                    this.hasChanges = false;
+
+                    this.$nextTick(() => {
+                        if (window.feather) feather.replace();
+                    });
+                },
+
+                async confirmAction() {
                     if (this.modalType === 'back') {
                         window.location.href = this.pendingBackUrl;
                     } else if (this.modalType === 'discard') {
@@ -893,39 +957,46 @@
                         const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
                         
                         const actionUrl = document.getElementById('examForm').getAttribute('action');
-                        fetch(actionUrl, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': csrfToken,
-                            },
-                            body: JSON.stringify({
-                                questions: JSON.stringify(this.questions)
-                            })
-                        })
-                        .then(response => response.json())
-                        .then(data => {
+                        try {
+                            const response = await fetch(actionUrl, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Accept': 'application/json',
+                                    'X-CSRF-TOKEN': csrfToken,
+                                },
+                                body: JSON.stringify({
+                                    questions: JSON.stringify(this.questions)
+                                })
+                            });
+
+                            const contentType = response.headers.get('content-type') || '';
+                            const data = contentType.includes('application/json')
+                                ? await response.json()
+                                : { message: 'Received an unexpected server response while saving.' };
+
+                            if (!response.ok) {
+                                throw new Error(data.msg || data.message || 'Failed to save exam');
+                            }
+
                             if (data.success || data.message) {
-                                // Success - show toast then reload
-                                this.isProcessing = false;
+                                this.markCurrentStateAsSaved();
                                 this.showConfirmModal = false;
                                 this.modalType = '';
                                 setModalScreenFocusLock();
                                 this.showToastNotification('Questions saved successfully!', 'success');
-                                setTimeout(() => {
-                                    window.location.reload();
-                                }, 1500);
                             } else {
                                 throw new Error(data.msg || data.message || 'Failed to save exam');
                             }
-                        })
-                        .catch(error => {
+                        } catch (error) {
                             console.error('Error saving exam:', error);
-                            this.isProcessing = false;
                             this.showConfirmModal = false;
+                            this.modalType = '';
                             setModalScreenFocusLock();
                             this.showToastNotification('Error saving exam: ' + error.message, 'error');
-                        });
+                        } finally {
+                            this.isProcessing = false;
+                        }
                     }
                 },
 

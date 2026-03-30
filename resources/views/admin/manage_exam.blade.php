@@ -104,7 +104,7 @@
                             {{ $questionsCount }}-question examination
                         </span>
                     @else
-                        <span class="text-xl md:text-2xl lg:text-3xl font-normal text-red-600 font-bold">
+                        <span class="text-xl md:text-2xl lg:text-3xl font-normal text-red-600 font-bold animate-pulse">
                             No questions yet
                         </span>
                     @endif
