@@ -1668,6 +1668,7 @@ class JobVacancyController extends Controller
                 'file_last_modified_by' => $application->file_last_modified_by ?? null,
                 'deadline_date' => $application->deadline_date ?? null,
                 'deadline_time' => $application->deadline_time ?? null,
+                'is_past_deadline' => $this->hasRevisionDeadlinePassed($application),
                 'final_revision_disqualified' => $isFinalRevisionDisqualified,
             ]
         ]);
@@ -1699,6 +1700,24 @@ class JobVacancyController extends Controller
     private function isRevisionComplianceLocked(int $requestedCount, ?string $requestedAt, ?string $submittedAt): bool
     {
         return $requestedCount >= 2 && $this->hasSatisfiedLatestRevisionRequest($requestedAt, $submittedAt);
+    }
+
+    private function hasRevisionDeadlinePassed(?Applications $application): bool
+    {
+        if (!$application || empty($application->deadline_date) || empty($application->deadline_time)) {
+            return false;
+        }
+
+        try {
+            $timezone = (string) config('app.timezone', 'Asia/Manila');
+            $deadline = Carbon::parse(
+                $application->deadline_date . ' ' . $application->deadline_time,
+                $timezone
+            );
+            return Carbon::now($timezone)->greaterThan($deadline);
+        } catch (\Throwable $e) {
+            return false;
+        }
     }
 
     private function hasFinalRevisionDisqualification(Applications $application, $uploadedDocuments): bool
