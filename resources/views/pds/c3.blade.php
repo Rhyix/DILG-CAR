@@ -263,7 +263,7 @@
                 </button>
                 <button type="submit"
                     class="w-full sm:w-auto px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors duration-200 flex items-center justify-center">
-                    Next
+                    Save
                     <span class="material-icons ml-2">arrow_forward</span>
                 </button>
             </div> <!-- End Navigation -->
@@ -865,4 +865,3 @@
         }
     })();
 </script>
-
