@@ -515,6 +515,9 @@ class ExportPDSController
 
         $forceInline = $isPreview || $isPrint;
 
+        // Prevent browser/PDF viewer cache from serving stale renders during coordinate tuning.
+        $this->sendNoCacheHeaders();
+
         if ($isDownload) {
             // Download as attachment
             $pdf->Output($filename, 'D');
@@ -536,6 +539,18 @@ class ExportPDSController
         }
 
         exit;
+    }
+
+    private function sendNoCacheHeaders(): void
+    {
+        if (headers_sent()) {
+            return;
+        }
+
+        header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+        header('Cache-Control: post-check=0, pre-check=0', false);
+        header('Pragma: no-cache');
+        header('Expires: Thu, 01 Jan 1970 00:00:00 GMT');
     }
 
     private function configureCoordinateScale(float $templateWidth, float $templateHeight): void
@@ -959,10 +974,10 @@ private function writeAddresses($pdf, $residential, $permanent)
     }
 
     if (!$hasResidentialData) {
-        $this->writeAlignedValue($pdf, 'N/A', 115, 86, 48, 8.0, 5.0); // House Number
-        $this->writeAlignedValue($pdf, 'N/A', 153, 86, 65, 8.0, 5.0); // Street
-        $this->writeAlignedValue($pdf, 'N/A', 128, 92.5, 23, 8.0, 5.0); // Village/Subdivision
-        $this->writeAlignedValue($pdf, 'N/A', 160, 92.5, 48, 8.0, 5.0); // Barangay
+        $this->writeAlignedValue($pdf, 'N/A', 136, 86, 48, 8.0, 5.0); // House Number
+        $this->writeAlignedValue($pdf, 'N/A', 179.5, 86, 65, 8.0, 5.0); // Street
+        $this->writeAlignedValue($pdf, 'N/A', 136, 92.5, 23, 8.0, 5.0); // Village/Subdivision
+        $this->writeAlignedValue($pdf, 'N/A', 179.5, 92.5, 48, 8.0, 5.0); // Barangay
         $this->writeAlignedValue($pdf, 'N/A', 130, 99, 50, 8.0, 5.0); // City/Municipality
         $this->writeAlignedValue($pdf, 'N/A', 179.5, 99, 100, 8.0, 5.0); // Province
         $this->writeAlignedValue($pdf, 'N/A', 130, 108, 60, 8.0, 5.0); // ZIP Code
@@ -1077,10 +1092,10 @@ private function writeChildrenChunk($pdf, $chunk)
 
 private function writeEducationalBackground($pdf, $education)
 {
-    $elemXSchool = 40.5;
-    $elemXBasic = 105.0;
-    $elemXFrom = 136.0;
-    $elemXTo = 149.0;
+    $elemXSchool = 20;
+    $elemXBasic = 70;
+    $elemXFrom = 127;
+    $elemXTo = 137.5;
     $elemXEarned = 160.5;
     $elemXYearGraduated = 180;
     $elemXHonors = 195.0;
@@ -1092,10 +1107,10 @@ private function writeEducationalBackground($pdf, $education)
     $elemWidthYearGraduated = 12.0;
     $elemWidthHonors = 13.0;
 
-    $jhsXSchool = 40.5;
-    $jhsXBasic = 102.0;
-    $jhsXFrom = 136.0;
-    $jhsXTo = 149.0;
+    $jhsXSchool = 20;
+    $jhsXBasic = 70;
+    $jhsXFrom = 127;
+    $jhsXTo = 137.5;
     $jhsXEarned = 160.5;
     $jhsXYearGraduated = 180;
     $jhsXHonors = 195.0;
@@ -1187,10 +1202,10 @@ private function writeEducationalBackground($pdf, $education)
 
 private function writeVocationalChunk($pdf, $chunk)
 {
-    $startX_school = 40.5;
-    $startX_basic = 105.0;
-    $startX_from = 136.0;
-    $startX_to = 149.0;
+    $startX_school = 20;
+    $startX_basic = 70;
+    $startX_from = 127;
+    $startX_to = 137.5;
     $startX_earned = 160.5;
     $startX_year_graduated = 180;
     $startX_honors = 197.5;
@@ -1243,10 +1258,10 @@ private function writeVocationalChunk($pdf, $chunk)
 
 private function writeCollegeChunk($pdf, $chunk)
 {
-    $startX_school = 40.5;
-    $startX_basic = 105.0;
-    $startX_from = 136.0;
-    $startX_to = 149.0;
+    $startX_school = 20;
+    $startX_basic = 70;
+    $startX_from = 127;
+    $startX_to =  137.5;
     $startX_earned = 160.5;
     $startX_year_graduated = 180.0;
     $startX_honors = 194;
@@ -1301,8 +1316,8 @@ private function writeCollegeChunk($pdf, $chunk)
 
 private function writeGraduateChunk($pdf, $chunk)
 {
-    $startX_school = 39;
-    $startX_basic = 86.0;
+    $startX_school = 20;
+    $startX_basic = 70;
     $startX_from = 135.0;
     $startX_to = 148.0;
     $startX_earned = 160.5;
@@ -1371,7 +1386,7 @@ private function writeCivilServiceEligibilityChunk($pdf, $chunk)
 
     // Re-anchor to the 2025 short-bond grid to prevent left/right spillover.
     if ($this->isShortBondTemplate) {
-        $startX_career = 19;
+        $startX_career = 10.0;
         $startX_rating = 83.0;
         $startX_date = 104.7;
         $startX_place = 127.4;
@@ -1397,12 +1412,12 @@ private function writeCivilServiceEligibilityChunk($pdf, $chunk)
 
     // If all fields are empty, write N/A in the first row cells.
     if ($isEmpty) {
-        $this->writeFittedSingleLine($pdf, 'N/A', 33, $firstRowY, $careerWidth, 8.0, 5.0); // Career
-        $this->writeFittedSingleLine($pdf, 'N/A', 78, $firstRowY, $ratingWidth, 8.0, 5.0); // Rating
-        $this->writeFittedSingleLine($pdf, 'N/A', 100, $firstRowY, $dateWidth, 8.0, 5.0); // Date
-        $this->writeFittedSingleLine($pdf, 'N/A', 125, $firstRowY, $placeWidth, 8.0, 4.8); // Place
-        $this->writeFittedSingleLine($pdf, 'N/A', 153, $firstRowY, $licenseWidth, 8.0, 5.0); // License
-        $this->writeFittedSingleLine($pdf, 'N/A', 188, $firstRowY, $validityWidth, 8.0, 5.0); // Validity
+        $this->writeFittedSingleLine($pdf, 'N/A', 7, 26.5, $careerWidth, 8.0, 5.0); // Career
+        $this->writeFittedSingleLine($pdf, 'N/A', 80, 26.5, $ratingWidth, 8.0, 5.0); // Rating
+        $this->writeFittedSingleLine($pdf, 'N/A', 105, 26.5, $dateWidth, 8.0, 5.0); // Date
+        $this->writeFittedSingleLine($pdf, 'N/A', 127, 26.5, $placeWidth, 8.0, 4.8); // Place
+        $this->writeFittedSingleLine($pdf, 'N/A', 158, 26.5, $licenseWidth, 8.0, 5.0); // License
+        $this->writeFittedSingleLine($pdf, 'N/A', 188, 26.5, $validityWidth, 8.0, 5.0); // Validity
         return;
     }
 
@@ -1604,6 +1619,9 @@ private function writeLearningAndDevelopmentChunk($pdf, $chunk)
 private function writeOtherInformation($pdf, $skills, $distinctions, $organizations)
 {
     // Column anchors (short-bond 2025 layout)
+    $xSkill = 6.0;
+    $xDistinction = 60.0;
+    $xOrg = 160.0;
     $wSkill = 50.0;
     $wDistinction = 98.0;
     $wOrg = 41.5;
@@ -1615,17 +1633,18 @@ private function writeOtherInformation($pdf, $skills, $distinctions, $organizati
     $organizations = array_values(array_filter(array_map(fn($v) => trim((string) $v), (array) $organizations), fn($v) => $v !== ''));
 
     if (empty($skills) && empty($distinctions) && empty($organizations)) {
-        $this->writeCenteredFitted($pdf, 'N/A', 7, 256, $wSkill);
-        $this->writeCenteredFitted($pdf, 'N/A', 60, 256, $wDistinction);
-        $this->writeCenteredFitted($pdf, 'N/A', 165, 256, $wOrg);
+        // Use the same renderer + no cell margin so placeholders and actual inputs line up exactly.
+        $this->writeFittedAt($pdf, 'N/A', 10, $startY, $wSkill, 7.0, 5.0, 0.0);
+        $this->writeFittedAt($pdf, 'N/A', $xDistinction, $startY, $wDistinction, 7.0, 5.0, 0.0);
+        $this->writeFittedAt($pdf, 'N/A', $xOrg, $startY, $wOrg, 6.5, 5.0, 0.0);
         return;
     }
 
     for ($i = 0; $i < 7; $i++) {
         $currentY = $startY + ($i * $rowHeight);
-        $this->writeFittedAt($pdf, $skills[$i] ?? '', 6, $currentY, $wSkill, 7.0, 5.0);
-        $this->writeFittedAt($pdf, $distinctions[$i] ?? '', 60, $currentY, $wDistinction, 7.0, 5.0);
-        $this->writeFittedAt($pdf, $organizations[$i] ?? '', 160, $currentY, $wOrg, 6.5, 5.0);
+        $this->writeFittedAt($pdf, $skills[$i] ?? '', $xSkill, $currentY, $wSkill, 7.0, 5.0, 0.0);
+        $this->writeFittedAt($pdf, $distinctions[$i] ?? '', $xDistinction, $currentY, $wDistinction, 7.0, 5.0, 0.0);
+        $this->writeFittedAt($pdf, $organizations[$i] ?? '', $xOrg, $currentY, $wOrg, 6.5, 5.0, 0.0);
     }
 }
 
@@ -2036,7 +2055,16 @@ private function writeCenteredFittedSized($pdf, string $text, float $x, float $y
         $this->writeFittedAt($pdf, $text, $x, $y, $maxWidth, $baseSize, $minSize);
     }
 
-private function writeFittedAt($pdf, string $text, float $x, float $y, float $maxWidth, float $baseSize = 8.0, float $minSize = 5.0): void
+private function writeFittedAt(
+    $pdf,
+    string $text,
+    float $x,
+    float $y,
+    float $maxWidth,
+    float $baseSize = 8.0,
+    float $minSize = 5.0,
+    ?float $cellMargin = null
+): void
 {
     $text = mb_strtoupper($text);
     $length = mb_strlen($text);
@@ -2058,15 +2086,23 @@ private function writeFittedAt($pdf, string $text, float $x, float $y, float $ma
         return;
     }
 
+    // Optional no-margin mode: write directly at the X anchor instead of Cell().
+    $useDirectWrite = $cellMargin !== null && $cellMargin <= 0.0;
+
     $this->setFont($pdf, 'Arial', '', $size);
     $lineHeight = count($lines) > 1 ? max(1.5, $size * 0.30) : 0.0;
     $currentY = $y - ((count($lines) - 1) * $lineHeight * 0.45);
     foreach ($lines as $line) {
         $this->setXY($pdf, $x, $currentY);
-        // Keep each rendered line inside the target cell width.
-        $pdf->Cell($effectiveWidth, 0, $line, 0, 0, 'L');
+        if ($useDirectWrite) {
+            $pdf->Write(0, $line);
+        } else {
+            // Keep each rendered line inside the target cell width.
+            $pdf->Cell($effectiveWidth, 0, $line, 0, 0, 'L');
+        }
         $currentY += $lineHeight;
     }
+
     $this->setFont($pdf, 'Arial', '', 8);
 }
 
