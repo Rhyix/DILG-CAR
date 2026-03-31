@@ -16,7 +16,6 @@ use Spatie\Activitylog\Models\Activity;
 class AppServiceProvider extends ServiceProvider
 {
     /**
-    /**
      * Register any application services.
      */
     public function register(): void
@@ -29,6 +28,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $this->ensureFrameworkRuntimeDirectories();
+
         date_default_timezone_set(config('app.timezone', 'Asia/Manila'));
 
         Applications::observe(ApplicationObserver::class);
@@ -74,5 +75,20 @@ class AppServiceProvider extends ServiceProvider
             ProcessAdminActivityNotification::dispatch($activity->id)
                 ->onConnection('database');
         });
+    }
+
+    private function ensureFrameworkRuntimeDirectories(): void
+    {
+        $directories = [
+            storage_path('framework/cache/data'),
+            storage_path('framework/sessions'),
+            storage_path('framework/views'),
+        ];
+
+        foreach ($directories as $directory) {
+            if (! is_dir($directory)) {
+                @mkdir($directory, 0755, true);
+            }
+        }
     }
 }
