@@ -41,7 +41,18 @@
             </div>
 
             <!-- Quick Stats Grid -->
-            @php $actionRequiredCount = collect($deadlineCountdown ?? [])->count(); @endphp
+            @php
+                $actionRequiredCount = collect($deadlineCountdown ?? [])->count();
+                $onboardingErrorBag = $errors->getBag('onboarding');
+                $onboardingInitialReadiness = [
+                    'education' => old('readiness_education', ''),
+                    'experience' => old('readiness_experience', ''),
+                    'training' => old('readiness_training', ''),
+                    'eligibility' => old('readiness_eligibility', ''),
+                ];
+                $onboardingInitialVacancyId = old('preferred_vacancy_id', $selectedOnboardingVacancyId ?? '');
+                $shouldOpenOnboardingModal = (bool) ($openOnboardingModal ?? false) || $onboardingErrorBag->any();
+            @endphp
             <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
                 <div class="group relative overflow-hidden rounded-2xl bg-white p-4 shadow-lg shadow-slate-200/70 border border-slate-100">
                     <div class="flex items-start justify-between">
@@ -258,12 +269,193 @@
                 </div>
             </div>
 
+            @if(($requiresApplicantOnboarding ?? false) || $shouldOpenOnboardingModal)
+                <div id="applicant-onboarding-modal" class="hidden fixed inset-0 z-[1300] flex items-start sm:items-center justify-center p-2 sm:p-4 overflow-y-auto">
+                    <div class="absolute inset-0 bg-slate-900/70 backdrop-blur-sm"></div>
+                    <div class="relative w-full max-w-4xl max-h-[calc(100vh-1rem)] sm:max-h-[90vh] rounded-2xl border border-[#0D2B70]/20 bg-white shadow-2xl overflow-hidden flex flex-col"
+                        x-data="dashboardOnboardingWizard(
+                            @js($onboardingVacancyOptions ?? []),
+                            @js($onboardingInitialVacancyId),
+                            @js($onboardingInitialReadiness)
+                        )">
+                        <div class="bg-gradient-to-r from-[#0D2B70] via-[#1D4AA3] to-[#2A63C6] px-4 sm:px-6 py-4 text-white">
+                            <p class="text-xs uppercase tracking-[0.2em] text-blue-100 font-semibold">Applicant Onboarding</p>
+                            <h2 class="text-xl font-bold">Position Readiness Screening</h2>
+                            <p class="text-sm text-blue-100 mt-1">Complete this before you continue with job applications.</p>
+                        </div>
+
+                        <form method="POST" action="{{ route('applicant.onboarding.store') }}" class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+                            @csrf
+
+                            @if($onboardingErrorBag->any())
+                                <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                                    <p class="font-semibold mb-1">Please fix the onboarding details below:</p>
+                                    <ul class="list-disc pl-5 space-y-1">
+                                        @foreach($onboardingErrorBag->all() as $error)
+                                            <li>{{ $error }}</li>
+                                        @endforeach
+                                    </ul>
+                                </div>
+                            @endif
+
+                            <div class="flex flex-wrap gap-2">
+                                <template x-for="step in [1,2,3]" :key="step">
+                                    <div class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold"
+                                        :class="currentStep === step ? 'bg-[#0D2B70] text-white' : (currentStep > step ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500')">
+                                        <span class="inline-flex items-center justify-center h-5 w-5 rounded-full text-[11px] font-bold"
+                                            :class="currentStep === step ? 'bg-white/20 text-white' : (currentStep > step ? 'bg-emerald-600 text-white' : 'bg-slate-300 text-slate-700')"
+                                            x-text="currentStep > step ? '✓' : step"></span>
+                                        <span x-text="stepLabels[step - 1]"></span>
+                                    </div>
+                                </template>
+                            </div>
+
+                            <div x-show="currentStep === 1" x-transition class="space-y-3">
+                                <h3 class="text-lg font-bold text-[#0D2B70]">Step 1. Select Preferred Position</h3>
+                                <label for="modal_preferred_vacancy_id" class="block text-xs font-bold uppercase tracking-wide text-slate-500">
+                                    Open Positions
+                                </label>
+                                <select
+                                    id="modal_preferred_vacancy_id"
+                                    name="preferred_vacancy_id"
+                                    x-model="selectedVacancyId"
+                                    class="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm text-[#0D2B70] focus:outline-none focus:ring-2 focus:ring-[#0D2B70]/25"
+                                >
+                                    <option value="">Select position</option>
+                                    <template x-for="vacancy in vacancies" :key="vacancy.vacancy_id">
+                                        <option :value="vacancy.vacancy_id" x-text="vacancy.position_title + ' (' + vacancy.vacancy_type + ')'"></option>
+                                    </template>
+                                </select>
+                                <p x-show="vacancies.length === 0" class="text-xs text-rose-600">
+                                    No open positions are currently available. Please contact HR for assistance.
+                                </p>
+                            </div>
+
+                            <div x-show="currentStep === 2" x-transition class="space-y-3">
+                                <h3 class="text-lg font-bold text-[#0D2B70]">Step 2. Requirement Readiness</h3>
+                                <template x-for="item in readinessItems" :key="item.key">
+                                    <div class="rounded-xl border border-slate-200 p-4 bg-slate-50/70">
+                                        <p class="text-sm font-bold text-[#0D2B70]" x-text="item.label"></p>
+                                        <p class="text-xs text-slate-600 mt-1 whitespace-pre-line" x-text="requirementText(item.key)"></p>
+                                        <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                            <label class="inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700 cursor-pointer">
+                                                <input type="radio" class="accent-emerald-600" :name="'readiness_' + item.key" value="yes" x-model="readiness[item.key]">
+                                                Yes, available
+                                            </label>
+                                            <label class="inline-flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700 cursor-pointer">
+                                                <input type="radio" class="accent-rose-600" :name="'readiness_' + item.key" value="no" x-model="readiness[item.key]">
+                                                Not yet
+                                            </label>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+
+                            <div x-show="currentStep === 3" x-transition class="space-y-3">
+                                <h3 class="text-lg font-bold text-[#0D2B70]">Step 3. Confirm and Submit</h3>
+                                <div class="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+                                    <p><span class="font-semibold text-[#0D2B70]">Preferred Position:</span> <span x-text="selectedVacancy ? selectedVacancy.position_title : 'Not selected'"></span></p>
+                                </div>
+                                <label class="flex items-start gap-2 rounded-lg border border-slate-200 p-3 bg-white cursor-pointer">
+                                    <input type="checkbox" name="attest_truthful" value="1" x-model="attestTruthful" class="mt-0.5 accent-[#0D2B70]">
+                                    <span class="text-sm text-slate-700">I certify that all my onboarding declarations are true and accurate.</span>
+                                </label>
+                                <label class="flex items-start gap-2 rounded-lg border border-slate-200 p-3 bg-white cursor-pointer">
+                                    <input type="checkbox" name="attest_accountability" value="1" x-model="attestAccountability" class="mt-0.5 accent-[#0D2B70]">
+                                    <span class="text-sm text-slate-700">I understand that incomplete or incorrect declarations may affect my application.</span>
+                                </label>
+                            </div>
+
+                            <div class="sticky bottom-0 bg-white/95 backdrop-blur-sm flex items-center justify-between gap-3 pt-2 border-t border-slate-200">
+                                <button
+                                    type="button"
+                                    @click="prevStep()"
+                                    x-show="currentStep > 1"
+                                    class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                                >
+                                    Back
+                                </button>
+
+                                <div class="ml-auto flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        @click="nextStep()"
+                                        x-show="currentStep < 3"
+                                        :disabled="!canProceed"
+                                        class="inline-flex items-center gap-2 rounded-lg bg-[#0D2B70] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#0A245D] disabled:cursor-not-allowed disabled:bg-slate-400"
+                                    >
+                                        Continue
+                                    </button>
+
+                                    <button
+                                        type="submit"
+                                        x-show="currentStep === 3"
+                                        :disabled="!canSubmit"
+                                        class="inline-flex items-center gap-2 rounded-lg bg-[#0D2B70] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#0A245D] disabled:cursor-not-allowed disabled:bg-slate-400"
+                                    >
+                                        Save
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            @endif
+
         </div>
     </div>
 @endsection
 
 @push('scripts')
     <script>
+        function dashboardOnboardingWizard(vacancies, initialVacancyId, initialReadiness) {
+            return {
+                vacancies: Array.isArray(vacancies) ? vacancies : [],
+                selectedVacancyId: initialVacancyId || '',
+                currentStep: 1,
+                stepLabels: ['Position', 'Readiness', 'Confirmation'],
+                readinessItems: [
+                    { key: 'education', label: 'Education' },
+                    { key: 'experience', label: 'Experience' },
+                    { key: 'training', label: 'Training' },
+                    { key: 'eligibility', label: 'Eligibility' },
+                ],
+                readiness: {
+                    education: ['yes', 'no'].includes(initialReadiness?.education) ? initialReadiness.education : '',
+                    experience: ['yes', 'no'].includes(initialReadiness?.experience) ? initialReadiness.experience : '',
+                    training: ['yes', 'no'].includes(initialReadiness?.training) ? initialReadiness.training : '',
+                    eligibility: ['yes', 'no'].includes(initialReadiness?.eligibility) ? initialReadiness.eligibility : '',
+                },
+                attestTruthful: false,
+                attestAccountability: false,
+                get selectedVacancy() {
+                    return this.vacancies.find((vacancy) => String(vacancy.vacancy_id) === String(this.selectedVacancyId)) || null;
+                },
+                requirementText(key) {
+                    return this.selectedVacancy?.requirements?.[key] || 'Not specified';
+                },
+                get canProceed() {
+                    if (this.currentStep === 1) {
+                        return this.selectedVacancyId !== '';
+                    }
+                    if (this.currentStep === 2) {
+                        return this.readinessItems.every((item) => ['yes', 'no'].includes(this.readiness[item.key]));
+                    }
+                    return true;
+                },
+                get canSubmit() {
+                    return this.selectedVacancyId !== '' && this.attestTruthful && this.attestAccountability;
+                },
+                nextStep() {
+                    if (!this.canProceed) return;
+                    this.currentStep = Math.min(this.currentStep + 1, 3);
+                },
+                prevStep() {
+                    this.currentStep = Math.max(this.currentStep - 1, 1);
+                },
+            };
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             feather.replace();
 
@@ -293,6 +485,13 @@
                     window.location.href = normalizeNotificationUrl(targetUrl);
                 });
             });
+
+            const onboardingModal = document.getElementById('applicant-onboarding-modal');
+            const shouldOpenOnboardingModal = @json($shouldOpenOnboardingModal);
+            if (onboardingModal && shouldOpenOnboardingModal) {
+                onboardingModal.classList.remove('hidden');
+                document.body.classList.add('overflow-hidden');
+            }
         });
     </script>
 @endpush

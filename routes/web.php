@@ -20,6 +20,7 @@ use App\Http\Controllers\{
     WorkExpSheetController,
     ExportController,
     ImportController,
+    ApplicantOnboardingController,
     SignatoryController,
 };
 use App\Http\Controllers\Forms\ExportPDSController;
@@ -35,6 +36,7 @@ use App\Http\Controllers\PsgcController;
 use App\Http\Controllers\VacancyTitleController;
 use App\Http\Controllers\PositionUtilityController;
 use App\Http\Controllers\EligibilityPresetController;
+use App\Support\ApplicantOnboarding;
 
 use App\Events\PackageSent;
 use Illuminate\Http\Request;
@@ -311,6 +313,9 @@ Route::post('/admin/logout', [AdminAuthController::class, 'logout'])->name('admi
 // USER ROUTES (blocked if admin is logged in)
 // ==================================================================================================
 Route::middleware(['auth', BlockIfAdmin::class])->group(function () {
+    Route::get('/onboarding/applicant', [ApplicantOnboardingController::class, 'show'])->name('applicant.onboarding.show');
+    Route::post('/onboarding/applicant', [ApplicantOnboardingController::class, 'store'])->name('applicant.onboarding.store');
+
     Route::get('/dashboard', [JobVacancyController::class, 'getOpenVacanciesForDashboard'])->name('dashboard_user')->middleware(\App\Http\Middleware\RunDailyTask::class);
 
     Route::get('/about', fn() => view('dashboard_user.about'))->name('about');

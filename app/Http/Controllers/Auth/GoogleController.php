@@ -3,6 +3,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\ApplicantOnboarding;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Socialite\Facades\Socialite;
@@ -180,6 +181,13 @@ class GoogleController extends Controller
             ->causedBy(auth()->user())
             ->event('login')
             ->log('login through google');
+
+        if (ApplicantOnboarding::shouldRequire($user)) {
+            return redirect()
+                ->route('dashboard_user')
+                ->with('open_onboarding_modal', true)
+                ->with('status', 'Please complete your onboarding before submitting applications.');
+        }
 
         return redirect()->route('dashboard_user');
     }

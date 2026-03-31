@@ -22,6 +22,7 @@ use App\Models\OtherInformation;
 use App\Models\FamilyBackground;
 use App\Models\EducationalBackground;
 use App\Models\MiscInfos;
+use App\Support\ApplicantOnboarding;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -311,6 +312,13 @@ class JobVacancyController extends Controller
 
     public function jobVacancy()
     {
+        if (Auth::check() && ApplicantOnboarding::shouldRequire(Auth::user())) {
+            return redirect()
+                ->route('dashboard_user')
+                ->with('open_onboarding_modal', true)
+                ->with('status', 'Please complete onboarding before accessing job vacancies.');
+        }
+
         $jobVacancies = JobVacancy::select('job_vacancies.*')
             ->leftJoin('exam_details', function ($join) {
                 $join->whereRaw('job_vacancies.vacancy_id COLLATE utf8mb4_unicode_ci = exam_details.vacancy_id COLLATE utf8mb4_unicode_ci');
@@ -825,6 +833,14 @@ class JobVacancyController extends Controller
 
     public function jobDescription(Request $request, $vacancy_id)
     {
+        if (Auth::check() && ApplicantOnboarding::shouldRequire(Auth::user())) {
+            return redirect()
+                ->route('dashboard_user')
+                ->with('open_onboarding_modal', true)
+                ->with('onboarding_prefill_vacancy_id', $vacancy_id)
+                ->with('status', 'Please complete onboarding before viewing position details.');
+        }
+
         $vacancy = JobVacancy::where('vacancy_id', $vacancy_id)->firstOrFail();
         $requiredEligibilityItems = $this->extractVacancyEligibilityItems((string) ($vacancy->qualification_eligibility ?? ''));
         $qualificationEligibilityDisplay = !empty($requiredEligibilityItems)
@@ -1139,6 +1155,53 @@ class JobVacancyController extends Controller
         $recentNotifications = Auth::user()?->notifications()->orderBy('created_at', 'desc')->take(5)->get() ?? collect();
         $unreadNotificationsCount = Auth::user()?->unreadNotifications()->count() ?? 0;
 
+        $authUser = Auth::user();
+        $savedOnboarding = ApplicantOnboarding::payload($authUser);
+        $requiresApplicantOnboarding = ApplicantOnboarding::shouldRequire($authUser);
+        $openOnboardingModal = $requiresApplicantOnboarding || (bool) session('open_onboarding_modal', false);
+
+        $onboardingVacancies = JobVacancy::query()
+            ->where('status', 'OPEN')
+            ->whereRaw('DATE(closing_date) >= DATE(NOW())')
+            ->orderBy('closing_date')
+            ->get([
+                'vacancy_id',
+                'position_title',
+                'vacancy_type',
+                'place_of_assignment',
+                'qualification_education',
+                'qualification_experience',
+                'qualification_training',
+                'qualification_eligibility',
+            ]);
+
+        $onboardingVacancyOptions = $onboardingVacancies->map(function (JobVacancy $vacancy) {
+            return [
+                'vacancy_id' => (string) $vacancy->vacancy_id,
+                'position_title' => (string) $vacancy->position_title,
+                'vacancy_type' => (string) ($vacancy->vacancy_type ?? ''),
+                'place_of_assignment' => (string) ($vacancy->place_of_assignment ?? ''),
+                'requirements' => [
+                    'education' => $this->onboardingRequirementText($vacancy->qualification_education),
+                    'experience' => $this->onboardingRequirementText($vacancy->qualification_experience),
+                    'training' => $this->onboardingRequirementText($vacancy->qualification_training),
+                    'eligibility' => $this->onboardingEligibilityText($vacancy->qualification_eligibility),
+                ],
+            ];
+        })->values();
+
+        $prefillOnboardingVacancyId = trim((string) session('onboarding_prefill_vacancy_id', ''));
+        $selectedOnboardingVacancyId = $prefillOnboardingVacancyId !== ''
+            ? $prefillOnboardingVacancyId
+            : trim((string) ($savedOnboarding['preferred_vacancy_id'] ?? ''));
+        $hasSelectedOnboardingVacancy = $selectedOnboardingVacancyId !== ''
+            && $onboardingVacancyOptions->contains(
+                fn (array $item) => (string) ($item['vacancy_id'] ?? '') === $selectedOnboardingVacancyId
+            );
+        if (!$hasSelectedOnboardingVacancy) {
+            $selectedOnboardingVacancyId = (string) ($onboardingVacancyOptions->first()['vacancy_id'] ?? '');
+        }
+
         return view('dashboard_user.dashboard_user', [
             'vacancies' => $vacancies,
             'openVacancyCount' => $openVacancyCount,
@@ -1156,8 +1219,33 @@ class JobVacancyController extends Controller
             'deadlineCountdown' => $deadlineCountdown,
             'recentNotifications' => $recentNotifications,
             'unreadNotificationsCount' => $unreadNotificationsCount,
+            'requiresApplicantOnboarding' => $requiresApplicantOnboarding,
+            'openOnboardingModal' => $openOnboardingModal,
+            'onboardingVacancyOptions' => $onboardingVacancyOptions,
+            'selectedOnboardingVacancyId' => $selectedOnboardingVacancyId,
+            'savedApplicantOnboarding' => $savedOnboarding,
         ]);
 
+    }
+
+    private function onboardingRequirementText(?string $raw): string
+    {
+        $text = trim((string) $raw);
+        if ($text === '') {
+            return 'Not specified';
+        }
+
+        return preg_replace('/\s+/', ' ', $text) ?: $text;
+    }
+
+    private function onboardingEligibilityText(?string $raw): string
+    {
+        $items = $this->extractVacancyEligibilityItems((string) ($raw ?? ''));
+        if (!empty($items)) {
+            return $this->formatVacancyEligibilityDisplay($items);
+        }
+
+        return $this->onboardingRequirementText($raw);
     }
 
 
@@ -1168,6 +1256,18 @@ class JobVacancyController extends Controller
             'user_id' => Auth::id(),
             'vacancy_id' => $vacancy_id,
         ]);
+
+        if (ApplicantOnboarding::shouldRequire(Auth::user())) {
+            Log::info('Apply blocked: applicant onboarding not completed', [
+                'user_id' => Auth::id(),
+                'vacancy_id' => $vacancy_id,
+            ]);
+            return redirect()
+                ->route('dashboard_user')
+                ->with('open_onboarding_modal', true)
+                ->with('onboarding_prefill_vacancy_id', $vacancy->vacancy_id)
+                ->with('status', 'Please complete onboarding before you apply.');
+        }
 
         if (!$this->hasCompletedPdsForApply((int) Auth::id())) {
             Log::info('Apply blocked: incomplete PDS', [
@@ -1390,6 +1490,13 @@ class JobVacancyController extends Controller
 
     public function myApplications()
     {
+        if (Auth::check() && ApplicantOnboarding::shouldRequire(Auth::user())) {
+            return redirect()
+                ->route('dashboard_user')
+                ->with('open_onboarding_modal', true)
+                ->with('status', 'Please complete onboarding before viewing applications.');
+        }
+
         $applications = $this->buildMyApplicationsQuery(request())->get();
         $filterOptions = $this->getMyApplicationFilterOptions();
         /*
@@ -1407,6 +1514,13 @@ class JobVacancyController extends Controller
     // USEREND application status
     public function applicationStatus($user_id, $vacancy_id)
     {
+        if (Auth::check() && ApplicantOnboarding::shouldRequire(Auth::user())) {
+            return redirect()
+                ->route('dashboard_user')
+                ->with('open_onboarding_modal', true)
+                ->with('status', 'Please complete onboarding before viewing application status.');
+        }
+
         if ((int) Auth::id() !== (int) $user_id) {
             abort(403, 'Unauthorized access to this application.');
         }
