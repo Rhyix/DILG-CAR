@@ -244,6 +244,7 @@
                                        value="{{ old($education_type.'.'.$index.'.year_graduated', $data['year_graduated'] ?? '') }}"
                                        placeholder=" "
                                        class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base"
+                                       data-education-year-graduated
                                        {{ $education_type == 'college' ? '' : '' }}>
                                 <label class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">
                                     Year Graduated
@@ -256,9 +257,9 @@
                                        value="{{ old($education_type.'.'.$index.'.earned', $data['earned'] ?? '') }}"
                                        placeholder=" "
                                        class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base"
-                                       {{ $education_type == 'college' ? 'required' : '' }}>
+                                       data-education-earned>
                                 <label class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-xs sm:text-sm">
-                                    Highest Level/Units Earned (if not graduated){!! $education_type == 'college' ? '<span class="text-red-500">*</span>' : '' !!}
+                                    Highest Level/Units Earned (if not graduated){!! $education_type == 'college' ? '<span class="text-red-500 earned-required-asterisk">*</span>' : '' !!}
                                 </label>
                             </div>
 
@@ -352,6 +353,7 @@
                                    value=""
                                    placeholder=" "
                                    class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base"
+                                   data-education-year-graduated
                                    {{ $education_type == 'college' ? '' : '' }}>
                             <label class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">
                                 Year Graduated
@@ -364,9 +366,9 @@
                                    value=""
                                    placeholder=" "
                                    class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base"
-                                   {{ $education_type == 'college' ? 'required' : '' }}>
+                                   data-education-earned>
                             <label class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-xs sm:text-sm">
-                                Highest Level/Units Earned (if not graduated){!! $education_type == 'college' ? ' <span class="text-red-500">*</span>' : '' !!}
+                                Highest Level/Units Earned (if not graduated){!! $education_type == 'college' ? ' <span class="text-red-500 earned-required-asterisk">*</span>' : '' !!}
                             </label>
                         </div>
 
@@ -386,6 +388,56 @@
         </template>
 
         <script>
+            function syncCollegeEarnedRequired(type) {
+                if (type !== 'college') return;
+
+                const container = document.getElementById(`${type}-container`);
+                if (!container) return;
+
+                const rows = container.querySelectorAll('.education-entry');
+                rows.forEach((row) => {
+                    const yearInput = row.querySelector('input[data-education-year-graduated]');
+                    const earnedInput = row.querySelector('input[data-education-earned]');
+                    const asterisk = row.querySelector('.earned-required-asterisk');
+                    if (!yearInput || !earnedInput) return;
+
+                    const normalizedYear = String(yearInput.value || '').trim().toLowerCase().replace(/\s+/g, '');
+                    const hasYearGraduated = normalizedYear !== '' && normalizedYear !== 'n/a' && normalizedYear !== 'na' && normalizedYear !== 'n\\a';
+                    earnedInput.required = !hasYearGraduated;
+                    if (asterisk) {
+                        asterisk.classList.toggle('hidden', hasYearGraduated);
+                    }
+
+                    if (hasYearGraduated) {
+                        earnedInput.setCustomValidity('');
+                    }
+                });
+            }
+
+            function bindCollegeEarnedRequired(type) {
+                if (type !== 'college') return;
+
+                const container = document.getElementById(`${type}-container`);
+                if (!container || container.dataset.earnedRuleBound === '1') return;
+
+                container.dataset.earnedRuleBound = '1';
+
+                const handler = (event) => {
+                    const target = event.target;
+                    if (!target) return;
+                    if (
+                        target.matches('input[data-education-year-graduated]') ||
+                        target.matches('input[data-education-earned]')
+                    ) {
+                        syncCollegeEarnedRequired(type);
+                    }
+                };
+
+                container.addEventListener('input', handler);
+                container.addEventListener('change', handler);
+                syncCollegeEarnedRequired(type);
+            }
+
             function initEducationFlatpickr(scopeEl) {
                 try {
                     if (!scopeEl) return;
@@ -409,6 +461,8 @@
                 if (typeof window.initPdsEducationDateRanges === 'function') {
                     window.initPdsEducationDateRanges(container);
                 }
+                bindCollegeEarnedRequired(type);
+                syncCollegeEarnedRequired(type);
             }
 
             function removeEducationRow(button, type) {
@@ -441,12 +495,23 @@
                 if (typeof window.initPdsEducationDateRanges === 'function') {
                     window.initPdsEducationDateRanges(container);
                 }
+                bindCollegeEarnedRequired(type);
+                syncCollegeEarnedRequired(type);
             }
             document.addEventListener('DOMContentLoaded', () => {
                 const container = document.getElementById('{{ $education_type }}-container');
                 initEducationFlatpickr(container);
                 if (typeof window.initPdsEducationDateRanges === 'function') {
                     window.initPdsEducationDateRanges(container);
+                }
+                bindCollegeEarnedRequired('{{ $education_type }}');
+                syncCollegeEarnedRequired('{{ $education_type }}');
+                const form = document.getElementById('myForm');
+                if (form && '{{ $education_type }}' === 'college' && form.dataset.collegeEarnedSyncOnSubmit !== '1') {
+                    form.dataset.collegeEarnedSyncOnSubmit = '1';
+                    form.addEventListener('submit', () => {
+                        syncCollegeEarnedRequired('college');
+                    });
                 }
             });
         </script>

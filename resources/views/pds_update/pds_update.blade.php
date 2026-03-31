@@ -584,31 +584,31 @@
                     <h3 class="text-lg font-semibold text-gray-700 mb-4">Secondary</h3>
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                         <div class="relative">
-                            <input type="text" aria-label="From date" id="jhs_from" name="jhs_from" value="{{ old('jhs_from', session('form.jhs_from')) }}" class="edu-date w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
+                            <input type="text" aria-label="From date" id="jhs_from" name="jhs_from" value="{{ old('jhs_from', $data['jhs_from'] ?? session('form.c1.jhs_from')) }}" class="edu-date w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
                             <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">From</label>
                         </div>
                         <div class="relative">
-                            <input type="text" aria-label="To date" id="jhs_to" name="jhs_to" value="{{ old('jhs_to', session('form.jhs_to')) }}" class="edu-date w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
+                            <input type="text" aria-label="To date" id="jhs_to" name="jhs_to" value="{{ old('jhs_to', $data['jhs_to'] ?? session('form.c1.jhs_to')) }}" class="edu-date w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
                             <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">To</label>
                         </div>
                         <div class="relative col-span-2">
-                            <input type="text" id="jhs_school" name="jhs_school" value="{{ old('jhs_school', session('form.jhs_school')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
+                            <input type="text" id="jhs_school" name="jhs_school" value="{{ old('jhs_school', $data['jhs_school'] ?? session('form.c1.jhs_school')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
                             <label for="jhs_school" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">School Name</label>
                         </div>
                         <div class="relative col-span-2">
-                            <input type="text" id="jhs_basic" name="jhs_basic" value="{{ old('jhs_basic', session('form.jhs_basic')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
+                            <input type="text" id="jhs_basic" name="jhs_basic" value="{{ old('jhs_basic', $data['jhs_basic'] ?? session('form.c1.jhs_basic')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
                             <label for="jhs_basic" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Basic Education/Degree/Course</label>
                         </div>
                         <div class="relative col-span-2">
-                            <input type="text" id="jhs_earned" name="jhs_earned" value="{{ old('jhs_earned', session('form.jhs_earned')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
+                            <input type="text" id="jhs_earned" name="jhs_earned" value="{{ old('jhs_earned', $data['jhs_earned'] ?? session('form.c1.jhs_earned')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
                             <label for="jhs_earned" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Highest Level Units Earned</label>
                         </div>
                         <div class="relative col-span-2">
-                            <input type="text" id="jhs_year_graduated" name="jhs_year_graduated" value="{{ old('jhs_year_graduated', session('form.jhs_year_graduated')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
+                            <input type="text" id="jhs_year_graduated" name="jhs_year_graduated" value="{{ old('jhs_year_graduated', $data['jhs_year_graduated'] ?? session('form.c1.jhs_year_graduated')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
                             <label for="jhs_year_graduated" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Year Graduated</label>
                         </div>
                         <div class="relative col-span-2">
-                            <input type="text" id="jhs_academic_honors" name="jhs_academic_honors" value="{{ old('jhs_academic_honors', session('form.jhs_academic_honors')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
+                            <input type="text" id="jhs_academic_honors" name="jhs_academic_honors" value="{{ old('jhs_academic_honors', $data['jhs_academic_honors'] ?? session('form.c1.jhs_academic_honors')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
                             <label for="jhs_academic_honors" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Scholarship/Academic Honors Recieved</label>
                         </div>
                     </div>

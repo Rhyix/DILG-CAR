@@ -585,7 +585,7 @@
                             <p class="error-message hidden" data-education-date-error aria-live="polite"></p>
                         </div>
                         <div class="relative md:col-span-2">
-                            <input pattern="\d{4}" maxlength="4" type="text" inputmode="numeric" id="elem_year_graduated" name="elem_year_graduated" value="{{ old('elem_year_graduated', session('form.c1.elem_year_graduated')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
+                            <input pattern="(?:[0-9]{4}|[Nn][/]?[Aa])" maxlength="4" type="text" inputmode="numeric" id="elem_year_graduated" name="elem_year_graduated" value="{{ old('elem_year_graduated', session('form.c1.elem_year_graduated')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
                             <label for="elem_year_graduated" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Year Graduated</label>
                         </div>
                         <div class="relative md:col-span-2">
@@ -624,7 +624,7 @@
                             <p class="error-message hidden" data-education-date-error aria-live="polite"></p>
                         </div>
                         <div class="relative md:col-span-2">
-                            <input pattern="\d{4}" maxlength="4" type="text" inputmode="numeric" id="jhs_year_graduated" name="jhs_year_graduated" value="{{ old('jhs_year_graduated', session('form.c1.jhs_year_graduated')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
+                            <input pattern="(?:[0-9]{4}|[Nn][/]?[Aa])" maxlength="4" type="text" inputmode="numeric" id="jhs_year_graduated" name="jhs_year_graduated" value="{{ old('jhs_year_graduated', session('form.c1.jhs_year_graduated')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
                             <label for="jhs_year_graduated" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Year Graduated</label>
                         </div>
 
@@ -1497,6 +1497,24 @@
             return el ? (el.value || el.textContent || '') : '';
         }
         function radioVal(name){ const el=document.querySelector('input[name="'+name+'"]:checked'); return el?el.value:''; }
+        const yearLevelPairs = [
+            ['elem_year_graduated', 'elem_earned'],
+            ['jhs_year_graduated', 'jhs_earned'],
+        ];
+        function isEmptyOrNa(value) {
+            const normalized = String(value || '').trim().toLowerCase().replace(/\s+/g, '');
+            return normalized === '' || normalized === 'n/a' || normalized === 'na' || normalized === 'n\\a';
+        }
+        function syncLevelRequiredByYear(yearId, levelId) {
+            const year = document.getElementById(yearId);
+            const level = document.getElementById(levelId);
+            if (!year || !level) return;
+
+            level.required = isEmptyOrNa(year.value);
+            if (!level.required) {
+                level.setCustomValidity('');
+            }
+        }
         function requireYearOrLevel(yearId, levelId) {
             const year = document.getElementById(yearId);
             const level = document.getElementById(levelId);
@@ -1504,7 +1522,7 @@
 
             [year, level].forEach((el) => el.setCustomValidity(''));
 
-            const hasYear = String(year.value || '').trim().length > 0;
+            const hasYear = !isEmptyOrNa(year.value);
             const hasLevel = String(level.value || '').trim().length > 0;
 
             if (!hasYear && !hasLevel) {
@@ -1518,6 +1536,7 @@
         }
         function requiredValid(){
             const form=document.getElementById('myForm'); if(!form) return false;
+            yearLevelPairs.forEach(([yearId, levelId]) => syncLevelRequiredByYear(yearId, levelId));
             const els=form.querySelectorAll('[required]');
             const radios=new Set(); let ok=true;
             els.forEach(el=>{
@@ -1579,6 +1598,23 @@
             form.addEventListener('input', updatePreviewBtn);
             form.addEventListener('change', updatePreviewBtn);
         }
+        yearLevelPairs.forEach(([yearId, levelId]) => {
+            const year = document.getElementById(yearId);
+            const level = document.getElementById(levelId);
+            if (!year || !level) return;
+
+            const syncPair = () => {
+                syncLevelRequiredByYear(yearId, levelId);
+                requireYearOrLevel(yearId, levelId);
+            };
+
+            ['input', 'change', 'blur'].forEach((eventName) => {
+                year.addEventListener(eventName, syncPair);
+                level.addEventListener(eventName, () => requireYearOrLevel(yearId, levelId));
+            });
+
+            syncPair();
+        });
         const copyBtn=document.getElementById('copy_res_to_per');
         if(copyBtn){ copyBtn.addEventListener('click', function(){ setTimeout(updatePreviewBtn, 100); }); }
         function radio(name) {

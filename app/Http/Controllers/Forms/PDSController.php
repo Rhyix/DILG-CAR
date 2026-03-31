@@ -99,15 +99,12 @@ class PDSController extends Controller
             return $value;
         }
 
-        if (preg_match('/^\d{2}-\d{2}-\d{4}$/', $value)) {
-            return $value;
+        $parsed = $this->parseFlexibleDate($value);
+        if ($parsed) {
+            return $parsed->format('d-m-Y');
         }
 
         try {
-            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
-                return Carbon::createFromFormat('Y-m-d', $value)->format('d-m-Y');
-            }
-
             if (preg_match('/^\d{4}-\d{2}$/', $value)) {
                 return Carbon::createFromFormat('Y-m', $value)->format('01-m-Y');
             }
@@ -124,19 +121,41 @@ class PDSController extends Controller
             return $value;
         }
 
-        try {
-            if (preg_match('/^\d{2}-\d{2}-\d{4}$/', $value)) {
-                return Carbon::createFromFormat('d-m-Y', $value)->format('Y-m-d');
-            }
-
-            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
-                return Carbon::createFromFormat('Y-m-d', $value)->format('Y-m-d');
-            }
-        } catch (\Throwable $e) {
-            return $value;
+        $parsed = $this->parseFlexibleDate($value);
+        if ($parsed) {
+            return $parsed->format('Y-m-d');
         }
 
         return $value;
+    }
+
+    private function parseFlexibleDate(?string $value): ?Carbon
+    {
+        $raw = trim((string) ($value ?? ''));
+        if ($raw === '') {
+            return null;
+        }
+
+        $formats = [
+            'd-m-Y',
+            'Y-m-d',
+            'm/d/Y',
+            'd/m/Y',
+            'm-d-Y',
+        ];
+
+        foreach ($formats as $format) {
+            try {
+                $date = Carbon::createFromFormat($format, $raw);
+                if ($date && $date->format($format) === $raw) {
+                    return $date;
+                }
+            } catch (\Throwable $e) {
+                // Try the next format.
+            }
+        }
+
+        return null;
     }
 
     private function normalizeWorkExperienceEndDateForDatabase(?string $value): ?string
@@ -160,19 +179,7 @@ class PDSController extends Controller
             return null;
         }
 
-        try {
-            if (preg_match('/^\d{2}-\d{2}-\d{4}$/', $value)) {
-                return Carbon::createFromFormat('d-m-Y', $value);
-            }
-
-            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
-                return Carbon::createFromFormat('Y-m-d', $value);
-            }
-
-            return null;
-        } catch (\Throwable $e) {
-            return null;
-        }
+        return $this->parseFlexibleDate($value);
     }
 
     private function normalizeEducationEntriesForForm($entries)
@@ -248,6 +255,73 @@ class PDSController extends Controller
                     "{$educationType}.{$index}.from",
                     "{$educationType}.{$index}.to"
                 );
+            }
+        }
+    }
+
+    private function valueIsEmptyOrNa($value): bool
+    {
+        $normalized = strtolower(str_replace(' ', '', trim((string) ($value ?? ''))));
+        return $normalized === '' || $normalized === 'n/a' || $normalized === 'na' || $normalized === 'n\\a' || $normalized === 'null';
+    }
+
+    private function hasMeaningfulEducationValue($value): bool
+    {
+        $normalized = strtolower(trim((string) ($value ?? '')));
+        return $normalized !== '' && $normalized !== 'null' && $normalized !== 'noinput';
+    }
+
+    private function addHighestLevelRequiredWhenNoYearError(
+        \Illuminate\Validation\Validator $validator,
+        array $payload,
+        string $yearField,
+        string $highestLevelField
+    ): void {
+        $yearMissingOrNa = $this->valueIsEmptyOrNa($payload[$yearField] ?? null);
+        $hasHighestLevel = $this->hasMeaningfulEducationValue($payload[$highestLevelField] ?? null);
+
+        if ($yearMissingOrNa && !$hasHighestLevel) {
+            $validator->errors()->add(
+                $highestLevelField,
+                'The Highest Level/Units Earned field is required when Year Graduated is empty or N/A.'
+            );
+        }
+    }
+
+    private function validateEducationCompletionRules(\Illuminate\Validation\Validator $validator, array $payload): void
+    {
+        $this->addHighestLevelRequiredWhenNoYearError($validator, $payload, 'elem_year_graduated', 'elem_earned');
+        $this->addHighestLevelRequiredWhenNoYearError($validator, $payload, 'jhs_year_graduated', 'jhs_earned');
+
+        $collegeRows = $payload['college'] ?? [];
+        if (is_array($collegeRows)) {
+            foreach ($collegeRows as $index => $entry) {
+                if (!is_array($entry)) {
+                    continue;
+                }
+
+                $hasAnyData = false;
+                foreach (['school', 'basic', 'from', 'to', 'earned', 'year_graduated', 'academic_honors'] as $field) {
+                    if ($this->hasMeaningfulEducationValue($entry[$field] ?? null)) {
+                        $hasAnyData = true;
+                        break;
+                    }
+                }
+
+                if (!$hasAnyData) {
+                    continue;
+
+                }
+
+                $yearMissingOrNa = $this->valueIsEmptyOrNa($entry['year_graduated'] ?? null);
+                $hasHighestLevel = $this->hasMeaningfulEducationValue($entry['earned'] ?? null);
+
+                if ($yearMissingOrNa && !$hasHighestLevel) {
+                    $validator->errors()->add(
+                        "college.$index.earned",
+                        'The Highest Level/Units Earned field is required when Year Graduated is empty or N/A.'
+                    );
+                }
             }
         }
     }
@@ -1115,6 +1189,7 @@ class PDSController extends Controller
 
         $validator->after(function (\Illuminate\Validation\Validator $validator) use ($request) {
             $this->validateEducationDateRanges($validator, $request->all());
+            $this->validateEducationCompletionRules($validator, $request->all());
         });
 
         $c1_form_data_valid = $validator->validate();
