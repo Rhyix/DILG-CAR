@@ -2,18 +2,279 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\AutomatedDatabaseBackupMail;
 use App\Models\Admin;
+use App\Models\BackupAutomationSetting;
+use App\Models\DatabaseBackupRun;
 use App\Models\Notification;
+use App\Services\DatabaseBackupService;
 use Carbon\Carbon;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\View\View;
 use Spatie\Activitylog\Models\Activity;
 
 class BackupRestoreController extends Controller
 {
     private const BACKUP_REMINDER_DAYS = 30;
+
+    public function __construct(
+        private readonly DatabaseBackupService $backupService,
+    ) {
+    }
+
+    public function index(): View
+    {
+        $this->ensureSuperadmin();
+
+        $backupReminder = $this->buildBackupReminderState();
+        $this->notifyOverdueBackupReminder($backupReminder);
+
+        $connection = $this->backupService->databaseConnection();
+        $automationSetting = BackupAutomationSetting::query()->first();
+
+        return view('admin.backup_restore', [
+            'backupReminder' => $backupReminder,
+            'automationSetting' => $automationSetting,
+            'databaseName' => $connection['database'],
+            'databaseHost' => $connection['host'],
+            'dayOptions' => [
+                0 => 'Sunday',
+                1 => 'Monday',
+                2 => 'Tuesday',
+                3 => 'Wednesday',
+                4 => 'Thursday',
+                5 => 'Friday',
+                6 => 'Saturday',
+            ],
+            'recentBackupRuns' => DatabaseBackupRun::query()
+                ->orderByDesc('started_at')
+                ->limit(10)
+                ->get(),
+            'nextScheduledRun' => $this->nextScheduledRun($automationSetting),
+        ]);
+    }
+
+    public function backup(): \Symfony\Component\HttpFoundation\BinaryFileResponse|RedirectResponse
+    {
+        $this->ensureSuperadmin();
+
+        try {
+            $connection = $this->backupService->databaseConnection();
+            $backup = $this->backupService->createBackup([
+                'type' => 'manual',
+                'directory' => 'app/backups/manual',
+                'prefix' => $connection['database'] . '-backup',
+            ]);
+
+            activity()
+                ->event('backup')
+                ->causedBy(Auth::guard('admin')->user())
+                ->withProperties([
+                    'section' => 'Backup & Restore',
+                    'backup_file' => $backup['filename'],
+                    'backup_generated_at' => now()->toDateTimeString(),
+                ])
+                ->log('Generated database backup.');
+
+            return response()
+                ->download($backup['absolute_path'], $backup['filename'], [
+                    'Content-Type' => $backup['mime_type'],
+                ])
+                ->deleteFileAfterSend(true);
+        } catch (\Throwable $e) {
+            Log::error('Backup error: ' . $e->getMessage());
+
+            return back()->withErrors(['msg' => 'Backup failed: ' . $e->getMessage()]);
+        }
+    }
+
+    public function restore(Request $request): RedirectResponse
+    {
+        $this->ensureSuperadmin();
+
+        $request->validate([
+            'sql_file' => 'required|file|max:524288',
+        ]);
+
+        try {
+            $uploadedFile = $request->file('sql_file');
+            if (strtolower((string) $uploadedFile?->getClientOriginalExtension()) !== 'sql') {
+                return redirect()
+                    ->route('admin.backup.index')
+                    ->withErrors(['sql_file' => 'The backup file must use the .sql extension.']);
+            }
+
+            $this->backupService->restoreFromSqlFile((string) $uploadedFile?->getRealPath());
+
+            activity()
+                ->event('restore')
+                ->causedBy(Auth::guard('admin')->user())
+                ->withProperties([
+                    'section' => 'Backup & Restore',
+                    'restore_file' => (string) ($uploadedFile?->getClientOriginalName() ?? ''),
+                    'restore_executed_at' => now()->toDateTimeString(),
+                ])
+                ->log('Restored database from uploaded backup.');
+
+            return redirect()
+                ->route('admin.backup.index')
+                ->with('success', 'Database restored successfully.');
+        } catch (\Throwable $e) {
+            Log::error('Restore error: ' . $e->getMessage());
+
+            return redirect()
+                ->route('admin.backup.index')
+                ->withErrors(['msg' => 'Restore failed: ' . $e->getMessage()]);
+        }
+    }
+
+    public function saveSchedule(Request $request): RedirectResponse
+    {
+        $this->ensureSuperadmin();
+
+        $setting = BackupAutomationSetting::query()->firstOrNew();
+        $isEnabled = $request->boolean('is_enabled');
+
+        $validated = $request->validate([
+            'is_enabled' => ['nullable', 'boolean'],
+            'frequency' => [$isEnabled ? 'required' : 'nullable', 'in:daily,weekly'],
+            'weekly_day' => ['nullable', 'integer', 'between:0,6'],
+            'run_time' => [$isEnabled ? 'required' : 'nullable', 'date_format:H:i'],
+            'recipient_emails' => [$isEnabled ? 'required' : 'nullable', 'string'],
+            'encrypt_backup' => ['nullable', 'boolean'],
+            'encryption_password' => ['nullable', 'string', 'min:8', 'max:255'],
+        ]);
+
+        $frequency = $validated['frequency'] ?? ($setting->frequency ?? 'daily');
+        $runTime = $validated['run_time'] ?? ((string) ($setting->run_time ?? '18:00:00'));
+        $encryptBackup = $isEnabled
+            ? $request->boolean('encrypt_backup')
+            : (bool) ($setting->encrypt_backup ?? false);
+        $recipientEmails = $isEnabled
+            ? $this->parseEmailList((string) ($validated['recipient_emails'] ?? ''))
+            : (array) ($setting->recipient_emails ?? []);
+
+        if ($isEnabled && $recipientEmails === []) {
+            return back()
+                ->withErrors(['recipient_emails' => 'Enter at least one valid email address.'])
+                ->withInput();
+        }
+
+        if ($isEnabled && $frequency === 'weekly' && ! $request->filled('weekly_day')) {
+            return back()
+                ->withErrors(['weekly_day' => 'Choose the weekday for weekly backups.'])
+                ->withInput();
+        }
+
+        if ($isEnabled && $encryptBackup && ! $request->filled('encryption_password') && empty($setting->encryption_password)) {
+            return back()
+                ->withErrors(['encryption_password' => 'Set an encryption password when password protection is enabled.'])
+                ->withInput();
+        }
+
+        $setting->fill([
+            'is_enabled' => $isEnabled,
+            'frequency' => $frequency,
+            'weekly_day' => $frequency === 'weekly'
+                ? (int) ($validated['weekly_day'] ?? $setting->weekly_day)
+                : null,
+            'run_time' => strlen($runTime) === 5 ? $runTime . ':00' : $runTime,
+            'recipient_emails' => $recipientEmails,
+            'encrypt_backup' => $encryptBackup,
+        ]);
+
+        if ($encryptBackup && $request->filled('encryption_password')) {
+            $setting->encryption_password = $validated['encryption_password'];
+        }
+
+        if (! $encryptBackup) {
+            $setting->encryption_password = null;
+        }
+
+        $setting->save();
+
+        return redirect()
+            ->route('admin.backup.index', ['tab' => 'scheduler'])
+            ->with('success', 'Backup scheduler settings saved successfully.');
+    }
+
+    public function sendTestBackupNow(): RedirectResponse
+    {
+        $this->ensureSuperadmin();
+
+        $setting = BackupAutomationSetting::query()->first();
+
+        if (! $setting) {
+            return redirect()
+                ->route('admin.backup.index', ['tab' => 'scheduler'])
+                ->with('error', 'Save scheduler settings before sending a test backup.');
+        }
+
+        if (! $setting->is_enabled) {
+            return redirect()
+                ->route('admin.backup.index', ['tab' => 'scheduler'])
+                ->with('error', 'Enable automated backup emails before sending a test backup.');
+        }
+
+        $recipients = array_values(array_filter($setting->recipient_emails ?? []));
+        if ($recipients === []) {
+            return redirect()
+                ->route('admin.backup.index', ['tab' => 'scheduler'])
+                ->with('error', 'Add at least one recipient email before sending a test backup.');
+        }
+
+        $backup = null;
+        try {
+            $connection = $this->backupService->databaseConnection();
+            $backup = $this->backupService->createBackup([
+                'type' => 'test',
+                'directory' => 'app/backups/automated',
+                'prefix' => $connection['database'] . '-test-backup',
+                'encrypt' => $setting->encrypt_backup,
+                'encryption_password' => $setting->encrypt_backup ? $setting->encryption_password : null,
+                'setting_id' => $setting->id,
+                'mailed_to' => $recipients,
+            ]);
+
+            Mail::to($recipients)->send(new AutomatedDatabaseBackupMail(
+                databaseName: $connection['database'],
+                filePath: $backup['absolute_path'],
+                fileName: $backup['filename'],
+                wasEncrypted: $backup['was_encrypted'],
+            ));
+
+            return redirect()
+                ->route('admin.backup.index', ['tab' => 'scheduler'])
+                ->with('success', 'Test backup email sent successfully.');
+        } catch (\Throwable $exception) {
+            if (is_array($backup ?? null) && ! empty($backup['stored_path'])) {
+                DatabaseBackupRun::query()
+                    ->where('stored_path', $backup['stored_path'])
+                    ->latest('id')
+                    ->first()?->update([
+                        'status' => 'failed',
+                        'error_message' => $exception->getMessage(),
+                    ]);
+            }
+
+            Log::error('Test backup error: ' . $exception->getMessage());
+
+            return redirect()
+                ->route('admin.backup.index', ['tab' => 'scheduler'])
+                ->with('error', 'Test backup failed. ' . $exception->getMessage());
+        }
+    }
+
+    private function ensureSuperadmin(): void
+    {
+        if ((Auth::guard('admin')->user()->role ?? null) !== 'superadmin') {
+            abort(403);
+        }
+    }
 
     private function latestBackupAt(): ?Carbon
     {
@@ -22,7 +283,7 @@ class BackupRestoreController extends Controller
             ->latest('created_at')
             ->first(['created_at']);
 
-        if (!$latestBackup || empty($latestBackup->created_at)) {
+        if (! $latestBackup || empty($latestBackup->created_at)) {
             return null;
         }
 
@@ -34,7 +295,7 @@ class BackupRestoreController extends Controller
     private function buildBackupReminderState(): array
     {
         $latestBackupAt = $this->latestBackupAt();
-        if (!$latestBackupAt) {
+        if (! $latestBackupAt) {
             return [
                 'latest_backup_at' => null,
                 'days_since_last_backup' => null,
@@ -51,9 +312,7 @@ class BackupRestoreController extends Controller
             'latest_backup_at' => $latestBackupAt,
             'days_since_last_backup' => $daysSinceLastBackup,
             'is_overdue' => $isOverdue,
-            'status_label' => $isOverdue
-                ? 'Backup overdue'
-                : 'Backup status healthy',
+            'status_label' => $isOverdue ? 'Backup overdue' : 'Backup status healthy',
             'reminder_message' => $isOverdue
                 ? "The last successful backup was {$daysSinceLastBackup} day(s) ago. Backup is required to protect system data."
                 : 'Backup cadence is within the recommended interval.',
@@ -67,7 +326,7 @@ class BackupRestoreController extends Controller
         }
 
         $admin = Auth::guard('admin')->user();
-        if (!$admin || ($admin->role ?? null) !== 'superadmin') {
+        if (! $admin || ($admin->role ?? null) !== 'superadmin') {
             return;
         }
 
@@ -96,264 +355,35 @@ class BackupRestoreController extends Controller
         ]);
     }
 
-    public function index()
+    private function parseEmailList(string $input): array
     {
-        if ((Auth::guard('admin')->user()->role ?? null) !== 'superadmin') {
-            abort(403);
-        }
+        $items = preg_split('/[\s,;]+/', $input) ?: [];
+        $items = array_unique(array_filter(array_map('trim', $items)));
 
-        $backupReminder = $this->buildBackupReminderState();
-        $this->notifyOverdueBackupReminder($backupReminder);
-
-        return view('admin.backup_restore', [
-            'backupReminder' => $backupReminder,
-        ]);
+        return array_values(array_filter($items, static fn (string $email): bool => filter_var($email, FILTER_VALIDATE_EMAIL) !== false));
     }
 
-    public function backup(Request $request)
+    private function nextScheduledRun(?BackupAutomationSetting $setting): ?string
     {
-        if ((Auth::guard('admin')->user()->role ?? null) !== 'superadmin') {
-            abort(403);
+        if (! $setting || ! $setting->is_enabled) {
+            return null;
         }
-        try {
-            $conn = config('database.default');
-            $cfg = config("database.connections.$conn");
-            $db = $cfg['database'];
-            $host = $cfg['host'] ?? '127.0.0.1';
-            $port = $cfg['port'] ?? 3306;
-            $user = $cfg['username'];
-            $pass = $cfg['password'];
 
-            $dir = storage_path('app/backups');
-            if (!is_dir($dir)) {
-                mkdir($dir, 0775, true);
-            }
-            $file = $dir . DIRECTORY_SEPARATOR . $db . '-' . now()->format('Ymd-His') . '.sql';
+        $candidate = now()->copy()->setTimeFromTimeString((string) $setting->run_time);
 
-            $dumpPath = env('MYSQLDUMP_PATH');
-            if (!$dumpPath) {
-                $candidates = [
-                    'C:\xampp\mysql\bin\mysqldump.exe',
-                    'C:\Program Files\MySQL\MySQL Server 8.0\bin\mysqldump.exe',
-                    '/usr/bin/mysqldump',
-                    '/usr/local/bin/mysqldump',
-                ];
-                foreach ($candidates as $c) {
-                    if (is_file($c)) {
-                        $dumpPath = $c;
-                        break;
-                    }
-                }
+        if ($setting->frequency === 'daily') {
+            if ($candidate->lte(now())) {
+                $candidate->addDay();
             }
 
-            $usedNative = false;
-            $nativeTried = false;
-            if ($dumpPath && is_file($dumpPath)) {
-                $nativeTried = true;
-                // Attempt 1: capture stdout and write to file (works across OSes and avoids shell redirection issues)
-                $cmdBase = '"' . $dumpPath . '"' .
-                    ' --host=' . $host .
-                    ' --port=' . (string)$port .
-                    ' --user=' . $user .
-                    ' --password=' . $pass .
-                    ' --routines --triggers --events --single-transaction --quick ' .
-                    $db;
-                try {
-                    $output = shell_exec($cmdBase);
-                    if (!empty($output)) {
-                        file_put_contents($file, $output);
-                    }
-                } catch (\Throwable $e) {
-                    Log::warning('mysqldump capture failed: ' . $e->getMessage());
-                }
-                $usedNative = file_exists($file) && filesize($file) > 0;
-
-                // Attempt 2: shell redirection to file
-                if (!$usedNative) {
-                    $redirCmd = $cmdBase . ' > "' . $file . '"';
-                    try {
-                        if (stripos(PHP_OS, 'WIN') === 0) {
-                            pclose(popen('cmd /c ' . $redirCmd, 'r'));
-                        } else {
-                            shell_exec($redirCmd);
-                        }
-                    } catch (\Throwable $e) {
-                        Log::warning('mysqldump redirection failed: ' . $e->getMessage());
-                    }
-                    $usedNative = file_exists($file) && filesize($file) > 0;
-                }
-            }
-
-            if (!$usedNative) {
-                Log::info('Falling back to PHP-based SQL dump', ['native_tried' => $nativeTried, 'dumpPath' => $dumpPath]);
-                $pdo = DB::connection()->getPdo();
-                $tables = [];
-                foreach (DB::select('SHOW FULL TABLES WHERE Table_type = "BASE TABLE"') as $row) {
-                    $vals = array_values((array)$row);
-                    if (!empty($vals[0])) $tables[] = $vals[0];
-                }
-                $out = "-- SQL Backup generated at " . now()->toDateTimeString() . "\n";
-                $out .= "SET FOREIGN_KEY_CHECKS=0;\n";
-                $out .= "START TRANSACTION;\n\n";
-                foreach ($tables as $t) {
-                    $createRow = DB::select("SHOW CREATE TABLE `$t`")[0] ?? null;
-                    if (!$createRow) continue;
-                    // Handle different key names returned by MySQL
-                    $arrRow = (array)$createRow;
-                    $create = $arrRow['Create Table'] ?? $arrRow['Create Table'] ?? $arrRow['Create View'] ?? null;
-                    if (!$create) continue;
-                    $out .= "DROP TABLE IF EXISTS `$t`;\n$create;\n\n";
-                    $rows = DB::table($t)->select('*')->get();
-                    if ($rows->isEmpty()) continue;
-                    $chunks = $rows->chunk(200);
-                    foreach ($chunks as $chunk) {
-                        $cols = array_map(fn($c) => "`$c`", array_keys((array)$chunk->first()));
-                        $out .= "INSERT INTO `$t` (" . implode(',', $cols) . ") VALUES\n";
-                        $lines = [];
-                        foreach ($chunk as $r) {
-                            $vals = [];
-                            foreach ((array)$r as $v) {
-                                if (is_null($v)) $vals[] = 'NULL';
-                                else {
-                                    $vals[] = $pdo->quote((string)$v);
-                                }
-                            }
-                            $lines[] = '(' . implode(',', $vals) . ')';
-                        }
-                        $out .= implode(",\n", $lines) . ";\n\n";
-                    }
-                }
-                $out .= "COMMIT;\n";
-                $out .= "SET FOREIGN_KEY_CHECKS=1;\n";
-                file_put_contents($file, $out);
-            }
-
-            if (!file_exists($file) || filesize($file) === 0) {
-                throw new \RuntimeException('Backup output is empty. Ensure mysqldump is installed or fallback had permissions.');
-            }
-
-            activity()
-                ->event('backup')
-                ->causedBy(Auth::guard('admin')->user())
-                ->withProperties([
-                    'section' => 'Backup & Restore',
-                    'backup_file' => basename($file),
-                    'backup_generated_at' => now()->toDateTimeString(),
-                ])
-                ->log('Generated database backup.');
-
-            return response()->download($file)->deleteFileAfterSend(true);
-        } catch (\Throwable $e) {
-            Log::error('Backup error: ' . $e->getMessage());
-            return back()->withErrors(['msg' => 'Backup failed: ' . $e->getMessage()]);
+            return $candidate->format('F j, Y g:i A');
         }
-    }
 
-    public function restore(Request $request)
-    {
-        if ((Auth::guard('admin')->user()->role ?? null) !== 'superadmin') {
-            abort(403);
+        $weeklyDay = (int) $setting->weekly_day;
+        while ($candidate->dayOfWeek !== $weeklyDay || $candidate->lte(now())) {
+            $candidate->addDay();
         }
-        $request->validate([
-            'sql_file' => 'required|file|mimes:sql,txt|max:524288',
-        ]);
-        try {
-            $file = $request->file('sql_file')->getRealPath();
-            if (!is_file($file) || filesize($file) === 0) {
-                throw new \RuntimeException('Uploaded SQL file is empty or unreadable.');
-            }
-            $uploadedFileName = (string) ($request->file('sql_file')->getClientOriginalName() ?? '');
-            $conn = config('database.default');
-            $cfg = config("database.connections.$conn");
-            $db = $cfg['database'];
-            $host = $cfg['host'] ?? '127.0.0.1';
-            $port = $cfg['port'] ?? 3306;
-            $user = $cfg['username'];
-            $pass = $cfg['password'];
 
-            $mysqlPath = env('MYSQL_CLI_PATH');
-            if (!$mysqlPath) {
-                $candidates = [
-                    'C:\xampp\mysql\bin\mysql.exe',
-                    'C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe',
-                    '/usr/bin/mysql',
-                    '/usr/local/bin/mysql',
-                ];
-                foreach ($candidates as $c) {
-                    if (is_file($c)) {
-                        $mysqlPath = $c;
-                        break;
-                    }
-                }
-            }
-
-            $usedNative = false;
-            if ($mysqlPath && is_file($mysqlPath)) {
-                $cmd = '"' . $mysqlPath . '"' .
-                    ' --host=' . $host .
-                    ' --port=' . (string)$port .
-                    ' --user=' . $user .
-                    ' --password=' . $pass .
-                    ' ' . $db;
-                $descriptors = [
-                    0 => ['pipe', 'r'], // stdin
-                    1 => ['pipe', 'w'], // stdout
-                    2 => ['pipe', 'w'], // stderr
-                ];
-                $proc = proc_open($cmd, $descriptors, $pipes);
-                if (is_resource($proc)) {
-                    $sql = file_get_contents($file);
-                    fwrite($pipes[0], $sql);
-                    fclose($pipes[0]);
-                    $stdout = stream_get_contents($pipes[1]); fclose($pipes[1]);
-                    $stderr = stream_get_contents($pipes[2]); fclose($pipes[2]);
-                    $exit = proc_close($proc);
-                    if ($exit !== 0) {
-                        Log::warning('mysql client restore returned non-zero exit', ['exit' => $exit, 'stderr' => $stderr]);
-                    } else {
-                        $usedNative = true;
-                    }
-                } else {
-                    Log::warning('Failed to start mysql client process for restore');
-                }
-            }
-
-            if (!$usedNative) {
-                Log::info('Falling back to PHP-based SQL restore');
-                $handle = fopen($file, 'r');
-                if (!$handle) {
-                    throw new \RuntimeException('Failed to read file');
-                }
-                DB::statement('SET FOREIGN_KEY_CHECKS=0');
-                $statement = '';
-                while (($line = fgets($handle)) !== false) {
-                    if (preg_match('/^\s*--/', $line)) {
-                        continue;
-                    }
-                    $statement .= $line;
-                    if (substr(rtrim($line), -1) === ';') {
-                        DB::unprepared($statement);
-                        $statement = '';
-                    }
-                }
-                fclose($handle);
-                DB::statement('SET FOREIGN_KEY_CHECKS=1');
-            }
-
-            activity()
-                ->event('restore')
-                ->causedBy(Auth::guard('admin')->user())
-                ->withProperties([
-                    'section' => 'Backup & Restore',
-                    'restore_file' => $uploadedFileName,
-                    'restore_executed_at' => now()->toDateTimeString(),
-                ])
-                ->log('Restored database from uploaded backup.');
-
-            return redirect()->route('admin.backup.index')->with('success', 'Database restored successfully.');
-        } catch (\Throwable $e) {
-            Log::error('Restore error: ' . $e->getMessage());
-            return redirect()->route('admin.backup.index')->withErrors(['msg' => 'Restore failed: ' . $e->getMessage()]);
-        }
+        return $candidate->format('F j, Y g:i A');
     }
 }

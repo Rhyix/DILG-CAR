@@ -93,7 +93,7 @@
         </div>
     </section>
 
-    <div x-show="showEditModal" x-transition.opacity class="fixed inset-0 z-50 bg-slate-900/50 px-4 py-8"
+    <div x-show="showEditModal" x-transition.opacity class="fixed inset-0 -[10020] backdrop-blur-md px-4 py-8"
         style="display:none;" @keydown.escape.window="showEditModal = false" @click.self="showEditModal = false">
         <div class="mx-auto flex min-h-full w-full max-w-3xl items-center justify-center">
             <div class="w-full rounded-2xl border border-slate-200 bg-white shadow-2xl">

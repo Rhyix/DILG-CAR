@@ -625,6 +625,8 @@ Route::middleware([RedirectIfNotAdmin::class])->group(function () {
         Route::get('/admin/utilities/backup-restore', [BackupRestoreController::class, 'index'])->name('admin.backup.index');
         Route::post('/admin/utilities/backup-restore/backup', [BackupRestoreController::class, 'backup'])->name('admin.backup.run');
         Route::post('/admin/utilities/backup-restore/restore', [BackupRestoreController::class, 'restore'])->name('admin.backup.restore');
+        Route::post('/admin/utilities/backup-restore/schedule', [BackupRestoreController::class, 'saveSchedule'])->name('admin.backup.schedule');
+        Route::post('/admin/utilities/backup-restore/test-now', [BackupRestoreController::class, 'sendTestBackupNow'])->name('admin.backup.test');
     });
     Route::get('/admin/utilities/vacancy-titles/list', [VacancyTitleController::class, 'listJson'])->name('admin.vacancy_titles.list');
     Route::get('/admin/utilities/eligibilities/list', [EligibilityPresetController::class, 'listJson'])->name('admin.eligibilities.list');
