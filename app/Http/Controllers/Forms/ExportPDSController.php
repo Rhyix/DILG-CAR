@@ -950,23 +950,57 @@ class ExportPDSController
 
 private function writeAddresses($pdf, $residential, $permanent)
 {
-    // Residential Address
-    $this->writeWrappedAt($pdf, $this->valueOrNa($residential[0] ?? null), 136, 86, 48, 8.0, 2.2, 1.0); // House Number
-    $this->writeWrappedAt($pdf, $this->valueOrNa($residential[1] ?? null), 179.5, 86, 65, 8.0, 2.2, 1.0); // Street
-    $this->writeWrappedAt($pdf, $this->valueOrNa($residential[2] ?? null), 136, 92.5, 23, 8.0, 2.2, 1.0); // Village/Subdivision
-    $this->writeWrappedAt($pdf, $this->valueOrNa($residential[3] ?? null), 179.5, 92.5, 48, 8.0, 2.2, 1.0); // Barangay
-    $this->writeWrappedAt($pdf, $this->valueOrNa($residential[4] ?? null), 130, 99, 50, 8.0, 2.2, 1.0); // City/Municipality
-    $this->writeWrappedAt($pdf, $this->valueOrNa($residential[5] ?? null), 179.5, 99, 100, 8.0, 2.2, 1.0); // Province
-    $this->writeWrappedAt($pdf, $this->valueOrNa($residential[6] ?? null), 130, 108, 60, 8.0, 2.2, 1.0); // ZIP Code
+    $hasResidentialData = false;
+    for ($i = 0; $i <= 6; $i++) {
+        if ($this->hasMeaningfulValue($residential[$i] ?? null)) {
+            $hasResidentialData = true;
+            break;
+        }
+    }
 
-    // Permanent Address
-    $this->writeWrappedAt($pdf, $this->valueOrNa($permanent[0] ?? null), 136, 112, 35, 8.0, 2.2, 1.0); // House Number
-    $this->writeWrappedAt($pdf, $this->valueOrNa($permanent[1] ?? null), 179.5, 112, 65, 8.0, 2.2, 1.0); // Street
-    $this->writeWrappedAt($pdf, $this->valueOrNa($permanent[2] ?? null), 136, 119, 23, 8.0, 2.2, 1.0); // Village/Subdivision
-    $this->writeWrappedAt($pdf, $this->valueOrNa($permanent[3] ?? null), 179.5, 118.5, 48, 8.0, 2.2, 1.0); // Barangay
-    $this->writeWrappedAt($pdf, $this->valueOrNa($permanent[4] ?? null), 130, 125.5, 50, 8.0, 2.2, 1.0); // City/Municipality
-    $this->writeWrappedAt($pdf, $this->valueOrNa($permanent[5] ?? null), 179.5, 125.5, 100, 8.0, 2.2, 1.0); // Province
-    $this->writeWrappedAt($pdf, $this->valueOrNa($permanent[6] ?? null), 130, 133.5, 60, 8.0, 2.2, 1.0); // ZIP Code
+    if (!$hasResidentialData) {
+        $this->writeAlignedValue($pdf, 'N/A', 115, 86, 48, 8.0, 5.0); // House Number
+        $this->writeAlignedValue($pdf, 'N/A', 153, 86, 65, 8.0, 5.0); // Street
+        $this->writeAlignedValue($pdf, 'N/A', 128, 92.5, 23, 8.0, 5.0); // Village/Subdivision
+        $this->writeAlignedValue($pdf, 'N/A', 160, 92.5, 48, 8.0, 5.0); // Barangay
+        $this->writeAlignedValue($pdf, 'N/A', 130, 99, 50, 8.0, 5.0); // City/Municipality
+        $this->writeAlignedValue($pdf, 'N/A', 179.5, 99, 100, 8.0, 5.0); // Province
+        $this->writeAlignedValue($pdf, 'N/A', 130, 108, 60, 8.0, 5.0); // ZIP Code
+    } else {
+        $this->writeWrappedAt($pdf, $this->valueOrNa($residential[0] ?? null), 136, 86, 48, 8.0, 2.2, 1.0); // House Number
+        $this->writeWrappedAt($pdf, $this->valueOrNa($residential[1] ?? null), 179.5, 86, 65, 8.0, 2.2, 1.0); // Street
+        $this->writeWrappedAt($pdf, $this->valueOrNa($residential[2] ?? null), 136, 92.5, 23, 8.0, 2.2, 1.0); // Village/Subdivision
+        $this->writeWrappedAt($pdf, $this->valueOrNa($residential[3] ?? null), 179.5, 92.5, 48, 8.0, 2.2, 1.0); // Barangay
+        $this->writeWrappedAt($pdf, $this->valueOrNa($residential[4] ?? null), 130, 99, 50, 8.0, 2.2, 1.0); // City/Municipality
+        $this->writeWrappedAt($pdf, $this->valueOrNa($residential[5] ?? null), 179.5, 99, 100, 8.0, 2.2, 1.0); // Province
+        $this->writeWrappedAt($pdf, $this->valueOrNa($residential[6] ?? null), 130, 108, 60, 8.0, 2.2, 1.0); // ZIP Code
+    }
+
+    $hasPermanentData = false;
+    for ($i = 0; $i <= 6; $i++) {
+        if ($this->hasMeaningfulValue($permanent[$i] ?? null)) {
+            $hasPermanentData = true;
+            break;
+        }
+    }
+
+    if (!$hasPermanentData) {
+        $this->writeAlignedValue($pdf, 'N/A', 136, 112, 35, 8.0, 5.0); // House Number
+        $this->writeAlignedValue($pdf, 'N/A', 179.5, 112, 65, 8.0, 5.0); // Street
+        $this->writeAlignedValue($pdf, 'N/A', 136, 119, 23, 8.0, 5.0); // Village/Subdivision
+        $this->writeAlignedValue($pdf, 'N/A', 179.5, 118.5, 48, 8.0, 5.0); // Barangay
+        $this->writeAlignedValue($pdf, 'N/A', 130, 125.5, 50, 8.0, 5.0); // City/Municipality
+        $this->writeAlignedValue($pdf, 'N/A', 179.5, 125.5, 100, 8.0, 5.0); // Province
+        $this->writeAlignedValue($pdf, 'N/A', 130, 133.5, 60, 8.0, 5.0); // ZIP Code
+    } else {
+        $this->writeWrappedAt($pdf, $this->valueOrNa($permanent[0] ?? null), 136, 112, 35, 8.0, 2.2, 1.0); // House Number
+        $this->writeWrappedAt($pdf, $this->valueOrNa($permanent[1] ?? null), 179.5, 112, 65, 8.0, 2.2, 1.0); // Street
+        $this->writeWrappedAt($pdf, $this->valueOrNa($permanent[2] ?? null), 136, 119, 23, 8.0, 2.2, 1.0); // Village/Subdivision
+        $this->writeWrappedAt($pdf, $this->valueOrNa($permanent[3] ?? null), 179.5, 118.5, 48, 8.0, 2.2, 1.0); // Barangay
+        $this->writeWrappedAt($pdf, $this->valueOrNa($permanent[4] ?? null), 130, 125.5, 50, 8.0, 2.2, 1.0); // City/Municipality
+        $this->writeWrappedAt($pdf, $this->valueOrNa($permanent[5] ?? null), 179.5, 125.5, 100, 8.0, 2.2, 1.0); // Province
+        $this->writeWrappedAt($pdf, $this->valueOrNa($permanent[6] ?? null), 130, 133.5, 60, 8.0, 2.2, 1.0); // ZIP Code
+    }
 
 }
 
