@@ -287,7 +287,7 @@
                                             </span>
                                         @else
                                             <span class="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-700">
-                                                Missing
+                                                Not Met
                                             </span>
                                         @endif
                                     </div>
