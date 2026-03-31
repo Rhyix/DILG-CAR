@@ -17,7 +17,6 @@ class AutomatedDatabaseBackupMail extends Mailable
         public string $databaseName,
         public string $filePath,
         public string $fileName,
-        public bool $wasEncrypted,
     ) {
     }
 

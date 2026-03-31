@@ -145,15 +145,10 @@ class BackupRestoreController extends Controller
             'weekly_day' => ['nullable', 'integer', 'between:0,6'],
             'run_time' => [$isEnabled ? 'required' : 'nullable', 'date_format:H:i'],
             'recipient_emails' => [$isEnabled ? 'required' : 'nullable', 'string'],
-            'encrypt_backup' => ['nullable', 'boolean'],
-            'encryption_password' => ['nullable', 'string', 'min:8', 'max:255'],
         ]);
 
         $frequency = $validated['frequency'] ?? ($setting->frequency ?? 'daily');
         $runTime = $validated['run_time'] ?? ((string) ($setting->run_time ?? '18:00:00'));
-        $encryptBackup = $isEnabled
-            ? $request->boolean('encrypt_backup')
-            : (bool) ($setting->encrypt_backup ?? false);
         $recipientEmails = $isEnabled
             ? $this->parseEmailList((string) ($validated['recipient_emails'] ?? ''))
             : (array) ($setting->recipient_emails ?? []);
@@ -170,12 +165,6 @@ class BackupRestoreController extends Controller
                 ->withInput();
         }
 
-        if ($isEnabled && $encryptBackup && ! $request->filled('encryption_password') && empty($setting->encryption_password)) {
-            return back()
-                ->withErrors(['encryption_password' => 'Set an encryption password when password protection is enabled.'])
-                ->withInput();
-        }
-
         $setting->fill([
             'is_enabled' => $isEnabled,
             'frequency' => $frequency,
@@ -184,16 +173,9 @@ class BackupRestoreController extends Controller
                 : null,
             'run_time' => strlen($runTime) === 5 ? $runTime . ':00' : $runTime,
             'recipient_emails' => $recipientEmails,
-            'encrypt_backup' => $encryptBackup,
         ]);
-
-        if ($encryptBackup && $request->filled('encryption_password')) {
-            $setting->encryption_password = $validated['encryption_password'];
-        }
-
-        if (! $encryptBackup) {
-            $setting->encryption_password = null;
-        }
+        $setting->encrypt_backup = false;
+        $setting->encryption_password = null;
 
         $setting->save();
 
@@ -234,8 +216,6 @@ class BackupRestoreController extends Controller
                 'type' => 'test',
                 'directory' => 'app/backups/automated',
                 'prefix' => $connection['database'] . '-test-backup',
-                'encrypt' => $setting->encrypt_backup,
-                'encryption_password' => $setting->encrypt_backup ? $setting->encryption_password : null,
                 'setting_id' => $setting->id,
                 'mailed_to' => $recipients,
             ]);
@@ -244,7 +224,6 @@ class BackupRestoreController extends Controller
                 databaseName: $connection['database'],
                 filePath: $backup['absolute_path'],
                 fileName: $backup['filename'],
-                wasEncrypted: $backup['was_encrypted'],
             ));
 
             return redirect()
@@ -265,7 +244,7 @@ class BackupRestoreController extends Controller
 
             return redirect()
                 ->route('admin.backup.index', ['tab' => 'scheduler'])
-                ->with('error', 'Test backup failed. ' . $exception->getMessage());
+                ->with('error', $this->friendlyBackupErrorMessage('Test backup failed.', $exception));
         }
     }
 
@@ -361,6 +340,35 @@ class BackupRestoreController extends Controller
         $items = array_unique(array_filter(array_map('trim', $items)));
 
         return array_values(array_filter($items, static fn (string $email): bool => filter_var($email, FILTER_VALIDATE_EMAIL) !== false));
+    }
+
+    private function friendlyBackupErrorMessage(string $prefix, \Throwable $exception): string
+    {
+        $message = strtolower($exception->getMessage());
+
+        if (str_contains($message, 'failed to authenticate on smtp server')
+            || str_contains($message, 'webloginrequired')
+            || str_contains($message, 'gsmtp')) {
+            return $prefix . ' The email could not be sent because the configured mail account was not accepted by the mail server.';
+        }
+
+        if (str_contains($message, 'connection could not be established')
+            || str_contains($message, 'connection refused')
+            || str_contains($message, 'timed out')) {
+            return $prefix . ' The system could not connect to the mail server. Please check the mail configuration and try again.';
+        }
+
+        if (str_contains($message, 'unable to locate mysqldump')
+            || str_contains($message, 'unable to locate mysql')) {
+            return $prefix . ' The required MySQL backup tool could not be found on the server.';
+        }
+
+        if (str_contains($message, 'uploaded sql file')
+            || str_contains($message, 'backup file')) {
+            return $prefix . ' The selected backup file could not be processed. Please verify the file and try again.';
+        }
+
+        return $prefix . ' Please review the backup settings and try again.';
     }
 
     private function nextScheduledRun(?BackupAutomationSetting $setting): ?string

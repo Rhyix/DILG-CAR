@@ -17,10 +17,9 @@
             'weekly_day' => old('weekly_day', $automationSetting?->weekly_day),
             'run_time' => old('run_time', $automationSetting?->run_time ? substr((string) $automationSetting->run_time, 0, 5) : '18:00'),
             'recipient_emails' => old('recipient_emails', $automationSetting?->recipient_emails ? implode(', ', $automationSetting->recipient_emails) : ''),
-            'encrypt_backup' => old('encrypt_backup', $automationSetting?->encrypt_backup),
         ];
 
-        $schedulerFieldErrors = ['is_enabled', 'frequency', 'weekly_day', 'run_time', 'recipient_emails', 'encrypt_backup', 'encryption_password'];
+        $schedulerFieldErrors = ['is_enabled', 'frequency', 'weekly_day', 'run_time', 'recipient_emails'];
         $activeUtilityTab = request()->query('tab') === 'scheduler' ? 'schedulerPanel' : 'backupRestorePanel';
         foreach ($schedulerFieldErrors as $schedulerFieldError) {
             if ($errors->has($schedulerFieldError)) {
@@ -201,7 +200,7 @@
                     </span>
                     <div>
                         <h2 class="text-lg font-bold text-[#0D2B70]">Scheduled Backup</h2>
-                        <p class="text-sm text-slate-600">Configure daily or weekly automated backups, email delivery, retention cleanup, and password protection.</p>
+                        <p class="text-sm text-slate-600">Configure daily or weekly automated backups and email delivery.</p>
                     </div>
                 </div>
                 <span class="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold {{ ($automationSetting?->is_enabled) ? 'border border-emerald-100 bg-emerald-50 text-emerald-700' : 'border border-slate-200 bg-slate-100 text-slate-600' }}">
@@ -254,20 +253,6 @@
                     <p class="mt-2 text-xs text-slate-500">Separate multiple addresses with commas, spaces, semicolons, or new lines.</p>
                 </div>
 
-                <div class="md:col-span-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3">
-                    <label for="encrypt_backup" class="flex items-center gap-3 text-sm font-semibold text-rose-800">
-                        <input id="encrypt_backup" name="encrypt_backup" type="checkbox" value="1" @checked($schedulerState['encrypt_backup']) class="h-4 w-4 rounded border-slate-300 text-rose-600 focus:ring-rose-500">
-                        Password-protect emailed backup attachments
-                    </label>
-                </div>
-
-                <div id="encryptionPasswordContainer" class="{{ $schedulerState['encrypt_backup'] ? '' : 'hidden' }}">
-                    <label for="encryption_password" class="text-sm font-semibold text-slate-700">Encryption Password</label>
-                    <input id="encryption_password" name="encryption_password" type="password"
-                        placeholder="{{ $automationSetting?->encrypt_backup ? 'Leave blank to keep current password' : 'Enter at least 8 characters' }}"
-                        class="mt-2 block w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 focus:border-[#0D2B70] focus:outline-none focus:ring-2 focus:ring-[#0D2B70]/20">
-                    <p class="mt-2 text-xs text-slate-500">Encrypted files are attached as `.enc` and require this password for decryption.</p>
-                </div>
                 </div>
 
                 <div class="md:col-span-2 flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
@@ -346,7 +331,7 @@
                                             {{ $run->error_message }}
                                         </div>
                                     @else
-                                        {{ $run->was_encrypted ? 'Encrypted' : 'Plain SQL' }}
+                                        SQL backup
                                     @endif
                             </td>
                         </tr>
@@ -390,8 +375,6 @@
         const weeklyDayContainer = document.getElementById('weeklyDayContainer');
         const schedulerDetails = document.getElementById('schedulerDetails');
         const recipientEmailsField = document.getElementById('recipient_emails');
-        const encryptCheckbox = document.getElementById('encrypt_backup');
-        const encryptionPasswordContainer = document.getElementById('encryptionPasswordContainer');
         const testBackupNowButton = document.getElementById('testBackupNowButton');
         const saveSchedulerButton = document.getElementById('saveSchedulerButton');
         const utilityTabs = Array.from(document.querySelectorAll('[data-utility-tab-target]'));
@@ -465,12 +448,6 @@
         if (recipientEmailsField) {
             recipientEmailsField.addEventListener('input', function () {
                 updateSchedulerDetailsState();
-            });
-        }
-
-        if (encryptCheckbox && encryptionPasswordContainer) {
-            encryptCheckbox.addEventListener('change', function () {
-                encryptionPasswordContainer.classList.toggle('hidden', !encryptCheckbox.checked);
             });
         }
 

@@ -52,8 +52,6 @@ class RunScheduledDatabaseBackups extends Command
                     'type' => 'automated',
                     'directory' => 'app/backups/automated',
                     'prefix' => $connection['database'] . '-scheduled-backup',
-                    'encrypt' => $setting->encrypt_backup,
-                    'encryption_password' => $setting->encrypt_backup ? $setting->encryption_password : null,
                     'setting_id' => $setting->id,
                     'mailed_to' => $recipients,
                 ]);
@@ -62,7 +60,6 @@ class RunScheduledDatabaseBackups extends Command
                     databaseName: $connection['database'],
                     filePath: $backup['absolute_path'],
                     fileName: $backup['filename'],
-                    wasEncrypted: $backup['was_encrypted'],
                 ));
 
                 $setting->update([

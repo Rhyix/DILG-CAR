@@ -12,8 +12,6 @@ class BackupAutomationSetting extends Model
         'weekly_day',
         'run_time',
         'recipient_emails',
-        'encrypt_backup',
-        'encryption_password',
         'last_run_at',
         'last_status',
         'last_error',
@@ -26,8 +24,6 @@ class BackupAutomationSetting extends Model
             'is_enabled' => 'boolean',
             'weekly_day' => 'integer',
             'recipient_emails' => 'array',
-            'encrypt_backup' => 'boolean',
-            'encryption_password' => 'encrypted',
             'last_run_at' => 'datetime',
         ];
     }

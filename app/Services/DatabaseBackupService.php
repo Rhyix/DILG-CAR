@@ -37,8 +37,6 @@ class DatabaseBackupService
         $directory = $options['directory'] ?? 'app/backups/manual';
         $prefix = $options['prefix'] ?? $connection['database'] . '-backup';
         $backupType = $options['type'] ?? 'manual';
-        $encrypt = (bool) ($options['encrypt'] ?? false);
-        $encryptionPassword = $options['encryption_password'] ?? null;
         $backupDirectory = storage_path($directory);
 
         File::ensureDirectoryExists($backupDirectory);
@@ -54,7 +52,6 @@ class DatabaseBackupService
             'filename' => $sqlFilename,
             'stored_path' => $this->relativeStoragePath($sqlAbsolutePath),
             'mailed_to' => $options['mailed_to'] ?? null,
-            'was_encrypted' => $encrypt,
             'started_at' => now(),
         ]);
 
@@ -69,17 +66,6 @@ class DatabaseBackupService
             $finalFilename = $sqlFilename;
             $mimeType = 'application/sql';
 
-            if ($encrypt) {
-                if (! is_string($encryptionPassword) || $encryptionPassword === '') {
-                    throw new RuntimeException('Backup encryption password is required when encryption is enabled.');
-                }
-
-                $encrypted = $this->encryptBackupFile($sqlAbsolutePath, $encryptionPassword);
-                $finalAbsolutePath = $encrypted['absolute_path'];
-                $finalFilename = $encrypted['filename'];
-                $mimeType = 'application/octet-stream';
-            }
-
             $run->update([
                 'status' => 'success',
                 'filename' => $finalFilename,
@@ -91,7 +77,6 @@ class DatabaseBackupService
                 'filename' => $finalFilename,
                 'stored_path' => $this->relativeStoragePath($finalAbsolutePath),
                 'absolute_path' => $finalAbsolutePath,
-                'was_encrypted' => $encrypt,
                 'mime_type' => $mimeType,
             ];
         } catch (\Throwable $exception) {
@@ -344,40 +329,6 @@ class DatabaseBackupService
         if (trim($statementBuffer) !== '') {
             $connectionInstance->unprepared($statementBuffer);
         }
-    }
-
-    private function encryptBackupFile(string $sourcePath, string $password): array
-    {
-        $plaintext = File::get($sourcePath);
-        $salt = random_bytes(16);
-        $iv = random_bytes(16);
-        $iterations = 100000;
-        $key = hash_pbkdf2('sha256', $password, $salt, $iterations, 32, true);
-        $ciphertext = openssl_encrypt($plaintext, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv);
-
-        if ($ciphertext === false) {
-            throw new RuntimeException('Unable to encrypt the backup file.');
-        }
-
-        $payload = json_encode([
-            'algorithm' => 'AES-256-CBC',
-            'kdf' => 'PBKDF2-SHA256',
-            'iterations' => $iterations,
-            'salt' => base64_encode($salt),
-            'iv' => base64_encode($iv),
-            'ciphertext' => base64_encode($ciphertext),
-        ], JSON_THROW_ON_ERROR);
-
-        $encryptedFilename = basename($sourcePath) . '.enc';
-        $encryptedPath = dirname($sourcePath) . DIRECTORY_SEPARATOR . $encryptedFilename;
-
-        File::put($encryptedPath, $payload);
-        File::delete($sourcePath);
-
-        return [
-            'absolute_path' => $encryptedPath,
-            'filename' => $encryptedFilename,
-        ];
     }
 
     private function shouldSkipSqlLine(string $line): bool

@@ -15,7 +15,6 @@ class DatabaseBackupRun extends Model
         'filename',
         'stored_path',
         'mailed_to',
-        'was_encrypted',
         'error_message',
         'started_at',
         'completed_at',
@@ -25,7 +24,6 @@ class DatabaseBackupRun extends Model
     {
         return [
             'mailed_to' => 'array',
-            'was_encrypted' => 'boolean',
             'started_at' => 'datetime',
             'completed_at' => 'datetime',
         ];

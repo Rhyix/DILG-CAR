@@ -9,11 +9,8 @@
     <p>An automated backup for the <strong>{{ $databaseName }}</strong> database has been generated and attached to this email.</p>
     <p>
         Attachment: <strong>{{ $fileName }}</strong><br>
-        Format: <strong>{{ $wasEncrypted ? 'Encrypted backup (.enc)' : 'SQL backup (.sql)' }}</strong>
+        Format: <strong>SQL backup (.sql)</strong>
     </p>
-    @if ($wasEncrypted)
-        <p>The backup attachment is password-protected. Use the configured scheduler password to decrypt it.</p>
-    @endif
     <p>This message was sent automatically by the DILG-CAR backup scheduler.</p>
 </body>
 </html>
