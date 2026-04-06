@@ -788,18 +788,18 @@ document.addEventListener("DOMContentLoaded", function() {
 
 // Structured eligibility UI state + interactions
 const defaultPredefinedEligibilities = [
-    { name: 'CSC Professional Eligibility', legalBasis: 'CSR 2017/PD 807', level: 'Second Level' },
     { name: 'Bar/Board Eligibility', legalBasis: 'RA 1080', level: 'Second Level' },
+    { name: 'CSC Professional Eligibility', legalBasis: 'CSR 2017/PD 807', level: 'Second Level' },
     { name: 'Honor Graduate Eligibility', legalBasis: 'PD 907', level: 'Second Level' },
-    { name: 'Subprofessional (Sub-Prof) Eligibility', legalBasis: 'CSR 2017/PD 807', level: 'First Level' },
-    { name: 'Barangay Health Worker Eligibility', legalBasis: 'RA 7883', level: 'First Level' },
-    { name: 'Barangay Nutrition Scholar Eligibility', legalBasis: 'PD 1569', level: 'First Level' },
-    { name: 'Barangay Official Eligibility', legalBasis: 'RA 7160', level: 'First Level' },
-    { name: 'Sanggunian Member Eligibility', legalBasis: 'RA 10156', level: 'First Level' },
-    { name: 'Skills Eligibility-Category II', legalBasis: 'CSC MC 11, s.1996', level: 'First Level' },
-    { name: 'Electronic Data Processing Specialist Eligibility', legalBasis: 'CSC Res. 90-083', level: 'Second Level' },
     { name: 'Foreign School Honor Graduate Eligibility', legalBasis: 'CSC Res. 1302714', level: 'Second Level' },
     { name: 'Scientific and Technological Specialist Eligibility', legalBasis: 'PD 997', level: 'Second Level' },
+    { name: 'Electronic Data Processing Specialist Eligibility', legalBasis: 'CSC Res. 90-083', level: 'Second Level' },
+    { name: 'Subprofessional (Sub-Prof) Eligibility', legalBasis: 'CSR 2017/PD 807', level: 'First Level' },
+    { name: 'Skills Eligibility-Category II', legalBasis: 'CSC MC 11, s.1996', level: 'First Level' },
+    { name: 'Barangay Official Eligibility', legalBasis: 'RA 7160', level: 'First Level' },
+    { name: 'Sanggunian Member Eligibility', legalBasis: 'RA 10156', level: 'First Level' },
+    { name: 'Barangay Health Worker Eligibility', legalBasis: 'RA 7883', level: 'First Level' },
+    { name: 'Barangay Nutrition Scholar Eligibility', legalBasis: 'PD 1569', level: 'First Level' },
 ];
 
 let predefinedEligibilities = [...defaultPredefinedEligibilities];

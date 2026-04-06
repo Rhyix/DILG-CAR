@@ -3178,9 +3178,84 @@ class JobVacancyController extends Controller
             return true;
         }
 
+        // Hierarchy rule: recognized Second Level / Professional eligibilities satisfy
+        // any recognized First Level requirement.
+        if (
+            $this->isFirstLevelEligibility($requiredGroup, $requiredKey)
+            && $this->isSecondLevelEligibility($applicantGroup, $applicantKey)
+        ) {
+            return true;
+        }
+
         // Allow minor wording differences for manually entered "Others" values.
         $minLen = min(strlen($requiredKey), strlen($applicantKey));
         if ($minLen >= 8 && (str_contains($requiredKey, $applicantKey) || str_contains($applicantKey, $requiredKey))) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private function isSecondLevelEligibility(string $group, string $normalizedKey): bool
+    {
+        if (in_array($group, [
+            'bar_board',
+            'csc_professional',
+            'honor_graduate',
+            'foreign_honor_graduate',
+            'edp_specialist',
+            'scientific_technological_specialist',
+        ], true)) {
+            return true;
+        }
+
+        $contains = static function (string $needle) use ($normalizedKey): bool {
+            return str_contains($normalizedKey, $needle);
+        };
+
+        // Handle manually-entered variants not covered by canonical groups.
+        if ($contains('secondlevel')) {
+            return true;
+        }
+
+        if ($contains('professional') && !$contains('subprofessional')) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private function isFirstLevelEligibility(string $group, string $normalizedKey): bool
+    {
+        if (in_array($group, [
+            'csc_subprofessional',
+            'skills_category_ii',
+            'barangay_official',
+            'sanggunian_member',
+            'barangay_health_worker',
+            'barangay_nutrition_scholar',
+        ], true)) {
+            return true;
+        }
+
+        $contains = static function (string $needle) use ($normalizedKey): bool {
+            return str_contains($normalizedKey, $needle);
+        };
+
+        // Handle manually-entered variants not covered by canonical groups.
+        if ($contains('firstlevel')) {
+            return true;
+        }
+
+        if ($contains('subprofessional') || $contains('subprof')) {
+            return true;
+        }
+
+        if ($contains('skills') && $contains('categoryii')) {
+            return true;
+        }
+
+        if ($contains('barangay') && ($contains('official') || $contains('healthworker') || $contains('nutritionscholar'))) {
             return true;
         }
 
@@ -3201,6 +3276,9 @@ class JobVacancyController extends Controller
             return 'bar_board';
         }
         if ($contains('csc') && ($contains('professional') || $contains('prof'))) {
+            return 'csc_professional';
+        }
+        if (($contains('professional') || $contains('secondlevel')) && !$contains('subprofessional')) {
             return 'csc_professional';
         }
         if ($contains('subprofessional') || $contains('subprof')) {

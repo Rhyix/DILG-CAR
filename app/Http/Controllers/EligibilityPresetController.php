@@ -6,23 +6,92 @@ use App\Models\EligibilityPreset;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Collection;
 
 class EligibilityPresetController extends Controller
 {
     private const DEFAULT_PRESETS = [
-        ['name' => 'CSC Professional Eligibility', 'legal_basis' => 'CSR 2017/PD 807', 'level' => 'Second Level'],
         ['name' => 'Bar/Board Eligibility', 'legal_basis' => 'RA 1080', 'level' => 'Second Level'],
+        ['name' => 'CSC Professional Eligibility', 'legal_basis' => 'CSR 2017/PD 807', 'level' => 'Second Level'],
         ['name' => 'Honor Graduate Eligibility', 'legal_basis' => 'PD 907', 'level' => 'Second Level'],
-        ['name' => 'Subprofessional (Sub-Prof) Eligibility', 'legal_basis' => 'CSR 2017/PD 807', 'level' => 'First Level'],
-        ['name' => 'Barangay Health Worker Eligibility', 'legal_basis' => 'RA 7883', 'level' => 'First Level'],
-        ['name' => 'Barangay Nutrition Scholar Eligibility', 'legal_basis' => 'PD 1569', 'level' => 'First Level'],
-        ['name' => 'Barangay Official Eligibility', 'legal_basis' => 'RA 7160', 'level' => 'First Level'],
-        ['name' => 'Sanggunian Member Eligibility', 'legal_basis' => 'RA 10156', 'level' => 'First Level'],
-        ['name' => 'Skills Eligibility-Category II', 'legal_basis' => 'CSC MC 11, s.1996', 'level' => 'First Level'],
-        ['name' => 'Electronic Data Processing Specialist Eligibility', 'legal_basis' => 'CSC Res. 90-083', 'level' => 'Second Level'],
         ['name' => 'Foreign School Honor Graduate Eligibility', 'legal_basis' => 'CSC Res. 1302714', 'level' => 'Second Level'],
         ['name' => 'Scientific and Technological Specialist Eligibility', 'legal_basis' => 'PD 997', 'level' => 'Second Level'],
+        ['name' => 'Electronic Data Processing Specialist Eligibility', 'legal_basis' => 'CSC Res. 90-083', 'level' => 'Second Level'],
+        ['name' => 'Subprofessional (Sub-Prof) Eligibility', 'legal_basis' => 'CSR 2017/PD 807', 'level' => 'First Level'],
+        ['name' => 'Skills Eligibility-Category II', 'legal_basis' => 'CSC MC 11, s.1996', 'level' => 'First Level'],
+        ['name' => 'Barangay Official Eligibility', 'legal_basis' => 'RA 7160', 'level' => 'First Level'],
+        ['name' => 'Sanggunian Member Eligibility', 'legal_basis' => 'RA 10156', 'level' => 'First Level'],
+        ['name' => 'Barangay Health Worker Eligibility', 'legal_basis' => 'RA 7883', 'level' => 'First Level'],
+        ['name' => 'Barangay Nutrition Scholar Eligibility', 'legal_basis' => 'PD 1569', 'level' => 'First Level'],
     ];
+
+    private function levelRank(?string $level): int
+    {
+        $normalized = strtolower(trim((string) $level));
+
+        if (str_contains($normalized, 'second')) {
+            return 1;
+        }
+
+        if (str_contains($normalized, 'first')) {
+            return 2;
+        }
+
+        return 3;
+    }
+
+    private function hierarchyRank(?string $name): int
+    {
+        $normalized = strtolower(trim((string) $name));
+
+        return match (true) {
+            str_contains($normalized, 'bar/board') || (str_contains($normalized, 'bar') && str_contains($normalized, 'board')) => 10,
+            str_contains($normalized, 'csc professional') || str_contains($normalized, 'career service professional') => 20,
+            str_contains($normalized, 'honor graduate') && !str_contains($normalized, 'foreign') => 30,
+            str_contains($normalized, 'foreign school honor graduate') => 40,
+            str_contains($normalized, 'scientific and technological specialist') => 50,
+            str_contains($normalized, 'electronic data processing specialist') => 60,
+            str_contains($normalized, 'subprofessional') || str_contains($normalized, 'sub-prof') => 110,
+            str_contains($normalized, 'skills eligibility-category ii') || (str_contains($normalized, 'skills eligibility') && str_contains($normalized, 'category ii')) => 120,
+            str_contains($normalized, 'barangay official') => 130,
+            str_contains($normalized, 'sanggunian member') => 140,
+            str_contains($normalized, 'barangay health worker') => 150,
+            str_contains($normalized, 'barangay nutrition scholar') => 160,
+            default => 999,
+        };
+    }
+
+    private function fieldValue(array|object $item, string $field): string
+    {
+        if (is_array($item)) {
+            return trim((string) ($item[$field] ?? ''));
+        }
+
+        return trim((string) ($item->{$field} ?? ''));
+    }
+
+    private function sortByHierarchy(Collection $items): Collection
+    {
+        $rows = $items->values()->all();
+
+        usort($rows, function (array|object $left, array|object $right): int {
+            $leftLevelRank = $this->levelRank($this->fieldValue($left, 'level'));
+            $rightLevelRank = $this->levelRank($this->fieldValue($right, 'level'));
+            if ($leftLevelRank !== $rightLevelRank) {
+                return $leftLevelRank <=> $rightLevelRank;
+            }
+
+            $leftHierarchyRank = $this->hierarchyRank($this->fieldValue($left, 'name'));
+            $rightHierarchyRank = $this->hierarchyRank($this->fieldValue($right, 'name'));
+            if ($leftHierarchyRank !== $rightHierarchyRank) {
+                return $leftHierarchyRank <=> $rightHierarchyRank;
+            }
+
+            return strcasecmp($this->fieldValue($left, 'name'), $this->fieldValue($right, 'name'));
+        });
+
+        return collect($rows)->values();
+    }
 
     private function canManageEligibilities(): bool
     {
@@ -42,7 +111,7 @@ class EligibilityPresetController extends Controller
         }
 
         $eligibilities = $this->hasPresetsTable()
-            ? EligibilityPreset::query()->orderBy('name')->get()
+            ? $this->sortByHierarchy(EligibilityPreset::query()->get())
             : collect();
 
         return view('admin.eligibilities.index', compact('eligibilities'));
@@ -134,13 +203,13 @@ class EligibilityPresetController extends Controller
         if (!$this->hasPresetsTable()) {
             return response()->json([
                 'success' => true,
-                'data' => collect(self::DEFAULT_PRESETS)->values(),
+                'data' => $this->sortByHierarchy(collect(self::DEFAULT_PRESETS))->values(),
             ]);
         }
 
-        $data = EligibilityPreset::query()
-            ->orderBy('name')
-            ->get(['id', 'name', 'legal_basis', 'level']);
+        $data = $this->sortByHierarchy(
+            EligibilityPreset::query()->get(['id', 'name', 'legal_basis', 'level'])
+        );
 
         return response()->json([
             'success' => true,
