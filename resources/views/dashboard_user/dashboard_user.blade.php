@@ -269,7 +269,7 @@
                 </div>
             </div>
 
-            @if(($requiresApplicantOnboarding ?? false) || $shouldOpenOnboardingModal)
+            @if(false && (($requiresApplicantOnboarding ?? false) || $shouldOpenOnboardingModal))
                 <div id="applicant-onboarding-modal" class="hidden fixed inset-0 z-[1300] flex items-start sm:items-center justify-center p-2 sm:p-4 overflow-y-auto">
                     <div class="absolute inset-0 bg-slate-900/70 backdrop-blur-sm"></div>
                     <div class="relative w-full max-w-4xl max-h-[calc(100vh-1rem)] sm:max-h-[90vh] rounded-2xl border border-[#0D2B70]/20 bg-white shadow-2xl overflow-hidden flex flex-col"

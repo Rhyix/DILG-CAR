@@ -93,7 +93,8 @@ class ApplicantOnboarding
 
     public static function shouldRequire(?User $user): bool
     {
-        return self::isNewUser($user) && !self::isCompleted($user);
+        // Applicant onboarding is disabled; never force the onboarding modal.
+        return false;
     }
 
     public static function save(User $user, array $payload): void

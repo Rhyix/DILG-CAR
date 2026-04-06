@@ -1092,8 +1092,8 @@ private function writeChildrenChunk($pdf, $chunk)
 
 private function writeEducationalBackground($pdf, $education)
 {
-    $elemXSchool = 20;
-    $elemXBasic = 70;
+    $elemXSchool = 41.0;
+    $elemXBasic = 90.0;
     $elemXFrom = 127;
     $elemXTo = 137.5;
     $elemXEarned = 160.5;
@@ -1107,8 +1107,8 @@ private function writeEducationalBackground($pdf, $education)
     $elemWidthYearGraduated = 12.0;
     $elemWidthHonors = 13.0;
 
-    $jhsXSchool = 20;
-    $jhsXBasic = 70;
+    $jhsXSchool = 41.0;
+    $jhsXBasic = 90.0;
     $jhsXFrom = 127;
     $jhsXTo = 137.5;
     $jhsXEarned = 160.5;
@@ -1122,6 +1122,52 @@ private function writeEducationalBackground($pdf, $education)
     $jhsWidthYearGraduated = 12.0;
     $jhsWidthHonors = 13.0;
 
+    $writeWide = function (
+        string $text,
+        float $x,
+        float $y,
+        float $width,
+        float $baseSize = 8.0,
+        float $minSize = 5.0
+    ) use ($pdf): void {
+        $this->writeFieldAlignedValue(
+            $pdf,
+            $text,
+            [
+                'x' => $x,
+                'y' => $y,
+                'width' => $width,
+                'valueAlign' => 'left',
+                'fallbackAlign' => 'left',
+            ],
+            $baseSize,
+            $minSize
+        );
+    };
+
+    $writeNarrow = function (
+        string $text,
+        float $x,
+        float $y,
+        float $width,
+        float $baseSize = 8.0,
+        float $minSize = 5.0
+    ) use ($pdf): void {
+        $this->writeFieldAlignedValue(
+            $pdf,
+            $text,
+            [
+                'x' => $x,
+                'y' => $y,
+                'width' => $width,
+                'valueAlign' => 'center',
+                'fallbackAlign' => 'center',
+            ],
+            $baseSize,
+            $minSize
+        );
+    };
+
     // === Elementary Section ===
     $hasElemData = $this->hasEducationObjectData($education, [
         'elem_school',
@@ -1134,18 +1180,18 @@ private function writeEducationalBackground($pdf, $education)
     ]);
 
     if (!$hasElemData) {
-        $this->writeAlignedValue($pdf, 'N/A', $elemXSchool, 263, $elemWidthSchool, 8.0, 5.0); // School
-        $this->writeAlignedValue($pdf, 'N/A', $elemXBasic, 263, $elemWidthBasic, 8.0, 4.5); // Basic Education
-        $this->writeAlignedValue($pdf, 'N/A', $elemXFrom, 263, $elemWidthFrom, 8.0, 5.0); // From
-        $this->writeAlignedValue($pdf, 'N/A', $elemXTo, 263, $elemWidthTo, 8.0, 5.0); // To
-        $this->writeAlignedValue($pdf, 'N/A', $elemXEarned, 263, $elemWidthEarned, 8.0, 5.0); // Earned
-        $this->writeAlignedValue($pdf, 'N/A', $elemXYearGraduated, 263, $elemWidthYearGraduated, 8.0, 5.0); // Year Graduated
-        $this->writeAlignedValue($pdf, 'N/A', $elemXHonors, 263, $elemWidthHonors, 8.0, 5.0); // Academic Honors
+        $writeWide('N/A', $elemXSchool, 265.0, $elemWidthSchool, 8.0, 5.0); // School
+        $writeWide('N/A', $elemXBasic, 263.0, $elemWidthBasic, 8.0, 4.5); // Basic Education
+        $writeNarrow('N/A', $elemXFrom, 263.0, $elemWidthFrom, 8.0, 5.0); // From
+        $writeNarrow('N/A', $elemXTo, 263.0, $elemWidthTo, 8.0, 5.0); // To
+        $writeWide('N/A', $elemXEarned, 263.0, $elemWidthEarned, 8.0, 5.0); // Earned
+        $writeNarrow('N/A', $elemXYearGraduated, 263.0, $elemWidthYearGraduated, 8.0, 5.0); // Year Graduated
+        $writeWide('N/A', $elemXHonors, 263.0, $elemWidthHonors, 8.0, 5.0); // Academic Honors
     } else {
         $this->writeWrappedAt(
             $pdf,
             $this->valueOrNa($education?->elem_school),
-            41,
+            $elemXSchool,
             265,
             $elemWidthSchool,
             6.5,
@@ -1155,18 +1201,18 @@ private function writeEducationalBackground($pdf, $education)
         $this->writeWrappedAt(
             $pdf,
             $this->valueOrNa($education?->elem_basic),
-            90,
+            $elemXBasic,
             263,
             $elemWidthBasic,
             6.5,
             2.0,
             1.3
         );
-        $this->writeAlignedValue($pdf, $this->dateOrNa($education?->elem_from, 'm/Y'), 136.6, 263, $elemWidthFrom, 7.0, 5.0);
-        $this->writeAlignedValue($pdf, $this->dateOrNa($education?->elem_to, 'm/Y'), 149, 263, $elemWidthTo, 7.0, 5.0);
-        $this->writeAlignedValue($pdf, $this->valueOrNa($education?->elem_earned), $elemXEarned, 263, $elemWidthEarned, 7.0, 5.0);
-        $this->writeAlignedValue($pdf, $this->valueOrNa($education?->elem_year_graduated), 182.5, 263, $elemWidthYearGraduated, 7.0, 5.0);
-        $this->writeAlignedValue($pdf, $this->valueOrNa($education?->elem_academic_honors), $elemXHonors, 263, $elemWidthHonors, 7.0, 5.0);
+        $writeNarrow($this->dateOrNa($education?->elem_from, 'm/Y'), $elemXFrom, 263.0, $elemWidthFrom, 7.0, 5.0);
+        $writeNarrow($this->dateOrNa($education?->elem_to, 'm/Y'), $elemXTo, 263.0, $elemWidthTo, 7.0, 5.0);
+        $writeWide($this->valueOrNa($education?->elem_earned), $elemXEarned, 263.0, $elemWidthEarned, 7.0, 5.0);
+        $writeNarrow($this->valueOrNa($education?->elem_year_graduated), $elemXYearGraduated, 263.0, $elemWidthYearGraduated, 7.0, 5.0);
+        $writeWide($this->valueOrNa($education?->elem_academic_honors), $elemXHonors, 263.0, $elemWidthHonors, 7.0, 5.0);
     }
 
     // === Junior High Section ===
@@ -1181,29 +1227,29 @@ private function writeEducationalBackground($pdf, $education)
     ]);
 
     if (!$hasJHSData) {
-        $this->writeAlignedValue($pdf, 'N/A', $jhsXSchool, 271, $jhsWidthSchool, 8.0, 5.0); // School
-        $this->writeAlignedValue($pdf, 'N/A', $jhsXBasic, 271, $jhsWidthBasic, 8.0, 4.5); // Basic Education
-        $this->writeAlignedValue($pdf, 'N/A', $jhsXFrom, 271, $jhsWidthFrom, 8.0, 5.0); // From
-        $this->writeAlignedValue($pdf, 'N/A', $jhsXTo, 271, $jhsWidthTo, 8.0, 5.0); // To
-        $this->writeAlignedValue($pdf, 'N/A', $jhsXEarned, 271, $jhsWidthEarned, 8.0, 5.0); // Earned
-        $this->writeAlignedValue($pdf, 'N/A', $jhsXYearGraduated, 271, $jhsWidthYearGraduated, 8.0, 5.0); // Year Graduated
-        $this->writeAlignedValue($pdf, 'N/A', $jhsXHonors, 271, $jhsWidthHonors, 8.0, 5.0); // Academic Honors
+        $writeWide('N/A', $jhsXSchool, 271.0, $jhsWidthSchool, 8.0, 5.0); // School
+        $writeWide('N/A', $jhsXBasic, 271.0, $jhsWidthBasic, 8.0, 4.5); // Basic Education
+        $writeNarrow('N/A', $jhsXFrom, 271.0, $jhsWidthFrom, 8.0, 5.0); // From
+        $writeNarrow('N/A', $jhsXTo, 271.0, $jhsWidthTo, 8.0, 5.0); // To
+        $writeWide('N/A', $jhsXEarned, 271.0, $jhsWidthEarned, 8.0, 5.0); // Earned
+        $writeNarrow('N/A', $jhsXYearGraduated, 271.0, $jhsWidthYearGraduated, 8.0, 5.0); // Year Graduated
+        $writeWide('N/A', $jhsXHonors, 271.0, $jhsWidthHonors, 8.0, 5.0); // Academic Honors
     } else {
-        $this->writeFittedAt($pdf, $this->valueOrNa($education?->jhs_school), 41, 271, $jhsWidthSchool, 7.0, 4.5);
-        $this->writeFittedAt($pdf, $this->valueOrNa($education?->jhs_basic), 90, 271, $jhsWidthBasic, 7.0, 4.5);
-        $this->writeAlignedValue($pdf, $this->dateOrNa($education?->jhs_from, 'm/Y'), 136.6, 271, $jhsWidthFrom, 7.0, 5.0);
-        $this->writeAlignedValue($pdf, $this->dateOrNa($education?->jhs_to, 'm/Y'), 149, 271, $jhsWidthTo, 7.0, 5.0);
-        $this->writeAlignedValue($pdf, $this->valueOrNa($education?->jhs_earned), 160.5, 271, $jhsWidthEarned, 7.0, 5.0);
-        $this->writeAlignedValue($pdf, $this->valueOrNa($education?->jhs_year_graduated), 182.5, 271, $jhsWidthYearGraduated, 7.0, 5.0);
-        $this->writeAlignedValue($pdf, $this->valueOrNa($education?->jhs_academic_honors), $jhsXHonors, 271, $jhsWidthHonors, 7.0, 5.0);
+        $writeWide($this->valueOrNa($education?->jhs_school), $jhsXSchool, 271.0, $jhsWidthSchool, 7.0, 4.5);
+        $writeWide($this->valueOrNa($education?->jhs_basic), $jhsXBasic, 271.0, $jhsWidthBasic, 7.0, 4.5);
+        $writeNarrow($this->dateOrNa($education?->jhs_from, 'm/Y'), $jhsXFrom, 271.0, $jhsWidthFrom, 7.0, 5.0);
+        $writeNarrow($this->dateOrNa($education?->jhs_to, 'm/Y'), $jhsXTo, 271.0, $jhsWidthTo, 7.0, 5.0);
+        $writeWide($this->valueOrNa($education?->jhs_earned), $jhsXEarned, 271.0, $jhsWidthEarned, 7.0, 5.0);
+        $writeNarrow($this->valueOrNa($education?->jhs_year_graduated), $jhsXYearGraduated, 271.0, $jhsWidthYearGraduated, 7.0, 5.0);
+        $writeWide($this->valueOrNa($education?->jhs_academic_honors), $jhsXHonors, 271.0, $jhsWidthHonors, 7.0, 5.0);
     }
 }
 
 
 private function writeVocationalChunk($pdf, $chunk)
 {
-    $startX_school = 20;
-    $startX_basic = 70;
+    $startX_school = 41.0;
+    $startX_basic = 90.0;
     $startX_from = 127;
     $startX_to = 137.5;
     $startX_earned = 160.5;
@@ -1220,17 +1266,63 @@ private function writeVocationalChunk($pdf, $chunk)
     $startY_other = 279.0;
     $lineHeight = 6;
 
+    $writeWide = function (
+        string $text,
+        float $x,
+        float $y,
+        float $width,
+        float $baseSize = 7.0,
+        float $minSize = 5.0
+    ) use ($pdf): void {
+        $this->writeFieldAlignedValue(
+            $pdf,
+            $text,
+            [
+                'x' => $x,
+                'y' => $y,
+                'width' => $width,
+                'valueAlign' => 'left',
+                'fallbackAlign' => 'left',
+            ],
+            $baseSize,
+            $minSize
+        );
+    };
+
+    $writeNarrow = function (
+        string $text,
+        float $x,
+        float $y,
+        float $width,
+        float $baseSize = 7.0,
+        float $minSize = 5.0
+    ) use ($pdf): void {
+        $this->writeFieldAlignedValue(
+            $pdf,
+            $text,
+            [
+                'x' => $x,
+                'y' => $y,
+                'width' => $width,
+                'valueAlign' => 'center',
+                'fallbackAlign' => 'center',
+            ],
+            $baseSize,
+            $minSize
+        );
+    };
+
     $isEmpty = !$this->hasAnyRowData((array) $chunk, ['school', 'basic', 'from', 'to', 'earned', 'year_graduated', 'academic_honors']);
 
     // If all are empty, write N/A in the first-row cells.
     if ($isEmpty) {
-        $this->writeAlignedValue($pdf, 'N/A', $startX_school, 278.5, $schoolWidth, 8.0, 5.0); // School
-        $this->writeAlignedValue($pdf, 'N/A', $startX_basic, 278.5, $basicWidth, 8.0, 4.5); // Basic Education
-        $this->writeAlignedValue($pdf, 'N/A', $startX_from, 279.0, $fromWidth, 8.0, 5.0); // From
-        $this->writeAlignedValue($pdf, 'N/A', $startX_to, 279.0, $toWidth, 8.0, 5.0); // To
-        $this->writeAlignedValue($pdf, 'N/A', $startX_earned, 279.0, $earnedWidth, 8.0, 5.0); // Earned
-        $this->writeAlignedValue($pdf, 'N/A', $startX_year_graduated, 279.0, $yearGraduatedWidth, 8.0, 5.0); // Year Graduated
-        $this->writeAlignedValue($pdf, 'N/A', $startX_honors, 279.0, $honorsWidth, 8.0, 5.0); // Academic Honors
+        $writeWide('N/A', $startX_school, 278.5, $schoolWidth, 8.0, 5.0); // School
+        $writeWide('N/A', $startX_basic, 278.5, $basicWidth, 8.0, 4.5); // Basic Education
+        $writeNarrow('N/A', $startX_from, 279.0, $fromWidth, 8.0, 5.0); // From
+        $writeNarrow('N/A', $startX_to, 279.0, $toWidth, 8.0, 5.0); // To
+        $writeWide('N/A', $startX_earned, 279.0, $earnedWidth, 8.0, 5.0); // Earned
+        $writeNarrow('N/A', $startX_year_graduated, 279.0, $yearGraduatedWidth, 8.0, 5.0); // Year Graduated
+        $writeWide('N/A', $startX_honors, 279.0, $honorsWidth, 8.0, 5.0); // Academic Honors
         return;
     }
 
@@ -1240,26 +1332,26 @@ private function writeVocationalChunk($pdf, $chunk)
         $currentYSchoolBasic = $startY_school_basic + $rowOffset;
         $currentYOther = $startY_other + $rowOffset;
 
-        $this->writeAlignedValue($pdf, $this->valueOrNa($voc['school'] ?? null), $startX_school, $currentYSchoolBasic, $schoolWidth, 7.0, 5.0);
+        $writeWide($this->valueOrNa($voc['school'] ?? null), $startX_school, $currentYSchoolBasic, $schoolWidth, 7.0, 5.0);
 
-        $this->writeAlignedValue($pdf, $this->valueOrNa($voc['basic'] ?? null), $startX_basic, $currentYSchoolBasic, $basicWidth, 7.0, 4.5);
+        $writeWide($this->valueOrNa($voc['basic'] ?? null), $startX_basic, $currentYSchoolBasic, $basicWidth, 7.0, 4.5);
 
-        $this->writeAlignedValue($pdf, $this->dateOrNa($voc['from'] ?? null, 'm/Y'), $startX_from, $currentYOther, $fromWidth, 7.0, 5.0);
-        $this->writeAlignedValue($pdf, $this->dateOrNa($voc['to'] ?? null, 'm/Y'), $startX_to, $currentYOther, $toWidth, 7.0, 5.0);
+        $writeNarrow($this->dateOrNa($voc['from'] ?? null, 'm/Y'), $startX_from, $currentYOther, $fromWidth, 7.0, 5.0);
+        $writeNarrow($this->dateOrNa($voc['to'] ?? null, 'm/Y'), $startX_to, $currentYOther, $toWidth, 7.0, 5.0);
 
-        $this->writeAlignedValue($pdf, $this->valueOrNa($voc['earned'] ?? null), $startX_earned, $currentYOther, $earnedWidth, 7.0, 5.0);
+        $writeWide($this->valueOrNa($voc['earned'] ?? null), $startX_earned, $currentYOther, $earnedWidth, 7.0, 5.0);
 
-        $this->writeAlignedValue($pdf, $this->valueOrNa($voc['year_graduated'] ?? null), $startX_year_graduated, $currentYOther, $yearGraduatedWidth, 7.0, 5.0);
+        $writeNarrow($this->valueOrNa($voc['year_graduated'] ?? null), $startX_year_graduated, $currentYOther, $yearGraduatedWidth, 7.0, 5.0);
 
-        $this->writeAlignedValue($pdf, $this->valueOrNa($voc['academic_honors'] ?? null), $startX_honors, $currentYOther, $honorsWidth, 7.0, 5.0);
+        $writeWide($this->valueOrNa($voc['academic_honors'] ?? null), $startX_honors, $currentYOther, $honorsWidth, 7.0, 5.0);
     }
 }
 
 
 private function writeCollegeChunk($pdf, $chunk)
 {
-    $startX_school = 20;
-    $startX_basic = 70;
+    $startX_school = 41.0;
+    $startX_basic = 90.0;
     $startX_from = 127;
     $startX_to =  137.5;
     $startX_earned = 160.5;
@@ -1277,17 +1369,63 @@ private function writeCollegeChunk($pdf, $chunk)
     $startY_other = 286.5;
     $lineHeight = 6;
 
+    $writeWide = function (
+        string $text,
+        float $x,
+        float $y,
+        float $width,
+        float $baseSize = 7.0,
+        float $minSize = 5.0
+    ) use ($pdf): void {
+        $this->writeFieldAlignedValue(
+            $pdf,
+            $text,
+            [
+                'x' => $x,
+                'y' => $y,
+                'width' => $width,
+                'valueAlign' => 'left',
+                'fallbackAlign' => 'left',
+            ],
+            $baseSize,
+            $minSize
+        );
+    };
+
+    $writeNarrow = function (
+        string $text,
+        float $x,
+        float $y,
+        float $width,
+        float $baseSize = 7.0,
+        float $minSize = 5.0
+    ) use ($pdf): void {
+        $this->writeFieldAlignedValue(
+            $pdf,
+            $text,
+            [
+                'x' => $x,
+                'y' => $y,
+                'width' => $width,
+                'valueAlign' => 'center',
+                'fallbackAlign' => 'center',
+            ],
+            $baseSize,
+            $minSize
+        );
+    };
+
     $isEmpty = !$this->hasAnyRowData((array) $chunk, ['school', 'basic', 'from', 'to', 'earned', 'year_graduated', 'academic_honors']);
 
     // If all are empty, write N/A in the first-row cells.
     if ($isEmpty) {
-        $this->writeAlignedValue($pdf, 'N/A', $startX_school, $startY_school, $schoolWidth, 8.0, 5.0); // School
-        $this->writeAlignedValue($pdf, 'N/A', $startX_basic, $startY_school, $basicWidth, 8.0, 4.5); // Basic Education
-        $this->writeAlignedValue($pdf, 'N/A', $startX_from, $startY_other, $fromWidth, 8.0, 5.0); // From
-        $this->writeAlignedValue($pdf, 'N/A', $startX_to, $startY_other, $toWidth, 8.0, 5.0); // To
-        $this->writeAlignedValue($pdf, 'N/A', $startX_earned, $startY_other, $earnedWidth, 8.0, 5.0); // Earned
-        $this->writeAlignedValue($pdf, 'N/A', $startX_year_graduated, $startY_other, $yearGraduatedWidth, 8.0, 5.0); // Year Graduated
-        $this->writeAlignedValue($pdf, 'N/A', $startX_honors, $startY_other, $honorsWidth, 8.0, 5.0); // Academic Honors
+        $writeWide('N/A', $startX_school, $startY_school, $schoolWidth, 8.0, 5.0); // School
+        $writeWide('N/A', $startX_basic, $startY_school, $basicWidth, 8.0, 4.5); // Basic Education
+        $writeNarrow('N/A', $startX_from, $startY_other, $fromWidth, 8.0, 5.0); // From
+        $writeNarrow('N/A', $startX_to, $startY_other, $toWidth, 8.0, 5.0); // To
+        $writeWide('N/A', $startX_earned, $startY_other, $earnedWidth, 8.0, 5.0); // Earned
+        $writeNarrow('N/A', $startX_year_graduated, $startY_other, $yearGraduatedWidth, 8.0, 5.0); // Year Graduated
+        $writeWide('N/A', $startX_honors, $startY_other, $honorsWidth, 8.0, 5.0); // Academic Honors
         return;
     }
 
@@ -1298,26 +1436,26 @@ private function writeCollegeChunk($pdf, $chunk)
         $currentYOther = $startY_other + $rowOffset;
         $currentYSchool = $startY_school + $rowOffset;
 
-        $this->writeAlignedValue($pdf, $this->valueOrNa($college['school'] ?? null), $startX_school, $currentYSchool, $schoolWidth, 7.0, 4.5);
+        $writeWide($this->valueOrNa($college['school'] ?? null), $startX_school, $currentYSchool, $schoolWidth, 7.0, 4.5);
 
-        $this->writeAlignedValue($pdf, $this->valueOrNa($college['basic'] ?? null), $startX_basic, $currentYSchoolBasic, $basicWidth, 6.5, 4.5);
+        $writeWide($this->valueOrNa($college['basic'] ?? null), $startX_basic, $currentYSchoolBasic, $basicWidth, 6.5, 4.5);
 
-        $this->writeAlignedValue($pdf, $this->dateOrNa($college['from'] ?? null, 'm/Y'), $startX_from, $currentYOther, $fromWidth, 7.0, 5.0);
-        $this->writeAlignedValue($pdf, $this->dateOrNa($college['to'] ?? null, 'm/Y'), $startX_to, $currentYOther, $toWidth, 7.0, 5.0);
+        $writeNarrow($this->dateOrNa($college['from'] ?? null, 'm/Y'), $startX_from, $currentYOther, $fromWidth, 7.0, 5.0);
+        $writeNarrow($this->dateOrNa($college['to'] ?? null, 'm/Y'), $startX_to, $currentYOther, $toWidth, 7.0, 5.0);
 
-        $this->writeAlignedValue($pdf, $this->valueOrNa($college['earned'] ?? null), $startX_earned, $currentYOther, $earnedWidth, 7.0, 5.0);
+        $writeWide($this->valueOrNa($college['earned'] ?? null), $startX_earned, $currentYOther, $earnedWidth, 7.0, 5.0);
 
-        $this->writeAlignedValue($pdf, $this->valueOrNa($college['year_graduated'] ?? null), $startX_year_graduated, $currentYOther, $yearGraduatedWidth, 7.0, 5.0);
+        $writeNarrow($this->valueOrNa($college['year_graduated'] ?? null), $startX_year_graduated, $currentYOther, $yearGraduatedWidth, 7.0, 5.0);
 
-        $this->writeAlignedValue($pdf, $this->valueOrNa($college['academic_honors'] ?? null), $startX_honors, $currentYOther, $honorsWidth, 7.0, 5.0);
+        $writeWide($this->valueOrNa($college['academic_honors'] ?? null), $startX_honors, $currentYOther, $honorsWidth, 7.0, 5.0);
     }
 }
 
 
 private function writeGraduateChunk($pdf, $chunk)
 {
-    $startX_school = 20;
-    $startX_basic = 70;
+    $startX_school = 41.0;
+    $startX_basic = 90.0;
     $startX_from = 135.0;
     $startX_to = 148.0;
     $startX_earned = 160.5;
@@ -1335,17 +1473,63 @@ private function writeGraduateChunk($pdf, $chunk)
     $startY_other = 294.0;
     $lineHeight = 6;
 
+    $writeWide = function (
+        string $text,
+        float $x,
+        float $y,
+        float $width,
+        float $baseSize = 7.0,
+        float $minSize = 5.0
+    ) use ($pdf): void {
+        $this->writeFieldAlignedValue(
+            $pdf,
+            $text,
+            [
+                'x' => $x,
+                'y' => $y,
+                'width' => $width,
+                'valueAlign' => 'left',
+                'fallbackAlign' => 'left',
+            ],
+            $baseSize,
+            $minSize
+        );
+    };
+
+    $writeNarrow = function (
+        string $text,
+        float $x,
+        float $y,
+        float $width,
+        float $baseSize = 7.0,
+        float $minSize = 5.0
+    ) use ($pdf): void {
+        $this->writeFieldAlignedValue(
+            $pdf,
+            $text,
+            [
+                'x' => $x,
+                'y' => $y,
+                'width' => $width,
+                'valueAlign' => 'center',
+                'fallbackAlign' => 'center',
+            ],
+            $baseSize,
+            $minSize
+        );
+    };
+
     $isEmpty = !$this->hasAnyRowData((array) $chunk, ['school', 'basic', 'from', 'to', 'earned', 'year_graduated', 'academic_honors']);
 
    
     if ($isEmpty) {
-        $this->writeAlignedValue($pdf, 'N/A', $startX_school, $startY_other, $schoolWidth, 8.0, 5.0); // School
-        $this->writeAlignedValue($pdf, 'N/A', $startX_basic, $startY_other, $basicWidth, 8.0, 4.5); // Basic Education
-        $this->writeAlignedValue($pdf, 'N/A', $startX_from, $startY_other, $fromWidth, 8.0, 5.0); // From
-        $this->writeAlignedValue($pdf, 'N/A', $startX_to, $startY_other, $toWidth, 8.0, 5.0); // To
-        $this->writeAlignedValue($pdf, 'N/A', $startX_earned, $startY_other, $earnedWidth, 8.0, 5.0); // Earned
-        $this->writeAlignedValue($pdf, 'N/A', $startX_year_graduated, $startY_other, $yearGraduatedWidth, 8.0, 5.0); // Year Graduated
-        $this->writeAlignedValue($pdf, 'N/A', $startX_honors, $startY_other, $honorsWidth, 8.0, 5.0); // Academic Honors
+        $writeWide('N/A', $startX_school, $startY_other, $schoolWidth, 8.0, 5.0); // School
+        $writeWide('N/A', $startX_basic, $startY_other, $basicWidth, 8.0, 4.5); // Basic Education
+        $writeNarrow('N/A', $startX_from, $startY_other, $fromWidth, 8.0, 5.0); // From
+        $writeNarrow('N/A', $startX_to, $startY_other, $toWidth, 8.0, 5.0); // To
+        $writeWide('N/A', $startX_earned, $startY_other, $earnedWidth, 8.0, 5.0); // Earned
+        $writeNarrow('N/A', $startX_year_graduated, $startY_other, $yearGraduatedWidth, 8.0, 5.0); // Year Graduated
+        $writeWide('N/A', $startX_honors, $startY_other, $honorsWidth, 8.0, 5.0); // Academic Honors
         return;
     }
 
@@ -1356,19 +1540,19 @@ private function writeGraduateChunk($pdf, $chunk)
         $currentYBasic = $startY_basic + $rowOffset;
         $currentYOther = $startY_other + $rowOffset;
 
-        $this->writeAlignedValue($pdf, $this->valueOrNa($grad['school'] ?? null), $startX_school, $currentYSchool, $schoolWidth, 6.5, 4.5);
+        $writeWide($this->valueOrNa($grad['school'] ?? null), $startX_school, $currentYSchool, $schoolWidth, 6.5, 4.5);
 
-        $this->writeAlignedValue($pdf, $this->valueOrNa($grad['basic'] ?? null), $startX_basic, $currentYBasic, $basicWidth, 6.5, 4.5);
+        $writeWide($this->valueOrNa($grad['basic'] ?? null), $startX_basic, $currentYBasic, $basicWidth, 6.5, 4.5);
 
-        $this->writeAlignedValue($pdf, $this->dateOrNa($grad['from'] ?? null, 'm/Y'), $startX_from, $currentYOther, $fromWidth, 7.0, 5.0);
+        $writeNarrow($this->dateOrNa($grad['from'] ?? null, 'm/Y'), $startX_from, $currentYOther, $fromWidth, 7.0, 5.0);
 
-        $this->writeAlignedValue($pdf, $this->dateOrNa($grad['to'] ?? null, 'm/Y'), $startX_to, $currentYOther, $toWidth, 7.0, 5.0);
+        $writeNarrow($this->dateOrNa($grad['to'] ?? null, 'm/Y'), $startX_to, $currentYOther, $toWidth, 7.0, 5.0);
 
-        $this->writeAlignedValue($pdf, $this->valueOrNa($grad['earned'] ?? null), $startX_earned, $currentYOther, $earnedWidth, 7.0, 5.0);
+        $writeWide($this->valueOrNa($grad['earned'] ?? null), $startX_earned, $currentYOther, $earnedWidth, 7.0, 5.0);
 
-        $this->writeAlignedValue($pdf, $this->valueOrNa($grad['year_graduated'] ?? null), $startX_year_graduated, $currentYOther, $yearGraduatedWidth, 7.0, 5.0);
+        $writeNarrow($this->valueOrNa($grad['year_graduated'] ?? null), $startX_year_graduated, $currentYOther, $yearGraduatedWidth, 7.0, 5.0);
 
-        $this->writeAlignedValue($pdf, $this->valueOrNa($grad['academic_honors'] ?? null), $startX_honors, $currentYOther, $honorsWidth, 7.0, 5.0);
+        $writeWide($this->valueOrNa($grad['academic_honors'] ?? null), $startX_honors, $currentYOther, $honorsWidth, 7.0, 5.0);
     }
 }
 
@@ -2043,17 +2227,77 @@ private function writeCenteredFittedSized($pdf, string $text, float $x, float $y
     $this->setFont($pdf, 'Arial', '', 8);
 }
 
-    private function writeAlignedValue($pdf, string $text, float $x, float $y, float $maxWidth, float $baseSize = 8.0, float $minSize = 5.0): void
-    {
-        $normalized = strtoupper(trim($text));
-        if ($normalized === 'N/A' || $normalized === 'N\A') {
-            // Apply a small horizontal nudge to all N/A placeholders for easy alignment tweaks.
-            $this->writeCenteredFitted($pdf, 'N/A', $x + $this->naOffsetX, $y, $maxWidth);
-            return;
-        }
+private function isNaPlaceholderText(string $text): bool
+{
+    $normalized = strtoupper(trim($text));
+    return $normalized === 'N/A' || $normalized === 'N\A' || $normalized === 'NA';
+}
 
-        $this->writeFittedAt($pdf, $text, $x, $y, $maxWidth, $baseSize, $minSize);
+private function normalizeFieldAlign(string $align): string
+{
+    $normalized = strtolower(trim($align));
+    if (in_array($normalized, ['left', 'center'], true)) {
+        return $normalized;
     }
+
+    return 'left';
+}
+
+private function writeFieldAlignedValue(
+    $pdf,
+    string $text,
+    array $field,
+    float $baseSize = 8.0,
+    float $minSize = 5.0
+): void {
+    $x = (float) ($field['x'] ?? 0.0);
+    $y = (float) ($field['y'] ?? 0.0);
+    $width = max(1.0, (float) ($field['width'] ?? 1.0));
+    $paddingLeft = max(0.0, (float) ($field['paddingLeft'] ?? 0.0));
+    $paddingRight = max(0.0, (float) ($field['paddingRight'] ?? 0.0));
+    $valueAlign = $this->normalizeFieldAlign((string) ($field['valueAlign'] ?? 'left'));
+    $fallbackAlign = $this->normalizeFieldAlign((string) ($field['fallbackAlign'] ?? 'center'));
+    $valueXOffset = (float) ($field['valueXOffset'] ?? 0.0);
+    $fallbackXOffset = (float) ($field['fallbackXOffset'] ?? 0.0);
+    $valueYOffset = (float) ($field['valueYOffset'] ?? 0.0);
+    $fallbackYOffset = (float) ($field['fallbackYOffset'] ?? 0.0);
+
+    $isFallback = $this->isNaPlaceholderText($text);
+    $align = $isFallback ? $fallbackAlign : $valueAlign;
+    $xOffset = $isFallback ? $fallbackXOffset : $valueXOffset;
+    $yOffset = $isFallback ? $fallbackYOffset : $valueYOffset;
+    $renderText = $isFallback ? 'N/A' : $text;
+
+    $innerX = $x + $paddingLeft + $xOffset;
+    $innerY = $y + $yOffset;
+    $innerWidth = max(1.0, $width - $paddingLeft - $paddingRight);
+
+    if ($align === 'center') {
+        $this->writeCenteredFittedSized($pdf, $renderText, $innerX, $innerY, $innerWidth, $baseSize, $minSize);
+        return;
+    }
+
+    $this->writeFittedAt($pdf, $renderText, $innerX, $innerY, $innerWidth, $baseSize, $minSize);
+}
+
+private function writeAlignedValue($pdf, string $text, float $x, float $y, float $maxWidth, float $baseSize = 8.0, float $minSize = 5.0): void
+{
+    $this->writeFieldAlignedValue(
+        $pdf,
+        $text,
+        [
+            'x' => $x,
+            'y' => $y,
+            'width' => $maxWidth,
+            'valueAlign' => 'left',
+            'fallbackAlign' => 'center',
+            // Keep legacy global fallback nudge for existing sections.
+            'fallbackXOffset' => $this->naOffsetX,
+        ],
+        $baseSize,
+        $minSize
+    );
+}
 
 private function writeFittedAt(
     $pdf,
