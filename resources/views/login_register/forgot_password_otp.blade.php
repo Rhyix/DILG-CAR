@@ -66,7 +66,7 @@
                     <span id="timer">
                         Resend OTP in <span id="countdown"></span>
                     </span>
-                    <a href="{{ route('otp_resend') }}"
+                    <a href="#"
                         id="resend-link"
                         class="font-bold hover:underline hidden text-yellow-300">
                         RESEND CODE
@@ -83,18 +83,28 @@
     </main>
 
     <script>
-        let countdownEl = document.getElementById("countdown");
-        let resendLink = document.getElementById("resend-link");
-        let timerSpan = document.getElementById("timer");
-        let timerInterval;
+        let countdownEl = document.getElementById('countdown');
+        const resendLink = document.getElementById('resend-link');
+        const timerSpan = document.getElementById('timer');
+        const defaultCooldown = 30;
+        const storageKey = 'forgot_password_otp_resend_available_at';
+        const serverNowMs = {{ (int) ($serverNowTs ?? now()->timestamp) }} * 1000;
+        const bootPerfNowMs = performance.now();
+        const serverResendAvailableAtMs = {{ (int) ($resendAvailableAtTs ?? now()->timestamp) }} * 1000;
+        const storedResendAvailableAtMs = Number(sessionStorage.getItem(storageKey) || 0);
+        let resendAvailableAtMs = Math.max(serverResendAvailableAtMs, storedResendAvailableAtMs);
+        let timerInterval = null;
 
-        // Get OTP expiry from Blade (in ms)
-        const expiresAt = {{ \Carbon\Carbon::parse($otpExpiresAt ?? now())->timestamp }} * 1000;
-        const now = Date.now();
-        let countdown = Math.floor((expiresAt - now) / 1000);
-        countdown = countdown > 0 ? countdown : 0;
+        function nowFromServerClockMs() {
+            return serverNowMs + (performance.now() - bootPerfNowMs);
+        }
 
-        function updateTimer() {
+        function secondsLeft(targetMs) {
+            return Math.max(0, Math.ceil((targetMs - nowFromServerClockMs()) / 1000));
+        }
+
+        function renderCountdown() {
+            const countdown = secondsLeft(resendAvailableAtMs);
             const minutes = String(Math.floor(countdown / 60)).padStart(2, '0');
             const seconds = String(countdown % 60).padStart(2, '0');
 
@@ -102,48 +112,93 @@
 
             if (countdown <= 0) {
                 clearInterval(timerInterval);
-                resendLink.classList.remove("hidden");
-                timerSpan.innerHTML = '';
+                sessionStorage.removeItem(storageKey);
+                resendLink.classList.remove('hidden');
+                if (timerSpan) {
+                    timerSpan.innerHTML = '';
+                }
+            }
+        }
+
+        function startCooldownAbsolute(targetTimestampMs) {
+            resendAvailableAtMs = Number(targetTimestampMs) || 0;
+
+            if (resendAvailableAtMs <= nowFromServerClockMs()) {
+                clearInterval(timerInterval);
+                sessionStorage.removeItem(storageKey);
+                resendLink.classList.remove('hidden');
+                if (timerSpan) {
+                    timerSpan.innerHTML = '';
+                }
                 return;
             }
 
-            countdown--;
-        }
-
-        function startCountdown() {
+            sessionStorage.setItem(storageKey, String(Math.round(resendAvailableAtMs)));
+            resendLink.classList.add('hidden');
+            if (timerSpan && !timerSpan.querySelector('#countdown')) {
+                timerSpan.innerHTML = 'Resend OTP in <span id="countdown"></span>';
+                countdownEl = document.getElementById('countdown');
+            }
             clearInterval(timerInterval);
-            resendLink.classList.add("hidden");
-            updateTimer();
-            timerInterval = setInterval(updateTimer, 1000);
+            renderCountdown();
+            timerInterval = setInterval(renderCountdown, 1000);
         }
 
-        startCountdown();
+        function startCooldownBySeconds(seconds) {
+            const safeSeconds = Math.max(0, Number(seconds) || defaultCooldown);
+            const nextAllowedAt = nowFromServerClockMs() + (safeSeconds * 1000);
+            startCooldownAbsolute(nextAllowedAt);
+        }
 
-        resendLink.addEventListener('click', function(e) {
-            e.preventDefault();
+        startCooldownAbsolute(resendAvailableAtMs);
 
-            fetch("{{ route('forgot.password.otp.resend') }}", {
-            method: 'POST',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-            },
-            body: JSON.stringify({ email: '{{ $email ?? old('email') }}' })
-        })
-        .then(response => {
-            if (!response.ok) throw new Error('Resend failed');
-            return response.json();
-        })
-        .then(data => {
-            countdown = 300; // reset to 5 mins
-            showAppToast(data.message);
-            startCountdown();
-        })
-        .catch(error => {
-            console.error("Resend error:", error);
-            timerSpan.innerHTML = `<span class="text-red-500">Failed to resend OTP. Try again later.</span>`;
-        });
+        resendLink.addEventListener('click', async function (event) {
+            event.preventDefault();
+
+            try {
+                const response = await fetch("{{ route('forgot.password.otp.resend') }}", {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({ email: '{{ $email ?? old('email') }}' })
+                });
+
+                const data = await response.json().catch(() => ({}));
+
+                if (!response.ok) {
+                    const retryAfter = Number(data.retry_after || defaultCooldown);
+                    if (response.status === 429) {
+                        showAppToast(data.error || data.message || `Please wait ${retryAfter} seconds.`);
+                        const serverNextAllowed = Number(data.resend_available_at || 0) * 1000;
+                        if (serverNextAllowed > 0) {
+                            startCooldownAbsolute(serverNextAllowed);
+                        } else {
+                            startCooldownBySeconds(retryAfter);
+                        }
+                        return;
+                    }
+
+                    throw new Error(data.error || data.message || 'Resend failed');
+                }
+
+                showAppToast(data.message || 'New OTP sent successfully.');
+                const serverNextAllowed = Number(data.resend_available_at || 0) * 1000;
+                if (serverNextAllowed > 0) {
+                    startCooldownAbsolute(serverNextAllowed);
+                } else {
+                    startCooldownBySeconds(Number(data.retry_after || defaultCooldown));
+                }
+            } catch (error) {
+                console.error('Resend error:', error);
+                if (timerSpan) {
+                    timerSpan.innerHTML = '<span class="text-red-500">Failed to resend OTP. Try again later.</span>';
+                }
+            }
         });
     </script>
 

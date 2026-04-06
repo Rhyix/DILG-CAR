@@ -176,6 +176,7 @@ class RegisterController extends Controller
     return view('login_register.otp', [
         'email' => $data['email'],
         'status' => 'otp_waiting',
+        'serverNowTs' => now()->timestamp,
         'resendAvailableAtTs' => $resendAvailableAtTs,
         'fallbackOtp' => ($this->canUseLocalOtpFallback() && !empty($data['mail_delivery_failed'])) ? (string) ($data['otp'] ?? '') : '',
     ]);
@@ -274,7 +275,12 @@ class RegisterController extends Controller
             $message = "Please wait {$retryAfter} seconds before requesting another OTP.";
 
             return $wantsJson
-                ? response()->json(['message' => $message, 'retry_after' => $retryAfter], 429)
+                ? response()->json([
+                    'message' => $message,
+                    'retry_after' => $retryAfter,
+                    'resend_available_at' => $resendAvailableAtTs,
+                    'server_now' => $nowTs,
+                ], 429)
                 : back()->withErrors(['otp' => $message]);
         }
 
@@ -322,13 +328,17 @@ class RegisterController extends Controller
                         'message' => 'Email delivery failed. Local fallback OTP is available.',
                         'retry_after' => 30,
                         'resend_available_at' => (int) $data['resend_available_at_ts'],
+                        'server_now' => now()->timestamp,
                         'fallback_otp' => (string) $newOtp,
                     ])
                     : back()->with('status', 'Email delivery failed. Local fallback OTP is available on the OTP page.');
             }
 
             return $wantsJson
-                ? response()->json(['message' => $this->getOtpMailFailureMessage($e)], 500)
+                ? response()->json([
+                    'message' => $this->getOtpMailFailureMessage($e),
+                    'server_now' => now()->timestamp,
+                ], 500)
                 : back()->withErrors(['otp' => $this->getOtpMailFailureMessage($e)]);
         }
 
@@ -342,6 +352,7 @@ class RegisterController extends Controller
                 'message' => 'OTP resent.',
                 'retry_after' => 30,
                 'resend_available_at' => (int) $data['resend_available_at_ts'],
+                'server_now' => now()->timestamp,
             ])
             : back()->with('status', 'A new OTP has been sent to your email.');
     }

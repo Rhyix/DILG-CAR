@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Cache;
 use Carbon\Carbon;
 use App\Mail\ResetOTPmail;
 use Spatie\Activitylog\Models\Activity;
@@ -14,6 +15,8 @@ use Spatie\Activitylog\Models\Activity;
 
 class ForgotPasswordController extends Controller
 {
+    private const RESEND_COOLDOWN_SECONDS = 30;
+
     private function getOtpMailFailureMessage(\Throwable $e): string
     {
         $errorMessage = strtolower((string) $e->getMessage());
@@ -41,6 +44,28 @@ class ForgotPasswordController extends Controller
         }
 
         return hash_equals((string) $user->email, $email) ? $user : null;
+    }
+
+    private function resendThrottleCacheKey(string $email): string
+    {
+        return 'forgot_password_otp_resend_available_at:' . sha1(strtolower(trim($email)));
+    }
+
+    private function getResendAvailableAtTs(string $email): int
+    {
+        $value = Cache::get($this->resendThrottleCacheKey($email));
+        return is_numeric($value) ? (int) $value : 0;
+    }
+
+    private function setResendAvailableAtTs(string $email, int $availableAtTs): void
+    {
+        $ttlSeconds = max(1, $availableAtTs - now()->timestamp);
+
+        Cache::put(
+            $this->resendThrottleCacheKey($email),
+            $availableAtTs,
+            now()->addSeconds($ttlSeconds)
+        );
     }
 
     // 1. Show forgot password email input form
@@ -79,6 +104,9 @@ class ForgotPasswordController extends Controller
             return back()->withErrors(['email' => $this->getOtpMailFailureMessage($e)]);
         }
 
+        $resendAvailableAtTs = now()->addSeconds(self::RESEND_COOLDOWN_SECONDS)->timestamp;
+        $this->setResendAvailableAtTs($user->email, $resendAvailableAtTs);
+
         activity()
             ->withProperties(['ip' => request()->ip(), 'email' => $email, 'section' => 'Forgot Password'])
             ->event('send')
@@ -87,7 +115,8 @@ class ForgotPasswordController extends Controller
         return redirect()->route('forgot.password.otp.form')->with([
             'status' => 'OTP sent to your email.',
             'email' => $user->email,
-            'otpExpiresAt' => $user->otp_expires_at
+            'otpExpiresAt' => $user->otp_expires_at,
+            'resendAvailableAtTs' => $resendAvailableAtTs,
         ]);
     }
 
@@ -96,9 +125,14 @@ class ForgotPasswordController extends Controller
     {
         $email = session('email');
         $otpExpiresAt = session('otpExpiresAt');
+        $resendAvailableAtTs = (int) session('resendAvailableAtTs', 0);
 
         if (!$email) {
             return redirect()->route('forgot.password.form')->withErrors(['email' => 'Session expired. Please start again.']);
+        }
+
+        if ($resendAvailableAtTs <= 0) {
+            $resendAvailableAtTs = $this->getResendAvailableAtTs($email);
         }
 
         activity()
@@ -106,7 +140,12 @@ class ForgotPasswordController extends Controller
             ->event('view')
             ->log('Viewed OTP input form for password reset.');
 
-        return view('login_register.forgot_password_otp', compact('email', 'otpExpiresAt'));
+        return view('login_register.forgot_password_otp', [
+            'email' => $email,
+            'otpExpiresAt' => $otpExpiresAt,
+            'resendAvailableAtTs' => $resendAvailableAtTs,
+            'serverNowTs' => now()->timestamp,
+        ]);
     }
 
     // 4. Verify OTP and redirect to password reset form
@@ -229,6 +268,7 @@ class ForgotPasswordController extends Controller
 
         $email = trim((string) $request->email);
         $user = $this->findUserByExactEmail($email);
+        $nowTs = now()->timestamp;
 
         if (!$user) {
             activity()
@@ -237,6 +277,17 @@ class ForgotPasswordController extends Controller
                 ->log('Password reset failed (email not found).');
 
             return response()->json(['error' => 'Email not found.'], 404);
+        }
+
+        $resendAvailableAtTs = $this->getResendAvailableAtTs($email);
+        if ($resendAvailableAtTs > $nowTs) {
+            $retryAfter = $resendAvailableAtTs - $nowTs;
+            return response()->json([
+                'error' => "Please wait {$retryAfter} seconds before requesting another OTP.",
+                'retry_after' => $retryAfter,
+                'resend_available_at' => $resendAvailableAtTs,
+                'server_now' => $nowTs,
+            ], 429);
         }
 
         $currentOtp = preg_replace('/\D+/', '', (string) ($user->otp ?? ''));
@@ -259,8 +310,15 @@ class ForgotPasswordController extends Controller
                 ->event('send')
                 ->log('Failed to resend OTP for password reset via mail.');
 
-            return response()->json(['error' => $this->getOtpMailFailureMessage($e)], 500);
+            return response()->json([
+                'error' => $this->getOtpMailFailureMessage($e),
+                'server_now' => now()->timestamp,
+            ], 500);
         }
+
+        $nextResendAvailableAtTs = now()->addSeconds(self::RESEND_COOLDOWN_SECONDS)->timestamp;
+        $this->setResendAvailableAtTs($email, $nextResendAvailableAtTs);
+        session(['resendAvailableAtTs' => $nextResendAvailableAtTs]);
 
         activity()
             ->withProperties(['ip' => request()->ip(), 'email' => $user->email, 'section' => 'Forgot Password'])
@@ -269,7 +327,10 @@ class ForgotPasswordController extends Controller
 
         return response()->json([
             'message' => 'New OTP sent successfully.',
-            'otpExpiresAt' => Carbon::parse((string) $user->otp_expires_at)->toDateTimeString()
+            'otpExpiresAt' => Carbon::parse((string) $user->otp_expires_at)->toDateTimeString(),
+            'retry_after' => self::RESEND_COOLDOWN_SECONDS,
+            'resend_available_at' => $nextResendAvailableAtTs,
+            'server_now' => now()->timestamp,
         ]);
     }
 }

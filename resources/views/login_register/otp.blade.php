@@ -126,13 +126,24 @@
         const timerEl = document.getElementById('timer');
         const defaultCooldown = 30;
         const storageKey = 'register_otp_resend_available_at';
+        const serverNowMs = {{ (int) ($serverNowTs ?? now()->timestamp) }} * 1000;
+        const bootPerfNowMs = performance.now();
         const serverResendAvailableAt = {{ (int) ($resendAvailableAtTs ?? now()->timestamp) }} * 1000;
         const storedResendAvailableAt = Number(sessionStorage.getItem(storageKey) || 0);
-        const resendAvailableAt = Math.max(serverResendAvailableAt, storedResendAvailableAt);
+        const initialResendAvailableAt = Math.max(serverResendAvailableAt, storedResendAvailableAt);
+        let resendAvailableAt = initialResendAvailableAt;
         let timerInterval = null;
-        let countdown = Math.max(0, Math.floor((resendAvailableAt - Date.now()) / 1000));
+
+        function nowFromServerClockMs() {
+            return serverNowMs + (performance.now() - bootPerfNowMs);
+        }
+
+        function secondsLeft(targetMs) {
+            return Math.max(0, Math.ceil((targetMs - nowFromServerClockMs()) / 1000));
+        }
 
         function renderCountdown() {
+            const countdown = secondsLeft(resendAvailableAt);
             const minutes = String(Math.floor(countdown / 60)).padStart(2, '0');
             const seconds = String(countdown % 60).padStart(2, '0');
             countdownEl.textContent = `${minutes}:${seconds}`;
@@ -144,22 +155,34 @@
                 resendLink.classList.remove('hidden');
                 return;
             }
-
-            countdown -= 1;
         }
 
-        function startCooldown(seconds) {
+        function startCooldownAbsolute(targetTimestampMs) {
+            resendAvailableAt = Number(targetTimestampMs) || 0;
+
+            if (resendAvailableAt <= nowFromServerClockMs()) {
+                clearInterval(timerInterval);
+                sessionStorage.removeItem(storageKey);
+                timerEl.classList.add('hidden');
+                resendLink.classList.remove('hidden');
+                return;
+            }
+
             clearInterval(timerInterval);
-            countdown = Math.max(0, Number(seconds) || defaultCooldown);
-            const expiresAt = Date.now() + (countdown * 1000);
-            sessionStorage.setItem(storageKey, String(expiresAt));
+            sessionStorage.setItem(storageKey, String(Math.round(resendAvailableAt)));
             resendLink.classList.add('hidden');
             timerEl.classList.remove('hidden');
             renderCountdown();
             timerInterval = setInterval(renderCountdown, 1000);
         }
 
-        startCooldown(countdown);
+        function startCooldownBySeconds(seconds) {
+            const safeSeconds = Math.max(0, Number(seconds) || defaultCooldown);
+            const nextAllowedAt = nowFromServerClockMs() + (safeSeconds * 1000);
+            startCooldownAbsolute(nextAllowedAt);
+        }
+
+        startCooldownAbsolute(initialResendAvailableAt);
 
         resendLink.addEventListener('click', async function (event) {
             event.preventDefault();
@@ -183,7 +206,12 @@
                     const retryAfter = Number(data.retry_after || defaultCooldown);
                     if (response.status === 429) {
                         showAppToast(data.message || `Please wait ${retryAfter} seconds.`);
-                        startCooldown(retryAfter);
+                        const serverNextAllowed = Number(data.resend_available_at || 0) * 1000;
+                        if (serverNextAllowed > 0) {
+                            startCooldownAbsolute(serverNextAllowed);
+                        } else {
+                            startCooldownBySeconds(retryAfter);
+                        }
                         return;
                     }
                     throw new Error(data.message || 'Resend failed');
@@ -192,9 +220,10 @@
                 showAppToast(data.message || 'New OTP sent successfully.');
                 const serverNextAllowed = Number(data.resend_available_at || 0) * 1000;
                 if (serverNextAllowed > 0) {
-                    sessionStorage.setItem(storageKey, String(serverNextAllowed));
+                    startCooldownAbsolute(serverNextAllowed);
+                } else {
+                    startCooldownBySeconds(Number(data.retry_after || defaultCooldown));
                 }
-                startCooldown(Number(data.retry_after || defaultCooldown));
             } catch (error) {
                 console.error('Resend error:', error);
                 timerEl.classList.remove('hidden');

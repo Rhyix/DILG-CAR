@@ -245,8 +245,11 @@
 
     renderAllQuestions();
 
-    let duration = {{ $remaining_seconds }};
-    const totalDuration = {{ $total_seconds }}; // Total duration from controller
+    let duration = Math.max(0, {{ (int) $remaining_seconds }});
+    const totalDuration = {{ (int) $total_seconds }}; // Total duration from controller
+    const examEndTimeMs = {{ (int) ($examEndTimeTs ?? 0) }} * 1000;
+    const serverNowMs = {{ (int) ($serverNowTs ?? now()->timestamp) }} * 1000;
+    const serverClockStartPerf = performance.now();
     const timerDisplay = document.getElementById('timer');
     const timerCircle = document.getElementById('timer-circle');
     
@@ -258,26 +261,55 @@
         timerCircle.style.strokeDashoffset = circumference;
     }
     
-    // Initial display
+    function nowFromServerClockMs() {
+        return serverNowMs + (performance.now() - serverClockStartPerf);
+    }
+
+    function getServerNowDate() {
+        return new Date(nowFromServerClockMs());
+    }
+
+    function computeRemainingSecondsFromServerClock() {
+        if (examEndTimeMs <= 0) {
+            return Math.max(0, duration);
+        }
+
+        return Math.max(0, Math.floor((examEndTimeMs - nowFromServerClockMs()) / 1000));
+    }
+
+    // Initial display from server-anchored clock.
+    duration = computeRemainingSecondsFromServerClock();
     updateTimerDisplay(duration);
 
-    const timerInterval = setInterval(() => {
-        duration--;
-        if (duration >= 0) {
-            updateTimerDisplay(duration);
-        } else {
-            clearInterval(timerInterval);
-            collectCurrentAnswers(); 
-            window.triggerTimesUp();
-            // Optional: Auto submit after a few seconds of "Times Up" modal
-            setTimeout(() => {
-                if(!window.isSubmitting) prepareSubmit();
-            }, 3000);
+    let hasTriggeredTimesUp = false;
+    let timerInterval = null;
+
+    function handleTimesUp() {
+        if (hasTriggeredTimesUp) {
+            return;
+        }
+
+        hasTriggeredTimesUp = true;
+        clearInterval(timerInterval);
+        collectCurrentAnswers();
+        window.triggerTimesUp();
+        // Optional: Auto submit after a few seconds of "Times Up" modal
+        setTimeout(() => {
+            if(!window.isSubmitting) prepareSubmit();
+        }, 3000);
+    }
+
+    timerInterval = setInterval(() => {
+        duration = computeRemainingSecondsFromServerClock();
+        updateTimerDisplay(duration);
+
+        if (duration <= 0) {
+            handleTimesUp();
         }
     }, 1000);
 
     function updatePST() {
-        const now = new Date();
+        const now = getServerNowDate();
         // Format time: 01:31:35 PM
         const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
         const timeStr = now.toLocaleTimeString('en-US', timeOptions);

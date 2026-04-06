@@ -64,90 +64,10 @@
                 SEND OTP
             </button>
         </div>
-            </ul>
 
         </form>
     </main>
   
-      <script>
- let countdown = 300; // default 5 mins
-let countdownEl = document.getElementById("countdown");
-let resendLink = document.getElementById("resend-link");
-let timerSpan = document.getElementById("timer");
-let timerInterval;
-
-// Calculate remaining time from session
-const expiresAt = {{ \Carbon\Carbon::parse(session('pending_registration.expires_at'))->timestamp }} * 1000;
-const now = Date.now();
-const timeLeft = Math.floor((expiresAt - now) / 1000);
-countdown = timeLeft > 0 ? timeLeft : 0;
-
-// Format and display countdown
-function updateTimer() {
-    const minutes = String(Math.floor(countdown / 60)).padStart(2, '0');
-    const seconds = String(countdown % 60).padStart(2, '0');
-
-    if (countdownEl) countdownEl.textContent = `${minutes}:${seconds}`;
-
-    if (countdown <= 0) {
-        clearInterval(timerInterval);
-        resendLink.classList.remove("hidden");
-        if (timerSpan) timerSpan.innerHTML = '';
-        return;
-    }
-
-    countdown--;
-}
-
-// Start new countdown cycle
-function startCountdown() {
-    clearInterval(timerInterval);
-    resendLink.classList.add("hidden");
-
-    const minutes = String(Math.floor(countdown / 60)).padStart(2, '0');
-    const seconds = String(countdown % 60).padStart(2, '0');
-
-    timerSpan.innerHTML = `Resend OTP in <span id="countdown"><strong>${minutes}:${seconds}</strong></span>`;
-    countdownEl = document.getElementById("countdown");
-
-    timerInterval = setInterval(updateTimer, 1000);
-}
-
-startCountdown();
-
-// Handle resend link click
-resendLink.addEventListener('click', function(e) {
-    e.preventDefault();
-
-    fetch("{{ route('otp_resend') }}", {
-        method: 'GET',
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRF-TOKEN': '{{ csrf_token() }}'
-        }
-    })
-    .then(response => {
-        if (!response.ok) throw new Error('Resend failed');
-        return response.json();
-    })
-    .then(data => {
-        // Reset countdown to 5 minutes
-        countdown = 300;
-        resendLink.classList.add("hidden");
-        timerSpan.innerHTML = `Resend OTP in <span id="countdown"><strong>05:00</strong></span>`;
-        countdownEl = document.getElementById("countdown");
-        startCountdown();
-
-        showAppToast("New OTP sent successfully.");
-    })
-    .catch(error => {
-        console.error("Resend error:", error);
-        timerSpan.innerHTML = `<span class="text-red-500">Failed to resend OTP. Try again later.</span>`;
-    });
-});
-
-    </script>
-
     @include('partials.loader')
 
 </body>

@@ -149,7 +149,7 @@ Route::get('/forgot-password', [ForgotPasswordController::class, 'showForgotPass
 Route::post('/forgot-password/send-otp', [ForgotPasswordController::class, 'sendOtp'])->name('forgot.password.send.otp');
 Route::get('/forgot-password/otp', [ForgotPasswordController::class, 'showOtpForm'])->name('forgot.password.otp.form');
 Route::post('/forgot-password/verify-otp', [ForgotPasswordController::class, 'verifyOtp'])->name('forgot.password.verify.otp');
-Route::get('/forgot-password/otp/resend', [ForgotPasswordController::class, 'resendOtp'])->name('forgot.password.otp.resend');
+Route::post('/forgot-password/otp/resend', [ForgotPasswordController::class, 'resendOtp'])->name('forgot.password.otp.resend');
 Route::get('/forgot-password/reset/{email}', [ForgotPasswordController::class, 'showResetForm'])->name('forgot.password.reset.form');
 Route::post('/forgot-password/reset', [ForgotPasswordController::class, 'resetPassword'])->name('forgot.password.reset');
 

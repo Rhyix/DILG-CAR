@@ -30,6 +30,17 @@ class ExamController extends Controller
 {
     private const ATTENDANCE_WILL_ATTEND = 'will_attend';
     private const ATTENDANCE_WILL_NOT_ATTEND = 'will_not_attend';
+    private const EXAM_SUBMISSION_GRACE_SECONDS = 60;
+
+    private function hasExamWindowExpired(Applications $application, int $graceSeconds = self::EXAM_SUBMISSION_GRACE_SECONDS): bool
+    {
+        if (empty($application->exam_end_time)) {
+            return false;
+        }
+
+        $cutoff = \Carbon\Carbon::parse((string) $application->exam_end_time)->addSeconds(max(0, $graceSeconds));
+        return now()->greaterThan($cutoff);
+    }
 
     private function qualifiedApplicationsQuery(string $vacancy_id)
     {
@@ -373,23 +384,38 @@ class ExamController extends Controller
             'answers' => 'nullable|array',
         ]);
 
+        if ((string) $validated['vacancy_id'] !== (string) $vacancy_id) {
+            abort(422, 'Exam payload vacancy mismatch.');
+        }
+
         $answerRecord = Applications::where('vacancy_id', $validated['vacancy_id'])
             ->where('user_id', $validated['user_id'])
             ->firstOrFail();
 
-        // Time Validation (Allow 2 minutes grace period for network latency)
-        if ($answerRecord->exam_end_time) {
-            $endTime = \Carbon\Carbon::parse($answerRecord->exam_end_time)->addMinutes(2);
-            if (now()->gt($endTime)) {
-                Log::warning('Late exam submission detected', [
-                    'user_id' => $validated['user_id'],
-                    'vacancy_id' => $vacancy_id,
-                    'delay_seconds' => now()->diffInSeconds($endTime)
+        if ((int) auth()->id() !== (int) $validated['user_id']) {
+            abort(403, 'Unauthorized exam submission.');
+        }
+
+        if ($this->hasExamWindowExpired($answerRecord)) {
+            if ($answerRecord->status !== ApplicationStatus::SUBMITTED->value || is_null($answerRecord->exam_submitted_at)) {
+                $answerRecord->update([
+                    'status' => ApplicationStatus::SUBMITTED->value,
+                    'exam_submitted_at' => $answerRecord->exam_submitted_at ?? now(),
                 ]);
-                // We still accept it because the client might have auto-submitted late due to lag,
-                // but strictly speaking we could reject answers if we wanted to be harsh.
-                // For now, we allow it to ensure data isn't lost.
+                $this->broadcastExamProgress($answerRecord, 'expired-window-submit-blocked');
             }
+
+            Log::warning('Blocked late exam submission beyond grace window.', [
+                'user_id' => $validated['user_id'],
+                'vacancy_id' => $vacancy_id,
+                'exam_end_time' => $answerRecord->exam_end_time,
+                'now' => now()->toDateTimeString(),
+                'grace_seconds' => self::EXAM_SUBMISSION_GRACE_SECONDS,
+            ]);
+
+            return redirect()
+                ->route('user.exam_thankyou', ['vacancy_id' => $vacancy_id])
+                ->with('error', 'Exam time is over. Late answers were not accepted.');
         }
 
         // Auto-check MCQ answers and compute per-item scores (tolerant to key/value mismatch and case)
@@ -464,6 +490,13 @@ class ExamController extends Controller
             'answers' => 'nullable|array',
         ]);
 
+        if ((string) $validated['vacancy_id'] !== (string) $vacancy_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Exam payload vacancy mismatch.',
+            ], 422);
+        }
+
         $answerRecord = Applications::where('vacancy_id', $validated['vacancy_id'])
             ->where('user_id', $validated['user_id'])
             ->firstOrFail();
@@ -471,6 +504,26 @@ class ExamController extends Controller
         // If exam is already submitted, don't allow autosave
         if ($answerRecord->status === 'submitted') {
             return response()->json(['success' => false, 'message' => 'Exam already submitted']);
+        }
+
+        if ((int) auth()->id() !== (int) $validated['user_id']) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized autosave request.'], 403);
+        }
+
+        if ($this->hasExamWindowExpired($answerRecord)) {
+            if ($answerRecord->status !== ApplicationStatus::SUBMITTED->value || is_null($answerRecord->exam_submitted_at)) {
+                $answerRecord->update([
+                    'status' => ApplicationStatus::SUBMITTED->value,
+                    'exam_submitted_at' => $answerRecord->exam_submitted_at ?? now(),
+                ]);
+                $this->broadcastExamProgress($answerRecord, 'expired-window-autosave-blocked');
+            }
+
+            return response()->json([
+                'success' => false,
+                'expired' => true,
+                'message' => 'Exam time is over. Autosave is now closed.',
+            ], 409);
         }
 
         // Calculate scores similar to submit, but don't finalize
@@ -1589,11 +1642,13 @@ class ExamController extends Controller
         $total_seconds = $examDetail->duration * 60;
         $savedAnswers = is_array($application->answers) ? $application->answers : [];
         $maxViolations = max(1, (int) ($examDetail->max_violations ?? 12));
+        $examEndTimeTs = $endTime->timestamp;
+        $serverNowTs = $now->timestamp;
 
         $examineeName = auth()->user()->name ?? 'Examinee';
         $examineeNumber = strtoupper('EXM-' . substr(hash('sha256', $vacancy_id . '-' . $user_id), 0, 8));
 
-        return view('exam_user.exam_question_page', compact('vacancy_id', 'examItems', 'remaining_seconds', 'vacancy', 'total_seconds', 'savedAnswers', 'examineeName', 'examineeNumber', 'maxViolations'));
+        return view('exam_user.exam_question_page', compact('vacancy_id', 'examItems', 'remaining_seconds', 'vacancy', 'total_seconds', 'savedAnswers', 'examineeName', 'examineeNumber', 'maxViolations', 'examEndTimeTs', 'serverNowTs'));
     }
 
     public function viewExam(Request $request, $vacancy_id, $user_id)
