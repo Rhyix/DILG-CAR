@@ -965,57 +965,54 @@ class ExportPDSController
 
 private function writeAddresses($pdf, $residential, $permanent)
 {
-    $hasResidentialData = false;
-    for ($i = 0; $i <= 6; $i++) {
-        if ($this->hasMeaningfulValue($residential[$i] ?? null)) {
-            $hasResidentialData = true;
-            break;
+    $residentialFields = [
+        0 => ['x' => 136.0, 'y' => 86.0, 'w' => 48.0],   // House Number
+        1 => ['x' => 182.5, 'y' => 86.0, 'w' => 65.0],   // Street
+        2 => ['x' => 136.0, 'y' => 92.5, 'w' => 23.0],   // Village/Subdivision
+        3 => ['x' => 179.5, 'y' => 92.5, 'w' => 48.0],   // Barangay
+        4 => ['x' => 130.0, 'y' => 99.0, 'w' => 50.0],   // City/Municipality
+        5 => ['x' => 179.5, 'y' => 99.0, 'w' => 100.0],  // Province
+        6 => ['x' => 130.0, 'y' => 108.0, 'w' => 60.0],  // ZIP Code
+    ];
+
+    $permanentFields = [
+        0 => ['x' => 136.0, 'y' => 112.0, 'w' => 35.0],  // House Number
+        1 => ['x' => 182.5, 'y' => 112.0, 'w' => 65.0],  // Street
+        2 => ['x' => 136.0, 'y' => 119.0, 'w' => 23.0],  // Village/Subdivision
+        3 => ['x' => 179.5, 'y' => 118.5, 'w' => 48.0],  // Barangay
+        4 => ['x' => 130.0, 'y' => 125.5, 'w' => 50.0],  // City/Municipality
+        5 => ['x' => 179.5, 'y' => 125.5, 'w' => 100.0], // Province
+        6 => ['x' => 130.0, 'y' => 133.5, 'w' => 60.0],  // ZIP Code
+    ];
+
+    $renderAddress = function (array $parts, array $fieldMap) use ($pdf): void {
+        $withValue = false;
+        for ($i = 0; $i <= 6; $i++) {
+            if ($this->hasMeaningfulValue($parts[$i] ?? null)) {
+                $withValue = true;
+                break;
+            }
         }
-    }
 
-    if (!$hasResidentialData) {
-        $this->writeAlignedValue($pdf, 'N/A', 115, 86, 48, 8.0, 5.0); // House Number
-        $this->writeAlignedValue($pdf, 'N/A', 153, 86, 65, 8.0, 5.0); // Street
-        $this->writeAlignedValue($pdf, 'N/A', 128, 92.5, 23, 8.0, 5.0); // Village/Subdivision
-        $this->writeAlignedValue($pdf, 'N/A', 161, 92.5, 48, 8.0, 5.0); // Barangay
-        $this->writeAlignedValue($pdf, 'N/A', 115, 99, 50, 8.0, 5.0); // City/Municipality
-        $this->writeAlignedValue($pdf, 'N/A', 135, 99, 100, 8.0, 5.0); // Province
-        $this->writeAlignedValue($pdf, 'N/A', 94.5, 107, 60, 8.0, 5.0); // ZIP Code
-    } else {
-        $this->writeWrappedAt($pdf, $this->valueOrNa($residential[0] ?? null), 136, 86, 48, 8.0, 2.2, 1.0); // House Number
-        $this->writeWrappedAt($pdf, $this->valueOrNa($residential[1] ?? null), 179.5, 86, 65, 8.0, 2.2, 1.0); // Street
-        $this->writeWrappedAt($pdf, $this->valueOrNa($residential[2] ?? null), 136, 92.5, 23, 8.0, 2.2, 1.0); // Village/Subdivision
-        $this->writeWrappedAt($pdf, $this->valueOrNa($residential[3] ?? null), 179.5, 92.5, 48, 8.0, 2.2, 1.0); // Barangay
-        $this->writeWrappedAt($pdf, $this->valueOrNa($residential[4] ?? null), 130, 99, 50, 8.0, 2.2, 1.0); // City/Municipality
-        $this->writeWrappedAt($pdf, $this->valueOrNa($residential[5] ?? null), 179.5, 99, 100, 8.0, 2.2, 1.0); // Province
-        $this->writeWrappedAt($pdf, $this->valueOrNa($residential[6] ?? null), 130, 108, 60, 8.0, 2.2, 1.0); // ZIP Code
-    }
+        for ($i = 0; $i <= 6; $i++) {
+            $field = $fieldMap[$i];
+            $value = $withValue ? $this->valueOrNa($parts[$i] ?? null) : 'N/A';
 
-    $hasPermanentData = false;
-    for ($i = 0; $i <= 6; $i++) {
-        if ($this->hasMeaningfulValue($permanent[$i] ?? null)) {
-            $hasPermanentData = true;
-            break;
+            $this->writeWrappedAt(
+                $pdf,
+                $value,
+                (float) $field['x'],
+                (float) $field['y'],
+                (float) $field['w'],
+                8.0,
+                2.2,
+                1.0
+            );
         }
-    }
+    };
 
-    if (!$hasPermanentData) {
-        $this->writeAlignedValue($pdf, 'N/A', 122, 112, 35, 8.0, 5.0); // House Number
-        $this->writeAlignedValue($pdf, 'N/A', 153, 112, 65, 8.0, 5.0); // Street
-        $this->writeAlignedValue($pdf, 'N/A', 128, 119, 23, 8.0, 5.0); // Village/Subdivision
-        $this->writeAlignedValue($pdf, 'N/A', 161, 118.5, 48, 8.0, 5.0); // Barangay
-        $this->writeAlignedValue($pdf, 'N/A', 115, 125.5, 50, 8.0, 5.0); // City/Municipality
-        $this->writeAlignedValue($pdf, 'N/A', 135, 125.5, 100, 8.0, 5.0); // Province
-        $this->writeAlignedValue($pdf, 'N/A', 94.5, 133.5, 60, 8.0, 5.0); // ZIP Code
-    } else {
-        $this->writeWrappedAt($pdf, $this->valueOrNa($permanent[0] ?? null), 136, 112, 35, 8.0, 2.2, 1.0); // House Number
-        $this->writeWrappedAt($pdf, $this->valueOrNa($permanent[1] ?? null), 179.5, 112, 65, 8.0, 2.2, 1.0); // Street
-        $this->writeWrappedAt($pdf, $this->valueOrNa($permanent[2] ?? null), 136, 119, 23, 8.0, 2.2, 1.0); // Village/Subdivision
-        $this->writeWrappedAt($pdf, $this->valueOrNa($permanent[3] ?? null), 179.5, 118.5, 48, 8.0, 2.2, 1.0); // Barangay
-        $this->writeWrappedAt($pdf, $this->valueOrNa($permanent[4] ?? null), 130, 125.5, 50, 8.0, 2.2, 1.0); // City/Municipality
-        $this->writeWrappedAt($pdf, $this->valueOrNa($permanent[5] ?? null), 179.5, 125.5, 100, 8.0, 2.2, 1.0); // Province
-        $this->writeWrappedAt($pdf, $this->valueOrNa($permanent[6] ?? null), 130, 133.5, 60, 8.0, 2.2, 1.0); // ZIP Code
-    }
+    $renderAddress((array) $residential, $residentialFields);
+    $renderAddress((array) $permanent, $permanentFields);
 
 }
 
@@ -1254,7 +1251,7 @@ private function writeVocationalChunk($pdf, $chunk)
     $startX_to = 137.5;
     $startX_earned = 160.5;
     $startX_year_graduated = 180;
-    $startX_honors = 197.5;
+    $startX_honors = 195;
     $schoolWidth = 48.0;
     $basicWidth = 45.0;
     $fromWidth = 27.0;
@@ -1332,9 +1329,29 @@ private function writeVocationalChunk($pdf, $chunk)
         $currentYSchoolBasic = $startY_school_basic + $rowOffset;
         $currentYOther = $startY_other + $rowOffset;
 
-        $writeWide($this->valueOrNa($voc['school'] ?? null), $startX_school, $currentYSchoolBasic, $schoolWidth, 7.0, 5.0);
+        $this->writeWrappedAt(
+            $pdf,
+            $this->valueOrNa($voc['school'] ?? null),
+            $startX_school,
+            $currentYSchoolBasic,
+            $schoolWidth,
+            6.5,
+            1.8,
+            0.8,
+            2
+        );
 
-        $writeWide($this->valueOrNa($voc['basic'] ?? null), $startX_basic, $currentYSchoolBasic, $basicWidth, 7.0, 4.5);
+        $this->writeWrappedAt(
+            $pdf,
+            $this->valueOrNa($voc['basic'] ?? null),
+            $startX_basic,
+            $currentYSchoolBasic,
+            $basicWidth,
+            6.5,
+            1.8,
+            0.8,
+            2
+        );
 
         $writeNarrow($this->dateOrNa($voc['from'] ?? null, 'm/Y'), $startX_from, $currentYOther, $fromWidth, 7.0, 5.0);
         $writeNarrow($this->dateOrNa($voc['to'] ?? null, 'm/Y'), $startX_to, $currentYOther, $toWidth, 7.0, 5.0);
@@ -1356,7 +1373,7 @@ private function writeCollegeChunk($pdf, $chunk)
     $startX_to =  137.5;
     $startX_earned = 160.5;
     $startX_year_graduated = 180.0;
-    $startX_honors = 194;
+    $startX_honors = 195;
     $schoolWidth = 48.0;
     $basicWidth = 45.0;
     $fromWidth = 27.0;
@@ -1436,9 +1453,29 @@ private function writeCollegeChunk($pdf, $chunk)
         $currentYOther = $startY_other + $rowOffset;
         $currentYSchool = $startY_school + $rowOffset;
 
-        $writeWide($this->valueOrNa($college['school'] ?? null), $startX_school, $currentYSchool, $schoolWidth, 7.0, 4.5);
+        $this->writeWrappedAt(
+            $pdf,
+            $this->valueOrNa($college['school'] ?? null),
+            $startX_school,
+            $currentYSchool,
+            $schoolWidth,
+            6.5,
+            1.8,
+            0.8,
+            2
+        );
 
-        $writeWide($this->valueOrNa($college['basic'] ?? null), $startX_basic, $currentYSchoolBasic, $basicWidth, 6.5, 4.5);
+        $this->writeWrappedAt(
+            $pdf,
+            $this->valueOrNa($college['basic'] ?? null),
+            $startX_basic,
+            $currentYSchoolBasic,
+            $basicWidth,
+            6.5,
+            1.8,
+            0.8,
+            2
+        );
 
         $writeNarrow($this->dateOrNa($college['from'] ?? null, 'm/Y'), $startX_from, $currentYOther, $fromWidth, 7.0, 5.0);
         $writeNarrow($this->dateOrNa($college['to'] ?? null, 'm/Y'), $startX_to, $currentYOther, $toWidth, 7.0, 5.0);
@@ -1460,7 +1497,7 @@ private function writeGraduateChunk($pdf, $chunk)
     $startX_to = 148.0;
     $startX_earned = 160.5;
     $startX_year_graduated = 180.0;
-    $startX_honors = 194.0;
+    $startX_honors = 195;
     $schoolWidth = 48.0;
     $basicWidth = 45.0;
     $fromWidth = 11.0;
@@ -1540,9 +1577,29 @@ private function writeGraduateChunk($pdf, $chunk)
         $currentYBasic = $startY_basic + $rowOffset;
         $currentYOther = $startY_other + $rowOffset;
 
-        $writeWide($this->valueOrNa($grad['school'] ?? null), $startX_school, $currentYSchool, $schoolWidth, 6.5, 4.5);
+        $this->writeWrappedAt(
+            $pdf,
+            $this->valueOrNa($grad['school'] ?? null),
+            $startX_school,
+            $currentYSchool,
+            $schoolWidth,
+            6.5,
+            1.8,
+            0.8,
+            2
+        );
 
-        $writeWide($this->valueOrNa($grad['basic'] ?? null), $startX_basic, $currentYBasic, $basicWidth, 6.5, 4.5);
+        $this->writeWrappedAt(
+            $pdf,
+            $this->valueOrNa($grad['basic'] ?? null),
+            $startX_basic,
+            $currentYBasic,
+            $basicWidth,
+            6.5,
+            1.8,
+            0.8,
+            2
+        );
 
         $writeNarrow($this->dateOrNa($grad['from'] ?? null, 'm/Y'), $startX_from, $currentYOther, $fromWidth, 7.0, 5.0);
 
@@ -2388,7 +2445,7 @@ private function writeAt($pdf, string $text, float $x, float $y, ?float $maxWidt
 }
 
 
-private function writeWrapped($pdf, $text, $maxWidth, $x, $ySingle, $yMultiple, $font_size, $lineHeight)
+private function writeWrapped($pdf, $text, $maxWidth, $x, $ySingle, $yMultiple, $font_size, $lineHeight, int $maxLines = 3)
 {
     $text = mb_strtoupper(trim((string) $text));
     if ($text === '') {
@@ -2397,7 +2454,7 @@ private function writeWrapped($pdf, $text, $maxWidth, $x, $ySingle, $yMultiple, 
     $maxWidth = $this->getEffectiveMaxWidth((float) $maxWidth);
 
     $minFont = 3.8;
-    $targetLines = 3;
+    $targetLines = max(1, $maxLines);
 
     // Try full single-line size first.
     $this->setFont($pdf, 'Arial', '', max($minFont, (float) $font_size));
@@ -2450,7 +2507,8 @@ private function writeWrappedAt(
     float $maxWidth,
     float $fontSize,
     float $lineHeight,
-    float $multiLineYOffset = 1.5
+    float $multiLineYOffset = 1.5,
+    int $maxLines = 3
 ): void {
     $this->writeWrapped(
         $pdf,
@@ -2460,7 +2518,8 @@ private function writeWrappedAt(
         $y,
         $y - $multiLineYOffset,
         $fontSize,
-        $lineHeight
+        $lineHeight,
+        $maxLines
     );
 }
 
