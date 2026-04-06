@@ -56,6 +56,23 @@ class JobVacancyController extends Controller
         'cert_training',
     ];
 
+    private const EDUCATION_RULE_PARSER_VERSION = 2;
+
+    private const ELIGIBILITY_CANONICAL_LABELS = [
+        'csc_professional' => 'CSC Professional Eligibility',
+        'csc_subprofessional' => 'Subprofessional (Sub-Prof) Eligibility',
+        'bar_board' => 'Bar/Board Eligibility',
+        'honor_graduate' => 'Honor Graduate Eligibility',
+        'foreign_honor_graduate' => 'Foreign School Honor Graduate Eligibility',
+        'barangay_health_worker' => 'Barangay Health Worker Eligibility',
+        'barangay_nutrition_scholar' => 'Barangay Nutrition Scholar Eligibility',
+        'barangay_official' => 'Barangay Official Eligibility',
+        'sanggunian_member' => 'Sanggunian Member Eligibility',
+        'skills_category_ii' => 'Skills Eligibility-Category II',
+        'edp_specialist' => 'Electronic Data Processing Specialist Eligibility',
+        'scientific_technological_specialist' => 'Scientific and Technological Specialist Eligibility',
+    ];
+
     private function currentAdmin()
     {
         return Auth::guard('admin')->user();
@@ -221,6 +238,9 @@ class JobVacancyController extends Controller
             'closing_date',
             'place_of_assignment',
             'qualification_education',
+            'education_rule_compiled',
+            'education_rule_parser_version',
+            'education_rule_compiled_at',
             'qualification_training',
             'qualification_experience',
             'qualification_eligibility',
@@ -254,6 +274,406 @@ class JobVacancyController extends Controller
         return 'SG-' . str_pad((string) ((int) $matches[1]), 2, '0', STR_PAD_LEFT);
     }
 
+    private function strictEducationRequirementValidationRules(): array
+    {
+        return [
+            'required',
+            'string',
+            'max:1000',
+            function ($attribute, $value, $fail): void {
+                $error = $this->educationRequirementValidationError($value);
+                if ($error !== null) {
+                    $fail($error);
+                }
+            },
+        ];
+    }
+
+    private function educationRequirementValidationError($value): ?string
+    {
+        $requirement = $this->normalizeQualificationRequirement((string) $value);
+        if ($requirement === null) {
+            return 'Education requirement is required.';
+        }
+
+        $rule = $this->buildCompiledEducationRule($requirement);
+        if (!is_array($rule)) {
+            return 'Education requirement could not be parsed. Please use a clear template.';
+        }
+
+        $ruleCode = strtolower(trim((string) ($rule['rule_code'] ?? 'unknown_text')));
+        $confidence = strtolower(trim((string) ($rule['confidence'] ?? 'low')));
+        if ($ruleCode !== '' && $ruleCode !== 'unknown_text' && $confidence === 'high') {
+            return null;
+        }
+
+        return 'Education requirement text is ambiguous. Use a clear format like: '
+            . '"Bachelor\'s Degree (any field)", '
+            . '"Bachelor\'s Degree in Statistics or related field", '
+            . '"Completion of 2 years of studies in college", '
+            . '"72 units in college", '
+            . '"Masteral Degree", or '
+            . '"Bachelor of Laws".';
+    }
+
+    private function normalizeEducationRequirementFieldList($value): array
+    {
+        $items = is_array($value) ? $value : preg_split('/[\r\n,;\/]+/', (string) $value);
+        if (!is_array($items)) {
+            return [];
+        }
+
+        return array_values(array_unique(array_filter(array_map(function ($item) {
+            $text = trim((string) $item);
+            if ($text === '') {
+                return null;
+            }
+
+            $text = preg_replace('/\s+/', ' ', $text) ?: $text;
+            return strtolower($text);
+        }, $items))));
+    }
+
+    private function extractEducationFieldHints(string $requirement): array
+    {
+        $requirement = trim($requirement);
+        if ($requirement === '') {
+            return [];
+        }
+
+        $candidate = '';
+        if (preg_match('/\bin\s+(.+?)(?:\.\s*|,\s*required|\s+required|\s+is required|\s+or related|\s+related field|\s+preferably|$)/i', $requirement, $matches) === 1) {
+            $candidate = trim((string) ($matches[1] ?? ''));
+        }
+
+        if ($candidate === '') {
+            return [];
+        }
+
+        $candidate = preg_replace('/\b(degree|bachelor(?:\'s)?|master(?:\'s)?|course|field|fields)\b/i', '', $candidate) ?: $candidate;
+        $candidate = preg_replace('/\s+/', ' ', $candidate) ?: $candidate;
+        return $this->normalizeEducationRequirementFieldList($candidate);
+    }
+
+    private function buildCompiledEducationRule(?string $rawRequirement): ?array
+    {
+        $requirement = $this->normalizeQualificationRequirement($rawRequirement);
+        if ($requirement === null) {
+            return null;
+        }
+
+        $normalizedText = strtolower(trim((string) preg_replace('/\s+/', ' ', $requirement)));
+        $rule = [
+            'parser_version' => self::EDUCATION_RULE_PARSER_VERSION,
+            'source_text' => $requirement,
+            'normalized_text' => $normalizedText,
+            'rule_code' => 'unknown_text',
+            'required' => true,
+            'advisory_only' => false,
+            'min_college_years' => null,
+            'min_college_units' => null,
+            'required_fields' => [],
+            'strict_fields' => false,
+            'accept_higher_degree' => true,
+            'confidence' => 'low',
+        ];
+
+        if (
+            $this->textContainsAny($normalizedText, ['no education required', 'no education requirement', 'any educational background']) ||
+            ($this->textContainsAny($normalizedText, ['none']) && str_contains($normalizedText, 'education'))
+        ) {
+            $rule['rule_code'] = 'none';
+            $rule['required'] = false;
+            $rule['confidence'] = 'high';
+            return $rule;
+        }
+
+        if ($this->textContainsAny($normalizedText, ['bachelor of laws', 'llb', 'juris doctor', 'attorney'])) {
+            $rule['rule_code'] = 'law_degree';
+            $rule['confidence'] = 'high';
+            return $rule;
+        }
+
+        if ($this->textContainsAny($normalizedText, ['doctoral', 'doctorate', 'doctor of philosophy', 'phd', 'ph.d'])) {
+            $rule['rule_code'] = 'doctorate';
+            $rule['confidence'] = 'high';
+            return $rule;
+        }
+
+        if ($this->textContainsAny($normalizedText, ['master', 'masteral', "master's"])) {
+            $rule['rule_code'] = 'masters';
+            $rule['confidence'] = 'high';
+            return $rule;
+        }
+
+        if ($this->textContainsAny($normalizedText, ['graduate studies', 'post graduate', 'postgraduate'])) {
+            $rule['rule_code'] = 'graduate_studies';
+            $rule['confidence'] = 'high';
+            return $rule;
+        }
+
+        $yearsMatches = [];
+        $mentionsCollege = str_contains($normalizedText, 'college');
+        $hasYearPattern = preg_match('/\b(\d{1,2})\s*(?:years?|yrs?)\b/i', $normalizedText, $yearsMatches) === 1
+            || preg_match('/\bat least\s+(\d{1,2})\s*(?:years?|yrs?)\b/i', $normalizedText, $yearsMatches) === 1;
+        if ($mentionsCollege && $hasYearPattern) {
+            $rule['rule_code'] = 'college_years';
+            $rule['min_college_years'] = max(1, (int) ($yearsMatches[1] ?? 0));
+            $rule['confidence'] = 'high';
+            return $rule;
+        }
+
+        if (preg_match('/\b(\d{1,3})\s*(?:units?|unit)\s*(?:in\s*)?college\b/i', $normalizedText, $unitMatches) === 1) {
+            $rule['rule_code'] = 'college_years';
+            $rule['min_college_units'] = max(1, (int) ($unitMatches[1] ?? 0));
+            $rule['confidence'] = 'high';
+            return $rule;
+        }
+
+        if ($this->textContainsAny($normalizedText, ['college graduate', 'college degree'])) {
+            $rule['rule_code'] = 'college_degree';
+            $rule['confidence'] = 'high';
+            return $rule;
+        }
+
+        if ($this->textContainsAny($normalizedText, ['bachelor', "bachelor's", 'baccalaureate'])) {
+            $rule['rule_code'] = 'bachelor_any';
+            $fields = $this->extractEducationFieldHints($requirement);
+            $isRelevantWording = $this->textContainsAny($normalizedText, ['related field', 'relevant']);
+
+            if ($isRelevantWording) {
+                // "Relevant to the job" still requires a bachelor's degree; relevance is verified by admin.
+                $rule['rule_code'] = 'bachelor_relevant_admin_review';
+                $rule['required_fields'] = $fields;
+                $rule['required'] = true;
+                $rule['advisory_only'] = false;
+                $rule['confidence'] = 'high';
+            } elseif (!empty($fields)) {
+                $rule['rule_code'] = 'bachelor_specific';
+                $rule['required_fields'] = $fields;
+                $rule['strict_fields'] = $this->textContainsAny($normalizedText, ['strict', 'exact']);
+                $rule['confidence'] = 'high';
+            } else {
+                $rule['confidence'] = 'high';
+            }
+            return $rule;
+        }
+
+        if ($this->textContainsAny($normalizedText, ['senior high', 'grade 12', 'shs'])) {
+            $rule['rule_code'] = 'senior_high';
+            $rule['confidence'] = 'high';
+            return $rule;
+        }
+
+        if ($this->textContainsAny($normalizedText, ['high school'])) {
+            $rule['rule_code'] = 'high_school';
+            $rule['confidence'] = 'high';
+            return $rule;
+        }
+
+        if ($this->textContainsAny($normalizedText, ['elementary'])) {
+            $rule['rule_code'] = 'elementary';
+            $rule['confidence'] = 'high';
+            return $rule;
+        }
+
+        if ($this->textContainsAny($normalizedText, ['college', 'education'])) {
+            $rule['rule_code'] = 'any_education';
+            $rule['confidence'] = 'medium';
+            return $rule;
+        }
+
+        return $rule;
+    }
+
+    private function buildCompiledEducationStoragePayload(?string $rawRequirement): array
+    {
+        $rule = $this->buildCompiledEducationRule($rawRequirement);
+        if ($rule === null) {
+            return [
+                'education_rule_compiled' => null,
+                'education_rule_parser_version' => null,
+                'education_rule_compiled_at' => null,
+            ];
+        }
+
+        $encoded = json_encode($rule, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        if (!is_string($encoded) || $encoded === '') {
+            $encoded = null;
+        }
+
+        return [
+            'education_rule_compiled' => $encoded,
+            'education_rule_parser_version' => (int) ($rule['parser_version'] ?? self::EDUCATION_RULE_PARSER_VERSION),
+            'education_rule_compiled_at' => now(),
+        ];
+    }
+
+    private function decodeCompiledEducationRule($raw): ?array
+    {
+        if (is_array($raw)) {
+            return $raw;
+        }
+
+        if (!is_string($raw) || trim($raw) === '') {
+            return null;
+        }
+
+        $decoded = json_decode($raw, true);
+        return is_array($decoded) ? $decoded : null;
+    }
+
+    private function resolveCompiledEducationRuleForVacancy(JobVacancy $vacancy, ?string $normalizedRequirement = null): ?array
+    {
+        $normalizedRequirement = $normalizedRequirement ?? $this->normalizeQualificationRequirement($vacancy->qualification_education ?? null);
+        if ($normalizedRequirement === null) {
+            return null;
+        }
+
+        $storedRule = $this->decodeCompiledEducationRule($vacancy->education_rule_compiled ?? null);
+        if (is_array($storedRule)) {
+            $sourceText = $this->normalizeQualificationRequirement((string) ($storedRule['source_text'] ?? ''));
+            $parserVersion = (int) ($storedRule['parser_version'] ?? 0);
+            if (
+                $sourceText !== null
+                && $sourceText === $normalizedRequirement
+                && $parserVersion === self::EDUCATION_RULE_PARSER_VERSION
+            ) {
+                return $storedRule;
+            }
+        }
+
+        return $this->buildCompiledEducationRule($normalizedRequirement);
+    }
+
+    private function educationProfileMatchesFieldHints(array $profile, array $requiredFields, bool $strict = false): bool
+    {
+        if (empty($requiredFields)) {
+            return true;
+        }
+
+        $haystack = strtolower(trim((string) ($profile['educationKeywordHaystack'] ?? '')));
+        if ($haystack === '') {
+            return false;
+        }
+
+        foreach ($requiredFields as $field) {
+            $needle = strtolower(trim((string) $field));
+            if ($needle === '') {
+                continue;
+            }
+
+            if (str_contains($haystack, $needle)) {
+                return true;
+            }
+
+            if ($strict) {
+                continue;
+            }
+
+            $tokens = preg_split('/\s+/', preg_replace('/[^a-z0-9\s]+/i', ' ', $needle) ?? '') ?: [];
+            $tokens = array_values(array_filter($tokens, fn($token) => strlen((string) $token) >= 4));
+            if (empty($tokens)) {
+                continue;
+            }
+
+            $matches = 0;
+            foreach ($tokens as $token) {
+                if (str_contains($haystack, $token)) {
+                    $matches++;
+                }
+            }
+
+            if ($matches >= max(1, min(2, count($tokens)))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function evaluateCompiledEducationRule(array $profile, array $rule): ?bool
+    {
+        $ruleCode = strtolower(trim((string) ($rule['rule_code'] ?? '')));
+        if ($ruleCode === '' || $ruleCode === 'unknown_text') {
+            return null;
+        }
+
+        return match ($ruleCode) {
+            'none' => true,
+            'any_education' => (bool) ($profile['hasAnyEducation'] ?? false),
+            'elementary' => (bool) ($profile['hasElementaryOrHigher'] ?? false),
+            'high_school' => (bool) ($profile['hasHighSchoolOrHigher'] ?? false),
+            'senior_high' => (bool) ($profile['hasSeniorHighOrHigher'] ?? false),
+            'bachelor_relevant_admin_review' => (bool) ($profile['hasBachelorOrHigher'] ?? false),
+            'college_years' => (($rule['min_college_units'] ?? null) !== null)
+                ? (int) ($profile['estimatedCollegeUnits'] ?? 0) >= (int) ($rule['min_college_units'] ?? 0)
+                : (int) ($profile['collegeYearsCompleted'] ?? 0) >= max(1, (int) ($rule['min_college_years'] ?? 2)),
+            'college_degree' => (bool) ($profile['hasCollegeDegreeOrHigher'] ?? false),
+            'bachelor_any' => (bool) ($profile['hasBachelorOrHigher'] ?? false),
+            'bachelor_specific' => (bool) ($profile['hasBachelorOrHigher'] ?? false)
+                && $this->educationProfileMatchesFieldHints(
+                    $profile,
+                    (array) ($rule['required_fields'] ?? []),
+                    (bool) ($rule['strict_fields'] ?? false)
+                ),
+            'law_degree' => (bool) ($profile['hasLawDegree'] ?? false),
+            'graduate_studies' => (bool) ($profile['hasGrad'] ?? false),
+            'masters' => (bool) ($profile['hasMasters'] ?? false)
+                || ((bool) ($rule['accept_higher_degree'] ?? true) && (bool) ($profile['hasDoctorate'] ?? false)),
+            'doctorate' => (bool) ($profile['hasDoctorate'] ?? false),
+            default => null,
+        };
+    }
+
+    private function evaluateLegacyEducationRequirementByText(array $profile, string $requirement): bool
+    {
+        $requirementLower = strtolower($requirement);
+        $mentionsSeniorHighAlternative = $this->textContainsAny($requirementLower, ['senior high', 'grade 12']);
+        $mentionsHighSchoolAlternative = str_contains($requirementLower, 'high school');
+
+        if ($this->textContainsAny($requirementLower, [
+            'master',
+            'masteral',
+            'graduate studies',
+            'post graduate',
+            'postgraduate',
+            'doctoral',
+            'doctor',
+            'phd',
+        ])) {
+            return (bool) ($profile['hasGrad'] ?? false);
+        }
+        if ($this->textContainsAny($requirementLower, ['bachelor of laws', 'llb', 'juris doctor', 'attorney'])) {
+            return (bool) ($profile['hasLawDegree'] ?? false);
+        }
+        if ($this->textContainsAny($requirementLower, ['bachelor', "bachelor's", 'baccalaureate'])) {
+            return (bool) ($profile['hasBachelorOrHigher'] ?? false);
+        }
+        if (str_contains($requirementLower, '2 years') && str_contains($requirementLower, 'college')) {
+            return (bool) ($profile['hasAtLeastTwoYearsCollege'] ?? false)
+                || ($mentionsSeniorHighAlternative && (bool) ($profile['hasSeniorHighOrHigher'] ?? false))
+                || (!$mentionsSeniorHighAlternative && $mentionsHighSchoolAlternative && (bool) ($profile['hasHighSchoolOrHigher'] ?? false));
+        }
+        if ($this->textContainsAny($requirementLower, ['college graduate', 'college degree'])) {
+            return (bool) ($profile['hasCollegeDegreeOrHigher'] ?? false);
+        }
+        if ($this->textContainsAny($requirementLower, ['bachelor', 'college'])) {
+            return (bool) ($profile['hasCollegeEntryOrHigher'] ?? false);
+        }
+        if ($mentionsSeniorHighAlternative) {
+            return (bool) ($profile['hasSeniorHighOrHigher'] ?? false);
+        }
+        if ($mentionsHighSchoolAlternative) {
+            return (bool) ($profile['hasHighSchoolOrHigher'] ?? false);
+        }
+        if (str_contains($requirementLower, 'elementary')) {
+            return (bool) ($profile['hasElementaryOrHigher'] ?? false);
+        }
+
+        return (bool) ($profile['hasAnyEducation'] ?? false);
+    }
+
     private function upsertPositionTemplate(array $validated, ?string $cscFormPath = null, ?int $positionTitleId = null): void
     {
         if (!Schema::hasTable('vacancy_titles')) {
@@ -273,6 +693,9 @@ class JobVacancyController extends Controller
             'closing_date',
             'place_of_assignment',
             'qualification_education',
+            'education_rule_compiled',
+            'education_rule_parser_version',
+            'education_rule_compiled_at',
             'qualification_training',
             'qualification_experience',
             'qualification_eligibility',
@@ -406,7 +829,7 @@ class JobVacancyController extends Controller
             'place_of_assignment' => 'required|string',
             //'vacancies' => 'required|integer|min:1',
             'closing_date' => 'required|date',
-            'qualification_education' => 'required|string',
+            'qualification_education' => $this->strictEducationRequirementValidationRules(),
             'qualification_experience' => 'required|string',
             'qualification_training' => 'required|string',
             'qualification_eligibility' => 'nullable|string|required_if:vacancy_type,Plantilla',
@@ -442,6 +865,8 @@ class JobVacancyController extends Controller
                 ->withInput()
                 ->with('error', 'HR Division can only update COS vacancies.');
         }
+
+        $compiledEducationStorage = $this->buildCompiledEducationStoragePayload($validated['qualification_education'] ?? null);
 
         $changes = [];
         foreach ($validated as $key => $value) {
@@ -492,6 +917,16 @@ class JobVacancyController extends Controller
 
             'last_modified_by' => Auth::guard('admin')->user()?->name ?? 'System',
         ];
+
+        if (Schema::hasColumn('job_vacancies', 'education_rule_compiled')) {
+            $vacancyUpdateData['education_rule_compiled'] = $compiledEducationStorage['education_rule_compiled'];
+        }
+        if (Schema::hasColumn('job_vacancies', 'education_rule_parser_version')) {
+            $vacancyUpdateData['education_rule_parser_version'] = $compiledEducationStorage['education_rule_parser_version'];
+        }
+        if (Schema::hasColumn('job_vacancies', 'education_rule_compiled_at')) {
+            $vacancyUpdateData['education_rule_compiled_at'] = $compiledEducationStorage['education_rule_compiled_at'];
+        }
 
         if ($this->hasJobVacancyLastModifiedAtColumn()) {
             $vacancyUpdateData['last_modified_at'] = now();
@@ -620,7 +1055,7 @@ class JobVacancyController extends Controller
                 'monthly_salary' => 'required|numeric|min:0',
                 'salary_grade' => ['required', 'regex:/^SG-\d{2}$/'],
                 'place_of_assignment' => 'required|string',
-                'qualification_education' => 'required|string',
+                'qualification_education' => $this->strictEducationRequirementValidationRules(),
                 'qualification_training' => 'required|string',
                 'qualification_experience' => 'required|string',
                 'qualification_eligibility' => 'nullable|string|required_if:vacancy_type,Plantilla',
@@ -640,6 +1075,9 @@ class JobVacancyController extends Controller
                     ->withInput()
                     ->with('error', 'HR Division can only create COS positions.');
             }
+
+            $compiledEducationStorage = $this->buildCompiledEducationStoragePayload($validated['qualification_education'] ?? null);
+            $validated = array_merge($validated, $compiledEducationStorage);
 
             $cscFormPath = null;
             if ($request->hasFile('csc_form') && Schema::hasColumn('vacancy_titles', 'csc_form_path')) {
@@ -673,7 +1111,7 @@ class JobVacancyController extends Controller
             'place_of_assignment' => 'required|string',
 
             // Qualification standards
-            'qualification_education' => 'required|string',
+            'qualification_education' => $this->strictEducationRequirementValidationRules(),
             'qualification_training' => 'required|string',
             'qualification_experience' => 'required|string',
             'qualification_eligibility' => 'nullable|string|required_if:vacancy_type,Plantilla',
@@ -701,6 +1139,8 @@ class JobVacancyController extends Controller
                 ->withInput()
                 ->with('error', 'HR Division can only create COS vacancies.');
         }
+
+        $compiledEducationStorage = $this->buildCompiledEducationStoragePayload($validated['qualification_education'] ?? null);
 
         // 🔷 Generate vacancy_id
         /*
@@ -765,6 +1205,16 @@ class JobVacancyController extends Controller
             'to_office' => $validated['to_office'],
             'to_office_address' => $validated['to_office_address'],
         ];
+
+        if (Schema::hasColumn('job_vacancies', 'education_rule_compiled')) {
+            $vacancyData['education_rule_compiled'] = $compiledEducationStorage['education_rule_compiled'];
+        }
+        if (Schema::hasColumn('job_vacancies', 'education_rule_parser_version')) {
+            $vacancyData['education_rule_parser_version'] = $compiledEducationStorage['education_rule_parser_version'];
+        }
+        if (Schema::hasColumn('job_vacancies', 'education_rule_compiled_at')) {
+            $vacancyData['education_rule_compiled_at'] = $compiledEducationStorage['education_rule_compiled_at'];
+        }
 
         if ($this->supportsVacancyCreatorColumn()) {
             $vacancyData['created_by_admin_id'] = Auth::guard('admin')->id();
@@ -891,9 +1341,8 @@ class JobVacancyController extends Controller
         $isQualificationQualified = empty($missingQualificationLabels);
         $qualificationMismatchMessage = $qualificationGateState['message'] ?? null;
         if (!$isQualificationQualified && empty($qualificationMismatchMessage)) {
-            $qualificationMismatchMessage = 'You cannot apply because you are missing required qualification(s): '
-                . implode('; ', $missingQualificationLabels)
-                . '. Please update your PDS entries and try again.';
+            $qualificationMismatchMessage = 'You are not yet qualified to apply for this position. '
+                . 'Please review the missing requirements and update your PDS.';
         }
 
         return view('dashboard_user.job_description', [
@@ -911,6 +1360,7 @@ class JobVacancyController extends Controller
             'isEligibilityQualified' => $isQualificationQualified,
             'eligibilityMismatchMessage' => $qualificationMismatchMessage,
             'qualificationChecks' => $qualificationGateState['checks'],
+            'missingQualificationLabels' => $missingQualificationLabels,
         ]);
 
 
@@ -1339,9 +1789,8 @@ class JobVacancyController extends Controller
             ]);
 
             $qualificationMismatchMessage = $qualificationGate['message'] ?? (
-                'You cannot apply because you are missing required qualification(s): '
-                . implode('; ', $missingQualificationLabels)
-                . '. Please update your PDS entries and try again.'
+                'You are not yet qualified to apply for this position. '
+                . 'Please review the missing requirements and update your PDS.'
             );
 
             return redirect()
@@ -1432,7 +1881,10 @@ class JobVacancyController extends Controller
 
 
         // Create application
-        $application = \App\Models\Applications::create([
+        $educationRequirementSnapshot = $this->normalizeQualificationRequirement($vacancy->qualification_education ?? null);
+        $educationRuleSnapshot = $this->resolveCompiledEducationRuleForVacancy($vacancy, $educationRequirementSnapshot);
+
+        $applicationPayload = [
             'user_id' => Auth::id(),
             'vacancy_id' => $vacancy->vacancy_id,
             'status' => ApplicationStatus::PENDING->value,
@@ -1444,7 +1896,21 @@ class JobVacancyController extends Controller
             'file_status' => 'Submitted',
             'file_remarks' => null,
             'file_size_8b' => $applicationLetterDoc->file_size_8b,
-        ]);
+        ];
+
+        if (Schema::hasColumn('applications', 'education_requirement_snapshot')) {
+            $applicationPayload['education_requirement_snapshot'] = $educationRequirementSnapshot;
+        }
+        if (Schema::hasColumn('applications', 'education_rule_snapshot')) {
+            $applicationPayload['education_rule_snapshot'] = $educationRuleSnapshot;
+        }
+        if (Schema::hasColumn('applications', 'education_rule_snapshot_version')) {
+            $applicationPayload['education_rule_snapshot_version'] = is_array($educationRuleSnapshot)
+                ? (int) ($educationRuleSnapshot['parser_version'] ?? self::EDUCATION_RULE_PARSER_VERSION)
+                : null;
+        }
+
+        $application = \App\Models\Applications::create($applicationPayload);
         Log::info('Apply success: application created', [
             'user_id' => Auth::id(),
             'vacancy_id' => $vacancy_id,
@@ -2206,6 +2672,11 @@ class JobVacancyController extends Controller
             && $this->hasMeaningfulValue($miscInfo->govt_id_number);
     }
 
+    public function hasCompletedPdsForApplicant(int $userId): bool
+    {
+        return $this->hasCompletedPdsForApply($userId);
+    }
+
     private function hasMeaningfulValue($value): bool
     {
         if (is_array($value)) {
@@ -2218,7 +2689,7 @@ class JobVacancyController extends Controller
 
     private function evaluateApplicantQualificationGateForVacancy(int $userId, JobVacancy $vacancy): array
     {
-        $educationCheck = $this->evaluateEducationRequirementForApplicant($userId, $vacancy->qualification_education ?? null);
+        $educationCheck = $this->evaluateEducationRequirementForApplicant($userId, $vacancy);
         $experienceCheck = $this->evaluateExperienceRequirementForApplicant($userId, $vacancy->qualification_experience ?? null);
         $trainingCheck = $this->evaluateTrainingRequirementForApplicant($userId, $vacancy->qualification_training ?? null);
         $eligibilityState = $this->evaluateApplicantEligibilityForVacancy($userId, $vacancy);
@@ -2250,9 +2721,8 @@ class JobVacancyController extends Controller
         $isQualified = empty($missingLabels);
         $message = null;
         if (!$isQualified) {
-            $message = 'You cannot apply because you are missing required qualification(s): '
-                . implode('; ', $missingLabels)
-                . '. Please update your PDS entries and try again.';
+            $message = 'You are not yet qualified to apply for this position. '
+                . 'Please review the missing requirements and update your PDS.';
         }
 
         return [
@@ -2260,6 +2730,13 @@ class JobVacancyController extends Controller
             'message' => $message,
             'checks' => $checks,
         ];
+    }
+
+    public function evaluateQualificationGateForApplicant(int $userId, JobVacancy $vacancy): array
+    {
+        $result = $this->evaluateApplicantQualificationGateForVacancy($userId, $vacancy);
+        $result['missing_labels'] = $this->collectMissingQualificationLabels((array) ($result['checks'] ?? []));
+        return $result;
     }
 
     private function collectMissingQualificationLabels(array $checks): array
@@ -2278,9 +2755,10 @@ class JobVacancyController extends Controller
         return $missingLabels;
     }
 
-    private function evaluateEducationRequirementForApplicant(int $userId, ?string $rawRequirement): array
+    private function evaluateEducationRequirementForApplicant(int $userId, JobVacancy $vacancy): array
     {
-        $requirement = $this->normalizeQualificationRequirement($rawRequirement);
+        $profile = $this->buildApplicantEducationProfile($userId);
+        $requirement = $this->normalizeQualificationRequirement($vacancy->qualification_education ?? null);
         if ($requirement === null) {
             return [
                 'required' => false,
@@ -2290,46 +2768,40 @@ class JobVacancyController extends Controller
             ];
         }
 
-        $profile = $this->buildApplicantEducationProfile($userId);
-        $requirementLower = strtolower($requirement);
-        $mentionsSeniorHighAlternative = $this->textContainsAny($requirementLower, ['senior high', 'grade 12']);
-        $mentionsHighSchoolAlternative = str_contains($requirementLower, 'high school');
-
-        $met = false;
-        if ($this->textContainsAny($requirementLower, ['master', 'masteral', 'doctoral', 'doctor', 'phd'])) {
-            $met = $profile['hasGrad'];
-        } elseif ($this->textContainsAny($requirementLower, ['bachelor of laws', 'llb', 'juris doctor', 'attorney'])) {
-            $met = $profile['hasLawDegree'];
-        } elseif ($this->textContainsAny($requirementLower, ['bachelor', "bachelor's", 'baccalaureate'])) {
-            $met = $profile['hasBachelorOrHigher'];
-        } elseif (str_contains($requirementLower, '2 years') && str_contains($requirementLower, 'college')) {
-            $met = $profile['hasAtLeastTwoYearsCollege']
-                || ($mentionsSeniorHighAlternative && $profile['hasSeniorHighOrHigher'])
-                || (!$mentionsSeniorHighAlternative && $mentionsHighSchoolAlternative && $profile['hasHighSchoolOrHigher']);
-        } elseif ($this->textContainsAny($requirementLower, ['college graduate', 'college degree'])) {
-            $met = $profile['hasCollegeDegreeOrHigher'];
-        } elseif ($this->textContainsAny($requirementLower, ['bachelor', 'college'])) {
-            $met = $profile['hasCollegeEntryOrHigher'];
-        } elseif ($mentionsSeniorHighAlternative) {
-            $met = $profile['hasSeniorHighOrHigher'];
-        } elseif ($mentionsHighSchoolAlternative) {
-            $met = $profile['hasHighSchoolOrHigher'];
-        } elseif (str_contains($requirementLower, 'elementary')) {
-            $met = $profile['hasElementaryOrHigher'];
-        } else {
-            $met = $profile['hasAnyEducation'];
+        $compiledRule = $this->resolveCompiledEducationRuleForVacancy($vacancy, $requirement);
+        $met = is_array($compiledRule) ? $this->evaluateCompiledEducationRule($profile, $compiledRule) : null;
+        $usedFallback = false;
+        if (!is_bool($met)) {
+            $met = $this->evaluateLegacyEducationRequirementByText($profile, $requirement);
+            $usedFallback = true;
+        }
+        $isAdvisoryOnly = is_array($compiledRule) && (bool) ($compiledRule['advisory_only'] ?? false) && !$usedFallback;
+        if ($isAdvisoryOnly) {
+            $met = true;
         }
 
-        $ruleCode = null;
-        $explanation = null;
+        $ruleCode = is_array($compiledRule) ? (string) ($compiledRule['rule_code'] ?? '') : '';
+        if ($ruleCode === '') {
+            $ruleCode = $usedFallback ? 'legacy_text_fallback' : null;
+        } elseif ($usedFallback) {
+            $ruleCode = 'legacy_text_fallback';
+        }
+        $isRelevantBachelorRule = $ruleCode === 'bachelor_relevant_admin_review' && !$usedFallback;
 
         return [
-            'required' => true,
+            'required' => !$isAdvisoryOnly,
             'met' => $met,
-            'status' => $met ? 'yes' : 'no',
+            'status' => $isAdvisoryOnly ? 'na' : ($met ? 'yes' : 'no'),
             'requirement' => $requirement,
             'rule_code' => $ruleCode,
-            'explanation' => $explanation,
+            'explanation' => $isRelevantBachelorRule
+                ? 'This vacancy accepts any bachelor\'s degree for initial screening. HR will verify relevance to the position during review.'
+                : ($isAdvisoryOnly
+                    ? 'Education requirement uses relevant-field wording; final verification is for admin review.'
+                    : ($usedFallback
+                        ? 'Requirement text was ambiguous, so legacy text matching was used.'
+                        : null)),
+            'compiled_rule' => is_array($compiledRule) ? $compiledRule : null,
             'applicant_profile' => $profile,
         ];
     }
@@ -2597,10 +3069,17 @@ class JobVacancyController extends Controller
             'hasCollegeEntryOrHigher' => false,
             'hasCollegeDegreeOrHigher' => false,
             'hasBachelorOrHigher' => false,
+            'hasVocational' => false,
             'hasAtLeastTwoYearsCollege' => false,
+            'collegeYearsCompleted' => 0,
+            'estimatedCollegeUnits' => 0,
+            'estimatedCollegeSemesters' => 0,
             'hasGrad' => false,
+            'hasMasters' => false,
+            'hasDoctorate' => false,
             'hasLawDegree' => false,
             'hasAnyEducation' => false,
+            'educationKeywordHaystack' => '',
         ];
 
         $education = EducationalBackground::query()->where('user_id', $userId)->first();
@@ -2636,13 +3115,51 @@ class JobVacancyController extends Controller
             && $this->secondaryBasicIsLegacyHighSchool((string) ($education->jhs_basic ?? ''));
         $hasVocational = $this->hasMeaningfulValue($education->vocational);
         $hasCollege = $this->hasMeaningfulValue($education->college);
-        $hasGrad = $this->hasMeaningfulValue($education->grad);
+
+        // Treat graduate-level entries as valid even when users accidentally place them in College.
+        $graduateKeywords = [
+            'master',
+            'masteral',
+            "master's",
+            'post graduate',
+            'postgraduate',
+            'doctoral',
+            'doctorate',
+            'doctor of philosophy',
+            'phd',
+            'ph.d',
+            'llm',
+            'm.a',
+            'm.s',
+            'msc',
+            'mba',
+            'mpa',
+        ];
+        $hasGrad = $this->hasMeaningfulValue($education->grad)
+            || $this->educationEntriesContainKeywords($education->grad, $graduateKeywords)
+            || $this->educationEntriesContainKeywords($education->college, $graduateKeywords);
+        $hasMasters = $this->educationEntriesContainKeywords(
+            [$education->grad, $education->college],
+            ['master', 'masteral', "master's", 'mba', 'mpa', 'msc', 'm.s', 'm.a']
+        );
+        $hasDoctorate = $this->educationEntriesContainKeywords(
+            [$education->grad, $education->college],
+            ['doctorate', 'doctoral', 'doctor of philosophy', 'phd', 'ph.d']
+        );
         $hasCollegeDegree = $this->hasCollegeDegree($education->college);
         $collegeYearsCompleted = $this->estimateHighestCollegeYearsCompleted($education->college);
         if ($hasGrad || $hasCollegeDegree) {
             // Graduate studies imply college completion.
             $collegeYearsCompleted = max($collegeYearsCompleted, 4);
         }
+        $estimatedCollegeUnits = max(
+            $collegeYearsCompleted * 36,
+            $this->estimateHighestCollegeUnitsCompleted($education->college)
+        );
+        $estimatedCollegeSemesters = max(
+            $collegeYearsCompleted * 2,
+            $this->estimateHighestCollegeSemestersCompleted($education->college)
+        );
         $hasAtLeastTwoYearsCollege = $collegeYearsCompleted >= 2;
         $hasLawDegree = $this->valueContainsAnyKeyword(
             [
@@ -2663,6 +3180,16 @@ class JobVacancyController extends Controller
         $hasBachelorOrHigher = $hasCollegeDegreeOrHigher || $hasLawDegree;
         $hasElementaryOrHigher = $hasElementary || $hasHighSchoolOrHigher;
         $hasAnyEducation = $hasElementary || $hasSecondaryRecord || $hasVocational || $hasCollege || $hasGrad;
+        $educationKeywordHaystack = strtolower(trim(implode(' ', array_filter([
+            $this->flattenEducationValueToText($education->college),
+            $this->flattenEducationValueToText($education->grad),
+            $this->flattenEducationValueToText($education->vocational),
+            (string) ($education->elem_earned ?? ''),
+            (string) ($education->jhs_earned ?? ''),
+            (string) ($education->shs_earned ?? ''),
+            (string) ($education->jhs_basic ?? ''),
+            (string) ($education->shs_basic ?? ''),
+        ]))));
 
         return [
             'hasElementaryOrHigher' => $hasElementaryOrHigher,
@@ -2671,10 +3198,17 @@ class JobVacancyController extends Controller
             'hasCollegeEntryOrHigher' => $hasCollegeEntryOrHigher,
             'hasCollegeDegreeOrHigher' => $hasCollegeDegreeOrHigher,
             'hasBachelorOrHigher' => $hasBachelorOrHigher,
+            'hasVocational' => $hasVocational,
             'hasAtLeastTwoYearsCollege' => $hasAtLeastTwoYearsCollege,
+            'collegeYearsCompleted' => $collegeYearsCompleted,
+            'estimatedCollegeUnits' => $estimatedCollegeUnits,
+            'estimatedCollegeSemesters' => $estimatedCollegeSemesters,
             'hasGrad' => $hasGrad,
+            'hasMasters' => $hasMasters,
+            'hasDoctorate' => $hasDoctorate,
             'hasLawDegree' => $hasLawDegree,
             'hasAnyEducation' => $hasAnyEducation,
+            'educationKeywordHaystack' => $educationKeywordHaystack,
         ];
     }
 
@@ -2700,6 +3234,38 @@ class JobVacancyController extends Controller
                 'baccalaureate',
                 'bachelor',
             ])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function educationEntriesContainKeywords($entries, array $keywords): bool
+    {
+        if (!is_array($entries)) {
+            $text = strtolower(trim((string) $entries));
+            return $text !== '' && $this->textContainsAny($text, $keywords);
+        }
+
+        foreach ($entries as $entry) {
+            if (is_array($entry)) {
+                $basic = strtolower(trim((string) ($entry['basic'] ?? '')));
+                $earned = strtolower(trim((string) ($entry['earned'] ?? '')));
+                $haystack = trim($basic . ' ' . $earned);
+                if ($haystack !== '' && $this->textContainsAny($haystack, $keywords)) {
+                    return true;
+                }
+
+                if ($this->educationEntriesContainKeywords($entry, $keywords)) {
+                    return true;
+                }
+
+                continue;
+            }
+
+            $text = strtolower(trim((string) $entry));
+            if ($text !== '' && $this->textContainsAny($text, $keywords)) {
                 return true;
             }
         }
@@ -2775,6 +3341,54 @@ class JobVacancyController extends Controller
         return $maxYears;
     }
 
+    private function estimateHighestCollegeUnitsCompleted($entries): int
+    {
+        if (!is_array($entries)) {
+            return 0;
+        }
+
+        $maxUnits = 0;
+        foreach ($entries as $entry) {
+            if (!is_array($entry)) {
+                continue;
+            }
+
+            $yearsFromDates = $this->estimateYearsFromEducationDateRange(
+                (string) ($entry['from'] ?? ''),
+                (string) ($entry['to'] ?? '')
+            );
+            $unitsFromYears = $yearsFromDates > 0 ? $yearsFromDates * 36 : 0;
+            $unitsFromEarned = $this->extractUnitsFromEducationLevelText((string) ($entry['earned'] ?? ''));
+            $maxUnits = max($maxUnits, $unitsFromYears, $unitsFromEarned);
+        }
+
+        return $maxUnits;
+    }
+
+    private function estimateHighestCollegeSemestersCompleted($entries): int
+    {
+        if (!is_array($entries)) {
+            return 0;
+        }
+
+        $maxSemesters = 0;
+        foreach ($entries as $entry) {
+            if (!is_array($entry)) {
+                continue;
+            }
+
+            $yearsFromDates = $this->estimateYearsFromEducationDateRange(
+                (string) ($entry['from'] ?? ''),
+                (string) ($entry['to'] ?? '')
+            );
+            $semestersFromYears = $yearsFromDates > 0 ? $yearsFromDates * 2 : 0;
+            $semestersFromEarned = $this->extractSemestersFromEducationLevelText((string) ($entry['earned'] ?? ''));
+            $maxSemesters = max($maxSemesters, $semestersFromYears, $semestersFromEarned);
+        }
+
+        return $maxSemesters;
+    }
+
     private function extractYearsFromEducationLevelText(string $value): int
     {
         $normalized = strtolower(trim($value));
@@ -2798,6 +3412,46 @@ class JobVacancyController extends Controller
             if (str_contains($normalized, $word . ' year')) {
                 return $year;
             }
+        }
+
+        $units = $this->extractUnitsFromEducationLevelText($normalized);
+        if ($units > 0) {
+            return max(0, (int) floor($units / 36));
+        }
+
+        $semesters = $this->extractSemestersFromEducationLevelText($normalized);
+        if ($semesters > 0) {
+            return max(0, (int) floor($semesters / 2));
+        }
+
+        return 0;
+    }
+
+    private function extractUnitsFromEducationLevelText(string $value): int
+    {
+        $normalized = strtolower(trim($value));
+        if ($normalized === '') {
+            return 0;
+        }
+
+        if (preg_match('/\b(\d+(?:\.\d+)?)\s*units?\b/i', $normalized, $unitMatches) === 1) {
+            $units = (float) $unitMatches[1];
+            return $units > 0 ? (int) floor($units) : 0;
+        }
+
+        return 0;
+    }
+
+    private function extractSemestersFromEducationLevelText(string $value): int
+    {
+        $normalized = strtolower(trim($value));
+        if ($normalized === '') {
+            return 0;
+        }
+
+        if (preg_match('/\b(\d+)\s*semesters?\b/i', $normalized, $semesterMatches) === 1) {
+            $semesters = (int) $semesterMatches[1];
+            return $semesters > 0 ? $semesters : 0;
         }
 
         return 0;
@@ -2859,6 +3513,22 @@ class JobVacancyController extends Controller
         }
 
         return $this->textContainsAny($text, $keywords);
+    }
+
+    private function flattenEducationValueToText($value): string
+    {
+        if (is_array($value)) {
+            $chunks = [];
+            foreach ($value as $item) {
+                $chunk = $this->flattenEducationValueToText($item);
+                if ($chunk !== '') {
+                    $chunks[] = $chunk;
+                }
+            }
+            return trim(implode(' ', $chunks));
+        }
+
+        return trim((string) $value);
     }
 
     private function textContainsAny(string $text, array $keywords): bool
@@ -3039,15 +3709,15 @@ class JobVacancyController extends Controller
         $parsed = json_decode($rawEligibility, true);
 
         if (json_last_error() === JSON_ERROR_NONE && is_array($parsed)) {
-            $source = array_key_exists('name', $parsed) ? [$parsed] : $parsed;
-            foreach ($source as $entry) {
-                if (is_string($entry)) {
-                    $name = trim($entry);
-                    if ($name === '') {
-                        continue;
-                    }
-                    $items[] = [
-                        'name' => $name,
+                $source = array_key_exists('name', $parsed) ? [$parsed] : $parsed;
+                foreach ($source as $entry) {
+                    if (is_string($entry)) {
+                        $name = $this->canonicalEligibilityLabelFromName((string) $entry);
+                        if ($name === '') {
+                            continue;
+                        }
+                        $items[] = [
+                            'name' => $name,
                         'legal_basis' => '',
                         'level' => '',
                     ];
@@ -3058,7 +3728,7 @@ class JobVacancyController extends Controller
                     continue;
                 }
 
-                $name = trim((string) ($entry['name'] ?? ''));
+                $name = $this->canonicalEligibilityLabelFromName((string) ($entry['name'] ?? ''));
                 if ($name === '') {
                     continue;
                 }
@@ -3136,7 +3806,7 @@ class JobVacancyController extends Controller
         $seen = [];
 
         foreach ($names as $name) {
-            $label = trim((string) $name);
+            $label = $this->canonicalEligibilityLabelFromName((string) $name);
             $key = $this->normalizeEligibilityKey($label);
             if ($label === '' || $key === '' || array_key_exists($key, $seen)) {
                 continue;
@@ -3147,6 +3817,21 @@ class JobVacancyController extends Controller
         }
 
         return $deduped;
+    }
+
+    private function canonicalEligibilityLabelFromName(string $value): string
+    {
+        $label = trim($value);
+        if ($label === '') {
+            return '';
+        }
+
+        $group = $this->canonicalEligibilityGroup($this->normalizeEligibilityKey($label));
+        if ($group !== '' && array_key_exists($group, self::ELIGIBILITY_CANONICAL_LABELS)) {
+            return self::ELIGIBILITY_CANONICAL_LABELS[$group];
+        }
+
+        return $label;
     }
 
     private function normalizeEligibilityKey(?string $value): string
@@ -3177,13 +3862,7 @@ class JobVacancyController extends Controller
         if ($requiredGroup !== '' && $requiredGroup === $applicantGroup) {
             return true;
         }
-
-        // Hierarchy rule: recognized Second Level / Professional eligibilities satisfy
-        // any recognized First Level requirement.
-        if (
-            $this->isFirstLevelEligibility($requiredGroup, $requiredKey)
-            && $this->isSecondLevelEligibility($applicantGroup, $applicantKey)
-        ) {
+        if ($requiredGroup !== '' && $applicantGroup !== '' && $this->eligibilityGroupSatisfiesRequirement($requiredGroup, $applicantGroup)) {
             return true;
         }
 
@@ -3196,66 +3875,14 @@ class JobVacancyController extends Controller
         return false;
     }
 
-    private function isSecondLevelEligibility(string $group, string $normalizedKey): bool
+    private function eligibilityGroupSatisfiesRequirement(string $requiredGroup, string $applicantGroup): bool
     {
-        if (in_array($group, [
-            'bar_board',
-            'csc_professional',
-            'honor_graduate',
-            'foreign_honor_graduate',
-            'edp_specialist',
-            'scientific_technological_specialist',
-        ], true)) {
+        if ($requiredGroup === $applicantGroup) {
             return true;
         }
 
-        $contains = static function (string $needle) use ($normalizedKey): bool {
-            return str_contains($normalizedKey, $needle);
-        };
-
-        // Handle manually-entered variants not covered by canonical groups.
-        if ($contains('secondlevel')) {
-            return true;
-        }
-
-        if ($contains('professional') && !$contains('subprofessional')) {
-            return true;
-        }
-
-        return false;
-    }
-
-    private function isFirstLevelEligibility(string $group, string $normalizedKey): bool
-    {
-        if (in_array($group, [
-            'csc_subprofessional',
-            'skills_category_ii',
-            'barangay_official',
-            'sanggunian_member',
-            'barangay_health_worker',
-            'barangay_nutrition_scholar',
-        ], true)) {
-            return true;
-        }
-
-        $contains = static function (string $needle) use ($normalizedKey): bool {
-            return str_contains($normalizedKey, $needle);
-        };
-
-        // Handle manually-entered variants not covered by canonical groups.
-        if ($contains('firstlevel')) {
-            return true;
-        }
-
-        if ($contains('subprofessional') || $contains('subprof')) {
-            return true;
-        }
-
-        if ($contains('skills') && $contains('categoryii')) {
-            return true;
-        }
-
-        if ($contains('barangay') && ($contains('official') || $contains('healthworker') || $contains('nutritionscholar'))) {
+        // Hierarchy: CSC Professional is higher than CSC Subprofessional.
+        if ($requiredGroup === 'csc_subprofessional' && $applicantGroup === 'csc_professional') {
             return true;
         }
 
@@ -3275,14 +3902,16 @@ class JobVacancyController extends Controller
         if ($contains('ra1080') || ($contains('bar') && $contains('board'))) {
             return 'bar_board';
         }
-        if ($contains('csc') && ($contains('professional') || $contains('prof'))) {
-            return 'csc_professional';
-        }
-        if (($contains('professional') || $contains('secondlevel')) && !$contains('subprofessional')) {
-            return 'csc_professional';
-        }
         if ($contains('subprofessional') || $contains('subprof')) {
             return 'csc_subprofessional';
+        }
+        $isCsFamily = str_starts_with($normalizedKey, 'csc')
+            || str_starts_with($normalizedKey, 'cse')
+            || str_starts_with($normalizedKey, 'cs')
+            || $contains('civilservice')
+            || $contains('careerservice');
+        if ($isCsFamily && ($contains('professional') || $contains('prof'))) {
+            return 'csc_professional';
         }
         if ($contains('foreign') && $contains('honor') && $contains('graduate')) {
             return 'foreign_honor_graduate';
@@ -3302,7 +3931,7 @@ class JobVacancyController extends Controller
         if ($contains('sanggunian') && $contains('member')) {
             return 'sanggunian_member';
         }
-        if ($contains('skills') && $contains('categoryii')) {
+        if ($contains('skills') && ($contains('categoryii') || $contains('category2'))) {
             return 'skills_category_ii';
         }
         if ($contains('electronic') && $contains('dataprocessing') && $contains('specialist')) {

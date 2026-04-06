@@ -21,6 +21,9 @@ class VacancyTitle extends Model
         'monthly_salary',
         'place_of_assignment',
         'qualification_education',
+        'education_rule_compiled',
+        'education_rule_parser_version',
+        'education_rule_compiled_at',
         'qualification_training',
         'qualification_experience',
         'qualification_eligibility',
@@ -33,5 +36,10 @@ class VacancyTitle extends Model
         'to_office',
         'to_office_address',
         'csc_form_path',
+    ];
+
+    protected $casts = [
+        'education_rule_compiled' => 'array',
+        'education_rule_compiled_at' => 'datetime',
     ];
 }

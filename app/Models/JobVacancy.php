@@ -22,6 +22,9 @@ class JobVacancy extends Model
         'salary_grade',
         'place_of_assignment',
         'qualification_education',
+        'education_rule_compiled',
+        'education_rule_parser_version',
+        'education_rule_compiled_at',
         'qualification_training',
         'qualification_experience',
         'qualification_eligibility',
@@ -41,6 +44,8 @@ class JobVacancy extends Model
     protected $casts = [
         'closing_date' => 'datetime',
         'monthly_salary' => 'decimal:2',
+        'education_rule_compiled' => 'array',
+        'education_rule_compiled_at' => 'datetime',
     ];
 
     /**
@@ -132,4 +137,3 @@ class JobVacancy extends Model
     }
 
 }
-

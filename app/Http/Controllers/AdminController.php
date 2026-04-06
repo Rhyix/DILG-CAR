@@ -2296,79 +2296,36 @@ class AdminController extends Controller
     private function recalculateQualificationStatus(int $userId, string $vacancyId): array
     {
         $vacancy = JobVacancy::where('vacancy_id', $vacancyId)->first();
-        $educationReq = $this->normalizeRequirement($vacancy?->qualification_education ?? null);
-        $eligibilityReq = $this->normalizeRequirement($vacancy?->qualification_eligibility ?? null);
-        $experienceReq = $this->normalizeRequirement($vacancy?->qualification_experience ?? null);
-        $trainingReq = $this->normalizeRequirement($vacancy?->qualification_training ?? null);
-
-        $education = EducationalBackground::where('user_id', $userId)->first();
-        $hasCollege = $this->arrayHasValue($education?->college);
-        $hasGrad = $this->arrayHasValue($education?->grad);
-        $hasVoc = $this->arrayHasValue($education?->vocational);
-        $hasAnyEducation = $hasCollege || $hasGrad || $hasVoc || !empty($education?->elem_school) || !empty($education?->jhs_school);
-
-        $educationMet = 'no';
-        if (!$educationReq) {
-            $educationMet = 'na';
-        } else {
-            $reqLower = strtolower($educationReq);
-            if (str_contains($reqLower, 'master') || str_contains($reqLower, 'doctor')) {
-                $educationMet = $hasGrad ? 'yes' : 'no';
-            } elseif (str_contains($reqLower, 'bachelor') || str_contains($reqLower, 'college')) {
-                $educationMet = ($hasCollege || $hasGrad) ? 'yes' : 'no';
-            } elseif (str_contains($reqLower, 'vocational')) {
-                $educationMet = $hasVoc ? 'yes' : 'no';
-            } else {
-                $educationMet = $hasAnyEducation ? 'yes' : 'no';
-            }
+        if (!$vacancy) {
+            return [
+                'qs_education' => 'na',
+                'qs_eligibility' => 'na',
+                'qs_experience' => 'na',
+                'qs_training' => 'na',
+                'qs_result' => 'Qualified',
+            ];
         }
 
-        $experienceMet = 'no';
-        if (!$experienceReq) {
-            $experienceMet = 'na';
-        } else {
-            $requiredMonths = $this->parseRequirementMonths($experienceReq);
-            $workExperiences = WorkExperience::where('user_id', $userId)->get();
-            $hasExperience = $workExperiences->isNotEmpty();
-            $totalMonths = 0;
-            foreach ($workExperiences as $work) {
-                if (!$work->work_exp_from) {
-                    continue;
-                }
-                $from = Carbon::parse($work->work_exp_from);
-                $to = $work->work_exp_to ? Carbon::parse($work->work_exp_to) : Carbon::now();
-                if ($to->lessThan($from)) {
-                    continue;
-                }
-                $totalMonths += $from->diffInMonths($to) + 1;
-            }
-            if ($requiredMonths === null) {
-                $experienceMet = $hasExperience ? 'yes' : 'no';
-            } else {
-                $experienceMet = $totalMonths >= $requiredMonths ? 'yes' : 'no';
-            }
-        }
+        $qualificationGate = app(JobVacancyController::class)->evaluateQualificationGateForApplicant($userId, $vacancy);
+        $checks = (array) ($qualificationGate['checks'] ?? []);
 
-        $trainingMet = 'no';
-        if (!$trainingReq) {
-            $trainingMet = 'na';
-        } else {
-            $requiredHours = $this->parseRequirementHours($trainingReq);
-            $trainingHours = LearningAndDevelopment::where('user_id', $userId)->sum('learning_hours');
-            $hasTraining = LearningAndDevelopment::where('user_id', $userId)->exists();
-            if ($requiredHours === null) {
-                $trainingMet = $hasTraining ? 'yes' : 'no';
-            } else {
-                $trainingMet = $trainingHours >= $requiredHours ? 'yes' : 'no';
-            }
-        }
+        $educationCheck = (array) ($checks['education'] ?? []);
+        $eligibilityCheck = (array) ($checks['eligibility'] ?? []);
+        $experienceCheck = (array) ($checks['experience'] ?? []);
+        $trainingCheck = (array) ($checks['training'] ?? []);
 
-        $eligibilityMet = 'no';
-        if (!$eligibilityReq) {
-            $eligibilityMet = 'na';
-        } else {
-            $eligibilityMet = CivilServiceEligibility::where('user_id', $userId)->exists() ? 'yes' : 'no';
-        }
+        $educationMet = !($educationCheck['required'] ?? false)
+            ? 'na'
+            : (($educationCheck['met'] ?? false) ? 'yes' : 'no');
+        $eligibilityMet = !($eligibilityCheck['required'] ?? false)
+            ? 'na'
+            : (($eligibilityCheck['met'] ?? false) ? 'yes' : 'no');
+        $experienceMet = !($experienceCheck['required'] ?? false)
+            ? 'na'
+            : (($experienceCheck['met'] ?? false) ? 'yes' : 'no');
+        $trainingMet = !($trainingCheck['required'] ?? false)
+            ? 'na'
+            : (($trainingCheck['met'] ?? false) ? 'yes' : 'no');
 
         $requiredStatuses = collect([$educationMet, $eligibilityMet, $experienceMet, $trainingMet])
             ->filter(fn($value) => $value !== 'na');

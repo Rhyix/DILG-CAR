@@ -52,6 +52,7 @@
         $requiredDocsPreviewForModal = $requiredDocsPreview ?? [];
         $hasMissingRequiredDocsForModal = (bool) ($hasMissingRequiredDocs ?? false);
         $hasIncompletePdsForApply = !($hasCompletedPdsForApply ?? false);
+        $isEligibilityQualifiedForPanel = (bool) ($isEligibilityQualified ?? true);
 
         $statusRaw = strtolower(trim((string) $vacancy->status));
         $isClosed = in_array($statusRaw, ['closed', 'no', '0', 'inactive'], true);
@@ -69,6 +70,9 @@
             ? 'PHP ' . number_format((float) $salaryValue, 2)
             : ((string) ($salaryValue ?: 'Not specified'));
         $qualificationChecksForPanel = is_array($qualificationChecks ?? null) ? $qualificationChecks : [];
+        $missingQualificationLabelsForPanel = is_array($missingQualificationLabels ?? null)
+            ? array_values(array_filter(array_map(fn($value) => trim((string) $value), $missingQualificationLabels)))
+            : [];
         $qualificationLabelMap = [
             'education' => 'Education',
             'training' => 'Training',
@@ -230,7 +234,12 @@
                                 class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-gray-400 text-white text-sm font-semibold cursor-not-allowed">
                                 <i data-feather="check-circle" class="w-4 h-4"></i> ALREADY APPLIED
                             </button>
-                        @elseif (!$isClosed && !($isEligibilityQualified ?? true))
+                        @elseif (!$isClosed && $hasIncompletePdsForApply)
+                            <button type="button" onclick="window.location.href='{{ route('display_c1') }}'"
+                                class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition">
+                                <i data-feather="file-text" class="w-4 h-4"></i> COMPLETE PDS TO APPLY
+                            </button>
+                        @elseif (!$isClosed && !$isEligibilityQualifiedForPanel)
                             <button disabled
                                 class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-red-500 text-white text-sm font-semibold cursor-not-allowed">
                                 <i data-feather="x-circle" class="w-4 h-4"></i> NOT ELIGIBLE
@@ -247,22 +256,35 @@
                             </button>
                         @endif
 
-                        @if($hasIncompletePdsForApply)
-                            <button onclick="window.location.href='{{ route('display_c1') }}'"
-                                class="use-loader inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition">
-                                <i data-feather="file-text" class="w-4 h-4"></i> COMPLETE PDS
-                            </button>
-                        @endif
-
-                        @if(!$isClosed && !$hasApplied && !($isEligibilityQualified ?? true))
+                        @if(!$isClosed && !$hasApplied && $hasIncompletePdsForApply)
+                            <div class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700">
+                                <p class="font-semibold">You are a new applicant. Please complete your PDS first.</p>
+                                <p class="mt-1">After completing your PDS, this page will automatically show your qualification status for this position.</p>
+                            </div>
+                        @elseif(!$isClosed && !$hasApplied && !$isEligibilityQualifiedForPanel)
                             <div class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-                                {{ $eligibilityMismatchMessage ?: 'You are missing one or more required qualifications for this position.' }}
+                                <p class="font-semibold">You are not yet qualified for this position.</p>
+                                <p class="mt-1">{{ $eligibilityMismatchMessage ?: 'Please complete the missing requirement(s) below.' }}</p>
+                                @if(!empty($missingQualificationLabelsForPanel))
+                                    <ul class="mt-2 list-disc list-inside space-y-1">
+                                        @foreach($missingQualificationLabelsForPanel as $item)
+                                            <li>{{ $item }}</li>
+                                        @endforeach
+                                    </ul>
+                                @endif
                             </div>
                         @endif
                     </div>
                 </div>
 
-                @if(!$isClosed && !$hasApplied && !empty($qualificationChecksForPanel))
+                @if(!$isClosed && !$hasApplied && $hasIncompletePdsForApply)
+                    <div class="rounded-2xl border border-[#0D2B70]/20 bg-white p-5 shadow-sm">
+                        <h3 class="text-base font-bold text-[#0D2B70]">Qualification Check</h3>
+                        <div class="mt-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-3 text-sm text-blue-800">
+                            Complete your PDS first so we can check if you meet the Education, Training, Experience, and Eligibility requirements.
+                        </div>
+                    </div>
+                @elseif(!$isClosed && !$hasApplied && !empty($qualificationChecksForPanel))
                     <div class="rounded-2xl border border-[#0D2B70]/20 bg-white p-5 shadow-sm">
                         <h3 class="text-base font-bold text-[#0D2B70]">Qualification Check</h3>
                         <div class="mt-3 space-y-2">

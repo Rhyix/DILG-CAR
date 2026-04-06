@@ -44,6 +44,44 @@
                 </ul>
             </div>
         @endif
+        @php
+            $qualificationFeedback = session('qualification_feedback');
+        @endphp
+        @if(is_array($qualificationFeedback))
+            @php
+                $feedbackTitle = trim((string) ($qualificationFeedback['title'] ?? 'Application Requirement Check'));
+                $feedbackSummary = trim((string) ($qualificationFeedback['summary'] ?? 'Please review your details before submitting.'));
+                $feedbackMissing = is_array($qualificationFeedback['missing'] ?? null)
+                    ? array_values(array_filter(array_map(fn($value) => trim((string) $value), $qualificationFeedback['missing'])))
+                    : [];
+                $feedbackNextStepUrl = trim((string) ($qualificationFeedback['next_step_url'] ?? ''));
+                $feedbackNextStepLabel = trim((string) ($qualificationFeedback['next_step_label'] ?? 'Review Details'));
+            @endphp
+            <div class="mb-6 rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-900 shadow-sm">
+                <p class="text-sm font-bold uppercase tracking-wide">{{ $feedbackTitle }}</p>
+                <p class="mt-2 text-sm">{{ $feedbackSummary }}</p>
+
+                @if(!empty($feedbackMissing))
+                    <div class="mt-3 rounded-lg border border-amber-200 bg-white/70 p-3">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-amber-700">Please complete</p>
+                        <ul class="mt-2 list-disc list-inside text-sm text-amber-900 space-y-1">
+                            @foreach($feedbackMissing as $item)
+                                <li>{{ $item }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+
+                @if($feedbackNextStepUrl !== '')
+                    <div class="mt-3">
+                        <a href="{{ $feedbackNextStepUrl }}"
+                           class="use-loader inline-flex items-center rounded-lg bg-amber-600 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-700">
+                            {{ $feedbackNextStepLabel !== '' ? $feedbackNextStepLabel : 'Review Details' }}
+                        </a>
+                    </div>
+                @endif
+            </div>
+        @endif
 
         <form id="myForm" method="POST" action="{{ route('finalize_pds', ['go_to' => $isApplicationFlow ? 'job_description' : 'display_final_pds']) }}" enctype="multipart/form-data" data-upload-retry="1">
             @csrf
@@ -78,9 +116,9 @@
                         <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
                     </svg>
                     <span>
-                        <span class="font-medium">Important:</span> 
-                        If your documents are marked as 'Needs Revision' again, you will be considered unqualified 
-                        and will lose the opportunity to resubmit.
+                        <span class="font-medium">Important:</span>
+                        If your documents are marked as <span class="font-semibold">'Needs Revision'</span> again,
+                        your application may be tagged as unqualified and resubmission may be closed.
                     </span>
                 </p>
 
@@ -90,7 +128,8 @@
                     </svg>
                     <span>
                         <span class="font-medium">Warning:</span>
-                        Reliability in your dishonesty about the required documents may affect your application negatively.
+                        Please upload only complete and truthful documents. Incorrect or misleading submissions can
+                        affect your application status.
                     </span>
                 </p>
 

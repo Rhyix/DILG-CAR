@@ -31,6 +31,9 @@ class Applications extends Model
         'file_revision_submitted_at',
         'file_size_8b',
         'qs_education',
+        'education_requirement_snapshot',
+        'education_rule_snapshot',
+        'education_rule_snapshot_version',
         'qs_eligibility',
         'qs_experience',
         'qs_training',
@@ -57,6 +60,7 @@ class Applications extends Model
     protected $casts = [
         'answers' => 'array',
         'scores' => 'array',
+        'education_rule_snapshot' => 'array',
         'exam_attendance_responded_at' => 'datetime',
     ];
 

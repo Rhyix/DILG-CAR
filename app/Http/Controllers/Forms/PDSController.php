@@ -18,6 +18,7 @@ use App\Models\OtherInformation;
 use App\Models\UploadedDocument;
 use Illuminate\Http\UploadedFile;
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\JobVacancyController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use App\Models\LearningAndDevelopment;
@@ -4961,18 +4962,46 @@ class PDSController extends Controller
 
                     $submissionResult = $this->createOrUpdateApplicationFromVacancyUploads((string) $applicationVacancyId);
                     if (!$submissionResult['ok']) {
+                        $reasonCode = (string) ($submissionResult['reason_code'] ?? '');
                         Log::warning('C5 application submit blocked', [
                             'user_id' => Auth::id(),
                             'vacancy_id' => $applicationVacancyId,
                             'reason' => $submissionResult['message'],
+                            'reason_code' => $reasonCode,
                         ]);
-                        return redirect()
+
+                        $redirect = redirect()
                             ->route('display_c5', [
                                 'doc_track' => $docTrack,
                                 'vacancy_id' => $applicationVacancyId,
                                 'simple' => 1,
-                            ])
-                            ->withErrors(['cert_uploads.application_letter' => $submissionResult['message']]);
+                            ]);
+
+                        if ($reasonCode === 'qualification') {
+                            return $redirect
+                                ->with('qualification_feedback', [
+                                    'title' => 'You are not yet qualified for this position',
+                                    'summary' => 'Please update your PDS details for the items below, then submit again.',
+                                    'missing' => array_values((array) ($submissionResult['missing_requirements'] ?? [])),
+                                    'next_step_url' => route('job_description', ['id' => $applicationVacancyId]),
+                                    'next_step_label' => 'Back to Job Details',
+                                ])
+                                ->withInput();
+                        }
+
+                        if ($reasonCode === 'incomplete_pds') {
+                            return $redirect
+                                ->with('qualification_feedback', [
+                                    'title' => 'Complete your PDS first',
+                                    'summary' => 'Some required PDS sections are incomplete. Please complete your PDS before submitting your application.',
+                                    'missing' => [],
+                                    'next_step_url' => route('display_c1'),
+                                    'next_step_label' => 'Go to PDS',
+                                ])
+                                ->withInput();
+                        }
+
+                        return $redirect->withErrors(['cert_uploads.application_letter' => $submissionResult['message']]);
                     }
 
                     return redirect()
@@ -5014,6 +5043,56 @@ class PDSController extends Controller
     private function createOrUpdateApplicationFromVacancyUploads(string $vacancyId): array
     {
         $supportsVacancyScopedDocs = Schema::hasColumn('uploaded_documents', 'vacancy_id');
+        $vacancy = Models\JobVacancy::where('vacancy_id', $vacancyId)->first();
+        if (!$vacancy) {
+            return [
+                'ok' => false,
+                'created' => false,
+                'message' => 'Selected vacancy was not found.',
+                'reason_code' => 'vacancy_not_found',
+            ];
+        }
+
+        $application = Applications::where('user_id', Auth::id())
+            ->where('vacancy_id', $vacancyId)
+            ->first();
+
+        // Keep update flows intact, but enforce the same apply gate for new application creation.
+        if (!$application) {
+            $jobVacancyController = app(JobVacancyController::class);
+
+            if (!$jobVacancyController->hasCompletedPdsForApplicant((int) Auth::id())) {
+                Log::info('C5 application submit blocked: incomplete PDS', [
+                    'user_id' => Auth::id(),
+                    'vacancy_id' => $vacancyId,
+                ]);
+
+                return [
+                    'ok' => false,
+                    'created' => false,
+                    'message' => 'Please complete your Personal Data Sheet first before applying.',
+                    'reason_code' => 'incomplete_pds',
+                ];
+            }
+
+            $qualificationGate = $jobVacancyController->evaluateQualificationGateForApplicant((int) Auth::id(), $vacancy);
+            if (!(bool) ($qualificationGate['isQualified'] ?? false)) {
+                Log::info('C5 application submit blocked: qualification requirements not met', [
+                    'user_id' => Auth::id(),
+                    'vacancy_id' => $vacancyId,
+                    'qualification_checks' => $qualificationGate['checks'] ?? [],
+                ]);
+
+                return [
+                    'ok' => false,
+                    'created' => false,
+                    'message' => (string) ($qualificationGate['message']
+                        ?? 'You are not yet qualified to apply for this position.'),
+                    'reason_code' => 'qualification',
+                    'missing_requirements' => array_values((array) ($qualificationGate['missing_labels'] ?? [])),
+                ];
+            }
+        }
 
         $applicationLetterDocQuery = UploadedDocument::where('user_id', Auth::id())
             ->where('document_type', 'application_letter')
@@ -5069,6 +5148,7 @@ class PDSController extends Controller
                 'ok' => false,
                 'created' => false,
                 'message' => 'Application Letter is required before submitting your application.',
+                'reason_code' => 'application_letter_missing',
             ];
         }
 
@@ -5093,10 +5173,6 @@ class PDSController extends Controller
             'file_size_8b' => $applicationLetterDoc->file_size_8b,
             'is_valid' => true,
         ];
-
-        $application = Applications::where('user_id', Auth::id())
-            ->where('vacancy_id', $vacancyId)
-            ->first();
 
         if ($application) {
             if (ApplicationStatus::equals($application->status, ApplicationStatus::COMPLIANCE)) {
@@ -5127,7 +5203,6 @@ class PDSController extends Controller
             'status' => ApplicationStatus::PENDING->value,
         ]));
 
-        $vacancy = Models\JobVacancy::where('vacancy_id', $vacancyId)->first();
         if ($vacancy) {
             $admins = \App\Models\Admin::all();
             foreach ($admins as $admin) {

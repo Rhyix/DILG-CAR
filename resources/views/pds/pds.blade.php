@@ -939,27 +939,67 @@
     }
     window.initPdsEducationDateRanges = initPdsEducationDateRanges;
 
-    function validateDobAge(showMessage = true) {
+    function getMinimumAllowedDob() {
+        const cutoff = new Date();
+        cutoff.setHours(0, 0, 0, 0);
+        cutoff.setFullYear(cutoff.getFullYear() - 18);
+        return cutoff;
+    }
+    function formatPdsDateForDisplay(date) {
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = String(date.getFullYear());
+        return `${day}-${month}-${year}`;
+    }
+    function autoAdjustDobIfUnderage(dobInput, pickerInstance = null) {
+        const raw = (dobInput?.value || '').trim();
+        if (!raw) {
+            return false;
+        }
+
+        const parsedDob = parsePdsEducationDate(raw);
+        if (!parsedDob) {
+            return false;
+        }
+
+        parsedDob.setHours(0, 0, 0, 0);
+        const minimumAllowedDob = getMinimumAllowedDob();
+        if (parsedDob.getTime() <= minimumAllowedDob.getTime()) {
+            return false;
+        }
+
+        if (pickerInstance && typeof pickerInstance.setDate === 'function') {
+            pickerInstance.setDate(minimumAllowedDob, false, 'd-m-Y');
+        } else {
+            dobInput.value = formatPdsDateForDisplay(minimumAllowedDob);
+        }
+
+        return true;
+    }
+    function validateDobAge(showMessage = true, autoAdjust = false, pickerInstance = null) {
         const dobInput = document.querySelector('[data-dob-input]');
         if (!dobInput) return true;
 
         const raw = (dobInput.value || '').trim();
-        const dob = parsePdsEducationDate(raw);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        if (!raw) {
+            dobInput.setCustomValidity('');
+            return true;
+        }
 
-        const minDob = new Date(today);
-        minDob.setFullYear(minDob.getFullYear() - 18);
+        if (autoAdjust && autoAdjustDobIfUnderage(dobInput, pickerInstance)) {
+            dobInput.setCustomValidity('');
+            return true;
+        }
+
+        const dob = parsePdsEducationDate(raw);
+        const minimumAllowedDob = getMinimumAllowedDob();
 
         let message = '';
         if (!dob) {
             message = 'Enter a valid date in dd-mm-yyyy format.';
         } else {
             dob.setHours(0, 0, 0, 0);
-
-            if (dob.getTime() > today.getTime()) {
-                message = 'Date of birth cannot be in the future.';
-            } else if (dob.getTime() > minDob.getTime()) {
+            if (dob.getTime() > minimumAllowedDob.getTime()) {
                 message = 'Applicant must be at least 18 years old.';
             }
         }
@@ -973,13 +1013,14 @@
         return true;
     }
 
-    flatpickr('#date_of_birth', {
+    const dobPicker = flatpickr('#date_of_birth', {
         dateFormat: 'd-m-Y',
         allowInput: true,
         disableMobile: true,
-        maxDate: 'today',
-        onChange: () => validateDobAge(false),
-        onClose: () => validateDobAge(true),
+        maxDate: getMinimumAllowedDob(),
+        onChange: (_, __, instance) => validateDobAge(false, true, instance),
+        onClose: (_, __, instance) => validateDobAge(false, true, instance),
+        onValueUpdate: (_, __, instance) => validateDobAge(false, true, instance),
     });
 
     document.addEventListener('DOMContentLoaded', function () {
@@ -995,14 +1036,16 @@
 
         const dobInput = document.querySelector('[data-dob-input]');
         if (dobInput) {
-            dobInput.addEventListener('blur', () => validateDobAge(true));
+            dobInput.addEventListener('blur', () => validateDobAge(true, true, dobPicker));
+            dobInput.addEventListener('change', () => validateDobAge(false, true, dobPicker));
             dobInput.addEventListener('input', () => dobInput.setCustomValidity(''));
+            validateDobAge(false, true, dobPicker);
         }
 
         const form = document.querySelector('#myForm');
         if (form) {
             form.addEventListener('submit', (event) => {
-                if (!validateDobAge(true)) {
+                if (!validateDobAge(true, true, dobPicker)) {
                     event.preventDefault();
                     event.stopPropagation();
                 }
