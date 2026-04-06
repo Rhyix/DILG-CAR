@@ -17,6 +17,22 @@ use Spatie\Activitylog\Models\Activity;
 
 class RegisterController extends Controller
 {
+    private function canUseLocalOtpFallback(): bool
+    {
+        return filter_var((string) env('OTP_LOCAL_FALLBACK', 'false'), FILTER_VALIDATE_BOOLEAN);
+    }
+
+    private function getOtpMailFailureMessage(\Throwable $e): string
+    {
+        $errorMessage = strtolower((string) $e->getMessage());
+
+        if (str_contains($errorMessage, '535') || str_contains($errorMessage, 'username and password not accepted')) {
+            return 'OTP email service authentication failed. Please contact support to refresh the mail app password.';
+        }
+
+        return 'Unable to send OTP right now. Please try again after a moment.';
+    }
+
     public function showRegistrationForm()
     {
     /*
@@ -61,7 +77,7 @@ class RegisterController extends Controller
         ], fn ($value) => $value !== '')));
 
         // Generate OTP
-        $otp = rand(100000, 999999);
+        $otp = (string) random_int(100000, 999999);
 
 
 
@@ -76,7 +92,7 @@ class RegisterController extends Controller
                 'sex' => $request->input('sex'),
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
-                'otp' => $otp,
+                'otp' => (string) $otp,
                 'expires_at' => now()->addMinutes(5), //
                 'resend_available_at_ts' => now()->addSeconds(30)->timestamp,
             ]
@@ -87,6 +103,12 @@ class RegisterController extends Controller
         try {
             Mail::to($request->email)->send(new OTPmail($otp));
             Log::info('Registration OTP mail sent.', ['email' => $request->email]);
+
+            $pending = session('pending_registration', []);
+            if (is_array($pending)) {
+                $pending['mail_delivery_failed'] = false;
+                session(['pending_registration' => $pending]);
+            }
         } catch (\Throwable $e) {
             Log::error('Failed to send registration OTP mail.', [
                 'email' => $request->email,
@@ -97,9 +119,27 @@ class RegisterController extends Controller
                 ->event('send')
                 ->log('Failed to send OTP via mail.');
 
+            $fallbackEnabled = $this->canUseLocalOtpFallback();
+            Log::warning('Registration OTP mail failure fallback evaluation.', [
+                'email' => $request->email,
+                'fallback_enabled' => $fallbackEnabled,
+                'app_env' => app()->environment(),
+                'app_debug' => (bool) config('app.debug'),
+            ]);
+
+            if ($fallbackEnabled) {
+                $pending = session('pending_registration', []);
+                if (is_array($pending)) {
+                    $pending['mail_delivery_failed'] = true;
+                    session(['pending_registration' => $pending]);
+                }
+
+                return redirect()->route('otp')->with('status', 'Email delivery failed, but local OTP fallback is active. Use the code shown below.');
+            }
+
             return back()
                 ->withInput($request->except('password', 'password_confirmation'))
-                ->withErrors(['email' => 'Unable to send OTP right now. Please try again after a moment.']);
+                ->withErrors(['email' => $this->getOtpMailFailureMessage($e)]);
         }
         //info("mail");
 
@@ -137,6 +177,7 @@ class RegisterController extends Controller
         'email' => $data['email'],
         'status' => 'otp_waiting',
         'resendAvailableAtTs' => $resendAvailableAtTs,
+        'fallbackOtp' => ($this->canUseLocalOtpFallback() && !empty($data['mail_delivery_failed'])) ? (string) ($data['otp'] ?? '') : '',
     ]);
 }
 
@@ -144,7 +185,9 @@ class RegisterController extends Controller
     public function OTPCheck(Request $request)
     {
         //info("otp_check");
-        $request->validate(['otp' => 'required']);
+        $request->validate([
+            'otp' => 'required|string|max:20',
+        ]);
 
 
         $data = session('pending_registration');
@@ -171,8 +214,10 @@ class RegisterController extends Controller
             return redirect()->route('register')->withErrors(['expired' => 'OTP expired. Please register again.']);
         }
 
-        //info($data['otp']);
-        if ($request->otp != $data['otp']) {
+        $submittedOtp = preg_replace('/\D+/', '', (string) $request->input('otp', ''));
+        $expectedOtp = preg_replace('/\D+/', '', (string) ($data['otp'] ?? ''));
+
+        if ($submittedOtp === '' || $expectedOtp === '' || !hash_equals($expectedOtp, $submittedOtp)) {
             activity()
                 ->withProperties(['ip' => request()->ip(), 'email' => $data['email'] ?? 'Unknown', 'section' => 'Register'])
                     ->event('verify')
@@ -233,8 +278,14 @@ class RegisterController extends Controller
                 : back()->withErrors(['otp' => $message]);
         }
 
-        $newOtp = rand(100000, 999999);
-        $data['otp'] = $newOtp;
+        $currentOtp = preg_replace('/\D+/', '', (string) ($data['otp'] ?? ''));
+        $isCurrentOtpUsable = $currentOtp !== ''
+            && !empty($data['expires_at'])
+            && now()->lte(Carbon::parse((string) $data['expires_at']));
+
+        // Re-send the same unexpired OTP to avoid invalid-code confusion from multiple emails.
+        $newOtp = $isCurrentOtpUsable ? $currentOtp : (string) random_int(100000, 999999);
+        $data['otp'] = (string) $newOtp;
         $data['expires_at'] = now()->addMinutes(5);
         $data['resend_available_at_ts'] = now()->addSeconds(30)->timestamp;
         session(['pending_registration' => $data]);
@@ -242,6 +293,8 @@ class RegisterController extends Controller
         try {
             Mail::to($data['email'])->send(new OTPmail($newOtp));
             Log::info('Registration OTP mail resent.', ['email' => $data['email'] ?? null]);
+            $data['mail_delivery_failed'] = false;
+            session(['pending_registration' => $data]);
         } catch (\Throwable $e) {
             Log::error('Failed to resend registration OTP mail.', [
                 'email' => $data['email'] ?? null,
@@ -252,9 +305,31 @@ class RegisterController extends Controller
                 ->event('send')
                 ->log('Failed to resend OTP via mail.');
 
+            $fallbackEnabled = $this->canUseLocalOtpFallback();
+            Log::warning('Registration OTP resend failure fallback evaluation.', [
+                'email' => $data['email'] ?? null,
+                'fallback_enabled' => $fallbackEnabled,
+                'app_env' => app()->environment(),
+                'app_debug' => (bool) config('app.debug'),
+            ]);
+
+            if ($fallbackEnabled) {
+                $data['mail_delivery_failed'] = true;
+                session(['pending_registration' => $data]);
+
+                return $wantsJson
+                    ? response()->json([
+                        'message' => 'Email delivery failed. Local fallback OTP is available.',
+                        'retry_after' => 30,
+                        'resend_available_at' => (int) $data['resend_available_at_ts'],
+                        'fallback_otp' => (string) $newOtp,
+                    ])
+                    : back()->with('status', 'Email delivery failed. Local fallback OTP is available on the OTP page.');
+            }
+
             return $wantsJson
-                ? response()->json(['message' => 'Unable to send OTP right now. Please try again.'], 500)
-                : back()->withErrors(['otp' => 'Unable to send OTP right now. Please try again.']);
+                ? response()->json(['message' => $this->getOtpMailFailureMessage($e)], 500)
+                : back()->withErrors(['otp' => $this->getOtpMailFailureMessage($e)]);
         }
 
         activity()

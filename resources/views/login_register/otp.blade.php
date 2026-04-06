@@ -57,6 +57,14 @@
                     <h3 class="mt-2 font-['Space_Grotesk'] text-3xl font-extrabold tracking-tight text-[#0D2B70]">Enter Verification Code</h3>
                     <p class="mt-2 text-sm text-slate-600">Code sent to <span class="font-semibold">{{ $email ?? old('email') }}</span></p>
 
+                    @if (!empty($fallbackOtp))
+                        <div class="mt-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-amber-800">
+                            <p class="text-xs font-semibold uppercase tracking-[0.1em]">Local OTP Fallback</p>
+                            <p class="mt-1 text-sm">Email sending failed on local SMTP. Use this OTP:</p>
+                            <p class="mt-2 text-xl font-extrabold tracking-[0.2em]">{{ $fallbackOtp }}</p>
+                        </div>
+                    @endif
+
                     <form method="POST" action="{{ route('otp_check', [], false) }}" class="mt-7 space-y-5" autocomplete="off">
                         @csrf
                         <input type="hidden" name="email" value="{{ old('email', $email ?? '') }}">

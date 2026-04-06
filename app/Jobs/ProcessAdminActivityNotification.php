@@ -74,6 +74,7 @@ class ProcessAdminActivityNotification implements ShouldQueue
 
         $admins = Admin::all();
         $sentCount = 0;
+        $failedCount = 0;
 
         foreach ($admins as $admin) {
             $notificationLink = $link;
@@ -103,26 +104,39 @@ class ProcessAdminActivityNotification implements ShouldQueue
                 continue;
             }
 
-            Mail::send('emails.admin_event_notification', [
-                'actorName' => $actorName,
-                'recipientName' => $admin->name ?? $admin->username,
-                'applicantName' => $applicantName,
-                'positionTitle' => $positionTitle,
-                'vacancyId' => $vacancyId,
-                'title' => $section,
-                'body' => $message,
-                'link' => $notificationLink,
-                'occurredAt' => $activity->created_at,
-            ], function ($m) use ($admin) {
-                $m->to($admin->email)->subject('DILG-CAR Admin Notification');
-            });
+            try {
+                Mail::send('emails.admin_event_notification', [
+                    'actorName' => $actorName,
+                    'recipientName' => $admin->name ?? $admin->username,
+                    'applicantName' => $applicantName,
+                    'positionTitle' => $positionTitle,
+                    'vacancyId' => $vacancyId,
+                    'title' => $section,
+                    'body' => $message,
+                    'link' => $notificationLink,
+                    'occurredAt' => $activity->created_at,
+                ], function ($m) use ($admin) {
+                    $m->to($admin->email)->subject('DILG-CAR Admin Notification');
+                });
 
-            $sentCount++;
+                $sentCount++;
+            } catch (\Throwable $exception) {
+                $failedCount++;
+                Log::error('Admin event notification email failed', [
+                    'activity_id' => $this->activityId,
+                    'recipient_admin_id' => $admin->id,
+                    'recipient_email' => $admin->email,
+                    'section' => $section,
+                    'event' => $activity->event,
+                    'error' => $exception->getMessage(),
+                ]);
+            }
         }
 
         Log::info('Sent admin notifications', [
             'category' => $category,
             'count' => $sentCount,
+            'failed_count' => $failedCount,
             'section' => $section,
             'event' => $activity->event,
         ]);

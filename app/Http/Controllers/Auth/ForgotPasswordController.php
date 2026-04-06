@@ -14,6 +14,17 @@ use Spatie\Activitylog\Models\Activity;
 
 class ForgotPasswordController extends Controller
 {
+    private function getOtpMailFailureMessage(\Throwable $e): string
+    {
+        $errorMessage = strtolower((string) $e->getMessage());
+
+        if (str_contains($errorMessage, '535') || str_contains($errorMessage, 'username and password not accepted')) {
+            return 'OTP email service authentication failed. Please contact support to refresh the mail app password.';
+        }
+
+        return 'Unable to send OTP right now. Please try again after a moment.';
+    }
+
     private function findUserByExactEmail(string $email): ?User
     {
         $email = trim($email);
@@ -51,13 +62,22 @@ class ForgotPasswordController extends Controller
         }
 
         // Generate OTP
-        $otp = rand(100000, 999999);
+        $otp = (string) random_int(100000, 999999);
         $user->otp = $otp;
         $user->otp_expires_at = Carbon::now()->addMinutes(5);
         $user->save();
 
-        // Send OTP email
-        Mail::to($user->email)->send(new ResetOTPmail($otp));
+        try {
+            // Send OTP email
+            Mail::to($user->email)->send(new ResetOTPmail($otp));
+        } catch (\Throwable $e) {
+            activity()
+                ->withProperties(['ip' => request()->ip(), 'email' => $email, 'section' => 'Forgot Password'])
+                ->event('send')
+                ->log('Failed to send OTP for password reset via mail.');
+
+            return back()->withErrors(['email' => $this->getOtpMailFailureMessage($e)]);
+        }
 
         activity()
             ->withProperties(['ip' => request()->ip(), 'email' => $email, 'section' => 'Forgot Password'])
@@ -94,14 +114,18 @@ class ForgotPasswordController extends Controller
     {
         $request->validate([
             'email' => 'required|email',
-            'otp' => 'required'
+            'otp' => 'required|string|max:20'
         ]);
 
         $email = trim((string) $request->email);
         $user = $this->findUserByExactEmail($email);
+        $submittedOtp = preg_replace('/\D+/', '', (string) $request->input('otp', ''));
+        $storedOtp = preg_replace('/\D+/', '', (string) ($user?->otp ?? ''));
         $otpIsValid = $user
             && !is_null($user->otp_expires_at)
-            && (string) $user->otp === (string) $request->otp
+            && $submittedOtp !== ''
+            && $storedOtp !== ''
+            && hash_equals($storedOtp, $submittedOtp)
             && Carbon::parse($user->otp_expires_at)->gt(Carbon::now());
 
         if (!$otpIsValid) {
@@ -198,7 +222,7 @@ class ForgotPasswordController extends Controller
         return redirect()->route('login')->with('status', 'Password reset successful. You may now log in.');
     }
 
-    // 7. Resend OTP (expires old OTP, generates new)
+    // 7. Resend OTP
     public function resendOtp(Request $request)
     {
         $request->validate(['email' => 'required|email']);
@@ -215,17 +239,28 @@ class ForgotPasswordController extends Controller
             return response()->json(['error' => 'Email not found.'], 404);
         }
 
-        // Expire old OTP immediately
-        $user->otp_expires_at = Carbon::now();
+        $currentOtp = preg_replace('/\D+/', '', (string) ($user->otp ?? ''));
+        $isCurrentOtpUsable = $currentOtp !== ''
+            && !is_null($user->otp_expires_at)
+            && Carbon::parse((string) $user->otp_expires_at)->gt(Carbon::now());
 
-        // Generate new OTP
-        $otp = rand(100000, 999999);
+        // Re-send the same unexpired OTP to avoid invalid-code confusion from multiple emails.
+        $otp = $isCurrentOtpUsable ? $currentOtp : (string) random_int(100000, 999999);
         $user->otp = $otp;
         $user->otp_expires_at = Carbon::now()->addMinutes(5);
         $user->save();
 
-        // Send new OTP email
-        Mail::to($user->email)->send(new ResetOTPmail($otp));
+        try {
+            // Send new OTP email
+            Mail::to($user->email)->send(new ResetOTPmail($otp));
+        } catch (\Throwable $e) {
+            activity()
+                ->withProperties(['ip' => request()->ip(), 'email' => $user->email, 'section' => 'Forgot Password'])
+                ->event('send')
+                ->log('Failed to resend OTP for password reset via mail.');
+
+            return response()->json(['error' => $this->getOtpMailFailureMessage($e)], 500);
+        }
 
         activity()
             ->withProperties(['ip' => request()->ip(), 'email' => $user->email, 'section' => 'Forgot Password'])
@@ -234,7 +269,7 @@ class ForgotPasswordController extends Controller
 
         return response()->json([
             'message' => 'New OTP sent successfully.',
-            'otpExpiresAt' => $user->otp_expires_at->toDateTimeString()
+            'otpExpiresAt' => Carbon::parse((string) $user->otp_expires_at)->toDateTimeString()
         ]);
     }
 }

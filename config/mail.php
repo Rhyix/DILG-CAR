@@ -1,11 +1,21 @@
 <?php
 
-$fromAddress = env('MAIL_FROM_ADDRESS', 'hello@example.com');
+$normalizeEnvString = static function ($value, string $default = ''): string {
+    $normalized = trim((string) $value);
+
+    if ($normalized === '' || strtolower($normalized) === 'null') {
+        return $default;
+    }
+
+    return $normalized;
+};
+
+$fromAddress = $normalizeEnvString(env('MAIL_FROM_ADDRESS', 'hello@example.com'), 'hello@example.com');
 $fallbackLocalDomain = str_contains($fromAddress, '@')
     ? ltrim(strrchr($fromAddress, '@'), '@')
-    : parse_url(env('APP_URL', 'http://localhost'), PHP_URL_HOST);
-$configuredScheme = strtolower((string) env('MAIL_SCHEME', ''));
-$configuredEncryption = strtolower((string) env('MAIL_ENCRYPTION', ''));
+    : (parse_url(env('APP_URL', 'http://localhost'), PHP_URL_HOST) ?: 'localhost');
+$configuredScheme = strtolower($normalizeEnvString(env('MAIL_SCHEME', '')));
+$configuredEncryption = strtolower($normalizeEnvString(env('MAIL_ENCRYPTION', '')));
 
 if ($configuredScheme === 'tls') {
     $configuredScheme = 'smtp';
@@ -18,6 +28,15 @@ if ($configuredScheme === 'ssl') {
 $smtpScheme = $configuredScheme !== ''
     ? $configuredScheme
     : ($configuredEncryption === 'ssl' ? 'smtps' : 'smtp');
+
+if (!in_array($smtpScheme, ['smtp', 'smtps'], true)) {
+    $smtpScheme = $configuredEncryption === 'ssl' ? 'smtps' : 'smtp';
+}
+
+$autoTls = filter_var((string) env('MAIL_AUTO_TLS', true), FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+if ($autoTls === null) {
+    $autoTls = true;
+}
 
 return [
 
@@ -60,14 +79,14 @@ return [
             'transport' => 'smtp',
             // Valid schemes are smtp / smtps. TLS should be controlled via encryption/auto_tls.
             'scheme' => $smtpScheme,
-            'encryption' => env('MAIL_ENCRYPTION'),
+            'encryption' => $configuredEncryption !== '' ? $configuredEncryption : null,
             'url' => env('MAIL_URL'),
             'host' => env('MAIL_HOST', '127.0.0.1'),
             'port' => env('MAIL_PORT', 2525),
             'username' => env('MAIL_USERNAME'),
             'password' => env('MAIL_PASSWORD'),
             'timeout' => env('MAIL_TIMEOUT', 30),
-            'auto_tls' => env('MAIL_AUTO_TLS', true),
+            'auto_tls' => $autoTls,
             'local_domain' => env('MAIL_EHLO_DOMAIN', $fallbackLocalDomain),
         ],
 

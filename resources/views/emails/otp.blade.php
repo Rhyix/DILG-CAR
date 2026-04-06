@@ -109,6 +109,7 @@
       <div class="otp-box">{{ $otp }}</div>
 
       <p>This code will expire in <strong>5 minutes</strong>.</p>
+      <p>If you requested a resend, you may receive multiple messages. Use the most recent code from this registration attempt.</p>
       <p>Do not share this code with anyone.</p>
       <p>If you did not request this code, just ignore this email. Thank you.</p>
       <p><strong>- DILG-CAR</strong></p>
