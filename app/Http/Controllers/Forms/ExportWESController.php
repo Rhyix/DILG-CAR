@@ -10,6 +10,9 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use PhpOffice\PhpWord\TemplateProcessor;
+use setasign\Fpdi\Fpdi;
 
 class ExportWESController extends Controller
 {
@@ -119,6 +122,220 @@ class ExportWESController extends Controller
 
     private function buildWesPdf(string $fullName, Collection $experiences): \FPDF
     {
+        $responsiveDocxTemplatePath = public_path('templates/WES_Template.docx');
+        if (file_exists($responsiveDocxTemplatePath)) {
+            try {
+                return $this->buildWesPdfFromResponsiveDocxTemplate($responsiveDocxTemplatePath, $fullName, $experiences);
+            } catch (\Throwable $e) {
+                Log::warning('Responsive WES DOCX template render failed; falling back to PDF-template overlay.', [
+                    'error' => $e->getMessage(),
+                    'template_docx' => $responsiveDocxTemplatePath,
+                ]);
+            }
+        }
+
+        $templatePdfPath = $this->resolveWesTemplatePdfPath();
+        if ($templatePdfPath !== null) {
+            try {
+                return $this->buildWesPdfFromTemplate($templatePdfPath, $experiences);
+            } catch (\Throwable $e) {
+                Log::warning('WES template-based export failed; falling back to legacy WES PDF renderer.', [
+                    'error' => $e->getMessage(),
+                    'template_pdf' => $templatePdfPath,
+                ]);
+            }
+        }
+
+        // Fallback: legacy in-code renderer (kept for resilience when template conversion is unavailable).
+        return $this->buildWesPdfLegacy($fullName, $experiences);
+    }
+
+    private function buildWesPdfFromResponsiveDocxTemplate(
+        string $templateDocxPath,
+        string $fullName,
+        Collection $experiences
+    ): \FPDF {
+        $entries = $experiences->values();
+        if ($entries->isEmpty()) {
+            $entries = collect([(object) [
+                'start_date' => null,
+                'end_date' => null,
+                'position' => 'N/A',
+                'office' => 'N/A',
+                'supervisor' => 'N/A',
+                'agency' => 'N/A',
+                'accomplishments' => ['N/A'],
+                'duties' => ['N/A'],
+            ]]);
+        }
+
+        $templateProcessor = new TemplateProcessor($templateDocxPath);
+        $templateProcessor->setValue('name', $this->sanitizeDocxText($fullName));
+        $templateProcessor->setValue('date', now()->format('F d, Y'));
+
+        // NOTE:
+        // `cloneBlock(..., replace=true)` corrupts this specific WES template after save.
+        // We keep the original block markers (replace=false), then replace each placeholder
+        // occurrence in-order with limit=1 so each entry maps to the correct block.
+        $templateProcessor->cloneBlock('experience', $entries->count(), false, false);
+
+        foreach ($entries as $exp) {
+            $from = $this->formatMonthYear($exp->start_date);
+            $to = $exp->end_date ? $this->formatMonthYear($exp->end_date) : 'Present';
+
+            $this->setTemplateValueOnce($templateProcessor, 'from', $from !== '' ? $from : 'N/A');
+            $this->setTemplateValueOnce($templateProcessor, 'to', $to !== '' ? $to : 'N/A');
+            $this->setTemplateValueOnce($templateProcessor, 'position', trim((string) ($exp->position ?? '')) ?: 'N/A');
+            $this->setTemplateValueOnce($templateProcessor, 'office', trim((string) ($exp->office ?? '')) ?: 'N/A');
+            $this->setTemplateValueOnce($templateProcessor, 'supervisor', trim((string) ($exp->supervisor ?? '')) ?: 'N/A');
+            $this->setTemplateValueOnce($templateProcessor, 'agency', trim((string) ($exp->agency ?? '')) ?: 'N/A');
+            $this->setTemplateValueOnce(
+                $templateProcessor,
+                'accomplishments',
+                $this->formatTemplateMultilineList($exp->accomplishments ?? [])
+            );
+            $this->setTemplateValueOnce(
+                $templateProcessor,
+                'duties',
+                $this->formatTemplateMultilineList($exp->duties ?? [])
+            );
+        }
+
+        // Remove block markers that were intentionally kept during clone.
+        $templateProcessor->setValue('experience', '', 1);
+        $templateProcessor->setValue('/experience', '', 1);
+
+        $tempDir = storage_path('app/temp');
+        @mkdir($tempDir, 0777, true);
+
+        $token = uniqid('wes_runtime_', true);
+        $tempDocxPath = $tempDir . DIRECTORY_SEPARATOR . $token . '.docx';
+        $tempPdfPath = $tempDir . DIRECTORY_SEPARATOR . $token . '.pdf';
+
+        $templateProcessor->saveAs($tempDocxPath);
+        $converted = $this->convertDocxTemplateToPdf($tempDocxPath, $tempPdfPath);
+        if (!$converted || !file_exists($tempPdfPath)) {
+            @unlink($tempDocxPath);
+            @unlink($tempPdfPath);
+            throw new \RuntimeException('DOCX to PDF conversion failed for responsive WES template.');
+        }
+
+        $pdf = new Fpdi('P', 'mm', 'A4');
+        $pdf->SetAutoPageBreak(false);
+        $pageCount = $pdf->setSourceFile($tempPdfPath);
+        for ($page = 1; $page <= $pageCount; $page++) {
+            $templateId = $pdf->importPage($page);
+            $size = $pdf->getTemplateSize($templateId);
+            $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
+            $pdf->useTemplate($templateId);
+        }
+
+        @unlink($tempDocxPath);
+        @unlink($tempPdfPath);
+
+        return $pdf;
+    }
+
+    private function buildWesPdfFromTemplate(string $templatePdfPath, Collection $experiences): \FPDF
+    {
+        $pdf = new Fpdi('P', 'mm', 'A4');
+        $pdf->SetAutoPageBreak(false);
+        $pdf->setSourceFile($templatePdfPath);
+        $templateId = $pdf->importPage(1);
+        $templateSize = $pdf->getTemplateSize($templateId);
+
+        $entries = $experiences->values();
+        if ($entries->isEmpty()) {
+            $entries = collect([(object) [
+                'start_date' => null,
+                'end_date' => null,
+                'position' => 'N/A',
+                'office' => 'N/A',
+                'supervisor' => 'N/A',
+                'agency' => 'N/A',
+                'accomplishments' => ['N/A'],
+                'duties' => ['N/A'],
+            ]]);
+        }
+
+        // Template has two repeated entry blocks; render two entries per page.
+        $chunked = $entries->chunk(2);
+        foreach ($chunked as $chunk) {
+            $pdf->AddPage($templateSize['orientation'], [$templateSize['width'], $templateSize['height']]);
+            $pdf->useTemplate($templateId);
+
+            foreach ($chunk->values() as $slotIndex => $exp) {
+                // Tuned anchors for the converted CS Form No. 212 WES template.
+                // Slot 0 = upper entry box, Slot 1 = lower entry box.
+                $baseY = $slotIndex === 0 ? 69.2 : 140.8;
+                $this->writeTemplateEntryOverlay($pdf, $exp, $baseY);
+            }
+
+            // Fill footer date line in template.
+            $pdf->SetFont('Arial', '', 9);
+            $pdf->SetTextColor(0, 0, 0);
+            $pdf->SetXY(162.0, 281.2);
+            $pdf->Cell(27, 4.5, $this->toPdfText(now()->format('m/d/Y')), 0, 0, 'C');
+        }
+
+        return $pdf;
+    }
+
+    private function writeTemplateEntryOverlay(Fpdi $pdf, $exp, float $baseY): void
+    {
+        $durationFrom = $this->formatMonthYear($exp->start_date);
+        $durationTo = $exp->end_date ? $this->formatMonthYear($exp->end_date) : 'Present';
+        $duration = trim(($durationFrom !== '' ? $durationFrom : 'N/A') . ' to ' . ($durationTo !== '' ? $durationTo : 'N/A'));
+
+        $position = trim((string) ($exp->position ?? '')) ?: 'N/A';
+        $office = trim((string) ($exp->office ?? '')) ?: 'N/A';
+        $supervisor = trim((string) ($exp->supervisor ?? '')) ?: 'N/A';
+        $agency = trim((string) ($exp->agency ?? '')) ?: 'N/A';
+
+        // Right-side values aligned to the template's fixed labels.
+        $valueX = 94.0;
+        $valueWidth = 92.0;
+        $lineHeight = 8.35;
+
+        $pdf->SetFont('Arial', '', 8.4);
+        $pdf->SetTextColor(0, 0, 0);
+
+        $pdf->SetXY($valueX, $baseY);
+        $pdf->Cell($valueWidth, 4.6, $this->toPdfText($duration), 0, 0, 'L');
+
+        $pdf->SetXY($valueX, $baseY + $lineHeight);
+        $pdf->Cell($valueWidth, 4.6, $this->toPdfText($position), 0, 0, 'L');
+
+        $pdf->SetXY($valueX, $baseY + ($lineHeight * 2));
+        $pdf->Cell($valueWidth, 4.6, $this->toPdfText($office), 0, 0, 'L');
+
+        $pdf->SetXY($valueX, $baseY + ($lineHeight * 3));
+        $pdf->Cell($valueWidth, 4.6, $this->toPdfText($supervisor), 0, 0, 'L');
+
+        $pdf->SetXY($valueX, $baseY + ($lineHeight * 4));
+        $pdf->Cell($valueWidth, 4.6, $this->toPdfText($agency), 0, 0, 'L');
+
+        $accomplishments = array_slice($this->listItemsForPreview($exp->accomplishments ?? []), 0, 3);
+        $duties = array_slice($this->listItemsForPreview($exp->duties ?? []), 0, 3);
+
+        $bulletX = 61.5;
+        $bulletLineHeight = 4.25;
+
+        $accomplishmentY = $baseY + 40.6;
+        foreach ($accomplishments as $index => $item) {
+            $pdf->SetXY($bulletX, $accomplishmentY + ($index * $bulletLineHeight));
+            $pdf->Cell(123, 4.0, $this->toPdfText('- ' . $item), 0, 0, 'L');
+        }
+
+        $dutyY = $baseY + 55.9;
+        foreach ($duties as $index => $item) {
+            $pdf->SetXY($bulletX, $dutyY + ($index * $bulletLineHeight));
+            $pdf->Cell(123, 4.0, $this->toPdfText('- ' . $item), 0, 0, 'L');
+        }
+    }
+
+    private function buildWesPdfLegacy(string $fullName, Collection $experiences): \FPDF
+    {
         $pdf = new \FPDF('P', 'mm', 'A4');
         $pdf->SetMargins(12, 12, 12);
         $pdf->SetAutoPageBreak(true, 12);
@@ -181,6 +398,84 @@ class ExportWESController extends Controller
         return $pdf;
     }
 
+    private function resolveWesTemplatePdfPath(): ?string
+    {
+        $pdfPath = resource_path('templates/work_experience_template.pdf');
+        $docxPath = $this->resolveWesTemplateDocxPath();
+
+        if ($docxPath !== null && (!file_exists($pdfPath) || filemtime($docxPath) > filemtime($pdfPath))) {
+            $converted = $this->convertDocxTemplateToPdf($docxPath, $pdfPath);
+            if (!$converted && file_exists($pdfPath)) {
+                // Keep existing PDF template when conversion fails.
+                return $pdfPath;
+            }
+        }
+
+        return file_exists($pdfPath) ? $pdfPath : null;
+    }
+
+    private function resolveWesTemplateDocxPath(): ?string
+    {
+        $path = resource_path('templates/work_experience_template.docx');
+        return file_exists($path) ? $path : null;
+    }
+
+    private function convertDocxTemplateToPdf(string $docxPath, string $pdfPath): bool
+    {
+        $escapedDocx = str_replace("'", "''", $docxPath);
+        $escapedPdf = str_replace("'", "''", $pdfPath);
+
+        $script = <<<'PS'
+$ErrorActionPreference = 'Stop'
+$docxPath = '__DOCX__'
+$pdfPath = '__PDF__'
+$word = $null
+$document = $null
+try {
+    $word = New-Object -ComObject Word.Application
+    $word.Visible = $false
+    $word.DisplayAlerts = 0
+    $document = $word.Documents.Open($docxPath, $false, $true)
+    $wdFormatPDF = 17
+    $document.SaveAs([ref]$pdfPath, [ref]$wdFormatPDF)
+}
+finally {
+    if ($document -ne $null) { $document.Close($false) | Out-Null }
+    if ($word -ne $null) { $word.Quit() | Out-Null }
+    if ($document -ne $null) { [System.Runtime.Interopservices.Marshal]::ReleaseComObject($document) | Out-Null }
+    if ($word -ne $null) { [System.Runtime.Interopservices.Marshal]::ReleaseComObject($word) | Out-Null }
+    [GC]::Collect()
+    [GC]::WaitForPendingFinalizers()
+}
+PS;
+
+        $script = str_replace('__DOCX__', $escapedDocx, $script);
+        $script = str_replace('__PDF__', $escapedPdf, $script);
+
+        $scriptPath = storage_path('app/temp/wes_docx_to_pdf.ps1');
+        @mkdir(dirname($scriptPath), 0777, true);
+        file_put_contents($scriptPath, $script);
+
+        $command = 'powershell -NoProfile -ExecutionPolicy Bypass -File ' . escapeshellarg($scriptPath);
+        $output = [];
+        $exitCode = 1;
+        @exec($command, $output, $exitCode);
+
+        @unlink($scriptPath);
+
+        if ($exitCode !== 0) {
+            Log::warning('Failed to convert WES DOCX template to PDF.', [
+                'docx' => $docxPath,
+                'pdf' => $pdfPath,
+                'exit_code' => $exitCode,
+                'output' => implode("\n", $output),
+            ]);
+            return false;
+        }
+
+        return file_exists($pdfPath);
+    }
+
     private function ensurePdfSpace(\FPDF $pdf, float $heightNeeded): void
     {
         if ($pdf->GetY() + $heightNeeded <= 285) {
@@ -227,6 +522,34 @@ class ExportWESController extends Controller
         }));
 
         return empty($items) ? ['N/A'] : $items;
+    }
+
+    private function formatTemplateMultilineList($value): string
+    {
+        $items = $this->listItemsForPreview($value);
+        if (empty($items)) {
+            return '- N/A';
+        }
+
+        return implode('  ', array_map(function ($item) {
+            return '- ' . trim((string) $item);
+        }, $items));
+    }
+
+    private function setTemplateValueOnce(TemplateProcessor $templateProcessor, string $key, string $value): void
+    {
+        $templateProcessor->setValue($key, $this->sanitizeDocxText($value), 1);
+    }
+
+    private function sanitizeDocxText(string $value): string
+    {
+        $cleaned = str_replace(
+            ["\r\n", "\r", "\u{00A0}"],
+            [" ", " ", ' '],
+            trim($value)
+        );
+
+        return $cleaned === '' ? 'N/A' : $cleaned;
     }
 
     private function formatMonthYear($date): string

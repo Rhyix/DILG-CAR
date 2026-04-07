@@ -75,8 +75,7 @@
             : [];
         $showInitialAssessmentFlow = !$isClosed
             && !$hasApplied
-            && $hasIncompletePdsForApply
-            && (bool) ($isNewApplicant ?? false);
+            && $hasIncompletePdsForApply;
         $qualificationLabelMap = [
             'education' => 'Education',
             'training' => 'Training',
@@ -239,17 +238,10 @@
                                 <i data-feather="check-circle" class="w-4 h-4"></i> ALREADY APPLIED
                             </button>
                         @elseif (!$isClosed && $hasIncompletePdsForApply)
-                            @if($showInitialAssessmentFlow)
-                                <button type="button" onclick="openApplyModal()"
-                                    class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition">
-                                    <i data-feather="clipboard" class="w-4 h-4"></i> START INITIAL ASSESSMENT
-                                </button>
-                            @else
-                                <button type="button" onclick="window.location.href='{{ route('display_c1') }}'"
-                                    class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition">
-                                    <i data-feather="file-text" class="w-4 h-4"></i> COMPLETE PDS TO APPLY
-                                </button>
-                            @endif
+                            <button type="button" onclick="openApplyModal()"
+                                class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-green-500 hover:bg-green-600 text-white text-sm font-semibold transition">
+                                <i data-feather="clipboard" class="w-4 h-4"></i> APPLY
+                            </button>
                         @elseif (!$isClosed && !$isEligibilityQualifiedForPanel)
                             <button disabled
                                 class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-red-500 text-white text-sm font-semibold cursor-not-allowed">
@@ -269,13 +261,8 @@
 
                         @if(!$isClosed && !$hasApplied && $hasIncompletePdsForApply)
                             <div class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700">
-                                @if($showInitialAssessmentFlow)
-                                    <p class="font-semibold">Before applying, complete the initial assessment first.</p>
-                                    <p class="mt-1">You will answer Education and Eligibility checks, then continue to your PDS.</p>
-                                @else
-                                    <p class="font-semibold">You are a new applicant. Please complete your PDS first.</p>
-                                    <p class="mt-1">After completing your PDS, this page will automatically show your qualification status for this position.</p>
-                                @endif
+                                <p class="font-semibold">Before applying, complete the initial assessment first.</p>
+                                <p class="mt-1">This assessment appears for every position while your PDS is still incomplete.</p>
                             </div>
                         @elseif(!$isClosed && !$hasApplied && !$isEligibilityQualifiedForPanel)
                             <div class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
