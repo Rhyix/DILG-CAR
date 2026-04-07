@@ -4,6 +4,7 @@
     $isPositionsContext = request()->routeIs('admin.positions.*')
         || request()->routeIs('addcos')
         || request()->routeIs('addplantilla');
+    $isCoursesContext = request()->routeIs('admin.courses.*');
     $isVacanciesContext = request()->routeIs('vacancies_management')
         || request()->routeIs('vacancies.addcos')
         || request()->routeIs('vacancies.addplantilla')
@@ -99,8 +100,17 @@
             @endif
 
             @if(in_array($adminRole, ['superadmin', 'admin'], true))
-                <div x-data="{ submenuOpen: {{ (request()->routeIs('admin_activity_log') || request()->routeIs('signatories.*') || request()->routeIs('admin.reports.index') || request()->routeIs('admin.backup.index') || $isPositionsContext) ? 'true' : 'false' }} }" class="relative">
+                @php
+                    $utilitiesOpen = request()->routeIs('admin_activity_log')
+                        || request()->routeIs('signatories.*')
+                        || request()->routeIs('admin.reports.index')
+                        || request()->routeIs('admin.backup.index')
+                        || $isPositionsContext
+                        || $isCoursesContext;
+                @endphp
+                <div x-data="{ submenuOpen: {{ $utilitiesOpen ? 'true' : 'false' }} }" class="relative">
                     <button @click="submenuOpen = !submenuOpen"
+                        data-utils-toggle="desktop"
                         class="w-full group flex items-center justify-between rounded-md px-4 py-2 text-sm font-bold transition-all duration-200 text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md">
                         <div class="flex items-center">
                             <i class="fa-solid fa-screwdriver-wrench w-5 h-5 flex-shrink-0"></i>
@@ -111,7 +121,7 @@
                         </div>
                     </button>
 
-                    <div x-show="submenuOpen" x-collapse class="pl-4 mt-1 space-y-1 overflow-hidden">
+                    <div x-show="submenuOpen" x-collapse data-utils-panel="desktop" data-initial-open="{{ $utilitiesOpen ? '1' : '0' }}" class="pl-4 mt-1 space-y-1 overflow-hidden">
                         <a href="{{ route('signatories.index') }}" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200 {{ request()->routeIs('signatories.*')
                                 ? 'bg-[#002C76] text-white shadow-md'
                                 : 'text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md' }}">
@@ -124,6 +134,13 @@
                                 : 'text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md' }}">
                             <i class="fa-solid fa-layer-group w-5 h-5 flex-shrink-0 ml-2"></i>
                             <span class="ml-3">POSITIONS</span>
+                        </a>
+
+                        <a href="{{ route('admin.courses.index') }}" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200 {{ $isCoursesContext
+                                ? 'bg-[#002C76] text-white shadow-md'
+                                : 'text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md' }}">
+                            <i class="fa-solid fa-graduation-cap w-5 h-5 flex-shrink-0 ml-2"></i>
+                            <span class="ml-3">COURSES</span>
                         </a>
 
                         <a href="{{ route('admin_activity_log') }}" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200

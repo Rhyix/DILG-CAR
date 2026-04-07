@@ -195,10 +195,7 @@
         </div>
 
         <div class="grid gap-5 md:grid-cols-2">
-          <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <label class="{{ $fieldLabel }}">Education <span class="text-red-600">*</span></label>
-            <textarea name="qualification_education" class="{{ $fieldTextarea }}">{{ old('qualification_education', $formSource?->qualification_education ?? '') }}</textarea>
-          </div>
+          @include('admin.partials.qualification_education_builder')
           <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
             <label class="{{ $fieldLabel }}">Training <span class="text-red-600">*</span></label>
             <textarea name="qualification_training" class="{{ $fieldTextarea }}">{{ old('qualification_training', $formSource?->qualification_training ?? '') }}</textarea>
@@ -404,6 +401,7 @@
     confirm="confirm-cos-discard"
 />
 
+@include('admin.partials.qualification_education_builder_script')
 
 <script>
     function goBack() {
@@ -957,6 +955,19 @@ function checkAllFieldsFilled() {
         }
     });
 
+    if (requiredFields.has('qualification_education')) {
+        const educationHidden = document.getElementById('qualification_education');
+        if (!educationHidden || !String(educationHidden.value || '').trim()) {
+            allFilled = false;
+        }
+        if (typeof window.validateEducationRequirementConfig === 'function') {
+            const educationValidation = window.validateEducationRequirementConfig();
+            if (!educationValidation.valid) {
+                allFilled = false;
+            }
+        }
+    }
+
     const saveBtn = document.getElementById('vacancy-save-btn');
     const errorMsg = document.getElementById('form-error-msg');
     
@@ -1011,14 +1022,23 @@ window.addEventListener('confirm-cos-save', () => {
     const eSalaryGrade = document.getElementById('salary_grade_error');
     const eClosing = document.getElementById('closing_date_error');
     const ePlace = document.getElementById('place_of_assignment_error');
+    const eEducation = document.getElementById('qualification_education_error');
     const eSalary = document.getElementById('monthly_salary_error');
     // Reset
-    [eTitle,eSalaryGrade,eClosing,ePlace,eSalary].forEach(hide);
+    [eTitle,eSalaryGrade,eClosing,ePlace,eEducation,eSalary].forEach(hide);
     // Validate basics
     if (!positionTitle || !positionTitle.value.trim()) { errors.push('Position title is required.'); show(eTitle, 'Position title is required.'); }
     if (!salaryGrade || !/^SG-\d{2}$/.test(String(salaryGrade.value || '').trim())) { errors.push('Salary grade must be in SG-00 format.'); show(eSalaryGrade, 'Salary grade must be in SG-00 format (example: SG-23).'); }
     if (!disablePositionFields && !closingDate.value) { errors.push('Deadline is required.'); show(eClosing, 'Deadline of application is required.'); }
     if (!place.value) { errors.push('Place of assignment is required.'); show(ePlace, 'Place of assignment is required.'); }
+    const educationHidden = document.getElementById('qualification_education');
+    const educationValidation = typeof window.validateEducationRequirementConfig === 'function'
+        ? window.validateEducationRequirementConfig()
+        : { valid: Boolean(educationHidden && String(educationHidden.value || '').trim()), message: '' };
+    if (!educationValidation.valid || !educationHidden || !String(educationHidden.value || '').trim()) {
+        errors.push('Education requirement is required.');
+        show(eEducation, educationValidation.message || 'Education requirement is required.');
+    }
     // Salary checks
     const MAX = 1000000;
     const MIN = 0;
@@ -1145,7 +1165,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (hasProp('closing_date')) setValueByName('closing_date', record.closing_date);
     if (hasProp('place_of_assignment')) setValueByName('place_of_assignment', record.place_of_assignment);
-    if (hasProp('qualification_education')) setValueByName('qualification_education', record.qualification_education);
+    if (hasProp('qualification_education')) {
+      if (typeof window.setEducationRequirementFromRaw === 'function') {
+        window.setEducationRequirementFromRaw(record.qualification_education || '');
+      } else {
+        setValueByName('qualification_education', record.qualification_education);
+      }
+    }
     if (hasProp('qualification_training')) setValueByName('qualification_training', record.qualification_training);
     if (hasProp('qualification_experience')) setValueByName('qualification_experience', record.qualification_experience);
     if (hasProp('expected_output')) setValueByName('expected_output', record.expected_output);

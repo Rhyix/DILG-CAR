@@ -36,6 +36,7 @@ use App\Http\Controllers\PsgcController;
 use App\Http\Controllers\VacancyTitleController;
 use App\Http\Controllers\PositionUtilityController;
 use App\Http\Controllers\EligibilityPresetController;
+use App\Http\Controllers\CoursePresetController;
 use App\Support\ApplicantOnboarding;
 
 use App\Events\PackageSent;
@@ -626,6 +627,11 @@ Route::middleware([RedirectIfNotAdmin::class])->group(function () {
     Route::get('/admin/utilities/reports/export', [App\Http\Controllers\ReportController::class, 'export'])->name('admin.reports.export');
     Route::get('/admin/utilities/positions', [PositionUtilityController::class, 'index'])->name('admin.positions.index');
     Route::get('/admin/utilities/positions/list', [PositionUtilityController::class, 'listJson'])->name('admin.positions.list');
+    Route::get('/admin/utilities/courses', [CoursePresetController::class, 'index'])->name('admin.courses.index');
+    Route::post('/admin/utilities/courses', [CoursePresetController::class, 'store'])->name('admin.courses.store');
+    Route::put('/admin/utilities/courses/{id}', [CoursePresetController::class, 'update'])->name('admin.courses.update');
+    Route::delete('/admin/utilities/courses/{id}', [CoursePresetController::class, 'destroy'])->name('admin.courses.destroy');
+    Route::get('/admin/utilities/courses/list', [CoursePresetController::class, 'listJson'])->name('admin.courses.list');
     Route::middleware([EnsureSuperadmin::class])->group(function () {
         Route::get('/admin/utilities/backup-restore', [BackupRestoreController::class, 'index'])->name('admin.backup.index');
         Route::post('/admin/utilities/backup-restore/backup', [BackupRestoreController::class, 'backup'])->name('admin.backup.run');

@@ -290,6 +290,25 @@ class JobVacancyController extends Controller
         ];
     }
 
+    private function educationRequirementConfigValidationRules(): array
+    {
+        return [
+            'nullable',
+            'string',
+            'max:20000',
+            function ($attribute, $value, $fail): void {
+                if (!is_string($value) || trim($value) === '') {
+                    return;
+                }
+
+                $decoded = json_decode($value, true);
+                if (!is_array($decoded)) {
+                    $fail('Education requirement configuration is invalid.');
+                }
+            },
+        ];
+    }
+
     private function educationRequirementValidationError($value): ?string
     {
         $requirement = $this->normalizeQualificationRequirement((string) $value);
@@ -413,6 +432,12 @@ class JobVacancyController extends Controller
             return $rule;
         }
 
+        if ($this->textContainsAny($normalizedText, ['vocational', 'trade course', 'technical vocational', 'tesda'])) {
+            $rule['rule_code'] = 'vocational';
+            $rule['confidence'] = 'high';
+            return $rule;
+        }
+
         $yearsMatches = [];
         $mentionsCollege = str_contains($normalizedText, 'college');
         $hasYearPattern = preg_match('/\b(\d{1,2})\s*(?:years?|yrs?)\b/i', $normalizedText, $yearsMatches) === 1
@@ -487,7 +512,21 @@ class JobVacancyController extends Controller
         return $rule;
     }
 
-    private function buildCompiledEducationStoragePayload(?string $rawRequirement): array
+    private function decodeEducationRequirementConfig($raw): ?array
+    {
+        if (is_array($raw)) {
+            return $raw;
+        }
+
+        if (!is_string($raw) || trim($raw) === '') {
+            return null;
+        }
+
+        $decoded = json_decode($raw, true);
+        return is_array($decoded) ? $decoded : null;
+    }
+
+    private function buildCompiledEducationStoragePayload(?string $rawRequirement, $rawUiConfig = null): array
     {
         $rule = $this->buildCompiledEducationRule($rawRequirement);
         if ($rule === null) {
@@ -496,6 +535,12 @@ class JobVacancyController extends Controller
                 'education_rule_parser_version' => null,
                 'education_rule_compiled_at' => null,
             ];
+        }
+
+        $uiConfig = $this->decodeEducationRequirementConfig($rawUiConfig);
+        if (is_array($uiConfig) && !empty($uiConfig)) {
+            $rule['ui_config'] = $uiConfig;
+            $rule['ui_config_version'] = 1;
         }
 
         $encoded = json_encode($rule, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
@@ -620,6 +665,8 @@ class JobVacancyController extends Controller
                 ),
             'law_degree' => (bool) ($profile['hasLawDegree'] ?? false),
             'graduate_studies' => (bool) ($profile['hasGrad'] ?? false),
+            'vocational' => (bool) ($profile['hasVocational'] ?? false)
+                || (bool) ($profile['hasCollegeEntryOrHigher'] ?? false),
             'masters' => (bool) ($profile['hasMasters'] ?? false)
                 || ((bool) ($rule['accept_higher_degree'] ?? true) && (bool) ($profile['hasDoctorate'] ?? false)),
             'doctorate' => (bool) ($profile['hasDoctorate'] ?? false),
@@ -647,6 +694,10 @@ class JobVacancyController extends Controller
         }
         if ($this->textContainsAny($requirementLower, ['bachelor of laws', 'llb', 'juris doctor', 'attorney'])) {
             return (bool) ($profile['hasLawDegree'] ?? false);
+        }
+        if ($this->textContainsAny($requirementLower, ['vocational', 'trade course', 'technical vocational', 'tesda'])) {
+            return (bool) ($profile['hasVocational'] ?? false)
+                || (bool) ($profile['hasCollegeEntryOrHigher'] ?? false);
         }
         if ($this->textContainsAny($requirementLower, ['bachelor', "bachelor's", 'baccalaureate'])) {
             return (bool) ($profile['hasBachelorOrHigher'] ?? false);
@@ -831,6 +882,7 @@ class JobVacancyController extends Controller
             //'vacancies' => 'required|integer|min:1',
             'closing_date' => 'required|date',
             'qualification_education' => $this->strictEducationRequirementValidationRules(),
+            'qualification_education_config' => $this->educationRequirementConfigValidationRules(),
             'qualification_experience' => 'required|string',
             'qualification_training' => 'required|string',
             'qualification_eligibility' => 'nullable|string|required_if:vacancy_type,Plantilla',
@@ -867,7 +919,10 @@ class JobVacancyController extends Controller
                 ->with('error', 'HR Division can only update COS vacancies.');
         }
 
-        $compiledEducationStorage = $this->buildCompiledEducationStoragePayload($validated['qualification_education'] ?? null);
+        $compiledEducationStorage = $this->buildCompiledEducationStoragePayload(
+            $validated['qualification_education'] ?? null,
+            $validated['qualification_education_config'] ?? null
+        );
 
         $changes = [];
         foreach ($validated as $key => $value) {
@@ -1057,6 +1112,7 @@ class JobVacancyController extends Controller
                 'salary_grade' => ['required', 'regex:/^SG-\d{2}$/'],
                 'place_of_assignment' => 'required|string',
                 'qualification_education' => $this->strictEducationRequirementValidationRules(),
+                'qualification_education_config' => $this->educationRequirementConfigValidationRules(),
                 'qualification_training' => 'required|string',
                 'qualification_experience' => 'required|string',
                 'qualification_eligibility' => 'nullable|string|required_if:vacancy_type,Plantilla',
@@ -1077,7 +1133,10 @@ class JobVacancyController extends Controller
                     ->with('error', 'HR Division can only create COS positions.');
             }
 
-            $compiledEducationStorage = $this->buildCompiledEducationStoragePayload($validated['qualification_education'] ?? null);
+            $compiledEducationStorage = $this->buildCompiledEducationStoragePayload(
+                $validated['qualification_education'] ?? null,
+                $validated['qualification_education_config'] ?? null
+            );
             $validated = array_merge($validated, $compiledEducationStorage);
 
             $cscFormPath = null;
@@ -1113,6 +1172,7 @@ class JobVacancyController extends Controller
 
             // Qualification standards
             'qualification_education' => $this->strictEducationRequirementValidationRules(),
+            'qualification_education_config' => $this->educationRequirementConfigValidationRules(),
             'qualification_training' => 'required|string',
             'qualification_experience' => 'required|string',
             'qualification_eligibility' => 'nullable|string|required_if:vacancy_type,Plantilla',
@@ -1141,7 +1201,10 @@ class JobVacancyController extends Controller
                 ->with('error', 'HR Division can only create COS vacancies.');
         }
 
-        $compiledEducationStorage = $this->buildCompiledEducationStoragePayload($validated['qualification_education'] ?? null);
+        $compiledEducationStorage = $this->buildCompiledEducationStoragePayload(
+            $validated['qualification_education'] ?? null,
+            $validated['qualification_education_config'] ?? null
+        );
 
         // 🔷 Generate vacancy_id
         /*

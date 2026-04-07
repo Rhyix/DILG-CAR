@@ -258,6 +258,27 @@ $lockScreenScroll = request()->routeIs('vacancies_management')
     }
 
 document.addEventListener('DOMContentLoaded', () => {
+        const alpineProbe = document.querySelector('[x-data]');
+        const alpineOperational = Boolean(
+            window.Alpine && alpineProbe && (alpineProbe._x_dataStack || alpineProbe.__x)
+        );
+
+        if (!alpineOperational) {
+            document.querySelectorAll('[data-utils-panel]').forEach((panel) => {
+                const key = panel.getAttribute('data-utils-panel');
+                const initialOpen = panel.getAttribute('data-initial-open') === '1';
+                panel.style.display = initialOpen ? '' : 'none';
+
+                const toggle = document.querySelector(`[data-utils-toggle="${key}"]`);
+                if (!toggle) return;
+                toggle.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    const isHidden = panel.style.display === 'none';
+                    panel.style.display = isHidden ? '' : 'none';
+                });
+            });
+        }
+
         requestAnimationFrame(() => {
             document.getElementById('page-shell')?.classList.add('page-ready');
         });

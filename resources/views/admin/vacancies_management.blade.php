@@ -257,7 +257,7 @@
                 <div class="flex flex-col gap-3 xl:flex-row xl:items-stretch">
                     <div class="grid flex-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
                         <!-- Job Type Filter -->
-                        <div x-data="{ jobOpen: false }" class="relative min-w-0">
+                        <div x-data="{ jobOpen: false }" data-filter-dropdown="job" class="relative min-w-0">
                             <button
                                 type="button"
                                 @click="jobOpen = !jobOpen"
@@ -326,7 +326,7 @@
                         </div>
 
                         <!-- Status Filter -->
-                        <div x-data="{ statusOpen: false, selectedStatus: '{{ session('vacancyFilterStatus') ?: 'All' }}' }" class="relative min-w-0">
+                        <div x-data="{ statusOpen: false, selectedStatus: '{{ session('vacancyFilterStatus') ?: 'All' }}' }" data-filter-dropdown="status" class="relative min-w-0">
                             <button
                                 type="button"
                                 @click="statusOpen = !statusOpen"
@@ -384,7 +384,7 @@
                         </div>
 
                         <!-- Place Filter -->
-                        <div x-data="{ placeOpen: false, selectedPlace: '{{ session('vacancyFilterPlace') ?: 'All Places' }}' }" class="relative min-w-0">
+                        <div x-data="{ placeOpen: false, selectedPlace: '{{ session('vacancyFilterPlace') ?: 'All Places' }}' }" data-filter-dropdown="place" class="relative min-w-0">
                             <button
                                 type="button"
                                 @click="placeOpen = !placeOpen"
@@ -610,6 +610,44 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
+        const alpineProbe = document.querySelector('[x-data]');
+        const alpineOperational = Boolean(
+            window.Alpine && alpineProbe && (alpineProbe._x_dataStack || alpineProbe.__x)
+        );
+
+        if (!alpineOperational) {
+            document.querySelectorAll('[data-filter-dropdown]').forEach((wrapper) => {
+                const triggerBtn = wrapper.querySelector('button[type="button"]');
+                const select = wrapper.querySelector('select');
+                const menu = wrapper.querySelector('div[x-show]');
+
+                if (triggerBtn) {
+                    triggerBtn.classList.add('hidden');
+                }
+
+                if (menu) {
+                    menu.classList.add('hidden');
+                }
+
+                if (select) {
+                    select.classList.remove('hidden');
+                    select.classList.add(
+                        'w-full',
+                        'rounded-xl',
+                        'border',
+                        'border-[#0D2B70]',
+                        'bg-white',
+                        'px-3',
+                        'py-2.5',
+                        'text-sm',
+                        'font-semibold',
+                        'text-[#0D2B70]',
+                        'shadow-sm'
+                    );
+                }
+            });
+        }
+
         attachLoaderListeners();
         fetchVacancies();
     });
