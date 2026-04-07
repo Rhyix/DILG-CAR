@@ -48,6 +48,14 @@ Route::get('/', function () {
     }
 })->name('dashboard');
 
+Route::get('/robots.txt', function () {
+    return response("User-agent: *\nDisallow:\n", 200, [
+        'Content-Type' => 'text/plain; charset=UTF-8',
+        'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+        'Pragma' => 'no-cache',
+    ]);
+});
+
 // ==================================================================================================
 // TEST PREVIEW ROUTES (Delete after use)
 // ==================================================================================================

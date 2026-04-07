@@ -3,52 +3,144 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Spatie\Activitylog\Models\Activity;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
-
 
 class LoginController extends Controller
 {
-    public function showLoginForm()
+    private function clearPdsSessionCache(Request $request): void
     {
-        if(Auth::user()){
-            return redirect()->route('dashboard');
+        $request->session()->forget([
+            'form',
+            'data_learning',
+            'data_voluntary',
+            'data_otherInfo',
+            'vacancy_doc_uploads',
+            'pds_form_owner',
+        ]);
+    }
+
+    public function showLoginForm(Request $request)
+    {
+        if (Auth::user()) {
+            if ($request->has('redirect') && $request->redirect === 'application_status') {
+                $userId = $request->get('user');
+                $vacancyId = $request->get('vacancy');
+
+                if ($userId && $vacancyId) {
+                    return redirect()->route('application_status', [
+                        'user' => $userId,
+                        'vacancy' => $vacancyId,
+                    ])->with('comply_redirect', true);
+                }
+            }
+
+            if ($request->has('redirect') && $request->redirect === 'exam_lobby') {
+                $vacancyId = $request->get('vacancy');
+                $token = $request->get('token');
+
+                if ($vacancyId) {
+                    return redirect()->route('user.exam_lobby', [
+                        'vacancy_id' => $vacancyId,
+                        'token' => $token,
+                    ]);
+                }
+            }
+
+            if ($request->has('redirect') && $request->redirect === 'exam_attendance') {
+                $vacancyId = $request->get('vacancy');
+
+                if ($vacancyId) {
+                    return redirect()->route('exam.attendance.prompt', [
+                        'vacancy_id' => $vacancyId,
+                    ]);
+                }
+            }
+
+            return redirect()->route('dashboard_user');
         }
 
         if (Auth::guard('admin')->check()) {
-        return redirect('/admin/dashboard');
+            return redirect('/admin/dashboard');
         }
+
+        if ($request->has('redirect') && $request->redirect === 'application_status') {
+            $request->session()->put('redirect_after_login', [
+                'target' => 'application_status',
+                'user' => $request->get('user'),
+                'vacancy' => $request->get('vacancy'),
+            ]);
+        }
+
+        if ($request->has('redirect') && $request->redirect === 'exam_lobby') {
+            $request->session()->put('redirect_after_login', [
+                'target' => 'exam_lobby',
+                'vacancy' => $request->get('vacancy'),
+                'token' => $request->get('token'),
+            ]);
+        }
+
+        if ($request->has('redirect') && $request->redirect === 'exam_attendance') {
+            $request->session()->put('redirect_after_login', [
+                'target' => 'exam_attendance',
+                'vacancy' => $request->get('vacancy'),
+            ]);
+        }
+
         return view('login_register.login');
     }
 
     public function login(Request $request)
-    {   
-        $attempts = session()->get('login_attempts', 0);
+    {
+        if (Auth::guard('admin')->check()) {
+            Auth::guard('admin')->logout();
+        }
+
+        $credentials = $request->validate([
+            'email' => 'required|email|max:255',
+            'password' => 'required|string|min:6',
+        ]);
+
+        $rememberInput = $request->input('remember');
+
+        if (!is_null($rememberInput) && $rememberInput !== 'on') {
+            activity()
+                ->event('login')
+                ->withProperties(['ip' => $request->ip(), 'email' => $request->email, 'section' => 'Login'])
+                ->log('Rejected login attempt with tampered remember flag.');
+
+            return back()->withErrors(['email' => 'Invalid credentials provided.'])
+                ->withInput($request->only('email'));
+        }
 
         if (!env('APP_DEBUG')) {
             $captcha = $request->input('g-recaptcha-response');
 
             if (!$captcha || !$this->verifyRecaptcha($captcha, $request->ip())) {
                 return back()->withErrors([
-                    'captcha' => 'Please confirm you are not a robot.'
-                ]);
+                    'captcha' => 'Please confirm you are not a robot.',
+                ])->withInput($request->only('email'));
             }
         }
 
-        // Logout admin if logged in
-        if (Auth::guard('admin')->check()) {
-            Auth::guard('admin')->logout();
-        }
+        $email = trim((string) ($credentials['email'] ?? ''));
+        $password = (string) ($credentials['password'] ?? '');
+        $remember = $rememberInput === 'on';
 
-        $credentials = $request->validate([
-            'email'    => 'required|email|max:255',
-            'password' => 'required|string|min:6',
-        ]);
+        $user = User::query()
+            ->where('email', $email)
+            ->first();
 
-        if(Auth::attempt($credentials)){
+        $emailMatchesCase = $user && hash_equals((string) $user->email, $email);
+        $passwordMatches = $user && Hash::check($password, (string) $user->password);
+
+        if ($emailMatchesCase && $passwordMatches) {
+            Auth::login($user, $remember);
             $request->session()->regenerate();
+            $this->clearPdsSessionCache($request);
 
             activity()->log('login');
 
@@ -57,26 +149,43 @@ class LoginController extends Controller
                 ->event('login')
                 ->log('User logged in successfully.');
 
-            return redirect()->route('dashboard')->with('status','welcome');
+            if ($request->session()->has('redirect_after_login')) {
+                $redirectData = $request->session()->get('redirect_after_login');
+                $request->session()->forget('redirect_after_login');
+
+                if ($redirectData['target'] === 'application_status') {
+                    return redirect()->route('application_status', [
+                        'user' => $redirectData['user'],
+                        'vacancy' => $redirectData['vacancy'],
+                    ])->with('comply_redirect', true);
+                }
+
+                if ($redirectData['target'] === 'exam_lobby') {
+                    return redirect()->route('user.exam_lobby', [
+                        'vacancy_id' => $redirectData['vacancy'],
+                        'token' => $redirectData['token'] ?? null,
+                    ]);
+                }
+
+                if ($redirectData['target'] === 'exam_attendance') {
+                    return redirect()->route('exam.attendance.prompt', [
+                        'vacancy_id' => $redirectData['vacancy'],
+                    ]);
+                }
+            }
+
+            return redirect()->route('dashboard_user')->with('status', 'welcome');
         }
 
         activity()
             ->event('login')
-            ->withProperties(['ip' => request()->ip(), 'email' => $request->email, 'section' => 'Login'])
+            ->withProperties(['ip' => $request->ip(), 'email' => $request->email, 'section' => 'Login'])
             ->log('Failed login attempt.');
 
-            // // Increment on failure
-            // session()->increment('login_attempts');
-            // return back()->withErrors([
-            //     'email' => 'Invalid credentials.'
-            // ])->withInput();
-
         return back()->withErrors(['email' => 'Invalid credentials provided.'])
-                     ->withInput($request->only('email'));
+            ->withInput($request->only('email'));
     }
 
-    
-    // reCAPTCHA verifier
     protected function verifyRecaptcha($token, $ip)
     {
         $secret = env('RECAPTCHA_SECRET');
@@ -89,5 +198,4 @@ class LoginController extends Controller
 
         return $response->json('success');
     }
-
 }

@@ -1,176 +1,184 @@
-@if (session('success'))
-    <div
-        x-data="{ show: true }"
-        x-init="setTimeout(() => show = false, 4000)"
-        x-show="show"
-        x-transition
-        class="fixed top-5 right-5 z-50 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-xl shadow-lg w-full max-w-sm"
-    >
-        <strong class="font-bold">Success!</strong>
-        <p class="text-sm">{{ session('success') }}</p>
-    </div>
-@endif
-
-
-
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Login - DILG CAR Recruitment and Selection Portal</title>
-  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
-  <!-- Tailwind CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Login - DILG CAR Recruitment and Selection Portal</title>
+    @vite(['resources/css/app.css', 'resources/js/auth-login.js'])
 
-  <!-- FontAwesome -->
-  <link
-    rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
-    crossorigin="anonymous"
-  />
-
-  <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet" />
-  <style>
-    body {
-      font-family: 'Montserrat', sans-serif;
-    }
-  </style>
-  
-        <!--$metaTitle = 'DILG - CAR Recruitment and Selection Portal';-->
-        <!--$metaDescription = 'This is the official Recruitment and Selection Portal of the Department of the Interior and Local Government - Cordillera Administrative Region.';-->
-        <!--$metaImage = asset('images/dilg_rsp_thumbnail.png');-->
-        <!--$metaUrl = url()->current();-->
-
-        <!--if (request()->is('login')) {-->
-        <!--    $metaTitle = 'Login - DILG Recruitment Portal';-->
-        <!--    $metaDescription = 'Access your account to view job vacancies and submit your application.';-->
-        <!--    $metaImage = asset('images/dilg_login_thumbnail.png'); // fallback if you want a separate image-->
-        <!--} elseif (request()->is('jobs/*')) {-->
-        <!--    $metaTitle = 'View Job Vacancy - DILG CAR';-->
-        <!--    $metaDescription = 'Explore available job opportunities and join our team at DILG CAR.';-->
-        <!--}    -->
-
-    <!-- Dynamic Open Graph Meta Tags -->
     <meta property="og:title" content="DILG - CAR Recruitment Selection and Placement Portal" />
     <meta property="og:description" content="Isa ka bang MATINO, MAHUSAY, at MAAASAHAN na manggagawang Pilipino?" />
     <meta property="og:image" content="{{ asset('images/dilg_rsp_thumbnail.png') }}" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:type" content="image/png" />
-    <meta property="og:url" content="url()->current();-->" />
+    <meta property="og:url" content="{{ url()->current() }}" />
     <meta property="og:type" content="website" />
-
-    <!-- Dynamic Twitter Card Meta Tags -->
-    <meta name="twitter:card" content="DILG - CAR Recruitment Selection and Placement Portal" />
+    <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="DILG - CAR Recruitment Selection and Placement Portal" />
     <meta name="twitter:description" content="Isa ka bang MATINO, MAHUSAY, at MAAASAHAN na manggagawang Pilipino?" />
     <meta name="twitter:image" content="{{ asset('images/dilg_rsp_thumbnail.png') }}" />
-    
 </head>
-<body class="min-h-screen bg-white flex items-center justify-center">
+<body class="relative min-h-screen overflow-x-hidden overflow-y-auto bg-[radial-gradient(circle_at_85%_18%,rgba(79,172,254,0.24)_0%,rgba(79,172,254,0)_38%),radial-gradient(circle_at_12%_82%,rgba(15,100,201,0.22)_0%,rgba(15,100,201,0)_34%),linear-gradient(140deg,#031029_0%,#0a255f_46%,#12387e_100%)] p-3 font-sans md:p-6 lg:overflow-hidden">
+    <div aria-hidden="true" class="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(24,99,156,0.78)_0%,rgba(255,255,255,0.012)_24%,rgba(255,255,255,0)_100%),linear-gradient(90deg,rgba(3,13,33,0.28)_0%,rgba(3,13,33,0)_44%,rgba(3,13,33,0.2)_100%)]"></div>
+    <div aria-hidden="true" class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_76%_24%,rgba(255,255,255,0.16)_0%,rgba(255,255,255,0)_28%),linear-gradient(180deg,rgba(255,255,255,0.08)_0%,transparent_24%)] opacity-35"></div>
+    <div aria-hidden="true" class="pointer-events-none absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.45)_0.55px,transparent_0.55px)] opacity-20 mix-blend-soft-light [background-size:9px_9px]"></div>
 
-  <div class="w-full min-h-screen flex flex-col-reverse lg:flex-row">
-    
-    <!-- Left: Login Form -->
-    <div class="flex-1 flex items-center justify-center p-6 bg-white">
-      <div class="w-full max-w-md bg-white rounded-xl border border-blue-400 p-8 shadow-xl">
-        <h2 class="text-3xl font-bold text-center text-blue-900 mb-2">WELCOME</h2>
-        <p class="text-center text-blue-800 font-semibold mb-6">Please log-in to continue</p>
+    <div class="relative z-10 mx-auto flex min-h-[calc(100vh-1.5rem)] w-full max-w-7xl items-center justify-center isolate">
+        <div aria-hidden="true" class="pointer-events-none absolute left-1/2 top-[56%] z-0 h-[min(30rem,82vw)] w-[min(30rem,82vw)] -translate-x-1/2 -translate-y-[44%] rounded-full bg-[radial-gradient(circle,rgba(147,197,253,0.34)_0%,rgba(96,165,250,0.16)_34%,rgba(59,130,246,0.03)_62%,rgba(59,130,246,0)_72%)] blur-[14px] lg:hidden"></div>
+        <div aria-hidden="true" class="pointer-events-none absolute right-[4%] top-[52%] z-0 hidden h-[min(40rem,46vw)] w-[min(40rem,46vw)] -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(147,197,253,0.34)_0%,rgba(96,165,250,0.16)_34%,rgba(59,130,246,0.03)_62%,rgba(59,130,246,0)_72%)] blur-[14px] lg:block"></div>
 
-        <form method="POST" action="{{ route('login') }}" class="space-y-5">
-          @csrf
+        <div class="relative z-10 grid w-full max-h-[calc(100vh-1.5rem)] overflow-hidden rounded-[1.9rem] border border-white/20 bg-[linear-gradient(140deg,rgba(255,255,255,0.96)_0%,rgba(247,251,255,0.96)_100%)] shadow-[0_30px_85px_rgba(2,9,25,0.37)] backdrop-blur-[10px] lg:grid-cols-[minmax(0,0.94fr)_minmax(0,1.06fr)]">
+            <section class="relative bg-[rgba(249,252,255,0.95)] px-5 py-8 sm:px-8 lg:bg-[linear-gradient(180deg,rgba(255,255,255,0.82)_0%,rgba(248,251,255,0.92)_100%)] lg:px-10 xl:px-12">
+                <div class="mx-auto w-full max-w-lg">
+                    <div class="mb-6 flex items-center gap-3 lg:hidden">
+                        <img src="{{ asset('images/dilg_logo.png') }}" alt="DILG Logo" class="h-12 w-12" />
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-[0.3em] text-[#0D2B70]">DILG CAR</p>
+                            <p class="text-lg font-bold tracking-[-0.01em] text-[#0D2B70]">Recruitment Portal</p>
+                        </div>
+                    </div>
 
-          <!-- Email -->
-          <div class="flex items-center border border-blue-400 rounded-full px-4 py-2">
-            <i class="fas fa-user text-yellow-400 mr-3"></i>
-            <input 
-              id="email" 
-              type="email" 
-              name="email" 
-              value="{{ old('email') }}" 
-              required 
-              autofocus 
-              placeholder="Email"
-              class="w-full bg-transparent outline-none"
-            />
-          </div>
-          @error('email')
-            <p class="text-red-600 text-sm ml-3 -mt-4">{{ $message }}</p>
-          @enderror
+                    <div>
+                        <div class="mb-6">
+                            <p class="text-xs font-semibold uppercase tracking-[0.26em] text-slate-500">Applicant Access</p>
+                            <h2 class="mt-2 text-3xl font-extrabold tracking-tight text-[#0D2B70]">User Login</h2>
+                            <p class="mt-2 text-sm leading-6 text-slate-500">Sign in to continue to your applicant dashboard.</p>
+                        </div>
 
-          <!-- Password -->
-          <div class="flex items-center border border-blue-400 rounded-full px-4 py-2">
-            <i class="fas fa-lock text-yellow-400 mr-3"></i>
-            <input 
-              id="password" 
-              type="password" 
-              name="password" 
-              required 
-              placeholder="Password"
-              class="w-full bg-transparent outline-none"
-            />
-          </div>
-          @error('password')
-            <p class="text-red-600 text-sm ml-3 -mt-4">{{ $message }}</p>
-          @enderror
+                        @if (session('success'))
+                            <div class="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                                {{ session('success') }}
+                            </div>
+                        @endif
 
-          <!-- Forgot password -->
-            <div class="text-right text-sm">
-              <a href="{{ route('forgot.password.form') }}" class="text-blue-800 hover:underline">Forgot Password?</a>
-           </div>
-           
-          @if(!env('APP_DEBUG'))
-            <div class="mb-4">
-                <div class="g-recaptcha" data-sitekey="6LfpjpErAAAAADcMjUqP3AZmsMae7WvrjcA5OSvs" data-action="LOGIN"></div>
-            </div>
-          @endif
-          
-          <!-- Submit -->
-          <button type="submit" class="w-full bg-yellow-400 hover:bg-yellow-500 text-blue-900 font-bold py-3 rounded-full shadow-md transition">
-            LOG-IN
-          </button>
+                        @if (session('status'))
+                            <div class="mb-4 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
+                                {{ session('status') }}
+                            </div>
+                        @endif
 
-          <!-- Google Login -->
-          <!-- Google Login -->
-                <div class="flex items-center justify-center my-4">
-                  <a class="use-loader flex items-center justify-center gap-3 w-full bg-white border-2 border-yellow-400 text-blue-900 font-bold py-2 rounded-full hover:bg-yellow-100 shadow-md transition ease-in-out duration-200"
-                    href='{{ route('google.login') }}'>
-                    <img src="{{ asset('images/google-icon.png') }}" alt="Google Icon" class="w-5 h-5">
-                    Continue with Google
-                  </a>
+                        @if ($errors->any())
+                            <div class="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                                <ul class="list-disc pl-5">
+                                    @foreach ($errors->all() as $error)
+                                        <li>{{ $error }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
+
+                        <form method="POST" action="{{ route('login') }}" class="space-y-4" autocomplete="off">
+                            @csrf
+
+                            <div>
+                                <label class="mb-1.5 block text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#52627d]">Email</label>
+                                <div class="relative">
+                                    <x-heroicon-o-envelope class="pointer-events-none absolute inset-y-0 left-3 my-auto h-5 w-5 text-slate-400" />
+                                    <input
+                                        id="email"
+                                        type="email"
+                                        name="email"
+                                        value="{{ old('email') }}"
+                                        required
+                                        autofocus
+                                        class="w-full rounded-[0.85rem] border border-[#cdd9eb] bg-[#fbfdff] py-2.5 pl-10 pr-3 text-sm text-[#203457] outline-none transition-[border-color,box-shadow,background-color] hover:border-[#b5c8e7] hover:bg-white focus:border-[#0d2b70] focus:bg-white focus:ring-4 focus:ring-[#0d2b70]/15"
+                                    >
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="mb-1.5 block text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#52627d]">Password</label>
+                                <div class="relative">
+                                    <x-heroicon-o-lock-closed class="pointer-events-none absolute inset-y-0 left-3 my-auto h-5 w-5 text-slate-400" />
+                                    <input
+                                        id="user_password"
+                                        type="password"
+                                        name="password"
+                                        required
+                                        class="w-full rounded-[0.85rem] border border-[#cdd9eb] bg-[#fbfdff] py-2.5 pl-10 pr-10 text-sm text-[#203457] outline-none transition-[border-color,box-shadow,background-color] hover:border-[#b5c8e7] hover:bg-white focus:border-[#0d2b70] focus:bg-white focus:ring-4 focus:ring-[#0d2b70]/15"
+                                    >
+                                    <button
+                                        type="button"
+                                        id="togglePassword"
+                                        aria-label="Toggle password visibility"
+                                        aria-pressed="false"
+                                        class="absolute inset-y-0 right-3 flex items-center text-slate-400 hover:text-slate-600"
+                                    >
+                                        <x-heroicon-o-eye id="passwordEyeOpen" class="h-5 w-5" />
+                                        <x-heroicon-o-eye-slash id="passwordEyeClosed" class="hidden h-5 w-5" />
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col gap-2 pt-1 text-sm sm:flex-row sm:items-center sm:justify-between">
+                                <label class="inline-flex items-center gap-2 text-slate-600">
+                                    <input
+                                        type="checkbox"
+                                        name="remember"
+                                        value="on"
+                                        {{ old('remember') === 'on' ? 'checked' : '' }}
+                                        class="rounded border-slate-300 text-[#0D2B70] focus:ring-[#0D2B70]/30"
+                                    >
+                                    <span class="font-semibold">Remember me</span>
+                                </label>
+                                <a href="{{ route('forgot.password.form') }}" class="font-semibold text-[#0D2B70] hover:underline">Forgot Password?</a>
+                            </div>
+
+                            @if (!env('APP_DEBUG'))
+                                <div
+                                    id="loginRecaptcha"
+                                    class="min-h-[78px]"
+                                    data-sitekey="{{ env('RECAPTCHA_SITE_KEY', '6LfpjpErAAAAADcMjUqP3AZmsMae7WvrjcA5OSvs') }}"
+                                ></div>
+                            @endif
+
+                            <button type="submit" class="w-full rounded-[0.85rem] bg-[linear-gradient(135deg,#0d2b70_0%,#174493_100%)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_9px_20px_rgba(13,43,112,0.26)] transition-[transform,box-shadow,filter] hover:-translate-y-px hover:brightness-[1.02] hover:shadow-[0_12px_26px_rgba(13,43,112,0.35)]">
+                                Sign In
+                            </button>
+                        </form>
+
+                        <div class="mt-5 border-t border-slate-200 pt-4">
+                            <p class="text-xs uppercase tracking-wide text-slate-500">Alternative Access</p>
+                            <a
+                                href="{{ route('google.login') }}"
+                                class="mt-2 flex w-full items-center justify-center gap-3 rounded-[0.85rem] border border-[#0d2b70]/20 bg-white px-4 py-2.5 text-sm font-semibold text-[#0D2B70] transition-[border-color,box-shadow,transform] hover:-translate-y-px hover:border-[#0d2b70]/35 hover:shadow-[0_10px_24px_rgba(13,43,112,0.12)]"
+                            >
+                                <img src="{{ asset('images/google-icon.png') }}" alt="Google Icon" class="h-5 w-5">
+                                Continue with Google
+                            </a>
+
+                            @if (Route::has('register.form'))
+                                <p class="mt-4 text-center text-sm text-slate-600">
+                                    Don't have an account?
+                                    <a href="{{ route('register.form') }}" class="font-semibold text-[#0D2B70] hover:underline">Create one here</a>
+                                </p>
+                            @endif
+                        </div>
+                    </div>
                 </div>
+            </section>
 
-          <!-- Register -->
-          @if (Route::has('register'))
-            <p class="text-center text-sm text-blue-800">
-              Don’t have an account?
-              <a href="{{ route('register') }}" class="use-loader font-bold hover:underline">SIGN-UP</a>
-            </p>
-          @endif
-        </form>
-      </div>
+            <section class="relative hidden overflow-hidden bg-[linear-gradient(145deg,rgba(255,255,255,0.1)_0%,rgba(255,255,255,0)_36%),linear-gradient(175deg,#081c47_0%,#0d2b70_54%,#18468f_100%)] px-6 py-10 text-white shadow-[inset_-1px_0_0_rgba(255,255,255,0.08)] lg:flex lg:items-center lg:justify-center xl:px-8">
+                <div aria-hidden="true" class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_14%,rgba(245,200,75,0.12)_0%,rgba(245,200,75,0)_28%),linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.03)_20%,rgba(255,255,255,0)_46%)] opacity-70"></div>
+                <div class="relative z-10 w-full max-w-[40rem] px-2 text-center sm:px-4 xl:px-6">
+                    <img
+                        src="{{ asset('images/dilg_logo.png') }}"
+                        alt="DILG Logo"
+                        class="mx-auto h-24 w-24 rounded-full bg-white/10 p-3 shadow-[0_16px_32px_rgba(2,12,34,0.24)] xl:h-28 xl:w-28"
+                    />
+                    <p class="mt-6 text-sm uppercase tracking-[0.42em] text-blue-100">DEPARTMENT OF THE INTERIOR AND LOCAL GOVERNMENT</p>
+                    <p class="mt-1 text-xs uppercase tracking-[0.42em] text-blue-100">CORDILLERA ADMINISTRATIVE REGION</p>
+                    <h3 class="mt-4 text-3xl tracking-[-0.01em] text-white xl:text-[2rem]">
+                        Recruitment Selection and Placement Portal
+                    </h3>
+                    <p class="mt-4 text-sm font-semibold uppercase tracking-[0.24em] text-yellow-200 xl:text-base">
+                        Matino, Mahusay, Maaasahan.
+                    </p>
+                </div>
+            </section>
+        </div>
     </div>
-
-    <!-- Right: Logo and Agency Info -->
-    <div class="flex-1 bg-blue-800 text-white flex flex-col items-center justify-center p-8 text-center">
-      <img 
-        src="{{ asset('images/dilg_logo.png') }}" 
-        alt="DILG Logo" 
-        class="w-28 sm:w-36 md:w-40 mb-6"
-      />
-      <h1 class="text-xl sm:text-2xl md:text-3xl font-extrabold leading-tight">
-        DEPARTMENT OF THE INTERIOR  <br/>
-        AND LOCAL GOVERNMENT
-      </h1>
-      <p class="text-sm sm:text-base md:text-lg mt-1 font-semibold">CORDILLERA ADMINISTRATIVE REGION</p>
-      <p class="text-sm sm:text-base md:text-lg mt-1 text-blue-200">MATINO. MAHUSAY. MAAASAHAN.</p>
-      <p class="text-yellow-400 font-bold mt-4 text-base sm:text-lg">
-        RECRUITMENT SELECTION AND PLACEMENT PORTAL
-      </p>
-    </div>
-  </div>
 </body>
-@include('partials.loader')
 </html>
