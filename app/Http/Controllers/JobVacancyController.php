@@ -22,6 +22,7 @@ use App\Models\OtherInformation;
 use App\Models\FamilyBackground;
 use App\Models\EducationalBackground;
 use App\Models\MiscInfos;
+use App\Models\EligibilityPreset;
 use App\Support\ApplicantOnboarding;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -3595,6 +3596,7 @@ class JobVacancyController extends Controller
 
     private function evaluateApplicantEligibilityForVacancy(int $userId, JobVacancy $vacancy): array
     {
+        $requiredItems = $this->extractVacancyEligibilityItems((string) ($vacancy->qualification_eligibility ?? ''));
         $requiredEligibilities = $this->extractVacancyEligibilityNames((string) ($vacancy->qualification_eligibility ?? ''));
 
         // Vacancy has no explicit eligibility requirement.
@@ -3625,6 +3627,49 @@ class JobVacancyController extends Controller
                 $requiredByKey[$key] = $name;
             }
         }
+        if (empty($requiredByKey)) {
+            return [
+                'isEligible' => true,
+                'message' => null,
+                'requiredEligibilities' => [],
+                'applicantEligibilities' => [],
+            ];
+        }
+
+        $requiredProfilesByKey = [];
+        foreach ($requiredItems as $item) {
+            $requiredName = trim((string) ($item['name'] ?? ''));
+            $requiredKey = $this->normalizeEligibilityKey($requiredName);
+            if ($requiredKey === '' || !array_key_exists($requiredKey, $requiredByKey)) {
+                continue;
+            }
+
+            $requiredLevelRank = $this->resolveEligibilityLevelRank(
+                (string) ($item['level'] ?? ''),
+                $requiredName
+            );
+            if (!array_key_exists($requiredKey, $requiredProfilesByKey)) {
+                $requiredProfilesByKey[$requiredKey] = [
+                    'name' => $requiredByKey[$requiredKey],
+                    'levelRank' => $requiredLevelRank,
+                ];
+                continue;
+            }
+
+            $existingRank = $requiredProfilesByKey[$requiredKey]['levelRank'] ?? null;
+            if ($existingRank === null && $requiredLevelRank !== null) {
+                $requiredProfilesByKey[$requiredKey]['levelRank'] = $requiredLevelRank;
+            }
+        }
+
+        foreach ($requiredByKey as $requiredKey => $requiredName) {
+            if (!array_key_exists($requiredKey, $requiredProfilesByKey)) {
+                $requiredProfilesByKey[$requiredKey] = [
+                    'name' => $requiredName,
+                    'levelRank' => $this->resolveEligibilityLevelRank('', (string) $requiredName),
+                ];
+            }
+        }
 
         $applicantByKey = [];
         foreach ($applicantEligibilities as $name) {
@@ -3633,12 +3678,39 @@ class JobVacancyController extends Controller
                 $applicantByKey[$key] = $name;
             }
         }
+        if (empty($applicantByKey)) {
+            return [
+                'isEligible' => false,
+                'message' => 'This vacancy requires civil service eligibility (' . implode(', ', array_values($requiredByKey)) . '). Please update your PDS Civil Service Eligibility (C2) before applying.',
+                'requiredEligibilities' => array_values($requiredByKey),
+                'applicantEligibilities' => [],
+            ];
+        }
+
+        $applicantProfilesByKey = [];
+        foreach ($applicantByKey as $applicantKey => $applicantName) {
+            $applicantProfilesByKey[$applicantKey] = [
+                'name' => $applicantName,
+                'levelRank' => $this->resolveEligibilityLevelRank('', (string) $applicantName),
+            ];
+        }
 
         $matchedKeys = array_intersect(array_keys($requiredByKey), array_keys($applicantByKey));
         if (empty($matchedKeys)) {
-            foreach ($requiredByKey as $requiredKey => $requiredName) {
-                foreach ($applicantByKey as $applicantName) {
-                    if ($this->eligibilityNamesMatch((string) $requiredName, (string) $applicantName)) {
+            foreach ($requiredProfilesByKey as $requiredKey => $requiredProfile) {
+                $requiredName = (string) ($requiredProfile['name'] ?? '');
+                $requiredLevelRank = $requiredProfile['levelRank'] ?? null;
+
+                foreach ($applicantProfilesByKey as $applicantProfile) {
+                    $applicantName = (string) ($applicantProfile['name'] ?? '');
+                    $applicantLevelRank = $applicantProfile['levelRank'] ?? null;
+
+                    if ($this->eligibilityNamesMatch($requiredName, $applicantName)) {
+                        $matchedKeys[] = $requiredKey;
+                        break;
+                    }
+
+                    if ($this->eligibilityLevelSatisfiesRequirement($requiredLevelRank, $applicantLevelRank)) {
                         $matchedKeys[] = $requiredKey;
                         break;
                     }
@@ -3881,12 +3953,184 @@ class JobVacancyController extends Controller
             return true;
         }
 
-        // Hierarchy: CSC Professional is higher than CSC Subprofessional.
-        if ($requiredGroup === 'csc_subprofessional' && $applicantGroup === 'csc_professional') {
+        $requiredLevelRank = $this->eligibilityGroupLevelRank($requiredGroup);
+        $applicantLevelRank = $this->eligibilityGroupLevelRank($applicantGroup);
+        if ($this->eligibilityLevelSatisfiesRequirement($requiredLevelRank, $applicantLevelRank)) {
             return true;
         }
 
         return false;
+    }
+
+    private function eligibilityLevelSatisfiesRequirement(?int $requiredLevelRank, ?int $applicantLevelRank): bool
+    {
+        if ($requiredLevelRank === null || $applicantLevelRank === null) {
+            return false;
+        }
+
+        return $applicantLevelRank >= $requiredLevelRank;
+    }
+
+    private function resolveEligibilityLevelRank(?string $declaredLevel, string $eligibilityName): ?int
+    {
+        $declaredRank = $this->parseEligibilityLevelRank($declaredLevel);
+        if ($declaredRank !== null) {
+            return $declaredRank;
+        }
+
+        $eligibilityName = trim($eligibilityName);
+        if ($eligibilityName === '') {
+            return null;
+        }
+
+        $fromName = $this->parseEligibilityLevelRank($eligibilityName);
+        if ($fromName !== null) {
+            return $fromName;
+        }
+
+        $normalizedName = $this->normalizeEligibilityKey($eligibilityName);
+        if ($normalizedName !== '') {
+            $presetMap = $this->eligibilityPresetLevelMap();
+            if (array_key_exists($normalizedName, $presetMap)) {
+                return $presetMap[$normalizedName];
+            }
+        }
+
+        $group = $this->canonicalEligibilityGroup($normalizedName);
+        return $this->eligibilityGroupLevelRank($group);
+    }
+
+    private function eligibilityGroupLevelRank(string $group): ?int
+    {
+        if ($group === '') {
+            return null;
+        }
+
+        return match ($group) {
+            'csc_subprofessional',
+            'skills_category_ii',
+            'barangay_official',
+            'sanggunian_member',
+            'barangay_health_worker',
+            'barangay_nutrition_scholar' => 1,
+
+            'bar_board',
+            'csc_professional',
+            'honor_graduate',
+            'foreign_honor_graduate',
+            'edp_specialist',
+            'scientific_technological_specialist' => 2,
+
+            default => null,
+        };
+    }
+
+    private function parseEligibilityLevelRank(?string $value): ?int
+    {
+        $normalized = strtolower(trim((string) $value));
+        if ($normalized === '') {
+            return null;
+        }
+
+        if (preg_match('/\b(\d+)\s*(?:st|nd|rd|th)?\s*level\b/', $normalized, $matches) === 1) {
+            $rank = (int) ($matches[1] ?? 0);
+            return $rank > 0 ? $rank : null;
+        }
+
+        if (preg_match('/\blevel\s*(\d+)\b/', $normalized, $matches) === 1) {
+            $rank = (int) ($matches[1] ?? 0);
+            return $rank > 0 ? $rank : null;
+        }
+
+        if (preg_match('/\blevel\s*(x|ix|iv|v?i{1,3}|v)\b/', $normalized, $matches) === 1) {
+            $roman = strtolower((string) ($matches[1] ?? ''));
+            $romanMap = [
+                'i' => 1,
+                'ii' => 2,
+                'iii' => 3,
+                'iv' => 4,
+                'v' => 5,
+                'vi' => 6,
+                'vii' => 7,
+                'viii' => 8,
+                'ix' => 9,
+                'x' => 10,
+            ];
+            if (array_key_exists($roman, $romanMap)) {
+                return $romanMap[$roman];
+            }
+        }
+
+        $wordMap = [
+            'first' => 1,
+            'second' => 2,
+            'third' => 3,
+            'fourth' => 4,
+            'fifth' => 5,
+            'sixth' => 6,
+            'seventh' => 7,
+            'eighth' => 8,
+            'ninth' => 9,
+            'tenth' => 10,
+        ];
+        foreach ($wordMap as $word => $rank) {
+            if (str_contains($normalized, $word)) {
+                return $rank;
+            }
+        }
+
+        if (preg_match('/\b(\d+)\s*(?:st|nd|rd|th)\b/', $normalized, $matches) === 1) {
+            $rank = (int) ($matches[1] ?? 0);
+            return $rank > 0 ? $rank : null;
+        }
+
+        return null;
+    }
+
+    private function eligibilityPresetLevelMap(): array
+    {
+        static $map = null;
+        if (is_array($map)) {
+            return $map;
+        }
+
+        $map = [];
+        if (!Schema::hasTable('eligibility_presets')) {
+            return $map;
+        }
+
+        try {
+            $rows = EligibilityPreset::query()->get(['name', 'level']);
+            foreach ($rows as $row) {
+                $name = trim((string) ($row->name ?? ''));
+                if ($name === '') {
+                    continue;
+                }
+
+                $rank = $this->parseEligibilityLevelRank((string) ($row->level ?? ''));
+                if ($rank === null) {
+                    continue;
+                }
+
+                $rawNameKey = $this->normalizeEligibilityKey($name);
+                if ($rawNameKey !== '') {
+                    $map[$rawNameKey] = $rank;
+                }
+
+                $canonicalName = $this->canonicalEligibilityLabelFromName($name);
+                $canonicalNameKey = $this->normalizeEligibilityKey($canonicalName);
+                if ($canonicalNameKey !== '') {
+                    $map[$canonicalNameKey] = $rank;
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Unable to build eligibility preset level map.', [
+                'error' => $e->getMessage(),
+            ]);
+            $map = [];
+        }
+
+        return $map;
     }
 
     private function canonicalEligibilityGroup(string $normalizedKey): string

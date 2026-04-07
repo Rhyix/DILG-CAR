@@ -1,15 +1,6 @@
 \@extends('layout.pds_layout')
 @section('title', 'Other Information')
 @section('content')
-@if ($errors->any())
-        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            <ul class="list-disc list-inside">
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
 <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         @php
             $hasWorkExperience = !empty($data['work_experience'] ?? []) || !empty($data['work_exp'] ?? []) || !empty($data['work_exps'] ?? []);

@@ -35,15 +35,6 @@
     $applicationLetterPreviewUrl = $applicationLetterPreviewUrl ?? null;
 @endphp
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        @if ($errors->any())
-            <div class="mb-6 px-4 py-3 bg-red-100 border border-red-400 text-red-700 rounded-lg shadow text-sm font-semibold">
-                <ul class="list-disc list-inside">
-                    @foreach ($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-            </div>
-        @endif
         @php
             $qualificationFeedback = session('qualification_feedback');
         @endphp
