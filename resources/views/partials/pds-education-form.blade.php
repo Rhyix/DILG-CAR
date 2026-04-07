@@ -194,17 +194,41 @@
                                 </label>
                             </div>
 
-                            <div class="relative md:col-span-2">
-                                <input type="text"
-                                       name="{{ $education_type }}[{{ $index }}][basic]"
-                                       value="{{ old($education_type.'.'.$index.'.basic', $data['basic'] ?? '') }}"
-                                       placeholder=" "
-                                       class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base"
-                                       {{ $education_type == 'college' ? 'required' : '' }}>
-                                <label class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">
-                                    Degree/Course{!! $education_type == 'college' ? '<span class="text-red-500">*</span>' : '' !!}
-                                </label>
-                            </div>
+                            @if (in_array($education_type, ['college', 'grad'], true))
+                                <div class="relative md:col-span-2">
+                                    <input type="text"
+                                           name="{{ $education_type }}[{{ $index }}][basic]"
+                                           value="{{ old($education_type.'.'.$index.'.basic', $data['basic'] ?? '') }}"
+                                           placeholder=" "
+                                           data-program-input
+                                           data-program-source="{{ $education_type === 'grad' ? 'grad' : 'college' }}"
+                                           class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base"
+                                           {{ $education_type === 'college' ? 'required' : '' }}>
+                                    <label class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">
+                                        Degree/Course{!! $education_type === 'college' ? ' <span class="text-red-500">*</span>' : '' !!}
+                                    </label>
+                                    <div
+                                        class="absolute left-0 right-0 z-40 mt-1 hidden rounded-xl border border-slate-200 bg-white shadow-lg"
+                                        data-program-role="menu"
+                                        data-program-source="{{ $education_type === 'grad' ? 'grad' : 'college' }}"
+                                    >
+                                        <div class="max-h-56 overflow-auto py-1" data-program-role="options" data-program-source="{{ $education_type === 'grad' ? 'grad' : 'college' }}"></div>
+                                    </div>
+                                    <p class="mt-1 text-xs text-gray-500">Search from the list or type if your degree/course is not available.</p>
+                                </div>
+                            @else
+                                <div class="relative md:col-span-2">
+                                    <input type="text"
+                                           name="{{ $education_type }}[{{ $index }}][basic]"
+                                           value="{{ old($education_type.'.'.$index.'.basic', $data['basic'] ?? '') }}"
+                                           placeholder=" "
+                                           class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base"
+                                           {{ $education_type == 'college' ? 'required' : '' }}>
+                                    <label class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">
+                                        Degree/Course{!! $education_type == 'college' ? '<span class="text-red-500">*</span>' : '' !!}
+                                    </label>
+                                </div>
+                            @endif
 
                             <div class="relative">
                                 <input type="date"
@@ -303,17 +327,41 @@
                             </label>
                         </div>
 
-                        <div class="relative md:col-span-2">
-                            <input type="text"
-                                   name="{{ $education_type }}[__INDEX__][basic]"
-                                   value=""
-                                   placeholder=" "
-                                   class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base"
-                                   {{ $education_type == 'college' ? 'required' : '' }}>
-                            <label class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">
-                                Degree/Course{!! $education_type == 'college' ? ' <span class="text-red-500">*</span>' : '' !!}
-                            </label>
-                        </div>
+                        @if (in_array($education_type, ['college', 'grad'], true))
+                            <div class="relative md:col-span-2">
+                                <input type="text"
+                                       name="{{ $education_type }}[__INDEX__][basic]"
+                                       value=""
+                                       placeholder=" "
+                                       data-program-input
+                                       data-program-source="{{ $education_type === 'grad' ? 'grad' : 'college' }}"
+                                       class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base"
+                                       {{ $education_type === 'college' ? 'required' : '' }}>
+                                <label class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">
+                                    Degree/Course{!! $education_type === 'college' ? ' <span class="text-red-500">*</span>' : '' !!}
+                                </label>
+                                <div
+                                    class="absolute left-0 right-0 z-40 mt-1 hidden rounded-xl border border-slate-200 bg-white shadow-lg"
+                                    data-program-role="menu"
+                                    data-program-source="{{ $education_type === 'grad' ? 'grad' : 'college' }}"
+                                >
+                                    <div class="max-h-56 overflow-auto py-1" data-program-role="options" data-program-source="{{ $education_type === 'grad' ? 'grad' : 'college' }}"></div>
+                                </div>
+                                <p class="mt-1 text-xs text-gray-500">Search from the list or type if your degree/course is not available.</p>
+                            </div>
+                        @else
+                            <div class="relative md:col-span-2">
+                                <input type="text"
+                                       name="{{ $education_type }}[__INDEX__][basic]"
+                                       value=""
+                                       placeholder=" "
+                                       class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base"
+                                       {{ $education_type == 'college' ? 'required' : '' }}>
+                                <label class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">
+                                    Degree/Course{!! $education_type == 'college' ? ' <span class="text-red-500">*</span>' : '' !!}
+                                </label>
+                            </div>
+                        @endif
 
                         <div class="relative">
                              <input type="date"
@@ -388,6 +436,288 @@
         </template>
 
         <script>
+            function normalizeProgramValue(value) {
+                return String(value || '').trim().replace(/\s+/g, ' ');
+            }
+
+            function normalizeProgramSource(source) {
+                const normalized = String(source || '').trim().toLowerCase();
+                return normalized === 'grad' ? 'grad' : 'college';
+            }
+
+            function sourceLevels(source) {
+                const normalized = normalizeProgramSource(source);
+                return normalized === 'grad'
+                    ? ['MASTERAL', 'DOCTORATE']
+                    : ['COLLEGE'];
+            }
+
+            function ensureProgramStores() {
+                if (!window.__pdsProgramOptionsBySource || typeof window.__pdsProgramOptionsBySource !== 'object') {
+                    window.__pdsProgramOptionsBySource = {};
+                }
+                if (!window.__pdsProgramLoadedBySource || typeof window.__pdsProgramLoadedBySource !== 'object') {
+                    window.__pdsProgramLoadedBySource = {};
+                }
+            }
+
+            function setProgramOptions(source, programNames) {
+                ensureProgramStores();
+                const normalizedSource = normalizeProgramSource(source);
+
+                const uniqueMap = new Map();
+                (Array.isArray(programNames) ? programNames : []).forEach((name) => {
+                    const normalized = normalizeProgramValue(name);
+                    if (!normalized) {
+                        return;
+                    }
+                    const key = normalized.toLowerCase();
+                    if (!uniqueMap.has(key)) {
+                        uniqueMap.set(key, normalized);
+                    }
+                });
+
+                window.__pdsProgramOptionsBySource[normalizedSource] = Array.from(uniqueMap.values())
+                    .sort((a, b) => a.localeCompare(b));
+            }
+
+            function currentProgramOptions(source) {
+                ensureProgramStores();
+                const normalizedSource = normalizeProgramSource(source);
+                const values = window.__pdsProgramOptionsBySource[normalizedSource];
+                return Array.isArray(values) ? values : [];
+            }
+
+            function rowMenu(row, source) {
+                const normalizedSource = normalizeProgramSource(source);
+                return row?.querySelector(`[data-program-role="menu"][data-program-source="${normalizedSource}"]`) || null;
+            }
+
+            function rowOptionsWrap(row, source) {
+                const normalizedSource = normalizeProgramSource(source);
+                return row?.querySelector(`[data-program-role="options"][data-program-source="${normalizedSource}"]`) || null;
+            }
+
+            function rowProgramInput(row, source) {
+                const normalizedSource = normalizeProgramSource(source);
+                return row?.querySelector(`input[data-program-input][data-program-source="${normalizedSource}"]`) || null;
+            }
+
+            function closeProgramMenuForRow(row, source) {
+                const input = rowProgramInput(row, source);
+                const menu = rowMenu(row, source);
+                if (!menu) {
+                    return;
+                }
+                menu.classList.add('hidden');
+                if (input) {
+                    input.setAttribute('aria-expanded', 'false');
+                }
+            }
+
+            function closeAllProgramMenus() {
+                document.querySelectorAll('.education-entry').forEach((row) => {
+                    closeProgramMenuForRow(row, 'college');
+                    closeProgramMenuForRow(row, 'grad');
+                });
+            }
+
+            function filterProgramOptions(query, source) {
+                const normalizedQuery = normalizeProgramValue(query).toLowerCase();
+                const options = currentProgramOptions(source);
+                if (!normalizedQuery) {
+                    return options;
+                }
+                return options.filter((name) => name.toLowerCase().includes(normalizedQuery));
+            }
+
+            function renderProgramOptionsList(row, source) {
+                const input = rowProgramInput(row, source);
+                const optionsWrap = rowOptionsWrap(row, source);
+                const normalizedSource = normalizeProgramSource(source);
+                if (!input || !optionsWrap) {
+                    return;
+                }
+
+                const filtered = filterProgramOptions(input.value, normalizedSource).slice(0, 200);
+                if (filtered.length === 0) {
+                    optionsWrap.innerHTML = '<div class="px-3 py-2 text-sm text-slate-500">No matches found. Keep typing to use your degree/course.</div>';
+                    return;
+                }
+
+                const selectedValue = normalizeProgramValue(input.value).toLowerCase();
+                optionsWrap.innerHTML = filtered.map((name) => {
+                    const selectedClass = selectedValue === name.toLowerCase() ? ' bg-slate-100 font-medium' : '';
+                    const safeAttr = name
+                        .replace(/&/g, '&amp;')
+                        .replace(/"/g, '&quot;');
+                    const safeHtml = name
+                        .replace(/&/g, '&amp;')
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;');
+                    return `<button type="button" class="block w-full px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-100 focus:bg-slate-100${selectedClass}" data-program-role="option" data-program-source="${normalizedSource}" data-label="${safeAttr}">${safeHtml}</button>`;
+                }).join('');
+            }
+
+            function openProgramMenuForRow(row, source) {
+                const normalizedSource = normalizeProgramSource(source);
+                const input = rowProgramInput(row, normalizedSource);
+                const menu = rowMenu(row, normalizedSource);
+                if (!input || !menu || input.disabled) {
+                    closeProgramMenuForRow(row, normalizedSource);
+                    return;
+                }
+
+                closeAllProgramMenus();
+                renderProgramOptionsList(row, normalizedSource);
+                menu.classList.remove('hidden');
+                input.setAttribute('aria-expanded', 'true');
+            }
+
+            function bindProgramDropdownRow(row, source) {
+                const normalizedSource = normalizeProgramSource(source);
+                const input = rowProgramInput(row, normalizedSource);
+                const optionsWrap = rowOptionsWrap(row, normalizedSource);
+                const boundKey = normalizedSource === 'grad' ? 'gradProgramBound' : 'collegeProgramBound';
+
+                if (!input || !optionsWrap || row.dataset[boundKey] === '1') {
+                    return;
+                }
+
+                row.dataset[boundKey] = '1';
+                input.setAttribute('autocomplete', 'off');
+                input.setAttribute('aria-expanded', 'false');
+
+                input.addEventListener('focus', () => openProgramMenuForRow(row, normalizedSource));
+                input.addEventListener('click', () => openProgramMenuForRow(row, normalizedSource));
+                input.addEventListener('input', () => {
+                    openProgramMenuForRow(row, normalizedSource);
+                });
+
+                input.addEventListener('keydown', (event) => {
+                    if (event.key === 'Escape') {
+                        closeProgramMenuForRow(row, normalizedSource);
+                        return;
+                    }
+
+                    if (event.key === 'Enter') {
+                        const menu = rowMenu(row, normalizedSource);
+                        if (menu && !menu.classList.contains('hidden')) {
+                            const firstOption = optionsWrap.querySelector(`button[data-program-role="option"][data-program-source="${normalizedSource}"]`);
+                            if (firstOption) {
+                                event.preventDefault();
+                                firstOption.click();
+                            }
+                        }
+                    }
+                });
+
+                optionsWrap.addEventListener('click', (event) => {
+                    const target = event.target instanceof HTMLElement
+                        ? event.target.closest(`button[data-program-role="option"][data-program-source="${normalizedSource}"]`)
+                        : null;
+                    if (!target) {
+                        return;
+                    }
+
+                    const label = normalizeProgramValue(target.getAttribute('data-label') || '');
+                    if (!label) {
+                        return;
+                    }
+
+                    input.value = label;
+                    closeProgramMenuForRow(row, normalizedSource);
+                });
+
+                input.addEventListener('blur', () => {
+                    window.setTimeout(() => {
+                        if (!row.contains(document.activeElement)) {
+                            closeProgramMenuForRow(row, normalizedSource);
+                        }
+                    }, 120);
+                });
+            }
+
+            function bindProgramDropdownRows(scopeEl, source) {
+                const root = scopeEl || document;
+                const normalizedSource = normalizeProgramSource(source);
+                const rows = Array.from(root.querySelectorAll('.education-entry'));
+                rows.forEach((row) => bindProgramDropdownRow(row, normalizedSource));
+            }
+
+            function mapProgramRowsFromPayload(payload) {
+                const rows = Array.isArray(payload?.data) ? payload.data : [];
+                return rows
+                    .map((item) => ({
+                        level: String(item?.level || 'COLLEGE').trim().toUpperCase(),
+                        name: normalizeProgramValue(item?.name || ''),
+                    }))
+                    .filter((item) => item.name !== '');
+            }
+
+            function deriveOptionsFromMasterRows(source) {
+                const normalizedSource = normalizeProgramSource(source);
+                const levels = sourceLevels(normalizedSource);
+                const masterRows = Array.isArray(window.__pdsProgramsMasterRows) ? window.__pdsProgramsMasterRows : [];
+
+                return masterRows
+                    .filter((row) => levels.includes(String(row.level || '').toUpperCase()))
+                    .map((row) => row.name)
+                    .filter((name) => name !== '');
+            }
+
+            async function loadProgramOptions(source) {
+                const normalizedSource = normalizeProgramSource(source);
+                ensureProgramStores();
+
+                if (window.__pdsProgramLoadedBySource[normalizedSource] === true) {
+                    return;
+                }
+
+                if (window.__pdsProgramsMasterLoaded === true) {
+                    setProgramOptions(normalizedSource, deriveOptionsFromMasterRows(normalizedSource));
+                    window.__pdsProgramLoadedBySource[normalizedSource] = true;
+                    return;
+                }
+
+                if (window.__pdsProgramsMasterLoadingPromise) {
+                    await window.__pdsProgramsMasterLoadingPromise;
+                    setProgramOptions(normalizedSource, deriveOptionsFromMasterRows(normalizedSource));
+                    window.__pdsProgramLoadedBySource[normalizedSource] = true;
+                    return;
+                }
+
+                const requestUrl = @json(route('pds.programs.list'));
+                window.__pdsProgramsMasterLoadingPromise = fetch(requestUrl, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                    },
+                    credentials: 'same-origin',
+                })
+                    .then((response) => {
+                        if (!response.ok) {
+                            throw new Error('Failed to load program options.');
+                        }
+                        return response.json();
+                    })
+                    .then((payload) => {
+                        window.__pdsProgramsMasterRows = mapProgramRowsFromPayload(payload);
+                        window.__pdsProgramsMasterLoaded = true;
+                    })
+                    .catch(() => {
+                        window.__pdsProgramsMasterRows = [];
+                        window.__pdsProgramsMasterLoaded = true;
+                    })
+                    .finally(() => {
+                        window.__pdsProgramsMasterLoadingPromise = null;
+                    });
+
+                await window.__pdsProgramsMasterLoadingPromise;
+                setProgramOptions(normalizedSource, deriveOptionsFromMasterRows(normalizedSource));
+                window.__pdsProgramLoadedBySource[normalizedSource] = true;
+            }
+
             function syncCollegeEarnedRequired(type) {
                 if (type !== 'college') return;
 
@@ -463,6 +793,10 @@
                 }
                 bindCollegeEarnedRequired(type);
                 syncCollegeEarnedRequired(type);
+                if (type === 'college' || type === 'grad') {
+                    const programSource = type === 'grad' ? 'grad' : 'college';
+                    bindProgramDropdownRows(container, programSource);
+                }
             }
 
             function removeEducationRow(button, type) {
@@ -497,15 +831,35 @@
                 }
                 bindCollegeEarnedRequired(type);
                 syncCollegeEarnedRequired(type);
+                if (type === 'college' || type === 'grad') {
+                    const programSource = type === 'grad' ? 'grad' : 'college';
+                    bindProgramDropdownRows(container, programSource);
+                }
             }
             document.addEventListener('DOMContentLoaded', () => {
                 const container = document.getElementById('{{ $education_type }}-container');
+                const programSource = @json(in_array($education_type, ['college', 'grad'], true) ? ($education_type === 'grad' ? 'grad' : 'college') : '');
                 initEducationFlatpickr(container);
                 if (typeof window.initPdsEducationDateRanges === 'function') {
                     window.initPdsEducationDateRanges(container);
                 }
                 bindCollegeEarnedRequired('{{ $education_type }}');
                 syncCollegeEarnedRequired('{{ $education_type }}');
+                if (programSource) {
+                    bindProgramDropdownRows(container, programSource);
+                    loadProgramOptions(programSource);
+                    if (!window.__pdsProgramOutsideClickBound) {
+                        window.__pdsProgramOutsideClickBound = true;
+                        document.addEventListener('click', (event) => {
+                            if (!(event.target instanceof Node)) {
+                                return;
+                            }
+                            if (!event.target.closest('[data-program-input]') && !event.target.closest('[data-program-role="menu"]')) {
+                                closeAllProgramMenus();
+                            }
+                        });
+                    }
+                }
                 const form = document.getElementById('myForm');
                 if (form && '{{ $education_type }}' === 'college' && form.dataset.collegeEarnedSyncOnSubmit !== '1') {
                     form.dataset.collegeEarnedSyncOnSubmit = '1';

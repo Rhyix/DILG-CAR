@@ -4,7 +4,7 @@
     $isPositionsContext = request()->routeIs('admin.positions.*')
         || request()->routeIs('addcos')
         || request()->routeIs('addplantilla');
-    $isCoursesContext = request()->routeIs('admin.courses.*');
+    $isProgramsContext = request()->routeIs('admin.courses.*');
     $isVacanciesContext = request()->routeIs('vacancies_management')
         || request()->routeIs('vacancies.addcos')
         || request()->routeIs('vacancies.addplantilla')
@@ -106,7 +106,7 @@
                         || request()->routeIs('admin.reports.index')
                         || request()->routeIs('admin.backup.index')
                         || $isPositionsContext
-                        || $isCoursesContext;
+                        || $isProgramsContext;
                 @endphp
                 <div x-data="{ submenuOpen: {{ $utilitiesOpen ? 'true' : 'false' }} }" class="relative">
                     <button @click="submenuOpen = !submenuOpen"
@@ -136,11 +136,11 @@
                             <span class="ml-3">POSITIONS</span>
                         </a>
 
-                        <a href="{{ route('admin.courses.index') }}" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200 {{ $isCoursesContext
+                        <a href="{{ route('admin.courses.index') }}" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200 {{ $isProgramsContext
                                 ? 'bg-[#002C76] text-white shadow-md'
                                 : 'text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md' }}">
                             <i class="fa-solid fa-graduation-cap w-5 h-5 flex-shrink-0 ml-2"></i>
-                            <span class="ml-3">COURSES</span>
+                            <span class="ml-3">PROGRAMS</span>
                         </a>
 
                         <a href="{{ route('admin_activity_log') }}" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200

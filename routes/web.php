@@ -356,6 +356,7 @@ Route::middleware(['auth', BlockIfAdmin::class])->group(function () {
     Route::get('/pds/export-annex-h1-excel', [Forms\PDSController::class, 'exportAnnexH1Excel'])->name('pds.export_annex_h1_excel');
     Route::post('/pds/autosave/{section}', [Forms\PDSController::class, 'autosaveDraft'])->name('pds.autosave');
     Route::get('/pds/utilities/eligibilities/list', [EligibilityPresetController::class, 'listJson'])->name('pds.eligibilities.list');
+    Route::get('/pds/utilities/programs/list', [CoursePresetController::class, 'publicListJson'])->name('pds.programs.list');
 
     Route::get('/pds/c2', [Forms\PDSController::class, 'c2DisplayForm'])->name('display_c2');
     Route::post('/pds/submit_c2/{go_to}', [Forms\PDSController::class, 'c2UpdateFormSession'])->name('submit_c2');
@@ -632,6 +633,8 @@ Route::middleware([RedirectIfNotAdmin::class])->group(function () {
     Route::put('/admin/utilities/courses/{id}', [CoursePresetController::class, 'update'])->name('admin.courses.update');
     Route::delete('/admin/utilities/courses/{id}', [CoursePresetController::class, 'destroy'])->name('admin.courses.destroy');
     Route::get('/admin/utilities/courses/list', [CoursePresetController::class, 'listJson'])->name('admin.courses.list');
+    Route::post('/admin/utilities/courses/suggestions/{id}/approve', [CoursePresetController::class, 'approveSuggestion'])->name('admin.courses.suggestions.approve');
+    Route::post('/admin/utilities/courses/suggestions/{id}/decline', [CoursePresetController::class, 'declineSuggestion'])->name('admin.courses.suggestions.decline');
     Route::middleware([EnsureSuperadmin::class])->group(function () {
         Route::get('/admin/utilities/backup-restore', [BackupRestoreController::class, 'index'])->name('admin.backup.index');
         Route::post('/admin/utilities/backup-restore/backup', [BackupRestoreController::class, 'backup'])->name('admin.backup.run');

@@ -4,7 +4,7 @@
     $isPositionsContext = request()->routeIs('admin.positions.*')
         || request()->routeIs('addcos')
         || request()->routeIs('addplantilla');
-    $isCoursesContext = request()->routeIs('admin.courses.*');
+    $isProgramsContext = request()->routeIs('admin.courses.*');
     $isVacanciesContext = request()->routeIs('vacancies_management')
         || request()->routeIs('vacancies.addcos')
         || request()->routeIs('vacancies.addplantilla')
@@ -169,7 +169,7 @@
                         || request()->routeIs('admin.reports.index')
                         || request()->routeIs('admin.backup.index')
                         || $isPositionsContext
-                        || $isCoursesContext;
+                        || $isProgramsContext;
                 @endphp
                 <div x-data="{ submenuOpen: {{ $utilitiesOpenMobile ? 'true' : 'false' }} }" class="relative">
                     <button @click="submenuOpen = !submenuOpen"
@@ -208,11 +208,11 @@
                         <a href="{{ route('admin.courses.index') }}"
                             @click="mobileSidebarOpen = false"
                             class="use-loader flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200
-                                {{ $isCoursesContext
+                                {{ $isProgramsContext
                                     ? 'bg-[#002C76] text-white'
                                     : 'text-[#002C76] hover:text-white hover:bg-[#002C76]' }}">
                             <i class="fa-solid fa-graduation-cap w-5 h-5 flex-shrink-0"></i>
-                            <span class="ml-3">COURSES</span>
+                            <span class="ml-3">PROGRAMS</span>
                         </a>
 
                         <a href="{{ route('admin_activity_log') }}"

@@ -16,6 +16,10 @@ use App\Models\VoluntaryWork;
 use App\Models\WorkExperience;
 use App\Models\OtherInformation;
 use App\Models\UploadedDocument;
+use App\Models\CoursePreset;
+use App\Models\ProgramSuggestion;
+use App\Models\Notification;
+use App\Models\Admin;
 use Illuminate\Http\UploadedFile;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\JobVacancyController;
@@ -200,6 +204,353 @@ class PDSController extends Controller
         }
 
         return $entries;
+    }
+
+    private function normalizeProgramLookupValue($value): string
+    {
+        $normalized = trim((string) ($value ?? ''));
+        if ($normalized === '') {
+            return '';
+        }
+
+        $normalized = preg_replace('/\s+/u', ' ', $normalized) ?? $normalized;
+        return strtolower(trim($normalized));
+    }
+
+    private function inferGraduateProgramLevel(string $programName): string
+    {
+        $normalized = strtolower(trim($programName));
+        if ($normalized === '') {
+            return 'MASTERAL';
+        }
+
+        foreach ([
+            'doctorate',
+            'doctoral',
+            'doctor of philosophy',
+            'doctor',
+            'phd',
+            'ph.d',
+            'dba',
+            'edd',
+            'sjd',
+            'juridical science',
+        ] as $keyword) {
+            if (str_contains($normalized, $keyword)) {
+                return 'DOCTORATE';
+            }
+        }
+
+        return 'MASTERAL';
+    }
+
+    private function programLevelLabel(string $programLevel): string
+    {
+        return match (strtoupper(trim($programLevel))) {
+            'COLLEGE' => 'College',
+            'MASTERAL' => 'Masteral',
+            'DOCTORATE' => 'Doctorate',
+            default => ucfirst(strtolower(trim($programLevel))),
+        };
+    }
+
+    private function resolveApplicantDisplayName(): string
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return 'An applicant';
+        }
+
+        $name = trim((string) ($user->name ?? ''));
+        if ($name !== '') {
+            return $name;
+        }
+
+        $first = trim((string) ($user->first_name ?? ''));
+        $last = trim((string) ($user->last_name ?? ''));
+        $combined = trim($first . ' ' . $last);
+        if ($combined !== '') {
+            return $combined;
+        }
+
+        return trim((string) ($user->email ?? '')) ?: 'An applicant';
+    }
+
+    private function notifyAdminsForProgramSuggestion(ProgramSuggestion $suggestion): void
+    {
+        if (!Schema::hasTable('notifications')) {
+            return;
+        }
+
+        $suggestedName = trim((string) ($suggestion->suggested_name ?? ''));
+        if ($suggestedName === '') {
+            return;
+        }
+
+        $levelCode = strtoupper(trim((string) ($suggestion->program_level ?? 'COLLEGE')));
+        $levelLabel = $this->programLevelLabel($levelCode);
+        $applicantName = $this->resolveApplicantDisplayName();
+        $reviewUrl = route('admin.courses.index', [], false);
+
+        $payload = [
+            'title' => 'Program suggestion pending review',
+            'message' => $applicantName . ' submitted "' . $suggestedName . '" under ' . $levelLabel . ' for approval.',
+            'action_url' => $reviewUrl,
+            'link' => $reviewUrl,
+            'section' => 'Academic Programs',
+            'category' => 'program_suggestion',
+            'program_suggestion_id' => $suggestion->id,
+            'program_level' => $levelCode,
+            'suggested_name' => $suggestedName,
+            'suggested_by_user_id' => $suggestion->suggested_by_user_id,
+        ];
+
+        foreach (Admin::query()->select('id')->cursor() as $admin) {
+            Notification::query()->create([
+                'notifiable_type' => Admin::class,
+                'notifiable_id' => $admin->id,
+                'type' => 'warning',
+                'data' => $payload,
+                'read_at' => null,
+            ]);
+        }
+    }
+
+    private function queueCollegeProgramSuggestions($collegeRows): void
+    {
+        if (!Auth::check() || !is_array($collegeRows)) {
+            return;
+        }
+
+        if (!Schema::hasTable('course_presets') || !Schema::hasTable('program_suggestions')) {
+            return;
+        }
+
+        $candidatePrograms = [];
+        foreach ($collegeRows as $entry) {
+            if (!is_array($entry)) {
+                continue;
+            }
+
+            $programName = trim((string) ($entry['basic'] ?? ''));
+            if ($this->valueIsEmptyOrNa($programName)) {
+                continue;
+            }
+
+            $programName = preg_replace('/\s+/u', ' ', $programName) ?? $programName;
+            $programName = trim($programName);
+            if ($programName === '') {
+                continue;
+            }
+
+            $normalizedName = $this->normalizeProgramLookupValue($programName);
+            if ($normalizedName === '') {
+                continue;
+            }
+
+            $candidatePrograms[$normalizedName] = $programName;
+        }
+
+        if (empty($candidatePrograms)) {
+            return;
+        }
+
+        $approvedQuery = CoursePreset::query()->select('course_name');
+        if (Schema::hasColumn('course_presets', 'program_level')) {
+            $approvedQuery->where('program_level', 'COLLEGE');
+        }
+
+        $approvedMap = [];
+        foreach ($approvedQuery->pluck('course_name') as $approvedName) {
+            $lookup = $this->normalizeProgramLookupValue($approvedName);
+            if ($lookup !== '') {
+                $approvedMap[$lookup] = true;
+            }
+        }
+
+        $existingSuggestions = ProgramSuggestion::query()
+            ->where('program_level', 'COLLEGE')
+            ->whereIn('normalized_name', array_keys($candidatePrograms))
+            ->get()
+            ->keyBy('normalized_name');
+
+        foreach ($candidatePrograms as $normalizedName => $programName) {
+            if (isset($approvedMap[$normalizedName])) {
+                continue;
+            }
+
+            $existing = $existingSuggestions->get($normalizedName);
+            if ($existing) {
+                if ($existing->status === 'pending') {
+                    $existing->update([
+                        'suggested_name' => $programName,
+                        'suggested_by_user_id' => Auth::id(),
+                        'source' => 'pds_c1',
+                    ]);
+                } elseif ($existing->status === 'declined') {
+                    $existing->update([
+                        'status' => 'pending',
+                        'suggested_name' => $programName,
+                        'suggested_by_user_id' => Auth::id(),
+                        'source' => 'pds_c1',
+                        'reviewed_by_admin_id' => null,
+                        'reviewed_at' => null,
+                        'course_preset_id' => null,
+                    ]);
+                    $this->notifyAdminsForProgramSuggestion($existing);
+                }
+
+                continue;
+            }
+
+            $createdSuggestion = ProgramSuggestion::query()->create([
+                'suggested_by_user_id' => Auth::id(),
+                'program_level' => 'COLLEGE',
+                'suggested_name' => $programName,
+                'normalized_name' => $normalizedName,
+                'status' => 'pending',
+                'source' => 'pds_c1',
+            ]);
+            $this->notifyAdminsForProgramSuggestion($createdSuggestion);
+        }
+    }
+
+    private function queueGraduateProgramSuggestions($gradRows): void
+    {
+        if (!Auth::check() || !is_array($gradRows)) {
+            return;
+        }
+
+        if (!Schema::hasTable('course_presets') || !Schema::hasTable('program_suggestions')) {
+            return;
+        }
+
+        $candidatePrograms = [];
+        foreach ($gradRows as $entry) {
+            if (!is_array($entry)) {
+                continue;
+            }
+
+            $programName = trim((string) ($entry['basic'] ?? ''));
+            if ($this->valueIsEmptyOrNa($programName)) {
+                continue;
+            }
+
+            $programName = preg_replace('/\s+/u', ' ', $programName) ?? $programName;
+            $programName = trim($programName);
+            if ($programName === '') {
+                continue;
+            }
+
+            $programLevel = $this->inferGraduateProgramLevel($programName);
+            $normalizedName = $this->normalizeProgramLookupValue($programName);
+            if ($normalizedName === '') {
+                continue;
+            }
+
+            $key = $programLevel . '|' . $normalizedName;
+            $candidatePrograms[$key] = [
+                'program_level' => $programLevel,
+                'normalized_name' => $normalizedName,
+                'suggested_name' => $programName,
+            ];
+        }
+
+        if (empty($candidatePrograms)) {
+            return;
+        }
+
+        $allowedLevels = ['MASTERAL', 'DOCTORATE'];
+        $approvedQuery = CoursePreset::query()->select('course_name');
+        if (Schema::hasColumn('course_presets', 'program_level')) {
+            $approvedQuery->addSelect('program_level')->whereIn('program_level', $allowedLevels);
+        }
+
+        $approvedMap = [];
+        foreach ($approvedQuery->get() as $approvedRow) {
+            $approvedName = (string) ($approvedRow->course_name ?? '');
+            $normalizedName = $this->normalizeProgramLookupValue($approvedName);
+            if ($normalizedName === '') {
+                continue;
+            }
+
+            $programLevel = Schema::hasColumn('course_presets', 'program_level')
+                ? strtoupper(trim((string) ($approvedRow->program_level ?? 'MASTERAL')))
+                : $this->inferGraduateProgramLevel($approvedName);
+
+            if (!in_array($programLevel, $allowedLevels, true)) {
+                continue;
+            }
+
+            $approvedMap[$programLevel . '|' . $normalizedName] = true;
+        }
+
+        $normalizedNames = array_values(array_unique(array_map(
+            fn($item) => (string) ($item['normalized_name'] ?? ''),
+            array_values($candidatePrograms)
+        )));
+
+        $existingRecords = ProgramSuggestion::query()
+            ->whereIn('program_level', $allowedLevels)
+            ->whereIn('normalized_name', $normalizedNames)
+            ->orderByDesc('updated_at')
+            ->get();
+
+        $existingByKey = [];
+        foreach ($existingRecords as $record) {
+            $key = strtoupper(trim((string) ($record->program_level ?? ''))) . '|' . strtolower(trim((string) ($record->normalized_name ?? '')));
+            if (!isset($existingByKey[$key])) {
+                $existingByKey[$key] = $record;
+                continue;
+            }
+
+            $current = $existingByKey[$key];
+            if ($current->status !== 'pending' && $record->status === 'pending') {
+                $existingByKey[$key] = $record;
+            }
+        }
+
+        foreach ($candidatePrograms as $key => $item) {
+            if (isset($approvedMap[$key])) {
+                continue;
+            }
+
+            $existing = $existingByKey[$key] ?? null;
+            if ($existing) {
+                if ($existing->status === 'pending') {
+                    $existing->update([
+                        'suggested_name' => (string) ($item['suggested_name'] ?? ''),
+                        'suggested_by_user_id' => Auth::id(),
+                        'source' => 'pds_c1',
+                    ]);
+                    continue;
+                }
+
+                if ($existing->status === 'declined') {
+                    $existing->update([
+                        'status' => 'pending',
+                        'suggested_name' => (string) ($item['suggested_name'] ?? ''),
+                        'suggested_by_user_id' => Auth::id(),
+                        'source' => 'pds_c1',
+                        'reviewed_by_admin_id' => null,
+                        'reviewed_at' => null,
+                        'course_preset_id' => null,
+                    ]);
+                    $this->notifyAdminsForProgramSuggestion($existing);
+                    continue;
+                }
+            }
+
+            $createdSuggestion = ProgramSuggestion::query()->create([
+                'suggested_by_user_id' => Auth::id(),
+                'program_level' => (string) ($item['program_level'] ?? 'MASTERAL'),
+                'suggested_name' => (string) ($item['suggested_name'] ?? ''),
+                'normalized_name' => (string) ($item['normalized_name'] ?? ''),
+                'status' => 'pending',
+                'source' => 'pds_c1',
+            ]);
+            $this->notifyAdminsForProgramSuggestion($createdSuggestion);
+        }
     }
 
     private function addEducationDateRangeValidationError(
@@ -1394,6 +1745,16 @@ class PDSController extends Controller
                 'grad' => $c1_form_data_db['grad'] ?? null,
             ]
         );
+
+        try {
+            $this->queueCollegeProgramSuggestions($c1_form_data_db['college'] ?? []);
+            $this->queueGraduateProgramSuggestions($c1_form_data_db['grad'] ?? []);
+        } catch (\Throwable $e) {
+            Log::warning('Unable to queue program suggestions from PDS submission.', [
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         activity()
             ->causedBy(Auth::user())

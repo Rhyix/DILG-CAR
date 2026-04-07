@@ -14,6 +14,6 @@ class CoursePreset extends Model
     protected $fillable = [
         'course_code',
         'course_name',
+        'program_level',
     ];
 }
-

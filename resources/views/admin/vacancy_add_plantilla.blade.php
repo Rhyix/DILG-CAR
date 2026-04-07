@@ -1239,7 +1239,11 @@ function checkAllFieldsFilled() {
     });
 
     if (requiredFields.has('qualification_education')) {
+        const educationCode = document.getElementById('minimum_education_code');
         const educationHidden = document.getElementById('qualification_education');
+        if (!educationCode || !String(educationCode.value || '').trim()) {
+            allFilled = false;
+        }
         if (!educationHidden || !String(educationHidden.value || '').trim()) {
             allFilled = false;
         }
@@ -1333,11 +1337,18 @@ window.addEventListener('confirm-plantilla-save', () => {
     if (!salaryGrade || !/^SG-\d{2}$/.test(String(salaryGrade.value || '').trim())) { errors.push('Salary grade must be in SG-00 format.'); show(eSalaryGrade, 'Salary grade must be in SG-00 format (example: SG-23).'); }
     if (!disablePositionFields && !closingDate.value) { errors.push('Deadline is required.'); show(eClosing, 'Deadline of application is required.'); }
     if (!place.value) { errors.push('Place of assignment is required.'); show(ePlace, 'Place of assignment is required.'); }
+    const educationCode = document.getElementById('minimum_education_code');
     const educationHidden = document.getElementById('qualification_education');
     const educationValidation = typeof window.validateEducationRequirementConfig === 'function'
         ? window.validateEducationRequirementConfig()
         : { valid: Boolean(educationHidden && String(educationHidden.value || '').trim()), message: '' };
-    if (!educationValidation.valid || !educationHidden || !String(educationHidden.value || '').trim()) {
+    if (
+        !educationCode
+        || !String(educationCode.value || '').trim()
+        || !educationValidation.valid
+        || !educationHidden
+        || !String(educationHidden.value || '').trim()
+    ) {
         errors.push('Education requirement is required.');
         show(eEducation, educationValidation.message || 'Education requirement is required.');
     }

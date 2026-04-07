@@ -15,8 +15,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const specificWrap = document.getElementById('education_specific_picker_wrap');
     const specificLabel = document.getElementById('education_specific_picker_label');
-    const specificInput = document.getElementById('education_specific_picker_input');
-    const specificList = document.getElementById('education_specific_picker_list');
+    const specificRows = document.getElementById('education_specific_rows');
+    const addSpecificButton = document.getElementById('education_add_specific_btn');
+    const specificRowTemplate = document.getElementById('education_specific_row_template');
 
     if (
         !hiddenRequirement ||
@@ -32,8 +33,9 @@ document.addEventListener('DOMContentLoaded', function () {
         !detailSpecificLabel ||
         !specificWrap ||
         !specificLabel ||
-        !specificInput ||
-        !specificList
+        !specificRows ||
+        !addSpecificButton ||
+        !specificRowTemplate
     ) {
         return;
     }
@@ -41,34 +43,17 @@ document.addEventListener('DOMContentLoaded', function () {
     const normalize = (value) => String(value || '').trim().toLowerCase();
     const hasValue = (value) => String(value || '').trim() !== '';
     const escapeAttr = (value) => String(value || '').replace(/"/g, '&quot;');
+    const escapeHtml = (value) => String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+
     const collegeCoursesListUrl = @json(route('admin.courses.list'));
 
-    const bachelorOptions = [
-        { code: 'LLB_JD', label: 'Bachelor of Laws / Juris Doctor' },
-        { code: 'BS_ACCOUNTANCY', label: 'BS Accountancy' },
-        { code: 'BS_INFORMATION_TECHNOLOGY', label: 'BS Information Technology' },
-        { code: 'BS_COMPUTER_SCIENCE', label: 'BS Computer Science' },
-        { code: 'BS_INFORMATION_SYSTEMS', label: 'BS Information Systems' },
-        { code: 'B_PUBLIC_ADMIN', label: 'Bachelor of Public Administration' },
-    ];
-
-    const masteralOptions = [
-        { code: 'MASTER_PUBLIC_ADMIN', label: 'Master of Public Administration' },
-        { code: 'MASTER_IT', label: 'Master in Information Technology' },
-        { code: 'MBA', label: 'Master in Business Administration' },
-        { code: 'MASTER_EDUCATION', label: 'Master of Arts in Education' },
-        { code: 'MASTER_PSYCHOLOGY', label: 'Master of Arts in Psychology' },
-    ];
-
-    const doctorateOptions = [
-        { code: 'PHD_PUBLIC_ADMIN', label: 'Doctor of Philosophy in Public Administration' },
-        { code: 'PHD_IT', label: 'Doctor of Philosophy in Information Technology' },
-        { code: 'EDD', label: 'Doctor of Education' },
-        { code: 'PHD_PSYCHOLOGY', label: 'Doctor of Philosophy in Psychology' },
-        { code: 'SJD', label: 'Doctor of Juridical Science' },
-    ];
-
     const defaultCollegeCourseOptions = [
+        { code: 'LLB_JD', label: 'Bachelor of Laws / Juris Doctor' },
         { code: 'BS_ACCOUNTANCY', label: 'BS Accountancy' },
         { code: 'BS_INFORMATION_TECHNOLOGY', label: 'BS Information Technology' },
         { code: 'BS_COMPUTER_SCIENCE', label: 'BS Computer Science' },
@@ -76,7 +61,27 @@ document.addEventListener('DOMContentLoaded', function () {
         { code: 'B_PUBLIC_ADMIN', label: 'Bachelor of Public Administration' },
         { code: 'BS_PSYCHOLOGY', label: 'BS Psychology' },
     ];
+
+    const defaultMasteralOptions = [
+        { code: 'MASTER_PUBLIC_ADMIN', label: 'Master of Public Administration' },
+        { code: 'MASTER_IT', label: 'Master in Information Technology' },
+        { code: 'MBA', label: 'Master in Business Administration' },
+        { code: 'MASTER_EDUCATION', label: 'Master of Arts in Education' },
+        { code: 'MASTER_PSYCHOLOGY', label: 'Master of Arts in Psychology' },
+    ];
+
+    const defaultDoctorateOptions = [
+        { code: 'PHD_PUBLIC_ADMIN', label: 'Doctor of Philosophy in Public Administration' },
+        { code: 'PHD_IT', label: 'Doctor of Philosophy in Information Technology' },
+        { code: 'EDD', label: 'Doctor of Education' },
+        { code: 'PHD_PSYCHOLOGY', label: 'Doctor of Philosophy in Psychology' },
+        { code: 'SJD', label: 'Doctor of Juridical Science' },
+    ];
+
     let collegeCourseOptions = [...defaultCollegeCourseOptions];
+    let masteralOptions = [...defaultMasteralOptions];
+    let doctorateOptions = [...defaultDoctorateOptions];
+    let rowCounter = 0;
 
     const educationMeta = {
         HIGH_SCHOOL_GRAD: {
@@ -96,7 +101,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 specificFieldLabel: 'Required course',
                 optionsProvider: () => collegeCourseOptions,
                 requirementTextSpecific: (program) => `Completion of 2 years of studies in college in ${program}`,
+                requirementTextSpecificMultiple: (programs) => `Completion of 2 years of studies in college in ${programs.join(', ')}`,
                 previewSpecific: (program) => `Applicants must have at least a Completion of 2 Years in College in ${program}.`,
+                previewSpecificMultiple: (programs) => `Applicants may hold any of the following courses: ${programs.join(', ')}.`,
             },
         },
         BACHELOR: {
@@ -108,9 +115,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 anyLabel: 'Any bachelors degree',
                 specificLabel: 'Specific bachelors degree',
                 specificFieldLabel: 'Required degree',
-                optionsProvider: () => bachelorOptions,
+                optionsProvider: () => collegeCourseOptions,
                 requirementTextSpecific: (program) => `Bachelor's Degree in ${program}`,
+                requirementTextSpecificMultiple: (programs) => `Bachelor's Degree in ${programs.join(', ')}`,
                 previewSpecific: (program) => `Applicants must hold the degree ${program}.`,
+                previewSpecificMultiple: (programs) => `Applicants may hold any of the following degrees: ${programs.join(', ')}.`,
             },
         },
         MASTERAL: {
@@ -124,7 +133,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 specificFieldLabel: 'Required degree',
                 optionsProvider: () => masteralOptions,
                 requirementTextSpecific: (program) => `Masteral Degree in ${program}`,
+                requirementTextSpecificMultiple: (programs) => `Masteral Degree in ${programs.join(', ')}`,
                 previewSpecific: (program) => `Applicants must hold the degree ${program}.`,
+                previewSpecificMultiple: (programs) => `Applicants may hold any of the following degrees: ${programs.join(', ')}.`,
             },
         },
         DOCTORATE: {
@@ -138,7 +149,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 specificFieldLabel: 'Required degree',
                 optionsProvider: () => doctorateOptions,
                 requirementTextSpecific: (program) => `Doctorate Degree in ${program}`,
+                requirementTextSpecificMultiple: (programs) => `Doctorate Degree in ${programs.join(', ')}`,
                 previewSpecific: (program) => `Applicants must hold the degree ${program}.`,
+                previewSpecificMultiple: (programs) => `Applicants may hold any of the following degrees: ${programs.join(', ')}.`,
             },
         },
     };
@@ -162,13 +175,6 @@ document.addEventListener('DOMContentLoaded', function () {
         detailSpecificInput.checked = mode === 'SPECIFIC';
     }
 
-    function optionCodeFromLabel(label, options) {
-        const n = normalize(label);
-        if (!n) return '';
-        const found = options.find((item) => normalize(item.label) === n);
-        return found ? found.code : '';
-    }
-
     function detailOptions(detail) {
         if (!detail) return [];
         if (typeof detail.optionsProvider === 'function') {
@@ -176,6 +182,216 @@ document.addEventListener('DOMContentLoaded', function () {
             return Array.isArray(items) ? items : [];
         }
         return Array.isArray(detail.options) ? detail.options : [];
+    }
+
+    function currentDetailOptions() {
+        const meta = currentMeta();
+        if (!meta || !meta.detail) return [];
+        return detailOptions(meta.detail);
+    }
+
+    function optionByCode(code, options) {
+        const n = normalize(code);
+        if (!n) return null;
+        return options.find((item) => normalize(item.code) === n) || null;
+    }
+
+    function optionByLabel(label, options) {
+        const n = normalize(label);
+        if (!n) return null;
+        return options.find((item) => normalize(item.label) === n) || null;
+    }
+
+    function optionCodeFromLabel(label, options) {
+        const found = optionByLabel(label, options);
+        return found ? found.code : '';
+    }
+
+    function getSpecificRows() {
+        return Array.from(specificRows.querySelectorAll('.education-specific-row'));
+    }
+
+    function rowInput(row) {
+        return row?.querySelector('[data-role="specific-input"]') || null;
+    }
+
+    function rowMenu(row) {
+        return row?.querySelector('[data-role="specific-menu"]') || null;
+    }
+
+    function rowOptionsWrap(row) {
+        return row?.querySelector('[data-role="specific-options"]') || null;
+    }
+
+    function rowRemoveButton(row) {
+        return row?.querySelector('[data-role="remove-specific-row"]') || null;
+    }
+
+    function closeSpecificMenu(row) {
+        const input = rowInput(row);
+        const menu = rowMenu(row);
+        if (!input || !menu) return;
+        menu.classList.add('hidden');
+        input.setAttribute('aria-expanded', 'false');
+    }
+
+    function closeAllSpecificMenus() {
+        getSpecificRows().forEach((row) => closeSpecificMenu(row));
+    }
+
+    function filterSpecificOptions(query, options) {
+        const q = normalize(query);
+        if (!q) return options;
+        return options.filter((item) => normalize(item.label).includes(q));
+    }
+
+    function renderSpecificOptionsList(row) {
+        const input = rowInput(row);
+        const optionsWrap = rowOptionsWrap(row);
+        if (!input || !optionsWrap) return;
+
+        const options = currentDetailOptions();
+        const filtered = filterSpecificOptions(input.value, options);
+        const selectedCode = String(input.dataset.selectedCode || '').trim();
+
+        if (filtered.length === 0) {
+            optionsWrap.innerHTML = '<div class="px-3 py-2 text-sm text-slate-500">No matches found.</div>';
+            return;
+        }
+
+        optionsWrap.innerHTML = filtered
+            .map((item) => {
+                const selectedClass = selectedCode === item.code ? ' bg-slate-100 font-medium' : '';
+                return `<button type="button" class="block w-full px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-100 focus:bg-slate-100${selectedClass}" data-code="${escapeAttr(item.code)}" data-label="${escapeAttr(item.label)}">${escapeHtml(item.label)}</button>`;
+            })
+            .join('');
+    }
+
+    function openSpecificMenu(row) {
+        const input = rowInput(row);
+        const menu = rowMenu(row);
+        if (!input || !menu) return;
+
+        if (specificWrap.classList.contains('hidden') || input.disabled) {
+            closeSpecificMenu(row);
+            return;
+        }
+
+        closeAllSpecificMenus();
+        renderSpecificOptionsList(row);
+        menu.classList.remove('hidden');
+        input.setAttribute('aria-expanded', 'true');
+    }
+
+    function updateSpecificLabelFor() {
+        const firstRow = getSpecificRows()[0] || null;
+        const input = firstRow ? rowInput(firstRow) : null;
+        if (input && input.id) {
+            specificLabel.setAttribute('for', input.id);
+        } else {
+            specificLabel.removeAttribute('for');
+        }
+    }
+
+    function ensureRowActionsState() {
+        const rows = getSpecificRows();
+        const showRemove = rows.length > 1;
+        rows.forEach((row) => {
+            const removeButton = rowRemoveButton(row);
+            if (!removeButton) return;
+            removeButton.classList.toggle('hidden', !showRemove);
+            removeButton.disabled = rowInput(row)?.disabled ?? false;
+        });
+        updateSpecificLabelFor();
+    }
+
+    function buildSpecificRow(initialValue = '') {
+        const fragment = specificRowTemplate.content.cloneNode(true);
+        const row = fragment.querySelector('.education-specific-row');
+        const input = rowInput(row);
+        const optionsWrap = rowOptionsWrap(row);
+        const removeButton = rowRemoveButton(row);
+
+        rowCounter += 1;
+        input.id = `education_specific_picker_input_${rowCounter}`;
+
+        const initialLabel = String(initialValue || '').trim();
+        input.value = initialLabel;
+        input.dataset.selectedCode = optionCodeFromLabel(initialLabel, currentDetailOptions()) || '';
+        input.setAttribute('aria-expanded', 'false');
+
+        input.addEventListener('click', function () {
+            if (selectedDetailMode() !== 'SPECIFIC') return;
+            openSpecificMenu(row);
+        });
+
+        input.addEventListener('input', function () {
+            input.dataset.selectedCode = optionCodeFromLabel(input.value, currentDetailOptions()) || '';
+            syncState();
+            openSpecificMenu(row);
+        });
+
+        input.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                closeSpecificMenu(row);
+                return;
+            }
+
+            if (event.key === 'Enter') {
+                const menu = rowMenu(row);
+                if (menu && !menu.classList.contains('hidden')) {
+                    const firstOption = optionsWrap.querySelector('button[data-code]');
+                    if (firstOption) {
+                        event.preventDefault();
+                        firstOption.click();
+                    }
+                }
+            }
+        });
+
+        optionsWrap.addEventListener('click', function (event) {
+            const target = event.target instanceof HTMLElement ? event.target.closest('button[data-code]') : null;
+            if (!target) return;
+
+            const code = String(target.getAttribute('data-code') || '').trim();
+            const label = String(target.getAttribute('data-label') || '').trim();
+            if (!code || !label) return;
+
+            input.dataset.selectedCode = code;
+            input.value = label;
+            closeSpecificMenu(row);
+            syncState();
+        });
+
+        removeButton.addEventListener('click', function () {
+            row.remove();
+            ensureSpecificRowCount(1);
+            syncState();
+        });
+
+        return row;
+    }
+
+    function ensureSpecificRowCount(minCount = 1) {
+        let rows = getSpecificRows();
+        while (rows.length < minCount) {
+            specificRows.appendChild(buildSpecificRow(''));
+            rows = getSpecificRows();
+        }
+        ensureRowActionsState();
+    }
+
+    function setSpecificRows(values) {
+        specificRows.innerHTML = '';
+        const list = Array.isArray(values) ? values : [];
+        if (list.length === 0) {
+            specificRows.appendChild(buildSpecificRow(''));
+        } else {
+            list.forEach((value) => {
+                specificRows.appendChild(buildSpecificRow(value));
+            });
+        }
+        ensureRowActionsState();
     }
 
     function setPreview(text) {
@@ -195,10 +411,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (!showDetail) {
             setDetailMode('');
-            specificInput.value = '';
-            specificList.innerHTML = '';
+            setSpecificRows([]);
             specificWrap.classList.add('hidden');
-            specificInput.disabled = true;
+            addSpecificButton.classList.add('hidden');
+            getSpecificRows().forEach((row) => {
+                const input = rowInput(row);
+                if (input) input.disabled = true;
+            });
+            closeAllSpecificMenus();
             return;
         }
 
@@ -206,15 +426,41 @@ document.addEventListener('DOMContentLoaded', function () {
         detailAnyLabel.textContent = detail.anyLabel;
         detailSpecificLabel.textContent = detail.specificLabel;
 
-        const options = detailOptions(detail);
-        specificList.innerHTML = options
-            .map((item) => `<option value="${escapeAttr(item.label)}"></option>`)
-            .join('');
-
         const showSpecific = mode === 'SPECIFIC';
         specificWrap.classList.toggle('hidden', !showSpecific);
-        specificInput.disabled = !showSpecific;
+        addSpecificButton.classList.toggle('hidden', !showSpecific);
         specificLabel.textContent = detail.specificFieldLabel;
+
+        ensureSpecificRowCount(1);
+
+        getSpecificRows().forEach((row) => {
+            const input = rowInput(row);
+            if (!input) return;
+
+            input.disabled = !showSpecific;
+            if (!showSpecific) {
+                closeSpecificMenu(row);
+                return;
+            }
+
+            const options = detailOptions(detail);
+            const selectedCode = String(input.dataset.selectedCode || '').trim();
+            if (selectedCode && !optionByCode(selectedCode, options)) {
+                input.dataset.selectedCode = '';
+            }
+
+            const exact = optionByLabel(input.value, options);
+            if (exact) {
+                input.dataset.selectedCode = exact.code;
+                input.value = exact.label;
+            } else if (!hasValue(input.value)) {
+                input.dataset.selectedCode = '';
+            }
+
+            renderSpecificOptionsList(row);
+        });
+
+        ensureRowActionsState();
     }
 
     function evaluateState() {
@@ -233,6 +479,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 config: {
                     minimum_education_code: code,
                     requirement_mode: null,
+                    required_program_codes: [],
+                    required_program_labels: [],
                     required_program_code: null,
                     required_program_label: null,
                 },
@@ -252,27 +500,72 @@ document.addEventListener('DOMContentLoaded', function () {
                 config: {
                     minimum_education_code: code,
                     requirement_mode: 'ANY',
+                    required_program_codes: [],
+                    required_program_labels: [],
                     required_program_code: null,
                     required_program_label: null,
                 },
             };
         }
 
-        const programLabel = String(specificInput.value || '').trim();
-        const programCode = optionCodeFromLabel(programLabel, detailOptions(detail));
-        if (!programCode) {
+        const options = detailOptions(detail);
+        const selectedItems = [];
+        const selectedCodes = new Set();
+        let hasInvalidTypedValue = false;
+
+        getSpecificRows().forEach((row) => {
+            const input = rowInput(row);
+            if (!input) return;
+
+            const typedLabel = String(input.value || '').trim();
+            if (!typedLabel) {
+                return;
+            }
+
+            let selected = optionByCode(String(input.dataset.selectedCode || '').trim(), options);
+            if (!selected) {
+                selected = optionByLabel(typedLabel, options);
+            }
+
+            if (!selected) {
+                hasInvalidTypedValue = true;
+                return;
+            }
+
+            input.dataset.selectedCode = selected.code;
+            input.value = selected.label;
+
+            if (selectedCodes.has(selected.code)) {
+                return;
+            }
+
+            selectedCodes.add(selected.code);
+            selectedItems.push(selected);
+        });
+
+        if (selectedItems.length === 0 || hasInvalidTypedValue) {
             return { valid: false, message: `Select a valid ${detail.specificFieldLabel.toLowerCase()}.` };
         }
 
+        const labels = selectedItems.map((item) => item.label);
+        const codes = selectedItems.map((item) => item.code);
+        const isMultiple = labels.length > 1;
+
         return {
             valid: true,
-            requirementText: detail.requirementTextSpecific(programLabel),
-            preview: detail.previewSpecific(programLabel),
+            requirementText: isMultiple
+                ? detail.requirementTextSpecificMultiple(labels)
+                : detail.requirementTextSpecific(labels[0]),
+            preview: isMultiple
+                ? detail.previewSpecificMultiple(labels)
+                : detail.previewSpecific(labels[0]),
             config: {
                 minimum_education_code: code,
                 requirement_mode: 'SPECIFIC',
-                required_program_code: programCode,
-                required_program_label: programLabel,
+                required_program_codes: codes,
+                required_program_labels: labels,
+                required_program_code: codes[0] || null,
+                required_program_label: labels[0] || null,
             },
         };
     }
@@ -296,15 +589,36 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    function parseSpecificList(value) {
+        const compact = String(value || '').trim().replace(/[.;]+$/, '');
+        if (!compact) {
+            return [];
+        }
+
+        const normalizedSeparators = compact.replace(/\s+(?:or|and)\s+/gi, ',');
+        const pieces = normalizedSeparators.split(/[,;]+/);
+        const seen = new Set();
+
+        return pieces
+            .map((item) => String(item || '').trim().replace(/^in\s+/i, ''))
+            .filter((item) => {
+                if (!item) return false;
+                const key = normalize(item);
+                if (seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            });
+    }
+
     function parseExisting(rawText) {
         const text = String(rawText || '').trim();
         const n = normalize(text);
         if (!n) {
-            return { code: '', mode: '', specific: '' };
+            return { code: '', mode: '', specificList: [] };
         }
 
         if (n.includes('high school') || n.includes('senior high') || n.includes('grade 12') || n.includes('shs')) {
-            return { code: 'HIGH_SCHOOL_GRAD', mode: '', specific: '' };
+            return { code: 'HIGH_SCHOOL_GRAD', mode: '', specificList: [] };
         }
 
         if (n.includes('completion of 2 years') && n.includes('college')) {
@@ -312,7 +626,7 @@ document.addEventListener('DOMContentLoaded', function () {
             return {
                 code: 'COLLEGE_2Y',
                 mode: m ? 'SPECIFIC' : 'ANY',
-                specific: m ? String(m[1] || '').trim().replace(/[.;]+$/, '') : '',
+                specificList: m ? parseSpecificList(m[1]) : [],
             };
         }
 
@@ -321,7 +635,7 @@ document.addEventListener('DOMContentLoaded', function () {
             return {
                 code: 'DOCTORATE',
                 mode: m ? 'SPECIFIC' : 'ANY',
-                specific: m ? String(m[1] || '').trim().replace(/[.;]+$/, '') : '',
+                specificList: m ? parseSpecificList(m[1]) : [],
             };
         }
 
@@ -330,7 +644,7 @@ document.addEventListener('DOMContentLoaded', function () {
             return {
                 code: 'MASTERAL',
                 mode: m ? 'SPECIFIC' : 'ANY',
-                specific: m ? String(m[1] || '').trim().replace(/[.;]+$/, '') : '',
+                specificList: m ? parseSpecificList(m[1]) : [],
             };
         }
 
@@ -339,18 +653,18 @@ document.addEventListener('DOMContentLoaded', function () {
             return {
                 code: 'BACHELOR',
                 mode: m ? 'SPECIFIC' : 'ANY',
-                specific: m ? String(m[1] || '').trim().replace(/[.;]+$/, '') : '',
+                specificList: m ? parseSpecificList(m[1]) : [],
             };
         }
 
-        return { code: '', mode: '', specific: '' };
+        return { code: '', mode: '', specificList: [] };
     }
 
     function setFromRaw(rawValue, treatAsInitial) {
         const parsed = parseExisting(rawValue);
         educationSelect.value = parsed.code || '';
         setDetailMode(parsed.mode || '');
-        specificInput.value = parsed.specific || '';
+        setSpecificRows(parsed.specificList || []);
         syncState();
 
         if (treatAsInitial) {
@@ -362,13 +676,40 @@ document.addEventListener('DOMContentLoaded', function () {
 
     educationSelect.addEventListener('change', function () {
         setDetailMode('');
-        specificInput.value = '';
+        setSpecificRows([]);
+        closeAllSpecificMenus();
         syncState();
     });
-    detailAnyInput.addEventListener('change', syncState);
-    detailSpecificInput.addEventListener('change', syncState);
-    specificInput.addEventListener('input', syncState);
-    specificInput.addEventListener('change', syncState);
+
+    detailAnyInput.addEventListener('change', function () {
+        if (!detailAnyInput.checked) return;
+        setSpecificRows([]);
+        closeAllSpecificMenus();
+        syncState();
+    });
+
+    detailSpecificInput.addEventListener('change', function () {
+        if (!detailSpecificInput.checked) return;
+        ensureSpecificRowCount(1);
+        syncState();
+    });
+
+    addSpecificButton.addEventListener('click', function () {
+        if (selectedDetailMode() !== 'SPECIFIC') return;
+        specificRows.appendChild(buildSpecificRow(''));
+        ensureRowActionsState();
+        syncState();
+    });
+
+    document.addEventListener('click', function (event) {
+        if (!(event.target instanceof Node)) {
+            return;
+        }
+
+        if (!specificWrap.contains(event.target)) {
+            closeAllSpecificMenus();
+        }
+    });
 
     window.setEducationRequirementFromRaw = function (rawValue, treatAsInitial) {
         setFromRaw(rawValue, Boolean(treatAsInitial));
@@ -386,7 +727,7 @@ document.addEventListener('DOMContentLoaded', function () {
         };
     };
 
-    async function loadCollegeCourseOptions() {
+    async function loadProgramOptions() {
         try {
             const response = await fetch(collegeCoursesListUrl, {
                 headers: { Accept: 'application/json' },
@@ -402,10 +743,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 .map((row) => {
                     const code = String(row?.code || '').trim();
                     const label = String(row?.name || '').trim();
+                    const level = String(row?.level || 'COLLEGE').trim().toUpperCase();
                     if (!code || !label) {
                         return null;
                     }
-                    return { code, label };
+                    return { code, label, level };
                 })
                 .filter(Boolean);
 
@@ -413,14 +755,43 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
-            collegeCourseOptions = mapped;
+            const byLevel = {
+                COLLEGE: [],
+                MASTERAL: [],
+                DOCTORATE: [],
+            };
+
+            mapped.forEach((item) => {
+                const level = item.level;
+                if (level === 'MASTERAL') {
+                    byLevel.MASTERAL.push({ code: item.code, label: item.label });
+                    return;
+                }
+                if (level === 'DOCTORATE') {
+                    byLevel.DOCTORATE.push({ code: item.code, label: item.label });
+                    return;
+                }
+                byLevel.COLLEGE.push({ code: item.code, label: item.label });
+            });
+
+            if (byLevel.COLLEGE.length > 0) {
+                collegeCourseOptions = byLevel.COLLEGE;
+            }
+            if (byLevel.MASTERAL.length > 0) {
+                masteralOptions = byLevel.MASTERAL;
+            }
+            if (byLevel.DOCTORATE.length > 0) {
+                doctorateOptions = byLevel.DOCTORATE;
+            }
+
             syncState();
+
         } catch (error) {
             // Keep fallback options when API is unavailable.
         }
     }
 
     setFromRaw(hiddenRequirement.value, true);
-    loadCollegeCourseOptions();
+    loadProgramOptions();
 });
 </script>

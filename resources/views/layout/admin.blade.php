@@ -88,20 +88,17 @@
 
         .page-enter {
             opacity: 0;
-            transform: translateY(6px);
         }
 
         .page-enter.page-ready {
             opacity: 1;
-            transform: translateY(0);
-            transition: opacity 180ms ease-out, transform 180ms ease-out;
+            transition: opacity 180ms ease-out;
         }
 
         @media (prefers-reduced-motion: reduce) {
             .page-enter,
             .page-enter.page-ready {
                 opacity: 1;
-                transform: none;
                 transition: none;
             }
         }
