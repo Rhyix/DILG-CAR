@@ -8,17 +8,11 @@ use App\Support\ApplicantOnboarding;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Str;
-use Illuminate\Validation\ValidationException;
 use Spatie\Activitylog\Models\Activity;
 
 
 class LoginController extends Controller
 {
-    private const MAX_LOGIN_ATTEMPTS = 5;
-    private const LOGIN_DECAY_SECONDS = 60;
-
     private function clearPdsSessionCache(Request $request): void
     {
         $request->session()->forget([
@@ -29,36 +23,6 @@ class LoginController extends Controller
             'vacancy_doc_uploads',
             'pds_form_owner',
         ]);
-    }
-
-    private function throttleKey(Request $request): string
-    {
-        return Str::lower(trim((string) $request->input('email'))) . '|' . $request->ip();
-    }
-
-    private function ensureIsNotRateLimited(Request $request): void
-    {
-        $key = $this->throttleKey($request);
-
-        if (! RateLimiter::tooManyAttempts($key, self::MAX_LOGIN_ATTEMPTS)) {
-            return;
-        }
-
-        $seconds = RateLimiter::availableIn($key);
-
-        throw ValidationException::withMessages([
-            'email' => 'Too many login attempts. Please try again in ' . $seconds . ' seconds.',
-        ]);
-    }
-
-    private function recordFailedAttempt(Request $request): void
-    {
-        RateLimiter::hit($this->throttleKey($request), self::LOGIN_DECAY_SECONDS);
-    }
-
-    private function clearFailedAttempts(Request $request): void
-    {
-        RateLimiter::clear($this->throttleKey($request));
     }
 
     public function showLoginForm(Request $request)
@@ -129,6 +93,8 @@ class LoginController extends Controller
 
     public function login(Request $request)
     {
+        $attempts = session()->get('login_attempts', 0);
+
         // Logout admin if logged in
         if (Auth::guard('admin')->check()) {
             Auth::guard('admin')->logout();
@@ -136,15 +102,12 @@ class LoginController extends Controller
 
         $credentials = $request->validate([
             'email' => 'required|email|max:255',
-            'password' => 'required|string|min:6|max:255',
-            'remember' => 'nullable|boolean',
+            'password' => 'required|string|min:6',
         ]);
-
-        $this->ensureIsNotRateLimited($request);
 
         $email = trim((string) ($credentials['email'] ?? ''));
         $password = (string) ($credentials['password'] ?? '');
-        $remember = (bool) ($credentials['remember'] ?? false);
+        $remember = $request->boolean('remember');
 
         $user = User::query()
             ->where('email', $email)
@@ -157,7 +120,6 @@ class LoginController extends Controller
             Auth::login($user, $remember);
             $request->session()->regenerate();
             $this->clearPdsSessionCache($request);
-            $this->clearFailedAttempts($request);
 
             activity()->log('login');
 
@@ -204,7 +166,12 @@ class LoginController extends Controller
             ->event('login')
             ->withProperties(['ip' => request()->ip(), 'email' => $request->email, 'section' => 'Login'])
             ->log('Failed login attempt.');
-        $this->recordFailedAttempt($request);
+
+        // // Increment on failure
+        // session()->increment('login_attempts');
+        // return back()->withErrors([
+        //     'email' => 'Invalid credentials.'
+        // ])->withInput();
 
         return back()->withErrors(['email' => 'Invalid credentials provided.'])
             ->withInput($request->only('email'));

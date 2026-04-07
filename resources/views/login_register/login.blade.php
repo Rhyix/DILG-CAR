@@ -5,7 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>Login - DILG CAR Recruitment and Selection Portal</title>
-  @vite(['resources/css/app.css', 'resources/js/auth-login.js'])
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
 
   <meta property="og:title" content="DILG - CAR Recruitment Selection and Placement Portal" />
   <meta property="og:description" content="Isa ka bang MATINO, MAHUSAY, at MAAASAHAN na manggagawang Pilipino?" />
@@ -22,7 +24,7 @@
   <meta name="twitter:image" content="{{ asset('images/dilg_rsp_thumbnail.png') }}" />
 
 </head>
-<body class="relative min-h-screen overflow-x-hidden overflow-y-auto bg-[radial-gradient(circle_at_85%_18%,rgba(79,172,254,0.24)_0%,rgba(79,172,254,0)_38%),radial-gradient(circle_at_12%_82%,rgba(15,100,201,0.22)_0%,rgba(15,100,201,0)_34%),linear-gradient(140deg,#031029_0%,#0a255f_46%,#12387e_100%)] p-3 font-sans md:p-6 lg:overflow-hidden">
+<body class="relative min-h-screen overflow-x-hidden overflow-y-auto bg-[radial-gradient(circle_at_85%_18%,rgba(79,172,254,0.24)_0%,rgba(79,172,254,0)_38%),radial-gradient(circle_at_12%_82%,rgba(15,100,201,0.22)_0%,rgba(15,100,201,0)_34%),linear-gradient(140deg,#031029_0%,#0a255f_46%,#12387e_100%)] p-3 font-['Montserrat'] md:p-6 lg:overflow-hidden">
   <div aria-hidden="true" class="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(24,99,156,0.78)_0%,rgba(255,255,255,0.012)_24%,rgba(255,255,255,0)_100%),linear-gradient(90deg,rgba(3,13,33,0.28)_0%,rgba(3,13,33,0)_44%,rgba(3,13,33,0.2)_100%)]"></div>
   <div aria-hidden="true" class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_76%_24%,rgba(255,255,255,0.16)_0%,rgba(255,255,255,0)_28%),linear-gradient(180deg,rgba(255,255,255,0.08)_0%,transparent_24%)] opacity-35"></div>
   <div aria-hidden="true" class="pointer-events-none absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.45)_0.55px,transparent_0.55px)] opacity-20 mix-blend-soft-light [background-size:9px_9px]"></div>
@@ -38,14 +40,14 @@
             <img src="{{ asset('images/dilg_logo.png') }}" alt="DILG Logo" class="h-12 w-12" />
             <div>
               <p class="text-xs font-semibold uppercase tracking-[0.3em] text-[#0D2B70]">DILG CAR</p>
-              <p class="text-lg font-bold tracking-[-0.01em] text-[#0D2B70] font-sans">Recruitment Portal</p>
+              <p class="text-lg font-bold tracking-[-0.01em] text-[#0D2B70] font-['Space_Grotesk']">Recruitment Portal</p>
             </div>
           </div>
 
           <div>
             <div class="mb-6">
               <p class="text-xs font-semibold uppercase tracking-[0.26em] text-slate-500">Applicant Access</p>
-              <h2 class="mt-2 text-3xl font-extrabold tracking-tight text-[#0D2B70] font-sans">User Login</h2>
+              <h2 class="mt-2 text-3xl font-extrabold tracking-tight text-[#0D2B70] font-['Space_Grotesk']">User Login</h2>
               <p class="mt-2 text-sm leading-6 text-slate-500">Sign in to continue to your applicant dashboard.</p>
             </div>
 
@@ -78,9 +80,7 @@
                 <label class="mb-1.5 block text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#52627d]">Email</label>
                 <div class="relative">
                   <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">
-                    <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-4 w-4">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 7.5v9a2.25 2.25 0 0 1-2.25 2.25h-15A2.25 2.25 0 0 1 2.25 16.5v-9m19.5 0A2.25 2.25 0 0 0 19.5 5.25h-15A2.25 2.25 0 0 0 2.25 7.5m19.5 0-8.689 5.793a1.125 1.125 0 0 1-1.122 0L2.25 7.5" />
-                    </svg>
+                    <i class="fa-solid fa-envelope"></i>
                   </span>
                   <input
                     id="email"
@@ -89,7 +89,6 @@
                     value="{{ old('email') }}"
                     required
                     autofocus
-                    autocomplete="email"
                     class="w-full rounded-[0.85rem] border border-[#cdd9eb] bg-[#fbfdff] py-2.5 pl-10 pr-3 text-sm text-[#203457] outline-none transition-[border-color,box-shadow,background-color] hover:border-[#b5c8e7] hover:bg-white focus:border-[#0d2b70] focus:bg-white focus:ring-4 focus:ring-[#0d2b70]/15"
                   >
                 </div>
@@ -99,16 +98,13 @@
                 <label class="mb-1.5 block text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#52627d]">Password</label>
                 <div class="relative">
                   <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">
-                    <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-4 w-4">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 0h10.5A2.25 2.25 0 0 1 19.5 12.75v6A2.25 2.25 0 0 1 17.25 21h-10.5A2.25 2.25 0 0 1 4.5 18.75v-6A2.25 2.25 0 0 1 6.75 10.5Z" />
-                    </svg>
+                    <i class="fa-solid fa-lock"></i>
                   </span>
                   <input
                     id="user_password"
                     type="password"
                     name="password"
                     required
-                    autocomplete="current-password"
                     class="w-full rounded-[0.85rem] border border-[#cdd9eb] bg-[#fbfdff] py-2.5 pl-10 pr-10 text-sm text-[#203457] outline-none transition-[border-color,box-shadow,background-color] hover:border-[#b5c8e7] hover:bg-white focus:border-[#0d2b70] focus:bg-white focus:ring-4 focus:ring-[#0d2b70]/15"
                   >
                   <button
@@ -118,21 +114,14 @@
                     aria-pressed="false"
                     class="absolute inset-y-0 right-3 flex items-center text-slate-400 hover:text-slate-600"
                   >
-                    <svg id="passwordEyeOpen" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-4 w-4">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.644C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.433 0 .644C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.964-7.178Z" />
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                    </svg>
-                    <svg id="passwordEyeClosed" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="hidden h-4 w-4">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="m3 3 18 18" />
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M10.478 6.526A9.94 9.94 0 0 1 12 6.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.433 0 .644a10.01 10.01 0 0 1-4.237 5.145M6.228 6.228A10.012 10.012 0 0 0 2.036 11.678a1.012 1.012 0 0 0 0 .644C3.423 16.49 7.36 19.5 12 19.5a9.94 9.94 0 0 0 5.274-1.5M9.88 9.88a3 3 0 1 0 4.243 4.243" />
-                    </svg>
+                    <i class="fa-solid fa-eye"></i>
                   </button>
                 </div>
               </div>
 
               <div class="flex flex-col gap-2 pt-1 text-sm sm:flex-row sm:items-center sm:justify-between">
                 <label class="inline-flex items-center gap-2 text-slate-600">
-                  <input type="checkbox" name="remember" value="1" {{ old('remember') ? 'checked' : '' }} class="rounded border-slate-300 text-[#0D2B70] focus:ring-[#0D2B70]/30">
+                  <input type="checkbox" name="remember" {{ old('remember') ? 'checked' : '' }} class="rounded border-slate-300 text-[#0D2B70] focus:ring-[#0D2B70]/30">
                   <span class="font-semibold">Remember me</span>
                 </label>
                 <a href="{{ route('forgot.password.form') }}" class="font-semibold text-[#0D2B70] hover:underline">Forgot Password?</a>
@@ -175,7 +164,7 @@
           />
           <p class="mt-6 text-sm uppercase tracking-[0.42em] text-blue-100">DEPARTMENT OF THE INTERIOR AND LOCAL GOVERNMENT</p>
           <p class="mt-1 text-xs uppercase tracking-[0.42em] text-blue-100">CORDILLERAA ADMINISTRATIVE REGION</p>
-          <h3 class="mt-4 text-3xl leading-tight text-white font-sans tracking-[-0.01em] xl:text-[2rem]">
+          <h3 class="mt-4 text-3xl  leading-tight text-white font-['Space_Grotesk'] tracking-[-0.01em] xl:text-[2rem]">
             Recruitment Selection and Placement Portal
           </h3>
           <p class="mt-4 text-sm font-semibold uppercase tracking-[0.24em] text-yellow-200 xl:text-base">
@@ -187,5 +176,24 @@
   </div>
 
   @include('partials.loader')
+
+  <script>
+    const togglePassword = document.getElementById('togglePassword');
+    const passwordInput = document.getElementById('user_password');
+
+    if (togglePassword && passwordInput) {
+      togglePassword.addEventListener('click', function () {
+        const isPassword = passwordInput.getAttribute('type') === 'password';
+        passwordInput.setAttribute('type', isPassword ? 'text' : 'password');
+        this.setAttribute('aria-pressed', isPassword ? 'true' : 'false');
+
+        const icon = this.querySelector('i');
+        if (!icon) return;
+
+        icon.classList.toggle('fa-eye', !isPassword);
+        icon.classList.toggle('fa-eye-slash', isPassword);
+      });
+    }
+  </script>
 </body>
 </html>
