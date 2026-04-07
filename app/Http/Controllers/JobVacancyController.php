@@ -1369,6 +1369,9 @@ class JobVacancyController extends Controller
         $hasApplied = Applications::where('user_id', Auth::id())
             ->where('vacancy_id', $vacancy_id)
             ->exists();
+        $isNewApplicant = Auth::check()
+            ? !Applications::where('user_id', Auth::id())->exists()
+            : false;
 
         $normalizedVacancyTrack = $this->normalizeTrack($vacancy->vacancy_type);
         $docTrackMismatchState = [
@@ -1415,6 +1418,7 @@ class JobVacancyController extends Controller
             'hasPDS' => $hasPDS,
             'hasCompletedPdsForApply' => $hasCompletedPdsForApply,
             'hasApplied' => $hasApplied,
+            'isNewApplicant' => $isNewApplicant,
             'docTrackMismatch' => $docTrackMismatchState['hasMismatch'],
             'mismatchSubmittedTrack' => $docTrackMismatchState['submittedTrack'],
             'vacancyTrack' => $requiredDocsModalState['vacancyTrack'],

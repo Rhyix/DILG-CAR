@@ -73,6 +73,10 @@
         $missingQualificationLabelsForPanel = is_array($missingQualificationLabels ?? null)
             ? array_values(array_filter(array_map(fn($value) => trim((string) $value), $missingQualificationLabels)))
             : [];
+        $showInitialAssessmentFlow = !$isClosed
+            && !$hasApplied
+            && $hasIncompletePdsForApply
+            && (bool) ($isNewApplicant ?? false);
         $qualificationLabelMap = [
             'education' => 'Education',
             'training' => 'Training',
@@ -235,10 +239,17 @@
                                 <i data-feather="check-circle" class="w-4 h-4"></i> ALREADY APPLIED
                             </button>
                         @elseif (!$isClosed && $hasIncompletePdsForApply)
-                            <button type="button" onclick="window.location.href='{{ route('display_c1') }}'"
-                                class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition">
-                                <i data-feather="file-text" class="w-4 h-4"></i> COMPLETE PDS TO APPLY
-                            </button>
+                            @if($showInitialAssessmentFlow)
+                                <button type="button" onclick="openApplyModal()"
+                                    class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition">
+                                    <i data-feather="clipboard" class="w-4 h-4"></i> START INITIAL ASSESSMENT
+                                </button>
+                            @else
+                                <button type="button" onclick="window.location.href='{{ route('display_c1') }}'"
+                                    class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition">
+                                    <i data-feather="file-text" class="w-4 h-4"></i> COMPLETE PDS TO APPLY
+                                </button>
+                            @endif
                         @elseif (!$isClosed && !$isEligibilityQualifiedForPanel)
                             <button disabled
                                 class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-red-500 text-white text-sm font-semibold cursor-not-allowed">
@@ -258,8 +269,13 @@
 
                         @if(!$isClosed && !$hasApplied && $hasIncompletePdsForApply)
                             <div class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700">
-                                <p class="font-semibold">You are a new applicant. Please complete your PDS first.</p>
-                                <p class="mt-1">After completing your PDS, this page will automatically show your qualification status for this position.</p>
+                                @if($showInitialAssessmentFlow)
+                                    <p class="font-semibold">Before applying, complete the initial assessment first.</p>
+                                    <p class="mt-1">You will answer Education and Eligibility checks, then continue to your PDS.</p>
+                                @else
+                                    <p class="font-semibold">You are a new applicant. Please complete your PDS first.</p>
+                                    <p class="mt-1">After completing your PDS, this page will automatically show your qualification status for this position.</p>
+                                @endif
                             </div>
                         @elseif(!$isClosed && !$hasApplied && !$isEligibilityQualifiedForPanel)
                             <div class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
@@ -493,6 +509,73 @@
             </div>
         </div>
 
+        <div id="initialAssessmentEducationModal" class="fixed inset-0 z-[1200] flex items-center justify-center bg-black/60 backdrop-blur-md hidden px-4 py-6">
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-xl p-6 border border-[#0D2B70]/10">
+                <p class="text-xs uppercase tracking-[0.15em] text-[#0D2B70]/70 font-semibold">Initial Assessment</p>
+                <h2 class="text-lg font-semibold text-[#002C76] mt-1">Question 1: Educational Background</h2>
+                <p class="text-sm text-gray-700 mt-3">
+                    Have you already entered educational background in your PDS that is related to or qualified for this position?
+                </p>
+                <div class="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                    <p class="text-xs uppercase tracking-wide text-slate-500">Position Requirement</p>
+                    <p class="text-sm text-slate-700 mt-1">{{ $vacancy->qualification_education ?: 'Not specified' }}</p>
+                </div>
+                <div class="mt-6 flex justify-end gap-2">
+                    <button type="button" onclick="closeInitialAssessmentEducationModal()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
+                        Close
+                    </button>
+                    <button type="button" onclick="answerInitialAssessmentEducation(false)" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">
+                        Not Yet
+                    </button>
+                    <button type="button" onclick="answerInitialAssessmentEducation(true)" class="px-4 py-2 bg-[#0D2B70] text-white rounded-lg hover:bg-[#0A245D]">
+                        Yes, I Have
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="initialAssessmentEligibilityModal" class="fixed inset-0 z-[1200] flex items-center justify-center bg-black/60 backdrop-blur-md hidden px-4 py-6">
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-xl p-6 border border-[#0D2B70]/10">
+                <p class="text-xs uppercase tracking-[0.15em] text-[#0D2B70]/70 font-semibold">Initial Assessment</p>
+                <h2 class="text-lg font-semibold text-[#002C76] mt-1">Question 2: Eligibility</h2>
+                <p class="text-sm text-gray-700 mt-3">
+                    Have you already entered your Civil Service Eligibility in your PDS based on this position's requirement?
+                </p>
+                <div class="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                    <p class="text-xs uppercase tracking-wide text-slate-500">Position Requirement</p>
+                    <p class="text-sm text-slate-700 mt-1 leading-6">{!! nl2br(e($qualificationEligibilityDisplay ?? ($vacancy->qualification_eligibility ?: 'Not specified'))) !!}</p>
+                </div>
+                <div class="mt-6 flex justify-end gap-2">
+                    <button type="button" onclick="closeInitialAssessmentEligibilityModal()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
+                        Close
+                    </button>
+                    <button type="button" onclick="answerInitialAssessmentEligibility(false)" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">
+                        Not Yet
+                    </button>
+                    <button type="button" onclick="answerInitialAssessmentEligibility(true)" class="px-4 py-2 bg-[#0D2B70] text-white rounded-lg hover:bg-[#0A245D]">
+                        Yes, I Have
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="initialAssessmentResultModal" class="fixed inset-0 z-[1200] flex items-center justify-center bg-black/60 backdrop-blur-md hidden px-4 py-6">
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 border border-[#0D2B70]/10">
+                <p class="text-xs uppercase tracking-[0.15em] text-[#0D2B70]/70 font-semibold">Initial Assessment Result</p>
+                <h2 id="initialAssessmentResultTitle" class="text-lg font-semibold text-[#002C76] mt-1">Assessment Result</h2>
+                <p id="initialAssessmentResultMessage" class="text-sm text-gray-700 mt-3"></p>
+                <p id="initialAssessmentResultHint" class="text-xs text-slate-500 mt-2"></p>
+                <div class="mt-6 flex justify-end gap-2">
+                    <button type="button" onclick="closeInitialAssessmentResultModal()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
+                        Close
+                    </button>
+                    <button type="button" id="initialAssessmentPrimaryBtn" class="px-4 py-2 bg-[#0D2B70] text-white rounded-lg hover:bg-[#0A245D]">
+                        Continue
+                    </button>
+                </div>
+            </div>
+        </div>
+
         @include('partials.loader')
     </main>
 @endsection
@@ -513,6 +596,9 @@
     }
 
     function openApplyModal() {
+        const shouldRunInitialAssessment = @json($showInitialAssessmentFlow);
+        if (shouldRunInitialAssessment) { openModal('initialAssessmentEducationModal'); return; }
+
         const hasIncompletePds = @json($hasIncompletePdsForApply);
         if (hasIncompletePds) { openModal('pdsRequiredModal'); return; }
 
@@ -525,9 +611,81 @@
     function closePdsRequiredModal()       { closeModal('pdsRequiredModal'); }
     function closeRequiredDocsModal()      { closeModal('requiredDocsModal'); }
     function closeDocTrackMismatchModal()  { closeModal('docTrackMismatchModal'); }
+    function closeInitialAssessmentEducationModal() { closeModal('initialAssessmentEducationModal'); }
+    function closeInitialAssessmentEligibilityModal() { closeModal('initialAssessmentEligibilityModal'); }
+    function closeInitialAssessmentResultModal() { closeModal('initialAssessmentResultModal'); }
+
+    function showInitialAssessmentResult(isQualified, message) {
+        const titleEl = document.getElementById('initialAssessmentResultTitle');
+        const messageEl = document.getElementById('initialAssessmentResultMessage');
+        const hintEl = document.getElementById('initialAssessmentResultHint');
+        const primaryBtn = document.getElementById('initialAssessmentPrimaryBtn');
+        const pdsUrl = @json(route('display_c1'));
+        const dashboardUrl = @json(route('dashboard_user'));
+        const targetUrl = isQualified ? pdsUrl : dashboardUrl;
+
+        if (!titleEl || !messageEl || !hintEl || !primaryBtn) {
+            window.location.href = targetUrl;
+            return;
+        }
+
+        if (isQualified) {
+            titleEl.textContent = 'You are qualified for this position';
+            messageEl.textContent = message || 'You are qualified for this position. Do you want to continue?';
+            hintEl.textContent = 'You will be redirected to your Personal Data Sheet.';
+            primaryBtn.textContent = 'Yes, Continue to PDS';
+        } else {
+            titleEl.textContent = 'Please complete missing details first';
+            messageEl.textContent = message || 'You still need to complete your required details before you can apply.';
+            hintEl.textContent = 'You will be redirected back to your dashboard.';
+            primaryBtn.textContent = 'Back to Dashboard';
+        }
+
+        primaryBtn.onclick = function () {
+            window.location.href = targetUrl;
+        };
+
+        openModal('initialAssessmentResultModal');
+    }
+
+    function answerInitialAssessmentEducation(isReady) {
+        closeModal('initialAssessmentEducationModal');
+        if (isReady) {
+            openModal('initialAssessmentEligibilityModal');
+            return;
+        }
+
+        showInitialAssessmentResult(
+            false,
+            'Please insert your educational background in your PDS first if it is related or qualified for this position.'
+        );
+    }
+
+    function answerInitialAssessmentEligibility(isReady) {
+        closeModal('initialAssessmentEligibilityModal');
+        if (isReady) {
+            showInitialAssessmentResult(
+                true,
+                'You are qualified for this position, do you want to continue?'
+            );
+            return;
+        }
+
+        showInitialAssessmentResult(
+            false,
+            'Please insert your Civil Service Eligibility in your PDS first based on the position requirement.'
+        );
+    }
 
     document.addEventListener('DOMContentLoaded', function() {
-        const modalIds = ['pdsRequiredModal', 'requiredDocsModal', 'docTrackMismatchModal'];
+        const modalIds = [
+            'pdsRequiredModal',
+            'requiredDocsModal',
+            'docTrackMismatchModal',
+            'initialAssessmentEducationModal',
+            'initialAssessmentEligibilityModal',
+            'initialAssessmentResultModal',
+        ];
         modalIds.forEach((id) => {
             const modal = document.getElementById(id);
             if (modal && modal.parentElement !== document.body) {
