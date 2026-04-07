@@ -499,23 +499,43 @@
         <div id="initialAssessmentEducationModal" class="fixed inset-0 z-[1200] flex items-center justify-center bg-black/60 backdrop-blur-md hidden px-4 py-6">
             <div class="bg-white rounded-2xl shadow-2xl w-full max-w-xl p-6 border border-[#0D2B70]/10">
                 <p class="text-xs uppercase tracking-[0.15em] text-[#0D2B70]/70 font-semibold">Initial Assessment</p>
-                <h2 class="text-lg font-semibold text-[#002C76] mt-1">Question 1: Educational Background</h2>
-                <p class="text-sm text-gray-700 mt-3">
-                    Have you already entered educational background in your PDS that is related to or qualified for this position?
-                </p>
-                <div class="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                    <p class="text-xs uppercase tracking-wide text-slate-500">Position Requirement</p>
-                    <p class="text-sm text-slate-700 mt-1">{{ $vacancy->qualification_education ?: 'Not specified' }}</p>
+                <h2 class="text-lg font-semibold text-[#002C76] mt-1">Question 1</h2>
+                <p class="text-sm text-gray-700 mt-3 font-medium">What is your degree?</p>
+                <div class="mt-4">
+                    <label for="initialAssessmentDegreeInput" class="block text-xs uppercase tracking-wide text-slate-500 mb-2">Degree (type to get suggestions)</label>
+                    <input
+                        id="initialAssessmentDegreeInput"
+                        list="initialAssessmentDegreeOptions"
+                        type="text"
+                        autocomplete="off"
+                        placeholder="Type your degree"
+                        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20"
+                    >
+                    <datalist id="initialAssessmentDegreeOptions">
+                        @foreach(($assessmentCourseOptions ?? []) as $courseOption)
+                            <option value="{{ $courseOption }}">{{ $courseOption }}</option>
+                        @endforeach
+                    </datalist>
+
+                    <label class="flex items-center gap-2 text-xs uppercase tracking-wide text-slate-500 mt-3 mb-2">
+                        <input id="initialAssessmentDegreeOtherToggle" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-[#0D2B70] focus:ring-[#0D2B70]/30">
+                        <span>Others: (if your course is not listed)</span>
+                    </label>
+                    <input
+                        id="initialAssessmentDegreeOtherInput"
+                        type="text"
+                        autocomplete="off"
+                        placeholder="Enter your course"
+                        disabled
+                        class="w-full rounded-lg border border-slate-300 bg-slate-100 px-3 py-2 text-sm focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20 disabled:cursor-not-allowed disabled:opacity-70"
+                    >
                 </div>
                 <div class="mt-6 flex justify-end gap-2">
                     <button type="button" onclick="closeInitialAssessmentEducationModal()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
                         Close
                     </button>
-                    <button type="button" onclick="answerInitialAssessmentEducation(false)" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">
-                        Not Yet
-                    </button>
-                    <button type="button" onclick="answerInitialAssessmentEducation(true)" class="px-4 py-2 bg-[#0D2B70] text-white rounded-lg hover:bg-[#0A245D]">
-                        Yes, I Have
+                    <button type="button" onclick="goToInitialAssessmentEligibility()" class="px-4 py-2 bg-[#0D2B70] text-white rounded-lg hover:bg-[#0A245D]">
+                        Next
                     </button>
                 </div>
             </div>
@@ -524,40 +544,65 @@
         <div id="initialAssessmentEligibilityModal" class="fixed inset-0 z-[1200] flex items-center justify-center bg-black/60 backdrop-blur-md hidden px-4 py-6">
             <div class="bg-white rounded-2xl shadow-2xl w-full max-w-xl p-6 border border-[#0D2B70]/10">
                 <p class="text-xs uppercase tracking-[0.15em] text-[#0D2B70]/70 font-semibold">Initial Assessment</p>
-                <h2 class="text-lg font-semibold text-[#002C76] mt-1">Question 2: Eligibility</h2>
-                <p class="text-sm text-gray-700 mt-3">
-                    Have you already entered your Civil Service Eligibility in your PDS based on this position's requirement?
-                </p>
-                <div class="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                    <p class="text-xs uppercase tracking-wide text-slate-500">Position Requirement</p>
-                    <p class="text-sm text-slate-700 mt-1 leading-6">{!! nl2br(e($qualificationEligibilityDisplay ?? ($vacancy->qualification_eligibility ?: 'Not specified'))) !!}</p>
+                <h2 class="text-lg font-semibold text-[#002C76] mt-1">Question 2</h2>
+                <p class="text-sm text-gray-700 mt-3 font-medium">What is your civil service eligibility?</p>
+                <div class="mt-4">
+                    <label for="initialAssessmentEligibilityInput" class="block text-xs uppercase tracking-wide text-slate-500 mb-2">Eligibility (type to get suggestions)</label>
+                    <input
+                        id="initialAssessmentEligibilityInput"
+                        list="initialAssessmentEligibilityOptions"
+                        type="text"
+                        autocomplete="off"
+                        placeholder="Type your eligibility"
+                        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20"
+                    >
+                    <datalist id="initialAssessmentEligibilityOptions">
+                        @foreach(($assessmentEligibilityOptions ?? []) as $eligibilityOption)
+                            <option value="{{ $eligibilityOption }}">{{ $eligibilityOption }}</option>
+                        @endforeach
+                    </datalist>
+
+                    <label class="flex items-center gap-2 text-xs uppercase tracking-wide text-slate-500 mt-3 mb-2">
+                        <input id="initialAssessmentEligibilityOtherToggle" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-[#0D2B70] focus:ring-[#0D2B70]/30">
+                        <span>Others: (if your eligibility is not listed)</span>
+                    </label>
+                    <input
+                        id="initialAssessmentEligibilityOtherInput"
+                        type="text"
+                        autocomplete="off"
+                        placeholder="Enter your eligibility"
+                        disabled
+                        class="w-full rounded-lg border border-slate-300 bg-slate-100 px-3 py-2 text-sm focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20 disabled:cursor-not-allowed disabled:opacity-70"
+                    >
                 </div>
                 <div class="mt-6 flex justify-end gap-2">
                     <button type="button" onclick="closeInitialAssessmentEligibilityModal()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
                         Close
                     </button>
-                    <button type="button" onclick="answerInitialAssessmentEligibility(false)" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">
-                        Not Yet
+                    <button type="button" onclick="goBackToInitialAssessmentEducation()" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">
+                        Back
                     </button>
-                    <button type="button" onclick="answerInitialAssessmentEligibility(true)" class="px-4 py-2 bg-[#0D2B70] text-white rounded-lg hover:bg-[#0A245D]">
-                        Yes, I Have
+                    <button type="button" onclick="completeInitialAssessmentEligibility()" class="px-4 py-2 bg-[#0D2B70] text-white rounded-lg hover:bg-[#0A245D]">
+                        Continue
                     </button>
                 </div>
             </div>
         </div>
 
-        <div id="initialAssessmentResultModal" class="fixed inset-0 z-[1200] flex items-center justify-center bg-black/60 backdrop-blur-md hidden px-4 py-6">
+        <div id="initialAssessmentPqeModal" class="fixed inset-0 z-[1200] flex items-center justify-center bg-black/60 backdrop-blur-md hidden px-4 py-6">
             <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 border border-[#0D2B70]/10">
-                <p class="text-xs uppercase tracking-[0.15em] text-[#0D2B70]/70 font-semibold">Initial Assessment Result</p>
-                <h2 id="initialAssessmentResultTitle" class="text-lg font-semibold text-[#002C76] mt-1">Assessment Result</h2>
-                <p id="initialAssessmentResultMessage" class="text-sm text-gray-700 mt-3"></p>
-                <p id="initialAssessmentResultHint" class="text-xs text-slate-500 mt-2"></p>
+                <p class="text-xs uppercase tracking-[0.15em] text-[#0D2B70]/70 font-semibold">Initial Assessment</p>
+                <h2 class="text-lg font-semibold text-[#002C76] mt-1">Question 3</h2>
+                <p class="text-sm text-gray-700 mt-3 font-medium">Do you already have PQE (Pre Qualifying Exam)?</p>
                 <div class="mt-6 flex justify-end gap-2">
-                    <button type="button" onclick="closeInitialAssessmentResultModal()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
+                    <button type="button" onclick="closeInitialAssessmentPqeModal()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
                         Close
                     </button>
-                    <button type="button" id="initialAssessmentPrimaryBtn" class="px-4 py-2 bg-[#0D2B70] text-white rounded-lg hover:bg-[#0A245D]">
-                        Continue
+                    <button type="button" onclick="answerInitialAssessmentPqe(false)" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">
+                        No
+                    </button>
+                    <button type="button" onclick="answerInitialAssessmentPqe(true)" class="px-4 py-2 bg-[#0D2B70] text-white rounded-lg hover:bg-[#0A245D]">
+                        Yes
                     </button>
                 </div>
             </div>
@@ -600,68 +645,87 @@
     function closeDocTrackMismatchModal()  { closeModal('docTrackMismatchModal'); }
     function closeInitialAssessmentEducationModal() { closeModal('initialAssessmentEducationModal'); }
     function closeInitialAssessmentEligibilityModal() { closeModal('initialAssessmentEligibilityModal'); }
-    function closeInitialAssessmentResultModal() { closeModal('initialAssessmentResultModal'); }
+    function closeInitialAssessmentPqeModal() { closeModal('initialAssessmentPqeModal'); }
 
-    function showInitialAssessmentResult(isQualified, message) {
-        const titleEl = document.getElementById('initialAssessmentResultTitle');
-        const messageEl = document.getElementById('initialAssessmentResultMessage');
-        const hintEl = document.getElementById('initialAssessmentResultHint');
-        const primaryBtn = document.getElementById('initialAssessmentPrimaryBtn');
-        const pdsUrl = @json(route('display_c1'));
-        const dashboardUrl = @json(route('dashboard_user'));
-        const targetUrl = isQualified ? pdsUrl : dashboardUrl;
+    const initialAssessmentState = {
+        degree: '',
+        eligibility: '',
+    };
 
-        if (!titleEl || !messageEl || !hintEl || !primaryBtn) {
-            window.location.href = targetUrl;
-            return;
-        }
-
-        if (isQualified) {
-            titleEl.textContent = 'You are qualified for this position';
-            messageEl.textContent = message || 'You are qualified for this position. Do you want to continue?';
-            hintEl.textContent = 'You will be redirected to your Personal Data Sheet.';
-            primaryBtn.textContent = 'Yes, Continue to PDS';
+    function notifyAssessment(message, type = 'warning') {
+        if (typeof window.showAppToast === 'function') {
+            window.showAppToast(message, type, 3500);
         } else {
-            titleEl.textContent = 'Please complete missing details first';
-            messageEl.textContent = message || 'You still need to complete your required details before you can apply.';
-            hintEl.textContent = 'You will be redirected back to your dashboard.';
-            primaryBtn.textContent = 'Back to Dashboard';
+            alert(message);
         }
-
-        primaryBtn.onclick = function () {
-            window.location.href = targetUrl;
-        };
-
-        openModal('initialAssessmentResultModal');
     }
 
-    function answerInitialAssessmentEducation(isReady) {
-        closeModal('initialAssessmentEducationModal');
-        if (isReady) {
-            openModal('initialAssessmentEligibilityModal');
-            return;
-        }
-
-        showInitialAssessmentResult(
-            false,
-            'Please insert your educational background in your PDS first if it is related or qualified for this position.'
-        );
-    }
-
-    function answerInitialAssessmentEligibility(isReady) {
-        closeModal('initialAssessmentEligibilityModal');
-        if (isReady) {
-            showInitialAssessmentResult(
-                true,
-                'You are qualified for this position, do you want to continue?'
+    function goToInitialAssessmentEligibility() {
+        const degreeInput = document.getElementById('initialAssessmentDegreeInput');
+        const degreeOtherToggle = document.getElementById('initialAssessmentDegreeOtherToggle');
+        const degreeOtherInput = document.getElementById('initialAssessmentDegreeOtherInput');
+        const suggestedDegree = degreeInput ? String(degreeInput.value || '').trim() : '';
+        const customDegree = degreeOtherInput ? String(degreeOtherInput.value || '').trim() : '';
+        const useOther = !!(degreeOtherToggle && degreeOtherToggle.checked);
+        const degree = useOther ? customDegree : suggestedDegree;
+        if (degree === '') {
+            notifyAssessment(
+                useOther
+                    ? 'Please enter your course in Others first.'
+                    : 'Please enter your degree first.',
+                'warning'
             );
             return;
         }
 
-        showInitialAssessmentResult(
-            false,
-            'Please insert your Civil Service Eligibility in your PDS first based on the position requirement.'
-        );
+        initialAssessmentState.degree = degree;
+        closeModal('initialAssessmentEducationModal');
+        openModal('initialAssessmentEligibilityModal');
+    }
+
+    function goBackToInitialAssessmentEducation() {
+        closeModal('initialAssessmentEligibilityModal');
+        openModal('initialAssessmentEducationModal');
+    }
+
+    function completeInitialAssessmentEligibility() {
+        const eligibilityInput = document.getElementById('initialAssessmentEligibilityInput');
+        const eligibilityOtherToggle = document.getElementById('initialAssessmentEligibilityOtherToggle');
+        const eligibilityOtherInput = document.getElementById('initialAssessmentEligibilityOtherInput');
+        const suggestedEligibility = eligibilityInput ? String(eligibilityInput.value || '').trim() : '';
+        const customEligibility = eligibilityOtherInput ? String(eligibilityOtherInput.value || '').trim() : '';
+        const useOther = !!(eligibilityOtherToggle && eligibilityOtherToggle.checked);
+        const eligibility = useOther ? customEligibility : suggestedEligibility;
+        if (eligibility === '') {
+            notifyAssessment(
+                useOther
+                    ? 'Please enter your eligibility in Others first.'
+                    : 'Please enter your civil service eligibility first.',
+                'warning'
+            );
+            return;
+        }
+
+        initialAssessmentState.eligibility = eligibility;
+        closeModal('initialAssessmentEligibilityModal');
+
+        const isPlantilla = @json($typeIsPlantilla);
+        if (isPlantilla) {
+            openModal('initialAssessmentPqeModal');
+            return;
+        }
+
+        window.location.href = @json(route('display_c1'));
+    }
+
+    function answerInitialAssessmentPqe(hasPqe) {
+        closeModal('initialAssessmentPqeModal');
+        if (hasPqe) {
+            window.location.href = @json(route('display_c1'));
+            return;
+        }
+
+        window.location.href = @json(route('dashboard_user'));
     }
 
     document.addEventListener('DOMContentLoaded', function() {
@@ -671,7 +735,7 @@
             'docTrackMismatchModal',
             'initialAssessmentEducationModal',
             'initialAssessmentEligibilityModal',
-            'initialAssessmentResultModal',
+            'initialAssessmentPqeModal',
         ];
         modalIds.forEach((id) => {
             const modal = document.getElementById(id);
@@ -701,6 +765,48 @@
 
         if (typeof feather !== 'undefined') {
             feather.replace();
+        }
+
+        const degreeOtherToggle = document.getElementById('initialAssessmentDegreeOtherToggle');
+        const degreeOtherInput = document.getElementById('initialAssessmentDegreeOtherInput');
+        const degreeInput = document.getElementById('initialAssessmentDegreeInput');
+        if (degreeOtherToggle && degreeOtherInput) {
+            const syncDegreeOtherState = () => {
+                const enabled = degreeOtherToggle.checked;
+                degreeOtherInput.disabled = !enabled;
+                degreeOtherInput.classList.toggle('bg-slate-100', !enabled);
+                degreeOtherInput.classList.toggle('bg-white', enabled);
+                if (!enabled) {
+                    degreeOtherInput.value = '';
+                } else if (degreeInput) {
+                    degreeInput.value = '';
+                    degreeOtherInput.focus();
+                }
+            };
+
+            degreeOtherToggle.addEventListener('change', syncDegreeOtherState);
+            syncDegreeOtherState();
+        }
+
+        const eligibilityOtherToggle = document.getElementById('initialAssessmentEligibilityOtherToggle');
+        const eligibilityOtherInput = document.getElementById('initialAssessmentEligibilityOtherInput');
+        const eligibilityInput = document.getElementById('initialAssessmentEligibilityInput');
+        if (eligibilityOtherToggle && eligibilityOtherInput) {
+            const syncEligibilityOtherState = () => {
+                const enabled = eligibilityOtherToggle.checked;
+                eligibilityOtherInput.disabled = !enabled;
+                eligibilityOtherInput.classList.toggle('bg-slate-100', !enabled);
+                eligibilityOtherInput.classList.toggle('bg-white', enabled);
+                if (!enabled) {
+                    eligibilityOtherInput.value = '';
+                } else if (eligibilityInput) {
+                    eligibilityInput.value = '';
+                    eligibilityOtherInput.focus();
+                }
+            };
+
+            eligibilityOtherToggle.addEventListener('change', syncEligibilityOtherState);
+            syncEligibilityOtherState();
         }
 
         const showPdsRequiredModalOnLoad = @json($showPdsRequiredModalOnLoad);

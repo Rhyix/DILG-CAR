@@ -137,7 +137,7 @@ class ExportWESController extends Controller
         $templatePdfPath = $this->resolveWesTemplatePdfPath();
         if ($templatePdfPath !== null) {
             try {
-                return $this->buildWesPdfFromTemplate($templatePdfPath, $experiences);
+                return $this->buildWesPdfFromTemplate($templatePdfPath, $fullName, $experiences);
             } catch (\Throwable $e) {
                 Log::warning('WES template-based export failed; falling back to legacy WES PDF renderer.', [
                     'error' => $e->getMessage(),
@@ -169,17 +169,16 @@ class ExportWESController extends Controller
             ]]);
         }
 
-        $templateProcessor = new TemplateProcessor($templateDocxPath);
-        $templateProcessor->setValue('name', $this->sanitizeDocxText($fullName));
-        $templateProcessor->setValue('date', now()->format('F d, Y'));
+        $pdf = new Fpdi('P', 'mm', 'A4');
+        $pdf->SetAutoPageBreak(false);
+        $tempDir = storage_path('app/temp');
+        @mkdir($tempDir, 0777, true);
 
-        // NOTE:
-        // `cloneBlock(..., replace=true)` corrupts this specific WES template after save.
-        // We keep the original block markers (replace=false), then replace each placeholder
-        // occurrence in-order with limit=1 so each entry maps to the correct block.
-        $templateProcessor->cloneBlock('experience', $entries->count(), false, false);
+        foreach ($entries->values() as $index => $exp) {
+            $templateProcessor = new TemplateProcessor($templateDocxPath);
+            $templateProcessor->setValue('name', $this->sanitizeDocxText($fullName));
+            $templateProcessor->setValue('date', now()->format('F d, Y'));
 
-        foreach ($entries as $exp) {
             $from = $this->formatMonthYear($exp->start_date);
             $to = $exp->end_date ? $this->formatMonthYear($exp->end_date) : 'Present';
 
@@ -199,44 +198,40 @@ class ExportWESController extends Controller
                 'duties',
                 $this->formatTemplateMultilineList($exp->duties ?? [])
             );
-        }
 
-        // Remove block markers that were intentionally kept during clone.
-        $templateProcessor->setValue('experience', '', 1);
-        $templateProcessor->setValue('/experience', '', 1);
+            // Keep one rendered experience block per generated page and drop marker rows.
+            $templateProcessor->setValue('experience', '', 1);
+            $templateProcessor->setValue('/experience', '', 1);
 
-        $tempDir = storage_path('app/temp');
-        @mkdir($tempDir, 0777, true);
+            $token = uniqid('wes_runtime_' . $index . '_', true);
+            $tempDocxPath = $tempDir . DIRECTORY_SEPARATOR . $token . '.docx';
+            $tempPdfPath = $tempDir . DIRECTORY_SEPARATOR . $token . '.pdf';
 
-        $token = uniqid('wes_runtime_', true);
-        $tempDocxPath = $tempDir . DIRECTORY_SEPARATOR . $token . '.docx';
-        $tempPdfPath = $tempDir . DIRECTORY_SEPARATOR . $token . '.pdf';
+            $templateProcessor->saveAs($tempDocxPath);
+            $converted = $this->convertDocxTemplateToPdf($tempDocxPath, $tempPdfPath);
+            if (!$converted || !file_exists($tempPdfPath)) {
+                @unlink($tempDocxPath);
+                @unlink($tempPdfPath);
+                throw new \RuntimeException('DOCX to PDF conversion failed for responsive WES template.');
+            }
 
-        $templateProcessor->saveAs($tempDocxPath);
-        $converted = $this->convertDocxTemplateToPdf($tempDocxPath, $tempPdfPath);
-        if (!$converted || !file_exists($tempPdfPath)) {
+            $pageCount = $pdf->setSourceFile($tempPdfPath);
+            for ($page = 1; $page <= $pageCount; $page++) {
+                $templateId = $pdf->importPage($page);
+                $size = $pdf->getTemplateSize($templateId);
+                $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
+                $pdf->useTemplate($templateId);
+                $this->overlayWesSignatureName($pdf, $fullName);
+            }
+
             @unlink($tempDocxPath);
             @unlink($tempPdfPath);
-            throw new \RuntimeException('DOCX to PDF conversion failed for responsive WES template.');
         }
-
-        $pdf = new Fpdi('P', 'mm', 'A4');
-        $pdf->SetAutoPageBreak(false);
-        $pageCount = $pdf->setSourceFile($tempPdfPath);
-        for ($page = 1; $page <= $pageCount; $page++) {
-            $templateId = $pdf->importPage($page);
-            $size = $pdf->getTemplateSize($templateId);
-            $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
-            $pdf->useTemplate($templateId);
-        }
-
-        @unlink($tempDocxPath);
-        @unlink($tempPdfPath);
 
         return $pdf;
     }
 
-    private function buildWesPdfFromTemplate(string $templatePdfPath, Collection $experiences): \FPDF
+    private function buildWesPdfFromTemplate(string $templatePdfPath, string $fullName, Collection $experiences): \FPDF
     {
         $pdf = new Fpdi('P', 'mm', 'A4');
         $pdf->SetAutoPageBreak(false);
@@ -276,6 +271,7 @@ class ExportWESController extends Controller
             $pdf->SetTextColor(0, 0, 0);
             $pdf->SetXY(162.0, 281.2);
             $pdf->Cell(27, 4.5, $this->toPdfText(now()->format('m/d/Y')), 0, 0, 'C');
+            $this->overlayWesSignatureName($pdf, $fullName);
         }
 
         return $pdf;
@@ -324,13 +320,13 @@ class ExportWESController extends Controller
         $accomplishmentY = $baseY + 40.6;
         foreach ($accomplishments as $index => $item) {
             $pdf->SetXY($bulletX, $accomplishmentY + ($index * $bulletLineHeight));
-            $pdf->Cell(123, 4.0, $this->toPdfText('- ' . $item), 0, 0, 'L');
+            $pdf->Cell(123, 4.0, $this->toPdfText('• ' . $item), 0, 0, 'L');
         }
 
         $dutyY = $baseY + 55.9;
         foreach ($duties as $index => $item) {
             $pdf->SetXY($bulletX, $dutyY + ($index * $bulletLineHeight));
-            $pdf->Cell(123, 4.0, $this->toPdfText('- ' . $item), 0, 0, 'L');
+            $pdf->Cell(123, 4.0, $this->toPdfText('• ' . $item), 0, 0, 'L');
         }
     }
 
@@ -490,7 +486,7 @@ PS;
         $label = rtrim($label, ':') . ':';
         $safeValue = trim($value) !== '' ? trim($value) : 'N/A';
 
-        $pdf->SetFont('Arial', 'B', 9.5);
+        $pdf->SetFont('Arial', '', 9.5);
         $pdf->Cell(56, 6, $this->toPdfText($label), 0, 0);
         $pdf->SetFont('Arial', '', 9.5);
         $pdf->MultiCell(130, 6, $this->toPdfText($safeValue), 0, 'L');
@@ -498,12 +494,12 @@ PS;
 
     private function pdfListBlock(\FPDF $pdf, string $title, array $items): void
     {
-        $pdf->SetFont('Arial', 'B', 9.5);
+        $pdf->SetFont('Arial', '', 9.5);
         $pdf->Cell(0, 6, $this->toPdfText($title . ':'), 0, 1);
         $pdf->SetFont('Arial', '', 9.5);
 
         foreach ($items as $item) {
-            $pdf->Cell(4, 6, '-', 0, 0);
+            $pdf->Cell(4, 6, $this->toPdfText('•'), 0, 0);
             $pdf->MultiCell(178, 6, $this->toPdfText($item), 0, 'L');
         }
     }
@@ -528,12 +524,23 @@ PS;
     {
         $items = $this->listItemsForPreview($value);
         if (empty($items)) {
-            return '- N/A';
+            return '• N/A';
         }
 
         return implode('  ', array_map(function ($item) {
-            return '- ' . trim((string) $item);
+            return '• ' . trim((string) $item);
         }, $items));
+    }
+
+    private function overlayWesSignatureName(\FPDF $pdf, string $fullName): void
+    {
+        $name = trim($fullName) !== '' ? trim($fullName) : 'N/A';
+
+        // Signature line text area at lower-right of WES template.
+        $pdf->SetFont('Arial', '', 11);
+        $pdf->SetTextColor(0, 0, 0);
+        $pdf->SetXY(118.0, 248.0);
+        $pdf->Cell(70.0, 5.0, $this->toPdfText($name), 0, 0, 'C');
     }
 
     private function setTemplateValueOnce(TemplateProcessor $templateProcessor, string $key, string $value): void
@@ -570,7 +577,6 @@ PS;
             '”' => '"',
             '–' => '-',
             '—' => '-',
-            '•' => '-',
             '…' => '...',
             "\u{00A0}" => ' ',
         ]);

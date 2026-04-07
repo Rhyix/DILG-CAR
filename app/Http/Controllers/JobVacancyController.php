@@ -25,6 +25,7 @@ use App\Models\MiscInfos;
 use App\Models\EligibilityPreset;
 use App\Support\ApplicantOnboarding;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Schema;
@@ -1409,6 +1410,48 @@ class JobVacancyController extends Controller
                 . 'Please review the missing requirements and update your PDS.';
         }
 
+        $assessmentCourseOptions = [];
+        try {
+            $coursePresetTable = Schema::hasTable('course_preset')
+                ? 'course_preset'
+                : (Schema::hasTable('course_presets') ? 'course_presets' : null);
+
+            if ($coursePresetTable !== null) {
+                $assessmentCourseOptions = DB::table($coursePresetTable)
+                    ->orderBy('course_name')
+                    ->pluck('course_name')
+                    ->map(fn($value) => trim((string) $value))
+                    ->filter(fn($value) => $value !== '')
+                    ->values()
+                    ->all();
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Unable to load course preset options for initial assessment.', [
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        $assessmentEligibilityOptions = [];
+        try {
+            $eligibilityPresetTable = Schema::hasTable('eligibility_preset')
+                ? 'eligibility_preset'
+                : (Schema::hasTable('eligibility_presets') ? 'eligibility_presets' : null);
+
+            if ($eligibilityPresetTable !== null) {
+                $assessmentEligibilityOptions = DB::table($eligibilityPresetTable)
+                    ->orderBy('name')
+                    ->pluck('name')
+                    ->map(fn($value) => trim((string) $value))
+                    ->filter(fn($value) => $value !== '')
+                    ->values()
+                    ->all();
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Unable to load eligibility preset options for initial assessment.', [
+                'error' => $e->getMessage(),
+            ]);
+        }
+
         return view('dashboard_user.job_description', [
             'vacancy' => $vacancy,
             'qualificationEligibilityDisplay' => $qualificationEligibilityDisplay,
@@ -1425,6 +1468,8 @@ class JobVacancyController extends Controller
             'eligibilityMismatchMessage' => $qualificationMismatchMessage,
             'qualificationChecks' => $qualificationGateState['checks'],
             'missingQualificationLabels' => $missingQualificationLabels,
+            'assessmentCourseOptions' => $assessmentCourseOptions,
+            'assessmentEligibilityOptions' => $assessmentEligibilityOptions,
         ]);
 
 
