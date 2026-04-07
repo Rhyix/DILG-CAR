@@ -10,9 +10,11 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::table('applications', function (Blueprint $table) {
-            $table->timestamp('read_at')->nullable()->after('link_sent_at');
-        });
+        if (!Schema::hasColumn('applications', 'read_at')) {
+            Schema::table('applications', function (Blueprint $table) {
+                $table->timestamp('read_at')->nullable()->after('link_sent_at');
+            });
+        }
     }
 
     /**
@@ -20,8 +22,10 @@ return new class extends Migration {
      */
     public function down(): void
     {
-        Schema::table('applications', function (Blueprint $table) {
-            //
-        });
+        if (Schema::hasColumn('applications', 'read_at')) {
+            Schema::table('applications', function (Blueprint $table) {
+                $table->dropColumn('read_at');
+            });
+        }
     }
 };
