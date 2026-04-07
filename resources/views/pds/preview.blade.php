@@ -16,9 +16,6 @@
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
                 <div>
                     <h1 class="text-lg sm:text-xl font-bold text-gray-900">Personal Data Sheet Preview</h1>
-                    <p class="text-sm text-gray-600">
-                        This preview shows the version with instructional red text.
-                    </p>
                 </div>
                 <div class="flex flex-wrap gap-2">
                     <button
@@ -41,7 +38,7 @@
                 <iframe
                     id="previewPdfFrame"
                     title="PDS Preview PDF"
-                    src="{{ route('export.pds', ['preview' => 1, 'force_fpdi' => 1]) }}"
+                    src="{{ route('export.pds', ['preview' => 1, 'force_fpdi' => 1, 'v' => now()->format('Uu')]) }}"
                     class="w-full h-full"
                 ></iframe>
             </div>

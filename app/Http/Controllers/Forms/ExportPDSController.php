@@ -106,8 +106,6 @@ class ExportPDSController
         $isPreview = $request->boolean('preview');
         $isDownload = $request->boolean('download');
         $isPrint = $request->boolean('print');
-        // Keep instructional red text for preview only; print/download should use clean template.
-        $useCleanTemplate = $isDownload || $isPrint || !$isPreview;
 
         // C1
         $personalInfo = PersonalInformation::where('user_id', $user->id)->first(); // changed from firstOrFail()
@@ -143,16 +141,17 @@ class ExportPDSController
         // Keep absolute-positioned template writing from triggering automatic blank pages.
         $pdf->SetAutoPageBreak(false, 0);
 
-        $templateCandidates = $useCleanTemplate
+        // Preview must use the instructional template (with red text).
+        // Print/download must use the clean template (without red signature note).
+        $templateCandidates = $isPreview
             ? [
+                resource_path('templates/PDS_2025_from_xlsx.pdf'),
+            ]
+            : [
+                resource_path('templates/PDS_2025_from_xlsx_no_red_signature_text.pdf'),
                 resource_path('templates/revised pds without red signature text.pdf'),
                 resource_path('templates/pds template without red text.pdf'),
                 resource_path('templates/PDS_2025_from_xlsx.pdf'),
-                resource_path('templates/PDS_fixed_V9.pdf'),
-            ]
-            : [
-                resource_path('templates/PDS_2025_from_xlsx.pdf'),
-                resource_path('templates/pds template without red text.pdf'),
                 resource_path('templates/PDS_fixed_V9.pdf'),
             ];
 
@@ -243,7 +242,7 @@ class ExportPDSController
         // Keep Excel export for preview mode only; print/download mode relies on the clean PDF template.
         // Default to FPDI for consistent coordinates/styling across accounts. Excel path is opt-in.
         $forceFpdi = $request->has('force_fpdi') ? $request->boolean('force_fpdi') : true;
-        $canUseExcelTemplate = !$useCleanTemplate && !$forceFpdi && !$hasLNDOverflow;
+        $canUseExcelTemplate = $isPreview && !$forceFpdi && !$hasLNDOverflow;
         $excelExport = null;
         if ($canUseExcelTemplate) {
             $excelExport = $this->tryExportViaExcelTemplate(
@@ -286,12 +285,8 @@ class ExportPDSController
         // Page 1: Personal Info, Address, Family, Education
         // ----------------------------
         $templateId = $pdf->importPage(1);
-        $this->currentTemplatePage = 1;
         $page1Size = $pdf->getTemplateSize($templateId);
-        $this->configureCoordinateScale((float) $page1Size['width'], (float) $page1Size['height']);
-        $pdf->AddPage($page1Size['orientation'], [$page1Size['width'], $page1Size['height']]);
-        $pdf->useTemplate($templateId);
-        $this->setFont($pdf, 'Arial', '', 8);
+        $this->beginTemplatePage($pdf, $templateId, $page1Size, 1, true);
 
         $this->writePersonalInfo($pdf, $personalInfo);
         $this->writeAddresses($pdf, $residential, $permanent);
@@ -321,12 +316,8 @@ class ExportPDSController
         // Loop through each overflow chunk beyond the first page
         for ($i = 1; $i < $maxChunks; $i++) {
             $templateId = $pdf->importPage(1); // Reuse Page 1 template
-            $this->currentTemplatePage = 1;
-            $pdf->AddPage($page1Size['orientation'], [$page1Size['width'], $page1Size['height']]);
-            $pdf->useTemplate($templateId);
+            $this->beginTemplatePage($pdf, $templateId, $page1Size, 1, true);
             $this->writeFooterDate($pdf);
-
-            $this->setFont($pdf, 'Arial', '', 8);
 
             // Write only the name parts for identification on overflow pages.
             $this->writeFittedAt($pdf, $this->valueOrNa($personalInfo?->surname), 41.5, 45.5, 78);
@@ -360,11 +351,8 @@ class ExportPDSController
         // ----------------------------
 
         $templateId = $pdf->importPage(2);
-        $this->currentTemplatePage = 2;
         $page2Size = $pdf->getTemplateSize($templateId);
-        $this->configureCoordinateScale((float) $page2Size['width'], (float) $page2Size['height']);
-        $pdf->AddPage($page2Size['orientation'], [$page2Size['width'], $page2Size['height']]);
-        $pdf->useTemplate($templateId);
+        $this->beginTemplatePage($pdf, $templateId, $page2Size, 2);
         // Write first CSE chunk (max 7 rows)
         $this->writeCivilServiceEligibilityChunk($pdf, $cseChunks[0] ?? []);
 
@@ -379,9 +367,7 @@ class ExportPDSController
 
         // Handle CSE overflow pages
         for ($i = 1; $i < count($cseChunks); $i++) {
-            $this->currentTemplatePage = 2;
-            $pdf->AddPage($page2Size['orientation'], [$page2Size['width'], $page2Size['height']]);
-            $pdf->useTemplate($templateId);
+            $this->beginTemplatePage($pdf, $templateId, $page2Size, 2);
             $this->writeFooterDate($pdf);
             $this->writeCivilServiceEligibilityChunk($pdf, $cseChunks[$i]);
 
@@ -395,9 +381,7 @@ class ExportPDSController
         // Handle remaining WE overflow pages
         foreach ($weChunks as $index => $chunk) {
             if ($index == 0) continue; // Already written first WE chunk on Page 2
-            $this->currentTemplatePage = 2;
-            $pdf->AddPage($page2Size['orientation'], [$page2Size['width'], $page2Size['height']]);
-            $pdf->useTemplate($templateId);
+            $this->beginTemplatePage($pdf, $templateId, $page2Size, 2);
             $this->writeFooterDate($pdf);
             $this->writeWorkExperienceChunk($pdf, $chunk);
         }
@@ -407,11 +391,8 @@ class ExportPDSController
         // ----------------------------
 
         $templateId = $pdf->importPage(3);
-        $this->currentTemplatePage = 3;
         $page3Size = $pdf->getTemplateSize($templateId);
-        $this->configureCoordinateScale((float) $page3Size['width'], (float) $page3Size['height']);
-        $pdf->AddPage($page3Size['orientation'], [$page3Size['width'], $page3Size['height']]);
-        $pdf->useTemplate($templateId);
+        $this->beginTemplatePage($pdf, $templateId, $page3Size, 3);
         // Write first Voluntary chunk (max 7 rows)
         $this->writeVoluntaryWorkChunk($pdf, $vwChunks[0] ?? []);
 
@@ -441,10 +422,7 @@ class ExportPDSController
         );
 
         for ($i = 1; $i < $page3OverflowMax; $i++) {
-            $this->currentTemplatePage = 3;
-            $this->configureCoordinateScale((float) $page3Size['width'], (float) $page3Size['height']);
-            $pdf->AddPage($page3Size['orientation'], [$page3Size['width'], $page3Size['height']]);
-            $pdf->useTemplate($templateId);
+            $this->beginTemplatePage($pdf, $templateId, $page3Size, 3);
             $this->writeFooterDate($pdf);
 
             // Write Voluntary Work chunk if exists
@@ -473,11 +451,8 @@ class ExportPDSController
         // ----------------------------
 
         $templateId = $pdf->importPage(4);
-        $this->currentTemplatePage = 4;
         $page4Size = $pdf->getTemplateSize($templateId);
-        $this->configureCoordinateScale((float) $page4Size['width'], (float) $page4Size['height']);
-        $pdf->AddPage($page4Size['orientation'], [$page4Size['width'], $page4Size['height']]);
-        $pdf->useTemplate($templateId);
+        $this->beginTemplatePage($pdf, $templateId, $page4Size, 4);
         // Write first C4 chunk (max 7 rows)
         $this->WriteC4Information($pdf, $user->id);
 
@@ -514,18 +489,30 @@ class ExportPDSController
         $isMobile = preg_match('/Android|iPhone|iPad|iPod|webOS|BlackBerry|Windows Phone/i', $userAgent);
 
         $forceInline = $isPreview || $isPrint;
+        $cacheHeaders = [
+            'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+            'Pragma' => 'no-cache',
+            'Expires' => 'Thu, 01 Jan 1970 00:00:00 GMT',
+        ];
 
-        // Prevent browser/PDF viewer cache from serving stale renders during coordinate tuning.
-        $this->sendNoCacheHeaders();
+        $tempDir = storage_path('app/temp');
+        if (!is_dir($tempDir)) {
+            @mkdir($tempDir, 0775, true);
+        }
+
+        $tempPath = $tempDir . DIRECTORY_SEPARATOR . $filename;
 
         if ($isDownload) {
-            // Download as attachment
-            $pdf->Output($filename, 'D');
-            exit;
+            $pdf->Output($tempPath, 'F');
+            return response()
+                ->download($tempPath, $filename, array_merge($cacheHeaders, [
+                    'Content-Type' => 'application/pdf',
+                ]))
+                ->deleteFileAfterSend(true);
         } elseif ($isMobile && !$forceInline) {
             // Save the PDF temporarily
-            $tempPath = storage_path("app/public/{$filename}");
-            $pdf->Output($tempPath, 'F');
+            $mobileTempPath = storage_path("app/public/{$filename}");
+            $pdf->Output($mobileTempPath, 'F');
 
             // Optionally store the path in session or flash data for download link
             // Redirect with success message
@@ -533,24 +520,14 @@ class ExportPDSController
                 ->route('dashboard_user') // Change to your actual route
                 ->with('success', 'PDF generated successfully! You may download it from your dashboard.');
         } else {
-            // Preview inline on desktop
-            $pdf->Output($filename, 'I');
-            exit;
+            $pdf->Output($tempPath, 'F');
+            return response()
+                ->file($tempPath, array_merge($cacheHeaders, [
+                    'Content-Type' => 'application/pdf',
+                    'Content-Disposition' => 'inline; filename="' . $filename . '"',
+                ]))
+                ->deleteFileAfterSend(true);
         }
-
-        exit;
-    }
-
-    private function sendNoCacheHeaders(): void
-    {
-        if (headers_sent()) {
-            return;
-        }
-
-        header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-        header('Cache-Control: post-check=0, pre-check=0', false);
-        header('Pragma: no-cache');
-        header('Expires: Thu, 01 Jan 1970 00:00:00 GMT');
     }
 
     private function configureCoordinateScale(float $templateWidth, float $templateHeight): void
@@ -582,6 +559,22 @@ class ExportPDSController
         $this->xOffset = 0.0;
         $this->yOffset = 0.0;
         $this->fontScale = max(0.75, min(1.25, min($this->xScale, $this->yScale)));
+    }
+
+    /**
+     * Prepare every imported template page (including continuation pages)
+     * with fresh scale/origin settings before writing content.
+     */
+    private function beginTemplatePage(Fpdi $pdf, int|string $templateId, array $templateSize, int $templatePage, bool $setBaseFont = false): void
+    {
+        $this->currentTemplatePage = $templatePage;
+        $this->configureCoordinateScale((float) $templateSize['width'], (float) $templateSize['height']);
+        $pdf->AddPage($templateSize['orientation'], [$templateSize['width'], $templateSize['height']]);
+        $pdf->useTemplate($templateId);
+
+        if ($setBaseFont) {
+            $this->setFont($pdf, 'Arial', '', 8);
+        }
     }
 
     private function scaleX(float $x): float
@@ -1630,15 +1623,17 @@ private function writeCivilServiceEligibilityChunk($pdf, $chunk)
         $startX_career = 10.0;
         $startX_rating = 83.0;
         $startX_date = 104.7;
-        $startX_place = 127.4;
+        $startX_place = 125;
         $startX_license = 157.5;
         $startX_validity = 176.4;
         $endX_validity = 195.9;
     }
 
-    $startY = 26;
-    $rowHeight = 7;
-    $perRowDownShift = 0.15;
+    $startY = 28;
+    $rowHeight = 8;
+    // Keep dense rows stable and centered (no cumulative drift).
+    $rowBaseOffset = -0.85;
+    $perRowDownShift = 0.00;
     $cellInset = 0.5;
 
     $careerWidth = max(1.0, ($startX_rating - $startX_career) - $cellInset);
@@ -1649,30 +1644,29 @@ private function writeCivilServiceEligibilityChunk($pdf, $chunk)
     $validityWidth = max(1.0, ($endX_validity - $startX_validity) - $cellInset);
 
     $isEmpty = !$this->hasCivilServiceData((array) $chunk);
-    $firstRowY = $startY - 0.6;
+    $firstRowY = $startY + $rowBaseOffset;
 
     // If all fields are empty, write N/A in the first row cells.
     if ($isEmpty) {
-        $this->writeFittedSingleLine($pdf, 'N/A', 7, 26.5, $careerWidth, 8.0, 5.0); // Career
-        $this->writeFittedSingleLine($pdf, 'N/A', 80, 26.5, $ratingWidth, 8.0, 5.0); // Rating
-        $this->writeFittedSingleLine($pdf, 'N/A', 105, 26.5, $dateWidth, 8.0, 5.0); // Date
-        $this->writeFittedSingleLine($pdf, 'N/A', 127, 26.5, $placeWidth, 8.0, 4.8); // Place
-        $this->writeFittedSingleLine($pdf, 'N/A', 158, 26.5, $licenseWidth, 8.0, 5.0); // License
-        $this->writeFittedSingleLine($pdf, 'N/A', 188, 26.5, $validityWidth, 8.0, 5.0); // Validity
+        $this->writeTightSingleLine($pdf, 'N/A', 7, 26.5, $careerWidth, 8.0, 5.0); // Career
+        $this->writeTightSingleLine($pdf, 'N/A', 80, 26.5, $ratingWidth, 8.0, 5.0); // Rating
+        $this->writeTightSingleLine($pdf, 'N/A', 105, 26.5, $dateWidth, 8.0, 5.0); // Date
+        $this->writeTightSingleLine($pdf, 'N/A', 127, 26.5, $placeWidth, 7.0, 4.8); // Place
+        $this->writeTightSingleLine($pdf, 'N/A', 158, 26.5, $licenseWidth, 8.0, 5.0); // License
+        $this->writeTightSingleLine($pdf, 'N/A', 188, 26.5, $validityWidth, 8.0, 5.0); // Validity
         return;
     }
 
     foreach ($chunk as $index => $cse) {
         $currentY = $startY + ($index * $rowHeight);
-        // Explicit downward bias per row so lower rows sit visibly lower in their cells.
-        $rowY = $currentY - 0.6 + ($index * $perRowDownShift);
+        $rowY = $currentY + $rowBaseOffset + ($index * $perRowDownShift);
 
-        $this->writeFittedSingleLine($pdf, $this->valueOrNa($cse['cs_eligibility_career'] ?? null), 5, $rowY, $careerWidth, 7.0, 5.0);
-        $this->writeFittedSingleLine($pdf, $this->valueOrNa($cse['cs_eligibility_rating'] ?? null), 88, $rowY, $ratingWidth, 8.0, 5.0);
-        $this->writeFittedSingleLine($pdf, $this->dateOrNa($cse['cs_eligibility_date'] ?? null), 105, $rowY, $dateWidth, 8.0, 5.0);
-        $this->writeFittedSingleLine($pdf, $this->valueOrNa($cse['cs_eligibility_place'] ?? null), 135, $rowY, $placeWidth, 6.2, 4.8);
-        $this->writeFittedSingleLine($pdf, $this->valueOrNa($cse['cs_eligibility_license'] ?? null), 163, $rowY, $licenseWidth, 8.0, 5.0);
-        $this->writeFittedSingleLine($pdf, $this->dateOrNa($cse['cs_eligibility_validity'] ?? null), 190, $rowY, $validityWidth, 8.0, 5.0);
+        $this->writeTightSingleLine($pdf, $this->valueOrNa($cse['cs_eligibility_career'] ?? null), 5, $rowY, $careerWidth, 7.0, 5.0);
+        $this->writeTightSingleLine($pdf, $this->valueOrNa($cse['cs_eligibility_rating'] ?? null), 88, $rowY, $ratingWidth, 8.0, 5.0);
+        $this->writeTightSingleLine($pdf, $this->dateOrNa($cse['cs_eligibility_date'] ?? null), 105, $rowY, $dateWidth, 8.0, 5.0);
+        $this->writeTightSingleLine($pdf, $this->valueOrNa($cse['cs_eligibility_place'] ?? null), 126.5, $rowY, $placeWidth, 5.8, 4.6);
+        $this->writeTightSingleLine($pdf, $this->valueOrNa($cse['cs_eligibility_license'] ?? null), 163, $rowY, $licenseWidth, 8.0, 5.0);
+        $this->writeTightSingleLine($pdf, $this->dateOrNa($cse['cs_eligibility_validity'] ?? null), 190, $rowY, $validityWidth, 8.0, 5.0);
     }
 }
 
@@ -1698,9 +1692,11 @@ private function writeWorkExperienceChunk($pdf, $chunk)
     }
 
     $startY = 113;
-    $rowHeight = 6.66;
+    $rowHeight = 7.25;
+    // Dense table: fixed per-row baseline prevents progressive overlap.
+    $rowBaseOffset = -1.70;
+    $perRowDownShift = 0.00;
     $cellInset = 0.5;
-    $maxRowsPerPage = 28;
 
     $fromWidth = max(1.0, ($x_to - $x_from) - $cellInset);
     $toWidth = max(1.0, ($x_position - $x_to) - $cellInset);
@@ -1710,30 +1706,29 @@ private function writeWorkExperienceChunk($pdf, $chunk)
     $govWidth = max(1.0, ($x_gov_end - $x_gov) - $cellInset);
 
     $isEmpty = !$this->hasWorkExperienceData((array) $chunk);
-    $firstRowY = $startY - 1.75;
+    $firstRowY = $startY + $rowBaseOffset;
 
     // If all are empty, write N/A in the first row cells.
     if ($isEmpty) {
-        $this->writeTruncatedAtSize($pdf, 'N/A', 5, $firstRowY, $fromWidth, 8.0); // From
-        $this->writeTruncatedAtSize($pdf, 'N/A', 26, $firstRowY, $toWidth, 8.0); // To
-        $this->writeTruncatedAtSize($pdf, 'N/A', 43, $firstRowY, $positionWidth, 8.0); // Position
-        $this->writeTruncatedAtSize($pdf, 'N/A', 102, $firstRowY, $agencyWidth, 8.0); // Agency
-        $this->writeTruncatedAtSize($pdf, 'N/A', 158, $firstRowY, $statusWidth, 8.0); // Status
-        $this->writeTruncatedAtSize($pdf, 'N/A', 185, $firstRowY, $govWidth, 8.0); // Government Service
+        $this->writeTightSingleLine($pdf, 'N/A', 5, $firstRowY, $fromWidth, 8.0, 5.0); // From
+        $this->writeTightSingleLine($pdf, 'N/A', 26, $firstRowY, $toWidth, 8.0, 5.0); // To
+        $this->writeTightSingleLine($pdf, 'N/A', 43, $firstRowY, $positionWidth, 8.0, 4.6); // Position
+        $this->writeTightSingleLine($pdf, 'N/A', 102, $firstRowY, $agencyWidth, 8.0, 4.6); // Agency
+        $this->writeTightSingleLine($pdf, 'N/A', 158, $firstRowY, $statusWidth, 8.0, 5.0); // Status
+        $this->writeTightSingleLine($pdf, 'N/A', 185, $firstRowY, $govWidth, 8.0, 5.0); // Government Service
         return;
     }
 
     foreach ($chunk as $index => $we) {
         $currentY = $startY + ($index * $rowHeight);
-        // Use linear row stepping to keep all rows on the same baseline.
-        $rowY = $currentY - 1.75;
+        $rowY = $currentY + $rowBaseOffset + ($index * $perRowDownShift);
 
-        $this->writeTruncatedAtSize($pdf, $this->dateOrNa($we['work_exp_from'] ?? null), 7, $rowY, $fromWidth, 7.0);
-        $this->writeTruncatedAtSize($pdf, $this->dateOrNa($we['work_exp_to'] ?? null), 26, $rowY, $toWidth, 7.0);
-        $this->writeTruncatedAtSize($pdf, $this->valueOrNa($we['work_exp_position'] ?? null), 45, $rowY, $positionWidth, 7.0);
-        $this->writeTruncatedAtSize($pdf, $this->valueOrNa($we['work_exp_department'] ?? null), 103, $rowY, $agencyWidth, 6.0);
-        $this->writeTruncatedAtSize($pdf, $this->valueOrNa($we['work_exp_status'] ?? null), 160, $rowY, $statusWidth, 7.0);
-        $this->writeTruncatedAtSize($pdf, $this->normalizeGovServiceFlag($we['work_exp_govt_service'] ?? null, 'N/A'), 195, $rowY, $govWidth, 7.0);
+        $this->writeTightSingleLine($pdf, $this->dateOrNa($we['work_exp_from'] ?? null), 7, $rowY, $fromWidth, 7.0, 5.0);
+        $this->writeTightSingleLine($pdf, $this->dateOrNa($we['work_exp_to'] ?? null), 26, $rowY, $toWidth, 7.0, 5.0);
+        $this->writeTightSingleLine($pdf, $this->valueOrNa($we['work_exp_position'] ?? null), 45, $rowY, $positionWidth, 7.0, 4.5);
+        $this->writeTightSingleLine($pdf, $this->valueOrNa($we['work_exp_department'] ?? null), 103, $rowY, $agencyWidth, 6.0, 4.4);
+        $this->writeTightSingleLine($pdf, $this->valueOrNa($we['work_exp_status'] ?? null), 160, $rowY, $statusWidth, 7.0, 5.0);
+        $this->writeTightSingleLine($pdf, $this->normalizeGovServiceFlag($we['work_exp_govt_service'] ?? null, 'N/A'), 195, $rowY, $govWidth, 7.0, 5.0);
     }
 }
 
@@ -2430,6 +2425,28 @@ private function writeTruncatedAtSize(
 ): void {
     // Keep API name for compatibility, but use wrapped fitted text for long values.
     $this->writeFittedAt($pdf, $text, $x, $y, $maxWidth, max(4.5, $fontSize), 3.8);
+}
+
+private function writeTightSingleLine(
+    $pdf,
+    string $text,
+    float $x,
+    float $y,
+    float $maxWidth,
+    float $baseSize = 7.0,
+    float $minSize = 4.2
+): void {
+    $text = mb_strtoupper($text);
+    [$display, $size, $lineWidth] = $this->fitTextToWidth($pdf, $text, $maxWidth, $baseSize, $minSize);
+    if ($display === '') {
+        $this->setFont($pdf, 'Arial', '', 8);
+        return;
+    }
+
+    $this->setFont($pdf, 'Arial', '', $size);
+    $this->setXY($pdf, $x, $y);
+    $pdf->Cell($lineWidth, 0, $display, 0, 0, 'L');
+    $this->setFont($pdf, 'Arial', '', 8);
 }
 
 private function writeAt($pdf, string $text, float $x, float $y, ?float $maxWidth = null): void
