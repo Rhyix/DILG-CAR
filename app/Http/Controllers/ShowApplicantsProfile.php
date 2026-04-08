@@ -144,6 +144,30 @@ class ShowApplicantsProfile extends Controller
         return strtolower(trim((string) $value));
     }
 
+    private function hasInitialAssessmentPqeColumn(): bool
+    {
+        static $hasColumn = null;
+
+        if ($hasColumn === null) {
+            $hasColumn = Schema::hasColumn('applications', 'initial_assessment_has_pqe');
+        }
+
+        return $hasColumn;
+    }
+
+    private function isNoPqeApplicant($application): bool
+    {
+        if (!$this->hasInitialAssessmentPqeColumn()) {
+            return false;
+        }
+
+        $value = $application->initial_assessment_has_pqe ?? null;
+
+        return $value === false
+            || $value === 0
+            || $value === '0';
+    }
+
     private function buildRevisionLookup($applications, string $vacancyId): array
     {
         $userIds = $applications->pluck('user_id')->filter()->unique()->values();
@@ -194,6 +218,10 @@ class ShowApplicantsProfile extends Controller
             return 'compliance';
         }
 
+        if ($this->isNoPqeApplicant($application)) {
+            return 'no_pqe';
+        }
+
         return 'new';
     }
 
@@ -204,10 +232,14 @@ class ShowApplicantsProfile extends Controller
             'new' => collect(),
             'compliance' => collect(),
             'qualified' => collect(),
+            'no_pqe' => collect(),
         ];
 
         foreach ($applications as $application) {
             $stage = $this->determineApplicantStage($application, $revisionLookup);
+            if (!array_key_exists($stage, $stages)) {
+                $stage = 'new';
+            }
             $stages[$stage]->push($application);
         }
 
@@ -464,10 +496,16 @@ class ShowApplicantsProfile extends Controller
             $query->where('status', $status);
         }
 
-        // Get all vacancies with counts per status
-        $vacancyQuery = $query->withCount([
+        $countDefinitions = [
             'applications as pending_count' => function ($q) {
                 $q->statusEquals(ApplicationStatus::PENDING->value);
+
+                if ($this->hasInitialAssessmentPqeColumn()) {
+                    $q->where(function ($sub) {
+                        $sub->where('initial_assessment_has_pqe', true)
+                            ->orWhereNull('initial_assessment_has_pqe');
+                    });
+                }
             },
             'applications as compliance_count' => function ($q) {
                 $q->where(function ($sub) {
@@ -482,7 +520,17 @@ class ShowApplicantsProfile extends Controller
                         ->orWhereRaw('LOWER(TRIM(qs_result)) = ?', ['qualified']);
                 });
             },
-        ])
+        ];
+
+        if ($this->hasInitialAssessmentPqeColumn()) {
+            $countDefinitions['applications as no_pqe_count'] = function ($q) {
+                $q->statusEquals(ApplicationStatus::PENDING->value)
+                    ->where('initial_assessment_has_pqe', false);
+            };
+        }
+
+        // Get all vacancies with counts per status
+        $vacancyQuery = $query->withCount($countDefinitions)
             ->orderByRaw("CASE WHEN LOWER(status) = 'open' THEN 1 WHEN LOWER(status) = 'closed' THEN 2 ELSE 99 END")
             ->orderByDesc('created_at');
 
@@ -768,10 +816,12 @@ class ShowApplicantsProfile extends Controller
         $newApplications = $partitioned['new']->sortByDesc('created_at');
         $complianceApplications = $partitioned['compliance']->sortByDesc('created_at');
         $qualifiedApplications = $partitioned['qualified']->sortByDesc('created_at');
+        $noPqeApplications = $partitioned['no_pqe']->sortByDesc('created_at');
 
         $formattedNewApplicants = $this->formatApplicants($newApplications);
         $formattedComplianceApplicants = $this->formatApplicants($complianceApplications);
         $formattedQualifiedApplicants = $this->formatApplicants($qualifiedApplications);
+        $formattedNoPqeApplicants = $this->formatApplicants($noPqeApplications);
 
         // Fetch vacancy info for header
         $vacancyInfo = JobVacancy::select('position_title', 'vacancy_type', 'place_of_assignment')
@@ -782,9 +832,11 @@ class ShowApplicantsProfile extends Controller
             'newApplicants' => $formattedNewApplicants,
             'complianceApplicants' => $formattedComplianceApplicants,
             'qualifiedApplicants' => $formattedQualifiedApplicants,
+            'noPqeApplicants' => $formattedNoPqeApplicants,
             'newApplicantsCount' => $newApplications->count(),
             'complianceApplicantsCount' => $complianceApplications->count(),
             'qualifiedApplicantsCount' => $qualifiedApplications->count(),
+            'noPqeApplicantsCount' => $noPqeApplications->count(),
             'vacancyId' => $vacancy_id,
             'positionTitle' => $vacancyInfo?->position_title,
             'vacancyType' => $vacancyInfo?->vacancy_type,
@@ -858,6 +910,29 @@ class ShowApplicantsProfile extends Controller
         $sorted = $this->sortApplicantsByDate($filtered, (string) $sortOrder)->values();
 
         return response()->view('partials.manage_qualified_applicants_list', [
+            'applicants' => $this->formatApplicants($sorted)
+        ]);
+    }
+
+    public function ajaxFilterNoPqeApplicants(Request $request)
+    {
+        $vacancyId = $request->input('vacancy_id');
+        $search = $request->input('search');
+        $sortOrder = $request->input('sort_order', 'latest');
+
+        if (!$this->hrDivisionCanAccessVacancy((string) $vacancyId)) {
+            return response()->view('partials.manage_no_pqe_applicants_list', ['applicants' => collect()]);
+        }
+
+        $applications = Applications::with(['vacancy', 'personalInformation', 'user'])
+            ->where('vacancy_id', $vacancyId)
+            ->get();
+
+        $partitioned = $this->partitionApplicantsByStage($applications, (string) $vacancyId);
+        $filtered = $this->filterApplicantsBySearch($partitioned['no_pqe'], (string) $search);
+        $sorted = $this->sortApplicantsByDate($filtered, (string) $sortOrder)->values();
+
+        return response()->view('partials.manage_no_pqe_applicants_list', [
             'applicants' => $this->formatApplicants($sorted)
         ]);
     }

@@ -221,7 +221,6 @@ class ExportWESController extends Controller
                 $size = $pdf->getTemplateSize($templateId);
                 $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
                 $pdf->useTemplate($templateId);
-                $this->overlayWesSignatureName($pdf, $fullName);
             }
 
             @unlink($tempDocxPath);
@@ -539,8 +538,13 @@ PS;
         // Signature line text area at lower-right of WES template.
         $pdf->SetFont('Arial', '', 11);
         $pdf->SetTextColor(0, 0, 0);
-        $pdf->SetXY(118.0, 248.0);
-        $pdf->Cell(70.0, 5.0, $this->toPdfText($name), 0, 0, 'C');
+        $signatureLineX = 160.0;
+        $signatureLineWidth = 42.0;
+        $nameWidth = $pdf->GetStringWidth($this->toPdfText($name));
+        $nameX = $signatureLineX + max(0.0, ($signatureLineWidth - $nameWidth) / 2);
+
+        $pdf->SetXY($nameX, 247.9);
+        $pdf->Cell($nameWidth, 5.0, $this->toPdfText($name), 0, 0, 'L');
     }
 
     private function setTemplateValueOnce(TemplateProcessor $templateProcessor, string $key, string $value): void

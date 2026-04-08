@@ -391,6 +391,7 @@ Route::middleware(['auth', BlockIfAdmin::class])->group(function () {
     //Route::view('/submit_update', 'pds_update.submit_update')->name('submit_update');
 
     // APPLICATION ROUTE
+    Route::post('/initial-assessment/{vacancy_id}', [JobVacancyController::class, 'submitInitialAssessment'])->name('initial_assessment.submit');
     Route::post('/apply/{vacancy_id}', [JobVacancyController::class, 'apply'])->name('application.store');
 
     // =========================
@@ -819,6 +820,7 @@ Route::middleware([ApplicantsAccess::class, 'admin.ability:admin.applicants.moni
     Route::get('/admin/manage_applicants/new', [ShowApplicantsProfile::class, 'ajaxFilterNewApplicants'])->name('admin.manage_applicants.new');
     Route::get('/admin/manage_applicants/compliance', [ShowApplicantsProfile::class, 'ajaxFilterComplianceApplicants'])->name('admin.manage_applicants.compliance');
     Route::get('/admin/manage_applicants/qualified', [ShowApplicantsProfile::class, 'ajaxFilterQualifiedApplicants'])->name('admin.manage_applicants.qualified');
+    Route::get('/admin/manage_applicants/no-pqe', [ShowApplicantsProfile::class, 'ajaxFilterNoPqeApplicants'])->name('admin.manage_applicants.no_pqe');
     Route::get('/admin/manage_applicants/{vacancy_id}', [ShowApplicantsProfile::class, 'manageApplicants'])->name('admin.manage_applicants');
 });
 // ==================================================================================================

@@ -1475,6 +1475,56 @@ class JobVacancyController extends Controller
 
     }
 
+    public function submitInitialAssessment(Request $request, $vacancy_id)
+    {
+        $vacancy = JobVacancy::query()->where('vacancy_id', (string) $vacancy_id)->firstOrFail();
+
+        $validated = $request->validate([
+            'degree' => ['required', 'string', 'max:255'],
+            'eligibility' => ['required', 'string', 'max:255'],
+            'has_pqe' => ['nullable', 'boolean'],
+        ]);
+
+        $degree = trim((string) ($validated['degree'] ?? ''));
+        $eligibility = trim((string) ($validated['eligibility'] ?? ''));
+
+        $educationAligned = $this->isInitialAssessmentEducationAligned($vacancy, $degree);
+        $eligibilityAligned = $this->isInitialAssessmentEligibilityAligned($vacancy, $eligibility);
+
+        if (!$educationAligned || !$eligibilityAligned) {
+            return response()->json([
+                'ok' => false,
+                'education_aligned' => $educationAligned,
+                'eligibility_aligned' => $eligibilityAligned,
+                'message' => $this->buildInitialAssessmentNotQualifiedMessage($educationAligned, $eligibilityAligned),
+            ], 422);
+        }
+
+        $sessionPayload = [
+            'vacancy_id' => (string) $vacancy->vacancy_id,
+            'degree' => $degree,
+            'eligibility' => $eligibility,
+            'q1_passed' => true,
+            'q2_passed' => true,
+            'updated_at' => now()->toIso8601String(),
+        ];
+
+        if (array_key_exists('has_pqe', $validated)) {
+            $sessionPayload['has_pqe'] = (bool) $validated['has_pqe'];
+        }
+
+        session([$this->initialAssessmentSessionKey((string) $vacancy->vacancy_id) => $sessionPayload]);
+
+        return response()->json([
+            'ok' => true,
+            'education_aligned' => true,
+            'eligibility_aligned' => true,
+            'requires_pqe' => strcasecmp(trim((string) $vacancy->vacancy_type), 'plantilla') === 0
+                && !array_key_exists('has_pqe', $validated),
+            'redirect_to' => route('display_c1'),
+        ]);
+    }
+
     public function adminFilterVacancy(Request $request)
     {
         $status = $request->get('status');
@@ -1854,6 +1904,17 @@ class JobVacancyController extends Controller
                 ->with('success', 'Application already exists for this vacancy.');
         }
 
+        $initialAssessment = session($this->initialAssessmentSessionKey((string) $vacancy->vacancy_id), []);
+        if (!$this->hasCompletedInitialAssessmentForVacancy($vacancy, (array) $initialAssessment)) {
+            Log::info('Apply blocked: initial assessment not completed for vacancy', [
+                'user_id' => Auth::id(),
+                'vacancy_id' => $vacancy_id,
+            ]);
+            return redirect()
+                ->route('job_description', ['id' => $vacancy->vacancy_id])
+                ->with('error', 'Please complete the initial assessment for this position before applying.');
+        }
+
         $requiredDocsModalState = $this->getRequiredDocsModalState((int) Auth::id(), (string) $vacancy->vacancy_type, (string) $vacancy->vacancy_id);
         if ($requiredDocsModalState['hasMissing']) {
             Log::info('Apply blocked: required docs missing', [
@@ -2019,7 +2080,30 @@ class JobVacancyController extends Controller
                 : null;
         }
 
+        if (Schema::hasColumn('applications', 'initial_assessment_degree')) {
+            $applicationPayload['initial_assessment_degree'] = trim((string) ($initialAssessment['degree'] ?? '')) ?: null;
+        }
+        if (Schema::hasColumn('applications', 'initial_assessment_eligibility')) {
+            $applicationPayload['initial_assessment_eligibility'] = trim((string) ($initialAssessment['eligibility'] ?? '')) ?: null;
+        }
+        if (Schema::hasColumn('applications', 'initial_assessment_q1_passed')) {
+            $applicationPayload['initial_assessment_q1_passed'] = array_key_exists('q1_passed', $initialAssessment)
+                ? (bool) $initialAssessment['q1_passed']
+                : null;
+        }
+        if (Schema::hasColumn('applications', 'initial_assessment_q2_passed')) {
+            $applicationPayload['initial_assessment_q2_passed'] = array_key_exists('q2_passed', $initialAssessment)
+                ? (bool) $initialAssessment['q2_passed']
+                : null;
+        }
+        if (Schema::hasColumn('applications', 'initial_assessment_has_pqe')) {
+            $applicationPayload['initial_assessment_has_pqe'] = array_key_exists('has_pqe', $initialAssessment)
+                ? (bool) $initialAssessment['has_pqe']
+                : null;
+        }
+
         $application = \App\Models\Applications::create($applicationPayload);
+        session()->forget($this->initialAssessmentSessionKey((string) $vacancy->vacancy_id));
         Log::info('Apply success: application created', [
             'user_id' => Auth::id(),
             'vacancy_id' => $vacancy_id,
@@ -3700,6 +3784,145 @@ class JobVacancyController extends Controller
         }
 
         return null;
+    }
+
+    private function initialAssessmentSessionKey(string $vacancyId): string
+    {
+        return 'initial_assessment_answers.' . trim($vacancyId);
+    }
+
+    private function hasCompletedInitialAssessmentForVacancy(JobVacancy $vacancy, array $assessment): bool
+    {
+        $vacancyId = trim((string) $vacancy->vacancy_id);
+        $assessmentVacancyId = trim((string) ($assessment['vacancy_id'] ?? ''));
+        $degree = trim((string) ($assessment['degree'] ?? ''));
+        $eligibility = trim((string) ($assessment['eligibility'] ?? ''));
+        $q1Passed = array_key_exists('q1_passed', $assessment) ? (bool) $assessment['q1_passed'] : false;
+        $q2Passed = array_key_exists('q2_passed', $assessment) ? (bool) $assessment['q2_passed'] : false;
+
+        if (
+            $vacancyId === ''
+            || $assessmentVacancyId !== $vacancyId
+            || $degree === ''
+            || $eligibility === ''
+            || !$q1Passed
+            || !$q2Passed
+        ) {
+            return false;
+        }
+
+        $isPlantilla = strcasecmp(trim((string) $vacancy->vacancy_type), 'plantilla') === 0;
+        if ($isPlantilla && !array_key_exists('has_pqe', $assessment)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private function isInitialAssessmentEducationAligned(JobVacancy $vacancy, string $degree): bool
+    {
+        $requirement = $this->normalizeQualificationRequirement($vacancy->qualification_education ?? null);
+        if ($requirement === null || $this->isRequirementAny($requirement)) {
+            return true;
+        }
+
+        $profile = $this->buildInitialAssessmentEducationProfile($degree);
+        $compiledRule = $this->resolveCompiledEducationRuleForVacancy($vacancy, $requirement);
+        $met = is_array($compiledRule) ? $this->evaluateCompiledEducationRule($profile, $compiledRule) : null;
+        $usedFallback = false;
+
+        if (!is_bool($met)) {
+            $met = $this->evaluateLegacyEducationRequirementByText($profile, $requirement);
+            $usedFallback = true;
+        }
+
+        $isAdvisoryOnly = is_array($compiledRule)
+            && (bool) ($compiledRule['advisory_only'] ?? false)
+            && !$usedFallback;
+
+        if ($isAdvisoryOnly) {
+            return true;
+        }
+
+        return (bool) $met;
+    }
+
+    private function buildInitialAssessmentEducationProfile(string $degree): array
+    {
+        $normalized = strtolower(trim($degree));
+        $hasInput = $normalized !== '';
+
+        return [
+            'hasAnyEducation' => $hasInput,
+            'hasElementaryOrHigher' => $hasInput,
+            'hasHighSchoolOrHigher' => $hasInput,
+            'hasSeniorHighOrHigher' => $hasInput,
+            'hasCollegeEntryOrHigher' => $hasInput,
+            'hasCollegeDegreeOrHigher' => $hasInput,
+            'hasBachelorOrHigher' => $hasInput,
+            'hasAtLeastTwoYearsCollege' => $hasInput,
+            'collegeYearsCompleted' => $hasInput ? 4 : 0,
+            'estimatedCollegeUnits' => $hasInput ? 120 : 0,
+            'hasVocational' => str_contains($normalized, 'tesda') || str_contains($normalized, 'vocational') || str_contains($normalized, 'technical'),
+            'hasGrad' => str_contains($normalized, 'master') || str_contains($normalized, 'doctor') || str_contains($normalized, 'phd'),
+            'hasMasters' => str_contains($normalized, 'master'),
+            'hasDoctorate' => str_contains($normalized, 'doctor') || str_contains($normalized, 'phd'),
+            'hasLawDegree' => str_contains($normalized, 'law') || str_contains($normalized, 'llb') || str_contains($normalized, 'juris doctor'),
+            'educationKeywordHaystack' => $normalized,
+        ];
+    }
+
+    private function isInitialAssessmentEligibilityAligned(JobVacancy $vacancy, string $eligibility): bool
+    {
+        $rawRequirement = $this->normalizeQualificationRequirement($vacancy->qualification_eligibility ?? null);
+        if ($rawRequirement === null || $this->isRequirementAny($rawRequirement)) {
+            return true;
+        }
+
+        $requiredEligibilities = $this->extractVacancyEligibilityNames((string) $rawRequirement);
+        if (empty($requiredEligibilities)) {
+            return true;
+        }
+
+        $inputLabel = $this->canonicalEligibilityLabelFromName($eligibility);
+        if ($inputLabel === '') {
+            return false;
+        }
+
+        foreach ($requiredEligibilities as $required) {
+            if ($this->eligibilityNamesMatch((string) $required, $inputLabel)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function isRequirementAny(string $requirement): bool
+    {
+        $normalized = strtolower(trim($requirement));
+        if ($normalized === '') {
+            return true;
+        }
+
+        if (in_array($normalized, ['any', 'all', 'all courses', 'any course', 'any degree', 'not specified'], true)) {
+            return true;
+        }
+
+        return preg_match('/\bany\b/i', $normalized) === 1;
+    }
+
+    private function buildInitialAssessmentNotQualifiedMessage(bool $educationAligned, bool $eligibilityAligned): string
+    {
+        if (!$educationAligned && !$eligibilityAligned) {
+            return 'You are not qualified for this position based on both Education and Eligibility requirements.';
+        }
+
+        if (!$educationAligned) {
+            return 'You are not qualified for this position based on the Education requirement.';
+        }
+
+        return 'You are not qualified for this position based on the Eligibility requirement.';
     }
 
     private function evaluateApplicantEligibilityForVacancy(int $userId, JobVacancy $vacancy): array

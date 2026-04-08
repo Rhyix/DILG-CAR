@@ -34,6 +34,11 @@ class Applications extends Model
         'education_requirement_snapshot',
         'education_rule_snapshot',
         'education_rule_snapshot_version',
+        'initial_assessment_degree',
+        'initial_assessment_eligibility',
+        'initial_assessment_q1_passed',
+        'initial_assessment_q2_passed',
+        'initial_assessment_has_pqe',
         'qs_eligibility',
         'qs_experience',
         'qs_training',
@@ -61,6 +66,9 @@ class Applications extends Model
         'answers' => 'array',
         'scores' => 'array',
         'education_rule_snapshot' => 'array',
+        'initial_assessment_q1_passed' => 'boolean',
+        'initial_assessment_q2_passed' => 'boolean',
+        'initial_assessment_has_pqe' => 'boolean',
         'exam_attendance_responded_at' => 'datetime',
     ];
 
