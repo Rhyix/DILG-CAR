@@ -63,13 +63,20 @@
             <table class="w-full align-items-center text-left border-collapse table-fixed">
                 <tbody id="vacancy-list" class="divide-y divide-[#0D2B70]">
                     @forelse ($vacancies as $vacancy)
+                        @php
+                            $normalizedVacancyType = strtoupper(trim((string) ($vacancy->vacancy_type ?? '')));
+                            $isPlantillaVacancy = $normalizedVacancyType === 'PLANTILLA';
+                            $vacancyTypeLabel = $normalizedVacancyType === 'COS'
+                                ? 'Contract of Service'
+                                : ($vacancy->vacancy_type ?? '');
+                        @endphp
                         <tr class="text-sm text-[#0D2B70] select-none hover:bg-blue-50 transition-colors duration-200">
                             <td class="w-[15%] px-3 py-2">{{ $vacancy->vacancy_id }}</td>
 
                             <td class="w-[30%] px-3 py-2">
                                 <p class="font-medium">{{ $vacancy->position_title }}</p>
                                 <p class="mt-0.5 text-xs italic text-[#0D2B70]/70">
-                                    {{ $vacancy->vacancy_type }}
+                                    {{ $vacancyTypeLabel }}
                                 </p>
                             </td>
 
@@ -119,6 +126,17 @@
                                         </span>
                                     @endif
                                     </a>
+                                    @if($isPlantillaVacancy)
+                                        <a href="{{ route('admin.manage_applicants', ['vacancy_id' => $vacancy->vacancy_id]) }}?tab=no-pqe"
+                                        class="relative group use-loader inline-flex h-8 w-24 items-center justify-center rounded-md border border-[#0D2B70] text-xs font-bold text-[#0D2B70] transition-all duration-300 hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md">
+                                        <span>No PQE</span>
+                                        @if(isset($vacancy->no_pqe_count) && $vacancy->no_pqe_count > 0)
+                                            <span class="absolute -right-2 -top-2 z-10 flex h-4 w-4 items-center justify-center rounded-full border border-white bg-slate-600 text-[9px] font-bold text-white shadow-sm">
+                                                {{ $vacancy->no_pqe_count }}
+                                            </span>
+                                        @endif
+                                        </a>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
@@ -242,6 +260,10 @@
             }
 
             vacancies.forEach(vacancy => {
+                const vacancyTypeRaw = String(vacancy.vacancy_type ?? '');
+                const normalizedVacancyType = vacancyTypeRaw.trim().toUpperCase();
+                const isPlantillaVacancy = normalizedVacancyType === 'PLANTILLA';
+                const vacancyTypeLabel = normalizedVacancyType === 'COS' ? 'Contract of Service' : vacancyTypeRaw;
                 const statusColor = {
                     'open': 'bg-green-600',
                     'closed': 'bg-red-600'
@@ -252,7 +274,7 @@
                     <td class="w-[15%] px-3 py-2 text-left">${vacancy.vacancy_id}</td>
                     <td class="w-[30%] px-3 py-2 text-left">
                         <p>${vacancy.position_title}</p>
-                        <p class="text-xs italic text-[#0D2B70]/70">${vacancy.vacancy_type}</p>
+                        <p class="text-xs italic text-[#0D2B70]/70">${vacancyTypeLabel}</p>
                     </td>
                     <td class="w-[15%] px-3 py-2 text-left">
                         <div class="flex items-center justify-start gap-1.5 font-normal">
@@ -274,6 +296,10 @@
                                 <span>Qualified</span>
                                 ${vacancy.qualified_count > 0 ? `<span class="absolute -right-2 -top-2 z-10 flex h-4 w-4 items-center justify-center rounded-full border border-white bg-green-600 text-[9px] font-bold text-white shadow-sm">${vacancy.qualified_count}</span>` : ''}
                             </a>
+                            ${isPlantillaVacancy ? `<a href="/admin/manage_applicants/${vacancy.vacancy_id}?tab=no-pqe" class="relative group use-loader inline-flex h-8 w-24 items-center justify-center rounded-md border border-[#0D2B70] text-xs font-bold text-[#0D2B70] transition-all duration-300 hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md">
+                                <span>No PQE</span>
+                                ${vacancy.no_pqe_count > 0 ? `<span class="absolute -right-2 -top-2 z-10 flex h-4 w-4 items-center justify-center rounded-full border border-white bg-slate-600 text-[9px] font-bold text-white shadow-sm">${vacancy.no_pqe_count}</span>` : ''}
+                            </a>` : ''}
                         </div>
                     </td>
                 </tr>`;

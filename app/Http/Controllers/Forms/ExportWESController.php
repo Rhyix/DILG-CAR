@@ -176,7 +176,8 @@ class ExportWESController extends Controller
 
         foreach ($entries->values() as $index => $exp) {
             $templateProcessor = new TemplateProcessor($templateDocxPath);
-            $templateProcessor->setValue('name', $this->sanitizeDocxText($fullName));
+            // Keep placeholder empty and place the name via PDF overlay for precise centering on the underline.
+            $templateProcessor->setValue('name', '');
             $templateProcessor->setValue('date', now()->format('F d, Y'));
 
             $from = $this->formatMonthYear($exp->start_date);
@@ -539,8 +540,11 @@ PS;
         // Signature line text area at lower-right of WES template.
         $pdf->SetFont('Arial', '', 11);
         $pdf->SetTextColor(0, 0, 0);
-        $pdf->SetXY(118.0, 248.0);
-        $pdf->Cell(70.0, 5.0, $this->toPdfText($name), 0, 0, 'C');
+        $signatureLineX = 130.0;
+        $signatureLineWidth = 42.0;
+
+        $pdf->SetXY($signatureLineX, 129.0);
+        $pdf->Cell($signatureLineWidth, 5.0, $this->toPdfText($name), 0, 0, 'C');
     }
 
     private function setTemplateValueOnce(TemplateProcessor $templateProcessor, string $key, string $value): void

@@ -74,8 +74,7 @@
             ? array_values(array_filter(array_map(fn($value) => trim((string) $value), $missingQualificationLabels)))
             : [];
         $showInitialAssessmentFlow = !$isClosed
-            && !$hasApplied
-            && $hasIncompletePdsForApply;
+            && !$hasApplied;
         $qualificationLabelMap = [
             'education' => 'Education',
             'training' => 'Training',
@@ -262,7 +261,7 @@
                         @if(!$isClosed && !$hasApplied && $hasIncompletePdsForApply)
                             <div class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700">
                                 <p class="font-semibold">Before applying, complete the initial assessment first.</p>
-                                <p class="mt-1">This assessment appears for every position while your PDS is still incomplete.</p>
+                                <p class="mt-1">This assessment appears every time you apply for this position.</p>
                             </div>
                         @elseif(!$isClosed && !$hasApplied && !$isEligibilityQualifiedForPanel)
                             <div class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
@@ -631,10 +630,8 @@
         const shouldRunInitialAssessment = @json($showInitialAssessmentFlow);
         if (shouldRunInitialAssessment) { openModal('initialAssessmentEducationModal'); return; }
 
-        const hasIncompletePds = @json($hasIncompletePdsForApply);
         if (hasIncompletePds) { openModal('pdsRequiredModal'); return; }
 
-        const hasDocTrackMismatch = @json($hasDocTrackMismatch);
         if (hasDocTrackMismatch) { openModal('docTrackMismatchModal'); return; }
 
         openModal('requiredDocsModal');
@@ -652,12 +649,66 @@
         eligibility: '',
     };
 
+    const initialAssessmentSubmitUrl = @json(route('initial_assessment.submit', ['vacancy_id' => $vacancy->vacancy_id]));
+    const pdsRedirectUrl = @json(route('display_c1'));
+    const hasIncompletePds = @json($hasIncompletePdsForApply);
+    const hasDocTrackMismatch = @json($hasDocTrackMismatch);
+
     function notifyAssessment(message, type = 'warning') {
         if (typeof window.showAppToast === 'function') {
             window.showAppToast(message, type, 3500);
         } else {
             alert(message);
         }
+    }
+
+    async function submitInitialAssessment(hasPqe = null) {
+        const payload = {
+            degree: initialAssessmentState.degree,
+            eligibility: initialAssessmentState.eligibility,
+        };
+
+        if (typeof hasPqe === 'boolean') {
+            payload.has_pqe = hasPqe;
+        }
+
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+        const response = await fetch(initialAssessmentSubmitUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: JSON.stringify(payload),
+        });
+
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || data.ok === false) {
+            notifyAssessment(
+                String(data.message || 'You are not qualified for this position based on the initial assessment.'),
+                'warning'
+            );
+            return false;
+        }
+
+        return data;
+    }
+
+    function continueAfterInitialAssessment() {
+        if (hasIncompletePds) {
+            window.location.href = pdsRedirectUrl;
+            return;
+        }
+
+        if (hasDocTrackMismatch) {
+            openModal('docTrackMismatchModal');
+            return;
+        }
+
+        openModal('requiredDocsModal');
     }
 
     function goToInitialAssessmentEligibility() {
@@ -688,7 +739,7 @@
         openModal('initialAssessmentEducationModal');
     }
 
-    function completeInitialAssessmentEligibility() {
+    async function completeInitialAssessmentEligibility() {
         const eligibilityInput = document.getElementById('initialAssessmentEligibilityInput');
         const eligibilityOtherToggle = document.getElementById('initialAssessmentEligibilityOtherToggle');
         const eligibilityOtherInput = document.getElementById('initialAssessmentEligibilityOtherInput');
@@ -707,25 +758,29 @@
         }
 
         initialAssessmentState.eligibility = eligibility;
-        closeModal('initialAssessmentEligibilityModal');
+        const result = await submitInitialAssessment();
+        if (!result) {
+            return;
+        }
 
+        closeModal('initialAssessmentEligibilityModal');
         const isPlantilla = @json($typeIsPlantilla);
-        if (isPlantilla) {
+        if (isPlantilla && result.requires_pqe) {
             openModal('initialAssessmentPqeModal');
             return;
         }
 
-        window.location.href = @json(route('display_c1'));
+        continueAfterInitialAssessment();
     }
 
-    function answerInitialAssessmentPqe(hasPqe) {
-        closeModal('initialAssessmentPqeModal');
-        if (hasPqe) {
-            window.location.href = @json(route('display_c1'));
+    async function answerInitialAssessmentPqe(hasPqe) {
+        const result = await submitInitialAssessment(hasPqe);
+        if (!result) {
             return;
         }
 
-        window.location.href = @json(route('dashboard_user'));
+        closeModal('initialAssessmentPqeModal');
+        continueAfterInitialAssessment();
     }
 
     document.addEventListener('DOMContentLoaded', function() {

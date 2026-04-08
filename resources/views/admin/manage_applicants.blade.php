@@ -62,6 +62,17 @@
                     </span>
                 @endif
             </button>
+            @if($showNoPqeTab ?? false)
+                <button id="tab-no-pqe" onclick="switchTab('no-pqe')"
+                    class="tab-button px-6 py-3 font-semibold text-[#0D2B70] border-b-4 border-transparent hover:bg-blue-50 transition-all duration-200">
+                    No PQE
+                    @if(($noPqeApplicantsCount ?? 0) > 0)
+                        <span class="ml-2 bg-slate-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                            {{ $noPqeApplicantsCount }}
+                        </span>
+                    @endif
+                </button>
+            @endif
         </div>
 
         <!-- Tab Content: New Applicants -->
@@ -277,11 +288,83 @@
             </div>
         </div>
 
+        @if($showNoPqeTab ?? false)
+        <div id="content-no-pqe" class="tab-content hidden flex-1 flex flex-col min-h-0 overflow-hidden">
+            <div class="flex-none flex flex-wrap items-end gap-6 mb-4">
+                <form onsubmit="return false;" class="relative">
+                    <input id="searchInputNoPqe" type="search" placeholder="Search applicants" aria-label="Search"
+                        class="pl-10 pr-4 py-1.5 rounded-full border border-[#0D2B70] placeholder:text-[#7D93B3] placeholder:font-semibold text-[#0D2B70] focus:outline-none focus:ring-2 focus:ring-[#0D2B70] focus:ring-offset-1 w-[300px]" />
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                        class="w-5 h-5 text-[#7D93B3] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                        fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
+                    </svg>
+                </form>
+
+                <div class="flex flex-col gap-1">
+                    <label for="sortOrderNoPqe" class="font-semibold text-[#0D2B70] text-sm">Sort By</label>
+                    <select aria-label="Sort by date" id="sortOrderNoPqe"
+                        class="rounded-md text-[#0D2B70] py-1.5 px-3 font-semibold cursor-pointer border border-[#0D2B70] w-[150px]">
+                        <option value="latest">Latest</option>
+                        <option value="oldest">Oldest</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex-1 flex flex-col min-h-0 overflow-hidden border border-[#0D2B70] rounded-xl">
+                <div class="flex-1 overflow-auto">
+                    <table class="w-full text-left border-collapse table-fixed">
+                        <thead class="bg-[#0D2B70] text-white sticky top-0 z-10">
+                            <tr>
+                                <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-left w-[20%]">Name</th>
+                                <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-left w-[25%]">Job Applied</th>
+                                <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-left w-[25%]">Place of Assignment</th>
+                                <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-left w-[15%]">Status</th>
+                                <th class="py-4 px-6 font-bold uppercase text-sm tracking-wider text-center w-[15%]">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="no-pqe-applicants-list" class="divide-y divide-[#0D2B70]">
+                            @forelse (($noPqeApplicants ?? []) as $applicant)
+                                <tr class="text-[#0D2B70] select-none hover:bg-blue-50 transition-colors duration-200">
+                                    <td class="py-4 px-6 text-left w-[20%]">{{ $applicant['name'] }}</td>
+                                    <td class="py-4 px-6 text-left w-[25%]">{{ $applicant['job_applied'] }}</td>
+                                    <td class="py-4 px-6 text-left w-[25%]">{{ $applicant['place_of_assignment'] }}</td>
+                                    <td class="py-4 px-6 text-left w-[15%]">
+                                        <span class="px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700">
+                                            {{ $applicant['status'] }}
+                                        </span>
+                                    </td>
+                                    <td class="py-4 px-6 text-center w-[15%]">
+                                        <button
+                                            onclick="window.location.href='{{ route('admin.applicant_status', ['user_id' => $applicant['user_id'], 'vacancy_id' => $applicant['vacancy_id']]) }}'"
+                                            class="text-[#0D2B70] border border-[#0D2B70] font-bold py-1 px-4 rounded-md text-sm transition-all duration-300 hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md flex items-center gap-2 mx-auto">
+                                            <x-heroicon-o-eye class="w-4 h-4" />
+                                            <span>View</span>
+                                        </button>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="5" class="text-center py-10 text-gray-500 text-xl">
+                                        No applicants without PQE found.
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        @endif
+
         @include('partials.loader')
     </main>
 
     <script>
         const vacancyId = "{{ $vacancyId }}";
+        const showNoPqeTab = @json((bool) ($showNoPqeTab ?? false));
+        const allowedTabs = showNoPqeTab ? ['new', 'compliance', 'qualified', 'no-pqe'] : ['new', 'compliance', 'qualified'];
 
         // Tab switching
         function switchTab(tab, updateHistory = true) {
@@ -296,8 +379,7 @@
                 }
             }
 
-            const tabs = ['new', 'compliance', 'qualified'];
-            tabs.forEach(t => {
+            allowedTabs.forEach(t => {
                 const tabBtn = document.getElementById(`tab-${t}`);
                 const content = document.getElementById(`content-${t}`);
 
@@ -322,7 +404,7 @@
             const params = new URLSearchParams(window.location.search);
             // Default to 'new' if no tab param exists
             const tab = (params.get('tab') || 'new').trim().toLowerCase();
-            if (['new', 'compliance', 'qualified'].includes(tab)) {
+            if (allowedTabs.includes(tab)) {
                 switchTab(tab, false); // false = don't push state again
             } else {
                 switchTab('new', false);
@@ -336,7 +418,7 @@
 
             console.log('Initial Tab from URL:', initialTab); // Debugging
 
-            if (['new', 'compliance', 'qualified'].includes(initialTab)) {
+            if (allowedTabs.includes(initialTab)) {
                 switchTab(initialTab);
             } else {
                 switchTab('new');
@@ -441,6 +523,37 @@
                     document.getElementById('qualified-applicants-list').innerHTML = html;
                 })
                 .catch(error => console.error('Error:', error));
+        }
+
+        if (showNoPqeTab) {
+            const searchInputNoPqe = document.getElementById('searchInputNoPqe');
+            const sortOrderNoPqe = document.getElementById('sortOrderNoPqe');
+
+            const handleNoPqeApplicantsFilter = debounce(function () {
+                const search = searchInputNoPqe.value.trim();
+                const sortOrder = sortOrderNoPqe.value;
+                fetchNoPqeApplicants(search, sortOrder);
+            }, 500);
+
+            if (searchInputNoPqe) searchInputNoPqe.addEventListener('input', handleNoPqeApplicantsFilter);
+            if (sortOrderNoPqe) sortOrderNoPqe.addEventListener('change', handleNoPqeApplicantsFilter);
+
+            function fetchNoPqeApplicants(search = '', sortOrder = 'latest') {
+                const params = new URLSearchParams({
+                    vacancy_id: vacancyId,
+                    search: search,
+                    sort_order: sortOrder
+                });
+
+                fetch(`/admin/manage_applicants/no-pqe?${params.toString()}`, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                    .then(response => response.text())
+                    .then(html => {
+                        document.getElementById('no-pqe-applicants-list').innerHTML = html;
+                    })
+                    .catch(error => console.error('Error:', error));
+            }
         }
     </script>
 

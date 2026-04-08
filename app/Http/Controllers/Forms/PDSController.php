@@ -5363,6 +5363,13 @@ class PDSController extends Controller
                                 ->withInput();
                         }
 
+                        if ($reasonCode === 'initial_assessment_incomplete') {
+                            return redirect()
+                                ->route('job_description', ['id' => $applicationVacancyId])
+                                ->with('error', (string) ($submissionResult['message']
+                                    ?? 'Please complete the initial assessment for this position before applying.'));
+                        }
+
                         return $redirect->withErrors(['cert_uploads.application_letter' => $submissionResult['message']]);
                     }
 
@@ -5402,6 +5409,74 @@ class PDSController extends Controller
         }
     } // END finalize PDS
 
+    private function initialAssessmentSessionKey(string $vacancyId): string
+    {
+        return 'initial_assessment_answers.' . trim($vacancyId);
+    }
+
+    private function getInitialAssessmentForVacancy(Models\JobVacancy $vacancy): array
+    {
+        $assessment = session($this->initialAssessmentSessionKey((string) $vacancy->vacancy_id), []);
+        return is_array($assessment) ? $assessment : [];
+    }
+
+    private function hasCompletedInitialAssessmentForVacancy(Models\JobVacancy $vacancy, array $assessment): bool
+    {
+        $vacancyId = trim((string) $vacancy->vacancy_id);
+        $assessmentVacancyId = trim((string) ($assessment['vacancy_id'] ?? ''));
+        $degree = trim((string) ($assessment['degree'] ?? ''));
+        $eligibility = trim((string) ($assessment['eligibility'] ?? ''));
+        $q1Passed = array_key_exists('q1_passed', $assessment) ? (bool) $assessment['q1_passed'] : false;
+        $q2Passed = array_key_exists('q2_passed', $assessment) ? (bool) $assessment['q2_passed'] : false;
+
+        if (
+            $vacancyId === ''
+            || $assessmentVacancyId !== $vacancyId
+            || $degree === ''
+            || $eligibility === ''
+            || !$q1Passed
+            || !$q2Passed
+        ) {
+            return false;
+        }
+
+        $isPlantilla = strcasecmp(trim((string) $vacancy->vacancy_type), 'plantilla') === 0;
+        if ($isPlantilla && !array_key_exists('has_pqe', $assessment)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private function buildInitialAssessmentApplicationPayload(array $assessment): array
+    {
+        $payload = [];
+
+        if (Schema::hasColumn('applications', 'initial_assessment_degree')) {
+            $payload['initial_assessment_degree'] = trim((string) ($assessment['degree'] ?? '')) ?: null;
+        }
+        if (Schema::hasColumn('applications', 'initial_assessment_eligibility')) {
+            $payload['initial_assessment_eligibility'] = trim((string) ($assessment['eligibility'] ?? '')) ?: null;
+        }
+        if (Schema::hasColumn('applications', 'initial_assessment_q1_passed')) {
+            $payload['initial_assessment_q1_passed'] = array_key_exists('q1_passed', $assessment)
+                ? (bool) $assessment['q1_passed']
+                : null;
+        }
+        if (Schema::hasColumn('applications', 'initial_assessment_q2_passed')) {
+            $payload['initial_assessment_q2_passed'] = array_key_exists('q2_passed', $assessment)
+                ? (bool) $assessment['q2_passed']
+                : null;
+        }
+        if (Schema::hasColumn('applications', 'initial_assessment_has_pqe')) {
+            $payload['initial_assessment_has_pqe'] = array_key_exists('has_pqe', $assessment)
+                ? (bool) $assessment['has_pqe']
+                : null;
+        }
+
+        return $payload;
+    }
+
     private function createOrUpdateApplicationFromVacancyUploads(string $vacancyId): array
     {
         $supportsVacancyScopedDocs = Schema::hasColumn('uploaded_documents', 'vacancy_id');
@@ -5414,6 +5489,8 @@ class PDSController extends Controller
                 'reason_code' => 'vacancy_not_found',
             ];
         }
+
+        $initialAssessment = $this->getInitialAssessmentForVacancy($vacancy);
 
         $application = Applications::where('user_id', Auth::id())
             ->where('vacancy_id', $vacancyId)
@@ -5452,6 +5529,20 @@ class PDSController extends Controller
                         ?? 'You are not yet qualified to apply for this position.'),
                     'reason_code' => 'qualification',
                     'missing_requirements' => array_values((array) ($qualificationGate['missing_labels'] ?? [])),
+                ];
+            }
+
+            if (!$this->hasCompletedInitialAssessmentForVacancy($vacancy, $initialAssessment)) {
+                Log::info('C5 application submit blocked: initial assessment not completed for vacancy', [
+                    'user_id' => Auth::id(),
+                    'vacancy_id' => $vacancyId,
+                ]);
+
+                return [
+                    'ok' => false,
+                    'created' => false,
+                    'message' => 'Please complete the initial assessment for this position before applying.',
+                    'reason_code' => 'initial_assessment_incomplete',
                 ];
             }
         }
@@ -5559,11 +5650,17 @@ class PDSController extends Controller
             ];
         }
 
-        $application = Applications::create(array_merge($applicationPayload, [
-            'user_id' => Auth::id(),
-            'vacancy_id' => $vacancyId,
-            'status' => ApplicationStatus::PENDING->value,
-        ]));
+        $application = Applications::create(array_merge(
+            $applicationPayload,
+            $this->buildInitialAssessmentApplicationPayload($initialAssessment),
+            [
+                'user_id' => Auth::id(),
+                'vacancy_id' => $vacancyId,
+                'status' => ApplicationStatus::PENDING->value,
+            ]
+        ));
+
+        session()->forget($this->initialAssessmentSessionKey((string) $vacancy->vacancy_id));
 
         if ($vacancy) {
             $admins = \App\Models\Admin::all();
