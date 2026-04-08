@@ -115,7 +115,7 @@
                         </div>
                         <div class="grid grid-cols-[120px_1fr] gap-2">
                             <span class="font-semibold text-gray-700">Eligibility:</span>
-                            <span class="text-gray-600" id="modalEligibility"></span>
+                            <div class="text-gray-600 break-words" id="modalEligibility"></div>
                         </div>
                         <div class="grid grid-cols-[120px_1fr] gap-2" id="modalCompetencyContainer">
                             <span class="font-semibold text-gray-700">Competency:</span>
@@ -384,6 +384,83 @@
                 .map((docType) => documentMetaForLanding[docType]);
         }
 
+        function formatEligibilityPhrase(value) {
+            return String(value || '')
+                .replace(/PQE/gi, 'PQE (if taken and passed)')
+                .trim();
+        }
+
+        function parseEligibilityEntries(rawValue) {
+            const raw = String(rawValue || '').trim();
+            if (!raw) {
+                return [];
+            }
+
+            const entries = [];
+            const addEntry = (nameValue, legalBasisValue = '', levelValue = '') => {
+                const name = formatEligibilityPhrase(nameValue);
+                if (!name) return;
+                const legalBasis = formatEligibilityPhrase(legalBasisValue);
+                const level = formatEligibilityPhrase(levelValue);
+                const detailParts = [legalBasis, level].filter(Boolean);
+                entries.push(detailParts.length ? `${name} (${detailParts.join(' | ')})` : name);
+            };
+
+            try {
+                const parsed = JSON.parse(raw);
+                const source = Array.isArray(parsed) ? parsed : [parsed];
+                source.forEach((item) => {
+                    if (item && typeof item === 'object') {
+                        addEntry(item.name, item.legalBasis, item.level);
+                    } else {
+                        addEntry(item);
+                    }
+                });
+            } catch (_) {
+                raw
+                    .split(/\r?\n|;/)
+                    .map(token => token.trim())
+                    .filter(Boolean)
+                    .forEach(token => addEntry(token));
+            }
+
+            const deduped = [];
+            const seen = new Set();
+            entries.forEach((entry) => {
+                const key = entry.toLowerCase();
+                if (!seen.has(key)) {
+                    seen.add(key);
+                    deduped.push(entry);
+                }
+            });
+            return deduped;
+        }
+
+        function renderEligibility(container, rawValue) {
+            if (!container) return;
+            container.replaceChildren();
+
+            const entries = parseEligibilityEntries(rawValue);
+            if (!entries.length) {
+                container.textContent = 'N/A';
+                return;
+            }
+
+            if (entries.length === 1) {
+                container.textContent = entries[0];
+                return;
+            }
+
+            const list = document.createElement('ul');
+            list.className = 'list-disc pl-5 space-y-1';
+            entries.forEach((entry) => {
+                const item = document.createElement('li');
+                item.textContent = entry;
+                list.appendChild(item);
+            });
+            container.appendChild(list);
+        }
+
         function showJobDetails(job) {
             // Store job ID in session storage or data attribute for later use
             sessionStorage.setItem('selectedJobId', job.vacancy_id);
@@ -397,9 +474,7 @@
             document.getElementById('modalEducation').textContent = job.qualification_education || 'N/A';
             document.getElementById('modalTraining').textContent = job.qualification_training || 'N/A';
             document.getElementById('modalExperience').textContent = job.qualification_experience || 'N/A';
-            let eligibility = job.qualification_eligibility || 'N/A';
-            eligibility = eligibility.replace(/PQE/gi, 'PQE(if taken and passed)');
-            document.getElementById('modalEligibility').textContent = eligibility;
+            renderEligibility(document.getElementById('modalEligibility'), job.qualification_eligibility);
             
             const competencyContainer = document.getElementById('modalCompetencyContainer');
             if (job.competencies) {

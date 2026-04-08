@@ -16,6 +16,17 @@ use setasign\Fpdi\Fpdi;
 
 class ExportWESController extends Controller
 {
+    /**
+     * Runtime metadata for the last WES rendering strategy used.
+     *
+     * @var array{mode:string,templatePath:?string,templateSource:?string}
+     */
+    private array $wesRenderMeta = [
+        'mode' => 'unknown',
+        'templatePath' => null,
+        'templateSource' => null,
+    ];
+
     public function exportWES(Request $request)
     {
         $user = Auth::user();
@@ -46,12 +57,27 @@ class ExportWESController extends Controller
 
         $content = $pdf->Output('S');
 
-        return response($content, 200, [
+        $headers = [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => ($forceInline ? 'inline' : 'attachment') . '; filename="' . $filename . '"',
             'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
             'Pragma' => 'no-cache',
-        ]);
+            'X-WES-Renderer' => (string) ($this->wesRenderMeta['mode'] ?? 'unknown'),
+        ];
+
+        if (!empty($this->wesRenderMeta['templateSource'])) {
+            $headers['X-WES-Template-Source'] = (string) $this->wesRenderMeta['templateSource'];
+        }
+
+        $templatePath = $this->wesRenderMeta['templatePath'] ?? null;
+        if (is_string($templatePath) && $templatePath !== '' && file_exists($templatePath)) {
+            $templateHash = hash_file('sha256', $templatePath);
+            if (is_string($templateHash) && $templateHash !== '') {
+                $headers['X-WES-Template-SHA256'] = $templateHash;
+            }
+        }
+
+        return response($content, 200, $headers);
     }
 
     public function previewWES()
@@ -122,12 +148,26 @@ class ExportWESController extends Controller
 
     private function buildWesPdf(string $fullName, Collection $experiences): \FPDF
     {
-        $responsiveDocxTemplatePath = public_path('templates/WES_Template.docx');
-        if (file_exists($responsiveDocxTemplatePath)) {
+        foreach ($this->resolveResponsiveWesDocxCandidates() as $candidate) {
+            $responsiveDocxTemplatePath = $candidate['path'];
+            $responsiveDocxTemplateSource = $candidate['source'];
+
+            if (!$this->docxHasResponsiveWesPlaceholders($responsiveDocxTemplatePath)) {
+                Log::warning('Skipping WES DOCX template without required placeholders.', [
+                    'template_docx' => $responsiveDocxTemplatePath,
+                ]);
+                continue;
+            }
+
             try {
+                $this->wesRenderMeta = [
+                    'mode' => 'responsive_docx',
+                    'templatePath' => $responsiveDocxTemplatePath,
+                    'templateSource' => $responsiveDocxTemplateSource,
+                ];
                 return $this->buildWesPdfFromResponsiveDocxTemplate($responsiveDocxTemplatePath, $fullName, $experiences);
             } catch (\Throwable $e) {
-                Log::warning('Responsive WES DOCX template render failed; falling back to PDF-template overlay.', [
+                Log::warning('Responsive WES DOCX template render failed; trying next fallback.', [
                     'error' => $e->getMessage(),
                     'template_docx' => $responsiveDocxTemplatePath,
                 ]);
@@ -137,6 +177,11 @@ class ExportWESController extends Controller
         $templatePdfPath = $this->resolveWesTemplatePdfPath();
         if ($templatePdfPath !== null) {
             try {
+                $this->wesRenderMeta = [
+                    'mode' => 'template_pdf_overlay',
+                    'templatePath' => $templatePdfPath,
+                    'templateSource' => 'resources/templates/work_experience_template.pdf',
+                ];
                 return $this->buildWesPdfFromTemplate($templatePdfPath, $fullName, $experiences);
             } catch (\Throwable $e) {
                 Log::warning('WES template-based export failed; falling back to legacy WES PDF renderer.', [
@@ -147,6 +192,11 @@ class ExportWESController extends Controller
         }
 
         // Fallback: legacy in-code renderer (kept for resilience when template conversion is unavailable).
+        $this->wesRenderMeta = [
+            'mode' => 'legacy_renderer',
+            'templatePath' => null,
+            'templateSource' => null,
+        ];
         return $this->buildWesPdfLegacy($fullName, $experiences);
     }
 
@@ -398,23 +448,77 @@ class ExportWESController extends Controller
     private function resolveWesTemplatePdfPath(): ?string
     {
         $pdfPath = resource_path('templates/work_experience_template.pdf');
-        $docxPath = $this->resolveWesTemplateDocxPath();
-
-        if ($docxPath !== null && (!file_exists($pdfPath) || filemtime($docxPath) > filemtime($pdfPath))) {
-            $converted = $this->convertDocxTemplateToPdf($docxPath, $pdfPath);
-            if (!$converted && file_exists($pdfPath)) {
-                // Keep existing PDF template when conversion fails.
-                return $pdfPath;
-            }
-        }
 
         return file_exists($pdfPath) ? $pdfPath : null;
     }
 
-    private function resolveWesTemplateDocxPath(): ?string
+    /**
+     * Ordered WES DOCX candidates for responsive rendering.
+     * Priority starts with resources/templates/work_experience_template.docx.
+     *
+     * @return array<int, array{path:string,source:string}>
+     */
+    private function resolveResponsiveWesDocxCandidates(): array
     {
-        $path = resource_path('templates/work_experience_template.docx');
-        return file_exists($path) ? $path : null;
+        $candidates = [
+            [
+                'path' => resource_path('templates/work_experience_template.docx'),
+                'source' => 'resources/templates/work_experience_template.docx',
+            ],
+            [
+                'path' => public_path('templates/WES_Template.docx'),
+                'source' => 'public/templates/WES_Template.docx',
+            ],
+        ];
+
+        return array_values(array_filter($candidates, static function (array $candidate): bool {
+            return is_string($candidate['path'] ?? null)
+                && $candidate['path'] !== ''
+                && file_exists($candidate['path']);
+        }));
+    }
+
+    private function docxHasResponsiveWesPlaceholders(string $templateDocxPath): bool
+    {
+        if (!class_exists(\ZipArchive::class)) {
+            // If Zip extension is unavailable, keep behavior permissive.
+            return true;
+        }
+
+        $requiredMarkers = [
+            '${from}',
+            '${to}',
+            '${position}',
+            '${office}',
+            '${supervisor}',
+            '${agency}',
+            '${accomplishments}',
+            '${duties}',
+            '${experience}',
+            '${/experience}',
+            '${name}',
+        ];
+
+        $zip = new \ZipArchive();
+        $opened = $zip->open($templateDocxPath);
+        if ($opened !== true) {
+            return false;
+        }
+
+        $documentXml = (string) $zip->getFromName('word/document.xml');
+        $zip->close();
+
+        if ($documentXml === '') {
+            return false;
+        }
+
+        foreach ($requiredMarkers as $marker) {
+            if (!str_contains($documentXml, $marker)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private function convertDocxTemplateToPdf(string $docxPath, string $pdfPath): bool
