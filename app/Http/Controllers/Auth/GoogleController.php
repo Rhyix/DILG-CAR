@@ -137,7 +137,7 @@ class GoogleController extends Controller
                     'section' => 'Google Login',
                     'error' => $e->getMessage(),
                 ])
-                ->event('login')
+                ->event('login_failed')
                 ->log('google oauth callback failed');
 
             return redirect()->route('login.form')->withErrors([

@@ -222,7 +222,7 @@
 
         <div class="grid gap-5 md:grid-cols-2">
           @include('admin.partials.qualification_education_builder')
-          <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 md:col-span-2">
             <label class="{{ $fieldLabel }}">Training <span class="text-red-600">*</span></label>
             <textarea name="qualification_training" class="{{ $fieldTextarea }}">{{ old('qualification_training', $formSource?->qualification_training ?? '') }}</textarea>
           </div>

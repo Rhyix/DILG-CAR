@@ -163,7 +163,7 @@ class LoginController extends Controller
         }
 
         activity()
-            ->event('login')
+            ->event('login_failed')
             ->withProperties(['ip' => request()->ip(), 'email' => $request->email, 'section' => 'Login'])
             ->log('Failed login attempt.');
 

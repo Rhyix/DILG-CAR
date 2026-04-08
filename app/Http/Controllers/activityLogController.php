@@ -108,8 +108,20 @@ class activityLogController extends Controller
                     $actor = optional($activity->causer)->name ?? 'Someone';
                     $desc = $activity->description ?? '';
                     $event = $activity->event ?? null;
-                    $isLogin = strcasecmp((string)$event, 'login') === 0 || stripos($desc, 'logged in') !== false;
+                    $eventText = strtolower(trim((string) $event));
+                    $isFailedLogin = in_array($eventText, ['login_failed', 'failed_login', 'auth_failed'], true)
+                        || stripos($desc, 'failed login') !== false
+                        || stripos($desc, 'logged in unsuccessfully') !== false
+                        || (strcasecmp((string) $event, 'login') === 0 && (stripos($desc, 'unsuccess') !== false || stripos($desc, 'failed') !== false));
+                    $isLogin = !$isFailedLogin && (strcasecmp((string)$event, 'login') === 0 || stripos($desc, 'logged in') !== false);
                     $isLogout = strcasecmp((string)$event, 'logout') === 0 || stripos($desc, 'logged out') !== false;
+                    if ($isFailedLogin) {
+                        $email = trim((string) ($activity->properties['email'] ?? ''));
+                        if ($email !== '') {
+                            return 'Failed login attempt for ' . $email . '.';
+                        }
+                        return 'Failed login attempt.';
+                    }
                     if ($isLogin) {
                         return $actor . ' logged in.';
                     }
@@ -135,8 +147,20 @@ class activityLogController extends Controller
                     $actorHtml = '<strong>' . htmlspecialchars($actor, ENT_QUOTES, 'UTF-8') . '</strong>';
                     $desc = $activity->description ?? '';
                     $event = $activity->event ?? null;
-                    $isLogin = strcasecmp((string)$event, 'login') === 0 || stripos($desc, 'logged in') !== false;
+                    $eventText = strtolower(trim((string) $event));
+                    $isFailedLogin = in_array($eventText, ['login_failed', 'failed_login', 'auth_failed'], true)
+                        || stripos($desc, 'failed login') !== false
+                        || stripos($desc, 'logged in unsuccessfully') !== false
+                        || (strcasecmp((string) $event, 'login') === 0 && (stripos($desc, 'unsuccess') !== false || stripos($desc, 'failed') !== false));
+                    $isLogin = !$isFailedLogin && (strcasecmp((string)$event, 'login') === 0 || stripos($desc, 'logged in') !== false);
                     $isLogout = strcasecmp((string)$event, 'logout') === 0 || stripos($desc, 'logged out') !== false;
+                    if ($isFailedLogin) {
+                        $email = trim((string) ($activity->properties['email'] ?? ''));
+                        if ($email !== '') {
+                            return 'Failed login attempt for <strong>' . htmlspecialchars($email, ENT_QUOTES, 'UTF-8') . '</strong>.';
+                        }
+                        return 'Failed login attempt.';
+                    }
                     if ($isLogin) {
                         return $actorHtml . ' logged in.';
                     }

@@ -249,8 +249,8 @@ class AdminAuthController extends Controller
 
         activity()
             ->withProperties(['ip' => $request->ip(), 'email' => $request->email, 'section' => 'Login'])
-            ->event('login')
-            ->log('Admin logged in unsuccessfully.');
+            ->event('login_failed')
+            ->log('Failed admin login attempt.');
 
         return back()->withErrors([
             'email' => 'The provided credentials do not match our records.',
