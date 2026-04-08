@@ -378,9 +378,14 @@ class ExamController extends Controller
     public function submit(Request $request, $vacancy_id)
     {    //dd($request->all());
 
+        $authenticatedUserId = (int) auth()->id();
+        if ($authenticatedUserId < 1) {
+            abort(401, 'Authentication required.');
+        }
+
         $validated = $request->validate([
             'vacancy_id' => 'required|string',
-            'user_id' => 'required|integer',
+            'user_id' => 'nullable|integer',
             'answers' => 'nullable|array',
         ]);
 
@@ -389,12 +394,8 @@ class ExamController extends Controller
         }
 
         $answerRecord = Applications::where('vacancy_id', $validated['vacancy_id'])
-            ->where('user_id', $validated['user_id'])
+            ->where('user_id', $authenticatedUserId)
             ->firstOrFail();
-
-        if ((int) auth()->id() !== (int) $validated['user_id']) {
-            abort(403, 'Unauthorized exam submission.');
-        }
 
         if ($this->hasExamWindowExpired($answerRecord)) {
             if ($answerRecord->status !== ApplicationStatus::SUBMITTED->value || is_null($answerRecord->exam_submitted_at)) {
@@ -406,7 +407,7 @@ class ExamController extends Controller
             }
 
             Log::warning('Blocked late exam submission beyond grace window.', [
-                'user_id' => $validated['user_id'],
+                'user_id' => $authenticatedUserId,
                 'vacancy_id' => $vacancy_id,
                 'exam_end_time' => $answerRecord->exam_end_time,
                 'now' => now()->toDateTimeString(),
@@ -476,7 +477,7 @@ class ExamController extends Controller
         activity()
             ->causedBy(auth()->user())
             ->event('submit')
-            ->withProperties(['vacancy_id' => $vacancy_id, 'user_id' => $validated['user_id'], 'section' => 'Exam'])
+            ->withProperties(['vacancy_id' => $vacancy_id, 'user_id' => $authenticatedUserId, 'section' => 'Exam'])
             ->log('Submitted exam answers.');
 
         return redirect()->route('user.exam_thankyou', compact('vacancy_id', ));
@@ -484,9 +485,14 @@ class ExamController extends Controller
 
     public function autoSave(Request $request, $vacancy_id)
     {
+        $authenticatedUserId = (int) auth()->id();
+        if ($authenticatedUserId < 1) {
+            return response()->json(['success' => false, 'message' => 'Authentication required.'], 401);
+        }
+
         $validated = $request->validate([
             'vacancy_id' => 'required|string',
-            'user_id' => 'required|integer',
+            'user_id' => 'nullable|integer',
             'answers' => 'nullable|array',
         ]);
 
@@ -498,16 +504,12 @@ class ExamController extends Controller
         }
 
         $answerRecord = Applications::where('vacancy_id', $validated['vacancy_id'])
-            ->where('user_id', $validated['user_id'])
+            ->where('user_id', $authenticatedUserId)
             ->firstOrFail();
 
         // If exam is already submitted, don't allow autosave
         if ($answerRecord->status === 'submitted') {
             return response()->json(['success' => false, 'message' => 'Exam already submitted']);
-        }
-
-        if ((int) auth()->id() !== (int) $validated['user_id']) {
-            return response()->json(['success' => false, 'message' => 'Unauthorized autosave request.'], 403);
         }
 
         if ($this->hasExamWindowExpired($answerRecord)) {
@@ -1577,6 +1579,28 @@ class ExamController extends Controller
             return redirect()
                 ->route('exam.attendance.prompt', ['vacancy_id' => $vacancy_id])
                 ->with('error', 'Only applicants marked as Will Attend can proceed to the exam.');
+        }
+
+        // Require token-validated lobby access before question access.
+        $sessionKey = 'exam_access_' . $vacancy_id;
+        $hasSession = (bool) session()->get($sessionKey, false);
+        $deviceId = Cookie::get('device_id');
+        $matchesDevice = $deviceId
+            && $application->exam_token_device_id
+            && hash_equals((string) $application->exam_token_device_id, (string) $deviceId);
+
+        if (is_null($application->exam_token_used_at)) {
+            return redirect()
+                ->route('user.exam_lobby', ['vacancy_id' => $vacancy_id])
+                ->with('error', 'Please open your exam link from the notification first.');
+        }
+
+        if (!$hasSession && !$matchesDevice) {
+            abort(403, 'This exam session is already active on a different device.');
+        }
+
+        if (!$hasSession && $matchesDevice) {
+            session([$sessionKey => true]);
         }
 
         // Check if already submitted
@@ -2663,6 +2687,18 @@ class ExamController extends Controller
 
     public function checkExamStatus(Request $request, $vacancy_id)
     {
+        if (!auth()->check()) {
+            return response()->json(['started' => false], 401);
+        }
+
+        $hasApplication = Applications::where('vacancy_id', $vacancy_id)
+            ->where('user_id', auth()->id())
+            ->exists();
+
+        if (!$hasApplication) {
+            return response()->json(['started' => false], 404);
+        }
+
         $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->first();
 
         if (!$examDetail) {

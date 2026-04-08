@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\PreviewUrl;
 use App\Enums\ApplicationStatus;
 use Carbon\Carbon;
 use App\Models\Admin;
@@ -2251,9 +2252,7 @@ class AdminController extends Controller
                     'name' => self::DOCUMENT_LABELS['application_letter'],
                     'text' => self::DOCUMENT_LABELS['application_letter'],
                     'status' => $application->file_status ?? 'Not Submitted',
-                    'preview' => $application->file_storage_path
-                        ? url('/preview-file/' . base64_encode($application->file_storage_path))
-                        : '',
+                    'preview' => PreviewUrl::forPath($application->file_storage_path),
                     'remarks' => $application->file_remarks ?? '',
                     'original_name' => $application->file_original_name ?? '',
                     'has_file' => $hasFile,
@@ -2281,7 +2280,7 @@ class AdminController extends Controller
                 'name' => self::DOCUMENT_LABELS[$docType] ?? ucwords(str_replace('_', ' ', $docType)),
                 'text' => self::DOCUMENT_LABELS[$docType] ?? ucwords(str_replace('_', ' ', $docType)),
                 'status' => $hasFile ? ($doc->status ?? 'Pending') : ($isRevisionStatus ? $doc->status : 'Not Submitted'),
-                'preview' => $hasFile ? url('/preview-file/' . base64_encode($doc->storage_path)) : '',
+                'preview' => $hasFile ? PreviewUrl::forPath($doc->storage_path) : '',
                 'remarks' => $doc ? ($doc->remarks ?: '') : '',
                 'original_name' => $doc->original_name ?? '',
                 'has_file' => $hasFile,

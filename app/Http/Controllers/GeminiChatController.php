@@ -4,12 +4,17 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class GeminiChatController extends Controller
 {
     public function chat(Request $request)
 {
-    $userMessage = $request->input('message', '');
+    $validated = $request->validate([
+        'message' => 'required|string|max:2000',
+    ]);
+
+    $userMessage = trim((string) ($validated['message'] ?? ''));
 
     // Context about the web app features for applicants only
     $context = "Your name is Ana an assistant for the DILG Job Application System. Here are the features you should know:\n\n" .
@@ -25,7 +30,7 @@ class GeminiChatController extends Controller
     "- Total Applications Count.\n" .
     "- Number of Pending Applications.\n" .
     "- Feature highlights.\n" . 
-    "- Speak with a language Tagalog, English, Pangasinan, Filipino, Applai or Ilocano.\n";
+    "- Speak with a language Tagalog, English, Pangasinan, Filipino, Applai or Ilocano.\n" .
     "- Basic Standard Qualifications (General Requirements for Govt Positions)\n" .
     "- Basic Education Qualifications (Elementary, Junior High, Senior High, College)\n" .
     "- Basic Work Experience Qualifications (Entry Level, Mid Level, Senior Level)\n" .
@@ -39,10 +44,16 @@ class GeminiChatController extends Controller
 
     // 1. Choose a model
     $model = env('GEMINI_MODEL', 'gemini-2.5-flash');
+    $apiKey = trim((string) env('GEMINI_API_KEY', ''));
+    if ($apiKey === '') {
+        return response()->json([
+            'error' => 'Chat service is unavailable.',
+        ], 503);
+    }
 
     // 2. Build endpoint with API key
     $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent"
-         . '?key=' . env('GEMINI_API_KEY');
+         . '?key=' . $apiKey;
 
     // 3. Payload
     $payload = [
@@ -52,16 +63,18 @@ class GeminiChatController extends Controller
     ];
 
     // 4. Fire the request
-    $response = Http::withoutVerifying()
-                   ->timeout(30)
-                   ->post($url, $payload);
+    $response = Http::timeout(30)->post($url, $payload);
 
     // 5. Handle errors
     if ($response->failed()) {
+        Log::warning('Gemini API request failed', [
+            'status' => $response->status(),
+            'body' => $response->json(),
+        ]);
+
         return response()->json([
-            'error'   => 'Gemini API failed',
-            'details' => $response->json(),
-        ], $response->status());
+            'error' => 'Chat service is currently unavailable. Please try again later.',
+        ], 502);
     }
 
     return $response->json();

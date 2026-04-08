@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Forms;
 
+use App\Support\PreviewUrl;
 use App\Enums\ApplicationStatus;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Storage;
@@ -4583,7 +4584,7 @@ class PDSController extends Controller
             ->latest('updated_at')
             ->value('file_storage_path');
         $applicationLetterPreviewUrl = !empty($latestApplicationLetterPath)
-            ? url('/preview-file/' . base64_encode((string) $latestApplicationLetterPath))
+            ? PreviewUrl::forPath((string) $latestApplicationLetterPath)
             : null;
 
         // Reuse previously uploaded files from prior applications.

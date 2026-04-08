@@ -393,7 +393,7 @@
         @if(!empty($formSource?->csc_form_path))
           <p class="mt-2 text-xs text-slate-500">
             Current file:
-            <a href="{{ Storage::url($formSource->csc_form_path) }}" target="_blank" class="text-[#0D2B70] underline">{{ basename($formSource->csc_form_path) }}</a>
+            <a href="{{ \App\Support\PreviewUrl::forPath($formSource->csc_form_path) }}" target="_blank" class="text-[#0D2B70] underline">{{ basename($formSource->csc_form_path) }}</a>
             - Upload a new file to replace it.
           </p>
         @endif

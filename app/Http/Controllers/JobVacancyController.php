@@ -3,6 +3,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\PreviewUrl;
 use App\Enums\ApplicationStatus;
 use App\Models\JobVacancy;
 use App\Models\ExamDetail;
@@ -2160,9 +2161,7 @@ class JobVacancyController extends Controller
                     'name' => $labelMap['application_letter'],
                     'text' => $labelMap['application_letter'],
                     'status' => $application->file_status ?? ($application->file_storage_path ? 'Pending' : 'Not Submitted'),
-                    'preview' => $application->file_storage_path
-                        ? url('/preview-file/' . base64_encode($application->file_storage_path))
-                        : '',
+                    'preview' => PreviewUrl::forPath($application->file_storage_path),
                     'remarks' => $application->file_remarks ?? '',
                     'last_modified_by' => $application->file_last_modified_by ?? null,
                     'isBold' => true,
@@ -2186,7 +2185,7 @@ class JobVacancyController extends Controller
                     'name' => $labelMap[$docType] ?? ucwords(str_replace('_', ' ', $docType)),
                     'text' => $labelMap[$docType] ?? ucwords(str_replace('_', ' ', $docType)),
                     'status' => $status,
-                    'preview' => ($doc && !empty($doc->storage_path)) ? url('/preview-file/' . base64_encode($doc->storage_path)) : '',
+                    'preview' => ($doc && !empty($doc->storage_path)) ? PreviewUrl::forPath($doc->storage_path) : '',
                     'remarks' => $doc?->remarks ?? '',
                     'last_modified_by' => $doc?->last_modified_by,
                     'isBold' => true,
@@ -2320,9 +2319,7 @@ class JobVacancyController extends Controller
                     'name' => $labelMap['application_letter'],
                     'text' => $labelMap['application_letter'],
                     'status' => $application->file_status ?? ($application->file_storage_path ? 'Pending' : 'Not Submitted'),
-                    'preview' => $application->file_storage_path
-                        ? url('/preview-file/' . base64_encode($application->file_storage_path))
-                        : '',
+                    'preview' => PreviewUrl::forPath($application->file_storage_path),
                     'remarks' => $application->file_remarks ?? '',
                     'last_modified_by' => $application->file_last_modified_by ?? null,
                     'isBold' => true,
@@ -2356,7 +2353,7 @@ class JobVacancyController extends Controller
                     'name' => $labelMap[$docType] ?? ucwords(str_replace('_', ' ', $docType)),
                     'text' => $labelMap[$docType] ?? ucwords(str_replace('_', ' ', $docType)),
                     'status' => $status,
-                    'preview' => ($doc && !empty($doc->storage_path)) ? url('/preview-file/' . base64_encode($doc->storage_path)) : '',
+                    'preview' => ($doc && !empty($doc->storage_path)) ? PreviewUrl::forPath($doc->storage_path) : '',
                     'remarks' => $doc?->remarks ?? '',
                     'last_modified_by' => $doc?->last_modified_by,
                     'isBold' => true,

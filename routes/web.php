@@ -85,39 +85,40 @@ Route::get('/', function () {
 // ==================================================================================================
 // TEST PREVIEW ROUTES (Delete after use)
 // ==================================================================================================
-Route::get('/preview/exam/lobby', function () {
-    return view('exam_user.exam_lobby', ['vacancy_id' => 'PREVIEW-123']);
-})->name('preview.exam.lobby');
+if (app()->environment(['local', 'testing'])) {
+    Route::get('/preview/exam/lobby', function () {
+        return view('exam_user.exam_lobby', ['vacancy_id' => 'PREVIEW-123']);
+    })->name('preview.exam.lobby');
+
+    Route::get('/preview/exam/questions', function () {
+        // Mock exam items
+        $examItems = [
+            (object) [
+                'id' => 1,
+                'question' => 'What is the capital of the Philippines?',
+                'is_essay' => 0,
+                'choices' => ['Manila', 'Cebu', 'Davao', 'Baguio']
+            ],
+            (object) [
+                'id' => 2,
+                'question' => 'Explain the importance of public service.',
+                'is_essay' => 1,
+                'choices' => null
+            ]
+        ];
+        return view('exam_user.exam_question_page', [
+            'vacancy_id' => 'PREVIEW-123',
+            'examItems' => $examItems
+        ]);
+    })->name('preview.exam.questions');
+
+    Route::get('/preview/exam/thankyou', function () {
+        return view('exam_user.exam_thankyou', ['vacancy_id' => 'PREVIEW-123']);
+    })->name('preview.exam.thankyou');
+}
 
 // In routes/api.php or routes/web.php
 Route::get('/api/examination-dates', [ExamController::class, 'getExaminationDates']);
-
-
-Route::get('/preview/exam/questions', function () {
-    // Mock exam items
-    $examItems = [
-        (object) [
-            'id' => 1,
-            'question' => 'What is the capital of the Philippines?',
-            'is_essay' => 0,
-            'choices' => ['Manila', 'Cebu', 'Davao', 'Baguio']
-        ],
-        (object) [
-            'id' => 2,
-            'question' => 'Explain the importance of public service.',
-            'is_essay' => 1,
-            'choices' => null
-        ]
-    ];
-    return view('exam_user.exam_question_page', [
-        'vacancy_id' => 'PREVIEW-123',
-        'examItems' => $examItems
-    ]);
-})->name('preview.exam.questions');
-
-Route::get('/preview/exam/thankyou', function () {
-    return view('exam_user.exam_thankyou', ['vacancy_id' => 'PREVIEW-123']);
-})->name('preview.exam.thankyou');
 
 // ==================================================================================================
 // PUBLIC ROUTES (No authentication required)
@@ -310,7 +311,6 @@ Route::middleware('auth')->group(function () {
 Route::get('/admin/login', [AdminAuthController::class, 'showLoginForm'])->name('admin.login');
 Route::post('/admin/login', [AdminAuthController::class, 'login'])->name('admin.login.submit')->middleware('throttle:5,1');
 Route::post('/admin/register', [AdminAuthController::class, 'register'])->name('admin.register.submit')->middleware('throttle:5,1');
-Route::post('/admin/logout', [AdminAuthController::class, 'logout'])->name('admin.logout');
 // USER ROUTES (blocked if admin is logged in)
 // ==================================================================================================
 Route::middleware(['auth', BlockIfAdmin::class])->group(function () {
@@ -769,15 +769,32 @@ Route::middleware(['auth:admin', RedirectIfNotAdmin::class])->group(function () 
 // EXAM ROUTES (for users taking exams)
 
 // ==================================================================================================
-Route::get('/exam/{vacancy_id}/questions', [ExamController::class, 'examQuestion'])->name('user.exam_question_page');
-Route::get('/exam/{vacancy_id}/lobby', [ExamController::class, 'examLobby'])->name('user.exam_lobby');
-// Route::post('/exam/{vacancy_id}/start', [ExamController::class, 'startCandidateExam'])->name('user.exam_start');
-Route::post('/exam/{vacancy_id}/submit', [ExamController::class, 'submit'])->name('exam.submit');
-Route::post('/exam/{vacancy_id}/autosave', [ExamController::class, 'autoSave'])->name('exam.autosave');
-Route::get('/exam/status/{vacancy_id}', [ExamController::class, 'checkExamStatus'])->name('exam.status.check');
-Route::get('/exam/{vacancy_id}/attempt-status', [ExamController::class, 'checkParticipantExamStatus'])->name('exam.attempt_status');
-Route::get('/exam/{vacancy_id}/thankyou', fn($vacancy_id) => view('exam_user.exam_thankyou', compact('vacancy_id')))->name('user.exam_thankyou');
-Route::post('/log-switch', [ExamController::class, 'logSwitch']);
+Route::middleware(['auth', BlockIfAdmin::class])->group(function () {
+    Route::get('/exam/{vacancy_id}/questions', [ExamController::class, 'examQuestion'])
+        ->middleware('throttle:120,1')
+        ->name('user.exam_question_page');
+    Route::get('/exam/{vacancy_id}/lobby', [ExamController::class, 'examLobby'])
+        ->middleware('throttle:120,1')
+        ->name('user.exam_lobby');
+    // Route::post('/exam/{vacancy_id}/start', [ExamController::class, 'startCandidateExam'])->name('user.exam_start');
+    Route::post('/exam/{vacancy_id}/submit', [ExamController::class, 'submit'])
+        ->middleware('throttle:30,1')
+        ->name('exam.submit');
+    Route::post('/exam/{vacancy_id}/autosave', [ExamController::class, 'autoSave'])
+        ->middleware('throttle:240,1')
+        ->name('exam.autosave');
+    Route::get('/exam/status/{vacancy_id}', [ExamController::class, 'checkExamStatus'])
+        ->middleware('throttle:120,1')
+        ->name('exam.status.check');
+    Route::get('/exam/{vacancy_id}/attempt-status', [ExamController::class, 'checkParticipantExamStatus'])
+        ->middleware('throttle:120,1')
+        ->name('exam.attempt_status');
+    Route::get('/exam/{vacancy_id}/thankyou', fn($vacancy_id) => view('exam_user.exam_thankyou', compact('vacancy_id')))
+        ->middleware('throttle:120,1')
+        ->name('user.exam_thankyou');
+    Route::post('/log-switch', [ExamController::class, 'logSwitch'])
+        ->middleware('throttle:240,1');
+});
 
 // ==================================================================================================
 // VIEWER ROUTES
@@ -842,15 +859,13 @@ Route::middleware(['web', 'auth:admin', 'admin.role:viewer'])->group(function ()
 });
 */
 
-//Chat-Bot
-Route::post('/chat', [GeminiChatController::class, 'chat']);
-
-
-
 // ==================================================================================================
 // TEST ROUTES
 // ==================================================================================================
 Route::get('/test-event', function () {
+    if (!app()->environment(['local', 'testing'])) {
+        abort(404);
+    }
     broadcast(new PackageSent('test data', 'test'));
     return 'Event broadcasted';
 });
@@ -865,7 +880,7 @@ Route::redirect('/dashboard/admin', '/admin/dashboard')
 
 
 //Chat-Bot
-Route::post('/chat', [GeminiChatController::class, 'chat']);
+Route::post('/chat', [GeminiChatController::class, 'chat'])->middleware('throttle:20,1');
 
 //error mobile
 Route::get('/mobile-locked', function () {
@@ -875,10 +890,6 @@ Route::get('/mobile-locked', function () {
 
 // LIVE SERVER ROUTES
 Route::get('/preview-file/{path}', function ($path) {
-    // Decode: just base64 decode. urldecode is destructive to + symbols which are valid in base64.
-    // We assume the path parameter captures the raw segment.
-    $decodedPath = base64_decode($path);
-
     // Helper to return "No Document Submitted" view
     $noDocumentView = function () {
         return response('
@@ -893,24 +904,53 @@ Route::get('/preview-file/{path}', function ($path) {
         ', 200);
     };
 
-    if (empty($decodedPath) || $decodedPath === 'missing') {
+    $decodedPath = base64_decode((string) $path, true);
+    if (!is_string($decodedPath) || $decodedPath === '') {
         return $noDocumentView();
     }
 
-    // Check possible storage locations
-    $paths = [
-        storage_path('app/' . $decodedPath),
-        storage_path('app/public/' . $decodedPath),
-        public_path('storage/' . $decodedPath)
-    ];
+    $decodedPath = trim(str_replace(["\0", "\r", "\n"], '', str_replace('\\', '/', $decodedPath)));
+    $decodedPath = ltrim($decodedPath, '/');
 
-    $fullPath = null;
-    foreach ($paths as $p) {
-        if (file_exists($p) && is_file($p)) {
-            $fullPath = $p;
-            break;
-        }
+    if ($decodedPath === '' || $decodedPath === 'missing') {
+        return $noDocumentView();
     }
+
+    $resolvePathWithinRoots = function (array $roots, string $relativePath): ?string {
+        $normalizedRelativePath = ltrim(str_replace('\\', '/', $relativePath), '/');
+        if ($normalizedRelativePath === '' || str_contains($normalizedRelativePath, "\0")) {
+            return null;
+        }
+
+        $relativeWithOsSeparators = str_replace('/', DIRECTORY_SEPARATOR, $normalizedRelativePath);
+
+        foreach ($roots as $root) {
+            $realRoot = realpath($root);
+            if (!is_string($realRoot) || $realRoot === '') {
+                continue;
+            }
+
+            $candidate = realpath($realRoot . DIRECTORY_SEPARATOR . $relativeWithOsSeparators);
+            if (!is_string($candidate) || !is_file($candidate)) {
+                continue;
+            }
+
+            $rootPrefix = rtrim($realRoot, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+            if (!str_starts_with($candidate, $rootPrefix)) {
+                continue;
+            }
+
+            return $candidate;
+        }
+
+        return null;
+    };
+
+    $fullPath = $resolvePathWithinRoots([
+        storage_path('app'),
+        storage_path('app/public'),
+        public_path('storage'),
+    ], $decodedPath);
 
     if (!$fullPath) {
         return $noDocumentView();
@@ -936,17 +976,33 @@ Route::get('/preview-file/{path}', function ($path) {
         </body>
         </html>
     ', 200);
-})->where('path', '.*');
+})->where('path', '.*')->name('preview.file')->middleware('signed');
 
 Route::get('storage/{filename}', function ($filename) {
-    $path = storage_path('app/public/' . $filename);
+    $normalizedFilename = trim(str_replace(["\0", "\r", "\n"], '', str_replace('\\', '/', (string) $filename)));
+    $normalizedFilename = ltrim($normalizedFilename, '/');
 
-    if (!file_exists($path)) {
+    if ($normalizedFilename === '' || str_contains($normalizedFilename, "\0")) {
         abort(404);
     }
 
-    $file = file_get_contents($path);
-    $type = mime_content_type($path);
+    $root = realpath(storage_path('app/public'));
+    if (!is_string($root) || $root === '') {
+        abort(404);
+    }
+
+    $candidate = realpath($root . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $normalizedFilename));
+    if (!is_string($candidate) || !is_file($candidate)) {
+        abort(404);
+    }
+
+    $rootPrefix = rtrim($root, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+    if (!str_starts_with($candidate, $rootPrefix)) {
+        abort(404);
+    }
+
+    $file = file_get_contents($candidate);
+    $type = mime_content_type($candidate);
 
     return response($file, 200)->header("Content-Type", $type);
 })->where('filename', '.*');

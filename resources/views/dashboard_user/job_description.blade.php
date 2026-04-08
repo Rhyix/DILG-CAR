@@ -359,7 +359,7 @@
                     @if($typeIsPlantilla)
                         <div class="mt-4 pt-4 border-t border-slate-200">
                             @if(!empty($vacancy->csc_form_path))
-                                <a href="{{ Storage::url($vacancy->csc_form_path) }}" target="_blank"
+                                <a href="{{ \App\Support\PreviewUrl::forPath($vacancy->csc_form_path) }}" target="_blank"
                                     class="inline-flex items-center justify-center w-full px-3 py-2 text-xs font-semibold rounded-md border border-[#0D2B70] text-[#0D2B70] hover:bg-[#0D2B70] hover:text-white transition">
                                     View CSC Form Attachment
                                 </a>

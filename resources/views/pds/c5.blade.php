@@ -167,7 +167,7 @@
                         $docStoragePath = trim((string) ($doc->storage_path ?? ''));
                         $previewUrl = '';
                         if ($docStoragePath !== '' && $docStoragePath !== 'NOINPUT') {
-                            $previewUrl = url('/preview-file/' . base64_encode($docStoragePath));
+                            $previewUrl = \App\Support\PreviewUrl::forPath($docStoragePath);
                         } elseif ($docType === 'application_letter' && !empty($applicationLetterPreviewUrl)) {
                             $previewUrl = $applicationLetterPreviewUrl;
                         }

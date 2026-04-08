@@ -264,7 +264,7 @@
                             @if(!empty($documents?->application_letter))
                                 <div class="text-sm text-green-600 mt-2">
                                     ✅ File uploaded:
-                                    <a href="{{ asset('storage/' . $documents->application_letter) }}" target="_blank" class="underline text-blue-600 hover:text-blue-800">View PDF</a>
+                                    <a href="{{ \App\Support\PreviewUrl::forPath($documents->application_letter) }}" target="_blank" class="underline text-blue-600 hover:text-blue-800">View PDF</a>
                                 </div>
                                 <label class="inline-flex items-center mt-2 text-sm text-red-500">
                                     <input type="checkbox" name="remove_files[application_letter]" class="mr-2">
@@ -306,7 +306,7 @@
                                 @if(!empty($documents?->{$key}))
                                     <div class="text-sm text-green-600 mt-2">
                                         ✅ File uploaded:
-                                        <a href="{{ asset('storage/' . $documents->{$key}) }}" target="_blank" class="underline text-blue-600 hover:text-blue-800">View PDF</a>
+                                        <a href="{{ \App\Support\PreviewUrl::forPath($documents->{$key}) }}" target="_blank" class="underline text-blue-600 hover:text-blue-800">View PDF</a>
                                     </div>
                                     <label class="inline-flex items-center mt-2 text-sm text-red-500">
                                         <input type="checkbox" name="remove_files[{{ $key }}]" class="mr-2">
