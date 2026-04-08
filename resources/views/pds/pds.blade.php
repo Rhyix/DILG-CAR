@@ -308,7 +308,7 @@
                         <label for="res_brgy" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">Barangay <span class="text-red-500">*</span></label>
                     </div>
                     <div class="relative">
-                        <input pattern="\d{4}" maxlength="4" type="text" inputmode="numeric" required id="res_zipcode" name="res_zipcode" value="{{ old('res_zipcode', session('form.c1.res_zipcode')) }}" placeholder="" class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
+                        <input pattern="[0-9]{4}" type="text" maxlength="4" inputmode="numeric" required id="res_zipcode" name="res_zipcode" value="{{ old('res_zipcode', session('form.c1.res_zipcode')) }}" placeholder="" class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
                         <label for="res_zipcode" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">ZIP Code <span class="text-red-500">*</span></label>
                     </div>
                 </div>
@@ -353,7 +353,7 @@
                         <label for="per_brgy" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">Barangay<span class="text-red-500">*</span></label>
                     </div>
                     <div class="relative">
-                        <input pattern="\d{4}" maxlength="4" type="text" inputmode="numeric" required id="per_zipcode" name="per_zipcode" value="{{ old('per_zipcode', session('form.c1.per_zipcode')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
+                        <input pattern="[0-9]{4}" maxlength="4" type="text" inputmode="numeric" required id="per_zipcode" name="per_zipcode" value="{{ old('per_zipcode', session('form.c1.per_zipcode')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
                         <label for="per_zipcode" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">ZIP Code<span class="text-red-500">*</span></label>
                     </div>
                 </div>
@@ -1255,6 +1255,13 @@
         if (digits.length > 7) formatted += ' ' + digits.slice(7, 11);
         input.value = formatted.trim();
     }
+    function enforceZipCodeInputLimit() {
+        ['res_zipcode', 'per_zipcode'].forEach((id) => {
+            const input = document.getElementById(id);
+            if (!input) return;
+            input.value = onlyDigits(input.value).slice(0, 4);
+        });
+    }
     function hookRadio(name){
         document.querySelectorAll('input[name="'+name+'"]').forEach(r=>{
             r.addEventListener('change', ()=>{ if (r.checked) writeState(name, r.value); });
@@ -1292,6 +1299,13 @@
         enforceMobileInputLimit();
         mobileInput.addEventListener('input', enforceMobileInputLimit);
     }
+    ['res_zipcode', 'per_zipcode'].forEach((id) => {
+        const zipInput = document.getElementById(id);
+        if (!zipInput) return;
+        enforceZipCodeInputLimit();
+        zipInput.addEventListener('input', enforceZipCodeInputLimit);
+        zipInput.addEventListener('change', enforceZipCodeInputLimit);
+    });
     function normalizePlaceText(value) {
         return String(value || '')
             .toLowerCase()
