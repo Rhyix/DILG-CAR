@@ -161,7 +161,7 @@
                       <div class="grid grid-cols-2 md:grid-cols-4 items-center gap-x-4 gap-y-2">
                         <!-- Education -->
                         <div class="flex items-center gap-1.5">
-                          <span class="w-2.5 h-2.5 shrink-0 rounded-full {{ $displayQsEducation == 'yes' ? 'bg-green-500' : 'bg-red-500' }}"></span>
+                          <span class="w-2.5 h-2.5 shrink-0 rounded-full {{ $displayQsEducation == 'yes' ? 'bg-green-500' : ($displayQsEducation == 'na' ? 'bg-gray-400' : 'bg-red-500') }}"></span>
                           <span class="text-xs text-gray-700">Education</span>
                         </div>
 
@@ -179,7 +179,7 @@
 
                         <!-- Training -->
                         <div class="flex items-center gap-1.5">
-                          <span class="w-2.5 h-2.5 shrink-0 rounded-full {{ $displayQsTraining == 'yes' ? 'bg-green-500' : 'bg-red-500' }}"></span>
+                          <span class="w-2.5 h-2.5 shrink-0 rounded-full {{ $displayQsTraining == 'yes' ? 'bg-green-500' : ($displayQsTraining == 'na' ? 'bg-gray-400' : 'bg-red-500') }}"></span>
                           <span class="text-xs text-gray-700">Training</span>
                         </div>
                       </div>

@@ -838,7 +838,10 @@
             }
             document.addEventListener('DOMContentLoaded', () => {
                 const container = document.getElementById('{{ $education_type }}-container');
-                const programSource = @json($education_type === 'grad' ? 'grad' : ($education_type === 'college' ? 'college' : ''));
+                const educationType = @json($education_type);
+                const programSource = (educationType === 'college' || educationType === 'grad')
+                    ? (educationType === 'grad' ? 'grad' : 'college')
+                    : '';
                 initEducationFlatpickr(container);
                 if (typeof window.initPdsEducationDateRanges === 'function') {
                     window.initPdsEducationDateRanges(container);
