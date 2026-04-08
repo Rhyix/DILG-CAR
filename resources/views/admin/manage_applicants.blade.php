@@ -62,15 +62,17 @@
                     </span>
                 @endif
             </button>
-            <button id="tab-no-pqe" onclick="switchTab('no-pqe')"
-                class="tab-button px-6 py-3 font-semibold text-[#0D2B70] border-b-4 border-transparent hover:bg-blue-50 transition-all duration-200">
-                No PQE
-                @if(($noPqeApplicantsCount ?? 0) > 0)
-                    <span class="ml-2 bg-slate-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                        {{ $noPqeApplicantsCount }}
-                    </span>
-                @endif
-            </button>
+            @if($showNoPqeTab ?? false)
+                <button id="tab-no-pqe" onclick="switchTab('no-pqe')"
+                    class="tab-button px-6 py-3 font-semibold text-[#0D2B70] border-b-4 border-transparent hover:bg-blue-50 transition-all duration-200">
+                    No PQE
+                    @if(($noPqeApplicantsCount ?? 0) > 0)
+                        <span class="ml-2 bg-slate-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                            {{ $noPqeApplicantsCount }}
+                        </span>
+                    @endif
+                </button>
+            @endif
         </div>
 
         <!-- Tab Content: New Applicants -->
@@ -286,6 +288,7 @@
             </div>
         </div>
 
+        @if($showNoPqeTab ?? false)
         <div id="content-no-pqe" class="tab-content hidden flex-1 flex flex-col min-h-0 overflow-hidden">
             <div class="flex-none flex flex-wrap items-end gap-6 mb-4">
                 <form onsubmit="return false;" class="relative">
@@ -353,12 +356,15 @@
                 </div>
             </div>
         </div>
+        @endif
 
         @include('partials.loader')
     </main>
 
     <script>
         const vacancyId = "{{ $vacancyId }}";
+        const showNoPqeTab = @json((bool) ($showNoPqeTab ?? false));
+        const allowedTabs = showNoPqeTab ? ['new', 'compliance', 'qualified', 'no-pqe'] : ['new', 'compliance', 'qualified'];
 
         // Tab switching
         function switchTab(tab, updateHistory = true) {
@@ -373,8 +379,7 @@
                 }
             }
 
-            const tabs = ['new', 'compliance', 'qualified', 'no-pqe'];
-            tabs.forEach(t => {
+            allowedTabs.forEach(t => {
                 const tabBtn = document.getElementById(`tab-${t}`);
                 const content = document.getElementById(`content-${t}`);
 
@@ -399,7 +404,7 @@
             const params = new URLSearchParams(window.location.search);
             // Default to 'new' if no tab param exists
             const tab = (params.get('tab') || 'new').trim().toLowerCase();
-            if (['new', 'compliance', 'qualified', 'no-pqe'].includes(tab)) {
+            if (allowedTabs.includes(tab)) {
                 switchTab(tab, false); // false = don't push state again
             } else {
                 switchTab('new', false);
@@ -413,7 +418,7 @@
 
             console.log('Initial Tab from URL:', initialTab); // Debugging
 
-            if (['new', 'compliance', 'qualified', 'no-pqe'].includes(initialTab)) {
+            if (allowedTabs.includes(initialTab)) {
                 switchTab(initialTab);
             } else {
                 switchTab('new');
@@ -520,33 +525,35 @@
                 .catch(error => console.error('Error:', error));
         }
 
-        const searchInputNoPqe = document.getElementById('searchInputNoPqe');
-        const sortOrderNoPqe = document.getElementById('sortOrderNoPqe');
+        if (showNoPqeTab) {
+            const searchInputNoPqe = document.getElementById('searchInputNoPqe');
+            const sortOrderNoPqe = document.getElementById('sortOrderNoPqe');
 
-        const handleNoPqeApplicantsFilter = debounce(function () {
-            const search = searchInputNoPqe.value.trim();
-            const sortOrder = sortOrderNoPqe.value;
-            fetchNoPqeApplicants(search, sortOrder);
-        }, 500);
+            const handleNoPqeApplicantsFilter = debounce(function () {
+                const search = searchInputNoPqe.value.trim();
+                const sortOrder = sortOrderNoPqe.value;
+                fetchNoPqeApplicants(search, sortOrder);
+            }, 500);
 
-        if (searchInputNoPqe) searchInputNoPqe.addEventListener('input', handleNoPqeApplicantsFilter);
-        if (sortOrderNoPqe) sortOrderNoPqe.addEventListener('change', handleNoPqeApplicantsFilter);
+            if (searchInputNoPqe) searchInputNoPqe.addEventListener('input', handleNoPqeApplicantsFilter);
+            if (sortOrderNoPqe) sortOrderNoPqe.addEventListener('change', handleNoPqeApplicantsFilter);
 
-        function fetchNoPqeApplicants(search = '', sortOrder = 'latest') {
-            const params = new URLSearchParams({
-                vacancy_id: vacancyId,
-                search: search,
-                sort_order: sortOrder
-            });
+            function fetchNoPqeApplicants(search = '', sortOrder = 'latest') {
+                const params = new URLSearchParams({
+                    vacancy_id: vacancyId,
+                    search: search,
+                    sort_order: sortOrder
+                });
 
-            fetch(`/admin/manage_applicants/no-pqe?${params.toString()}`, {
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            })
-                .then(response => response.text())
-                .then(html => {
-                    document.getElementById('no-pqe-applicants-list').innerHTML = html;
+                fetch(`/admin/manage_applicants/no-pqe?${params.toString()}`, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
                 })
-                .catch(error => console.error('Error:', error));
+                    .then(response => response.text())
+                    .then(html => {
+                        document.getElementById('no-pqe-applicants-list').innerHTML = html;
+                    })
+                    .catch(error => console.error('Error:', error));
+            }
         }
     </script>
 

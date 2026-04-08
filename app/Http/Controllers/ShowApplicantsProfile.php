@@ -165,7 +165,33 @@ class ShowApplicantsProfile extends Controller
 
         return $value === false
             || $value === 0
-            || $value === '0';
+            || $value === '0'
+            || $value === 'false'
+            || $value === 'no';
+    }
+
+    private function isYesPqeApplicant($application): bool
+    {
+        if (!$this->hasInitialAssessmentPqeColumn()) {
+            return false;
+        }
+
+        $value = $application->initial_assessment_has_pqe ?? null;
+
+        return $value === true
+            || $value === 1
+            || $value === '1'
+            || $value === 'true'
+            || $value === 'yes';
+    }
+
+    private function hasUnknownPqeAnswer($application): bool
+    {
+        if (!$this->hasInitialAssessmentPqeColumn()) {
+            return true;
+        }
+
+        return !$this->isYesPqeApplicant($application) && !$this->isNoPqeApplicant($application);
     }
 
     private function buildRevisionLookup($applications, string $vacancyId): array
@@ -196,6 +222,7 @@ class ShowApplicantsProfile extends Controller
         $status = $this->normalizeStatus($application->status ?? '');
         $qsResult = $this->normalizeStatus($application->qs_result ?? '');
         $fileStatus = $this->normalizeStatus($application->file_status ?? '');
+        $vacancyType = strtoupper(trim((string) ($application->vacancy?->vacancy_type ?? '')));
 
         $isQualified = $qsResult === 'qualified'
             || $status === $this->normalizeStatus(ApplicationStatus::QUALIFIED->value)
@@ -218,8 +245,24 @@ class ShowApplicantsProfile extends Controller
             return 'compliance';
         }
 
+        // COS vacancies do not use Initial Assessment Q3 (PQE split).
+        // Pending applicants should stay in the New tab.
+        if ($vacancyType === 'COS') {
+            return 'new';
+        }
+
         if ($this->isNoPqeApplicant($application)) {
             return 'no_pqe';
+        }
+
+        if ($this->hasInitialAssessmentPqeColumn()) {
+            // Q3 routing:
+            // - Yes  -> New
+            // - No   -> No PQE
+            // - Unknown/legacy values default to New
+            return ($this->isYesPqeApplicant($application) || $this->hasUnknownPqeAnswer($application))
+                ? 'new'
+                : 'no_pqe';
         }
 
         return 'new';
@@ -502,8 +545,13 @@ class ShowApplicantsProfile extends Controller
 
                 if ($this->hasInitialAssessmentPqeColumn()) {
                     $q->where(function ($sub) {
-                        $sub->where('initial_assessment_has_pqe', true)
-                            ->orWhereNull('initial_assessment_has_pqe');
+                        $sub->whereRaw("UPPER(COALESCE(job_vacancies.vacancy_type, '')) = ?", ['COS'])
+                            ->orWhere(function ($yesOrUnknown) {
+                                $yesOrUnknown->where('initial_assessment_has_pqe', true)
+                                    ->orWhere('initial_assessment_has_pqe', 1)
+                                    ->orWhereNull('initial_assessment_has_pqe')
+                                    ->orWhereRaw('LOWER(TRIM(CAST(initial_assessment_has_pqe AS CHAR))) IN (?, ?, ?)', ['true', 'yes', '']);
+                            });
                     });
                 }
             },
@@ -525,7 +573,12 @@ class ShowApplicantsProfile extends Controller
         if ($this->hasInitialAssessmentPqeColumn()) {
             $countDefinitions['applications as no_pqe_count'] = function ($q) {
                 $q->statusEquals(ApplicationStatus::PENDING->value)
-                    ->where('initial_assessment_has_pqe', false);
+                    ->whereRaw("UPPER(COALESCE(job_vacancies.vacancy_type, '')) <> ?", ['COS'])
+                    ->where(function ($sub) {
+                        $sub->where('initial_assessment_has_pqe', false)
+                            ->orWhere('initial_assessment_has_pqe', 0)
+                            ->orWhereRaw('LOWER(TRIM(CAST(initial_assessment_has_pqe AS CHAR))) IN (?, ?, ?)', ['false', 'no', '0']);
+                    });
             };
         }
 
@@ -828,6 +881,11 @@ class ShowApplicantsProfile extends Controller
             ->where('vacancy_id', $vacancy_id)
             ->first();
 
+        $isPlantillaVacancy = strtoupper(trim((string) ($vacancyInfo?->vacancy_type ?? ''))) === 'PLANTILLA';
+        $vacancyTypeLabel = strtoupper(trim((string) ($vacancyInfo?->vacancy_type ?? ''))) === 'COS'
+            ? 'Contract of Service'
+            : $vacancyInfo?->vacancy_type;
+
         return view('admin.manage_applicants', [
             'newApplicants' => $formattedNewApplicants,
             'complianceApplicants' => $formattedComplianceApplicants,
@@ -836,11 +894,12 @@ class ShowApplicantsProfile extends Controller
             'newApplicantsCount' => $newApplications->count(),
             'complianceApplicantsCount' => $complianceApplications->count(),
             'qualifiedApplicantsCount' => $qualifiedApplications->count(),
-            'noPqeApplicantsCount' => $noPqeApplications->count(),
+            'noPqeApplicantsCount' => $isPlantillaVacancy ? $noPqeApplications->count() : 0,
             'vacancyId' => $vacancy_id,
             'positionTitle' => $vacancyInfo?->position_title,
-            'vacancyType' => $vacancyInfo?->vacancy_type,
+            'vacancyType' => $vacancyTypeLabel,
             'placeOfAssignment' => $vacancyInfo?->place_of_assignment,
+            'showNoPqeTab' => $isPlantillaVacancy,
         ]);
     }
 
