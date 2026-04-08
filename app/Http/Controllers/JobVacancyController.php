@@ -3879,8 +3879,8 @@ class JobVacancyController extends Controller
             return true;
         }
 
-        $requiredEligibilities = $this->extractVacancyEligibilityNames((string) $rawRequirement);
-        if (empty($requiredEligibilities)) {
+        $requiredItems = $this->extractVacancyEligibilityItems((string) $rawRequirement);
+        if (empty($requiredItems)) {
             return true;
         }
 
@@ -3889,8 +3889,25 @@ class JobVacancyController extends Controller
             return false;
         }
 
-        foreach ($requiredEligibilities as $required) {
-            if ($this->eligibilityNamesMatch((string) $required, $inputLabel)) {
+        $inputLevelRank = $this->resolveEligibilityLevelRank('', $inputLabel);
+
+        foreach ($requiredItems as $requiredItem) {
+            $requiredName = trim((string) ($requiredItem['name'] ?? ''));
+            if ($requiredName === '') {
+                continue;
+            }
+
+            if ($this->eligibilityNamesMatch($requiredName, $inputLabel)) {
+                return true;
+            }
+
+            $requiredLevelRank = $this->resolveEligibilityLevelRank(
+                (string) ($requiredItem['level'] ?? ''),
+                $requiredName
+            );
+
+            // Keep hierarchy support, but only strictly higher-level eligibility can substitute.
+            if ($this->eligibilityLevelSatisfiesRequirement($requiredLevelRank, $inputLevelRank)) {
                 return true;
             }
         }
@@ -4041,6 +4058,7 @@ class JobVacancyController extends Controller
                         break;
                     }
 
+                    // Keep hierarchy support, but only strictly higher-level eligibility can substitute.
                     if ($this->eligibilityLevelSatisfiesRequirement($requiredLevelRank, $applicantLevelRank)) {
                         $matchedKeys[] = $requiredKey;
                         break;
@@ -4265,9 +4283,6 @@ class JobVacancyController extends Controller
         if ($requiredGroup !== '' && $requiredGroup === $applicantGroup) {
             return true;
         }
-        if ($requiredGroup !== '' && $applicantGroup !== '' && $this->eligibilityGroupSatisfiesRequirement($requiredGroup, $applicantGroup)) {
-            return true;
-        }
 
         // Allow minor wording differences for manually entered "Others" values.
         $minLen = min(strlen($requiredKey), strlen($applicantKey));
@@ -4299,7 +4314,8 @@ class JobVacancyController extends Controller
             return false;
         }
 
-        return $applicantLevelRank >= $requiredLevelRank;
+        // Same-level different eligibility types should not pass by level alone.
+        return $applicantLevelRank > $requiredLevelRank;
     }
 
     private function resolveEligibilityLevelRank(?string $declaredLevel, string $eligibilityName): ?int
