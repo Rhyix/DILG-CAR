@@ -549,6 +549,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const titleSelect = document.getElementById('position_title_select');
     const sgField = document.getElementById('salary_grade');
     const salField = document.getElementById('monthly_salary');
+    const isCreateMode = @json($isCreateMode);
     const cscInputField = document.getElementById('csc_form_upload_plantilla');
     const cscFilenameField = document.getElementById('csc_form_filename_plantilla');
     const positionLookup = new Map();
@@ -759,9 +760,11 @@ document.addEventListener("DOMContentLoaded", function() {
                         fallbackOption.selected = true;
                         titleSelect.appendChild(fallbackOption);
                     }
-                    const initialKey = normalizeText(titleSelect.value);
-                    if (initialKey && positionLookup.has(initialKey)) {
-                        applyPositionData(positionLookup.get(initialKey));
+                    if (isCreateMode) {
+                        const initialKey = normalizeText(titleSelect.value);
+                        if (initialKey && positionLookup.has(initialKey)) {
+                            applyPositionData(positionLookup.get(initialKey));
+                        }
                     }
                     if (typeof checkAllFieldsFilled === 'function') {
                         checkAllFieldsFilled();

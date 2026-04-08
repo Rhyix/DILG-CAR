@@ -1086,6 +1086,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const sg = document.getElementById('salary_grade');
   const sal = document.getElementById('monthly_salary');
   const usePositionDropdown = @json(!$disablePositionFields);
+  const isCreateMode = @json($isCreateMode);
   const positionLookup = new Map();
   const normalizeText = (value) => String(value || '').replace(/\s+/g, ' ').trim().toLowerCase();
 
@@ -1271,9 +1272,11 @@ document.addEventListener('DOMContentLoaded', async () => {
           select.appendChild(fallbackOption);
       }
 
-      const initialKey = normalizeText(select.value);
-      if (initialKey && positionLookup.has(initialKey)) {
-        applyPositionData(positionLookup.get(initialKey));
+      if (isCreateMode) {
+        const initialKey = normalizeText(select.value);
+        if (initialKey && positionLookup.has(initialKey)) {
+          applyPositionData(positionLookup.get(initialKey));
+        }
       }
 
       if (typeof checkAllFieldsFilled === 'function') {

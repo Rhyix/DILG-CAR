@@ -87,6 +87,7 @@
                 <div>
                     <label for="add_program_name" class="mb-1 block text-sm font-medium text-slate-700">Program name</label>
                     <input id="add_program_name" type="text" name="course_name" required value="{{ old('course_name') }}" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100" placeholder="e.g., BS Information Technology">
+                    <p class="mt-1 text-xs font-semibold text-red-600">Do not abbreviate.</p>
                     <p id="programCodePreview" class="mt-1 text-xs text-slate-500">Code preview: <span class="font-mono text-slate-700">-</span></p>
                     <p id="programDuplicateWarning" class="mt-1 hidden text-xs font-medium text-amber-700">This program already exists in the selected level.</p>
                 </div>

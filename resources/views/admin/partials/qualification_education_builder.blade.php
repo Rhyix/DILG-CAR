@@ -10,11 +10,12 @@
 
     <div class="mt-4 rounded-xl border border-slate-200 bg-white p-4">
         <label for="minimum_education_code" class="mb-2 block text-sm font-medium text-slate-700">
-            Education <span class="text-red-600">*</span>
+            Highest educational attainment <span class="text-red-600">*</span>
         </label>
         <select id="minimum_education_code" name="minimum_education_code" class="{{ $fieldInput }}">
             <option value="">Select education</option>
-            <option value="HIGH_SCHOOL_GRAD">High School Graduate</option>
+            <option value="HIGH_SCHOOL_GRAD">Junior High School Graduate</option>
+            <option value="SENIOR_HIGH_SCHOOL_GRAD">Senior High School Graduate</option>
             <option value="COLLEGE_2Y">Completion of 2 Years in College</option>
             <option value="BACHELOR">Bachelors Degree</option>
             <option value="MASTERAL">Masteral Degree</option>

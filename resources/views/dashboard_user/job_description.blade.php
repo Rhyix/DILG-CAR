@@ -258,12 +258,12 @@
                             </button>
                         @endif
 
-                        @if(!$isClosed && !$hasApplied && $hasIncompletePdsForApply)
+                        @if(!$isClosed && !$hasApplied && ($hasIncompletePdsForApply || $isEligibilityQualifiedForPanel))
                             <div class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700">
                                 <p class="font-semibold">Before applying, complete the initial assessment first.</p>
-                                <p class="mt-1">This assessment appears every time you apply for this position.</p>
+                                <p class="mt-1">This runs each time you submit an application for this vacancy.</p>
                             </div>
-                        @elseif(!$isClosed && !$hasApplied && !$isEligibilityQualifiedForPanel)
+                        @elseif(!$isClosed && !$hasApplied && !$hasIncompletePdsForApply && !$isEligibilityQualifiedForPanel)
                             <div class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
                                 <p class="font-semibold">You are not yet qualified for this position.</p>
                                 <p class="mt-1">{{ $eligibilityMismatchMessage ?: 'Please complete the missing requirement(s) below.' }}</p>
@@ -501,33 +501,21 @@
                 <h2 class="text-lg font-semibold text-[#002C76] mt-1">Question 1</h2>
                 <p class="text-sm text-gray-700 mt-3 font-medium">What is your degree?</p>
                 <div class="mt-4">
-                    <label for="initialAssessmentDegreeInput" class="block text-xs uppercase tracking-wide text-slate-500 mb-2">Degree (type to get suggestions)</label>
-                    <input
-                        id="initialAssessmentDegreeInput"
-                        list="initialAssessmentDegreeOptions"
-                        type="text"
-                        autocomplete="off"
-                        placeholder="Type your degree"
-                        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20"
-                    >
-                    <datalist id="initialAssessmentDegreeOptions">
-                        @foreach(($assessmentCourseOptions ?? []) as $courseOption)
-                            <option value="{{ $courseOption }}">{{ $courseOption }}</option>
-                        @endforeach
-                    </datalist>
-
-                    <label class="flex items-center gap-2 text-xs uppercase tracking-wide text-slate-500 mt-3 mb-2">
-                        <input id="initialAssessmentDegreeOtherToggle" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-[#0D2B70] focus:ring-[#0D2B70]/30">
-                        <span>Others: (if your course is not listed)</span>
-                    </label>
-                    <input
-                        id="initialAssessmentDegreeOtherInput"
-                        type="text"
-                        autocomplete="off"
-                        placeholder="Enter your course"
-                        disabled
-                        class="w-full rounded-lg border border-slate-300 bg-slate-100 px-3 py-2 text-sm focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20 disabled:cursor-not-allowed disabled:opacity-70"
-                    >
+                    <label for="initialAssessmentDegreeInput" class="block text-xs uppercase tracking-wide text-slate-500 mb-2">Degree/Course</label>
+                    <div class="relative">
+                        <input
+                            id="initialAssessmentDegreeInput"
+                            type="text"
+                            autocomplete="off"
+                            placeholder="Search from the list or type your degree/course"
+                            data-assessment-input="degree"
+                            class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20"
+                        >
+                        <div id="initialAssessmentDegreeMenu" class="absolute left-0 right-0 z-40 mt-1 hidden rounded-xl border border-slate-200 bg-white shadow-lg" data-assessment-menu="degree">
+                            <div id="initialAssessmentDegreeOptionsWrap" class="max-h-56 overflow-auto py-1" data-assessment-options="degree"></div>
+                        </div>
+                    </div>
+                    <p class="mt-1 text-xs text-gray-500">Search from the list or type if your degree/course is not available.</p>
                 </div>
                 <div class="mt-6 flex justify-end gap-2">
                     <button type="button" onclick="closeInitialAssessmentEducationModal()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
@@ -546,33 +534,21 @@
                 <h2 class="text-lg font-semibold text-[#002C76] mt-1">Question 2</h2>
                 <p class="text-sm text-gray-700 mt-3 font-medium">What is your civil service eligibility?</p>
                 <div class="mt-4">
-                    <label for="initialAssessmentEligibilityInput" class="block text-xs uppercase tracking-wide text-slate-500 mb-2">Eligibility (type to get suggestions)</label>
-                    <input
-                        id="initialAssessmentEligibilityInput"
-                        list="initialAssessmentEligibilityOptions"
-                        type="text"
-                        autocomplete="off"
-                        placeholder="Type your eligibility"
-                        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20"
-                    >
-                    <datalist id="initialAssessmentEligibilityOptions">
-                        @foreach(($assessmentEligibilityOptions ?? []) as $eligibilityOption)
-                            <option value="{{ $eligibilityOption }}">{{ $eligibilityOption }}</option>
-                        @endforeach
-                    </datalist>
-
-                    <label class="flex items-center gap-2 text-xs uppercase tracking-wide text-slate-500 mt-3 mb-2">
-                        <input id="initialAssessmentEligibilityOtherToggle" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-[#0D2B70] focus:ring-[#0D2B70]/30">
-                        <span>Others: (if your eligibility is not listed)</span>
-                    </label>
-                    <input
-                        id="initialAssessmentEligibilityOtherInput"
-                        type="text"
-                        autocomplete="off"
-                        placeholder="Enter your eligibility"
-                        disabled
-                        class="w-full rounded-lg border border-slate-300 bg-slate-100 px-3 py-2 text-sm focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20 disabled:cursor-not-allowed disabled:opacity-70"
-                    >
+                    <label for="initialAssessmentEligibilityInput" class="block text-xs uppercase tracking-wide text-slate-500 mb-2">Civil Service Eligibility</label>
+                    <div class="relative">
+                        <input
+                            id="initialAssessmentEligibilityInput"
+                            type="text"
+                            autocomplete="off"
+                            placeholder="Search from the list or type your eligibility"
+                            data-assessment-input="eligibility"
+                            class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20"
+                        >
+                        <div id="initialAssessmentEligibilityMenu" class="absolute left-0 right-0 z-40 mt-1 hidden rounded-xl border border-slate-200 bg-white shadow-lg" data-assessment-menu="eligibility">
+                            <div id="initialAssessmentEligibilityOptionsWrap" class="max-h-56 overflow-auto py-1" data-assessment-options="eligibility"></div>
+                        </div>
+                    </div>
+                    <p class="mt-1 text-xs text-gray-500">Search from the list or type if your eligibility is not available.</p>
                 </div>
                 <div class="mt-6 flex justify-end gap-2">
                     <button type="button" onclick="closeInitialAssessmentEligibilityModal()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
@@ -607,6 +583,27 @@
             </div>
         </div>
 
+        <div id="initialAssessmentFeedbackModal" class="fixed inset-0 z-[1200] flex items-center justify-center bg-black/60 backdrop-blur-md hidden px-4 py-6">
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 border border-[#0D2B70]/10">
+                <p class="text-xs uppercase tracking-[0.15em] text-[#0D2B70]/70 font-semibold">Initial Assessment</p>
+                <h2 id="initialAssessmentFeedbackTitle" class="text-lg font-semibold text-[#002C76] mt-1">Assessment Result</h2>
+                <p id="initialAssessmentFeedbackMessage" class="text-sm text-gray-700 mt-3 leading-6"></p>
+                <div id="initialAssessmentFeedbackNoticeActions" class="mt-6 flex justify-end gap-2">
+                    <button type="button" onclick="closeInitialAssessmentFeedbackModal()" class="px-4 py-2 bg-[#0D2B70] text-white rounded-lg hover:bg-[#0A245D]">
+                        Close
+                    </button>
+                </div>
+                <div id="initialAssessmentFeedbackDecisionActions" class="mt-6 hidden justify-end gap-2">
+                    <button type="button" onclick="closeInitialAssessmentFeedbackModal()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
+                        No
+                    </button>
+                    <button type="button" onclick="confirmInitialAssessmentFeedback()" class="px-4 py-2 bg-[#0D2B70] text-white rounded-lg hover:bg-[#0A245D]">
+                        Yes, Continue
+                    </button>
+                </div>
+            </div>
+        </div>
+
         @include('partials.loader')
     </main>
 @endsection
@@ -623,6 +620,9 @@
         const modal = document.getElementById(id);
         if (!modal) return;
         modal.classList.add('hidden');
+        if (id === 'initialAssessmentFeedbackModal' && typeof initialAssessmentFeedbackState === 'object') {
+            initialAssessmentFeedbackState.onConfirm = null;
+        }
         document.body.classList.remove('overflow-hidden');
     }
 
@@ -643,23 +643,237 @@
     function closeInitialAssessmentEducationModal() { closeModal('initialAssessmentEducationModal'); }
     function closeInitialAssessmentEligibilityModal() { closeModal('initialAssessmentEligibilityModal'); }
     function closeInitialAssessmentPqeModal() { closeModal('initialAssessmentPqeModal'); }
+    function closeInitialAssessmentFeedbackModal() {
+        closeModal('initialAssessmentFeedbackModal');
+        initialAssessmentFeedbackState.onConfirm = null;
+    }
 
     const initialAssessmentState = {
         degree: '',
         eligibility: '',
+    };
+    const initialAssessmentFeedbackState = {
+        onConfirm: null,
     };
 
     const initialAssessmentSubmitUrl = @json(route('initial_assessment.submit', ['vacancy_id' => $vacancy->vacancy_id]));
     const pdsRedirectUrl = @json(route('display_c1'));
     const hasIncompletePds = @json($hasIncompletePdsForApply);
     const hasDocTrackMismatch = @json($hasDocTrackMismatch);
+    const initialAssessmentOptions = {
+        degree: @json(array_values($assessmentCourseOptions ?? [])),
+        eligibility: @json(array_values($assessmentEligibilityOptions ?? [])),
+    };
 
-    function notifyAssessment(message, type = 'warning') {
-        if (typeof window.showAppToast === 'function') {
-            window.showAppToast(message, type, 3500);
-        } else {
-            alert(message);
+    function escapeAssessmentOptionHtml(value) {
+        return String(value || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function normalizeAssessmentInput(value) {
+        return String(value || '').trim().replace(/\s+/g, ' ');
+    }
+
+    function assessmentInputEl(type) {
+        return document.querySelector(`[data-assessment-input="${type}"]`);
+    }
+
+    function assessmentMenuEl(type) {
+        return document.querySelector(`[data-assessment-menu="${type}"]`);
+    }
+
+    function assessmentOptionsWrapEl(type) {
+        return document.querySelector(`[data-assessment-options="${type}"]`);
+    }
+
+    function currentAssessmentOptions(type) {
+        const raw = initialAssessmentOptions[type];
+        return Array.isArray(raw) ? raw : [];
+    }
+
+    function filterAssessmentOptions(type, query) {
+        const normalizedQuery = normalizeAssessmentInput(query).toLowerCase();
+        const options = currentAssessmentOptions(type);
+        if (!normalizedQuery) {
+            return options;
         }
+
+        return options.filter((item) => String(item || '').toLowerCase().includes(normalizedQuery));
+    }
+
+    function closeAssessmentMenu(type) {
+        const input = assessmentInputEl(type);
+        const menu = assessmentMenuEl(type);
+        if (!menu) {
+            return;
+        }
+
+        menu.classList.add('hidden');
+        if (input) {
+            input.setAttribute('aria-expanded', 'false');
+        }
+    }
+
+    function closeAllAssessmentMenus() {
+        closeAssessmentMenu('degree');
+        closeAssessmentMenu('eligibility');
+    }
+
+    function renderAssessmentOptions(type) {
+        const input = assessmentInputEl(type);
+        const optionsWrap = assessmentOptionsWrapEl(type);
+        if (!input || !optionsWrap) {
+            return;
+        }
+
+        const filtered = filterAssessmentOptions(type, input.value).slice(0, 200);
+        if (filtered.length === 0) {
+            optionsWrap.innerHTML = '<div class="px-3 py-2 text-sm text-slate-500">No matches found. Keep typing to use your own entry.</div>';
+            return;
+        }
+
+        const selectedValue = normalizeAssessmentInput(input.value).toLowerCase();
+        optionsWrap.innerHTML = filtered.map((name) => {
+            const label = normalizeAssessmentInput(name);
+            const selectedClass = selectedValue === label.toLowerCase() ? ' bg-slate-100 font-medium' : '';
+            return `<button type="button" class="block w-full px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-100 focus:bg-slate-100${selectedClass}" data-assessment-option="${type}" data-label="${escapeAssessmentOptionHtml(label)}">${escapeAssessmentOptionHtml(label)}</button>`;
+        }).join('');
+    }
+
+    function openAssessmentMenu(type) {
+        const input = assessmentInputEl(type);
+        const menu = assessmentMenuEl(type);
+        if (!input || !menu || input.disabled) {
+            closeAssessmentMenu(type);
+            return;
+        }
+
+        closeAllAssessmentMenus();
+        renderAssessmentOptions(type);
+        menu.classList.remove('hidden');
+        input.setAttribute('aria-expanded', 'true');
+    }
+
+    function bindAssessmentDropdown(type) {
+        const input = assessmentInputEl(type);
+        const optionsWrap = assessmentOptionsWrapEl(type);
+        if (!input || !optionsWrap || input.dataset.bound === '1') {
+            return;
+        }
+
+        input.dataset.bound = '1';
+        input.setAttribute('aria-expanded', 'false');
+        input.addEventListener('focus', () => openAssessmentMenu(type));
+        input.addEventListener('click', () => openAssessmentMenu(type));
+        input.addEventListener('input', () => openAssessmentMenu(type));
+        input.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                closeAssessmentMenu(type);
+                return;
+            }
+
+            if (event.key === 'Enter') {
+                const menu = assessmentMenuEl(type);
+                if (menu && !menu.classList.contains('hidden')) {
+                    const firstOption = optionsWrap.querySelector(`button[data-assessment-option="${type}"]`);
+                    if (firstOption) {
+                        event.preventDefault();
+                        firstOption.click();
+                    }
+                }
+            }
+        });
+
+        input.addEventListener('blur', () => {
+            window.setTimeout(() => {
+                const active = document.activeElement;
+                const menu = assessmentMenuEl(type);
+                if (menu && active && menu.contains(active)) {
+                    return;
+                }
+                closeAssessmentMenu(type);
+            }, 120);
+        });
+
+        optionsWrap.addEventListener('click', (event) => {
+            const target = event.target instanceof HTMLElement
+                ? event.target.closest(`button[data-assessment-option="${type}"]`)
+                : null;
+            if (!target || !(target instanceof HTMLElement)) {
+                return;
+            }
+
+            const label = normalizeAssessmentInput(target.getAttribute('data-label') || '');
+            if (!label) {
+                return;
+            }
+
+            input.value = label;
+            closeAssessmentMenu(type);
+            input.focus();
+        });
+    }
+
+    function closeInitialAssessmentFlowModals() {
+        closeModal('initialAssessmentEducationModal');
+        closeModal('initialAssessmentEligibilityModal');
+        closeModal('initialAssessmentPqeModal');
+    }
+
+    function setInitialAssessmentFeedbackContent(title, message, isDecision) {
+        const titleEl = document.getElementById('initialAssessmentFeedbackTitle');
+        const messageEl = document.getElementById('initialAssessmentFeedbackMessage');
+        const noticeActionsEl = document.getElementById('initialAssessmentFeedbackNoticeActions');
+        const decisionActionsEl = document.getElementById('initialAssessmentFeedbackDecisionActions');
+
+        if (titleEl) {
+            titleEl.textContent = title;
+        }
+        if (messageEl) {
+            messageEl.textContent = message;
+        }
+        if (noticeActionsEl) {
+            noticeActionsEl.classList.toggle('hidden', isDecision);
+            noticeActionsEl.classList.toggle('flex', !isDecision);
+        }
+        if (decisionActionsEl) {
+            decisionActionsEl.classList.toggle('hidden', !isDecision);
+            decisionActionsEl.classList.toggle('flex', isDecision);
+        }
+    }
+
+    function showInitialAssessmentNotice(title, message) {
+        initialAssessmentFeedbackState.onConfirm = null;
+        setInitialAssessmentFeedbackContent(title, message, false);
+        openModal('initialAssessmentFeedbackModal');
+    }
+
+    function showInitialAssessmentDecision(title, message, onConfirm) {
+        initialAssessmentFeedbackState.onConfirm = typeof onConfirm === 'function' ? onConfirm : null;
+        setInitialAssessmentFeedbackContent(title, message, true);
+        openModal('initialAssessmentFeedbackModal');
+    }
+
+    function confirmInitialAssessmentFeedback() {
+        const callback = initialAssessmentFeedbackState.onConfirm;
+        closeInitialAssessmentFeedbackModal();
+        if (typeof callback === 'function') {
+            callback();
+        }
+    }
+
+    function getContinueAssessmentPromptMessage() {
+        if (hasIncompletePds) {
+            return 'You passed the initial assessment. Do you want to continue and fill up your PDS now?';
+        }
+        if (hasDocTrackMismatch) {
+            return 'You passed the initial assessment. Do you want to continue and update the required documents now?';
+        }
+        return 'You passed the initial assessment. Do you want to continue with your application now?';
     }
 
     async function submitInitialAssessment(hasPqe = null) {
@@ -687,9 +901,10 @@
 
         const data = await response.json().catch(() => ({}));
         if (!response.ok || data.ok === false) {
-            notifyAssessment(
-                String(data.message || 'You are not qualified for this position based on the initial assessment.'),
-                'warning'
+            closeInitialAssessmentFlowModals();
+            showInitialAssessmentNotice(
+                'Not Qualified to Apply',
+                String(data.message || 'Based on your initial assessment responses, you are currently not qualified for this position.')
             );
             return false;
         }
@@ -713,18 +928,11 @@
 
     function goToInitialAssessmentEligibility() {
         const degreeInput = document.getElementById('initialAssessmentDegreeInput');
-        const degreeOtherToggle = document.getElementById('initialAssessmentDegreeOtherToggle');
-        const degreeOtherInput = document.getElementById('initialAssessmentDegreeOtherInput');
-        const suggestedDegree = degreeInput ? String(degreeInput.value || '').trim() : '';
-        const customDegree = degreeOtherInput ? String(degreeOtherInput.value || '').trim() : '';
-        const useOther = !!(degreeOtherToggle && degreeOtherToggle.checked);
-        const degree = useOther ? customDegree : suggestedDegree;
+        const degree = normalizeAssessmentInput(degreeInput ? degreeInput.value : '');
         if (degree === '') {
-            notifyAssessment(
-                useOther
-                    ? 'Please enter your course in Others first.'
-                    : 'Please enter your degree first.',
-                'warning'
+            showInitialAssessmentNotice(
+                'Degree is Required',
+                'Please enter your degree/course to continue with the initial assessment.'
             );
             return;
         }
@@ -741,18 +949,11 @@
 
     async function completeInitialAssessmentEligibility() {
         const eligibilityInput = document.getElementById('initialAssessmentEligibilityInput');
-        const eligibilityOtherToggle = document.getElementById('initialAssessmentEligibilityOtherToggle');
-        const eligibilityOtherInput = document.getElementById('initialAssessmentEligibilityOtherInput');
-        const suggestedEligibility = eligibilityInput ? String(eligibilityInput.value || '').trim() : '';
-        const customEligibility = eligibilityOtherInput ? String(eligibilityOtherInput.value || '').trim() : '';
-        const useOther = !!(eligibilityOtherToggle && eligibilityOtherToggle.checked);
-        const eligibility = useOther ? customEligibility : suggestedEligibility;
+        const eligibility = normalizeAssessmentInput(eligibilityInput ? eligibilityInput.value : '');
         if (eligibility === '') {
-            notifyAssessment(
-                useOther
-                    ? 'Please enter your eligibility in Others first.'
-                    : 'Please enter your civil service eligibility first.',
-                'warning'
+            showInitialAssessmentNotice(
+                'Eligibility is Required',
+                'Please enter your civil service eligibility to continue with the initial assessment.'
             );
             return;
         }
@@ -770,7 +971,11 @@
             return;
         }
 
-        continueAfterInitialAssessment();
+        showInitialAssessmentDecision(
+            'Qualified to Proceed',
+            getContinueAssessmentPromptMessage(),
+            continueAfterInitialAssessment
+        );
     }
 
     async function answerInitialAssessmentPqe(hasPqe) {
@@ -780,7 +985,11 @@
         }
 
         closeModal('initialAssessmentPqeModal');
-        continueAfterInitialAssessment();
+        showInitialAssessmentDecision(
+            'Qualified to Proceed',
+            getContinueAssessmentPromptMessage(),
+            continueAfterInitialAssessment
+        );
     }
 
     document.addEventListener('DOMContentLoaded', function() {
@@ -791,19 +1000,12 @@
             'initialAssessmentEducationModal',
             'initialAssessmentEligibilityModal',
             'initialAssessmentPqeModal',
+            'initialAssessmentFeedbackModal',
         ];
         modalIds.forEach((id) => {
             const modal = document.getElementById(id);
             if (modal && modal.parentElement !== document.body) {
                 document.body.appendChild(modal);
-            }
-
-            if (modal) {
-                modal.addEventListener('click', function (event) {
-                    if (event.target === modal) {
-                        closeModal(id);
-                    }
-                });
             }
         });
 
@@ -822,47 +1024,16 @@
             feather.replace();
         }
 
-        const degreeOtherToggle = document.getElementById('initialAssessmentDegreeOtherToggle');
-        const degreeOtherInput = document.getElementById('initialAssessmentDegreeOtherInput');
-        const degreeInput = document.getElementById('initialAssessmentDegreeInput');
-        if (degreeOtherToggle && degreeOtherInput) {
-            const syncDegreeOtherState = () => {
-                const enabled = degreeOtherToggle.checked;
-                degreeOtherInput.disabled = !enabled;
-                degreeOtherInput.classList.toggle('bg-slate-100', !enabled);
-                degreeOtherInput.classList.toggle('bg-white', enabled);
-                if (!enabled) {
-                    degreeOtherInput.value = '';
-                } else if (degreeInput) {
-                    degreeInput.value = '';
-                    degreeOtherInput.focus();
-                }
-            };
-
-            degreeOtherToggle.addEventListener('change', syncDegreeOtherState);
-            syncDegreeOtherState();
-        }
-
-        const eligibilityOtherToggle = document.getElementById('initialAssessmentEligibilityOtherToggle');
-        const eligibilityOtherInput = document.getElementById('initialAssessmentEligibilityOtherInput');
-        const eligibilityInput = document.getElementById('initialAssessmentEligibilityInput');
-        if (eligibilityOtherToggle && eligibilityOtherInput) {
-            const syncEligibilityOtherState = () => {
-                const enabled = eligibilityOtherToggle.checked;
-                eligibilityOtherInput.disabled = !enabled;
-                eligibilityOtherInput.classList.toggle('bg-slate-100', !enabled);
-                eligibilityOtherInput.classList.toggle('bg-white', enabled);
-                if (!enabled) {
-                    eligibilityOtherInput.value = '';
-                } else if (eligibilityInput) {
-                    eligibilityInput.value = '';
-                    eligibilityOtherInput.focus();
-                }
-            };
-
-            eligibilityOtherToggle.addEventListener('change', syncEligibilityOtherState);
-            syncEligibilityOtherState();
-        }
+        bindAssessmentDropdown('degree');
+        bindAssessmentDropdown('eligibility');
+        document.addEventListener('click', (event) => {
+            if (!(event.target instanceof Node)) {
+                return;
+            }
+            if (!event.target.closest('[data-assessment-input]') && !event.target.closest('[data-assessment-menu]')) {
+                closeAllAssessmentMenus();
+            }
+        });
 
         const showPdsRequiredModalOnLoad = @json($showPdsRequiredModalOnLoad);
         if (showPdsRequiredModalOnLoad) {

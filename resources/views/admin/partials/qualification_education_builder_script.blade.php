@@ -41,6 +41,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     const normalize = (value) => String(value || '').trim().toLowerCase();
+    const normalizeSpaces = (value) => String(value || '').replace(/\s+/g, ' ').trim();
     const hasValue = (value) => String(value || '').trim() !== '';
     const escapeAttr = (value) => String(value || '').replace(/"/g, '&quot;');
     const escapeHtml = (value) => String(value || '')
@@ -49,6 +50,91 @@ document.addEventListener('DOMContentLoaded', function () {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
+
+    function expandProgramAbbreviation(label) {
+        const value = normalizeSpaces(label);
+        if (!value) {
+            return '';
+        }
+
+        const bsMatch = value.match(/^b\.?\s*s\.?\s+(.+)$/i);
+        if (bsMatch) {
+            return `Bachelor of Science in ${normalizeSpaces(bsMatch[1])}`;
+        }
+
+        const baMatch = value.match(/^b\.?\s*a\.?\s+(.+)$/i);
+        if (baMatch) {
+            return `Bachelor of Arts in ${normalizeSpaces(baMatch[1])}`;
+        }
+
+        const msMatch = value.match(/^m\.?\s*s\.?\s+(.+)$/i);
+        if (msMatch) {
+            return `Master of Science in ${normalizeSpaces(msMatch[1])}`;
+        }
+
+        const maMatch = value.match(/^m\.?\s*a\.?\s+(.+)$/i);
+        if (maMatch) {
+            return `Master of Arts in ${normalizeSpaces(maMatch[1])}`;
+        }
+
+        const phdMatch = value.match(/^p\.?\s*h\.?\s*d\.?\s+(.+)$/i);
+        if (phdMatch) {
+            return `Doctor of Philosophy in ${normalizeSpaces(phdMatch[1])}`;
+        }
+
+        return value;
+    }
+
+    function requirementProgramLabel(label) {
+        let value = normalizeSpaces(expandProgramAbbreviation(label));
+        if (!value) {
+            return '';
+        }
+
+        const leadingPatterns = [
+            /^completion of 2 years of studies in college in\s+/i,
+            /^bachelor(?:'s)? degree in\s+/i,
+            /^masteral degree in\s+/i,
+            /^doctorate degree in\s+/i,
+            /^bachelor of science in\s+/i,
+            /^bachelor of arts in\s+/i,
+            /^bachelor of\s+/i,
+            /^master of science in\s+/i,
+            /^master of arts in\s+/i,
+            /^master in\s+/i,
+            /^master of\s+/i,
+            /^doctor of philosophy in\s+/i,
+            /^doctor of\s+/i,
+        ];
+
+        for (const pattern of leadingPatterns) {
+            if (pattern.test(value)) {
+                value = normalizeSpaces(value.replace(pattern, ''));
+                break;
+            }
+        }
+
+        return value;
+    }
+
+    function bachelorSpecificProgramLabel(label) {
+        let value = normalizeSpaces(expandProgramAbbreviation(label));
+        if (!value) {
+            return '';
+        }
+
+        value = normalizeSpaces(value.replace(/^bachelor(?:'s)? degree\s+in\s+/i, ''));
+        return value;
+    }
+
+    function comparableProgramLabel(label) {
+        const comparable = requirementProgramLabel(label);
+        if (comparable) {
+            return normalize(comparable);
+        }
+
+        return normalize(expandProgramAbbreviation(label));
+    }
 
     const collegeCoursesListUrl = @json(route('admin.courses.list'));
 
@@ -78,16 +164,29 @@ document.addEventListener('DOMContentLoaded', function () {
         { code: 'SJD', label: 'Doctor of Juridical Science' },
     ];
 
-    let collegeCourseOptions = [...defaultCollegeCourseOptions];
-    let masteralOptions = [...defaultMasteralOptions];
-    let doctorateOptions = [...defaultDoctorateOptions];
+    function normalizedProgramOptions(options) {
+        return (Array.isArray(options) ? options : []).map((item) => ({
+            ...item,
+            label: expandProgramAbbreviation(item?.label || ''),
+        }));
+    }
+
+    let collegeCourseOptions = normalizedProgramOptions(defaultCollegeCourseOptions);
+    let masteralOptions = normalizedProgramOptions(defaultMasteralOptions);
+    let doctorateOptions = normalizedProgramOptions(defaultDoctorateOptions);
     let rowCounter = 0;
 
     const educationMeta = {
         HIGH_SCHOOL_GRAD: {
-            label: 'High School Graduate',
-            requirementTextAny: 'High School',
-            previewAny: 'Applicants must have at least a High School Graduate.',
+            label: 'Junior High School Graduate',
+            requirementTextAny: 'Junior High School Graduate',
+            previewAny: 'Applicants must have at least a Junior High School Graduate.',
+            detail: null,
+        },
+        SENIOR_HIGH_SCHOOL_GRAD: {
+            label: 'Senior High School Graduate',
+            requirementTextAny: 'Senior High School Graduate',
+            previewAny: 'Applicants must have at least a Senior High School Graduate.',
             detail: null,
         },
         COLLEGE_2Y: {
@@ -100,10 +199,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 specificLabel: 'Specific college course',
                 specificFieldLabel: 'Required course',
                 optionsProvider: () => collegeCourseOptions,
-                requirementTextSpecific: (program) => `Completion of 2 years of studies in college in ${program}`,
-                requirementTextSpecificMultiple: (programs) => `Completion of 2 years of studies in college in ${programs.join(', ')}`,
-                previewSpecific: (program) => `Applicants must have at least a Completion of 2 Years in College in ${program}.`,
-                previewSpecificMultiple: (programs) => `Applicants may hold any of the following courses: ${programs.join(', ')}.`,
+                requirementTextSpecific: (program) => `Completion of 2 years of studies in college in ${requirementProgramLabel(program)}`,
+                requirementTextSpecificMultiple: (programs) => `Completion of 2 years of studies in college in ${programs.map((program) => requirementProgramLabel(program)).join(', ')}`,
+                previewSpecific: (program) => `Applicants must have at least a Completion of 2 Years in College in ${requirementProgramLabel(program)}.`,
+                previewSpecificMultiple: (programs) => `Applicants may hold any of the following courses: ${programs.map((program) => requirementProgramLabel(program)).join(', ')}.`,
             },
         },
         BACHELOR: {
@@ -116,10 +215,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 specificLabel: 'Specific bachelors degree',
                 specificFieldLabel: 'Required degree',
                 optionsProvider: () => collegeCourseOptions,
-                requirementTextSpecific: (program) => `Bachelor's Degree in ${program}`,
-                requirementTextSpecificMultiple: (programs) => `Bachelor's Degree in ${programs.join(', ')}`,
-                previewSpecific: (program) => `Applicants must hold the degree ${program}.`,
-                previewSpecificMultiple: (programs) => `Applicants may hold any of the following degrees: ${programs.join(', ')}.`,
+                requirementTextSpecific: (program) => `${bachelorSpecificProgramLabel(program)}`,
+                requirementTextSpecificMultiple: (programs) => `${programs.map((program) => bachelorSpecificProgramLabel(program)).join(', ')}`,
+                previewSpecific: (program) => `Applicants must hold the degree ${bachelorSpecificProgramLabel(program)}.`,
+                previewSpecificMultiple: (programs) => `Applicants may hold any of the following degrees: ${programs.map((program) => bachelorSpecificProgramLabel(program)).join(', ')}.`,
             },
         },
         MASTERAL: {
@@ -132,10 +231,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 specificLabel: 'Specific masteral degree',
                 specificFieldLabel: 'Required degree',
                 optionsProvider: () => masteralOptions,
-                requirementTextSpecific: (program) => `Masteral Degree in ${program}`,
-                requirementTextSpecificMultiple: (programs) => `Masteral Degree in ${programs.join(', ')}`,
-                previewSpecific: (program) => `Applicants must hold the degree ${program}.`,
-                previewSpecificMultiple: (programs) => `Applicants may hold any of the following degrees: ${programs.join(', ')}.`,
+                requirementTextSpecific: (program) => `Masteral Degree in ${requirementProgramLabel(program)}`,
+                requirementTextSpecificMultiple: (programs) => `Masteral Degree in ${programs.map((program) => requirementProgramLabel(program)).join(', ')}`,
+                previewSpecific: (program) => `Applicants must hold a master's degree in ${requirementProgramLabel(program)}.`,
+                previewSpecificMultiple: (programs) => `Applicants may hold any master's degree in the following fields: ${programs.map((program) => requirementProgramLabel(program)).join(', ')}.`,
             },
         },
         DOCTORATE: {
@@ -148,10 +247,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 specificLabel: 'Specific doctorate degree',
                 specificFieldLabel: 'Required degree',
                 optionsProvider: () => doctorateOptions,
-                requirementTextSpecific: (program) => `Doctorate Degree in ${program}`,
-                requirementTextSpecificMultiple: (programs) => `Doctorate Degree in ${programs.join(', ')}`,
-                previewSpecific: (program) => `Applicants must hold the degree ${program}.`,
-                previewSpecificMultiple: (programs) => `Applicants may hold any of the following degrees: ${programs.join(', ')}.`,
+                requirementTextSpecific: (program) => `Doctorate Degree in ${requirementProgramLabel(program)}`,
+                requirementTextSpecificMultiple: (programs) => `Doctorate Degree in ${programs.map((program) => requirementProgramLabel(program)).join(', ')}`,
+                previewSpecific: (program) => `Applicants must hold a doctorate degree in ${requirementProgramLabel(program)}.`,
+                previewSpecificMultiple: (programs) => `Applicants may hold a doctorate degree in the following fields: ${programs.map((program) => requirementProgramLabel(program)).join(', ')}.`,
             },
         },
     };
@@ -199,7 +298,17 @@ document.addEventListener('DOMContentLoaded', function () {
     function optionByLabel(label, options) {
         const n = normalize(label);
         if (!n) return null;
-        return options.find((item) => normalize(item.label) === n) || null;
+
+        const comparable = comparableProgramLabel(label);
+        return options.find((item) => {
+            const itemLabel = normalize(item.label);
+            const itemComparable = comparableProgramLabel(item.label);
+
+            return itemLabel === n
+                || itemComparable === n
+                || itemLabel === comparable
+                || itemComparable === comparable;
+        }) || null;
     }
 
     function optionCodeFromLabel(label, options) {
@@ -617,7 +726,11 @@ document.addEventListener('DOMContentLoaded', function () {
             return { code: '', mode: '', specificList: [] };
         }
 
-        if (n.includes('high school') || n.includes('senior high') || n.includes('grade 12') || n.includes('shs')) {
+        if (n.includes('senior high') || n.includes('grade 12') || n.includes('shs')) {
+            return { code: 'SENIOR_HIGH_SCHOOL_GRAD', mode: '', specificList: [] };
+        }
+
+        if (n.includes('junior graduate') || n.includes('junior high') || n.includes('high school') || n.includes('secondary')) {
             return { code: 'HIGH_SCHOOL_GRAD', mode: '', specificList: [] };
         }
 
@@ -650,10 +763,23 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (n.includes('bachelor') || n.includes('college graduate') || n.includes('college degree') || n.includes('law')) {
             const m = text.match(/bachelor(?:'s)? degree\s+in\s+(.+)$/i);
+            const looksLikeAnyBachelor = n.includes('(any field)')
+                || /bachelor(?:'s)? degree$/i.test(n)
+                || n.includes('college graduate')
+                || n.includes('college degree');
+
+            if (m) {
+                return {
+                    code: 'BACHELOR',
+                    mode: 'SPECIFIC',
+                    specificList: parseSpecificList(m[1]),
+                };
+            }
+
             return {
                 code: 'BACHELOR',
-                mode: m ? 'SPECIFIC' : 'ANY',
-                specificList: m ? parseSpecificList(m[1]) : [],
+                mode: looksLikeAnyBachelor ? 'ANY' : 'SPECIFIC',
+                specificList: looksLikeAnyBachelor ? [] : parseSpecificList(text),
             };
         }
 
@@ -742,7 +868,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const mapped = rows
                 .map((row) => {
                     const code = String(row?.code || '').trim();
-                    const label = String(row?.name || '').trim();
+                    const label = expandProgramAbbreviation(row?.name || '');
                     const level = String(row?.level || 'COLLEGE').trim().toUpperCase();
                     if (!code || !label) {
                         return null;

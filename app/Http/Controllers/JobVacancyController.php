@@ -1278,6 +1278,8 @@ class JobVacancyController extends Controller
                 ELSE 4 
             END")
             ->orderBy('job_vacancies.closing_date', 'asc')
+            ->orderBy('job_vacancies.created_at', 'desc')
+            ->orderBy('job_vacancies.vacancy_id', 'asc')
             ->get();
 
         /*
@@ -1300,6 +1302,8 @@ class JobVacancyController extends Controller
         $jobVacancies = $jobVacanciesQuery
             ->orderByRaw("CASE WHEN status = 'OPEN' THEN 1 ELSE 2 END")
             ->orderBy('closing_date', 'asc')
+            ->orderBy('created_at', 'desc')
+            ->orderBy('vacancy_id', 'asc')
             ->get();
 
         /*
@@ -2002,6 +2006,7 @@ class JobVacancyController extends Controller
         $search = $request->get('search');
         $job = $request->get('job');
         $place = $request->get('place');
+        $sort = trim((string) $request->get('sort', ''));
         $isHrDivisionUser = $this->isHrDivisionAdmin();
 
         $vacanciesQuery = JobVacancy::query();
@@ -2046,7 +2051,16 @@ class JobVacancyController extends Controller
                 });
             })
             ->orderByRaw("CASE WHEN status = 'OPEN' THEN 1 ELSE 2 END")
-            ->orderBy('created_at', 'desc')
+            ->orderBy('closing_date', 'asc');
+
+        if ($sort === 'oldest') {
+            $vacancies->orderBy('created_at', 'asc');
+        } else {
+            $vacancies->orderBy('created_at', 'desc');
+        }
+
+        $vacancies = $vacancies
+            ->orderBy('vacancy_id', 'asc')
             ->get();
 
         session(['vacancyFilterSearch' => $search]);
@@ -2114,13 +2128,18 @@ class JobVacancyController extends Controller
             WHEN job_vacancies.status = 'OPEN' AND exam_details.date IS NULL THEN 2 
             WHEN job_vacancies.status = 'OPEN' AND exam_details.date IS NOT NULL AND exam_details.date < CURDATE() THEN 3 
             ELSE 4 
-        END");
+        END")
+            ->orderBy('job_vacancies.closing_date', 'asc');
 
         if ($request->sort == 'latest') {
             $vacancies->orderBy('job_vacancies.created_at', 'desc');
         } elseif ($request->sort == 'oldest') {
             $vacancies->orderBy('job_vacancies.created_at', 'asc');
+        } else {
+            $vacancies->orderBy('job_vacancies.created_at', 'desc');
         }
+
+        $vacancies->orderBy('job_vacancies.vacancy_id', 'asc');
 
         $vacancies = $vacancies->get();
 
@@ -4414,6 +4433,11 @@ class JobVacancyController extends Controller
         }
 
         $profile = $this->buildInitialAssessmentEducationProfile($degree);
+        $alternativeEvaluation = $this->evaluateAlternativeEducationRequirements($profile, $requirement);
+        if (is_array($alternativeEvaluation)) {
+            return (bool) ($alternativeEvaluation['met'] ?? false);
+        }
+
         $compiledRule = $this->resolveCompiledEducationRuleForVacancy($vacancy, $requirement);
         $met = is_array($compiledRule) ? $this->evaluateCompiledEducationRule($profile, $compiledRule) : null;
         $usedFallback = false;
@@ -4436,27 +4460,195 @@ class JobVacancyController extends Controller
 
     private function buildInitialAssessmentEducationProfile(string $degree): array
     {
-        $normalized = strtolower(trim($degree));
-        $hasInput = $normalized !== '';
+        $rawInput = trim((string) preg_replace('/\s+/', ' ', $degree));
+        $normalized = strtolower($rawInput);
+        if (in_array($normalized, ['na', 'n/a', 'none', 'not applicable', 'nil', '-', 'noinput'], true)) {
+            $rawInput = '';
+            $normalized = '';
+        }
+
+        $hasInput = $rawInput !== '';
+        $yearsFromText = $this->extractYearsFromEducationLevelText($normalized);
+        $unitsFromText = $this->extractUnitsFromEducationLevelText($normalized);
+        $semestersFromText = $this->extractSemestersFromEducationLevelText($normalized);
+        $resolvedLevel = $this->resolveInitialAssessmentEducationLevel(
+            $normalized,
+            $yearsFromText,
+            $unitsFromText,
+            $semestersFromText
+        );
+        $resolvedRank = $this->educationLevelRank($resolvedLevel) ?? 0;
+        $highSchoolRank = $this->educationLevelRank('high_school') ?? 1;
+        $collegeUndergradRank = $this->educationLevelRank('college_undergrad_or_two_years') ?? 2;
+        $bachelorRank = $this->educationLevelRank('bachelor') ?? 3;
+        $masteralRank = $this->educationLevelRank('masteral') ?? 4;
+        $doctorateRank = $this->educationLevelRank('doctorate') ?? 5;
+        $isLawTrack = $resolvedLevel === 'law';
+        $hasDoctorate = $resolvedRank >= $doctorateRank;
+        $hasMasters = $resolvedRank >= $masteralRank;
+        $hasBachelorOrHigher = $resolvedRank >= $bachelorRank || $isLawTrack;
+        $hasCollegeEntryOrHigher = $resolvedRank >= $collegeUndergradRank || $hasBachelorOrHigher;
+        $hasSeniorHighExplicit = $this->textContainsAny($normalized, ['senior high', 'grade 12', 'shs']);
+        $hasHighSchoolExplicit = $this->textContainsAny($normalized, ['high school', 'secondary']);
+        $collegeYearsCompleted = max(
+            $yearsFromText,
+            ($resolvedRank >= $bachelorRank || $isLawTrack) ? 4 : ($resolvedRank >= $collegeUndergradRank ? 1 : 0)
+        );
+        $estimatedCollegeUnits = max(
+            $unitsFromText,
+            $collegeYearsCompleted > 0 ? $collegeYearsCompleted * 36 : 0
+        );
+        $hasAtLeastTwoYearsCollege = $collegeYearsCompleted >= 2
+            || $unitsFromText >= 72
+            || $semestersFromText >= 4
+            || $hasBachelorOrHigher;
+        $degreeEntries = [];
+        if ($hasInput && ($hasBachelorOrHigher || $hasMasters || $hasDoctorate)) {
+            $entryLevel = $isLawTrack ? 'law' : ($resolvedLevel ?? 'bachelor');
+            $normalizedDegreeText = $this->normalizeEducationFieldText($rawInput);
+            if ($normalizedDegreeText !== '') {
+                $degreeEntries[] = [
+                    'level' => $entryLevel,
+                    'text' => $normalizedDegreeText,
+                ];
+            }
+        }
 
         return [
             'hasAnyEducation' => $hasInput,
             'hasElementaryOrHigher' => $hasInput,
-            'hasHighSchoolOrHigher' => $hasInput,
-            'hasSeniorHighOrHigher' => $hasInput,
-            'hasCollegeEntryOrHigher' => $hasInput,
-            'hasCollegeDegreeOrHigher' => $hasInput,
-            'hasBachelorOrHigher' => $hasInput,
-            'hasAtLeastTwoYearsCollege' => $hasInput,
-            'collegeYearsCompleted' => $hasInput ? 4 : 0,
-            'estimatedCollegeUnits' => $hasInput ? 120 : 0,
+            'hasHighSchoolOrHigher' => ($resolvedRank >= $highSchoolRank) || $hasHighSchoolExplicit || $hasSeniorHighExplicit,
+            'hasSeniorHighOrHigher' => ($resolvedRank > $highSchoolRank) || $hasSeniorHighExplicit,
+            'hasCollegeEntryOrHigher' => $hasCollegeEntryOrHigher,
+            'hasCollegeDegreeOrHigher' => $hasBachelorOrHigher,
+            'hasBachelorOrHigher' => $hasBachelorOrHigher,
+            'hasAtLeastTwoYearsCollege' => $hasAtLeastTwoYearsCollege,
+            'collegeYearsCompleted' => $collegeYearsCompleted,
+            'estimatedCollegeUnits' => $estimatedCollegeUnits,
+            'estimatedCollegeSemesters' => max(
+                $semestersFromText,
+                $collegeYearsCompleted > 0 ? $collegeYearsCompleted * 2 : 0
+            ),
             'hasVocational' => str_contains($normalized, 'tesda') || str_contains($normalized, 'vocational') || str_contains($normalized, 'technical'),
-            'hasGrad' => str_contains($normalized, 'master') || str_contains($normalized, 'doctor') || str_contains($normalized, 'phd'),
-            'hasMasters' => str_contains($normalized, 'master'),
-            'hasDoctorate' => str_contains($normalized, 'doctor') || str_contains($normalized, 'phd'),
-            'hasLawDegree' => str_contains($normalized, 'law') || str_contains($normalized, 'llb') || str_contains($normalized, 'juris doctor'),
+            'hasGrad' => $hasMasters || $hasDoctorate,
+            'hasMasters' => $hasMasters,
+            'hasDoctorate' => $hasDoctorate,
+            'hasLawDegree' => $isLawTrack,
             'educationKeywordHaystack' => $normalized,
+            'degree_entries' => $degreeEntries,
         ];
+    }
+
+    private function resolveInitialAssessmentEducationLevel(
+        string $normalizedDegree,
+        int $yearsFromText,
+        int $unitsFromText,
+        int $semestersFromText
+    ): ?string {
+        if (trim($normalizedDegree) === '') {
+            return null;
+        }
+
+        if ($this->valueContainsAnyKeyword($normalizedDegree, ['bachelor of laws', 'llb', 'll.b', 'juris doctor', 'doctor of jurisprudence', 'attorney'])) {
+            return 'law';
+        }
+
+        if ($this->textContainsDoctorateLevelKeyword($normalizedDegree)) {
+            return 'doctorate';
+        }
+
+        if ($this->textContainsAny($normalizedDegree, ['master', 'masteral', "master's", 'master of', 'mba', 'mpa', 'msc', 'm.s', 'm.a'])) {
+            return 'masteral';
+        }
+
+        if ($this->textContainsBachelorLevelKeyword($normalizedDegree)) {
+            return 'bachelor';
+        }
+
+        // Initial assessment accepts user-entered course names. If a user provides a
+        // likely degree program title without explicit level markers (e.g. "Information Technology"),
+        // treat it as bachelor-level for generic bachelor screening.
+        if ($this->looksLikeCourseNameWithoutExplicitLevel($normalizedDegree)) {
+            return 'bachelor';
+        }
+
+        $mentionsCollege = $this->textContainsAny($normalizedDegree, ['college', 'undergraduate', 'undergrad']);
+        if ($mentionsCollege || $yearsFromText > 0 || $unitsFromText > 0 || $semestersFromText > 0) {
+            return 'college_undergrad_or_two_years';
+        }
+
+        if ($this->textContainsAny($normalizedDegree, ['senior high', 'grade 12', 'shs', 'high school', 'secondary'])) {
+            return 'high_school';
+        }
+
+        return null;
+    }
+
+    private function textContainsBachelorLevelKeyword(string $value): bool
+    {
+        $normalized = strtolower(trim($value));
+        if ($normalized === '') {
+            return false;
+        }
+
+        if ($this->textContainsAny($normalized, ['bachelor', "bachelor's", 'baccalaureate', 'college graduate', 'college degree'])) {
+            return true;
+        }
+
+        return preg_match('/\b(b\.?\s?s\.?|b\.?\s?a\.?|a\.?\s?b\.?|bsc|bs[a-z]{2,6}|ba[a-z]{2,6}|beed|bsed)\b/i', $normalized) === 1;
+    }
+
+    private function looksLikeCourseNameWithoutExplicitLevel(string $value): bool
+    {
+        $normalized = $this->normalizeEducationFieldText($value);
+        if ($normalized === '') {
+            return false;
+        }
+
+        // Do not infer bachelor-level when lower-level or non-degree cues are explicit.
+        if ($this->textContainsAny($normalized, [
+            'elementary',
+            'high school',
+            'senior high',
+            'grade 12',
+            'grade 11',
+            'grade 10',
+            'undergraduate',
+            'undergrad',
+            'college undergraduate',
+            'first year',
+            'second year',
+            'third year',
+            'fourth year',
+            '1st year',
+            '2nd year',
+            '3rd year',
+            '4th year',
+            'units',
+            'semester',
+            'vocational',
+            'tesda',
+            'certificate',
+            'diploma',
+            'no education',
+            'none',
+            'not applicable',
+        ])) {
+            return false;
+        }
+
+        // If it contains only letters/spaces and resembles a program title,
+        // allow bachelor inference for initial screening.
+        $tokenCount = preg_match_all('/[a-z]+/i', $normalized, $matches);
+        if ($tokenCount === false || $tokenCount === 0) {
+            return false;
+        }
+
+        if ($tokenCount < 2 && strlen($normalized) < 8) {
+            return false;
+        }
+
+        return true;
     }
 
     private function isInitialAssessmentEligibilityAligned(JobVacancy $vacancy, string $eligibility): bool
@@ -4492,9 +4684,16 @@ class JobVacancyController extends Controller
                 (string) ($requiredItem['level'] ?? ''),
                 $requiredName
             );
+            $requiredGroup = $this->canonicalEligibilityGroup($this->normalizeEligibilityKey($requiredName));
+            $inputGroup = $this->canonicalEligibilityGroup($this->normalizeEligibilityKey($inputLabel));
 
-            // Keep hierarchy support, but only strictly higher-level eligibility can substitute.
-            if ($this->eligibilityLevelSatisfiesRequirement($requiredLevelRank, $inputLevelRank)) {
+            // Keep hierarchy support, but only for recognized compatible groups.
+            if (
+                $this->eligibilityLevelSatisfiesRequirement($requiredLevelRank, $inputLevelRank)
+                && $requiredGroup !== ''
+                && $inputGroup !== ''
+                && $this->eligibilityGroupSatisfiesRequirement($requiredGroup, $inputGroup)
+            ) {
                 return true;
             }
         }
