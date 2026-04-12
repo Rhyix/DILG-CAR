@@ -37,7 +37,7 @@
         </div>
 
         <div id="education_specific_picker_wrap" class="mt-4 hidden">
-            <label id="education_specific_picker_label" class="mb-2 block text-sm font-medium text-slate-700">Required degree</label>
+            <label id="education_specific_picker_label" class="mb-2 block text-sm font-medium text-slate-700">Degree</label>
             <div id="education_specific_rows" class="space-y-2"></div>
             <button
                 type="button"

@@ -1885,23 +1885,120 @@ class JobVacancyController extends Controller
                 . 'Please review the missing requirements and update your PDS.';
         }
 
-        $assessmentCourseOptions = [];
+        $assessmentProgramOptions = [
+            'COLLEGE' => [
+                'Bachelor of Laws / Juris Doctor',
+                'BS Accountancy',
+                'BS Information Technology',
+                'BS Computer Science',
+                'BS Information Systems',
+                'Bachelor of Public Administration',
+                'BS Psychology',
+            ],
+            'MASTERAL' => [
+                'Master of Public Administration',
+                'Master in Information Technology',
+                'Master in Business Administration',
+                'Master of Arts in Education',
+                'Master of Arts in Psychology',
+            ],
+            'DOCTORATE' => [
+                'Doctor of Philosophy in Public Administration',
+                'Doctor of Philosophy in Information Technology',
+                'Doctor of Education',
+                'Doctor of Philosophy in Psychology',
+                'Doctor of Juridical Science',
+            ],
+        ];
         try {
-            $coursePresetTable = Schema::hasTable('course_preset')
-                ? 'course_preset'
-                : (Schema::hasTable('course_presets') ? 'course_presets' : null);
+            $coursePresetTable = Schema::hasTable('course_presets')
+                ? 'course_presets'
+                : (Schema::hasTable('course_preset') ? 'course_preset' : null);
 
             if ($coursePresetTable !== null) {
-                $assessmentCourseOptions = DB::table($coursePresetTable)
-                    ->orderBy('course_name')
-                    ->pluck('course_name')
-                    ->map(fn($value) => trim((string) $value))
-                    ->filter(fn($value) => $value !== '')
-                    ->values()
-                    ->all();
+                $nameColumn = Schema::hasColumn($coursePresetTable, 'course_name')
+                    ? 'course_name'
+                    : (Schema::hasColumn($coursePresetTable, 'name') ? 'name' : null);
+                $hasProgramLevelColumn = Schema::hasColumn($coursePresetTable, 'program_level');
+                $hasLegacyLevelColumn = !$hasProgramLevelColumn && Schema::hasColumn($coursePresetTable, 'level');
+
+                if ($nameColumn !== null) {
+                    $selectColumns = [$nameColumn];
+                    if ($hasProgramLevelColumn) {
+                        $selectColumns[] = 'program_level';
+                    } elseif ($hasLegacyLevelColumn) {
+                        $selectColumns[] = 'level';
+                    }
+
+                    $rows = DB::table($coursePresetTable)
+                        ->orderBy($nameColumn)
+                        ->get($selectColumns);
+
+                    $grouped = [
+                        'COLLEGE' => [],
+                        'MASTERAL' => [],
+                        'DOCTORATE' => [],
+                    ];
+
+                    foreach ($rows as $row) {
+                        $programName = trim((string) ($row->{$nameColumn} ?? ''));
+                        if ($programName === '') {
+                            continue;
+                        }
+
+                        $rawLevel = $hasProgramLevelColumn
+                            ? (string) ($row->program_level ?? '')
+                            : ($hasLegacyLevelColumn ? (string) ($row->level ?? '') : '');
+                        $programLevel = strtoupper(trim($rawLevel));
+
+                        if (!in_array($programLevel, ['COLLEGE', 'MASTERAL', 'DOCTORATE'], true)) {
+                            $nameHaystack = strtolower($programName);
+                            if (
+                                str_contains($nameHaystack, 'doctorate')
+                                || str_contains($nameHaystack, 'doctoral')
+                                || str_contains($nameHaystack, 'doctor of philosophy')
+                                || str_contains($nameHaystack, 'phd')
+                                || str_contains($nameHaystack, 'ph.d')
+                                || str_contains($nameHaystack, 'edd')
+                                || str_contains($nameHaystack, 'sjd')
+                            ) {
+                                $programLevel = 'DOCTORATE';
+                            } elseif (
+                                str_contains($nameHaystack, 'masteral')
+                                || str_contains($nameHaystack, 'master')
+                                || str_contains($nameHaystack, "master's")
+                                || str_contains($nameHaystack, 'mba')
+                                || str_contains($nameHaystack, 'mpa')
+                                || str_contains($nameHaystack, 'msc')
+                                || str_contains($nameHaystack, 'm.s')
+                                || str_contains($nameHaystack, 'm.a')
+                            ) {
+                                $programLevel = 'MASTERAL';
+                            } else {
+                                $programLevel = 'COLLEGE';
+                            }
+                        }
+
+                        $grouped[$programLevel][] = $programName;
+                    }
+
+                    foreach ($grouped as $level => $items) {
+                        $resolvedItems = collect($items)
+                            ->map(fn($value) => trim((string) $value))
+                            ->filter(fn($value) => $value !== '')
+                            ->unique(fn($value) => strtolower($value))
+                            ->sort(fn($a, $b) => strnatcasecmp((string) $a, (string) $b))
+                            ->values()
+                            ->all();
+
+                        if (!empty($resolvedItems)) {
+                            $assessmentProgramOptions[$level] = $resolvedItems;
+                        }
+                    }
+                }
             }
         } catch (\Throwable $e) {
-            Log::warning('Unable to load course preset options for initial assessment.', [
+            Log::warning('Unable to load program preset options for initial assessment.', [
                 'error' => $e->getMessage(),
             ]);
         }
@@ -1943,7 +2040,7 @@ class JobVacancyController extends Controller
             'eligibilityMismatchMessage' => $qualificationMismatchMessage,
             'qualificationChecks' => $qualificationGateState['checks'],
             'missingQualificationLabels' => $missingQualificationLabels,
-            'assessmentCourseOptions' => $assessmentCourseOptions,
+            'assessmentProgramOptions' => $assessmentProgramOptions,
             'assessmentEligibilityOptions' => $assessmentEligibilityOptions,
         ]);
 

@@ -499,9 +499,25 @@
             <div class="bg-white rounded-2xl shadow-2xl w-full max-w-xl p-6 border border-[#0D2B70]/10">
                 <p class="text-xs uppercase tracking-[0.15em] text-[#0D2B70]/70 font-semibold">Initial Assessment</p>
                 <h2 class="text-lg font-semibold text-[#002C76] mt-1">Question 1</h2>
-                <p class="text-sm text-gray-700 mt-3 font-medium">What is your degree?</p>
+                <p class="text-sm text-gray-700 mt-3 font-medium">What is your highest educational attainment?</p>
                 <div class="mt-4">
-                    <label for="initialAssessmentDegreeInput" class="block text-xs uppercase tracking-wide text-slate-500 mb-2">Degree/Course</label>
+                    <label for="initialAssessmentEducationAttainment" class="block text-xs uppercase tracking-wide text-slate-500 mb-2">Highest Education Attainment</label>
+                    <select
+                        id="initialAssessmentEducationAttainment"
+                        data-assessment-education-level="1"
+                        class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20"
+                    >
+                        <option value="">Select highest educational attainment</option>
+                        <option value="HIGH_SCHOOL_GRAD">Junior High School Graduate</option>
+                        <option value="SENIOR_HIGH_SCHOOL_GRAD">Senior High School Graduate</option>
+                        <option value="COLLEGE_2Y">Completion of 2 Years in College</option>
+                        <option value="BACHELOR">Bachelors Degree</option>
+                        <option value="MASTERAL">Masteral Degree</option>
+                        <option value="DOCTORATE">Doctorate Degree</option>
+                    </select>
+                </div>
+                <div id="initialAssessmentDegreeFieldWrap" class="mt-4">
+                    <label id="initialAssessmentDegreeLabel" for="initialAssessmentDegreeInput" class="block text-xs uppercase tracking-wide text-slate-500 mb-2">Degree/Course</label>
                     <div class="relative">
                         <input
                             id="initialAssessmentDegreeInput"
@@ -515,8 +531,9 @@
                             <div id="initialAssessmentDegreeOptionsWrap" class="max-h-56 overflow-auto py-1" data-assessment-options="degree"></div>
                         </div>
                     </div>
-                    <p class="mt-1 text-xs text-gray-500">Search from the list or type if your degree/course is not available.</p>
+                    <p id="initialAssessmentDegreeHint" class="mt-1 text-xs text-gray-500">Search from the list or type if your degree/course is not available.</p>
                 </div>
+                <p id="initialAssessmentEducationLevelHint" class="mt-2 hidden text-xs text-gray-500">No degree/course selection is required for this attainment.</p>
                 <div class="mt-6 flex justify-end gap-2">
                     <button type="button" onclick="closeInitialAssessmentEducationModal()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
                         Close
@@ -649,6 +666,7 @@
     }
 
     const initialAssessmentState = {
+        educationAttainment: '',
         degree: '',
         eligibility: '',
     };
@@ -660,8 +678,64 @@
     const pdsRedirectUrl = @json(route('display_c1'));
     const hasIncompletePds = @json($hasIncompletePdsForApply);
     const hasDocTrackMismatch = @json($hasDocTrackMismatch);
+    const initialAssessmentEducationAttainmentMeta = {
+        HIGH_SCHOOL_GRAD: {
+            label: 'Junior High School Graduate',
+            programLevel: null,
+            requiresProgram: false,
+            fallbackDegree: 'Junior High School Graduate',
+            degreeLabel: 'Degree/Course',
+            degreePlaceholder: 'Search from the list or type your degree/course',
+            degreeHint: 'Search from the list or type if your degree/course is not available.',
+        },
+        SENIOR_HIGH_SCHOOL_GRAD: {
+            label: 'Senior High School Graduate',
+            programLevel: null,
+            requiresProgram: false,
+            fallbackDegree: 'Senior High School Graduate',
+            degreeLabel: 'Degree/Course',
+            degreePlaceholder: 'Search from the list or type your degree/course',
+            degreeHint: 'Search from the list or type if your degree/course is not available.',
+        },
+        COLLEGE_2Y: {
+            label: 'Completion of 2 Years in College',
+            programLevel: 'COLLEGE',
+            requiresProgram: true,
+            fallbackDegree: 'Completion of 2 years of studies in college',
+            degreeLabel: 'Course',
+            degreePlaceholder: 'Search from the list or type your course',
+            degreeHint: 'Search from the list or type if your course is not available.',
+        },
+        BACHELOR: {
+            label: 'Bachelors Degree',
+            programLevel: 'COLLEGE',
+            requiresProgram: true,
+            fallbackDegree: "Bachelor's Degree",
+            degreeLabel: 'Degree/Course',
+            degreePlaceholder: 'Search from the list or type your degree/course',
+            degreeHint: 'Search from the list or type if your degree/course is not available.',
+        },
+        MASTERAL: {
+            label: 'Masteral Degree',
+            programLevel: 'MASTERAL',
+            requiresProgram: true,
+            fallbackDegree: 'Masteral Degree',
+            degreeLabel: 'Degree/Course',
+            degreePlaceholder: 'Search from the list or type your degree/course',
+            degreeHint: 'Search from the list or type if your degree/course is not available.',
+        },
+        DOCTORATE: {
+            label: 'Doctorate Degree',
+            programLevel: 'DOCTORATE',
+            requiresProgram: true,
+            fallbackDegree: 'Doctorate Degree',
+            degreeLabel: 'Degree/Course',
+            degreePlaceholder: 'Search from the list or type your degree/course',
+            degreeHint: 'Search from the list or type if your degree/course is not available.',
+        },
+    };
     const initialAssessmentOptions = {
-        degree: @json(array_values($assessmentCourseOptions ?? [])),
+        degreeByLevel: @json($assessmentProgramOptions ?? ['COLLEGE' => [], 'MASTERAL' => [], 'DOCTORATE' => []]),
         eligibility: @json(array_values($assessmentEligibilityOptions ?? [])),
     };
 
@@ -678,6 +752,65 @@
         return String(value || '').trim().replace(/\s+/g, ' ');
     }
 
+    function assessmentEducationLevelEl() {
+        return document.querySelector('[data-assessment-education-level]');
+    }
+
+    function currentAssessmentEducationAttainmentCode() {
+        const levelEl = assessmentEducationLevelEl();
+        return normalizeAssessmentInput(levelEl ? levelEl.value : '').toUpperCase();
+    }
+
+    function currentAssessmentEducationMeta() {
+        const code = currentAssessmentEducationAttainmentCode();
+        return initialAssessmentEducationAttainmentMeta[code] || null;
+    }
+
+    function syncInitialAssessmentEducationFieldState() {
+        const degreeWrap = document.getElementById('initialAssessmentDegreeFieldWrap');
+        const degreeLabel = document.getElementById('initialAssessmentDegreeLabel');
+        const degreeInput = document.getElementById('initialAssessmentDegreeInput');
+        const degreeHint = document.getElementById('initialAssessmentDegreeHint');
+        const levelHint = document.getElementById('initialAssessmentEducationLevelHint');
+        if (!degreeWrap || !degreeLabel || !degreeInput || !degreeHint || !levelHint) {
+            return;
+        }
+
+        const meta = currentAssessmentEducationMeta();
+        if (!meta) {
+            degreeWrap.classList.remove('hidden');
+            degreeLabel.textContent = 'Degree/Course';
+            degreeInput.disabled = true;
+            degreeInput.value = '';
+            degreeInput.placeholder = 'Select highest educational attainment first';
+            degreeHint.textContent = 'Select your highest educational attainment first to load the degree/course list.';
+            degreeHint.classList.remove('hidden');
+            levelHint.classList.add('hidden');
+            closeAssessmentMenu('degree');
+            return;
+        }
+
+        degreeLabel.textContent = meta.degreeLabel || 'Degree/Course';
+        if (!meta.requiresProgram) {
+            degreeWrap.classList.add('hidden');
+            degreeInput.disabled = true;
+            degreeInput.value = '';
+            degreeInput.placeholder = meta.degreePlaceholder || 'Search from the list or type your degree/course';
+            degreeHint.classList.add('hidden');
+            levelHint.textContent = `No degree/course selection is required for ${meta.label}.`;
+            levelHint.classList.remove('hidden');
+            closeAssessmentMenu('degree');
+            return;
+        }
+
+        degreeWrap.classList.remove('hidden');
+        degreeInput.disabled = false;
+        degreeInput.placeholder = meta.degreePlaceholder || 'Search from the list or type your degree/course';
+        degreeHint.textContent = meta.degreeHint || 'Search from the list or type if your degree/course is not available.';
+        degreeHint.classList.remove('hidden');
+        levelHint.classList.add('hidden');
+    }
+
     function assessmentInputEl(type) {
         return document.querySelector(`[data-assessment-input="${type}"]`);
     }
@@ -691,6 +824,21 @@
     }
 
     function currentAssessmentOptions(type) {
+        if (type === 'degree') {
+            const meta = currentAssessmentEducationMeta();
+            if (!meta || !meta.requiresProgram || !meta.programLevel) {
+                return [];
+            }
+
+            const byLevel = initialAssessmentOptions.degreeByLevel;
+            if (!byLevel || typeof byLevel !== 'object') {
+                return [];
+            }
+
+            const raw = byLevel[meta.programLevel];
+            return Array.isArray(raw) ? raw : [];
+        }
+
         const raw = initialAssessmentOptions[type];
         return Array.isArray(raw) ? raw : [];
     }
@@ -728,6 +876,19 @@
         const optionsWrap = assessmentOptionsWrapEl(type);
         if (!input || !optionsWrap) {
             return;
+        }
+
+        if (type === 'degree') {
+            const meta = currentAssessmentEducationMeta();
+            if (!meta) {
+                optionsWrap.innerHTML = '<div class="px-3 py-2 text-sm text-slate-500">Select highest educational attainment first.</div>';
+                return;
+            }
+
+            if (!meta.requiresProgram) {
+                optionsWrap.innerHTML = `<div class="px-3 py-2 text-sm text-slate-500">No degree/course selection is required for ${escapeAssessmentOptionHtml(meta.label)}.</div>`;
+                return;
+            }
         }
 
         const filtered = filterAssessmentOptions(type, input.value).slice(0, 200);
@@ -878,6 +1039,7 @@
 
     async function submitInitialAssessment(hasPqe = null) {
         const payload = {
+            education_attainment: initialAssessmentState.educationAttainment,
             degree: initialAssessmentState.degree,
             eligibility: initialAssessmentState.eligibility,
         };
@@ -927,9 +1089,20 @@
     }
 
     function goToInitialAssessmentEligibility() {
+        const educationLevelSelect = assessmentEducationLevelEl();
+        const educationAttainment = normalizeAssessmentInput(educationLevelSelect ? educationLevelSelect.value : '').toUpperCase();
+        const educationMeta = initialAssessmentEducationAttainmentMeta[educationAttainment] || null;
+        if (!educationMeta) {
+            showInitialAssessmentNotice(
+                'Education Attainment is Required',
+                'Please select your highest educational attainment to continue with the initial assessment.'
+            );
+            return;
+        }
+
         const degreeInput = document.getElementById('initialAssessmentDegreeInput');
-        const degree = normalizeAssessmentInput(degreeInput ? degreeInput.value : '');
-        if (degree === '') {
+        let degree = normalizeAssessmentInput(degreeInput ? degreeInput.value : '');
+        if (educationMeta.requiresProgram && degree === '') {
             showInitialAssessmentNotice(
                 'Degree is Required',
                 'Please enter your degree/course to continue with the initial assessment.'
@@ -937,6 +1110,11 @@
             return;
         }
 
+        if (!educationMeta.requiresProgram) {
+            degree = normalizeAssessmentInput(educationMeta.fallbackDegree || educationMeta.label || '');
+        }
+
+        initialAssessmentState.educationAttainment = educationAttainment;
         initialAssessmentState.degree = degree;
         closeModal('initialAssessmentEducationModal');
         openModal('initialAssessmentEligibilityModal');
@@ -1026,6 +1204,17 @@
 
         bindAssessmentDropdown('degree');
         bindAssessmentDropdown('eligibility');
+        const educationLevelSelect = assessmentEducationLevelEl();
+        if (educationLevelSelect) {
+            educationLevelSelect.addEventListener('change', () => {
+                const degreeInput = document.getElementById('initialAssessmentDegreeInput');
+                if (degreeInput) {
+                    degreeInput.value = '';
+                }
+                syncInitialAssessmentEducationFieldState();
+            });
+        }
+        syncInitialAssessmentEducationFieldState();
         document.addEventListener('click', (event) => {
             if (!(event.target instanceof Node)) {
                 return;
