@@ -99,7 +99,8 @@
 
                 <div class="grid gap-3 md:grid-cols-3">
                   <div>
-                    <label for="first_name" class="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-600">First Name</label>
+                    
+                    <label for="first_name" class="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-600">First Name <span class="text-red-600">*</span></label>
                     <input id="first_name" type="text" name="first_name" placeholder="First name" value="{{ old('first_name') }}" required
                       class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-200"
                       pattern="^[A-Za-z\s\-\.]{2,50}$"
@@ -108,14 +109,14 @@
 
                   <div>
                     <label for="middle_name" class="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-600">Middle Name</label>
-                    <input id="middle_name" type="text" name="middle_name" placeholder="Middle name" value="{{ old('middle_name') }}" required
+                    <input id="middle_name" type="text" name="middle_name" placeholder="Middle name" value="{{ old('middle_name') }}"
                       class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-200"
                       pattern="^[A-Za-z\s\-\.]{2,50}$"
                       title="Middle name should contain only letters, spaces, hyphens, or periods (2-50 characters).">
                   </div>
 
                   <div>
-                    <label for="last_name" class="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-600">Last Name</label>
+                    <label for="last_name" class="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-600">Last Name <span class="text-red-600">*</span></label>
                     <input id="last_name" type="text" name="last_name" placeholder="Last name" value="{{ old('last_name') }}" required
                       class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-200"
                       pattern="^[A-Za-z\s\-\.]{2,50}$"
@@ -130,7 +131,7 @@
                 @error('lname') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
 
                 <div class="mt-4">
-                  <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">Sex</p>
+                  <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">Sex <span class="text-red-600">*</span></p>
                   <div class="grid gap-2 sm:grid-cols-3">
                     <label class="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-xs font-medium text-slate-700 transition hover:border-[#0D2B70]/40 sm:text-sm">
                       <input type="radio" name="sex" value="Male" {{ old('sex') === 'Male' ? 'checked' : '' }} required
@@ -160,7 +161,7 @@
 
                 <div class="space-y-3">
                   <div>
-                    <label for="phone_number" class="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-600">Contact Number</label>
+                    <label for="phone_number" class="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-600">Contact Number <span class="text-red-600">*</span></label>
                     <input id="phone_number" type="text" name="phone_number" placeholder="09XX XXX XXXX" value="{{ old('phone_number') }}" required
                       class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-200"
                       pattern="^09[0-9]{2}\s[0-9]{3}\s[0-9]{4}$"
@@ -175,7 +176,7 @@
                   </div>
 
                   <div>
-                    <label for="email" class="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-600">Email Address</label>
+                    <label for="email" class="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-600">Email Address <span class="text-red-600">*</span></label>
                     <input id="email" type="email" name="email" placeholder="name@example.com" value="{{ old('email') }}" required
                       aria-describedby="email_feedback"
                       class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-200">
