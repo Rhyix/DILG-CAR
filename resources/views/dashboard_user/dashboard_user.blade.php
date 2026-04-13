@@ -36,6 +36,51 @@
                         </div>
                     </div>
                 </div>
+                @php
+                    $pdsProgressSafe = max(0, min(100, (int) ($pdsProgress ?? 0)));
+                    $pdsRadius = 26;
+                    $pdsCircumference = 2 * M_PI * $pdsRadius;
+                    $pdsOffset = $pdsCircumference - ($pdsCircumference * $pdsProgressSafe / 100);
+                @endphp
+                <div class="absolute right-4 top-4 sm:right-6 sm:top-6 z-20 w-60 sm:w-72">
+                    <div class="flex items-center justify-between gap-3 sm:gap-4 rounded-2xl bg-white/95 backdrop-blur shadow-xl border border-slate-100 px-4 py-3">
+                        <div class="space-y-1">
+                            <div class="flex items-center gap-2">
+                                <span class="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 shadow-sm">
+                                    <i data-feather="file-text" class="h-4 w-4"></i>
+                                </span>
+                                <span class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Submitted Documents</span>
+                            </div>
+                        </div>
+                        <div class="relative h-16 w-16 flex items-center justify-center">
+                            <svg class="h-16 w-16 -rotate-90" viewBox="0 0 60 60">
+                                <circle
+                                    class="text-slate-200"
+                                    stroke="currentColor"
+                                    stroke-width="6"
+                                    fill="transparent"
+                                    r="{{ $pdsRadius }}"
+                                    cx="30"
+                                    cy="30"
+                                ></circle>
+                                <circle
+                                    class="text-emerald-500"
+                                    stroke="currentColor"
+                                    stroke-width="6"
+                                    stroke-linecap="round"
+                                    fill="transparent"
+                                    r="{{ $pdsRadius }}"
+                                    cx="30"
+                                    cy="30"
+                                    style="stroke-dasharray: {{ $pdsCircumference }}; stroke-dashoffset: {{ $pdsOffset }};"
+                                ></circle>
+                            </svg>
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <span class="text-xs font-extrabold text-[#0D2B70]">{{ $pdsProgressSafe }}%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <div class="absolute -left-10 -bottom-16 h-48 w-48 rounded-full bg-white/10 blur-3xl"></div>
                 <div class="absolute right-6 -top-10 h-32 w-32 rounded-full bg-white/15 blur-2xl"></div>
             </div>
@@ -53,8 +98,8 @@
                 $onboardingInitialVacancyId = old('preferred_vacancy_id', $selectedOnboardingVacancyId ?? '');
                 $shouldOpenOnboardingModal = (bool) ($openOnboardingModal ?? false) || $onboardingErrorBag->any();
             @endphp
-            <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
-                <div class="group relative overflow-hidden rounded-2xl bg-white p-4 shadow-lg shadow-slate-200/70 border border-slate-100">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                <div class="cursor-pointer hover:scale-105 hover:shadow-lg transition group relative overflow-hidden rounded-2xl bg-white p-4 shadow-lg shadow-slate-200/70 border border-slate-100">
                     <div class="flex items-start justify-between">
                         <div class="flex items-center gap-3">
                             <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-[#0D2B70]">
@@ -68,10 +113,13 @@
                             </div>
                         </div>
                     </div>
+                    <div class="pointer-events-none absolute right-4 top-4 max-w-xs rounded-xl bg-slate-900/90 px-3 py-2 text-[11px] text-slate-50 shadow-lg opacity-0 translate-y-2 transition duration-200 group-hover:opacity-100 group-hover:translate-y-0">
+                        Shows how many of your applications are still active and not yet closed.
+                    </div>
                     <div class="absolute bottom-0 right-0 h-20 w-20 rounded-full bg-blue-50/60 blur-3xl transition-transform duration-500 group-hover:scale-110"></div>
                 </div>
 
-                <div class="group relative overflow-hidden rounded-2xl bg-white p-4 shadow-lg shadow-slate-200/70 border border-slate-100">
+                <div class="cursor-pointer hover:scale-105 hover:shadow-lg transition group relative overflow-hidden rounded-2xl bg-white p-4 shadow-lg shadow-slate-200/70 border border-slate-100">
                     <div class="flex items-start justify-between">
                         <div class="flex items-center gap-3">
                             <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-50 text-orange-600">
@@ -85,10 +133,13 @@
                             </div>
                         </div>
                     </div>
+                    <div class="pointer-events-none absolute right-4 top-4 max-w-xs rounded-xl bg-slate-900/90 px-3 py-2 text-[11px] text-slate-50 shadow-lg opacity-0 translate-y-2 transition duration-200 group-hover:opacity-100 group-hover:translate-y-0">
+                        Counts vacancies with application deadlines happening within the next few days.
+                    </div>
                     <div class="absolute bottom-0 right-0 h-20 w-20 rounded-full bg-orange-50/60 blur-3xl transition-transform duration-500 group-hover:scale-110"></div>
                 </div>
 
-                <div class="group relative overflow-hidden rounded-2xl bg-white p-4 shadow-lg shadow-slate-200/70 border border-slate-100">
+                <div class="cursor-pointer hover:scale-105 hover:shadow-lg transition group relative overflow-hidden rounded-2xl bg-white p-4 shadow-lg shadow-slate-200/70 border border-slate-100">
                     <div class="flex items-start justify-between">
                         <div class="flex items-center gap-3">
                             <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-50 text-purple-600">
@@ -100,10 +151,13 @@
                             </div>
                         </div>
                     </div>
+                    <div class="pointer-events-none absolute right-4 top-4 max-w-xs rounded-xl bg-slate-900/90 px-3 py-2 text-[11px] text-slate-50 shadow-lg opacity-0 translate-y-2 transition duration-200 group-hover:opacity-100 group-hover:translate-y-0">
+                        Shows how many upcoming exams you are currently scheduled to take.
+                    </div>
                     <div class="absolute bottom-0 right-0 h-20 w-20 rounded-full bg-purple-50/60 blur-3xl transition-transform duration-500 group-hover:scale-110"></div>
                 </div>
 
-                <div class="group relative overflow-hidden rounded-2xl bg-white p-4 shadow-lg shadow-slate-200/70 border border-slate-100">
+                <div class="cursor-pointer hover:scale-105 hover:shadow-lg transition group relative overflow-hidden rounded-2xl bg-white p-4 shadow-lg shadow-slate-200/70 border border-slate-100">
                     <div class="flex items-start justify-between">
                         <div class="flex items-center gap-3">
                             <button type="button" id="action-required-card" class="flex items-center gap-3 text-left">
@@ -119,6 +173,9 @@
                                 </div>
                             </button>
                         </div>
+                    </div>
+                    <div class="pointer-events-none absolute right-4 top-4 max-w-xs rounded-xl bg-slate-900/90 px-3 py-2 text-[11px] text-slate-50 shadow-lg opacity-0 translate-y-2 transition duration-200 group-hover:opacity-100 group-hover:translate-y-0">
+                        Highlights applications or requirements that need your attention right now.
                     </div>
                     <div class="absolute bottom-0 right-0 h-20 w-20 rounded-full bg-orange-50/60 blur-3xl transition-transform duration-500 group-hover:scale-110"></div>
                 </div>
@@ -226,15 +283,19 @@
                 <!-- Right Column: PDS Links -->
                 <div class="xl:col-span-5 space-y-4">
                     <div class="rounded-2xl bg-white shadow-lg shadow-slate-200/70 border border-slate-100 p-4">
-                        <div class="mb-3 flex items-center justify-between">
+                        <!-- <div class="mb-3 flex items-center justify-between">
                             <div class="flex items-center gap-2 font-bold text-[#0D2B70]">
                                 <i data-feather="file-text" class="h-4 w-4"></i>
-                                Personal Data Sheet
+                                Submitted Documents
                             </div>
-                            <span class="text-xs font-semibold text-green-600">{{ $pdsProgress }}% Completed</span>
+                            <span class="text-xs font-semibold text-green-600">{{ $pdsProgress }}% of documents submitted</span>
                         </div>
                         <div class="mb-4 h-2 w-full rounded-full bg-slate-100">
                             <div class="h-2 rounded-full bg-green-500" style="width: {{ $pdsProgress }}%"></div>
+                        </div> -->
+                        <div class="mb-3 flex items-center gap-2 font-bold text-[#0D2B70]">
+                            <i data-feather="file-text" class="h-4 w-4"></i>
+                            Personal Data Sheet
                         </div>
                         @php
                             $pdsLinks = [
