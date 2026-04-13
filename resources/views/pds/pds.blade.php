@@ -564,7 +564,7 @@
                         return '';
                     };
                 @endphp
-                <div class="mb-6">
+                <div class="mb-8" data-education-section="elementary">
                     <h3 class="text-base sm:text-lg font-semibold text-gray-700 mb-4">ELEMENTARY</h3>
                     <div class="mobile-stack md:grid md:grid-cols-4 gap-4 sm:gap-6" data-education-date-range>
                         <div class="relative md:col-span-2">
@@ -572,8 +572,8 @@
                             <label for="elem_school" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">School Name<span class="text-red-500">*</span></label>
                         </div>
                         <div class="relative md:col-span-2">
-                            <input type="text" id="elem_basic" name="elem_basic" value="PRIMARY" placeholder=" " readonly aria-readonly="true" class="text-gray-700 bg-gray-100 floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                            <label for="elem_basic" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Basic Education/Degree/Course</label>
+                            <label for="elem_basic" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">Basic Education/Degree/Course</label>
+                            <input type="text" id="elem_basic" name="elem_basic" value="PRIMARY" readonly aria-readonly="true" class="text-gray-700 bg-gray-100 w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base">
                         </div>
                         <div class="relative">
                             <input required type="date" id="elem_from" name="elem_from" value="{{ $normalizeEducationDateForInput(old('elem_from', session('form.c1.elem_from'))) }}" data-education-date-role="from" autocomplete="off" class="edu-date w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base">
@@ -587,6 +587,17 @@
                         <div class="relative md:col-span-2">
                             <input pattern="(?:[0-9]{4}|[Nn][/]?[Aa])" maxlength="4" type="text" inputmode="numeric" id="elem_year_graduated" name="elem_year_graduated" value="{{ old('elem_year_graduated', session('form.c1.elem_year_graduated')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
                             <label for="elem_year_graduated" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Year Graduated</label>
+                            <div class="mt-2 flex items-center">
+                                <input
+                                    type="checkbox"
+                                    id="elem_is_graduate"
+                                    name="elem_is_graduate"
+                                    value="1"
+                                    class="h-4 w-4 text-blue-600 border-gray-300 rounded"
+                                    {{ old('elem_is_graduate', session('form.c1.elem_is_graduate')) ? 'checked' : '' }}
+                                >
+                                <label for="elem_is_graduate" class="ml-2 text-sm text-gray-700">Graduate?</label>
+                            </div>
                         </div>
                         <div class="relative md:col-span-2">
                             <input required type="text" id="elem_earned" name="elem_earned" value="{{ old('elem_earned', session('form.c1.elem_earned')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
@@ -600,7 +611,7 @@
                 </div>
 
                 <!-- Secondary -->
-                <div class="mb-6">
+                <div class="my-6" data-education-section="secondary">
                     <h3 class="text-base sm:text-lg font-semibold text-gray-700 mb-4">SECONDARY</h3>
                     <div class="mobile-stack md:grid md:grid-cols-4 gap-4 sm:gap-6" data-education-date-range>
                         <div class="relative md:col-span-2">
@@ -641,7 +652,7 @@
                 </div>
 
                 <!-- Vocational / Trade Course Placeholder -->
-                <div class="mb-6 mt-[80px]">
+                <div class="mb-6 mt-[80px]" data-education-section="vocational">
                     @include('partials.pds-education-form', [
                         'education_type' => 'vocational',
                         'education_type_meta' => ['title' => 'Vocational / Trade Course'],
@@ -650,7 +661,7 @@
                 </div>
 
                 <!-- College Placeholder -->
-                <div class="mb-6 mt-[80px]">
+                <div class="mb-6 mt-[80px]" data-education-section="college">
                     @include('partials.pds-education-form', [
                         'education_type' => 'college',
                         'education_type_meta' => ['title' => 'College'],
@@ -659,7 +670,7 @@
                 </div>
 
                 <!-- Graduate Studies Placeholder -->
-                <div class="mb-6 mt-[80px]">
+                <div class="mb-6 mt-[80px]" data-education-section="grad">
                 @include('partials.pds-education-form', [
                         'education_type' => 'grad',
                         'education_type_meta' => ['title' => 'Graduate Studies'],
@@ -788,6 +799,87 @@
         if (!hasCurrent) {
             jhsBasic.value = desiredOptions[0];
         }
+    }
+    function setSecondaryAndHigherEducationEnabled(enabled) {
+        const sectionNames = ['secondary', 'vocational', 'college', 'grad'];
+        const fields = [];
+
+        sectionNames.forEach((section) => {
+            const container = document.querySelector('[data-education-section="' + section + '"]');
+            if (!container) return;
+
+            container.querySelectorAll('input, select, textarea').forEach((el) => {
+                fields.push(el);
+            });
+        });
+
+        fields.forEach((el) => {
+            if (enabled) {
+                el.disabled = false;
+                if (el.dataset.wasRequired === '1') {
+                    el.required = true;
+                }
+            } else {
+                if (el.required) {
+                    el.dataset.wasRequired = '1';
+                }
+                el.required = false;
+
+                if (el.type === 'checkbox' || el.type === 'radio') {
+                    el.checked = false;
+                } else {
+                    el.value = '';
+                }
+
+                el.disabled = true;
+            }
+        });
+    }
+    function setElementaryHighestLevelEnabled(isGraduate) {
+        const elemEarned = document.getElementById('elem_earned');
+        if (!elemEarned) return;
+
+        if (isGraduate) {
+            elemEarned.value = '';
+            elemEarned.disabled = true;
+            elemEarned.required = false;
+            elemEarned.classList.add('bg-gray-100', 'cursor-not-allowed', 'text-gray-400');
+        } else {
+            elemEarned.disabled = false;
+            elemEarned.required = true;
+            elemEarned.classList.remove('bg-gray-100', 'cursor-not-allowed', 'text-gray-400');
+        }
+    }
+    function hasSecondaryOrHigherEducationValues() {
+        const sectionNames = ['secondary', 'vocational', 'college', 'grad'];
+
+        return sectionNames.some((section) => {
+            const container = document.querySelector('[data-education-section="' + section + '"]');
+            if (!container) return false;
+
+            const fields = container.querySelectorAll('input, select, textarea');
+            for (let i = 0; i < fields.length; i++) {
+                const el = fields[i];
+                if (el.type === 'hidden') continue;
+                if (typeof el.value === 'string' && el.value.trim() !== '') {
+                    return true;
+                }
+            }
+            return false;
+        });
+    }
+    function syncElemYearGraduatedFromTo() {
+        const gradCheckbox = document.getElementById('elem_is_graduate');
+        const elemTo = document.getElementById('elem_to');
+        const yearInput = document.getElementById('elem_year_graduated');
+
+        if (!gradCheckbox || !elemTo || !yearInput) return;
+        if (!gradCheckbox.checked) return;
+
+        const parsed = parsePdsEducationDate(elemTo.value);
+        if (!parsed) return;
+
+        yearInput.value = String(parsed.getFullYear());
     }
     function togglePdsEducationDateRangeState(rangeEl, state) {
         const fromInput = rangeEl.querySelector('[data-education-date-role="from"]');
@@ -1031,6 +1123,28 @@
         if (elemTo) {
             ['change', 'blur'].forEach((evt) => {
                 elemTo.addEventListener(evt, updateSecondaryBasicEducation);
+                elemTo.addEventListener(evt, syncElemYearGraduatedFromTo);
+            });
+        }
+
+        const gradCheckbox = document.getElementById('elem_is_graduate');
+        if (gradCheckbox) {
+            const shouldBeGraduate = gradCheckbox.checked || hasSecondaryOrHigherEducationValues();
+            gradCheckbox.checked = shouldBeGraduate;
+
+            setSecondaryAndHigherEducationEnabled(shouldBeGraduate);
+            setElementaryHighestLevelEnabled(shouldBeGraduate);
+            if (shouldBeGraduate) {
+                syncElemYearGraduatedFromTo();
+            }
+
+            gradCheckbox.addEventListener('change', () => {
+                const isGraduate = gradCheckbox.checked;
+                setSecondaryAndHigherEducationEnabled(isGraduate);
+                setElementaryHighestLevelEnabled(isGraduate);
+                if (isGraduate) {
+                    syncElemYearGraduatedFromTo();
+                }
             });
         }
 
