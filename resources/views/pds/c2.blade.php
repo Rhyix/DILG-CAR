@@ -284,6 +284,22 @@
         let CIVIL_SERVICE_ELIGIBILITY_OPTIONS = [...DEFAULT_CIVIL_SERVICE_ELIGIBILITY_OPTIONS];
 
         const CIVIL_SERVICE_ELIGIBILITY_OTHERS_VALUE = '__OTHERS__';
+        const C1_ELEMENTARY_GRADUATE_RAW = @json(session('form.c1.elem_is_graduate'));
+
+        function isTruthyGraduateFlag(value) {
+            if (typeof value === 'boolean') {
+                return value;
+            }
+
+            if (typeof value === 'number') {
+                return value === 1;
+            }
+
+            const normalized = String(value || '').trim().toLowerCase();
+            return normalized === '1' || normalized === 'true' || normalized === 'on' || normalized === 'yes';
+        }
+
+        const IS_ELEMENTARY_ONLY_APPLICANT = !isTruthyGraduateFlag(C1_ELEMENTARY_GRADUATE_RAW);
 
         async function loadCivilServiceEligibilityOptions() {
             try {
@@ -322,6 +338,54 @@
             return String(value || '').trim().toLowerCase();
         }
 
+        function isCivilServiceSecondLevelOption(option) {
+            const normalizedLevel = String(option?.level || '').trim().toLowerCase();
+            return normalizedLevel.includes('second level');
+        }
+
+        function isCivilServiceCscProfessionalOption(option) {
+            const normalizedName = normalizeCivilServiceEligibilityName(option?.name || '');
+            return normalizedName.includes('csc professional') || normalizedName.includes('career service professional');
+        }
+
+        function getSelectableCivilServiceEligibilityOptions() {
+            if (!IS_ELEMENTARY_ONLY_APPLICANT) {
+                return CIVIL_SERVICE_ELIGIBILITY_OPTIONS;
+            }
+
+            return CIVIL_SERVICE_ELIGIBILITY_OPTIONS.filter((option) => {
+                if (!isCivilServiceSecondLevelOption(option)) {
+                    return true;
+                }
+
+                return isCivilServiceCscProfessionalOption(option);
+            });
+        }
+
+        function findCivilServicePresetByName(name) {
+            const normalizedTarget = normalizeCivilServiceEligibilityName(name);
+            if (!normalizedTarget) {
+                return null;
+            }
+
+            return CIVIL_SERVICE_ELIGIBILITY_OPTIONS.find(
+                (option) => normalizeCivilServiceEligibilityName(option.name) === normalizedTarget
+            ) || null;
+        }
+
+        function isDisallowedElementaryOnlyPreset(name) {
+            if (!IS_ELEMENTARY_ONLY_APPLICANT) {
+                return false;
+            }
+
+            const preset = findCivilServicePresetByName(name);
+            if (!preset) {
+                return false;
+            }
+
+            return isCivilServiceSecondLevelOption(preset) && !isCivilServiceCscProfessionalOption(preset);
+        }
+
         function escapeCivilServiceOptionHtml(value) {
             return String(value || '')
                 .replace(/&/g, '&amp;')
@@ -332,15 +396,16 @@
         }
 
         function renderCivilServiceEligibilityOptions(selectedValue) {
+            const selectableOptions = getSelectableCivilServiceEligibilityOptions();
             const normalizedSelected = normalizeCivilServiceEligibilityName(selectedValue);
-            const hasPresetMatch = CIVIL_SERVICE_ELIGIBILITY_OPTIONS.some(
+            const hasPresetMatch = selectableOptions.some(
                 (option) => normalizeCivilServiceEligibilityName(option.name) === normalizedSelected
             );
             const selectedSelectValue = hasPresetMatch ? String(selectedValue || '').trim() : CIVIL_SERVICE_ELIGIBILITY_OTHERS_VALUE;
 
             return `
                 <option value="" ${!selectedValue ? 'selected' : ''}>Select eligibility</option>
-                ${CIVIL_SERVICE_ELIGIBILITY_OPTIONS.map((option) => {
+                ${selectableOptions.map((option) => {
                     const isSelected = selectedSelectValue === option.name;
                     return `
                         <option value="${escapeCivilServiceOptionHtml(option.name)}" ${isSelected ? 'selected' : ''}>
@@ -753,11 +818,18 @@
                 }
 
                 const normalizedInitial = normalizeCivilServiceEligibilityName(initialCareerValue);
-                const matchedPreset = CIVIL_SERVICE_ELIGIBILITY_OPTIONS.find(
+                const matchedPreset = getSelectableCivilServiceEligibilityOptions().find(
                     (item) => normalizeCivilServiceEligibilityName(item.name) === normalizedInitial
                 );
+                const initialPresetBlocked = isDisallowedElementaryOnlyPreset(initialCareerValue);
 
-                if (matchedPreset) {
+                if (initialPresetBlocked) {
+                    selectEl.value = '';
+                    hiddenInputEl.value = '';
+                    customInputEl.value = '';
+                    customInputEl.classList.add('hidden');
+                    customInputEl.required = false;
+                } else if (matchedPreset) {
                     selectEl.value = matchedPreset.name;
                     hiddenInputEl.value = matchedPreset.name;
                     customInputEl.value = '';

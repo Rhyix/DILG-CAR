@@ -18,6 +18,7 @@ use App\Models\WorkExperience;
 use App\Models\OtherInformation;
 use App\Models\UploadedDocument;
 use App\Models\CoursePreset;
+use App\Models\EligibilityPreset;
 use App\Models\ProgramSuggestion;
 use App\Models\Notification;
 use App\Models\Admin;
@@ -2652,6 +2653,112 @@ class PDSController extends Controller
         return view('pds.c2', compact('all_user_work_exps', 'all_user_civil_service_eligibility'));
     }
 
+    private function normalizeEligibilityNameForComparison($value): string
+    {
+        $normalized = trim((string) ($value ?? ''));
+        if ($normalized === '') {
+            return '';
+        }
+
+        $normalized = preg_replace('/\s+/u', ' ', $normalized) ?? $normalized;
+        return strtolower(trim($normalized));
+    }
+
+    private function isC2ElementaryOnlyApplicant(Request $request): bool
+    {
+        $raw = $request->session()->get('form.c1.elem_is_graduate');
+        return !filter_var($raw, FILTER_VALIDATE_BOOLEAN);
+    }
+
+    private function c2EligibilityLevelMap(): array
+    {
+        $fallback = [
+            'bar/board eligibility' => 'Second Level',
+            'csc professional eligibility' => 'Second Level',
+            'honor graduate eligibility' => 'Second Level',
+            'foreign school honor graduate eligibility' => 'Second Level',
+            'scientific and technological specialist eligibility' => 'Second Level',
+            'electronic data processing specialist eligibility' => 'Second Level',
+            'subprofessional (sub-prof) eligibility' => 'First Level',
+            'skills eligibility-category ii' => 'First Level',
+            'barangay official eligibility' => 'First Level',
+            'sanggunian member eligibility' => 'First Level',
+            'barangay health worker eligibility' => 'First Level',
+            'barangay nutrition scholar eligibility' => 'First Level',
+        ];
+
+        if (!Schema::hasTable('eligibility_presets')) {
+            return $fallback;
+        }
+
+        try {
+            $rows = EligibilityPreset::query()->get(['name', 'level']);
+            if ($rows->isEmpty()) {
+                return $fallback;
+            }
+
+            $mapped = [];
+            foreach ($rows as $row) {
+                $name = $this->normalizeEligibilityNameForComparison($row->name ?? '');
+                if ($name === '') {
+                    continue;
+                }
+
+                $mapped[$name] = trim((string) ($row->level ?? ''));
+            }
+
+            return !empty($mapped) ? $mapped : $fallback;
+        } catch (\Throwable $e) {
+            return $fallback;
+        }
+    }
+
+    private function isSecondLevelEligibilityLabel(?string $level): bool
+    {
+        return str_contains(strtolower(trim((string) $level)), 'second level');
+    }
+
+    private function isCscProfessionalEligibilityName(string $name): bool
+    {
+        $normalized = $this->normalizeEligibilityNameForComparison($name);
+        return str_contains($normalized, 'csc professional') || str_contains($normalized, 'career service professional');
+    }
+
+    private function validateC2EligibilityByEducation(\Illuminate\Validation\Validator $validator, Request $request): void
+    {
+        if (!$this->isC2ElementaryOnlyApplicant($request)) {
+            return;
+        }
+
+        $submittedCareers = $request->input('cs_eligibility_career', []);
+        if (!is_array($submittedCareers)) {
+            return;
+        }
+
+        $levelByName = $this->c2EligibilityLevelMap();
+
+        foreach ($submittedCareers as $index => $career) {
+            $normalizedName = $this->normalizeEligibilityNameForComparison($career);
+            if ($normalizedName === '') {
+                continue;
+            }
+
+            $level = $levelByName[$normalizedName] ?? null;
+            if (!$this->isSecondLevelEligibilityLabel($level)) {
+                continue;
+            }
+
+            if ($this->isCscProfessionalEligibilityName($normalizedName)) {
+                continue;
+            }
+
+            $validator->errors()->add(
+                "cs_eligibility_career.$index",
+                'For elementary-level applicants, only First Level eligibilities and CSC Professional are allowed.'
+            );
+        }
+    }
+
 
     /**
      * Updates C2 session data based on the input fields.
@@ -2706,6 +2813,7 @@ class PDSController extends Controller
             $fromDates = $request->input('work_exp_from', []);
             $toDates = $request->input('work_exp_to', []);
             if (!is_array($fromDates) || !is_array($toDates)) {
+                $this->validateC2EligibilityByEducation($validator, $request);
                 return;
             }
 
@@ -2737,6 +2845,8 @@ class PDSController extends Controller
                     );
                 }
             }
+
+            $this->validateC2EligibilityByEducation($validator, $request);
         });
 
         $validator->validate();
