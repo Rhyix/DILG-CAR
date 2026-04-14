@@ -851,7 +851,7 @@
                     el.value = '';
                 } else {
                     el.value = 'N/A';
-                }
+                }   
 
                 el.disabled = true;
             }

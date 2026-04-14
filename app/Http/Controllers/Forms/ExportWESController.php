@@ -304,18 +304,13 @@ class ExportWESController extends Controller
             ]]);
         }
 
-        // Template has two repeated entry blocks; render two entries per page.
-        $chunked = $entries->chunk(2);
-        foreach ($chunked as $chunk) {
+        // Render one entry per page for consistent output across environments.
+        foreach ($entries as $exp) {
             $pdf->AddPage($templateSize['orientation'], [$templateSize['width'], $templateSize['height']]);
             $pdf->useTemplate($templateId);
 
-            foreach ($chunk->values() as $slotIndex => $exp) {
-                // Tuned anchors for the converted CS Form No. 212 WES template.
-                // Slot 0 = upper entry box, Slot 1 = lower entry box.
-                $baseY = $slotIndex === 0 ? 69.2 : 140.8;
-                $this->writeTemplateEntryOverlay($pdf, $exp, $baseY);
-            }
+            // Use upper entry block only so each experience has dedicated page space.
+            $this->writeTemplateEntryOverlay($pdf, $exp, 69.2);
 
             // Fill footer date line in template.
             $pdf->SetFont('Arial', '', 9);
