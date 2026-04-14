@@ -308,7 +308,7 @@
                         <label for="res_brgy" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">Barangay <span class="text-red-500">*</span></label>
                     </div>
                     <div class="relative">
-                        <input pattern="[0-9]{4}" type="text" maxlength="4" inputmode="numeric" required id="res_zipcode" name="res_zipcode" value="{{ old('res_zipcode', session('form.c1.res_zipcode')) }}" placeholder="" class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
+                        <input pattern="[0-9]{4}" type="text" maxlength="4" inputmode="nzumeric" required id="res_zipcode" name="res_zipcode" value="{{ old('res_zipcode', session('form.c1.res_zipcode')) }}" placeholder="" class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
                         <label for="res_zipcode" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">ZIP Code <span class="text-red-500">*</span></label>
                     </div>
                 </div>
@@ -621,6 +621,7 @@
                         <div class="relative md:col-span-2">
                             <label for="jhs_basic" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">Basic Education/Degree/Course</label>
                             <select id="jhs_basic" name="jhs_basic" class="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all bg-white text-sm sm:text-base">
+                                <option value="N/A" {{ strtoupper((string) $jhsBasicPrefill) === 'N/A' ? 'selected' : '' }}>N/A</option>
                                 <option value="JUNIOR HIGH SCHOOL" {{ $jhsBasicPrefill === 'JUNIOR HIGH SCHOOL' ? 'selected' : '' }}>Junior High School</option>
                                 <option value="SENIOR HIGH SCHOOL" {{ $jhsBasicPrefill === 'SENIOR HIGH SCHOOL' ? 'selected' : '' }}>Senior High School</option>
                             </select>
@@ -781,27 +782,32 @@
             ? ['HIGH SCHOOL']
             : ['JUNIOR HIGH SCHOOL', 'SENIOR HIGH SCHOOL'];
 
+        const optionsWithNa = ['N/A', ...desiredOptions];
+
         const currentValue = jhsBasic.value || '';
         const existingOptions = Array.from(jhsBasic.options).map((o) => o.value);
-        const optionsChanged = desiredOptions.length !== existingOptions.length || desiredOptions.some((v, i) => v !== existingOptions[i]);
+        const optionsChanged = optionsWithNa.length !== existingOptions.length || optionsWithNa.some((v, i) => v !== existingOptions[i]);
 
         if (optionsChanged) {
             jhsBasic.innerHTML = '';
-            desiredOptions.forEach((val) => {
+            optionsWithNa.forEach((val) => {
                 const opt = document.createElement('option');
                 opt.value = val;
-                opt.textContent = val.replace(/\bHIGH SCHOOL\b/, 'High School').replace(/JUNIOR/i, 'Junior').replace(/SENIOR/i, 'Senior');
+                opt.textContent = val === 'N/A'
+                    ? 'N/A'
+                    : val.replace(/\bHIGH SCHOOL\b/, 'High School').replace(/JUNIOR/i, 'Junior').replace(/SENIOR/i, 'Senior');
                 jhsBasic.appendChild(opt);
             });
         }
 
-        const hasCurrent = desiredOptions.includes(currentValue);
+        const hasCurrent = optionsWithNa.includes(currentValue);
         if (!hasCurrent) {
-            jhsBasic.value = desiredOptions[0];
+            jhsBasic.value = optionsWithNa[0];
         }
     }
     function setSecondaryAndHigherEducationEnabled(enabled) {
-        const sectionNames = ['secondary', 'vocational', 'college', 'grad'];
+        // Vocational remains available even when elementary is marked as not graduated.
+        const sectionNames = ['secondary', 'college', 'grad'];
         const fields = [];
 
         sectionNames.forEach((section) => {
@@ -827,8 +833,24 @@
 
                 if (el.type === 'checkbox' || el.type === 'radio') {
                     el.checked = false;
-                } else {
+                } else if (el.tagName === 'SELECT') {
+                    const naOption = Array.from(el.options || []).find((option) => {
+                        const normalized = String(option.value || '').trim().toLowerCase().replace(/\s+/g, '');
+                        return normalized === 'n/a' || normalized === 'na' || normalized === 'n\\a';
+                    });
+
+                    if (naOption) {
+                        el.value = naOption.value;
+                    } else {
+                        el.selectedIndex = 0;
+                    }
+                } else if (el.tagName === 'TEXTAREA') {
+                    el.value = 'N/A';
+                } else if (el.type === 'date' || el.type === 'datetime-local' || el.type === 'month' || el.type === 'time' || el.type === 'week' || el.type === 'number') {
+                    // Keep non-textual inputs valid while disabled.
                     el.value = '';
+                } else {
+                    el.value = 'N/A';
                 }
 
                 el.disabled = true;
@@ -851,7 +873,8 @@
         }
     }
     function hasSecondaryOrHigherEducationValues() {
-        const sectionNames = ['secondary', 'vocational', 'college', 'grad'];
+        // Do not treat vocational values as requiring elementary graduate state.
+        const sectionNames = ['secondary', 'college', 'grad'];
 
         return sectionNames.some((section) => {
             const container = document.querySelector('[data-education-section="' + section + '"]');
@@ -1129,7 +1152,7 @@
 
         const gradCheckbox = document.getElementById('elem_is_graduate');
         if (gradCheckbox) {
-            const shouldBeGraduate = gradCheckbox.checked || hasSecondaryOrHigherEducationValues();
+            const shouldBeGraduate = gradCheckbox.checked;
             gradCheckbox.checked = shouldBeGraduate;
 
             setSecondaryAndHigherEducationEnabled(shouldBeGraduate);

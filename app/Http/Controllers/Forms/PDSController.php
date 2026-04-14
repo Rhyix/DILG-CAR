@@ -643,8 +643,12 @@ class PDSController extends Controller
 
     private function validateEducationCompletionRules(\Illuminate\Validation\Validator $validator, array $payload): void
     {
+        $isElementaryGraduate = filter_var($payload['elem_is_graduate'] ?? false, FILTER_VALIDATE_BOOLEAN);
+
         $this->addHighestLevelRequiredWhenNoYearError($validator, $payload, 'elem_year_graduated', 'elem_earned');
-        $this->addHighestLevelRequiredWhenNoYearError($validator, $payload, 'jhs_year_graduated', 'jhs_earned');
+        if ($isElementaryGraduate) {
+            $this->addHighestLevelRequiredWhenNoYearError($validator, $payload, 'jhs_year_graduated', 'jhs_earned');
+        }
 
         $collegeRows = $payload['college'] ?? [];
         if (is_array($collegeRows)) {
@@ -1514,8 +1518,8 @@ class PDSController extends Controller
             'per_zipcode' => 'nullable|string|max:4',
             'elem_from' => 'required|date_format:d-m-Y',
             'elem_to' => 'required|date_format:d-m-Y',
-            'jhs_from' => 'required|date_format:d-m-Y',
-            'jhs_to' => 'required|date_format:d-m-Y',
+            'jhs_from' => 'nullable|date_format:d-m-Y',
+            'jhs_to' => 'nullable|date_format:d-m-Y',
             'vocational' => 'nullable|array',
             'vocational.*.from' => 'nullable|date_format:d-m-Y',
             'vocational.*.to' => 'nullable|date_format:d-m-Y',
@@ -1548,7 +1552,8 @@ class PDSController extends Controller
         $c1_form_data_valid = $validator->validate();
 
         foreach (['date_of_birth', 'elem_from', 'elem_to', 'jhs_from', 'jhs_to'] as $dateField) {
-            $c1_form_data_valid[$dateField] = $this->normalizeDateForForm($c1_form_data_valid[$dateField] ?? null);
+            $normalizedDate = $this->normalizeDateForForm($c1_form_data_valid[$dateField] ?? null);
+            $c1_form_data_valid[$dateField] = (is_string($normalizedDate) && trim($normalizedDate) === '') ? null : $normalizedDate;
         }
 
         // get all key-value pairs for non validated fields.
@@ -1627,15 +1632,15 @@ class PDSController extends Controller
             'per_city' => '',
             'per_province' => '',
             'per_zipcode' => '',
-            'elem_from' => '',
-            'elem_to' => '',
+            'elem_from' => null,
+            'elem_to' => null,
             'elem_school' => '',
             'elem_academic_honors' => '',
             'elem_basic' => '',
             'elem_earned' => '',
             'elem_year_graduated' => '',
-            'jhs_from' => '',
-            'jhs_to' => '',
+            'jhs_from' => null,
+            'jhs_to' => null,
             'jhs_school' => '',
             'jhs_academic_honors' => '',
             'jhs_basic' => '',

@@ -454,7 +454,7 @@ class ExportWESController extends Controller
 
     /**
      * Ordered WES DOCX candidates for responsive rendering.
-     * Priority starts with resources/templates/work_experience_template.docx.
+     * Priority starts with public/templates/WES_Template.docx.
      *
      * @return array<int, array{path:string,source:string}>
      */
@@ -462,12 +462,12 @@ class ExportWESController extends Controller
     {
         $candidates = [
             [
-                'path' => resource_path('templates/work_experience_template.docx'),
-                'source' => 'resources/templates/work_experience_template.docx',
-            ],
-            [
                 'path' => public_path('templates/WES_Template.docx'),
                 'source' => 'public/templates/WES_Template.docx',
+            ],
+            [
+                'path' => resource_path('templates/work_experience_template.docx'),
+                'source' => 'resources/templates/work_experience_template.docx',
             ],
         ];
 
