@@ -872,6 +872,37 @@
             elemEarned.classList.remove('bg-gray-100', 'cursor-not-allowed', 'text-gray-400');
         }
     }
+    function clearEducationSectionsForGraduateTransition() {
+        const sectionNames = ['secondary', 'vocational', 'college', 'grad'];
+
+        sectionNames.forEach((section) => {
+            const container = document.querySelector('[data-education-section="' + section + '"]');
+            if (!container) return;
+
+            container.querySelectorAll('input, select, textarea').forEach((el) => {
+                if (el.type === 'hidden') {
+                    return;
+                }
+
+                if (el.type === 'checkbox' || el.type === 'radio') {
+                    el.checked = false;
+                    return;
+                }
+
+                if (el.tagName === 'SELECT') {
+                    const emptyOption = Array.from(el.options || []).find((option) => String(option.value || '').trim() === '');
+                    if (emptyOption) {
+                        el.value = '';
+                    } else if (el.options.length > 0) {
+                        el.selectedIndex = 0;
+                    }
+                    return;
+                }
+
+                el.value = '';
+            });
+        });
+    }
     function hasSecondaryOrHigherEducationValues() {
         // Do not treat vocational values as requiring elementary graduate state.
         const sectionNames = ['secondary', 'college', 'grad'];
@@ -1154,6 +1185,7 @@
         if (gradCheckbox) {
             const shouldBeGraduate = gradCheckbox.checked;
             gradCheckbox.checked = shouldBeGraduate;
+            let previousGraduateState = shouldBeGraduate;
 
             setSecondaryAndHigherEducationEnabled(shouldBeGraduate);
             setElementaryHighestLevelEnabled(shouldBeGraduate);
@@ -1163,11 +1195,19 @@
 
             gradCheckbox.addEventListener('change', () => {
                 const isGraduate = gradCheckbox.checked;
+                const switchedToGraduate = !previousGraduateState && isGraduate;
+
+                if (switchedToGraduate) {
+                    clearEducationSectionsForGraduateTransition();
+                }
+
                 setSecondaryAndHigherEducationEnabled(isGraduate);
                 setElementaryHighestLevelEnabled(isGraduate);
                 if (isGraduate) {
                     syncElemYearGraduatedFromTo();
                 }
+
+                previousGraduateState = isGraduate;
             });
         }
 
