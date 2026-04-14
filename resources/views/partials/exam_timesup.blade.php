@@ -7,8 +7,8 @@
     <div class="bg-white p-8 rounded-2xl max-w-md w-full shadow-2xl text-center">
         <h2 class="text-2xl font-extrabold text-[#002C76] mb-4">Time's Up!</h2>
         <p class="text-gray-700 mb-6">Your exam time has ended. Please submit your answers.</p>
-        <button 
-            @click="window.isSubmitting = true; document.getElementById('exam-form').submit()"
+        <button type="button"
+            @click="if (!window.isSubmitting && window.confirm('Submit your exam now? This action cannot be undone.')) { window.prepareSubmit(); }"
             class="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-full font-semibold transition">
             Submit
         </button>

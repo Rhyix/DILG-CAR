@@ -2014,14 +2014,50 @@ private function WriteC4Information($pdf, $userId)
         $x_name = 8.0;
         $x_address = 87.0;
         $x_telno = 134.0;
+        $x_right = 161.0;
+        $cellInset = 0.8;
+
+        $nameWidth = max(1.0, ($x_address - $x_name) - $cellInset);
+        $addressWidth = max(1.0, ($x_telno - $x_address) - $cellInset);
+        $telWidth = max(1.0, ($x_right - $x_telno) - $cellInset);
         $y_refs = [205, 212, 219];
 
         foreach ($info['references'] as $i => $ref) {
             if ($i >= count($y_refs)) break;
             $y = $y_refs[$i];
-            $this->writeFittedAt($pdf, $this->valueOrNa($ref['name'] ?? null), $x_name, $y, 58, 7.5, 5.0);
-            $this->writeFittedAt($pdf, $this->valueOrNa($ref['address'] ?? null), $x_address, $y, 58, 7.5, 5.0);
-            $this->writeFittedAt($pdf, $this->valueOrNa($ref['tel'] ?? null), $x_telno, $y, 20, 7.5, 5.0);
+            $this->writeWrappedAt(
+                $pdf,
+                $this->valueOrNa($ref['name'] ?? null),
+                $x_name,
+                $y,
+                $nameWidth,
+                6.6,
+                2.0,
+                0.5,
+                2
+            );
+            $this->writeWrappedAt(
+                $pdf,
+                $this->valueOrNa($ref['address'] ?? null),
+                $x_address,
+                $y,
+                $addressWidth,
+                6.5,
+                2.0,
+                0.5,
+                2
+            );
+            $this->writeWrappedAt(
+                $pdf,
+                $this->valueOrNa($ref['tel'] ?? null),
+                $x_telno,
+                $y,
+                $telWidth,
+                6.3,
+                1.9,
+                0.5,
+                2
+            );
         }
 
         // ID Section

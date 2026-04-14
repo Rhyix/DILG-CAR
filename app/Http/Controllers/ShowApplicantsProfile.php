@@ -13,6 +13,7 @@ use App\Services\ApplicantDeletionWorkflowService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
+use Carbon\Carbon;
 
 class ShowApplicantsProfile extends Controller
 {
@@ -337,6 +338,58 @@ class ShowApplicantsProfile extends Controller
         return $sortOrder === 'oldest'
             ? $applications->sortBy('created_at')
             : $applications->sortByDesc('created_at');
+    }
+
+    private function latestComplianceReuploadTimestampByUser($applications, string $vacancyId): array
+    {
+        $userIds = $applications->pluck('user_id')->filter()->unique()->values();
+        if ($userIds->isEmpty()) {
+            return [];
+        }
+
+        $query = UploadedDocument::query()
+            ->whereIn('user_id', $userIds);
+
+        if (Schema::hasColumn('uploaded_documents', 'vacancy_id')) {
+            $query->where(function ($sub) use ($vacancyId) {
+                $sub->where('vacancy_id', $vacancyId)
+                    ->orWhereNull('vacancy_id');
+            });
+        }
+
+        $latestByUser = [];
+        $rows = $query
+            ->selectRaw('user_id, MAX(updated_at) as latest_upload_at')
+            ->groupBy('user_id')
+            ->get();
+
+        foreach ($rows as $row) {
+            if (!$row->user_id || !$row->latest_upload_at) {
+                continue;
+            }
+
+            $latestByUser[$row->user_id] = Carbon::parse((string) $row->latest_upload_at)->timestamp;
+        }
+
+        return $latestByUser;
+    }
+
+    private function sortComplianceApplicantsByReupload($applications, string $vacancyId, string $sortOrder = 'latest')
+    {
+        $latestByUser = $this->latestComplianceReuploadTimestampByUser($applications, $vacancyId);
+
+        $sortFn = function ($application) use ($latestByUser) {
+            $userId = $application->user_id;
+            $fallbackTs = optional($application->updated_at)->timestamp
+                ?? optional($application->created_at)->timestamp
+                ?? 0;
+
+            return $latestByUser[$userId] ?? $fallbackTs;
+        };
+
+        return $sortOrder === 'oldest'
+            ? $applications->sortBy($sortFn)
+            : $applications->sortByDesc($sortFn);
     }
 
     private function applicantDisplayName(User $user): string
@@ -867,7 +920,7 @@ class ShowApplicantsProfile extends Controller
         $partitioned = $this->partitionApplicantsByStage($applications, (string) $vacancy_id);
 
         $newApplications = $partitioned['new']->sortByDesc('created_at');
-        $complianceApplications = $partitioned['compliance']->sortByDesc('created_at');
+        $complianceApplications = $this->sortComplianceApplicantsByReupload($partitioned['compliance'], (string) $vacancy_id, 'latest');
         $qualifiedApplications = $partitioned['qualified']->sortByDesc('created_at');
         $noPqeApplications = $partitioned['no_pqe']->sortByDesc('created_at');
 
@@ -919,7 +972,7 @@ class ShowApplicantsProfile extends Controller
 
         $partitioned = $this->partitionApplicantsByStage($applications, (string) $vacancyId);
         $filtered = $this->filterApplicantsBySearch($partitioned['new'], (string) $search);
-        $sorted = $this->sortApplicantsByDate($filtered, (string) $sortOrder)->values();
+        $sorted = $this->sortComplianceApplicantsByReupload($filtered, (string) $vacancyId, (string) $sortOrder)->values();
 
         return response()->view('partials.manage_new_applicants_list', [
             'applicants' => $this->formatApplicants($sorted)

@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\WorkExpSheet;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Spatie\Activitylog\Models\Activity;
 
 
@@ -36,9 +37,7 @@ class WorkExpSheetController extends Controller
         //($request->all());
         $user_id = Auth::id();
 
-        $existingEntries = WorkExpSheet::where('user_id', $user_id)->count() > 0;
-
-        WorkExpSheet::where('user_id', $user_id)->delete();
+        $existingEntries = WorkExpSheet::where('user_id', $user_id)->exists();
 
         $validated = $request->validate([
             'entries' => 'required|array|min:1',
@@ -47,7 +46,7 @@ class WorkExpSheetController extends Controller
             'entries.*.present' => 'nullable|boolean',
             'entries.*.position' => 'required|string|max:255',
             'entries.*.office' => 'required|string|max:255',
-            'entries.*.supervisor' => 'nullable|string|max:255',
+            'entries.*.supervisor' => 'required|string|max:255',
             'entries.*.agency' => 'required|string|max:255',
             'entries.*.accomplishments' => 'nullable|array',
             'entries.*.accomplishments.*' => 'nullable|string|max:1000',
@@ -56,23 +55,27 @@ class WorkExpSheetController extends Controller
             'entries.*.isDisplayed' => 'boolean',
         ]);
 
-        foreach ($validated['entries'] as $work) {
-            $isPresent = (bool) ($work['present'] ?? false);
-            $endDate = $isPresent ? null : ($work['end_date'] ?? null);
+        DB::transaction(function () use ($validated, $user_id) {
+            WorkExpSheet::where('user_id', $user_id)->delete();
 
-            WorkExpSheet::create([
-                'user_id' => $user_id,
-                'start_date' => $work['start_date'],
-                'end_date' => $endDate,
-                'position' => $work['position'],
-                'office' => $work['office'],
-                'supervisor' => $work['supervisor'],
-                'agency' => $work['agency'],
-                'accomplishments' => $work['accomplishments'] ?? [],
-                'duties' => $work['duties'] ?? [],
-                'isDisplayed' => $work['isDisplayed'] ?? true,
-            ]);
-        }
+            foreach ($validated['entries'] as $work) {
+                $isPresent = (bool) ($work['present'] ?? false);
+                $endDate = $isPresent ? null : ($work['end_date'] ?? null);
+
+                WorkExpSheet::create([
+                    'user_id' => $user_id,
+                    'start_date' => $work['start_date'],
+                    'end_date' => $endDate,
+                    'position' => trim((string) ($work['position'] ?? '')),
+                    'office' => trim((string) ($work['office'] ?? '')),
+                    'supervisor' => trim((string) ($work['supervisor'] ?? '')),
+                    'agency' => trim((string) ($work['agency'] ?? '')),
+                    'accomplishments' => $work['accomplishments'] ?? [],
+                    'duties' => $work['duties'] ?? [],
+                    'isDisplayed' => $work['isDisplayed'] ?? true,
+                ]);
+            }
+        });
 
         // Explicit save should supersede any transient autosave draft for WES.
         $request->session()->forget('form.wes');

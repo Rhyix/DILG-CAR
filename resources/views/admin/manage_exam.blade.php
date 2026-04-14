@@ -737,7 +737,7 @@
     />
     <x-confirm-modal
         title="Resume Exam"
-        message="Resume this applicant's exam attempt from the saved progress and restore the remaining time captured when the tab-threshold auto-submit happened?"
+        message="Reopen this applicant's submitted exam attempt from saved progress and restore the remaining time? Use this when a submission happened accidentally."
         event="open-resume-exam-confirm"
         confirm="confirm-resume-exam"
         confirmText="Resume"

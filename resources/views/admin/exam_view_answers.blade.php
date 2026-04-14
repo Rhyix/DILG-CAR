@@ -90,6 +90,20 @@
                 </ul>
             </div>
         </details>
+
+        <details class="w-full bg-white rounded-xl border border-amber-200 shadow mt-4">
+            <summary class="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-gray-700 flex items-center justify-between">
+                <span>Time Tamper Log</span>
+                <svg class="w-4 h-4 text-gray-500 transition-transform duration-200" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.08 1.04l-4.25 4.25a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                </svg>
+            </summary>
+            <div class="px-4 pb-4">
+                <ul id="exam-tamper-log" class="space-y-1 list-inside list-disc pl-4">
+                    <li class="text-xs text-gray-400">No time tamper logs</li>
+                </ul>
+            </div>
+        </details>
     </div>
 
     <!-- Save Scores Form Section - Right Side -->
@@ -184,6 +198,15 @@
         }
 
         return 'Duration not captured';
+    }
+
+    function formatViolationType(type) {
+        const normalized = String(type || '').trim();
+        if (!normalized) return 'Clock Tamper';
+        return normalized
+            .split('-')
+            .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+            .join(' ');
     }
 
     function getPollIntervalMs() {
@@ -288,6 +311,18 @@
                             const dur = formatDuration(l.duration_seconds, l.duration_milliseconds);
                             return `<li class="text-xs text-gray-600"><span class="font-semibold">${started}</span> &bull; Duration: <span class="font-semibold">${dur}</span></li>`;
                         }).join('') || '<li class="text-xs text-gray-400">No tab switch logs</li>';
+                    }
+                    const tamperEl = document.getElementById('exam-tamper-log');
+                    if (tamperEl && Array.isArray(data.exam_tamper_logs)) {
+                        tamperEl.innerHTML = data.exam_tamper_logs.map(l => {
+                            const loggedAt = formatManilaDateTime(l.created_at_iso || null);
+                            const type = formatViolationType(l.type);
+                            const timezone = l.timezone ? `Timezone: ${l.timezone}` : 'Timezone: -';
+                            const drift = (l.clock_drift_ms !== null && l.clock_drift_ms !== undefined && l.clock_drift_ms !== '')
+                                ? `Clock drift: ${Number(l.clock_drift_ms)}ms`
+                                : 'Clock drift: -';
+                            return `<li class="text-xs text-amber-700"><span class="font-semibold">${loggedAt}</span> &bull; ${type} &bull; ${timezone} &bull; ${drift}</li>`;
+                        }).join('') || '<li class="text-xs text-gray-400">No time tamper logs</li>';
                     }
                     // Update the Questions data source
                     // We need to be careful not to overwrite 'score' if we want to preserve local edits,
@@ -638,7 +673,7 @@
 />
 <x-confirm-modal
     title="Resume Exam"
-    message="Resume this applicant's exam attempt from the saved progress and restore the remaining time captured when the tab-threshold auto-submit happened?"
+    message="Reopen this applicant's submitted exam attempt from saved progress and restore the remaining time? Use this when a submission happened accidentally."
     event="open-resume-exam-confirm"
     confirm="confirm-resume-exam"
     confirmText="Resume"

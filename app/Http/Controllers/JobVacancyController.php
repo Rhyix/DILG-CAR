@@ -2024,6 +2024,30 @@ class JobVacancyController extends Controller
             ]);
         }
 
+        // Ensure vacancy-specific eligibility requirements appear in Question 2 options
+        // (e.g., Driver's License) even when not part of preset tables.
+        try {
+            $vacancyEligibilityItems = $this->extractVacancyEligibilityItems(
+                (string) ($vacancy->qualification_eligibility ?? '')
+            );
+            $vacancyEligibilityNames = array_map(static function (array $item): string {
+                return trim((string) ($item['name'] ?? ''));
+            }, $vacancyEligibilityItems);
+
+            $assessmentEligibilityOptions = collect(array_merge($assessmentEligibilityOptions, $vacancyEligibilityNames))
+                ->map(static fn($value) => trim((string) $value))
+                ->filter(static fn($value) => $value !== '')
+                ->unique(static fn($value) => strtolower($value))
+                ->sort(static fn($a, $b) => strnatcasecmp((string) $a, (string) $b))
+                ->values()
+                ->all();
+        } catch (\Throwable $e) {
+            Log::warning('Unable to merge vacancy-specific eligibility options for initial assessment.', [
+                'vacancy_id' => (string) ($vacancy->vacancy_id ?? ''),
+                'error' => $e->getMessage(),
+            ]);
+        }
+
         return view('dashboard_user.job_description', [
             'vacancy' => $vacancy,
             'qualificationEligibilityDisplay' => $qualificationEligibilityDisplay,
@@ -4781,6 +4805,13 @@ class JobVacancyController extends Controller
                 (string) ($requiredItem['level'] ?? ''),
                 $requiredName
             );
+            if ($this->isGenericEligibilityLevelRequirement($requiredName, $requiredLevelRank)) {
+                if ($this->eligibilityLevelMeetsGenericRequirement($requiredLevelRank, $inputLevelRank)) {
+                    return true;
+                }
+                continue;
+            }
+
             $requiredGroup = $this->canonicalEligibilityGroup($this->normalizeEligibilityKey($requiredName));
             $inputGroup = $this->canonicalEligibilityGroup($this->normalizeEligibilityKey($inputLabel));
 
@@ -4931,6 +4962,17 @@ class JobVacancyController extends Controller
             foreach ($requiredProfilesByKey as $requiredKey => $requiredProfile) {
                 $requiredName = (string) ($requiredProfile['name'] ?? '');
                 $requiredLevelRank = $requiredProfile['levelRank'] ?? null;
+
+                if ($this->isGenericEligibilityLevelRequirement($requiredName, $requiredLevelRank)) {
+                    foreach ($applicantProfilesByKey as $applicantProfile) {
+                        $applicantLevelRank = $applicantProfile['levelRank'] ?? null;
+                        if ($this->eligibilityLevelMeetsGenericRequirement($requiredLevelRank, $applicantLevelRank)) {
+                            $matchedKeys[] = $requiredKey;
+                            break;
+                        }
+                    }
+                    continue;
+                }
 
                 foreach ($applicantProfilesByKey as $applicantProfile) {
                     $applicantName = (string) ($applicantProfile['name'] ?? '');
@@ -5211,6 +5253,35 @@ class JobVacancyController extends Controller
 
         // Same-level different eligibility types should not pass by level alone.
         return $applicantLevelRank > $requiredLevelRank;
+    }
+
+    private function eligibilityLevelMeetsGenericRequirement(?int $requiredLevelRank, ?int $applicantLevelRank): bool
+    {
+        if ($requiredLevelRank === null || $applicantLevelRank === null) {
+            return false;
+        }
+
+        // Generic requirements like "First Level" accept same or higher level.
+        return $applicantLevelRank >= $requiredLevelRank;
+    }
+
+    private function isGenericEligibilityLevelRequirement(string $requiredName, ?int $requiredLevelRank): bool
+    {
+        if ($requiredLevelRank === null) {
+            return false;
+        }
+
+        $name = trim($requiredName);
+        if ($name === '') {
+            return false;
+        }
+
+        $normalizedKey = $this->normalizeEligibilityKey($name);
+        $group = $this->canonicalEligibilityGroup($normalizedKey);
+
+        // If no canonical group is recognized but a level rank exists,
+        // treat the requirement as level-based (same-or-higher can satisfy).
+        return $group === '';
     }
 
     private function resolveEligibilityLevelRank(?string $declaredLevel, string $eligibilityName): ?int

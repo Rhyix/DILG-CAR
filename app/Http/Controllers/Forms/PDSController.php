@@ -2861,7 +2861,15 @@ class PDSController extends Controller
         // ------------------------------
         // WORK EXPERIENCE TABLE
         // ------------------------------
-        $work_exp_count = $c2_form_data['work_exp_count'] ?? 0;
+        $work_exp_count = max(
+            count($c2_form_data['work_exp_from'] ?? []),
+            count($c2_form_data['work_exp_to'] ?? []),
+            count($c2_form_data['work_exp_position'] ?? []),
+            count($c2_form_data['work_exp_department'] ?? []),
+            count($c2_form_data['work_exp_status'] ?? []),
+            count($c2_form_data['work_exp_govt_service'] ?? []),
+            count($c2_form_data['work_exp_id'] ?? [])
+        );
         $all_wex_data = [];
         $persistedWorkIds = [];
 
@@ -2939,7 +2947,15 @@ class PDSController extends Controller
         // ------------------------------
         // CIVIL SERVICE ELIGIBILITY test
         // ------------------------------
-        $civil_service_count = $c2_form_data['civil_service_count'] ?? 0;
+        $civil_service_count = max(
+            count($c2_form_data['cs_eligibility_career'] ?? []),
+            count($c2_form_data['cs_eligibility_rating'] ?? []),
+            count($c2_form_data['cs_eligibility_date'] ?? []),
+            count($c2_form_data['cs_eligibility_place'] ?? []),
+            count($c2_form_data['cs_eligibility_license'] ?? []),
+            count($c2_form_data['cs_eligibility_validity'] ?? []),
+            count($c2_form_data['cs_eligibility_id'] ?? [])
+        );
         $all_cs_data = [];
         $persistedCivilServiceIds = [];
 

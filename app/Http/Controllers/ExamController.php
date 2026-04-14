@@ -246,18 +246,11 @@ class ExamController extends Controller
                 'remaining_seconds' => 0,
                 'remaining_label' => null,
                 'max_violations' => $maxViolations,
+                'is_tab_threshold_submission' => false,
             ];
         }
 
-        if ($tabViolations < $maxViolations) {
-            return [
-                'can_resume' => false,
-                'reason' => 'Only attempts auto-submitted by the tab-switch threshold can be resumed.',
-                'remaining_seconds' => 0,
-                'remaining_label' => null,
-                'max_violations' => $maxViolations,
-            ];
-        }
+        $isTabThresholdSubmission = $tabViolations >= $maxViolations;
 
         if (empty($application->exam_started_at) || empty($application->exam_submitted_at) || empty($application->exam_end_time)) {
             return [
@@ -266,6 +259,7 @@ class ExamController extends Controller
                 'remaining_seconds' => 0,
                 'remaining_label' => null,
                 'max_violations' => $maxViolations,
+                'is_tab_threshold_submission' => $isTabThresholdSubmission,
             ];
         }
 
@@ -280,16 +274,18 @@ class ExamController extends Controller
                 'remaining_seconds' => 0,
                 'remaining_label' => null,
                 'max_violations' => $maxViolations,
+                'is_tab_threshold_submission' => $isTabThresholdSubmission,
             ];
         }
 
         if ($remainingSeconds < 1) {
             return [
                 'can_resume' => false,
-                'reason' => 'There was no remaining exam time left when the auto-submit happened.',
+                'reason' => 'There was no remaining exam time left when the submission happened.',
                 'remaining_seconds' => 0,
                 'remaining_label' => null,
                 'max_violations' => $maxViolations,
+                'is_tab_threshold_submission' => $isTabThresholdSubmission,
             ];
         }
 
@@ -299,6 +295,7 @@ class ExamController extends Controller
             'remaining_seconds' => $remainingSeconds,
             'remaining_label' => $this->formatResumeDuration($remainingSeconds),
             'max_violations' => $maxViolations,
+            'is_tab_threshold_submission' => $isTabThresholdSubmission,
         ];
     }
 
@@ -695,7 +692,11 @@ class ExamController extends Controller
 
     public function logSwitch(Request $request)
     {
-        Log::info('User switched tab at ' . $request->input('time'));
+        $violationType = strtolower(trim((string) $request->input('type', 'tab-switch')));
+        Log::info('Exam client-side violation reported.', [
+            'type' => $violationType,
+            'time' => $request->input('time'),
+        ]);
 
         $user = auth()->user();
         $vacancyId = $request->input('vacancy_id');
@@ -706,6 +707,7 @@ class ExamController extends Controller
         $durationSeconds = is_numeric($request->input('duration_seconds'))
             ? max(0, (int) $request->input('duration_seconds'))
             : ($durationMs !== null ? intdiv($durationMs, 1000) : null);
+        $isTamperSignal = in_array($violationType, ['clock-tamper', 'timezone-tamper', 'datetime-tamper'], true);
 
         $applicationQuery = Applications::where('user_id', $user?->id);
         if ($vacancyId) {
@@ -716,49 +718,74 @@ class ExamController extends Controller
         $application = $applicationQuery->orderByDesc('exam_started_at')->first();
 
         if ($application) {
-            $application->tab_violations = (int)($application->tab_violations ?? 0) + 1;
-            $application->last_tab_violation_at = now();
-            $application->save();
+            if (!$isTamperSignal) {
+                $application->tab_violations = (int)($application->tab_violations ?? 0) + 1;
+                $application->last_tab_violation_at = now();
+                $application->save();
+            }
 
             $maxViolations = (int) (ExamDetail::where('vacancy_id', $application->vacancy_id)->value('max_violations') ?? 12);
             if ($maxViolations < 1) {
                 $maxViolations = 1;
             }
 
-            try {
-                $violationPayload = [
-                    'user_id' => $application->user_id,
-                    'vacancy_id' => $application->vacancy_id,
-                    'started_at' => $startedAt ? \Carbon\Carbon::parse($startedAt) : now(),
-                    'ended_at' => $endedAt ? \Carbon\Carbon::parse($endedAt) : null,
-                    'duration_seconds' => $durationSeconds,
-                ];
+            if (!$isTamperSignal) {
+                try {
+                    $violationPayload = [
+                        'user_id' => $application->user_id,
+                        'vacancy_id' => $application->vacancy_id,
+                        'started_at' => $startedAt ? \Carbon\Carbon::parse($startedAt) : now(),
+                        'ended_at' => $endedAt ? \Carbon\Carbon::parse($endedAt) : null,
+                        'duration_seconds' => $durationSeconds,
+                    ];
 
-                if (Schema::hasColumn('exam_tab_violations', 'duration_milliseconds')) {
-                    $violationPayload['duration_milliseconds'] = $durationMs;
+                    if (Schema::hasColumn('exam_tab_violations', 'duration_milliseconds')) {
+                        $violationPayload['duration_milliseconds'] = $durationMs;
+                    }
+
+                    ExamTabViolation::create($violationPayload);
+                } catch (\Throwable $e) {
+                    Log::error('Failed to persist exam tab violation', ['error' => $e->getMessage()]);
                 }
+            }
 
-                ExamTabViolation::create($violationPayload);
-            } catch (\Throwable $e) {
-                Log::error('Failed to persist exam tab violation', ['error' => $e->getMessage()]);
+            $notificationTitle = 'Tab Switch Detected';
+            $notificationMessage = ($user?->name ?? 'Applicant') . ' switched tabs (' . $application->tab_violations . ' total).';
+            $activityEvent = 'tab_violation';
+            $activityDescription = 'Exam tab switch violation recorded.';
+            $progressType = 'tab-violation';
+
+            if ($isTamperSignal) {
+                $notificationTitle = 'Exam Time Tamper Signal';
+                $notificationMessage = ($user?->name ?? 'Applicant') . ' triggered a ' . strtoupper(str_replace('-', ' ', $violationType)) . ' signal during exam.';
+                $activityEvent = 'exam_tamper';
+                $activityDescription = 'Exam time/date/timezone tamper signal recorded.';
+                $progressType = 'tamper-detected';
             }
 
             activity()
                 ->causedBy($user)
-                ->event('tab_violation')
+                ->event($activityEvent)
                 ->withProperties([
+                    'type' => $violationType,
                     'vacancy_id' => $application->vacancy_id,
                     'user_id' => $application->user_id,
                     'count' => $application->tab_violations,
                     'time' => $request->input('time'),
+                    'timezone' => $request->input('timezone'),
+                    'timezone_offset_minutes' => $request->input('timezone_offset_minutes'),
+                    'clock_drift_ms' => is_numeric($request->input('clock_drift_ms')) ? (int) $request->input('clock_drift_ms') : null,
+                    'client_now_iso' => $request->input('client_now_iso'),
+                    'server_now_iso' => $request->input('server_now_iso'),
                     'duration_seconds' => $durationSeconds,
                     'duration_milliseconds' => $durationMs,
                     'client_count' => $countFromClient,
                     'section' => 'Exam'
                 ])
-                ->log('Exam tab switch violation recorded.');
+                ->log($activityDescription);
 
-            $this->broadcastExamProgress($application, 'tab-violation', [
+            $this->broadcastExamProgress($application, $progressType, [
+                'type' => $violationType,
                 'duration_seconds' => $durationSeconds,
                 'duration_milliseconds' => $durationMs,
                 'count' => (int) $application->tab_violations,
@@ -772,8 +799,9 @@ class ExamController extends Controller
                     'type' => 'warning',
                     'data' => [
                         'category' => 'exam_lifecycle',
-                        'title' => 'Tab Switch Detected',
-                        'message' => ($user?->name ?? 'Applicant') . ' switched tabs (' . $application->tab_violations . ' total).',
+                        'title' => $notificationTitle,
+                        'message' => $notificationMessage,
+                        'violation_type' => $violationType,
                         'user_id' => $application->user_id,
                         'vacancy_id' => $application->vacancy_id,
                         'count' => $application->tab_violations,
@@ -791,7 +819,7 @@ class ExamController extends Controller
                 'ok' => true,
                 'count' => (int) $application->tab_violations,
                 'max_violations' => $maxViolations,
-                'auto_submit' => (int) $application->tab_violations >= $maxViolations,
+                'auto_submit' => false,
                 'duration_seconds' => $durationSeconds,
                 'duration_milliseconds' => $durationMs,
             ]);
@@ -1782,19 +1810,27 @@ class ExamController extends Controller
         }
 
         $remainingSeconds = (int) ($resumeAction['remaining_seconds'] ?? 0);
+        $isTabThresholdSubmission = !empty($resumeAction['is_tab_threshold_submission']);
 
-        DB::transaction(function () use ($application, $remainingSeconds) {
-            ExamTabViolation::where('vacancy_id', $application->vacancy_id)
-                ->where('user_id', $application->user_id)
-                ->delete();
+        DB::transaction(function () use ($application, $remainingSeconds, $isTabThresholdSubmission) {
+            if ($isTabThresholdSubmission) {
+                ExamTabViolation::where('vacancy_id', $application->vacancy_id)
+                    ->where('user_id', $application->user_id)
+                    ->delete();
+            }
 
-            $application->update([
+            $updatePayload = [
                 'status' => ApplicationStatus::IN_PROGRESS->value,
                 'exam_submitted_at' => null,
                 'exam_end_time' => now()->addSeconds($remainingSeconds),
-                'tab_violations' => 0,
-                'last_tab_violation_at' => null,
-            ]);
+            ];
+
+            if ($isTabThresholdSubmission) {
+                $updatePayload['tab_violations'] = 0;
+                $updatePayload['last_tab_violation_at'] = null;
+            }
+
+            $application->update($updatePayload);
         });
 
         $application->refresh();
@@ -1809,10 +1845,13 @@ class ExamController extends Controller
                 'vacancy_id' => $vacancy_id,
                 'user_id' => $user_id,
                 'remaining_seconds' => $remainingSeconds,
-                'tab_violations' => 0,
+                'tab_violations' => (int) ($application->tab_violations ?? 0),
+                'reset_tab_violations' => $isTabThresholdSubmission,
                 'section' => 'Exam Management',
             ])
-            ->log('Resumed applicant exam attempt and reset tab-switch logs after tab-threshold auto-submit.');
+            ->log($isTabThresholdSubmission
+                ? 'Resumed applicant exam attempt and reset tab-switch logs after tab-threshold auto-submit.'
+                : 'Reopened submitted applicant exam attempt from saved remaining time.');
 
         return response()->json([
             'success' => true,
@@ -1904,12 +1943,47 @@ class ExamController extends Controller
             ];
         });
 
+        $tamperLogs = Activity::query()
+            ->where('event', 'exam_tamper')
+            ->where('causer_type', User::class)
+            ->where('causer_id', $user_id)
+            ->orderByDesc('created_at')
+            ->limit(50)
+            ->get(['properties', 'created_at'])
+            ->map(function ($activity) use ($vacancy_id) {
+                $props = $activity->properties;
+                if ($props instanceof \Illuminate\Support\Collection) {
+                    $props = $props->toArray();
+                }
+                if (!is_array($props)) {
+                    $props = (array) $props;
+                }
+
+                if ((string) ($props['vacancy_id'] ?? '') !== (string) $vacancy_id) {
+                    return null;
+                }
+
+                return [
+                    'type' => (string) ($props['type'] ?? 'clock-tamper'),
+                    'timezone' => $props['timezone'] ?? null,
+                    'timezone_offset_minutes' => $props['timezone_offset_minutes'] ?? null,
+                    'clock_drift_ms' => $props['clock_drift_ms'] ?? null,
+                    'client_now_iso' => $props['client_now_iso'] ?? null,
+                    'server_now_iso' => $props['server_now_iso'] ?? null,
+                    'created_at_iso' => optional($activity->created_at)->toIso8601String(),
+                ];
+            })
+            ->filter()
+            ->values()
+            ->take(20);
+
         return response()->json([
             'success' => true,
             'examResults' => $examResults,
             'tab_violations' => (int) ($application->tab_violations ?? 0),
             'last_violation_at' => $application->last_tab_violation_at,
-            'tab_violation_logs' => $logs
+            'tab_violation_logs' => $logs,
+            'exam_tamper_logs' => $tamperLogs,
         ]);
     }
 
