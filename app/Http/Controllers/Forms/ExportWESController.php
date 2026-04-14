@@ -29,7 +29,9 @@ class ExportWESController extends Controller
 
     public function exportWES(Request $request)
     {
-        $user = Auth::user();
+        $user = Auth::guard('web')->user();
+        abort_if(!$user, 401);
+
         $prepared = $this->prepareWesData($user->id, $user);
         $fullName = $prepared['full_name'];
         $experiences = $prepared['experiences'];
@@ -63,6 +65,8 @@ class ExportWESController extends Controller
             'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
             'Pragma' => 'no-cache',
             'X-WES-Renderer' => (string) ($this->wesRenderMeta['mode'] ?? 'unknown'),
+            'X-WES-Guard' => 'web',
+            'X-WES-User-ID' => (string) $user->id,
         ];
 
         if (!empty($this->wesRenderMeta['templateSource'])) {

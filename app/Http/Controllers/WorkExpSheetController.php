@@ -34,7 +34,9 @@ class WorkExpSheetController extends Controller
     public function store(Request $request)
     {
         //($request->all());
-        $user_id = Auth::id();
+        $user = Auth::guard('web')->user();
+        abort_if(!$user, 401);
+        $user_id = $user->id;
 
         $existingEntries = WorkExpSheet::where('user_id', $user_id)->count() > 0;
 
@@ -80,7 +82,7 @@ class WorkExpSheetController extends Controller
         $action = $existingEntries ? 'Update' : 'Create';
 
         activity()
-            ->causedBy(Auth::user())
+            ->causedBy($user)
             ->event($action)
             ->withProperties([
                 'entries_count' => count($validated['entries']),
@@ -109,6 +111,9 @@ class WorkExpSheetController extends Controller
      */
     public function show()
     {
+        $userId = Auth::guard('web')->id();
+        abort_if(!$userId, 401);
+
         $sessionEntries = session('form.wes.entries', []);
         if (is_array($sessionEntries) && count($sessionEntries) > 0) {
             $workEntries = collect($sessionEntries)->map(function ($entry) {
@@ -129,7 +134,7 @@ class WorkExpSheetController extends Controller
                 ];
             });
         } else {
-            $workEntries = WorkExpSheet::where('user_id', Auth::id())->get();
+            $workEntries = WorkExpSheet::where('user_id', $userId)->get();
         }
 
         //info($workEntries);

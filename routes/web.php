@@ -298,7 +298,7 @@ Route::middleware('auth:admin')->group(function () {
 });
 
 // PDS and WES Export
-Route::middleware('auth')->group(function () {
+Route::middleware('auth:web')->group(function () {
     Route::get('/export-pds', [Forms\ExportPDSController::class, 'exportPDS'])->name('export.pds');
     Route::get('/export-wes', [Forms\ExportWESController::class, 'exportWES'])->name('export.wes');
     Route::view('/pds-preview', 'pds.preview')->name('pds.preview');
