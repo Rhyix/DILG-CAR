@@ -406,6 +406,13 @@
         let lastTimezoneTamperLoggedAt = 0;
         let lastTimezoneTamperSignature = '';
         let lastClockTamperLoggedAt = 0;
+        const expectedTimezone = @json((string) config('app.timezone', 'Asia/Manila'));
+        const expectedTimezoneOffsetMinutes = {{ (int) (-\Carbon\Carbon::now(config('app.timezone', 'Asia/Manila'))->utcOffset()) }};
+        const allowedTimezoneNames = new Set([
+            expectedTimezone,
+            'Asia/Manila',
+            'Asia/Shanghai',
+        ]);
 
         function isExamActive() {
             return active && !window.allowFocusLoss && !window.isSubmitting;
@@ -476,8 +483,6 @@
 
             const clientTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
             const timezoneOffsetMinutes = new Date().getTimezoneOffset();
-            const expectedTimezone = 'Asia/Manila';
-            const expectedTimezoneOffsetMinutes = -480;
             const clientNowMs = Date.now();
             const serverNowMsEstimated = nowFromServerClockMs();
             const clockDriftMs = Math.round(clientNowMs - serverNowMsEstimated);
@@ -485,8 +490,10 @@
 
             const timezoneChanged = baselineTimezone && clientTimezone && clientTimezone !== baselineTimezone;
             const offsetChanged = timezoneOffsetMinutes !== baselineTimezoneOffsetMinutes;
-            const timezoneMismatch = clientTimezone && clientTimezone !== expectedTimezone;
-            const offsetMismatch = timezoneOffsetMinutes !== expectedTimezoneOffsetMinutes;
+            const offsetMatchesExpected = timezoneOffsetMinutes === expectedTimezoneOffsetMinutes;
+            const timezoneAllowed = !clientTimezone || allowedTimezoneNames.has(clientTimezone);
+            const timezoneMismatch = !timezoneAllowed && !offsetMatchesExpected;
+            const offsetMismatch = !offsetMatchesExpected;
 
             if (timezoneChanged || offsetChanged || timezoneMismatch || offsetMismatch) {
                 const nowMs = Date.now();
@@ -500,7 +507,7 @@
                     const reasons = [];
                     if (timezoneChanged) reasons.push('timezone-changed');
                     if (offsetChanged) reasons.push('offset-changed');
-                    if (timezoneMismatch) reasons.push('not-asia-manila');
+                    if (timezoneMismatch) reasons.push('timezone-name-not-allowed');
                     if (offsetMismatch) reasons.push('not-utc-plus-8');
 
                     registerViolation('timezone-tamper', 'Timezone mismatch detected during exam monitoring.', {

@@ -1850,6 +1850,102 @@
     let realtimeConnected = false;
     const FAST_POLL_MS = 3000;
     const SAFETY_POLL_MS = 15000;
+    const violationSnapshotByUser = new Map();
+    const VIOLATION_ALERT_COOLDOWN_MS = 1500;
+    let lastViolationAlertAt = 0;
+    let violationAlertAudioContext = null;
+
+    function getParticipantViolationTotal(participant) {
+        const tabSwitchCount = Number(participant?.tab_switch_count || 0);
+        const tamperLogsCount = Number(participant?.tamper_logs_count || 0);
+        return tabSwitchCount + tamperLogsCount;
+    }
+
+    function seedViolationSnapshot(participants) {
+        violationSnapshotByUser.clear();
+        (participants || []).forEach((participant) => {
+            const userId = Number(participant?.user_id || 0);
+            if (!userId) return;
+            violationSnapshotByUser.set(userId, getParticipantViolationTotal(participant));
+        });
+    }
+
+    function playViolationAlertSound() {
+        const nowMs = Date.now();
+        if ((nowMs - lastViolationAlertAt) < VIOLATION_ALERT_COOLDOWN_MS) {
+            return;
+        }
+        lastViolationAlertAt = nowMs;
+
+        try {
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContextClass) return;
+
+            if (!violationAlertAudioContext) {
+                violationAlertAudioContext = new AudioContextClass();
+            }
+
+            if (violationAlertAudioContext.state === 'suspended') {
+                violationAlertAudioContext.resume().catch(() => {});
+            }
+
+            const startAt = violationAlertAudioContext.currentTime + 0.01;
+            const gain = violationAlertAudioContext.createGain();
+            gain.connect(violationAlertAudioContext.destination);
+            gain.gain.setValueAtTime(0.0001, startAt);
+            gain.gain.exponentialRampToValueAtTime(0.28, startAt + 0.01);
+            gain.gain.exponentialRampToValueAtTime(0.0001, startAt + 0.62);
+
+            const firstTone = violationAlertAudioContext.createOscillator();
+            firstTone.type = 'square';
+            firstTone.frequency.setValueAtTime(1000, startAt);
+            firstTone.connect(gain);
+            firstTone.start(startAt);
+            firstTone.stop(startAt + 0.22);
+
+            const secondTone = violationAlertAudioContext.createOscillator();
+            secondTone.type = 'square';
+            secondTone.frequency.setValueAtTime(740, startAt + 0.28);
+            secondTone.connect(gain);
+            secondTone.start(startAt + 0.28);
+            secondTone.stop(startAt + 0.6);
+        } catch (error) {
+            console.debug('Violation alert audio unavailable:', error);
+        }
+    }
+
+    function notifyViolationIncrease(participants) {
+        if (!Array.isArray(participants) || participants.length === 0) {
+            violationSnapshotByUser.clear();
+            return;
+        }
+
+        if (violationSnapshotByUser.size === 0) {
+            seedViolationSnapshot(participants);
+            return;
+        }
+
+        let hasViolationIncrease = false;
+        participants.forEach((participant) => {
+            const userId = Number(participant?.user_id || 0);
+            if (!userId) return;
+
+            const currentTotal = getParticipantViolationTotal(participant);
+            const previousTotal = violationSnapshotByUser.get(userId);
+
+            if (typeof previousTotal === 'number' && currentTotal > previousTotal) {
+                hasViolationIncrease = true;
+            }
+
+            violationSnapshotByUser.set(userId, currentTotal);
+        });
+
+        if (!hasViolationIncrease) {
+            return;
+        }
+
+        playViolationAlertSound();
+    }
 
     function startLobbyPolling() {
         if (lobbyPollingInterval) clearInterval(lobbyPollingInterval);
@@ -1951,6 +2047,7 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
+                notifyViolationIncrease(data.participants);
                 updateLobbyTable(data.participants);
                 updateLastUpdatedTime();
                 const count = Array.isArray(data.participants) ? data.participants.length : 0;
