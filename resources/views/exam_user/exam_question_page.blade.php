@@ -133,7 +133,7 @@
                     <p class="text-gray-700 text-sm text-center mb-6">Click <span class="font-semibold text-[#0D2B70]">Submit</span> to finalize your answers.</p>
                     <div class="flex justify-center gap-4">
                         <button type="button" @click="showSubmitConfirm = false" class="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-full font-semibold transition">Cancel</button>
-                        <button type="button" id="confirmSubmitBtn" class="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-full font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>Submit</button>
+                        <button type="button" id="confirmSubmitBtn" @click="window.prepareSubmit()" class="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-full font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>Submit</button>
                     </div>
                 </div>
             </div>
@@ -424,7 +424,7 @@
         }
 
         async function requestExamFullscreen() {
-            if (!isExamActive() || isFullscreenActive()) return false;
+            if (!isExamActive() || isFullscreenActive()) return;
             const root = document.documentElement;
             try {
                 resizeIgnoreUntil = Date.now() + 1500;
@@ -433,12 +433,9 @@
                 } else if (root.webkitRequestFullscreen) {
                     root.webkitRequestFullscreen();
                 }
-                return true;
             } catch (_) {
                 // Browser may require user gesture; listeners will retry.
             }
-
-            return false;
         }
 
         function logViolation(type, payload = {}) {
@@ -700,10 +697,8 @@
             document.addEventListener('selectstart', onSelectStart, true);
             document.addEventListener('dragstart', onDragStart, true);
 
-            // Fullscreen can be blocked until a trusted user gesture; keep lightweight listeners.
-            ['click', 'keydown', 'pointerdown', 'mousedown', 'touchstart'].forEach(evt => {
-                document.addEventListener(evt, requestExamFullscreen, true);
-            });
+            document.addEventListener('click', requestExamFullscreen, { passive: true });
+            document.addEventListener('keydown', requestExamFullscreen, { passive: true });
 
             devtoolsInterval = setInterval(detectDevtools, 2000);
             tamperDetectionInterval = setInterval(detectTimeTampering, 5000);
@@ -731,9 +726,8 @@
             document.removeEventListener('selectstart', onSelectStart, true);
             document.removeEventListener('dragstart', onDragStart, true);
 
-            ['click', 'keydown', 'pointerdown', 'mousedown', 'touchstart'].forEach(evt => {
-                document.removeEventListener(evt, requestExamFullscreen, true);
-            });
+            document.removeEventListener('click', requestExamFullscreen, { passive: true });
+            document.removeEventListener('keydown', requestExamFullscreen, { passive: true });
 
             if (warningTimeout) clearTimeout(warningTimeout);
             if (devtoolsInterval) clearInterval(devtoolsInterval);
@@ -752,10 +746,6 @@
         antiCheat.activate();
     }
     function prepareSubmit() {
-        if (window.isSubmitting) {
-            return;
-        }
-
         collectCurrentAnswers(); // updates 'answers' object with current screen inputs
 
         // Remove old hidden inputs if re-preparing
@@ -1002,12 +992,6 @@
     if (openSubmitBtn) {
         openSubmitBtn.addEventListener('click', () => {
             updateSubmitEnabled();
-        });
-    }
-    if (confirmSubmitBtn) {
-        confirmSubmitBtn.addEventListener('click', (event) => {
-            event.preventDefault();
-            window.prepareSubmit();
         });
     }
     // Clear periodic autosave before final submit

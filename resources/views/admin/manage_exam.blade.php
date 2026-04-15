@@ -97,7 +97,7 @@
             <!-- Left Info -->
             <div class="text-sm text-[#002C76] font-montserrat">
                 <span class="text-xl md:text-2xl lg:text-3xl font-semibold">
-                    {{ $vacancy->position_title }},
+                    {{ $vacancy->position_title }} |
 
                     @if($questionsCount > 0)
                         <span class="text-xl md:text-2xl lg:text-3xl font-normal">
