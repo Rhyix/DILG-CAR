@@ -325,12 +325,17 @@ class ExportWESController extends Controller
 
             // Fill footer date line in template.
             $overlayFontSize = (float) ($overlayProfile['overlay_font_size'] ?? $overlayProfile['value_font_size'] ?? 8.4);
+                $dateLineX = (float) ($overlayProfile['date_x'] ?? 160.0);
+                $dateLineY = (float) ($overlayProfile['date_y'] ?? 143.3);
+                $dateLineWidth = (float) ($overlayProfile['date_w'] ?? 24.0);
+                $dateLineHeight = (float) ($overlayProfile['date_h'] ?? 4.4);
+
             $pdf->SetFont('Arial', '', $overlayFontSize);
             $pdf->SetTextColor(0, 0, 0);
-            $pdf->SetXY((float) ($overlayProfile['date_x'] ?? 162.0), (float) ($overlayProfile['date_y'] ?? 281.2));
+                $pdf->SetXY($dateLineX, $dateLineY);
             $pdf->Cell(
-                (float) ($overlayProfile['date_w'] ?? 27.0),
-                (float) ($overlayProfile['date_h'] ?? 4.5),
+                    $dateLineWidth,
+                    $dateLineHeight,
                 $this->toPdfText(now()->format('m/d/Y')),
                 0,
                 0,
@@ -526,7 +531,20 @@ class ExportWESController extends Controller
         $pdf->Cell(64, 5, $this->toPdfText('(Signature over Printed Name of Employee/Applicant)'), 0, 1, 'C');
         $pdf->Ln(6);
         $pdf->SetFont('Arial', '', 10);
-        $pdf->Cell(0, 6, $this->toPdfText('Date: ____________________'), 0, 1, 'R');
+        $dateLineX = 100.0;
+        $dateLineY = $pdf->GetY();
+        $dateLineWidth = 66.0;
+        $dateLineHeight = 6.0;
+        $dateLabelWidth = 16.0;
+        $dateUnderlineStartX = $dateLineX + 14.0;
+        $dateUnderlineEndX = $dateLineX + $dateLineWidth;
+        $dateValueX = $dateUnderlineEndX - 30.0;
+
+        $pdf->SetXY($dateLineX, $dateLineY);
+        $pdf->Cell($dateLabelWidth, $dateLineHeight, $this->toPdfText('Date:'), 0, 0, 'L');
+        $pdf->Line($dateUnderlineStartX, $dateLineY + 5.1, $dateUnderlineEndX, $dateLineY + 5.1);
+        $pdf->SetXY($dateValueX, $dateLineY);
+        $pdf->Cell(30.0, $dateLineHeight, $this->toPdfText(now()->format('m/d/Y')), 0, 1, 'R');
 
         return $pdf;
     }
@@ -805,7 +823,7 @@ PS;
         // Signature line text area at lower-right of WES template.
         $pdf->SetFont('Arial', '', (float) ($fontSize ?? 14.0));
         $pdf->SetTextColor(0, 0, 0);
-        $signatureLineX = 125.0;
+        $signatureLineX = 128.0;
         $signatureLineWidth = 50.0;
 
         $pdf->SetXY($signatureLineX, (float) ($y ?? 10.0));
