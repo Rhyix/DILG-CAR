@@ -10,6 +10,7 @@
 ## Project Docs
 
 - Education field mapping guide: `docs/education-field-mapping.md`
+- Exam kiosk fullscreen guide: `docs/exam-kiosk-mode.md`
 
 ## About Laravel
 

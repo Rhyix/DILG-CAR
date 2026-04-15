@@ -772,10 +772,8 @@
     function updateSecondaryBasicEducation() {
         const elemTo = document.getElementById('elem_to');
         const jhsBasic = document.getElementById('jhs_basic');
-        const gradCheckbox = document.getElementById('elem_is_graduate');
         if (!jhsBasic) return;
 
-        const isGraduate = Boolean(gradCheckbox && gradCheckbox.checked);
         const parsed = elemTo ? parsePdsEducationDate(elemTo.value) : null;
         const year = parsed ? parsed.getFullYear() : null;
         const beforeSeniorSplit = year && year < 2016;
@@ -784,17 +782,15 @@
             ? ['HIGH SCHOOL']
             : ['JUNIOR HIGH SCHOOL', 'SENIOR HIGH SCHOOL'];
 
-        const renderedOptions = isGraduate
-            ? desiredOptions
-            : ['N/A', ...desiredOptions];
+        const optionsWithNa = ['N/A', ...desiredOptions];
 
         const currentValue = jhsBasic.value || '';
         const existingOptions = Array.from(jhsBasic.options).map((o) => o.value);
-        const optionsChanged = renderedOptions.length !== existingOptions.length || renderedOptions.some((v, i) => v !== existingOptions[i]);
+        const optionsChanged = optionsWithNa.length !== existingOptions.length || optionsWithNa.some((v, i) => v !== existingOptions[i]);
 
         if (optionsChanged) {
             jhsBasic.innerHTML = '';
-            renderedOptions.forEach((val) => {
+            optionsWithNa.forEach((val) => {
                 const opt = document.createElement('option');
                 opt.value = val;
                 opt.textContent = val === 'N/A'
@@ -804,9 +800,9 @@
             });
         }
 
-        const hasCurrent = renderedOptions.includes(currentValue);
+        const hasCurrent = optionsWithNa.includes(currentValue);
         if (!hasCurrent) {
-            jhsBasic.value = renderedOptions[0];
+            jhsBasic.value = optionsWithNa[0];
         }
     }
     function setSecondaryAndHigherEducationEnabled(enabled) {
@@ -1207,7 +1203,6 @@
 
                 setSecondaryAndHigherEducationEnabled(isGraduate);
                 setElementaryHighestLevelEnabled(isGraduate);
-                updateSecondaryBasicEducation();
                 if (isGraduate) {
                     syncElemYearGraduatedFromTo();
                 }

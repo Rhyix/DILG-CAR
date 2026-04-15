@@ -122,18 +122,18 @@
     <div id="submitContainer" class="px-6 mt-6 max-w-3xl mx-auto hidden">
         <div x-data="{ showSubmitConfirm: false }" class="inline">
             <div class="flex justify-end">
-                <button id="openSubmitBtn" @click="showSubmitConfirm = true" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded font-semibold transition min-w-[150px] disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                <button type="button" id="openSubmitBtn" @click="showSubmitConfirm = true" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded font-semibold transition min-w-[150px] disabled:opacity-50 disabled:cursor-not-allowed" disabled>
                     Submit
                 </button>
         </div>
             <div x-show="showSubmitConfirm" x-transition class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style="display: none;" @keydown.escape.window="showSubmitConfirm = false">
                 <div class="bg-white p-8 rounded-2xl max-w-md w-full shadow-2xl relative">
-                    <button @click="showSubmitConfirm = false" class="absolute top-4 right-4 text-gray-400 text-xl font-bold hover:text-red-600">&times;</button>
+                    <button type="button" @click="showSubmitConfirm = false" class="absolute top-4 right-4 text-gray-400 text-xl font-bold hover:text-red-600">&times;</button>
                     <h2 class="text-2xl font-extrabold text-[#002C76] text-center mb-2">Submission</h2>
                     <p class="text-gray-700 text-sm text-center mb-6">Click <span class="font-semibold text-[#0D2B70]">Submit</span> to finalize your answers.</p>
                     <div class="flex justify-center gap-4">
-                        <button @click="showSubmitConfirm = false" class="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-full font-semibold transition">Cancel</button>
-                        <button id="confirmSubmitBtn" @click="window.prepareSubmit()" class="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-full font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>Submit</button>
+                        <button type="button" @click="showSubmitConfirm = false" class="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-full font-semibold transition">Cancel</button>
+                        <button type="button" id="confirmSubmitBtn" @click="window.prepareSubmit()" class="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-full font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>Submit</button>
                     </div>
                 </div>
             </div>
@@ -293,10 +293,6 @@
         clearInterval(timerInterval);
         collectCurrentAnswers();
         window.triggerTimesUp();
-        // Optional: Auto submit after a few seconds of "Times Up" modal
-        setTimeout(() => {
-            if(!window.isSubmitting) prepareSubmit();
-        }, 3000);
     }
 
     timerInterval = setInterval(() => {
@@ -310,13 +306,22 @@
 
     function updatePST() {
         const now = getServerNowDate();
-        // Format time: 01:31:35 PM
-        const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
-        const timeStr = now.toLocaleTimeString('en-US', timeOptions);
-        
-        // Format date: Friday, 20 February 2026
-        const dateOptions = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
-        const dateStr = now.toLocaleDateString('en-US', dateOptions);
+        const pstTimeFormatter = new Intl.DateTimeFormat('en-PH', {
+            timeZone: 'Asia/Manila',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true
+        });
+        const pstDateFormatter = new Intl.DateTimeFormat('en-PH', {
+            timeZone: 'Asia/Manila',
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+        });
+        const timeStr = pstTimeFormatter.format(now);
+        const dateStr = pstDateFormatter.format(now);
 
         const tEl = document.getElementById('pst-time');
         const dEl = document.getElementById('pst-date');
@@ -395,7 +400,12 @@
         let resizeIgnoreUntil = 0;
         let devtoolsInterval = null;
         let lastDevtoolsWarningAt = 0;
-        let autoSubmitTriggered = false;
+        let tamperDetectionInterval = null;
+        const baselineTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+        const baselineTimezoneOffsetMinutes = new Date().getTimezoneOffset();
+        let lastTimezoneTamperLoggedAt = 0;
+        let lastTimezoneTamperSignature = '';
+        let lastClockTamperLoggedAt = 0;
 
         function isExamActive() {
             return active && !window.allowFocusLoss && !window.isSubmitting;
@@ -448,26 +458,7 @@
                 })
             })
             .then(response => response.ok ? response.json() : null)
-            .then(data => {
-                if (!data || !data.auto_submit || autoSubmitTriggered || !isExamActive()) return;
-                autoSubmitTriggered = true;
-                showWarning(`Maximum violations reached (${data.max_violations}). Submitting your exam now.`);
-                setTimeout(() => {
-                    if (!window.isSubmitting) window.prepareSubmit();
-                }, 800);
-            })
             .catch(() => {});
-        }
-
-        function maybeAutoSubmit() {
-            if (!isExamActive() || autoSubmitTriggered) return;
-            if (thresholdViolations >= examMaxViolations) {
-                autoSubmitTriggered = true;
-                showWarning(`Maximum violations reached (${examMaxViolations}). Submitting your exam now.`);
-                setTimeout(() => {
-                    if (!window.isSubmitting) window.prepareSubmit();
-                }, 800);
-            }
         }
 
         function registerViolation(type, message, payload = {}) {
@@ -475,7 +466,69 @@
             thresholdViolations += 1;
             showWarning(message);
             logViolation(type, payload);
-            maybeAutoSubmit();
+            if (thresholdViolations >= examMaxViolations) {
+                showWarning(`Maximum violations reached (${examMaxViolations}). You must submit manually.`);
+            }
+        }
+
+        function detectTimeTampering() {
+            if (!isExamActive()) return;
+
+            const clientTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+            const timezoneOffsetMinutes = new Date().getTimezoneOffset();
+            const expectedTimezone = 'Asia/Manila';
+            const expectedTimezoneOffsetMinutes = -480;
+            const clientNowMs = Date.now();
+            const serverNowMsEstimated = nowFromServerClockMs();
+            const clockDriftMs = Math.round(clientNowMs - serverNowMsEstimated);
+            const absDriftMs = Math.abs(clockDriftMs);
+
+            const timezoneChanged = baselineTimezone && clientTimezone && clientTimezone !== baselineTimezone;
+            const offsetChanged = timezoneOffsetMinutes !== baselineTimezoneOffsetMinutes;
+            const timezoneMismatch = clientTimezone && clientTimezone !== expectedTimezone;
+            const offsetMismatch = timezoneOffsetMinutes !== expectedTimezoneOffsetMinutes;
+
+            if (timezoneChanged || offsetChanged || timezoneMismatch || offsetMismatch) {
+                const nowMs = Date.now();
+                const tamperSignature = [clientTimezone, timezoneOffsetMinutes, baselineTimezone, baselineTimezoneOffsetMinutes].join('|');
+                const beyondCooldown = (nowMs - lastTimezoneTamperLoggedAt) >= 30000;
+
+                if (tamperSignature !== lastTimezoneTamperSignature || beyondCooldown) {
+                    lastTimezoneTamperLoggedAt = nowMs;
+                    lastTimezoneTamperSignature = tamperSignature;
+
+                    const reasons = [];
+                    if (timezoneChanged) reasons.push('timezone-changed');
+                    if (offsetChanged) reasons.push('offset-changed');
+                    if (timezoneMismatch) reasons.push('not-asia-manila');
+                    if (offsetMismatch) reasons.push('not-utc-plus-8');
+
+                    registerViolation('timezone-tamper', 'Timezone mismatch detected during exam monitoring.', {
+                        timezone: clientTimezone,
+                        timezone_offset_minutes: timezoneOffsetMinutes,
+                        baseline_timezone: baselineTimezone,
+                        baseline_timezone_offset_minutes: baselineTimezoneOffsetMinutes,
+                        expected_timezone: expectedTimezone,
+                        expected_timezone_offset_minutes: expectedTimezoneOffsetMinutes,
+                        tamper_reason: reasons.join(',') || 'timezone-mismatch',
+                        client_now_iso: new Date(clientNowMs).toISOString(),
+                        server_now_iso: new Date(serverNowMsEstimated).toISOString(),
+                        clock_drift_ms: clockDriftMs,
+                    });
+                }
+            }
+
+            const nowMs = Date.now();
+            if (absDriftMs >= 180000 && (nowMs - lastClockTamperLoggedAt) >= 60000) {
+                lastClockTamperLoggedAt = nowMs;
+                registerViolation('clock-tamper', 'Significant client/server clock drift detected.', {
+                    timezone: clientTimezone,
+                    timezone_offset_minutes: timezoneOffsetMinutes,
+                    client_now_iso: new Date(clientNowMs).toISOString(),
+                    server_now_iso: new Date(serverNowMsEstimated).toISOString(),
+                    clock_drift_ms: clockDriftMs,
+                });
+            }
         }
 
         function onFullscreenChange() {
@@ -648,7 +701,9 @@
             document.addEventListener('keydown', requestExamFullscreen, { passive: true });
 
             devtoolsInterval = setInterval(detectDevtools, 2000);
+            tamperDetectionInterval = setInterval(detectTimeTampering, 5000);
             requestExamFullscreen();
+            detectTimeTampering();
         }
 
         function deactivate() {
@@ -677,6 +732,8 @@
             if (warningTimeout) clearTimeout(warningTimeout);
             if (devtoolsInterval) clearInterval(devtoolsInterval);
             devtoolsInterval = null;
+            if (tamperDetectionInterval) clearInterval(tamperDetectionInterval);
+            tamperDetectionInterval = null;
             hiddenAt = null;
         }
 

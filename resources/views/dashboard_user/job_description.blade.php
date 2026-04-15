@@ -514,6 +514,7 @@
                         <option value="BACHELOR">Bachelors Degree</option>
                         <option value="MASTERAL">Masteral Degree</option>
                         <option value="DOCTORATE">Doctorate Degree</option>
+                        <option value="OTHERS">Others (Specify)</option>
                     </select>
                 </div>
                 <div id="initialAssessmentDegreeFieldWrap" class="mt-4">
@@ -670,6 +671,7 @@
         degree: '',
         eligibility: '',
     };
+    const ASSESSMENT_OTHERS_LABEL = 'Others (Specify)';
     const initialAssessmentFeedbackState = {
         onConfirm: null,
     };
@@ -732,6 +734,15 @@
             degreeLabel: 'Degree/Course',
             degreePlaceholder: 'Search from the list or type your degree/course',
             degreeHint: 'Search from the list or type if your degree/course is not available.',
+        },
+        OTHERS: {
+            label: 'Others (Specify)',
+            programLevel: null,
+            requiresProgram: true,
+            fallbackDegree: '',
+            degreeLabel: 'Specify Educational Attainment / Degree',
+            degreePlaceholder: 'Type your educational attainment or degree',
+            degreeHint: 'Enter your educational attainment or degree if not listed above.',
         },
     };
     const initialAssessmentOptions = {
@@ -827,20 +838,30 @@
         if (type === 'degree') {
             const meta = currentAssessmentEducationMeta();
             if (!meta || !meta.requiresProgram || !meta.programLevel) {
-                return [];
+                return [ASSESSMENT_OTHERS_LABEL];
             }
 
             const byLevel = initialAssessmentOptions.degreeByLevel;
             if (!byLevel || typeof byLevel !== 'object') {
-                return [];
+                return [ASSESSMENT_OTHERS_LABEL];
             }
 
             const raw = byLevel[meta.programLevel];
-            return Array.isArray(raw) ? raw : [];
+            const options = Array.isArray(raw) ? raw : [];
+            const unique = Array.from(new Set(options.map((item) => normalizeAssessmentInput(item)).filter((item) => item !== '')));
+            if (!unique.includes(ASSESSMENT_OTHERS_LABEL)) {
+                unique.push(ASSESSMENT_OTHERS_LABEL);
+            }
+            return unique;
         }
 
         const raw = initialAssessmentOptions[type];
-        return Array.isArray(raw) ? raw : [];
+        const options = Array.isArray(raw) ? raw : [];
+        const unique = Array.from(new Set(options.map((item) => normalizeAssessmentInput(item)).filter((item) => item !== '')));
+        if (!unique.includes(ASSESSMENT_OTHERS_LABEL)) {
+            unique.push(ASSESSMENT_OTHERS_LABEL);
+        }
+        return unique;
     }
 
     function filterAssessmentOptions(type, query) {
@@ -970,6 +991,19 @@
 
             const label = normalizeAssessmentInput(target.getAttribute('data-label') || '');
             if (!label) {
+                return;
+            }
+
+            if (label === ASSESSMENT_OTHERS_LABEL) {
+                input.value = '';
+                closeAssessmentMenu(type);
+                if (type === 'degree') {
+                    input.placeholder = 'Type your educational attainment or degree';
+                }
+                if (type === 'eligibility') {
+                    input.placeholder = 'Type your eligibility (e.g., Driver\'s License)';
+                }
+                input.focus();
                 return;
             }
 
