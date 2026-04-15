@@ -178,13 +178,15 @@ class ExportWESController extends Controller
             }
         }
 
-        $templatePdfPath = $this->resolveWesTemplatePdfPath();
-        if ($templatePdfPath !== null) {
+        $templatePdfCandidate = $this->resolveWesTemplatePdfCandidate();
+        if (is_array($templatePdfCandidate)) {
+            $templatePdfPath = (string) ($templatePdfCandidate['path'] ?? '');
+            $templatePdfSource = (string) ($templatePdfCandidate['source'] ?? '');
             try {
                 $this->wesRenderMeta = [
                     'mode' => 'template_pdf_overlay',
                     'templatePath' => $templatePdfPath,
-                    'templateSource' => 'resources/templates/work_experience_template.pdf',
+                    'templateSource' => $templatePdfSource !== '' ? $templatePdfSource : null,
                 ];
                 return $this->buildWesPdfFromTemplate($templatePdfPath, $fullName, $experiences);
             } catch (\Throwable $e) {
@@ -444,16 +446,36 @@ class ExportWESController extends Controller
         return $pdf;
     }
 
-    private function resolveWesTemplatePdfPath(): ?string
+    private function resolveWesTemplatePdfCandidate(): ?array
     {
-        $pdfPath = resource_path('templates/work_experience_template.pdf');
+        $candidates = [
+            [
+                'path' => resource_path('templates/WES_Template.pdf'),
+                'source' => 'resources/templates/WES_Template.pdf',
+            ],
+            [
+                'path' => resource_path('templates/work_experience_template.pdf'),
+                'source' => 'resources/templates/work_experience_template.pdf',
+            ],
+            [
+                'path' => public_path('templates/WES_Template.pdf'),
+                'source' => 'public/templates/WES_Template.pdf',
+            ],
+        ];
 
-        return file_exists($pdfPath) ? $pdfPath : null;
+        foreach ($candidates as $candidate) {
+            $path = (string) ($candidate['path'] ?? '');
+            if ($path !== '' && file_exists($path)) {
+                return $candidate;
+            }
+        }
+
+        return null;
     }
 
     /**
      * Ordered WES DOCX candidates for responsive rendering.
-     * Priority starts with public/templates/WES_Template.docx.
+     * Priority starts with resources/templates/WES_Template.docx.
      *
      * @return array<int, array{path:string,source:string}>
      */
@@ -461,12 +483,12 @@ class ExportWESController extends Controller
     {
         $candidates = [
             [
-                'path' => public_path('templates/WES_Template.docx'),
-                'source' => 'public/templates/WES_Template.docx',
+                'path' => resource_path('templates/WES_Template.docx'),
+                'source' => 'resources/templates/WES_Template.docx',
             ],
             [
-                'path' => resource_path('templates/work_experience_template.docx'),
-                'source' => 'resources/templates/work_experience_template.docx',
+                'path' => public_path('templates/WES_Template.docx'),
+                'source' => 'public/templates/WES_Template.docx',
             ],
         ];
 
