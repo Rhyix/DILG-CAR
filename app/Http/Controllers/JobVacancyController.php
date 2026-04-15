@@ -3656,6 +3656,9 @@ class JobVacancyController extends Controller
     {
         $missingLabels = [];
         foreach ($checks as $field => $check) {
+            if (!in_array((string) $field, ['education', 'eligibility'], true)) {
+                continue;
+            }
             if (($check['required'] ?? false) && !($check['met'] ?? false)) {
                 $label = ucfirst((string) $field);
                 $requirement = trim((string) ($check['requirement'] ?? ''));
@@ -3746,6 +3749,9 @@ class JobVacancyController extends Controller
     {
         $requirement = $this->normalizeQualificationRequirement($rawRequirement);
         if ($requirement === null) {
+            $hasSubmission = WorkExperience::query()
+                ->where('user_id', $userId)
+                ->exists();
             return [
                 'required' => false,
                 'met' => true,
@@ -3753,6 +3759,7 @@ class JobVacancyController extends Controller
                 'requirement' => null,
                 'actual_months' => 0,
                 'required_months' => null,
+                'submitted' => $hasSubmission,
             ];
         }
 
@@ -3780,6 +3787,7 @@ class JobVacancyController extends Controller
         } else {
             $met = $workExperiences->isNotEmpty();
         }
+        $hasSubmission = $workExperiences->isNotEmpty();
 
         return [
             'required' => true,
@@ -3791,6 +3799,7 @@ class JobVacancyController extends Controller
             'matched_topic_months' => $requiresTopicMatch ? $matchedTopicMonths : null,
             'requires_topic_match' => $requiresTopicMatch,
             'topic_match_met' => $hasTopicMatch,
+            'submitted' => $hasSubmission,
         ];
     }
 
@@ -3887,6 +3896,9 @@ class JobVacancyController extends Controller
     {
         $requirement = $this->normalizeQualificationRequirement($rawRequirement);
         if ($requirement === null) {
+            $hasSubmission = LearningAndDevelopment::query()
+                ->where('user_id', $userId)
+                ->exists();
             return [
                 'required' => false,
                 'met' => true,
@@ -3894,6 +3906,7 @@ class JobVacancyController extends Controller
                 'requirement' => null,
                 'actual_hours' => 0,
                 'required_hours' => null,
+                'submitted' => $hasSubmission,
             ];
         }
 
@@ -3921,6 +3934,7 @@ class JobVacancyController extends Controller
         } else {
             $met = $records->isNotEmpty();
         }
+        $hasSubmission = $records->isNotEmpty();
 
         return [
             'required' => true,
@@ -3932,6 +3946,7 @@ class JobVacancyController extends Controller
             'matched_topic_hours' => $requiresTopicMatch ? $matchedTopicHours : null,
             'requires_topic_match' => $requiresTopicMatch,
             'topic_match_met' => $hasTopicMatch,
+            'submitted' => $hasSubmission,
         ];
     }
 

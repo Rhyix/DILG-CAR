@@ -283,7 +283,7 @@
                     <div class="rounded-2xl border border-[#0D2B70]/20 bg-white p-5 shadow-sm">
                         <h3 class="text-base font-bold text-[#0D2B70]">Qualification Check</h3>
                         <div class="mt-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-3 text-sm text-blue-800">
-                            Complete your PDS first so we can check if you meet the Education, Training, Experience, and Eligibility requirements.
+                            Complete your PDS first so we can check your Education and Eligibility requirements, and verify your submitted Training and Experience entries.
                         </div>
                     </div>
                 @elseif(!$isClosed && !$hasApplied && !empty($qualificationChecksForPanel))
@@ -296,6 +296,10 @@
                                     $checkStatus = is_array($check) ? ($check['status'] ?? 'na') : 'na';
                                     $required = is_array($check) ? (bool) ($check['required'] ?? false) : false;
                                     $met = is_array($check) ? (bool) ($check['met'] ?? false) : true;
+                                    $isSubmissionField = in_array($field, ['training', 'experience'], true);
+                                    $submitted = is_array($check)
+                                        ? (bool) ($check['submitted'] ?? false)
+                                        : false;
                                     $requirementText = trim((string) (($check['requirement'] ?? '') ?: ''));
                                 @endphp
                                 <div class="rounded-lg border border-slate-200 px-3 py-2">
@@ -304,6 +308,14 @@
                                         @if(!$required || $checkStatus === 'na')
                                             <span class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-semibold text-gray-600">
                                                 Not Required
+                                            </span>
+                                        @elseif($isSubmissionField && $submitted)
+                                            <span class="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+                                                Submitted
+                                            </span>
+                                        @elseif($isSubmissionField)
+                                            <span class="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-700">
+                                                Not Submitted
                                             </span>
                                         @elseif($met)
                                             <span class="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
