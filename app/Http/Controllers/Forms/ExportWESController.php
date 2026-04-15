@@ -152,6 +152,30 @@ class ExportWESController extends Controller
 
     private function buildWesPdf(string $fullName, Collection $experiences): \FPDF
     {
+        $allowPdfTemplateOverlay = filter_var(env('WES_ALLOW_PDF_TEMPLATE_OVERLAY', true), FILTER_VALIDATE_BOOL);
+        if ($allowPdfTemplateOverlay) {
+            $templatePdfCandidate = $this->resolveWesTemplatePdfCandidate();
+            if (is_array($templatePdfCandidate)) {
+                $templatePdfPath = (string) ($templatePdfCandidate['path'] ?? '');
+                $templatePdfSource = (string) ($templatePdfCandidate['source'] ?? '');
+                try {
+                    $this->wesRenderMeta = [
+                        'mode' => 'template_pdf_overlay',
+                        'templatePath' => $templatePdfPath,
+                        'templateSource' => $templatePdfSource !== '' ? $templatePdfSource : null,
+                    ];
+                    return $this->buildWesPdfFromTemplate($templatePdfPath, $fullName, $experiences);
+                } catch (\Throwable $e) {
+                    Log::warning('WES template-based export failed; falling back to legacy WES PDF renderer.', [
+                        'error' => $e->getMessage(),
+                        'template_pdf' => $templatePdfPath,
+                    ]);
+                }
+            }
+        } else {
+            Log::info('WES PDF template overlay disabled; using legacy renderer when responsive DOCX conversion is unavailable.');
+        }
+
         foreach ($this->resolveResponsiveWesDocxCandidates() as $candidate) {
             $responsiveDocxTemplatePath = $candidate['path'];
             $responsiveDocxTemplateSource = $candidate['source'];
@@ -174,25 +198,6 @@ class ExportWESController extends Controller
                 Log::warning('Responsive WES DOCX template render failed; trying next fallback.', [
                     'error' => $e->getMessage(),
                     'template_docx' => $responsiveDocxTemplatePath,
-                ]);
-            }
-        }
-
-        $templatePdfCandidate = $this->resolveWesTemplatePdfCandidate();
-        if (is_array($templatePdfCandidate)) {
-            $templatePdfPath = (string) ($templatePdfCandidate['path'] ?? '');
-            $templatePdfSource = (string) ($templatePdfCandidate['source'] ?? '');
-            try {
-                $this->wesRenderMeta = [
-                    'mode' => 'template_pdf_overlay',
-                    'templatePath' => $templatePdfPath,
-                    'templateSource' => $templatePdfSource !== '' ? $templatePdfSource : null,
-                ];
-                return $this->buildWesPdfFromTemplate($templatePdfPath, $fullName, $experiences);
-            } catch (\Throwable $e) {
-                Log::warning('WES template-based export failed; falling back to legacy WES PDF renderer.', [
-                    'error' => $e->getMessage(),
-                    'template_pdf' => $templatePdfPath,
                 ]);
             }
         }
@@ -295,6 +300,7 @@ class ExportWESController extends Controller
         $pdf->setSourceFile($templatePdfPath);
         $templateId = $pdf->importPage(1);
         $templateSize = $pdf->getTemplateSize($templateId);
+        $overlayProfile = $this->resolveTemplateOverlayProfile($templatePdfPath);
 
         $entries = $experiences->values();
         if ($entries->isEmpty()) {
@@ -315,21 +321,33 @@ class ExportWESController extends Controller
             $pdf->AddPage($templateSize['orientation'], [$templateSize['width'], $templateSize['height']]);
             $pdf->useTemplate($templateId);
 
-            // Use upper entry block only so each experience has dedicated page space.
-            $this->writeTemplateEntryOverlay($pdf, $exp, 69.2);
+            $this->writeTemplateEntryOverlay($pdf, $exp, $overlayProfile);
 
             // Fill footer date line in template.
-            $pdf->SetFont('Arial', '', 9);
+            $overlayFontSize = (float) ($overlayProfile['overlay_font_size'] ?? $overlayProfile['value_font_size'] ?? 8.4);
+            $pdf->SetFont('Arial', '', $overlayFontSize);
             $pdf->SetTextColor(0, 0, 0);
-            $pdf->SetXY(162.0, 281.2);
-            $pdf->Cell(27, 4.5, $this->toPdfText(now()->format('m/d/Y')), 0, 0, 'C');
-            $this->overlayWesSignatureName($pdf, $fullName);
+            $pdf->SetXY((float) ($overlayProfile['date_x'] ?? 162.0), (float) ($overlayProfile['date_y'] ?? 281.2));
+            $pdf->Cell(
+                (float) ($overlayProfile['date_w'] ?? 27.0),
+                (float) ($overlayProfile['date_h'] ?? 4.5),
+                $this->toPdfText(now()->format('m/d/Y')),
+                0,
+                0,
+                'C'
+            );
+            $this->overlayWesSignatureName(
+                $pdf,
+                $fullName,
+                $overlayFontSize,
+                (float) ($overlayProfile['signature_y'] ?? 124.0)
+            );
         }
 
         return $pdf;
     }
 
-    private function writeTemplateEntryOverlay(Fpdi $pdf, $exp, float $baseY): void
+    private function writeTemplateEntryOverlay(Fpdi $pdf, $exp, array $profile): void
     {
         $durationFrom = $this->formatMonthYear($exp->start_date);
         $durationTo = $exp->end_date ? $this->formatMonthYear($exp->end_date) : 'Present';
@@ -340,46 +358,110 @@ class ExportWESController extends Controller
         $supervisor = trim((string) ($exp->supervisor ?? '')) ?: 'N/A';
         $agency = trim((string) ($exp->agency ?? '')) ?: 'N/A';
 
-        // Right-side values aligned to the template's fixed labels.
-        $valueX = 94.0;
-        $valueWidth = 92.0;
-        $lineHeight = 8.35;
+        $valueWidth = (float) ($profile['value_width'] ?? 92.0);
+        $rowHeight = (float) ($profile['row_height'] ?? 4.6);
 
-        $pdf->SetFont('Arial', '', 8.4);
+        $pdf->SetFont('Arial', '', (float) ($profile['value_font_size'] ?? 8.4));
         $pdf->SetTextColor(0, 0, 0);
 
-        $pdf->SetXY($valueX, $baseY);
-        $pdf->Cell($valueWidth, 4.6, $this->toPdfText($duration), 0, 0, 'L');
+        $pdf->SetXY((float) ($profile['duration_x'] ?? 94.0), (float) ($profile['duration_y'] ?? 69.2));
+        $pdf->Cell($valueWidth, $rowHeight, $this->toPdfText($duration), 0, 0, 'L');
 
-        $pdf->SetXY($valueX, $baseY + $lineHeight);
-        $pdf->Cell($valueWidth, 4.6, $this->toPdfText($position), 0, 0, 'L');
+        $pdf->SetXY((float) ($profile['position_x'] ?? 94.0), (float) ($profile['position_y'] ?? (69.2 + 8.35)));
+        $pdf->Cell($valueWidth, $rowHeight, $this->toPdfText($position), 0, 0, 'L');
 
-        $pdf->SetXY($valueX, $baseY + ($lineHeight * 2));
-        $pdf->Cell($valueWidth, 4.6, $this->toPdfText($office), 0, 0, 'L');
+        $pdf->SetXY((float) ($profile['office_x'] ?? 94.0), (float) ($profile['office_y'] ?? (69.2 + (8.35 * 2))));
+        $pdf->Cell($valueWidth, $rowHeight, $this->toPdfText($office), 0, 0, 'L');
 
-        $pdf->SetXY($valueX, $baseY + ($lineHeight * 3));
-        $pdf->Cell($valueWidth, 4.6, $this->toPdfText($supervisor), 0, 0, 'L');
+        $pdf->SetXY((float) ($profile['supervisor_x'] ?? 94.0), (float) ($profile['supervisor_y'] ?? (69.2 + (8.35 * 3))));
+        $pdf->Cell($valueWidth, $rowHeight, $this->toPdfText($supervisor), 0, 0, 'L');
 
-        $pdf->SetXY($valueX, $baseY + ($lineHeight * 4));
-        $pdf->Cell($valueWidth, 4.6, $this->toPdfText($agency), 0, 0, 'L');
+        $pdf->SetXY((float) ($profile['agency_x'] ?? 94.0), (float) ($profile['agency_y'] ?? (69.2 + (8.35 * 4))));
+        $pdf->Cell($valueWidth, $rowHeight, $this->toPdfText($agency), 0, 0, 'L');
 
         $accomplishments = array_slice($this->listItemsForPreview($exp->accomplishments ?? []), 0, 3);
         $duties = array_slice($this->listItemsForPreview($exp->duties ?? []), 0, 3);
 
-        $bulletX = 61.5;
-        $bulletLineHeight = 4.25;
+        $bulletX = (float) ($profile['bullet_x'] ?? 61.5);
+        $bulletLineHeight = (float) ($profile['bullet_line_height'] ?? 4.25);
+        $accomplishmentY = (float) ($profile['accomplishment_y'] ?? (69.2 + 40.6));
+        $dutyY = (float) ($profile['duty_y'] ?? (69.2 + 55.9));
+        $bulletWidth = (float) ($profile['bullet_width'] ?? 123.0);
+        $bulletRowHeight = (float) ($profile['bullet_row_height'] ?? 4.0);
 
-        $accomplishmentY = $baseY + 40.6;
         foreach ($accomplishments as $index => $item) {
             $pdf->SetXY($bulletX, $accomplishmentY + ($index * $bulletLineHeight));
-            $pdf->Cell(123, 4.0, $this->toPdfText('• ' . $item), 0, 0, 'L');
+            $pdf->Cell($bulletWidth, $bulletRowHeight, $this->toPdfText('• ' . $item), 0, 0, 'L');
         }
 
-        $dutyY = $baseY + 55.9;
         foreach ($duties as $index => $item) {
             $pdf->SetXY($bulletX, $dutyY + ($index * $bulletLineHeight));
-            $pdf->Cell(123, 4.0, $this->toPdfText('• ' . $item), 0, 0, 'L');
+            $pdf->Cell($bulletWidth, $bulletRowHeight, $this->toPdfText('• ' . $item), 0, 0, 'L');
         }
+    }
+
+    private function resolveTemplateOverlayProfile(string $templatePdfPath): array
+    {
+        $normalized = strtolower(str_replace('\\', '/', $templatePdfPath));
+        if (str_ends_with($normalized, '/wes_template.pdf')) {
+            // Coordinates calibrated against resources/templates/WES_Template.pdf.
+            return [
+                'duration_x' => 42.0,
+                'position_x' => 41.0,
+                'office_x' => 63.0,
+                'supervisor_x' => 67.0,
+                'agency_x' => 108.0,
+                'duration_y' => 61.0,
+                'position_y' => 66.2,
+                'office_y' => 71.4,
+                'supervisor_y' => 76.5,
+                'agency_y' => 81.6,
+                'value_width' => 85.0,
+                'row_height' => 4.4,
+                'value_font_size' => 8.2,
+                'overlay_font_size' => 8.2,
+                'bullet_x' => 66.0,
+                'bullet_line_height' => 4.2,
+                'accomplishment_y' => 96.0,
+                'duty_y' => 111.6,
+                'bullet_width' => 120.0,
+                'bullet_row_height' => 4.0,
+                'signature_y' => 124.0,
+                'date_x' => 169.0,
+                'date_y' => 143.3,
+                'date_w' => 24.0,
+                'date_h' => 4.4,
+            ];
+        }
+
+        // Backward-compatible profile for legacy template overlays.
+        return [
+            'duration_x' => 94.0,
+            'position_x' => 94.0,
+            'office_x' => 94.0,
+            'supervisor_x' => 94.0,
+            'agency_x' => 94.0,
+            'duration_y' => 69.2,
+            'position_y' => 77.55,
+            'office_y' => 85.9,
+            'supervisor_y' => 94.25,
+            'agency_y' => 102.6,
+            'value_width' => 92.0,
+            'row_height' => 4.6,
+            'value_font_size' => 8.4,
+            'overlay_font_size' => 8.4,
+            'bullet_x' => 61.5,
+            'bullet_line_height' => 4.25,
+            'accomplishment_y' => 109.8,
+            'duty_y' => 125.1,
+            'bullet_width' => 123.0,
+            'bullet_row_height' => 4.0,
+            'signature_y' => 124.0,
+            'date_x' => 163.5,
+            'date_y' => 281.2,
+            'date_w' => 27.0,
+            'date_h' => 4.5,
+        ];
     }
 
     private function buildWesPdfLegacy(string $fullName, Collection $experiences): \FPDF
@@ -401,6 +483,7 @@ class ExportWESController extends Controller
         $pdf->Cell(120, 6, $this->toPdfText($fullName), 0, 0);
         $pdf->SetFont('Arial', '', 10);
         $pdf->Cell(12, 6, $this->toPdfText('Date:'), 0, 0);
+        $pdf->SetX($pdf->GetX() + 2.0);
         $pdf->Cell(0, 6, $this->toPdfText(now()->format('F d, Y')), 0, 1);
         $pdf->Ln(2);
         $pdf->Line(12, $pdf->GetY(), 198, $pdf->GetY());
@@ -439,8 +522,10 @@ class ExportWESController extends Controller
         $pdf->Cell(120, 6, '', 0, 0);
         $pdf->Cell(64, 6, '_______________________________', 0, 1, 'C');
         $pdf->Cell(120, 5, '', 0, 0);
+        $pdf->SetFont('Arial', '', 8);
         $pdf->Cell(64, 5, $this->toPdfText('(Signature over Printed Name of Employee/Applicant)'), 0, 1, 'C');
         $pdf->Ln(6);
+        $pdf->SetFont('Arial', '', 10);
         $pdf->Cell(0, 6, $this->toPdfText('Date: ____________________'), 0, 1, 'R');
 
         return $pdf;
@@ -448,14 +533,12 @@ class ExportWESController extends Controller
 
     private function resolveWesTemplatePdfCandidate(): ?array
     {
+        $allowLegacyOverlay = filter_var(env('WES_ALLOW_LEGACY_PDF_OVERLAY', false), FILTER_VALIDATE_BOOL);
+
         $candidates = [
             [
                 'path' => resource_path('templates/WES_Template.pdf'),
                 'source' => 'resources/templates/WES_Template.pdf',
-            ],
-            [
-                'path' => resource_path('templates/work_experience_template.pdf'),
-                'source' => 'resources/templates/work_experience_template.pdf',
             ],
             [
                 'path' => public_path('templates/WES_Template.pdf'),
@@ -463,14 +546,66 @@ class ExportWESController extends Controller
             ],
         ];
 
+        if ($allowLegacyOverlay) {
+            $candidates[] = [
+                'path' => resource_path('templates/work_experience_template.pdf'),
+                'source' => 'resources/templates/work_experience_template.pdf',
+            ];
+        }
+
         foreach ($candidates as $candidate) {
             $path = (string) ($candidate['path'] ?? '');
-            if ($path !== '' && file_exists($path)) {
-                return $candidate;
+            if ($path === '' || !file_exists($path)) {
+                continue;
             }
+
+            if ($this->pdfTemplateContainsPlaceholderMarkers($path)) {
+                Log::warning('Skipping WES PDF template because unresolved placeholders were detected.', [
+                    'template_pdf' => $path,
+                    'template_source' => (string) ($candidate['source'] ?? ''),
+                ]);
+                continue;
+            }
+
+            return $candidate;
+        }
+
+        if (!$allowLegacyOverlay) {
+            Log::info('WES template PDF overlay skipped: no WES_Template.pdf found and legacy overlay is disabled.', [
+                'expected_candidates' => array_map(static fn (array $candidate): string => (string) ($candidate['source'] ?? ''), $candidates),
+            ]);
         }
 
         return null;
+    }
+
+    private function pdfTemplateContainsPlaceholderMarkers(string $pdfPath): bool
+    {
+        $content = @file_get_contents($pdfPath);
+        if (!is_string($content) || $content === '') {
+            return false;
+        }
+
+        foreach ([
+            '${experience}',
+            '${/experience}',
+            '${from}',
+            '${to}',
+            '${position}',
+            '${office}',
+            '${supervisor}',
+            '${agency}',
+            '${accomplishments}',
+            '${duties}',
+            '${name}',
+            '${date}',
+        ] as $marker) {
+            if (str_contains($content, $marker)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -658,17 +793,22 @@ PS;
         }, $items));
     }
 
-    private function overlayWesSignatureName(\FPDF $pdf, string $fullName): void
+    private function overlayWesSignatureName(
+        \FPDF $pdf,
+        string $fullName,
+        ?float $fontSize = null,
+        ?float $y = null
+    ): void
     {
         $name = trim($fullName) !== '' ? trim($fullName) : 'N/A';
 
         // Signature line text area at lower-right of WES template.
-        $pdf->SetFont('Arial', '', 11);
+        $pdf->SetFont('Arial', '', (float) ($fontSize ?? 14.0));
         $pdf->SetTextColor(0, 0, 0);
-        $signatureLineX = 130.0;
-        $signatureLineWidth = 42.0;
+        $signatureLineX = 125.0;
+        $signatureLineWidth = 50.0;
 
-        $pdf->SetXY($signatureLineX, 129.0);
+        $pdf->SetXY($signatureLineX, (float) ($y ?? 10.0));
         $pdf->Cell($signatureLineWidth, 5.0, $this->toPdfText($name), 0, 0, 'C');
     }
 
