@@ -361,7 +361,13 @@
                                     <!-- Name -->
                                     <td class="py-2.5 px-3 md:py-3 md:px-6 text-[#0D2B70] font-semibold text-xs md:text-sm w-[25%] md:w-[25%]">
                                         {{ $user_name[$index] ?? 'Unknown User' }}
+                                                                            <div class="mt-1 text-[10px] md:text-xs text-gray-600 font-medium">
+                                        <span class="whitespace-nowrap">Switches: {{ (int) ($p->tab_switch_count ?? $p->tab_violations ?? 0) }}</span>
+                                        <span class="mx-1 text-gray-400">|</span>
+                                        <span class="whitespace-nowrap">Tamper: {{ (int) ($p->tamper_logs_count ?? 0) }}</span>
+                                    </div>
                                     </td>
+
 
                                     <!-- MC Score -->
                                     <td class="py-2.5 px-3 md:py-3 md:px-6 text-center text-[#0D2B70] font-medium text-xs md:text-sm w-[15%] md:w-[15%]">
@@ -393,15 +399,15 @@
                                     </td>
 
                                     <!-- Action Button -->
-                                     <td class="py-2.5 px-3 md:py-3 md:px-6 text-center w-[25%]">
+                                     <td class="py-2.5 px-3 md:py-3 md:px-6 text-center">
                                         @php
                                             $resumeAction = (array) ($p->resume_action ?? []);
                                         @endphp
-                                        <div class="flex flex-wrap items-center justify-center gap-2">
+                                        <div class="inline-flex flex-row flex-nowrap items-center justify-center gap-2">
                                             <a href="{{ route('admin.view_exam', ['vacancy_id' => $p->vacancy_id, 'user_id' => $p->user_id]) }}" target="_blank"
                                                 class="text-[#0D2B70] border border-[#0D2B70] font-bold py-1.5 px-3 md:py-2 md:px-6 rounded-md text-xs md:text-sm
                                                     transition-all duration-150 ease-[cubic-bezier(0.4,0,0.2,1)]
-                                                    hover:scale-105 hover:bg-[#002C76] hover:text-white hover:shadow-md inline-flex items-center gap-1 md:gap-2">
+                                                    hover:scale-105 hover:bg-[#002C76] hover:text-white hover:shadow-md inline-flex items-center gap-1 md:gap-2 whitespace-nowrap shrink-0">
                                                 <x-heroicon-o-eye class="w-3 h-3 md:w-4 md:h-4" />
                                                 <span class="hidden sm:inline">View</span>
                                             </a>
@@ -410,7 +416,7 @@
                                                     type="button"
                                                     onclick="triggerResumeExamConfirm({{ $p->user_id }})"
                                                     title="Resume exam with {{ $resumeAction['remaining_label'] ?? 'saved' }} remaining"
-                                                    class="border border-emerald-700 bg-emerald-600 text-white font-bold py-1.5 px-3 md:py-2 md:px-4 rounded-md text-xs md:text-sm transition-all duration-150 hover:scale-105 hover:bg-emerald-700 hover:shadow-md inline-flex items-center gap-1 md:gap-2">
+                                                    class="border border-emerald-700 bg-emerald-600 text-white font-bold py-1.5 px-3 md:py-2 md:px-4 rounded-md text-xs md:text-sm transition-all duration-150 hover:scale-105 hover:bg-emerald-700 hover:shadow-md inline-flex items-center gap-1 md:gap-2 whitespace-nowrap shrink-0">
                                                     <svg class="w-3 h-3 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-4.586-2.65A1 1 0 009 9.385v5.23a1 1 0 001.166.967l4.586-2.65a1 1 0 000-1.732z"></path>
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -2017,22 +2023,22 @@
 
                 <!-- Action Button -->
                 <td class="py-2.5 px-3 md:py-3 md:px-6 text-center w-[25%]">
-                    <div class="flex flex-wrap items-center justify-center gap-2">
-                        <button onclick="window.location.href='/admin/exam_management/${p.vacancy_id}/view_exam/${p.user_id}'"
+                    <div class="inline-flex flex-row flex-nowrap items-center justify-center gap-2">
+                        <a href="/admin/exam_management/${p.vacancy_id}/view_exam/${p.user_id}" target="_blank" rel="noopener noreferrer"
                             class="text-[#0D2B70] border border-[#0D2B70] font-bold py-1.5 px-3 md:py-2 md:px-6 rounded-md text-xs md:text-sm
                                 transition-all duration-150 ease-[cubic-bezier(0.4,0,0.2,1)]
-                                hover:scale-105 hover:bg-[#002C76] hover:text-white hover:shadow-md inline-flex items-center gap-1 md:gap-2">
+                                hover:scale-105 hover:bg-[#002C76] hover:text-white hover:shadow-md inline-flex items-center gap-1 md:gap-2 whitespace-nowrap shrink-0">
                             <svg class="w-3 h-3 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                             </svg>
                             <span class="hidden sm:inline">View</span>
-                        </button>
+                        </a>
                         ${p.resume_action && p.resume_action.can_resume ? `
                             <button type="button"
                                 onclick="triggerResumeExamConfirm(${p.user_id})"
                                 title="Resume exam with ${p.resume_action.remaining_label || 'saved'} remaining"
-                                class="border border-emerald-700 bg-emerald-600 text-white font-bold py-1.5 px-3 md:py-2 md:px-4 rounded-md text-xs md:text-sm transition-all duration-150 hover:scale-105 hover:bg-emerald-700 hover:shadow-md inline-flex items-center gap-1 md:gap-2">
+                                class="border border-emerald-700 bg-emerald-600 text-white font-bold py-1.5 px-3 md:py-2 md:px-4 rounded-md text-xs md:text-sm transition-all duration-150 hover:scale-105 hover:bg-emerald-700 hover:shadow-md inline-flex items-center gap-1 md:gap-2 whitespace-nowrap shrink-0">
                                 <svg class="w-3 h-3 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-4.586-2.65A1 1 0 009 9.385v5.23a1 1 0 001.166.967l4.586-2.65a1 1 0 000-1.732z"></path>
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -2040,6 +2046,11 @@
                                 <span>Resume</span>
                             </button>
                         ` : ''}
+                    </div>
+                    <div class="mt-1 text-[10px] md:text-xs text-gray-600 font-medium">
+                        <span class="whitespace-nowrap">Switches: ${Number(p.tab_switch_count || 0)}</span>
+                        <span class="mx-1 text-gray-400">|</span>
+                        <span class="whitespace-nowrap">Tamper: ${Number(p.tamper_logs_count || 0)}</span>
                     </div>
                 </td>
             </tr>

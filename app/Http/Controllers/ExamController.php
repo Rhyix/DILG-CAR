@@ -49,6 +49,35 @@ class ExamController extends Controller
             ->statusEquals(ApplicationStatus::QUALIFIED->value);
     }
 
+    private function examTamperCountsByUser(string $vacancyId, array $userIds): array
+    {
+        $normalizedUserIds = collect($userIds)
+            ->filter(fn($userId) => is_numeric($userId) && (int) $userId > 0)
+            ->map(fn($userId) => (int) $userId)
+            ->unique()
+            ->values();
+
+        if ($normalizedUserIds->isEmpty()) {
+            return [];
+        }
+
+        $rows = Activity::query()
+            ->where('event', 'exam_tamper')
+            ->where('causer_type', User::class)
+            ->where('properties->vacancy_id', $vacancyId)
+            ->whereIn('causer_id', $normalizedUserIds->all())
+            ->selectRaw('causer_id, COUNT(*) as tamper_count')
+            ->groupBy('causer_id')
+            ->get();
+
+        $counts = [];
+        foreach ($rows as $row) {
+            $counts[(int) $row->causer_id] = (int) ($row->tamper_count ?? 0);
+        }
+
+        return $counts;
+    }
+
     private function attendanceStatusLabel(?string $status): string
     {
         return match ($status) {
@@ -1061,6 +1090,8 @@ class ExamController extends Controller
             ->with('user:id,name')
             ->get();
 
+        $tamperCountsByUser = $this->examTamperCountsByUser((string) $vacancy_id, $participants->pluck('user_id')->all());
+
         $examDetails = ExamDetail::where('vacancy_id', $vacancy_id)->first();
 
         if ($isViewer) {
@@ -1137,6 +1168,8 @@ class ExamController extends Controller
 
             $p->mc_score_str = $mcString;
             $p->essay_score_str = $essayString;
+            $p->tab_switch_count = (int) ($p->tab_violations ?? 0);
+            $p->tamper_logs_count = (int) ($tamperCountsByUser[(int) $p->user_id] ?? 0);
             $p->resume_action = $this->resolveResumeExamState($p, $examDetails);
         }
 
@@ -1418,6 +1451,8 @@ class ExamController extends Controller
             ->with('user')
             ->get();
 
+        $tamperCountsByUser = $this->examTamperCountsByUser((string) $vacancy_id, $participants->pluck('user_id')->all());
+
         // Get Exam Items to distinguish MC vs Essay
         $examItems = ExamItems::where('vacancy_id', $vacancy_id)->get(['id', 'is_essay']);
         $mcItemIds = $examItems->where('is_essay', 0)->pluck('id')->toArray();
@@ -1436,7 +1471,7 @@ class ExamController extends Controller
              }
         }
 
-        $lobbyData = $participants->map(function ($p) use ($mcItemIds, $essayItemIds, $isExamExpired, $examDetail) {
+        $lobbyData = $participants->map(function ($p) use ($mcItemIds, $essayItemIds, $isExamExpired, $examDetail, $tamperCountsByUser) {
             $statusColors = [
                 'ready' => '#4ade80',        // green-400
                 'in-progress' => '#facc15',  // yellow-400
@@ -1493,6 +1528,8 @@ class ExamController extends Controller
                 'status' => $p->status ?? 'Pending',
                 'status_color' => $color,
                 'vacancy_id' => $p->vacancy_id,
+                'tab_switch_count' => (int) ($p->tab_violations ?? 0),
+                'tamper_logs_count' => (int) ($tamperCountsByUser[(int) $p->user_id] ?? 0),
                 'resume_action' => $this->resolveResumeExamState($p, $examDetail),
             ];
         });

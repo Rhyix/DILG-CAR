@@ -2822,6 +2822,46 @@ class JobVacancyController extends Controller
         $uploadedDocuments = $this->loadUploadedDocumentsMap((int) $user_id, (string) $vacancy_id);
         $isFinalRevisionDisqualified = $this->hasFinalRevisionDisqualification($application, $uploadedDocuments);
         $documents = [];
+        $reviewStatuses = ['verified', 'okay/confirmed', 'needs revision', 'disapproved with deficiency'];
+
+        $resolveApplicantVisibleState = function (
+            string $liveStatus,
+            bool $hasFile,
+            ?array $snapshotDoc,
+            string $liveRemarks = '',
+            ?string $liveLastModifiedBy = null
+        ) use ($reviewStatuses): array {
+            $resolvedStatus = trim($liveStatus) !== '' ? $liveStatus : ($hasFile ? 'Pending' : 'Not Submitted');
+            $resolvedRemarks = $liveRemarks;
+            $resolvedLastModifiedBy = $liveLastModifiedBy;
+
+            $isLiveReviewStatus = in_array(strtolower(trim($resolvedStatus)), $reviewStatuses, true);
+            if (!$isLiveReviewStatus) {
+                return [
+                    'status' => $resolvedStatus,
+                    'remarks' => $resolvedRemarks,
+                    'last_modified_by' => $resolvedLastModifiedBy,
+                ];
+            }
+
+            $snapshotStatus = trim((string) ($snapshotDoc['status'] ?? ''));
+            $snapshotIsReviewStatus = $snapshotStatus !== ''
+                && in_array(strtolower($snapshotStatus), $reviewStatuses, true);
+
+            if ($snapshotIsReviewStatus) {
+                return [
+                    'status' => $snapshotStatus,
+                    'remarks' => (string) ($snapshotDoc['remarks'] ?? ''),
+                    'last_modified_by' => $snapshotDoc['last_modified_by'] ?? null,
+                ];
+            }
+
+            return [
+                'status' => $hasFile ? 'Pending' : 'Not Submitted',
+                'remarks' => '',
+                'last_modified_by' => null,
+            ];
+        };
 
         $labelMap = [
             'application_letter' => 'Application Letter',
@@ -2849,19 +2889,27 @@ class JobVacancyController extends Controller
                 continue;
 
             if ($docType === 'application_letter') {
-                // Always get from Applications table for live data
-                $documents[] = [ // Get from Applications table instead
+                $hasFile = !empty($application->file_storage_path);
+                $snapshotDoc = $snapshotDocumentsById->get('application_letter');
+                $visibleState = $resolveApplicantVisibleState(
+                    (string) ($application->file_status ?? ($hasFile ? 'Pending' : 'Not Submitted')),
+                    $hasFile,
+                    is_array($snapshotDoc) ? $snapshotDoc : null,
+                    (string) ($application->file_remarks ?? ''),
+                    $application->file_last_modified_by ?? null
+                );
+
+                $documents[] = [
                     'id' => 'application_letter',
                     'name' => $labelMap['application_letter'],
                     'text' => $labelMap['application_letter'],
-                    'status' => $application->file_status ?? ($application->file_storage_path ? 'Pending' : 'Not Submitted'),
+                    'status' => $visibleState['status'],
                     'preview' => PreviewUrl::forPath($application->file_storage_path),
-                    'remarks' => $application->file_remarks ?? '',
-                    'last_modified_by' => $application->file_last_modified_by ?? null,
+                    'remarks' => $visibleState['remarks'],
+                    'last_modified_by' => $visibleState['last_modified_by'],
                     'isBold' => true,
                 ];
             } else {
-                // Always prioritize live data over snapshot
                 $doc = $this->resolveUploadedDocument($uploadedDocuments, $docType);
                 $hasFile = $doc && !empty($doc->storage_path) && $doc->storage_path !== 'NOINPUT';
 
@@ -2874,14 +2922,23 @@ class JobVacancyController extends Controller
                     }
                 }
 
+                $snapshotDoc = $snapshotDocumentsById->get($docType);
+                $visibleState = $resolveApplicantVisibleState(
+                    $status,
+                    $hasFile,
+                    is_array($snapshotDoc) ? $snapshotDoc : null,
+                    (string) ($doc?->remarks ?? ''),
+                    $doc?->last_modified_by
+                );
+
                 $documents[] = [
                     'id' => $docType,
                     'name' => $labelMap[$docType] ?? ucwords(str_replace('_', ' ', $docType)),
                     'text' => $labelMap[$docType] ?? ucwords(str_replace('_', ' ', $docType)),
-                    'status' => $status,
+                    'status' => $visibleState['status'],
                     'preview' => ($doc && !empty($doc->storage_path)) ? PreviewUrl::forPath($doc->storage_path) : '',
-                    'remarks' => $doc?->remarks ?? '',
-                    'last_modified_by' => $doc?->last_modified_by,
+                    'remarks' => $visibleState['remarks'],
+                    'last_modified_by' => $visibleState['last_modified_by'],
                     'isBold' => true,
                 ];
             }
@@ -2977,6 +3034,46 @@ class JobVacancyController extends Controller
         $uploadedDocuments = $this->loadUploadedDocumentsMap((int) $user_id, (string) $vacancy_id);
         $isFinalRevisionDisqualified = $this->hasFinalRevisionDisqualification($application, $uploadedDocuments);
         $documents = [];
+        $reviewStatuses = ['verified', 'okay/confirmed', 'needs revision', 'disapproved with deficiency'];
+
+        $resolveApplicantVisibleState = function (
+            string $liveStatus,
+            bool $hasFile,
+            ?array $snapshotDoc,
+            string $liveRemarks = '',
+            ?string $liveLastModifiedBy = null
+        ) use ($reviewStatuses): array {
+            $resolvedStatus = trim($liveStatus) !== '' ? $liveStatus : ($hasFile ? 'Pending' : 'Not Submitted');
+            $resolvedRemarks = $liveRemarks;
+            $resolvedLastModifiedBy = $liveLastModifiedBy;
+
+            $isLiveReviewStatus = in_array(strtolower(trim($resolvedStatus)), $reviewStatuses, true);
+            if (!$isLiveReviewStatus) {
+                return [
+                    'status' => $resolvedStatus,
+                    'remarks' => $resolvedRemarks,
+                    'last_modified_by' => $resolvedLastModifiedBy,
+                ];
+            }
+
+            $snapshotStatus = trim((string) ($snapshotDoc['status'] ?? ''));
+            $snapshotIsReviewStatus = $snapshotStatus !== ''
+                && in_array(strtolower($snapshotStatus), $reviewStatuses, true);
+
+            if ($snapshotIsReviewStatus) {
+                return [
+                    'status' => $snapshotStatus,
+                    'remarks' => (string) ($snapshotDoc['remarks'] ?? ''),
+                    'last_modified_by' => $snapshotDoc['last_modified_by'] ?? null,
+                ];
+            }
+
+            return [
+                'status' => $hasFile ? 'Pending' : 'Not Submitted',
+                'remarks' => '',
+                'last_modified_by' => null,
+            ];
+        };
 
         // Debug: Log uploaded documents count
         \Log::info("Uploaded documents found", ['count' => $uploadedDocuments->count()]);
@@ -3007,19 +3104,27 @@ class JobVacancyController extends Controller
                 continue;
 
             if ($docType === 'application_letter') {
-                // Always get from Applications table for live data
-                $documents[] = [ // Get from Applications table instead
+                $hasFile = !empty($application->file_storage_path);
+                $snapshotDoc = $snapshotDocumentsById->get('application_letter');
+                $visibleState = $resolveApplicantVisibleState(
+                    (string) ($application->file_status ?? ($hasFile ? 'Pending' : 'Not Submitted')),
+                    $hasFile,
+                    is_array($snapshotDoc) ? $snapshotDoc : null,
+                    (string) ($application->file_remarks ?? ''),
+                    $application->file_last_modified_by ?? null
+                );
+
+                $documents[] = [
                     'id' => 'application_letter',
                     'name' => $labelMap['application_letter'],
                     'text' => $labelMap['application_letter'],
-                    'status' => $application->file_status ?? ($application->file_storage_path ? 'Pending' : 'Not Submitted'),
+                    'status' => $visibleState['status'],
                     'preview' => PreviewUrl::forPath($application->file_storage_path),
-                    'remarks' => $application->file_remarks ?? '',
-                    'last_modified_by' => $application->file_last_modified_by ?? null,
+                    'remarks' => $visibleState['remarks'],
+                    'last_modified_by' => $visibleState['last_modified_by'],
                     'isBold' => true,
                 ];
             } else {
-                // Always prioritize live data over snapshot
                 $doc = $this->resolveUploadedDocument($uploadedDocuments, $docType);
                 $hasFile = $doc && !empty($doc->storage_path) && $doc->storage_path !== 'NOINPUT';
 
@@ -3032,7 +3137,6 @@ class JobVacancyController extends Controller
                     'last_modified_by' => $doc?->last_modified_by
                 ]);
 
-                // Use actual status from database if document exists
                 $status = 'Not Submitted';
                 if ($doc) {
                     if (!empty($doc->status)) {
@@ -3042,14 +3146,23 @@ class JobVacancyController extends Controller
                     }
                 }
 
+                $snapshotDoc = $snapshotDocumentsById->get($docType);
+                $visibleState = $resolveApplicantVisibleState(
+                    $status,
+                    $hasFile,
+                    is_array($snapshotDoc) ? $snapshotDoc : null,
+                    (string) ($doc?->remarks ?? ''),
+                    $doc?->last_modified_by
+                );
+
                 $documents[] = [
                     'id' => $docType,
                     'name' => $labelMap[$docType] ?? ucwords(str_replace('_', ' ', $docType)),
                     'text' => $labelMap[$docType] ?? ucwords(str_replace('_', ' ', $docType)),
-                    'status' => $status,
+                    'status' => $visibleState['status'],
                     'preview' => ($doc && !empty($doc->storage_path)) ? PreviewUrl::forPath($doc->storage_path) : '',
-                    'remarks' => $doc?->remarks ?? '',
-                    'last_modified_by' => $doc?->last_modified_by,
+                    'remarks' => $visibleState['remarks'],
+                    'last_modified_by' => $visibleState['last_modified_by'],
                     'isBold' => true,
                 ];
             }
