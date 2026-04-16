@@ -239,7 +239,7 @@ class ExportWESController extends Controller
             $templateProcessor = new TemplateProcessor($templateDocxPath);
             // Keep placeholder empty and place the name via PDF overlay for precise centering on the underline.
             $templateProcessor->setValue('name', '');
-            $templateProcessor->setValue('date', now()->format('F d, Y'));
+            $templateProcessor->setValue('date', '');
 
             $from = $this->formatMonthYear($exp->start_date);
             $to = $exp->end_date ? $this->formatMonthYear($exp->end_date) : 'Present';
@@ -283,6 +283,8 @@ class ExportWESController extends Controller
                 $size = $pdf->getTemplateSize($templateId);
                 $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
                 $pdf->useTemplate($templateId);
+                $overlayProfile = $this->resolveTemplateOverlayProfile($templateDocxPath);
+                $this->overlayWesFooterDate($pdf, $overlayProfile);
                 $this->overlayWesSignatureName($pdf, $fullName);
             }
 
@@ -323,24 +325,8 @@ class ExportWESController extends Controller
 
             $this->writeTemplateEntryOverlay($pdf, $exp, $overlayProfile);
 
-            // Fill footer date line in template.
             $overlayFontSize = (float) ($overlayProfile['overlay_font_size'] ?? $overlayProfile['value_font_size'] ?? 8.4);
-                $dateLineX = (float) ($overlayProfile['date_x'] ?? 160.0);
-                $dateLineY = (float) ($overlayProfile['date_y'] ?? 143.3);
-                $dateLineWidth = (float) ($overlayProfile['date_w'] ?? 24.0);
-                $dateLineHeight = (float) ($overlayProfile['date_h'] ?? 4.4);
-
-            $pdf->SetFont('Arial', '', $overlayFontSize);
-            $pdf->SetTextColor(0, 0, 0);
-                $pdf->SetXY($dateLineX, $dateLineY);
-            $pdf->Cell(
-                    $dateLineWidth,
-                    $dateLineHeight,
-                $this->toPdfText(now()->format('m/d/Y')),
-                0,
-                0,
-                'C'
-            );
+            $this->overlayWesFooterDate($pdf, $overlayProfile);
             $this->overlayWesSignatureName(
                 $pdf,
                 $fullName,
@@ -408,6 +394,7 @@ class ExportWESController extends Controller
     private function resolveTemplateOverlayProfile(string $templatePdfPath): array
     {
         $normalized = strtolower(str_replace('\\', '/', $templatePdfPath));
+        $normalized = preg_replace('/\\.docx$/', '.pdf', $normalized) ?? $normalized;
         if (str_ends_with($normalized, '/wes_template.pdf')) {
             // Coordinates calibrated against resources/templates/WES_Template.pdf.
             return [
@@ -432,10 +419,6 @@ class ExportWESController extends Controller
                 'bullet_width' => 120.0,
                 'bullet_row_height' => 4.0,
                 'signature_y' => 124.0,
-                'date_x' => 169.0,
-                'date_y' => 143.3,
-                'date_w' => 24.0,
-                'date_h' => 4.4,
             ];
         }
 
@@ -462,11 +445,29 @@ class ExportWESController extends Controller
             'bullet_width' => 123.0,
             'bullet_row_height' => 4.0,
             'signature_y' => 124.0,
-            'date_x' => 163.5,
-            'date_y' => 281.2,
-            'date_w' => 27.0,
-            'date_h' => 4.5,
         ];
+    }
+
+    private function overlayWesFooterDate(\FPDF $pdf, array $overlayProfile): void
+    {
+        $overlayFontSize = (float) ($overlayProfile['overlay_font_size'] ?? $overlayProfile['value_font_size'] ?? 8.4);
+        $dateText = Carbon::now()->format('m/d/Y');
+
+        $pdf->SetFont('Arial', '', $overlayFontSize);
+        $pdf->SetTextColor(0, 0, 0);
+        $pdf->Text($this->getWesFooterDateX(), $this->getWesFooterDateY(), $dateText);
+    }
+
+    private function getWesFooterDateX(): float
+    {
+        // Single source of truth for footer date X coordinate.
+        return 145.0;
+    }
+
+    private function getWesFooterDateY(): float
+    {
+        // Single source of truth for footer date Y coordinate.
+        return 146.3;
     }
 
     private function buildWesPdfLegacy(string $fullName, Collection $experiences): \FPDF
@@ -525,26 +526,13 @@ class ExportWESController extends Controller
         $pdf->Ln(6);
         $pdf->SetFont('Arial', '', 10);
         $pdf->Cell(120, 6, '', 0, 0);
-        $pdf->Cell(64, 6, '_______________________________', 0, 1, 'C');
+        $pdf->Cell(64, 6, '', 0, 1, 'C');
         $pdf->Cell(120, 5, '', 0, 0);
         $pdf->SetFont('Arial', '', 8);
         $pdf->Cell(64, 5, $this->toPdfText('(Signature over Printed Name of Employee/Applicant)'), 0, 1, 'C');
         $pdf->Ln(6);
         $pdf->SetFont('Arial', '', 10);
-        $dateLineX = 100.0;
-        $dateLineY = $pdf->GetY();
-        $dateLineWidth = 66.0;
-        $dateLineHeight = 6.0;
-        $dateLabelWidth = 16.0;
-        $dateUnderlineStartX = $dateLineX + 14.0;
-        $dateUnderlineEndX = $dateLineX + $dateLineWidth;
-        $dateValueX = $dateUnderlineEndX - 30.0;
-
-        $pdf->SetXY($dateLineX, $dateLineY);
-        $pdf->Cell($dateLabelWidth, $dateLineHeight, $this->toPdfText('Date:'), 0, 0, 'L');
-        $pdf->Line($dateUnderlineStartX, $dateLineY + 5.1, $dateUnderlineEndX, $dateLineY + 5.1);
-        $pdf->SetXY($dateValueX, $dateLineY);
-        $pdf->Cell(30.0, $dateLineHeight, $this->toPdfText(now()->format('m/d/Y')), 0, 1, 'R');
+        $pdf->Text($this->getWesFooterDateX(), $this->getWesFooterDateY(), Carbon::now()->format('m/d/Y'));
 
         return $pdf;
     }

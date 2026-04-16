@@ -41,7 +41,7 @@
                 <iframe
                     id="previewPdfFrame"
                     title="WES Preview PDF"
-                    src="{{ route('export.wes', ['preview' => 1]) }}"
+                    src="{{ route('export.wes', ['preview' => 1, 't' => now()->timestamp]) }}"
                     class="w-full h-full"
                 ></iframe>
             </div>
