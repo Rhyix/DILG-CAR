@@ -1306,13 +1306,13 @@ private function writeVocationalChunk($pdf, $chunk)
 
     // If all are empty, write N/A in the first-row cells.
     if ($isEmpty) {
-        $writeWide('N/A', $startX_school, 278.5, $schoolWidth, 8.0, 5.0); // School
-        $writeWide('N/A', $startX_basic, 278.5, $basicWidth, 8.0, 4.5); // Basic Education
-        $writeNarrow('N/A', $startX_from, 279.0, $fromWidth, 8.0, 5.0); // From
-        $writeNarrow('N/A', $startX_to, 279.0, $toWidth, 8.0, 5.0); // To
-        $writeWide('N/A', $startX_earned, 279.0, $earnedWidth, 8.0, 5.0); // Earned
-        $writeNarrow('N/A', $startX_year_graduated, 279.0, $yearGraduatedWidth, 8.0, 5.0); // Year Graduated
-        $writeWide('N/A', $startX_honors, 279.0, $honorsWidth, 8.0, 5.0); // Academic Honors
+        $writeWide('N/A', $startX_school, 278.5, $schoolWidth, 7.0, 5.0); // School
+        $writeWide('N/A', $startX_basic, 278.5, $basicWidth, 7.0, 4.5); // Basic Education
+        $writeNarrow('N/A', $startX_from, 279.0, $fromWidth, 7.0, 5.0); // From
+        $writeNarrow('N/A', $startX_to, 279.0, $toWidth, 7.0, 5.0); // To
+        $writeWide('N/A', $startX_earned, 279.0, $earnedWidth, 7.0, 5.0); // Earned
+        $writeNarrow('N/A', $startX_year_graduated, 279.0, $yearGraduatedWidth, 7.0, 5.0); // Year Graduated
+        $writeWide('N/A', $startX_honors, 279.0, $honorsWidth, 7.0, 5.0); // Academic Honors
         return;
     }
 
@@ -1553,13 +1553,13 @@ private function writeGraduateChunk($pdf, $chunk)
 
    
     if ($isEmpty) {
-        $writeWide('N/A', $startX_school, $startY_other, $schoolWidth, 8.0, 5.0); // School
-        $writeWide('N/A', $startX_basic, $startY_other, $basicWidth, 8.0, 4.5); // Basic Education
-        $writeNarrow('N/A', $startX_from, $startY_other, $fromWidth, 8.0, 5.0); // From
-        $writeNarrow('N/A', $startX_to, $startY_other, $toWidth, 8.0, 5.0); // To
-        $writeWide('N/A', $startX_earned, $startY_other, $earnedWidth, 8.0, 5.0); // Earned
-        $writeNarrow('N/A', $startX_year_graduated, $startY_other, $yearGraduatedWidth, 8.0, 5.0); // Year Graduated
-        $writeWide('N/A', $startX_honors, $startY_other, $honorsWidth, 8.0, 5.0); // Academic Honors
+        $writeWide('N/A', $startX_school, $startY_other, $schoolWidth, 7.0, 5.0); // School
+        $writeWide('N/A', $startX_basic, $startY_other, $basicWidth, 7.0, 4.5); // Basic Education
+        $writeNarrow('N/A', $startX_from, $startY_other, $fromWidth, 7.0, 5.0); // From
+        $writeNarrow('N/A', $startX_to, $startY_other, $toWidth, 7.0, 5.0); // To
+        $writeWide('N/A', $startX_earned, $startY_other, $earnedWidth, 7.0, 5.0); // Earned
+        $writeNarrow('N/A', $startX_year_graduated, $startY_other, $yearGraduatedWidth, 7.0, 5.0); // Year Graduated
+        $writeWide('N/A', $startX_honors, $startY_other, $honorsWidth, 7.0, 5.0); // Academic Honors
         return;
     }
 
