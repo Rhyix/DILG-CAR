@@ -546,12 +546,20 @@
 
             form.addEventListener('submit', function (event) {
                 const workRows = workExpTable.querySelectorAll('tbody tr');
+                const civilRows = civilServiceTable.querySelectorAll('tbody tr');
                 let firstInvalidInput = null;
 
                 workRows.forEach((row) => {
                     const isValid = validateWorkExperienceDatePair(row, false);
                     if (!isValid && !firstInvalidInput) {
                         firstInvalidInput = row.querySelector('input[name="work_exp_from[]"], input[name="work_exp_to[]"]');
+                    }
+                });
+
+                civilRows.forEach((row) => {
+                    const isValid = validateCivilServiceDatePair(row, false);
+                    if (!isValid && !firstInvalidInput) {
+                        firstInvalidInput = row.querySelector('input[name="cs_eligibility_date[]"], input[name="cs_eligibility_validity[]"]');
                     }
                 });
 
@@ -572,6 +580,13 @@
             }
 
             function setWorkDateErrorState(input, message = '') {
+                if (!input) return;
+                input.setCustomValidity(message);
+                input.classList.toggle('border-red-500', message !== '');
+                input.classList.toggle('focus:border-red-500', message !== '');
+            }
+
+            function setCivilDateErrorState(input, message = '') {
                 if (!input) return;
                 input.setCustomValidity(message);
                 input.classList.toggle('border-red-500', message !== '');
@@ -636,6 +651,57 @@
                     applyPresentState(row, presentToggle.checked);
                     validateSilently();
                 });
+            }
+
+            function validateCivilServiceDatePair(row, showMessage) {
+                const examDateInput = row.querySelector('input[name="cs_eligibility_date[]"]');
+                const validityDateInput = row.querySelector('input[name="cs_eligibility_validity[]"]');
+
+                if (!examDateInput || !validityDateInput) {
+                    return true;
+                }
+
+                setCivilDateErrorState(examDateInput, '');
+                setCivilDateErrorState(validityDateInput, '');
+
+                if (!examDateInput.value || !validityDateInput.value) {
+                    return true;
+                }
+
+                const examDate = parseDateInput(examDateInput.value);
+                const validityDate = parseDateInput(validityDateInput.value);
+
+                if (!examDate || !validityDate) {
+                    return true;
+                }
+
+                if (validityDate.getTime() <= examDate.getTime()) {
+                    setCivilDateErrorState(examDateInput, 'Date of Examination/Conferment must be earlier than Valid Until.');
+                    setCivilDateErrorState(validityDateInput, 'Valid Until must be later than Date of Examination/Conferment.');
+                    if (showMessage) {
+                        validityDateInput.reportValidity();
+                    }
+                    return false;
+                }
+
+                return true;
+            }
+
+            function attachCivilServiceDateValidation(row) {
+                const examDateInput = row.querySelector('input[name="cs_eligibility_date[]"]');
+                const validityDateInput = row.querySelector('input[name="cs_eligibility_validity[]"]');
+
+                if (!examDateInput || !validityDateInput) {
+                    return;
+                }
+
+                const validateOnBlur = () => validateCivilServiceDatePair(row, true);
+                const validateSilently = () => validateCivilServiceDatePair(row, false);
+
+                examDateInput.addEventListener('blur', validateOnBlur);
+                validityDateInput.addEventListener('blur', validateOnBlur);
+                examDateInput.addEventListener('change', validateSilently);
+                validityDateInput.addEventListener('change', validateSilently);
             }
 
             function applyPresentState(row, isPresent) {
@@ -798,6 +864,7 @@
 
                 tbody.appendChild(newRow);
                 initializeCivilServiceCareerInput(newRow, (!is_new) ? cs_eligibility_career : '');
+                attachCivilServiceDateValidation(newRow);
                 updateEmptyState();
 
                 // Scroll to the new row

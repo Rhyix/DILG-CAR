@@ -2846,6 +2846,36 @@ class PDSController extends Controller
                 }
             }
 
+            $examDates = $request->input('cs_eligibility_date', []);
+            $validityDates = $request->input('cs_eligibility_validity', []);
+            if (is_array($examDates) && is_array($validityDates)) {
+                $civilServiceRows = max(count($examDates), count($validityDates));
+
+                for ($i = 0; $i < $civilServiceRows; $i++) {
+                    $examRaw = trim((string) ($examDates[$i] ?? ''));
+                    $validityRaw = trim((string) ($validityDates[$i] ?? ''));
+
+                    if ($examRaw === '' || $validityRaw === '') {
+                        continue;
+                    }
+
+                    try {
+                        $examDate = Carbon::createFromFormat('Y-m-d', $examRaw)->startOfDay();
+                        $validityDate = Carbon::createFromFormat('Y-m-d', $validityRaw)->startOfDay();
+                    } catch (\Throwable $e) {
+                        continue;
+                    }
+
+                    if (!$validityDate->gt($examDate)) {
+                        $rowNumber = $i + 1;
+                        $validator->errors()->add(
+                            "cs_eligibility_validity.$i",
+                            "Civil Service Eligibility row {$rowNumber}: Valid Until must be later than Date of Examination/Conferment."
+                        );
+                    }
+                }
+            }
+
             $this->validateC2EligibilityByEducation($validator, $request);
         });
 
