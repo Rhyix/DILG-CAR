@@ -398,13 +398,13 @@ class ExportWESController extends Controller
         if (str_ends_with($normalized, '/wes_template.pdf')) {
             // Coordinates calibrated against resources/templates/WES_Template.pdf.
             return [
-                'duration_x' => 41.0,
+                'duration_x' => 41.5,
                 'position_x' => 41.0,
                 'office_x' => 62.0,
                 'supervisor_x' => 66.0,
                 'agency_x' => 107.0,
-                'duration_y' => 61.5,
-                'position_y' => 66.5,
+                'duration_y' => 61.7,
+                'position_y' => 66.8,
                 'office_y' => 72.0,
                 'supervisor_y' => 77.2,
                 'agency_y' => 82.3,
@@ -753,7 +753,7 @@ PS;
         $label = rtrim($label, ':') . ':';
         $safeValue = trim($value) !== '' ? trim($value) : 'N/A';
 
-        $pdf->SetFont('Arial', '', 9.5);
+        $pdf->SetFont('Arial', '', 8.0);
         $pdf->Cell(56, 6, $this->toPdfText($label), 0, 0);
         $pdf->SetFont('Arial', '', 9.5);
         $pdf->MultiCell(130, 6, $this->toPdfText($safeValue), 0, 'L');
