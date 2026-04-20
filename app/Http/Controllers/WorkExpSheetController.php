@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\WorkExpSheet;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Spatie\Activitylog\Models\Activity;
 
 
@@ -39,26 +40,40 @@ class WorkExpSheetController extends Controller
 
         $existingEntries = WorkExpSheet::where('user_id', $user_id)->exists();
 
-        $validated = $request->validate([
-            'entries' => 'required|array|min:1',
-            'entries.*.start_date' => 'required|date',
-            'entries.*.end_date' => 'nullable|date|after_or_equal:entries.*.start_date',
-            'entries.*.present' => 'nullable|boolean',
-            'entries.*.position' => 'required|string|max:255',
-            'entries.*.office' => 'required|string|max:255',
-            'entries.*.supervisor' => 'required|string|max:255',
-            'entries.*.agency' => 'required|string|max:255',
-            'entries.*.accomplishments' => 'nullable|array',
-            'entries.*.accomplishments.*' => 'nullable|string|max:1000',
-            'entries.*.duties' => 'nullable|array',
-            'entries.*.duties.*' => 'nullable|string|max:1000',
-            'entries.*.isDisplayed' => 'boolean',
+        $validated = Validator::make($request->all(), [
+            'entries' => ['nullable', 'array'],
+            'entries.*.start_date' => ['nullable', 'date'],
+            'entries.*.end_date' => ['nullable', 'date'],
+            'entries.*.present' => ['nullable', 'boolean'],
+            'entries.*.position' => ['nullable', 'string', 'max:255'],
+            'entries.*.office' => ['nullable', 'string', 'max:255'],
+            'entries.*.supervisor' => ['nullable', 'string', 'max:255'],
+            'entries.*.agency' => ['nullable', 'string', 'max:255'],
+            'entries.*.accomplishments' => ['nullable', 'array'],
+            'entries.*.accomplishments.*' => ['nullable', 'string', 'max:1000'],
+            'entries.*.duties' => ['nullable', 'array'],
+            'entries.*.duties.*' => ['nullable', 'string', 'max:1000'],
+            'entries.*.isDisplayed' => ['nullable', 'boolean'],
         ]);
 
-        DB::transaction(function () use ($validated, $user_id) {
+        $validated->after(function ($validator) use ($request) {
+            foreach ((array) $request->input('entries', []) as $index => $work) {
+                $startDate = trim((string) ($work['start_date'] ?? ''));
+                $endDate = trim((string) ($work['end_date'] ?? ''));
+
+                if ($startDate !== '' && $endDate !== '' && $endDate < $startDate) {
+                    $validator->errors()->add("entries.$index.end_date", 'The end date must be a date after or equal to the start date.');
+                }
+            }
+        });
+
+        $validated = $validated->validate();
+        $entries = $this->normalizeWesEntries($validated['entries'] ?? []);
+
+        DB::transaction(function () use ($entries, $user_id) {
             WorkExpSheet::where('user_id', $user_id)->delete();
 
-            foreach ($validated['entries'] as $work) {
+            foreach ($entries as $work) {
                 $isPresent = (bool) ($work['present'] ?? false);
                 $endDate = $isPresent ? null : ($work['end_date'] ?? null);
 
@@ -86,7 +101,7 @@ class WorkExpSheetController extends Controller
             ->causedBy(Auth::user())
             ->event($action)
             ->withProperties([
-                'entries_count' => count($validated['entries']),
+                'entries_count' => count($entries),
                 'action_type' => $action,
                 'section' => 'Work Experience Sheet',
             ])
@@ -161,5 +176,55 @@ class WorkExpSheetController extends Controller
     public function destroy(string $id)
     {
         //
+    }
+
+    private function normalizeWesEntries(array $entries): array
+    {
+        return collect($entries)
+            ->map(function (array $work) {
+                $accomplishments = array_values(array_filter(
+                    array_map(
+                        fn ($value) => trim((string) $value),
+                        is_array($work['accomplishments'] ?? null) ? $work['accomplishments'] : []
+                    ),
+                    fn ($value) => $value !== ''
+                ));
+
+                $duties = array_values(array_filter(
+                    array_map(
+                        fn ($value) => trim((string) $value),
+                        is_array($work['duties'] ?? null) ? $work['duties'] : []
+                    ),
+                    fn ($value) => $value !== ''
+                ));
+
+                return [
+                    'start_date' => trim((string) ($work['start_date'] ?? '')),
+                    'end_date' => trim((string) ($work['end_date'] ?? '')),
+                    'present' => filter_var($work['present'] ?? false, FILTER_VALIDATE_BOOL),
+                    'position' => trim((string) ($work['position'] ?? '')),
+                    'office' => trim((string) ($work['office'] ?? '')),
+                    'supervisor' => trim((string) ($work['supervisor'] ?? '')),
+                    'agency' => trim((string) ($work['agency'] ?? '')),
+                    'accomplishments' => $accomplishments,
+                    'duties' => $duties,
+                    'isDisplayed' => filter_var($work['isDisplayed'] ?? true, FILTER_VALIDATE_BOOL),
+                ];
+            })
+            ->filter(fn (array $work) => $this->hasMeaningfulWesEntry($work))
+            ->values()
+            ->all();
+    }
+
+    private function hasMeaningfulWesEntry(array $work): bool
+    {
+        return $work['start_date'] !== ''
+            || $work['end_date'] !== ''
+            || $work['position'] !== ''
+            || $work['office'] !== ''
+            || $work['supervisor'] !== ''
+            || $work['agency'] !== ''
+            || !empty($work['accomplishments'])
+            || !empty($work['duties']);
     }
 }

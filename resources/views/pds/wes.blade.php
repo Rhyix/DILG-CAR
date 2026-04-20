@@ -62,13 +62,13 @@
               <div>
                 <label class="block text-xs font-semibold text-slate-600 mb-2">Duration</label>
                 <div class="flex flex-col sm:flex-row gap-2">
-                  <input :readonly="!entry.isDisplayed" required :name="'entries[' + index + '][start_date]'" type="text"
+                  <input :readonly="!entry.isDisplayed" :name="'entries[' + index + '][start_date]'" type="text"
                     class="wes-date h-11 w-full border border-slate-200 rounded-lg px-3 py-2" x-model="entry.start_date"
                     placeholder="Start date">
                   <span class="text-center sm:pt-2 text-slate-400">to</span>
                   <div class="flex flex-col w-full">
                     <input :class="entry.present ? 'text-slate-400' : ''" :readonly="!entry.isDisplayed || entry.present"
-                      :disabled="!entry.isDisplayed || entry.present" :required="!entry.present" :name="'entries[' + index + '][end_date]'" type="text"
+                      :disabled="!entry.isDisplayed || entry.present" :name="'entries[' + index + '][end_date]'" type="text"
                       class="wes-date h-11 w-full border border-slate-200 rounded-lg px-3 py-2" x-model="entry.end_date"
                       placeholder="End date">
                     <input type="hidden" :name="'entries[' + index + '][present]'" :value="entry.present ? 1 : 0">
@@ -81,7 +81,7 @@
               </div>
               <div>
                 <label class="block text-xs font-semibold text-slate-600 mb-2">Position</label>
-                <input :readonly="!entry.isDisplayed" required :name="'entries[' + index + '][position]'" type="text"
+                <input :readonly="!entry.isDisplayed" :name="'entries[' + index + '][position]'" type="text"
                   class="h-11 w-full border border-slate-200 rounded-lg px-3 py-2" x-model="entry.position"
                   placeholder="e.g. Administrative Officer">
               </div>
@@ -90,19 +90,19 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label class="block text-xs font-semibold text-slate-600 mb-2">Name of Office/Unit</label>
-                <input :readonly="!entry.isDisplayed" required :name="'entries[' + index + '][office]'" type="text"
+                <input :readonly="!entry.isDisplayed" :name="'entries[' + index + '][office]'" type="text"
                   class="h-11 w-full border border-slate-200 rounded-lg px-3 py-2" x-model="entry.office"
                   placeholder="Office or unit">
               </div>
               <div>
                 <label class="block text-xs font-semibold text-slate-600 mb-2">Immediate Supervisor</label>
-                <input :readonly="!entry.isDisplayed" required :name="'entries[' + index + '][supervisor]'" type="text"
+                <input :readonly="!entry.isDisplayed" :name="'entries[' + index + '][supervisor]'" type="text"
                   class="h-11 w-full border border-slate-200 rounded-lg px-3 py-2" x-model="entry.supervisor"
                   placeholder="Supervisor name">
               </div>
               <div>
                 <label class="block text-xs font-semibold text-slate-600 mb-2">Name of Agency/Organization and Location</label>
-                <input :readonly="!entry.isDisplayed" required :name="'entries[' + index + '][agency]'" type="text"
+                <input :readonly="!entry.isDisplayed" :name="'entries[' + index + '][agency]'" type="text"
                   class="h-11 w-full border border-slate-200 rounded-lg px-3 py-2" x-model="entry.agency"
                   placeholder="Agency or location">
               </div>
@@ -113,7 +113,7 @@
                 <label class="block text-xs font-semibold text-slate-600 mb-2">List of Accomplishments and Contributions (if any)</label>
                 <template x-for="(accomp, accIndex) in entry.accomplishments" :key="accIndex">
                   <div class="flex gap-2 mb-2">
-                    <input :readonly="!entry.isDisplayed" required
+                    <input :readonly="!entry.isDisplayed"
                       :name="'entries[' + index + '][accomplishments][' + accIndex + ']'"
                       class="h-10 w-full border border-slate-200 rounded-lg px-3 py-2"
                       x-model="entry.accomplishments[accIndex]" placeholder="Achievement or outcome">
@@ -137,7 +137,7 @@
                 <label class="block text-xs font-semibold text-slate-600 mb-2">Summary of Actual Duties</label>
                 <template x-for="(duty, dutyIndex) in entry.duties" :key="dutyIndex">
                   <div class="flex gap-2 mb-2">
-                    <input :readonly="!entry.isDisplayed" required
+                    <input :readonly="!entry.isDisplayed"
                       :name="'entries[' + index + '][duties][' + dutyIndex + ']'"
                       class="h-10 w-full border border-slate-200 rounded-lg px-3 py-2" x-model="entry.duties[dutyIndex]"
                       placeholder="Key responsibility">

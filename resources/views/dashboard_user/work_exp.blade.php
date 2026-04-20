@@ -293,7 +293,7 @@
     <section class="bg-blue-50 border border-blue-300 rounded-md mobile-instructions p-4 mb-6 text-sm text-gray-700">
       <h3 class="text-lg font-semibold text-blue-900 mb-2">ðŸ“Œ Instructions:</h3>
       <ul class="list-disc pl-6 space-y-1">
-        <li>Fill in all fields for each work experience entry as accurately as possible.</li>
+        <li>Fill in the work experience details you want to include as accurately as possible.</li>
         <li>Use the <strong>"âž• Add Work Entry"</strong> button to add more entries if needed.</li>
         <li>Click <strong>"ðŸ—‘ Remove Entry"</strong> to delete a specific work experience block.</li>
         <li>Include only the work experiences relevant to the position being applied to.</li>
@@ -326,10 +326,10 @@
             <div class="mobile-form-element">
               <label class="block text-sm font-semibold mobile-label" :class="entry.isDisplayed ? '' : 'text-gray-400'">DURATION</label>
               <div class="flex flex-col sm:flex-row mobile-duration gap-2">
-                <input :readonly="!entry.isDisplayed" required :name="'entries[' + index + '][start_date]'" type="date" class="mobile-input h-11 w-full border rounded px-3 py-2" x-model="entry.start_date">
+                <input :readonly="!entry.isDisplayed" :name="'entries[' + index + '][start_date]'" type="date" class="mobile-input h-11 w-full border rounded px-3 py-2" x-model="entry.start_date">
                 <span class="text-center sm:pt-2 mobile-duration-to text-gray-500">to</span>
                 <div class="flex flex-col w-full">
-                  <input :class="entry.present ? 'text-gray-400' : ''" :readonly="!entry.isDisplayed || entry.present" :disabled="!entry.isDisplayed || entry.present" :required="!entry.present" :name="'entries[' + index + '][end_date]'" type="date" class="mobile-input w-full border rounded px-3 py-2" x-model="entry.end_date">
+                  <input :class="entry.present ? 'text-gray-400' : ''" :readonly="!entry.isDisplayed || entry.present" :disabled="!entry.isDisplayed || entry.present" :name="'entries[' + index + '][end_date]'" type="date" class="mobile-input w-full border rounded px-3 py-2" x-model="entry.end_date">
                   <input type="hidden" :name="'entries[' + index + '][present]'" :value="entry.present ? 1 : 0">
                   <label class="text-xs mt-1"><input type="checkbox" x-model="entry.present" @change="if (entry.present) { entry.end_date = '' }"> Present</label>
                 </div>
@@ -337,7 +337,7 @@
             </div>
             <div class="mobile-form-element">
               <label class="block text-sm font-semibold mobile-label" :class="entry.isDisplayed ? '' : 'text-gray-400'">POSITION</label>
-              <input :readonly="!entry.isDisplayed" required :name="'entries[' + index + '][position]'" type="text" class="mobile-input w-full border rounded px-3 py-2" x-model="entry.position" placeholder="e.g. IT Officer">
+              <input :readonly="!entry.isDisplayed" :name="'entries[' + index + '][position]'" type="text" class="mobile-input w-full border rounded px-3 py-2" x-model="entry.position" placeholder="e.g. IT Officer">
             </div>
           </div>
 
@@ -345,15 +345,15 @@
           <div class="grid grid-cols-1 md:grid-cols-2 mobile-grid gap-4">
             <div class="mobile-form-element">
               <label class="block text-sm font-semibold mobile-label" :class="entry.isDisplayed ? '' : 'text-gray-400'">OFFICE/UNIT</label>
-              <input :readonly="!entry.isDisplayed" required :name="'entries[' + index + '][office]'" type="text" class="mobile-input w-full border rounded px-3 py-2" x-model="entry.office">
+              <input :readonly="!entry.isDisplayed" :name="'entries[' + index + '][office]'" type="text" class="mobile-input w-full border rounded px-3 py-2" x-model="entry.office">
             </div>
             <div class="mobile-form-element">
               <label class="block text-sm font-semibold mobile-label" :class="entry.isDisplayed ? '' : 'text-gray-400'">IMMEDIATE SUPERVISOR</label>
-              <input :readonly="!entry.isDisplayed" required :name="'entries[' + index + '][supervisor]'" type="text" class="mobile-input w-full border rounded px-3 py-2" x-model="entry.supervisor">
+              <input :readonly="!entry.isDisplayed" :name="'entries[' + index + '][supervisor]'" type="text" class="mobile-input w-full border rounded px-3 py-2" x-model="entry.supervisor">
             </div>
             <div class="mobile-form-element">
               <label class="block text-sm font-semibold mobile-label" :class="entry.isDisplayed ? '' : 'text-gray-400'">AGENCY/LOCATION</label>
-              <input :readonly="!entry.isDisplayed" required :name="'entries[' + index + '][agency]'" type="text" class="mobile-input w-full border rounded px-3 py-2" x-model="entry.agency">
+              <input :readonly="!entry.isDisplayed" :name="'entries[' + index + '][agency]'" type="text" class="mobile-input w-full border rounded px-3 py-2" x-model="entry.agency">
             </div>
           </div>
 
@@ -364,7 +364,7 @@
             </label>
             <template x-for="(accomp, accIndex) in entry.accomplishments" :key="accIndex">
               <div class="mobile-list-item flex gap-2 mb-2">
-                <input :readonly="!entry.isDisplayed" required :name="'entries[' + index + '][accomplishments][' + accIndex + ']'" class="mobile-input w-full border rounded px-3 py-2" x-model="entry.accomplishments[accIndex]">
+                <input :readonly="!entry.isDisplayed" :name="'entries[' + index + '][accomplishments][' + accIndex + ']'" class="mobile-input w-full border rounded px-3 py-2" x-model="entry.accomplishments[accIndex]">
                 <button type="button" @click="entry.accomplishments.splice(accIndex, 1)" :disabled="!entry.isDisplayed" class="mobile-remove-btn bg-red-600 text-white px-2 py-1 rounded hover:bg-red-800 disabled:bg-gray-400">
                   âœ•
                 </button>
@@ -382,7 +382,7 @@
             </label>
             <template x-for="(duty, dutyIndex) in entry.duties" :key="dutyIndex">
               <div class="mobile-list-item flex gap-2 mb-2">
-                <input :readonly="!entry.isDisplayed" required :name="'entries[' + index + '][duties][' + dutyIndex + ']'" class="mobile-input w-full border rounded px-3 py-2" x-model="entry.duties[dutyIndex]">
+                <input :readonly="!entry.isDisplayed" :name="'entries[' + index + '][duties][' + dutyIndex + ']'" class="mobile-input w-full border rounded px-3 py-2" x-model="entry.duties[dutyIndex]">
                 <button type="button" @click="entry.duties.splice(dutyIndex, 1)" :disabled="!entry.isDisplayed" class="mobile-remove-btn bg-red-600 text-white px-2 py-1 rounded hover:bg-red-800 disabled:bg-gray-400">
                   âœ•
                 </button>
