@@ -398,24 +398,24 @@ class ExportWESController extends Controller
         if (str_ends_with($normalized, '/wes_template.pdf')) {
             // Coordinates calibrated against resources/templates/WES_Template.pdf.
             return [
-                'duration_x' => 42.0,
+                'duration_x' => 41.0,
                 'position_x' => 41.0,
-                'office_x' => 63.0,
-                'supervisor_x' => 67.0,
-                'agency_x' => 108.0,
-                'duration_y' => 61.0,
-                'position_y' => 66.2,
-                'office_y' => 71.4,
-                'supervisor_y' => 76.5,
-                'agency_y' => 81.6,
+                'office_x' => 62.0,
+                'supervisor_x' => 66.0,
+                'agency_x' => 107.0,
+                'duration_y' => 61.5,
+                'position_y' => 66.5,
+                'office_y' => 72.0,
+                'supervisor_y' => 77.2,
+                'agency_y' => 82.3,
                 'value_width' => 85.0,
                 'row_height' => 4.4,
                 'value_font_size' => 8.2,
                 'overlay_font_size' => 8.2,
-                'bullet_x' => 66.0,
+                'bullet_x' => 30.0,
                 'bullet_line_height' => 4.2,
-                'accomplishment_y' => 96.0,
-                'duty_y' => 111.6,
+                'accomplishment_y' => 98.0,
+                'duty_y' => 112.0,
                 'bullet_width' => 120.0,
                 'bullet_row_height' => 4.0,
                 'signature_y' => 124.0,
@@ -478,19 +478,19 @@ class ExportWESController extends Controller
         $pdf->AddPage();
 
         $pdf->SetFont('Arial', 'I', 9);
-        $pdf->Cell(0, 5, $this->toPdfText('Attachment to CS Form No. 212'), 0, 1, 'C');
+        $pdf->Cell(0, 8, $this->toPdfText('Attachment to CS Form No. 212'), 0, 1, 'C');
         $pdf->SetFont('Arial', 'B', 16);
         $pdf->Cell(0, 8, $this->toPdfText('WORK EXPERIENCE SHEET'), 0, 1, 'C');
         $pdf->Ln(2);
 
         $pdf->SetFont('Arial', '', 10);
-        $pdf->Cell(20, 6, $this->toPdfText('Name:'), 0, 0);
+        $pdf->Cell(20, 8, $this->toPdfText('Name:'), 0, 0);
         $pdf->SetFont('Arial', 'B', 10);
-        $pdf->Cell(120, 6, $this->toPdfText($fullName), 0, 0);
+        $pdf->Cell(120, 8, $this->toPdfText($fullName), 0, 0);
         $pdf->SetFont('Arial', '', 10);
-        $pdf->Cell(12, 6, $this->toPdfText('Date:'), 0, 0);
+        $pdf->Cell(12, 8, $this->toPdfText('Date:'), 0, 0);
         $pdf->SetX($pdf->GetX() + 2.0);
-        $pdf->Cell(0, 6, $this->toPdfText(now()->format('F d, Y')), 0, 1);
+        $pdf->Cell(0, 8, $this->toPdfText(now()->format('F d, Y')), 0, 1);
         $pdf->Ln(2);
         $pdf->Line(12, $pdf->GetY(), 198, $pdf->GetY());
         $pdf->Ln(4);
