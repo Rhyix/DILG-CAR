@@ -5,6 +5,9 @@
 <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <form id="myForm" method="POST" action='/pds/submit_c2/display_c3'>
             @csrf
+            @if(request()->boolean('simple'))
+                <input type="hidden" name="simple" value="1">
+            @endif
 
             <!-- Civil Service Eligibility Section -->
             <section class="bg-white rounded-2xl shadow-xl p-4 sm:p-8 mb-8 animate-slide-in">
