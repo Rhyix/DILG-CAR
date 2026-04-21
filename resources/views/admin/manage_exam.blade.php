@@ -562,16 +562,6 @@
                     </div>
                 </div>
 
-                <div class="flex flex-col">
-                    <label for="max_violations" class="text-[#0D2B70] font-bold text-xs mb-1">Max Violations <span class="text-red-500">*</span></label>
-                    <input type="number" id="max_violations" name="max_violations" min="1" step="1" required
-                        value="{{ old('max_violations', $examDetails->max_violations ?? 12) }}"
-                        {{ ($isExamActive || $isExamCompleted) ? 'disabled' : '' }}
-                        class="w-full px-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-[#0D2B70] disabled:bg-gray-100"
-                        placeholder="Enter violation threshold" />
-                    <p class="text-[10px] text-gray-500 mt-0.5">Exam auto-submits when this violation count is reached.</p>
-                </div>
-
                 <!-- ACTION BUTTONS: MONITOR -->
                 <div class="flex flex-col gap-2 mt-4">
                     <button type="button" id="openMonitorRecipientModalButton" onclick="openMonitorRecipientModal()"
@@ -816,8 +806,7 @@
                 "Accept": "application/json"
             },
             body: JSON.stringify({
-                vacancy_id: vacancyId,
-                max_violations: document.getElementById('max_violations')?.value || null
+                vacancy_id: vacancyId
             })
         })
         .then(response => {
@@ -984,7 +973,6 @@
         formData.set('time_end', document.getElementById('time_end_hidden')?.value || '');
         formData.set('duration', document.getElementById('duration')?.value || '');
         formData.set('message', document.getElementById('message')?.value || '');
-        formData.set('max_violations', document.getElementById('max_violations')?.value || '');
         
         // Append action if submitting via the Save & Notify button
         if (isSaveNotify) {
@@ -1201,7 +1189,6 @@
         const date = document.getElementById('date').value.trim();
         const time = document.getElementById('time').value.trim();
         const message = document.getElementById('message').value.trim();
-        const maxViolations = document.getElementById('max_violations').value.trim();
         const saveButton = document.getElementById('saveNotifyButton');
         
         // Ensure hidden end time is set (default to +1 hour if empty)
@@ -1217,7 +1204,7 @@
             timeEndInput.value = `${endHours}:${endMinutes}`;
         }
 
-        const allFilled = venue && date && time && message && maxViolations && Number(maxViolations) >= 1;
+        const allFilled = venue && date && time && message;
         
         // Only enable if all fields are filled AND details haven't been saved yet AND qualified applicants exist
         const hasQualified = qualifiedCount > 0;
@@ -1232,7 +1219,7 @@
     }
 
     // Add event listeners to form fields for validation
-    const formFields = ['venue', 'date', 'time', 'message', 'max_violations', 'monitor_end'];
+    const formFields = ['venue', 'date', 'time', 'message', 'monitor_end'];
     formFields.forEach(fieldId => {
         const field = document.getElementById(fieldId);
         if (field) {

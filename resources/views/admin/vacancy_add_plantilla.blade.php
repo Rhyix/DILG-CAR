@@ -1,4 +1,4 @@
-@extends('layout.admin')
+    @extends('layout.admin')
 @section('title', 'Job Details - Plantilla Position')
 @section('main-padding', 'px-3 sm:px-4 md:px-5')
 @section('content')

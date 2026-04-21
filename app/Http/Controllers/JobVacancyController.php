@@ -3834,6 +3834,7 @@ class JobVacancyController extends Controller
                 'requirement' => null,
                 'actual_months' => 0,
                 'required_months' => null,
+                'submitted' => false,
             ];
         }
 
@@ -3842,25 +3843,9 @@ class JobVacancyController extends Controller
             ->get();
 
         $totalMonths = $this->sumApplicantExperienceMonths($workExperiences);
-        $requirementLower = strtolower($requirement);
-        $topicKeywords = $this->resolveExperienceTopicKeywords($requirementLower);
-        $requiresTopicMatch = !empty($topicKeywords);
-        $matchedTopicMonths = $requiresTopicMatch
-            ? $this->sumApplicantExperienceMonths($workExperiences, $topicKeywords)
-            : 0;
-        $hasTopicMatch = !$requiresTopicMatch || $matchedTopicMonths > 0;
+        $submitted = $this->hasQualificationDocumentSubmission($userId, 'experience');
         $requiredMonths = $this->parseQualificationRequirementMonths($requirement);
-        if ($requiredMonths !== null && $requiresTopicMatch) {
-            // Topic-specific experience duration: only matching records count.
-            $met = $matchedTopicMonths >= $requiredMonths;
-        } elseif ($requiredMonths !== null) {
-            // Duration without explicit topic: use overall declared experience.
-            $met = $totalMonths >= $requiredMonths;
-        } elseif ($requiresTopicMatch) {
-            $met = $hasTopicMatch;
-        } else {
-            $met = $workExperiences->isNotEmpty();
-        }
+        $met = $submitted;
 
         return [
             'required' => true,
@@ -3869,9 +3854,10 @@ class JobVacancyController extends Controller
             'requirement' => $requirement,
             'actual_months' => $totalMonths,
             'required_months' => $requiredMonths,
-            'matched_topic_months' => $requiresTopicMatch ? $matchedTopicMonths : null,
-            'requires_topic_match' => $requiresTopicMatch,
-            'topic_match_met' => $hasTopicMatch,
+            'matched_topic_months' => null,
+            'requires_topic_match' => false,
+            'topic_match_met' => $submitted,
+            'submitted' => $submitted,
         ];
     }
 
@@ -3975,6 +3961,7 @@ class JobVacancyController extends Controller
                 'requirement' => null,
                 'actual_hours' => 0,
                 'required_hours' => null,
+                'submitted' => false,
             ];
         }
 
@@ -3984,24 +3971,8 @@ class JobVacancyController extends Controller
 
         $totalHours = $this->sumApplicantTrainingHours($records);
         $requiredHours = $this->parseQualificationRequirementHours($requirement);
-        $requirementLower = strtolower($requirement);
-        $topicKeywords = $this->resolveTrainingTopicKeywords($requirementLower);
-        $requiresTopicMatch = !empty($topicKeywords);
-        $matchedTopicHours = $requiresTopicMatch
-            ? $this->sumApplicantTrainingHours($records, $topicKeywords)
-            : 0;
-        $hasTopicMatch = !$requiresTopicMatch || $matchedTopicHours > 0;
-
-        if ($requiredHours !== null && $requiresTopicMatch) {
-            // Topic-specific hours requirement: only count hours from matching training records.
-            $met = $matchedTopicHours >= $requiredHours;
-        } elseif ($requiredHours !== null) {
-            $met = $totalHours >= $requiredHours;
-        } elseif ($requiresTopicMatch) {
-            $met = $hasTopicMatch;
-        } else {
-            $met = $records->isNotEmpty();
-        }
+        $submitted = $this->hasQualificationDocumentSubmission($userId, 'training');
+        $met = $submitted;
 
         return [
             'required' => true,
@@ -4010,10 +3981,29 @@ class JobVacancyController extends Controller
             'requirement' => $requirement,
             'actual_hours' => $totalHours,
             'required_hours' => $requiredHours,
-            'matched_topic_hours' => $requiresTopicMatch ? $matchedTopicHours : null,
-            'requires_topic_match' => $requiresTopicMatch,
-            'topic_match_met' => $hasTopicMatch,
+            'matched_topic_hours' => null,
+            'requires_topic_match' => false,
+            'topic_match_met' => $submitted,
+            'submitted' => $submitted,
         ];
+    }
+
+    private function hasQualificationDocumentSubmission(int $userId, string $field): bool
+    {
+        $uploadedDocuments = $this->loadReusableUploadedDocumentsMap($userId);
+        $docTypes = match ($field) {
+            'experience' => ['signed_work_exp_sheet', 'cert_employment', 'other_documents'],
+            'training' => ['cert_training', 'cert_lgoo_induction', 'other_documents'],
+            default => [],
+        };
+
+        foreach ($docTypes as $docType) {
+            if ($this->hasStoredUploadedDocument($uploadedDocuments, $docType)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function resolveTrainingTopicKeywords(string $requirementLower): ?array

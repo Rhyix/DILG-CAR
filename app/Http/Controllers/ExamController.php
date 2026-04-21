@@ -2667,7 +2667,7 @@ class ExamController extends Controller
                 'date' => 'required|date',
                 'place' => 'required|string',
                 'duration' => 'required|integer',
-                'max_violations' => 'required|integer|min:1',
+                'max_violations' => 'nullable|integer|min:1',
                 'message' => 'nullable|string',
             ]);
 
