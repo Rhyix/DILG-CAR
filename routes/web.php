@@ -37,6 +37,7 @@ use App\Http\Controllers\VacancyTitleController;
 use App\Http\Controllers\PositionUtilityController;
 use App\Http\Controllers\EligibilityPresetController;
 use App\Http\Controllers\CoursePresetController;
+use App\Http\Controllers\ManualController;
 use App\Support\ApplicantOnboarding;
 
 use App\Events\PackageSent;
@@ -295,6 +296,7 @@ Route::get('/pds_print', fn() => view('dashboard_user.pds_print'))
 Route::middleware('auth:admin')->group(function () {
     Route::post('/admin/logout', [AdminAuthController::class, 'logout'])->name('admin.logout');
     Route::get('/admin/pending-dashboard', [AdminAuthController::class, 'pendingDashboard'])->name('admin.pending.dashboard');
+    Route::get('/admin/manual', [ManualController::class, 'adminManual'])->name('manual.admin');
 });
 
 // PDS and WES Export
@@ -322,6 +324,7 @@ Route::middleware(['auth', BlockIfAdmin::class])->group(function () {
     Route::get('/about', fn() => view('dashboard_user.about'))->name('about');
 
     Route::get('/my_applications', [JobVacancyController::class, 'myApplications'])->name('my_applications');
+    Route::get('/manual', [ManualController::class, 'applicantManual'])->name('manual.user');
 
     Route::get('/work_experience', [WorkExpSheetController::class, 'show'])->name('work_experience');
     Route::post('/work_experience', [WorkExpSheetController::class, 'store'])->name('work_experience_store');

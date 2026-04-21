@@ -81,6 +81,16 @@
                 </a>
             @endif
 
+            @if(in_array($adminRole, ['superadmin', 'admin', 'viewer', 'hr_division'], true))
+                <a href="{{ route('manual.admin') }}" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200
+                        {{ request()->routeIs('manual.admin')
+        ? 'bg-[#002C76] text-white shadow-md'
+        : 'text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md' }}">
+                    <i data-feather="book-open" class="w-5 h-5 stroke-[3] flex-shrink-0"></i>
+                    <span class="ml-3">MANUAL</span>
+                </a>
+            @endif
+
             @if($adminRole === 'superadmin')
                 <a href="{{ route('admin_account_management') }}" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200
                         {{ request()->routeIs('admin_account_management')

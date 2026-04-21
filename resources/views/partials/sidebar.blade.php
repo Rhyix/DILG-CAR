@@ -162,6 +162,15 @@
                     <i data-feather="info" class="w-5 h-5 stroke-[3] flex-shrink-0"></i>
                     <span id="textAboutWebsite" class="sidebar-text-hidden ml-3">ABOUT THIS WEBSITE</span>
                 </a>
+
+                <a href="{{ route('manual.user') }}"
+                    class="group flex items-center rounded-md px-4 py-2 text-sm font-bold transition use-loader
+                        {{ request()->routeIs('manual.user')
+                            ? 'bg-[#002C76] text-white'
+                            : 'text-[#002C76] hover:text-white hover:bg-[#002C76]' }}">
+                    <i data-feather="book-open" class="w-5 h-5 stroke-[3] flex-shrink-0"></i>
+                    <span id="textManual" class="sidebar-text-hidden ml-3">MANUAL</span>
+                </a>
             </nav>
         </div>
 
@@ -259,7 +268,7 @@
             const logo = document.querySelector('img[alt="DILG Logo"]');
             const textElements = [
                 "sidebarText", "textHome", "textJobVacancies", "textMyApplications",
-                "textPersonalDataSheet", "textDownloadDocs", "textAboutWebsite", "textWorkExperience"
+                "textPersonalDataSheet", "textDownloadDocs", "textAboutWebsite", "textWorkExperience", "textManual"
             ].map(id => document.getElementById(id));
 
             const isSimple = {{ $simple ? 'true' : 'false' }};
