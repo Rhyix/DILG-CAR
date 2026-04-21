@@ -2795,18 +2795,18 @@ class PDSController extends Controller
             'work_exp_govt_service' => 'nullable|array',
             'work_exp_govt_service.*' => 'nullable|in:Y,N',
 
-            'cs_eligibility_career' => 'required|array|min:1',
-            'cs_eligibility_career.*' => 'required|string|max:255',
-            'cs_eligibility_rating' => 'required|array|min:1',
-            'cs_eligibility_rating.*' => 'required|string|max:255',
-            'cs_eligibility_date' => 'required|array|min:1',
-            'cs_eligibility_date.*' => 'required|date_format:Y-m-d',
-            'cs_eligibility_place' => 'required|array|min:1',
-            'cs_eligibility_place.*' => 'required|string|max:255',
-            'cs_eligibility_license' => 'required|array|min:1',
-            'cs_eligibility_license.*' => 'required|string|max:255',
-            'cs_eligibility_validity' => 'required|array|min:1',
-            'cs_eligibility_validity.*' => 'required|date_format:Y-m-d',
+            'cs_eligibility_career' => 'nullable|array',
+            'cs_eligibility_career.*' => 'nullable|string|max:255',
+            'cs_eligibility_rating' => 'nullable|array',
+            'cs_eligibility_rating.*' => 'nullable|string|max:255',
+            'cs_eligibility_date' => 'nullable|array',
+            'cs_eligibility_date.*' => 'nullable|date_format:Y-m-d',
+            'cs_eligibility_place' => 'nullable|array',
+            'cs_eligibility_place.*' => 'nullable|string|max:255',
+            'cs_eligibility_license' => 'nullable|array',
+            'cs_eligibility_license.*' => 'nullable|string|max:255',
+            'cs_eligibility_validity' => 'nullable|array',
+            'cs_eligibility_validity.*' => 'nullable|date_format:Y-m-d',
         ]);
 
         $validator->after(function (\Illuminate\Validation\Validator $validator) use ($request) {
@@ -2910,9 +2910,9 @@ class PDSController extends Controller
 
             $data_work_exp = [
                 'user_id' => Auth::id(), // store the id of the current user
-                'work_exp_from' => $workExpFrom,
+                'work_exp_from' => $this->normalizeDateForDatabase($workExpFrom),
                 // DB column is DATE. Keep schema unchanged by converting PRESENT to a valid date.
-                'work_exp_to' => $isPresentWorkExpTo ? Carbon::today()->toDateString() : $workExpToRaw,
+                'work_exp_to' => $this->normalizeWorkExperienceEndDateForDatabase($workExpToRaw),
                 'work_exp_position' => trim(strip_tags((string) ($c2_form_data['work_exp_position'][$i] ?? ''))),
                 'work_exp_department' => trim(strip_tags((string) ($c2_form_data['work_exp_department'][$i] ?? ''))),
                 'work_exp_status' => trim(strip_tags((string) ($c2_form_data['work_exp_status'][$i] ?? ''))),
@@ -2947,7 +2947,9 @@ class PDSController extends Controller
             $data_work_exp['updated_at'] = now();
 
             if (!empty($data_work_exp['id'])) {
-                WorkExperience::where('id', $data_work_exp['id'])->update($data_work_exp);
+                WorkExperience::where('id', $data_work_exp['id'])
+                    ->where('user_id', Auth::id())
+                    ->update($data_work_exp);
             } else {
                 $newRecord = WorkExperience::create($data_work_exp);
                 $data_work_exp['id'] = $newRecord->id;
@@ -2993,13 +2995,26 @@ class PDSController extends Controller
 
             $data_cs = [
                 'user_id' => Auth::id(), // store the id of the current user
-                'cs_eligibility_career' => trim(strip_tags($c2_form_data['cs_eligibility_career'][$i])),
-                'cs_eligibility_rating' => trim(strip_tags($c2_form_data['cs_eligibility_rating'][$i])),
-                'cs_eligibility_date' => trim(strip_tags($c2_form_data['cs_eligibility_date'][$i])),
-                'cs_eligibility_place' => trim(strip_tags($c2_form_data['cs_eligibility_place'][$i])),
-                'cs_eligibility_license' => trim(strip_tags($c2_form_data['cs_eligibility_license'][$i])),
-                'cs_eligibility_validity' => trim(strip_tags($c2_form_data['cs_eligibility_validity'][$i]))
+                'cs_eligibility_career' => trim(strip_tags((string) ($c2_form_data['cs_eligibility_career'][$i] ?? ''))),
+                'cs_eligibility_rating' => trim(strip_tags((string) ($c2_form_data['cs_eligibility_rating'][$i] ?? ''))),
+                'cs_eligibility_date' => $this->normalizeDateForDatabase(trim(strip_tags((string) ($c2_form_data['cs_eligibility_date'][$i] ?? '')))),
+                'cs_eligibility_place' => trim(strip_tags((string) ($c2_form_data['cs_eligibility_place'][$i] ?? ''))),
+                'cs_eligibility_license' => trim(strip_tags((string) ($c2_form_data['cs_eligibility_license'][$i] ?? ''))),
+                'cs_eligibility_validity' => $this->normalizeDateForDatabase(trim(strip_tags((string) ($c2_form_data['cs_eligibility_validity'][$i] ?? ''))))
             ];
+
+            $hasCivilServiceData = array_filter([
+                $data_cs['cs_eligibility_career'],
+                $data_cs['cs_eligibility_rating'],
+                $data_cs['cs_eligibility_date'],
+                $data_cs['cs_eligibility_place'],
+                $data_cs['cs_eligibility_license'],
+                $data_cs['cs_eligibility_validity'],
+            ], static fn($v) => trim((string) $v) !== '');
+
+            if (empty($hasCivilServiceData)) {
+                continue;
+            }
 
             $cs_id_temp = $c2_form_data['cs_eligibility_id'][$i] ?? null;
             $cs_id_temp = is_scalar($cs_id_temp) ? trim((string) $cs_id_temp) : '';
@@ -3012,7 +3027,9 @@ class PDSController extends Controller
             }
             $data_cs['updated_at'] = now();
             if (!empty($data_cs['id'])) {
-                CivilServiceEligibility::where('id', $data_cs['id'])->update($data_cs);
+                CivilServiceEligibility::where('id', $data_cs['id'])
+                    ->where('user_id', Auth::id())
+                    ->update($data_cs);
             } else {
                 $newRecord = CivilServiceEligibility::create($data_cs);
                 $data_cs['id'] = $newRecord->id;
@@ -3048,7 +3065,7 @@ class PDSController extends Controller
 
         \App\Models\User::query()->whereKey(Auth::id())->update(['updated_at' => now()]);
         $routeParams = [];
-        if ($request->query('simple')) {
+        if ($request->boolean('simple') || $request->query('simple')) {
             $routeParams['simple'] = 1;
         }
         return redirect()->route($go_to, $routeParams);
