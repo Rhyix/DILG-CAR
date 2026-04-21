@@ -591,6 +591,12 @@ class PDSController extends Controller
             'jhs_to'
         );
 
+        $elemToDate = $this->parseEducationDateForValidation($payload['elem_to'] ?? null);
+        $jhsFromDate = $this->parseEducationDateForValidation($payload['jhs_from'] ?? null);
+        if ($elemToDate && $jhsFromDate && $jhsFromDate->lt($elemToDate)) {
+            $validator->errors()->add('jhs_from', 'Secondary "From" date must not be before Elementary "To" date.');
+        }
+
         foreach (['vocational', 'college', 'grad'] as $educationType) {
             $entries = $payload[$educationType] ?? [];
             if (!is_array($entries)) {
@@ -644,7 +650,7 @@ class PDSController extends Controller
 
     private function validateEducationCompletionRules(\Illuminate\Validation\Validator $validator, array $payload): void
     {
-        $isElementaryGraduate = filter_var($payload['elem_is_graduate'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        $isElementaryGraduate = !$this->valueIsEmptyOrNa($payload['elem_year_graduated'] ?? null);
 
         $this->addHighestLevelRequiredWhenNoYearError($validator, $payload, 'elem_year_graduated', 'elem_earned');
         if ($isElementaryGraduate) {
@@ -2666,8 +2672,8 @@ class PDSController extends Controller
 
     private function isC2ElementaryOnlyApplicant(Request $request): bool
     {
-        $raw = $request->session()->get('form.c1.elem_is_graduate');
-        return !filter_var($raw, FILTER_VALIDATE_BOOLEAN);
+        $yearGraduated = $request->session()->get('form.c1.elem_year_graduated');
+        return $this->valueIsEmptyOrNa($yearGraduated);
     }
 
     private function c2EligibilityLevelMap(): array
@@ -5589,6 +5595,7 @@ class PDSController extends Controller
         $eligibility = trim((string) ($assessment['eligibility'] ?? ''));
         $q1Passed = array_key_exists('q1_passed', $assessment) ? (bool) $assessment['q1_passed'] : false;
         $q2Passed = array_key_exists('q2_passed', $assessment) ? (bool) $assessment['q2_passed'] : false;
+        $hasSubscribedPdsAnswered = array_key_exists('has_subscribed_pds', $assessment);
 
         if (
             $vacancyId === ''
@@ -5597,6 +5604,7 @@ class PDSController extends Controller
             || $eligibility === ''
             || !$q1Passed
             || !$q2Passed
+            || !$hasSubscribedPdsAnswered
         ) {
             return false;
         }
@@ -6057,7 +6065,7 @@ class PDSController extends Controller
         // }
 
         // Redirect to the correct route, not the view
-        return redirect()->route('dashboard_user')->with('pds_submitted', true);
+        return redirect()->route('pds.preview')->with('pds_submitted', true);
 
     }
 

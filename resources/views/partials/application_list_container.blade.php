@@ -50,12 +50,14 @@
                             $status = $application->status;
                             $statusNormalized = strtolower(trim((string) $status));
                             $isNotQualified = $statusNormalized === 'not qualified';
+                            $isCancelled = $statusNormalized === 'cancelled';
                             $badge = 'bg-gray-100 text-gray-800';
                             if ($status === 'Complete') $badge = 'bg-green-100 text-green-800';
                             elseif ($status === 'Incomplete') $badge = 'bg-orange-100 text-orange-800';
                             elseif ($status === 'Closed') $badge = 'bg-red-100 text-red-800';
                             elseif ($status === 'Pending') $badge = 'bg-yellow-100 text-yellow-800';
                             elseif ($isNotQualified) $badge = 'bg-red-100 text-red-800';
+                            elseif ($isCancelled) $badge = 'bg-red-100 text-red-800';
                         @endphp
                         <span class="px-3 py-1 rounded-full text-xs font-semibold {{ $badge }}">
                             {{ $status }}

@@ -505,6 +505,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
 </script>
 
+@include('partials.idle_logout', [
+    'idleLogoutEnabled' => auth('admin')->check(),
+    'idleLogoutRoute' => route('admin.logout'),
+])
+
 
 @stack('scripts')
 

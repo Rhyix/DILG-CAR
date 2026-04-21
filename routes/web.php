@@ -266,6 +266,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/my-applications/sort', [JobVacancyController::class, 'sortMyApplications'])->name('my_applications.sort');
     // User application status get route
     Route::get('/application_status/{user}/{vacancy}', [JobVacancyController::class, 'applicationStatus'])->name('application_status');
+    Route::post('/application_status/{user}/{vacancy}/cancel', [JobVacancyController::class, 'cancelApplication'])->name('application_status.cancel');
     Route::get('/application_status/{user}/{vacancy}/documents', [JobVacancyController::class, 'getUpdatedDocumentsUser'])->name('application_status.get_documents');
 });
 
@@ -330,6 +331,7 @@ Route::middleware(['auth', BlockIfAdmin::class])->group(function () {
     Route::post('/work_experience', [WorkExpSheetController::class, 'store'])->name('work_experience_store');
 
     Route::get('/application_status/{user}/{vacancy}', [JobVacancyController::class, 'applicationStatus'])->name('application_status');
+    Route::post('/application_status/{user}/{vacancy}/cancel', [JobVacancyController::class, 'cancelApplication'])->name('application_status.cancel');
 
     Route::get('/job-vacancies', [JobVacancyController::class, 'jobVacancy'])->name('job_vacancy');
 

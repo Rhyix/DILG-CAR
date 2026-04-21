@@ -1266,18 +1266,26 @@ class JobVacancyController extends Controller
                 ->with('status', 'Please complete onboarding before accessing job vacancies.');
         }
 
+        $examCompletedSql = "exam_details.date IS NOT NULL AND ("
+            . "exam_details.date < CURDATE() OR ("
+            . "exam_details.date = CURDATE() AND (("
+            . "exam_details.time_end IS NOT NULL AND CURTIME() > exam_details.time_end"
+            . ") OR ("
+            . "exam_details.time_end IS NULL AND exam_details.time IS NOT NULL "
+            . "AND CURTIME() > ADDTIME(exam_details.time, '02:00:00')"
+            . "))"
+            . ")"
+            . ")";
+
         $jobVacancies = JobVacancy::select('job_vacancies.*')
             ->leftJoin('exam_details', function ($join) {
                 $join->whereRaw('job_vacancies.vacancy_id COLLATE utf8mb4_unicode_ci = exam_details.vacancy_id COLLATE utf8mb4_unicode_ci');
             })
             ->with('examDetail')
             ->orderByRaw("CASE 
-                WHEN job_vacancies.status = 'OPEN' AND exam_details.date IS NOT NULL AND exam_details.date >= CURDATE() THEN 1 
-                WHEN job_vacancies.status = 'OPEN' AND exam_details.date IS NULL THEN 2 
-                WHEN job_vacancies.status = 'OPEN' AND exam_details.date IS NOT NULL AND exam_details.date < CURDATE() THEN 3 
-                ELSE 4 
+                WHEN UPPER(TRIM(COALESCE(job_vacancies.status, ''))) = 'OPEN' AND NOT ({$examCompletedSql}) THEN 1
+                ELSE 2
             END")
-            ->orderBy('job_vacancies.closing_date', 'asc')
             ->orderBy('job_vacancies.created_at', 'desc')
             ->orderBy('job_vacancies.vacancy_id', 'asc')
             ->get();
@@ -2079,6 +2087,7 @@ class JobVacancyController extends Controller
             'degree' => ['required', 'string', 'max:255'],
             'eligibility' => ['required', 'string', 'max:255'],
             'has_pqe' => ['nullable', 'boolean'],
+            'has_subscribed_pds' => ['nullable', 'boolean'],
         ]);
 
         $degree = trim((string) ($validated['degree'] ?? ''));
@@ -2107,6 +2116,10 @@ class JobVacancyController extends Controller
 
         if (array_key_exists('has_pqe', $validated)) {
             $sessionPayload['has_pqe'] = (bool) $validated['has_pqe'];
+        }
+
+        if (array_key_exists('has_subscribed_pds', $validated)) {
+            $sessionPayload['has_subscribed_pds'] = (bool) $validated['has_subscribed_pds'];
         }
 
         session([$this->initialAssessmentSessionKey((string) $vacancy->vacancy_id) => $sessionPayload]);
@@ -2203,6 +2216,17 @@ class JobVacancyController extends Controller
 
     public function filterVacancy(Request $request)
     {
+        $examCompletedSql = "exam_details.date IS NOT NULL AND ("
+            . "exam_details.date < CURDATE() OR ("
+            . "exam_details.date = CURDATE() AND (("
+            . "exam_details.time_end IS NOT NULL AND CURTIME() > exam_details.time_end"
+            . ") OR ("
+            . "exam_details.time_end IS NULL AND exam_details.time IS NOT NULL "
+            . "AND CURTIME() > ADDTIME(exam_details.time, '02:00:00')"
+            . "))"
+            . ")"
+            . ")";
+
         $vacancies = JobVacancy::select('job_vacancies.*')
             ->leftJoin('exam_details', function ($join) {
                 $join->whereRaw('job_vacancies.vacancy_id COLLATE utf8mb4_unicode_ci = exam_details.vacancy_id COLLATE utf8mb4_unicode_ci');
@@ -2220,10 +2244,22 @@ class JobVacancyController extends Controller
         }
         $status = trim((string) $request->input('status', ''));
         if ($status !== '') {
-            $vacancies->whereRaw(
-                "UPPER(TRIM(COALESCE(job_vacancies.status, ''))) = ?",
-                [strtoupper($status)]
-            );
+            $normalizedStatus = strtoupper($status);
+            if ($normalizedStatus === 'OPEN') {
+                $vacancies->whereRaw("UPPER(TRIM(COALESCE(job_vacancies.status, ''))) = 'OPEN'")
+                    ->whereRaw("NOT ({$examCompletedSql})");
+            } elseif ($normalizedStatus === 'CLOSED') {
+                $vacancies->whereRaw(
+                    "UPPER(TRIM(COALESCE(job_vacancies.status, ''))) = 'CLOSED' OR ("
+                    . "UPPER(TRIM(COALESCE(job_vacancies.status, ''))) = 'OPEN' AND ({$examCompletedSql})"
+                    . ")"
+                );
+            } else {
+                $vacancies->whereRaw(
+                    "UPPER(TRIM(COALESCE(job_vacancies.status, ''))) = ?",
+                    [$normalizedStatus]
+                );
+            }
         }
 
         $type = trim((string) $request->input('type', ''));
@@ -2243,14 +2279,11 @@ class JobVacancyController extends Controller
             $vacancies->whereBetween('monthly_salary', [$min * 1000, $max * 1000]);
         }
 
-        // Priority sorting: Scheduled (future exam) → Open (unscheduled) → Completed (past exam) → Closed
+        // Effective status sorting: OPEN first, CLOSED-equivalent after.
         $vacancies->orderByRaw("CASE 
-            WHEN job_vacancies.status = 'OPEN' AND exam_details.date IS NOT NULL AND exam_details.date >= CURDATE() THEN 1 
-            WHEN job_vacancies.status = 'OPEN' AND exam_details.date IS NULL THEN 2 
-            WHEN job_vacancies.status = 'OPEN' AND exam_details.date IS NOT NULL AND exam_details.date < CURDATE() THEN 3 
-            ELSE 4 
-        END")
-            ->orderBy('job_vacancies.closing_date', 'asc');
+            WHEN UPPER(TRIM(COALESCE(job_vacancies.status, ''))) = 'OPEN' AND NOT ({$examCompletedSql}) THEN 1
+            ELSE 2
+        END");
 
         if ($request->sort == 'latest') {
             $vacancies->orderBy('job_vacancies.created_at', 'desc');
@@ -2948,14 +2981,28 @@ class JobVacancyController extends Controller
         $documents = $this->sortDocumentsForRequiredPriority($documents, $requiredDocumentIds);
 
         $displayApplicationStatus = $application->status ?? 'Pending';
-        // Show only manually saved QS values from admin review.
-        $displayQsEducation = $application->qs_education ?? 'no';
-        $displayQsEligibility = $application->qs_eligibility ?? 'no';
-        $displayQsExperience = $application->qs_experience ?? 'no';
-        $displayQsTraining = $application->qs_training ?? 'no';
-        $displayQsResult = $application->qs_result ?? 'Not Qualified';
+        $applicationStatusNormalized = strtolower(trim((string) $displayApplicationStatus));
+        $canCancelApplication = !in_array($applicationStatusNormalized, ['qualified', 'closed', 'not qualified', 'cancelled'], true);
+        $hasAdminValidatedDocuments = trim((string) ($application->qs_result ?? '')) !== '';
+
+        if ($hasAdminValidatedDocuments) {
+            $displayQsEducation = $application->qs_education ?? 'no';
+            $displayQsEligibility = $application->qs_eligibility ?? 'no';
+            $displayQsExperience = $application->qs_experience ?? 'no';
+            $displayQsTraining = $application->qs_training ?? 'no';
+            $displayQsResult = $application->qs_result ?? 'Pending';
+        } else {
+            $displayQsEducation = 'pending';
+            $displayQsEligibility = 'pending';
+            $displayQsExperience = 'pending';
+            $displayQsTraining = 'pending';
+            $displayQsResult = 'Pending';
+        }
+
         $displayDeadlineDate = $application->deadline_date ?? null;
         $displayDeadlineTime = $application->deadline_time ?? null;
+        $hasDeadlineConfigured = !empty($displayDeadlineDate) && !empty($displayDeadlineTime);
+        $showDeadlineSubmissionCard = $hasAdminValidatedDocuments && $hasDeadlineConfigured;
         $displayApplicationRemarks = $application->application_remarks ?? '';
 
         /*
@@ -2981,11 +3028,45 @@ class JobVacancyController extends Controller
             'displayQsResult',
             'displayDeadlineDate',
             'displayDeadlineTime',
+            'hasAdminValidatedDocuments',
+            'hasDeadlineConfigured',
+            'showDeadlineSubmissionCard',
+            'canCancelApplication',
             'displayApplicationRemarks',
             'isFinalRevisionDisqualified',
             'user_id',
             'vacancy_id'
         ));
+    }
+
+    public function cancelApplication(Request $request, $user_id, $vacancy_id)
+    {
+        if ((int) Auth::id() !== (int) $user_id) {
+            abort(403, 'Unauthorized access to this application.');
+        }
+
+        $application = Applications::where('user_id', $user_id)
+            ->where('vacancy_id', $vacancy_id)
+            ->firstOrFail();
+
+        $currentStatus = strtolower(trim((string) ($application->status ?? '')));
+        if (in_array($currentStatus, ['qualified', 'closed', 'not qualified', 'cancelled'], true)) {
+            return redirect()
+                ->route('application_status', ['user' => $user_id, 'vacancy' => $vacancy_id])
+                ->with('error', 'This application can no longer be cancelled.');
+        }
+
+        $application->update(['status' => 'Cancelled']);
+
+        activity()
+            ->causedBy(Auth::user())
+            ->performedOn($application)
+            ->withProperties(['vacancy_id' => $vacancy_id, 'section' => 'Application Status'])
+            ->log('Cancelled application.');
+
+        return redirect()
+            ->route('my_applications')
+            ->with('success', 'Your application has been cancelled.');
     }
 
     /**
@@ -4639,6 +4720,7 @@ class JobVacancyController extends Controller
         $eligibility = trim((string) ($assessment['eligibility'] ?? ''));
         $q1Passed = array_key_exists('q1_passed', $assessment) ? (bool) $assessment['q1_passed'] : false;
         $q2Passed = array_key_exists('q2_passed', $assessment) ? (bool) $assessment['q2_passed'] : false;
+        $hasSubscribedPdsAnswered = array_key_exists('has_subscribed_pds', $assessment);
 
         if (
             $vacancyId === ''
@@ -4647,6 +4729,7 @@ class JobVacancyController extends Controller
             || $eligibility === ''
             || !$q1Passed
             || !$q2Passed
+            || !$hasSubscribedPdsAnswered
         ) {
             return false;
         }

@@ -409,7 +409,7 @@
 							<!-- Remarks -->
 							<div id="notify-remarks-section">
 								<div class="flex items-center justify-between mb-3">
-									<div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Applicant
+									<div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Qualifiers
 										Remarks</div>
 									<span id="notify-remarks-status"
 										class="text-green-600 text-xs font-medium opacity-0 transition-opacity duration-500">Saved</span>

@@ -39,7 +39,8 @@
             {{ $application['status'] === 'Incomplete' ? 'text-orange-500' : '' }}
             {{ $application['status'] === 'Complete' ? 'text-green-500' : '' }}
             {{ $application['status'] === 'Closed' ? 'text-red-500' : '' }}
-            {{ $application['status'] === 'Pending' ? 'text-yellow-600' : '' }}">
+            {{ $application['status'] === 'Pending' ? 'text-yellow-600' : '' }}
+            {{ strtolower(trim((string) ($application['status'] ?? ''))) === 'cancelled' ? 'text-red-500' : '' }}">
             STATUS: {{ $application->status }}
         </span>
 

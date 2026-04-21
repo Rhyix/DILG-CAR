@@ -117,9 +117,9 @@ class WorkExpSheetController extends Controller
             return redirect()->route('display_c5');
         }
 
-        return redirect()->back()
-            ->with('success', 'Work Experience Sheet Saved!')
-            ->with('after_action', $request->input('after_action'));
+        return redirect()
+            ->route('wes.preview')
+            ->with('success', 'Work Experience Sheet Saved!');
     }
 
     /**

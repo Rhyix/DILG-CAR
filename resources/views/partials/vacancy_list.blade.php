@@ -8,6 +8,41 @@
                 $vacancyTypeLabel = strcasecmp($vacancyTypeRaw, 'cos') === 0
                     ? 'Contract of Service'
                     : ($vacancyTypeRaw !== '' ? $vacancyTypeRaw : '');
+
+                $examStatus = 'Unscheduled';
+                $examBadge = 'bg-gray-100 text-gray-800';
+                if ($vacancy->examDetail && $vacancy->examDetail->date) {
+                    try {
+                        $date = $vacancy->examDetail->date;
+                        $time = $vacancy->examDetail->time;
+                        $timeEnd = $vacancy->examDetail->time_end;
+
+                        $startDateTime = \Carbon\Carbon::parse($date . ' ' . $time);
+                        $endDateTime = $timeEnd
+                            ? \Carbon\Carbon::parse($date . ' ' . $timeEnd)
+                            : $startDateTime->copy()->addHours(2);
+
+                        $now = \Carbon\Carbon::now();
+
+                        if ($now->lt($startDateTime)) {
+                            $examStatus = 'Scheduled';
+                            $examBadge = 'bg-blue-100 text-blue-800';
+                        } elseif ($now->between($startDateTime, $endDateTime)) {
+                            $examStatus = 'Ongoing';
+                            $examBadge = 'bg-yellow-100 text-yellow-800';
+                        } else {
+                            $examStatus = 'Completed';
+                            $examBadge = 'bg-purple-100 text-purple-800';
+                        }
+                    } catch (\Exception $e) {
+                        // Keep unscheduled on parse errors
+                    }
+                }
+
+                $effectiveVacancyStatus = strtoupper(trim((string) ($vacancy->status ?? '')));
+                if ($effectiveVacancyStatus === 'OPEN' && $examStatus === 'Completed') {
+                    $effectiveVacancyStatus = 'CLOSED';
+                }
             @endphp
             <p
                 class="font-bold text-base lg:text-sm lg:font-medium leading-tight block lg:truncate lg:whitespace-nowrap lg:overflow-hidden"
@@ -38,7 +73,7 @@
                 @php
                     $closing = \Carbon\Carbon::parse($vacancy->closing_date);
                     $daysLeft = now()->diffInDays($closing, false);
-                    $isUrgent = $vacancy->status === 'OPEN' && $daysLeft >= 0 && $daysLeft <= 7;
+                    $isUrgent = $effectiveVacancyStatus === 'OPEN' && $daysLeft >= 0 && $daysLeft <= 7;
                 @endphp
                 <div class="flex flex-row items-center gap-2">
                     @if($isUrgent)
@@ -59,46 +94,14 @@
         <!-- Status -->
         <div class="lg:py-2.5 lg:px-4 lg:w-[10%] mb-2 lg:mb-0 flex items-center lg:justify-center">
             <span class="lg:hidden text-xs font-bold text-slate-400 uppercase tracking-wide w-24 shrink-0">Status</span>
-            <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold {{ $vacancy->status === 'OPEN' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
-                {{ $vacancy->status }}
+            <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold {{ $effectiveVacancyStatus === 'OPEN' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
+                {{ $effectiveVacancyStatus }}
             </span>
         </div>
 
         <!-- Exam -->
         <div class="lg:py-2.5 lg:px-4 lg:w-[10%] mb-4 lg:mb-0 flex items-center lg:justify-center">
             <span class="lg:hidden text-xs font-bold text-slate-400 uppercase tracking-wide w-24 shrink-0">Exam</span>
-            @php
-                $examStatus = 'Unscheduled';
-                $examBadge = 'bg-gray-100 text-gray-800';
-
-                if ($vacancy->examDetail && $vacancy->examDetail->date) {
-                    try {
-                        $date = $vacancy->examDetail->date;
-                        $time = $vacancy->examDetail->time;
-                        $timeEnd = $vacancy->examDetail->time_end;
-
-                        $startDateTime = \Carbon\Carbon::parse($date . ' ' . $time);
-                        $endDateTime = $timeEnd
-                            ? \Carbon\Carbon::parse($date . ' ' . $timeEnd)
-                            : $startDateTime->copy()->addHours(2);
-
-                        $now = \Carbon\Carbon::now();
-
-                        if ($now->lt($startDateTime)) {
-                            $examStatus = 'Scheduled';
-                            $examBadge = 'bg-blue-100 text-blue-800';
-                        } elseif ($now->between($startDateTime, $endDateTime)) {
-                            $examStatus = 'Ongoing';
-                            $examBadge = 'bg-yellow-100 text-yellow-800';
-                        } else {
-                            $examStatus = 'Completed';
-                            $examBadge = 'bg-purple-100 text-purple-800';
-                        }
-                    } catch (\Exception $e) {
-                        // Keep unscheduled on parse errors
-                    }
-                }
-            @endphp
             <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold {{ $examBadge }}">
                 {{ $examStatus }}
             </span>

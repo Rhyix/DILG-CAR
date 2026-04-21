@@ -265,6 +265,11 @@ function viewPDF(filePath, title = 'Document') {
 }
 </script>
 
+    @include('partials.idle_logout', [
+        'idleLogoutEnabled' => auth('admin')->check(),
+        'idleLogoutRoute' => route('admin.logout'),
+    ])
+
     @stack('scripts')
 </body>
 

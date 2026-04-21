@@ -119,28 +119,28 @@
                   </div>
 
                   <!-- Main Info Cards -->
-                  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                  <div class="grid grid-cols-1 {{ $showDeadlineSubmissionCard ? 'lg:grid-cols-3' : 'lg:grid-cols-2' }} gap-4">
 
                     <!-- Deadline Card -->
-                    <div class="bg-white rounded-lg border border-gray-200 p-4 shadow-lg">
-                      <div class="text-sm font-semibold text-gray-700 mb-3">Deadline for Submission:</div>
-                      @if($displayQsResult === 'Qualified')
-                        <div class="text-sm text-green-600 font-semibold italic">Not applicable (Requirements complete)</div>
-                      @elseif($displayQsResult === 'Not Qualified')
-                        <div class="text-sm text-red-600 font-semibold italic">Not applicable (Application not qualified)</div>
-                      @elseif($displayDeadlineDate || $displayDeadlineTime)
-                        <div class="text-sm font-semibold text-[#002C76]">
-                          {{ \Carbon\Carbon::parse($displayDeadlineDate . ' ' . ($displayDeadlineTime ?? '23:59:59'))->format('F d, Y h:i A') }}
-                        </div>
-                        @if($isPastDeadline)
-                          <div class="text-red-500 text-xs mt-2 flex items-center gap-1">
-                            <i data-feather="alert-triangle" class="inline w-3 h-3"></i> Deadline Passed
+                    @if($showDeadlineSubmissionCard)
+                      <div class="bg-white rounded-lg border border-gray-200 p-4 shadow-lg">
+                        <div class="text-sm font-semibold text-gray-700 mb-3">Deadline for Submission:</div>
+                        @if($displayQsResult === 'Qualified')
+                          <div class="text-sm text-green-600 font-semibold italic">Not applicable (Requirements complete)</div>
+                        @elseif($displayQsResult === 'Not Qualified')
+                          <div class="text-sm text-red-600 font-semibold italic">Not applicable (Application not qualified)</div>
+                        @else
+                          <div class="text-sm font-semibold text-[#002C76]">
+                            {{ \Carbon\Carbon::parse($displayDeadlineDate . ' ' . $displayDeadlineTime)->format('F d, Y h:i A') }}
                           </div>
+                          @if($isPastDeadline)
+                            <div class="text-red-500 text-xs mt-2 flex items-center gap-1">
+                              <i data-feather="alert-triangle" class="inline w-3 h-3"></i> Deadline Passed
+                            </div>
+                          @endif
                         @endif
-                      @else
-                        <div class="text-sm text-gray-500 italic">Please wait for further instructions.</div>
-                      @endif
-                    </div>
+                      </div>
+                    @endif
 
                     <!-- Qualification Standards Card -->
                     <div class="bg-white rounded-lg border border-gray-200 p-4 shadow-lg">
@@ -150,10 +150,12 @@
                         <!-- Result -->
                         <div class="flex items-center cursor-default">
                           @php
-                            $resultStatus = $displayQsResult ?? 'Not Qualified';
+                            $resultStatus = $displayQsResult ?? 'Pending';
                             $textColor = $resultStatus === 'Qualified'
                               ? 'text-green-600'
-                              : ($resultStatus === 'Needs Revisions' ? 'text-amber-600' : 'text-red-600');
+                              : ($resultStatus === 'Needs Revisions'
+                                  ? 'text-amber-600'
+                                  : ($resultStatus === 'Pending' ? 'text-yellow-600' : 'text-red-600'));
                           @endphp
                           <span class="text-sm font-semibold {{ $textColor }}">{{ $resultStatus }}</span>
                         </div>
@@ -161,25 +163,25 @@
                       <div class="grid grid-cols-2 md:grid-cols-4 items-center gap-x-4 gap-y-2">
                         <!-- Education -->
                         <div class="flex items-center gap-1.5">
-                          <span class="w-2.5 h-2.5 shrink-0 rounded-full {{ $displayQsEducation == 'yes' ? 'bg-green-500' : ($displayQsEducation == 'na' ? 'bg-gray-400' : 'bg-red-500') }}"></span>
+                          <span class="w-2.5 h-2.5 shrink-0 rounded-full {{ $displayQsEducation == 'yes' ? 'bg-green-500' : ($displayQsEducation == 'na' ? 'bg-gray-400' : ($displayQsEducation == 'pending' ? 'bg-yellow-400' : 'bg-red-500')) }}"></span>
                           <span class="text-xs text-gray-700">Education</span>
                         </div>
 
                         <!-- Eligibility -->
                         <div class="flex items-center gap-1.5">
-                          <span class="w-2.5 h-2.5 shrink-0 rounded-full {{ $displayQsEligibility == 'yes' ? 'bg-green-500' : ($displayQsEligibility == 'na' ? 'bg-gray-400' : 'bg-red-500') }}"></span>
+                          <span class="w-2.5 h-2.5 shrink-0 rounded-full {{ $displayQsEligibility == 'yes' ? 'bg-green-500' : ($displayQsEligibility == 'na' ? 'bg-gray-400' : ($displayQsEligibility == 'pending' ? 'bg-yellow-400' : 'bg-red-500')) }}"></span>
                           <span class="text-xs text-gray-700">Eligibility</span>
                         </div>
 
                         <!-- Experience -->
                         <div class="flex items-center gap-1.5">
-                          <span class="w-2.5 h-2.5 shrink-0 rounded-full {{ $displayQsExperience == 'yes' ? 'bg-green-500' : ($displayQsExperience == 'na' ? 'bg-gray-400' : 'bg-red-500') }}"></span>
+                          <span class="w-2.5 h-2.5 shrink-0 rounded-full {{ $displayQsExperience == 'yes' ? 'bg-green-500' : ($displayQsExperience == 'na' ? 'bg-gray-400' : ($displayQsExperience == 'pending' ? 'bg-yellow-400' : 'bg-red-500')) }}"></span>
                           <span class="text-xs text-gray-700">Experience</span>
                         </div>
 
                         <!-- Training -->
                         <div class="flex items-center gap-1.5">
-                          <span class="w-2.5 h-2.5 shrink-0 rounded-full {{ $displayQsTraining == 'yes' ? 'bg-green-500' : ($displayQsTraining == 'na' ? 'bg-gray-400' : 'bg-red-500') }}"></span>
+                          <span class="w-2.5 h-2.5 shrink-0 rounded-full {{ $displayQsTraining == 'yes' ? 'bg-green-500' : ($displayQsTraining == 'na' ? 'bg-gray-400' : ($displayQsTraining == 'pending' ? 'bg-yellow-400' : 'bg-red-500')) }}"></span>
                           <span class="text-xs text-gray-700">Training</span>
                         </div>
                       </div>
@@ -195,6 +197,7 @@
                           'Complete' => 'bg-green-100 text-green-800 border-green-400',
                           'Incomplete' => 'bg-orange-100 text-orange-800 border-orange-400',
                           'Closed' => 'bg-red-100 text-red-800 border-red-400',
+                          'Cancelled' => 'bg-red-100 text-red-800 border-red-400',
                         ];
                       @endphp
                       <div class="px-4 py-2 rounded-full border font-semibold text-sm text-center {{ $badgeClasses[$status] ?? 'bg-gray-100 text-gray-800 border-gray-400' }}">
@@ -242,7 +245,7 @@
 
 
                 <!-- Action Buttons -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-6 mb-6">
+                <div class="grid grid-cols-1 {{ $canCancelApplication ? 'md:grid-cols-3' : 'md:grid-cols-2' }} gap-3 mt-6 mb-6">
                   <a href="{{ route('job_description', ['id' => $application->vacancy->vacancy_id]) }}" class="w-full">
                     <button
                       class="use-loader w-full border-2 border-[#002C76] text-[#002C76] rounded-lg px-4 py-2 text-sm flex items-center justify-center gap-3 font-montserrat hover:bg-[#002C76] hover:text-white transition">
@@ -255,6 +258,17 @@
                       <i data-feather="eye" class="w-5 h-5"></i> View or Edit PDS
                     </button>
                   </a>
+                  @if($canCancelApplication)
+                    <form method="POST" action="{{ route('application_status.cancel', ['user' => $user_id, 'vacancy' => $vacancy_id]) }}" class="w-full">
+                      @csrf
+                      <button
+                        type="submit"
+                        onclick="return confirm('Cancel this application? This action cannot be undone.');"
+                        class="w-full border-2 border-red-500 text-red-600 rounded-lg px-4 py-2 text-sm flex items-center justify-center gap-3 font-montserrat hover:bg-red-500 hover:text-white transition">
+                        <i data-feather="x-circle" class="w-5 h-5"></i> Cancel Application
+                      </button>
+                    </form>
+                  @endif
                 </div>
 
                 <!-- Document Section -->

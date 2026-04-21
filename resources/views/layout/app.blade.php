@@ -462,6 +462,11 @@
         })();
     </script>
 
+    @include('partials.idle_logout', [
+        'idleLogoutEnabled' => auth()->check(),
+        'idleLogoutRoute' => route('logout'),
+    ])
+
     @stack('scripts')
 </body>
 

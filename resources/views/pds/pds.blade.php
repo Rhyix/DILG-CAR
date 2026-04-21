@@ -587,20 +587,9 @@
                         <div class="relative md:col-span-2">
                             <input pattern="(?:[0-9]{4}|[Nn][/]?[Aa])" maxlength="4" type="text" inputmode="numeric" id="elem_year_graduated" name="elem_year_graduated" value="{{ old('elem_year_graduated', session('form.c1.elem_year_graduated')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
                             <label for="elem_year_graduated" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Year Graduated</label>
-                            <div class="mt-2 flex items-center">
-                                <input
-                                    type="checkbox"
-                                    id="elem_is_graduate"
-                                    name="elem_is_graduate"
-                                    value="1"
-                                    class="h-4 w-4 text-blue-600 border-gray-300 rounded"
-                                    {{ old('elem_is_graduate', session('form.c1.elem_is_graduate')) ? 'checked' : '' }}
-                                >
-                                <label for="elem_is_graduate" class="ml-2 text-sm text-gray-700">Graduate?</label>
-                            </div>
                         </div>
-                        <div class="relative md:col-span-2">
-                            <input required type="text" id="elem_earned" name="elem_earned" value="{{ old('elem_earned', session('form.c1.elem_earned')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
+                        <div class="relative md:col-span-2 hidden" data-earned-wrapper-for="elem_earned">
+                            <input type="text" id="elem_earned" name="elem_earned" value="{{ old('elem_earned', session('form.c1.elem_earned')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
                             <label for="elem_earned" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-xs sm:text-sm">Highest Level/Units Earned (if not graduated) <span class="text-red-500">*</span></label>
                         </div>
                         <div class="relative md:col-span-2">
@@ -640,8 +629,8 @@
                             <label for="jhs_year_graduated" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Year Graduated</label>
                         </div>
 
-                        <div class="relative md:col-span-2">
-                            <input required type="text" id="jhs_earned" name="jhs_earned" value="{{ old('jhs_earned', session('form.c1.jhs_earned')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
+                        <div class="relative md:col-span-2 hidden" data-earned-wrapper-for="jhs_earned">
+                            <input type="text" id="jhs_earned" name="jhs_earned" value="{{ old('jhs_earned', session('form.c1.jhs_earned')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
                             <label for="jhs_earned" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-xs sm:text-sm">Highest Level/Units Earned (if not graduated) <span class="text-red-500">*</span></label>
                         </div>
 
@@ -857,23 +846,30 @@
             }
         });
     }
-    function setElementaryHighestLevelEnabled(isGraduate) {
-        const elemEarned = document.getElementById('elem_earned');
-        if (!elemEarned) return;
+    function isEmptyOrNaEducationValue(value) {
+        const normalized = String(value || '').trim().toLowerCase().replace(/\s+/g, '');
+        return normalized === '' || normalized === 'n/a' || normalized === 'na' || normalized === 'n\\a';
+    }
+    function syncHighestLevelVisibilityByYear(yearId, levelId) {
+        const yearInput = document.getElementById(yearId);
+        const levelInput = document.getElementById(levelId);
+        const levelWrapper = document.querySelector('[data-earned-wrapper-for="' + levelId + '"]');
 
-        if (isGraduate) {
-            elemEarned.value = '';
-            elemEarned.disabled = true;
-            elemEarned.required = false;
-            elemEarned.classList.add('bg-gray-100', 'cursor-not-allowed', 'text-gray-400');
-        } else {
-            elemEarned.disabled = false;
-            elemEarned.required = true;
-            elemEarned.classList.remove('bg-gray-100', 'cursor-not-allowed', 'text-gray-400');
+        if (!yearInput || !levelInput || !levelWrapper) return;
+
+        const hasYearGraduated = !isEmptyOrNaEducationValue(yearInput.value);
+
+        levelWrapper.classList.toggle('hidden', hasYearGraduated);
+        levelInput.disabled = hasYearGraduated;
+        levelInput.required = !hasYearGraduated;
+
+        if (hasYearGraduated) {
+            levelInput.value = '';
+            levelInput.setCustomValidity('');
         }
     }
     function clearEducationSectionsForGraduateTransition() {
-        const sectionNames = ['secondary', 'vocational', 'college', 'grad'];
+        const sectionNames = ['secondary', 'college', 'grad'];
 
         sectionNames.forEach((section) => {
             const container = document.querySelector('[data-education-section="' + section + '"]');
@@ -903,6 +899,34 @@
             });
         });
     }
+    function syncElementaryYearGraduatedState() {
+        const elemYearInput = document.getElementById('elem_year_graduated');
+        if (!elemYearInput) return;
+
+        const hasYearGraduated = !isEmptyOrNaEducationValue(elemYearInput.value);
+
+        if (hasYearGraduated) {
+            setSecondaryAndHigherEducationEnabled(true);
+            syncHighestLevelVisibilityByYear('jhs_year_graduated', 'jhs_earned');
+        } else {
+            clearEducationSectionsForGraduateTransition();
+            setSecondaryAndHigherEducationEnabled(false);
+
+            const jhsEarnedInput = document.getElementById('jhs_earned');
+            const jhsEarnedWrapper = document.querySelector('[data-earned-wrapper-for="jhs_earned"]');
+            if (jhsEarnedInput) {
+                jhsEarnedInput.disabled = true;
+                jhsEarnedInput.required = false;
+                jhsEarnedInput.value = '';
+                jhsEarnedInput.setCustomValidity('');
+            }
+            if (jhsEarnedWrapper) {
+                jhsEarnedWrapper.classList.add('hidden');
+            }
+        }
+
+        syncHighestLevelVisibilityByYear('elem_year_graduated', 'elem_earned');
+    }
     function hasSecondaryOrHigherEducationValues() {
         // Do not treat vocational values as requiring elementary graduate state.
         const sectionNames = ['secondary', 'college', 'grad'];
@@ -922,18 +946,25 @@
             return false;
         });
     }
-    function syncElemYearGraduatedFromTo() {
-        const gradCheckbox = document.getElementById('elem_is_graduate');
+    function validateElementaryToAndSecondaryFrom() {
         const elemTo = document.getElementById('elem_to');
-        const yearInput = document.getElementById('elem_year_graduated');
+        const jhsFrom = document.getElementById('jhs_from');
+        if (!elemTo || !jhsFrom) return;
 
-        if (!gradCheckbox || !elemTo || !yearInput) return;
-        if (!gradCheckbox.checked) return;
+        jhsFrom.setCustomValidity('');
 
-        const parsed = parsePdsEducationDate(elemTo.value);
-        if (!parsed) return;
+        const elemToDate = parsePdsEducationDate(elemTo.value);
+        const jhsFromDate = parsePdsEducationDate(jhsFrom.value);
 
-        yearInput.value = String(parsed.getFullYear());
+        if (!elemToDate || !jhsFromDate) {
+            jhsFrom.removeAttribute('min');
+            return;
+        }
+
+        jhsFrom.min = formatPdsEducationDateForInput(elemToDate);
+        if (jhsFromDate.getTime() < elemToDate.getTime()) {
+            jhsFrom.setCustomValidity('Secondary "From" date must not be before Elementary "To" date.');
+        }
     }
     function togglePdsEducationDateRangeState(rangeEl, state) {
         const fromInput = rangeEl.querySelector('[data-education-date-role="from"]');
@@ -1177,39 +1208,31 @@
         if (elemTo) {
             ['change', 'blur'].forEach((evt) => {
                 elemTo.addEventListener(evt, updateSecondaryBasicEducation);
-                elemTo.addEventListener(evt, syncElemYearGraduatedFromTo);
+                elemTo.addEventListener(evt, validateElementaryToAndSecondaryFrom);
+            });
+        }
+        const jhsFrom = document.getElementById('jhs_from');
+        if (jhsFrom) {
+            ['input', 'change', 'blur'].forEach((evt) => {
+                jhsFrom.addEventListener(evt, validateElementaryToAndSecondaryFrom);
             });
         }
 
-        const gradCheckbox = document.getElementById('elem_is_graduate');
-        if (gradCheckbox) {
-            const shouldBeGraduate = gradCheckbox.checked;
-            gradCheckbox.checked = shouldBeGraduate;
-            let previousGraduateState = shouldBeGraduate;
-
-            setSecondaryAndHigherEducationEnabled(shouldBeGraduate);
-            setElementaryHighestLevelEnabled(shouldBeGraduate);
-            if (shouldBeGraduate) {
-                syncElemYearGraduatedFromTo();
-            }
-
-            gradCheckbox.addEventListener('change', () => {
-                const isGraduate = gradCheckbox.checked;
-                const switchedToGraduate = !previousGraduateState && isGraduate;
-
-                if (switchedToGraduate) {
-                    clearEducationSectionsForGraduateTransition();
-                }
-
-                setSecondaryAndHigherEducationEnabled(isGraduate);
-                setElementaryHighestLevelEnabled(isGraduate);
-                if (isGraduate) {
-                    syncElemYearGraduatedFromTo();
-                }
-
-                previousGraduateState = isGraduate;
+        const elemYearGraduated = document.getElementById('elem_year_graduated');
+        if (elemYearGraduated) {
+            ['input', 'change', 'blur'].forEach((evt) => {
+                elemYearGraduated.addEventListener(evt, syncElementaryYearGraduatedState);
             });
         }
+        const jhsYearGraduated = document.getElementById('jhs_year_graduated');
+        if (jhsYearGraduated) {
+            ['input', 'change', 'blur'].forEach((evt) => {
+                jhsYearGraduated.addEventListener(evt, () => syncHighestLevelVisibilityByYear('jhs_year_graduated', 'jhs_earned'));
+            });
+        }
+
+        syncElementaryYearGraduatedState();
+        validateElementaryToAndSecondaryFrom();
 
         const dobInput = document.querySelector('[data-dob-input]');
         if (dobInput) {
