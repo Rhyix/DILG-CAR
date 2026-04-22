@@ -2522,7 +2522,12 @@ class JobVacancyController extends Controller
                 ->with('status', 'Please complete onboarding before you apply.');
         }
 
-        if (!$this->hasCompletedPdsForApply((int) Auth::id())) {
+        $initialAssessment = session($this->initialAssessmentSessionKey((string) $vacancy->vacancy_id), []);
+        $hasSubscribedPds = is_array($initialAssessment) && array_key_exists('has_subscribed_pds', $initialAssessment)
+            ? (bool) $initialAssessment['has_subscribed_pds']
+            : false;
+
+        if (!$hasSubscribedPds && !$this->hasCompletedPdsForApply((int) Auth::id())) {
             Log::info('Apply blocked: incomplete PDS', [
                 'user_id' => Auth::id(),
                 'vacancy_id' => $vacancy_id,
@@ -2548,7 +2553,6 @@ class JobVacancyController extends Controller
                 ->with('success', 'Application already exists for this vacancy.');
         }
 
-        $initialAssessment = session($this->initialAssessmentSessionKey((string) $vacancy->vacancy_id), []);
         if (!$this->hasCompletedInitialAssessmentForVacancy($vacancy, (array) $initialAssessment)) {
             Log::info('Apply blocked: initial assessment not completed for vacancy', [
                 'user_id' => Auth::id(),
@@ -2593,23 +2597,25 @@ class JobVacancyController extends Controller
                 ]);
         }
 
-        $qualificationGate = $this->evaluateApplicantQualificationGateForVacancy((int) Auth::id(), $vacancy);
-        $missingQualificationLabels = $this->collectMissingQualificationLabels((array) ($qualificationGate['checks'] ?? []));
-        if (!empty($missingQualificationLabels)) {
-            Log::info('Apply blocked: qualification requirements not met', [
-                'user_id' => Auth::id(),
-                'vacancy_id' => $vacancy_id,
-                'qualification_checks' => $qualificationGate['checks'],
-            ]);
+        if (!$hasSubscribedPds) {
+            $qualificationGate = $this->evaluateApplicantQualificationGateForVacancy((int) Auth::id(), $vacancy);
+            $missingQualificationLabels = $this->collectMissingQualificationLabels((array) ($qualificationGate['checks'] ?? []));
+            if (!empty($missingQualificationLabels)) {
+                Log::info('Apply blocked: qualification requirements not met', [
+                    'user_id' => Auth::id(),
+                    'vacancy_id' => $vacancy_id,
+                    'qualification_checks' => $qualificationGate['checks'],
+                ]);
 
-            $qualificationMismatchMessage = $qualificationGate['message'] ?? (
-                'You are not yet qualified to apply for this position. '
-                . 'Please review the missing requirements and update your PDS.'
-            );
+                $qualificationMismatchMessage = $qualificationGate['message'] ?? (
+                    'You are not yet qualified to apply for this position. '
+                    . 'Please review the missing requirements and update your PDS.'
+                );
 
-            return redirect()
-                ->route('job_description', ['id' => $vacancy->vacancy_id])
-                ->with('error', $qualificationMismatchMessage);
+                return redirect()
+                    ->route('job_description', ['id' => $vacancy->vacancy_id])
+                    ->with('error', $qualificationMismatchMessage);
+            }
         }
 
         $requiredDocumentIds = $this->getRequiredDocumentIdsForVacancyType((string) $vacancy->vacancy_type);

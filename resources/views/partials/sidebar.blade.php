@@ -241,10 +241,12 @@
             const btnDocs = document.getElementById('btnDocs');
 
             if (docsToggle && docsMenu && docsCaret) {
-                const docsOpen = sessionStorage.getItem('docsOpen') === 'true';
+                const openDocsOnLoad = new URLSearchParams(window.location.search).get('open_docs') === '1';
+                const docsOpen = openDocsOnLoad || sessionStorage.getItem('docsOpen') === 'true';
                 if (docsOpen) {
                     docsMenu.classList.add('show');
                     docsCaret.classList.add('rotate-180');
+                    sessionStorage.setItem('docsOpen', 'true');
                 }
 
                 const toggleDocs = () => {

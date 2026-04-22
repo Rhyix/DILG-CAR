@@ -3661,6 +3661,9 @@ class PDSController extends Controller
         if ($request->boolean('simple') || $request->query('simple')) {
             $routeParams['simple'] = 1;
         }
+        if ($request->boolean('open_docs') || $request->query('open_docs')) {
+            $routeParams['open_docs'] = 1;
+        }
 
         return redirect()->route($go_to, $routeParams);
     }
@@ -5668,8 +5671,11 @@ class PDSController extends Controller
         // Keep update flows intact, but enforce the same apply gate for new application creation.
         if (!$application) {
             $jobVacancyController = app(JobVacancyController::class);
+            $hasSubscribedPds = array_key_exists('has_subscribed_pds', $initialAssessment)
+                ? (bool) $initialAssessment['has_subscribed_pds']
+                : false;
 
-            if (!$jobVacancyController->hasCompletedPdsForApplicant((int) Auth::id())) {
+            if (!$hasSubscribedPds && !$jobVacancyController->hasCompletedPdsForApplicant((int) Auth::id())) {
                 Log::info('C5 application submit blocked: incomplete PDS', [
                     'user_id' => Auth::id(),
                     'vacancy_id' => $vacancyId,
@@ -5683,22 +5689,24 @@ class PDSController extends Controller
                 ];
             }
 
-            $qualificationGate = $jobVacancyController->evaluateQualificationGateForApplicant((int) Auth::id(), $vacancy);
-            if (!(bool) ($qualificationGate['isQualified'] ?? false)) {
-                Log::info('C5 application submit blocked: qualification requirements not met', [
-                    'user_id' => Auth::id(),
-                    'vacancy_id' => $vacancyId,
-                    'qualification_checks' => $qualificationGate['checks'] ?? [],
-                ]);
+            if (!$hasSubscribedPds) {
+                $qualificationGate = $jobVacancyController->evaluateQualificationGateForApplicant((int) Auth::id(), $vacancy);
+                if (!(bool) ($qualificationGate['isQualified'] ?? false)) {
+                    Log::info('C5 application submit blocked: qualification requirements not met', [
+                        'user_id' => Auth::id(),
+                        'vacancy_id' => $vacancyId,
+                        'qualification_checks' => $qualificationGate['checks'] ?? [],
+                    ]);
 
-                return [
-                    'ok' => false,
-                    'created' => false,
-                    'message' => (string) ($qualificationGate['message']
-                        ?? 'You are not yet qualified to apply for this position.'),
-                    'reason_code' => 'qualification',
-                    'missing_requirements' => array_values((array) ($qualificationGate['missing_labels'] ?? [])),
-                ];
+                    return [
+                        'ok' => false,
+                        'created' => false,
+                        'message' => (string) ($qualificationGate['message']
+                            ?? 'You are not yet qualified to apply for this position.'),
+                        'reason_code' => 'qualification',
+                        'missing_requirements' => array_values((array) ($qualificationGate['missing_labels'] ?? [])),
+                    ];
+                }
             }
 
             if (!$this->hasCompletedInitialAssessmentForVacancy($vacancy, $initialAssessment)) {

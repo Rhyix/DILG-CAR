@@ -5,7 +5,7 @@
         @php
             $hasWorkExperience = !empty($data['work_experience'] ?? []) || !empty($data['work_exp'] ?? []) || !empty($data['work_exps'] ?? []);
         @endphp
-        <form id="other-info-form" class="space-y-8" action='/pds/submit_c4/display_wes' method="POST" enctype="multipart/form-data">
+        <form id="other-info-form" class="space-y-8" action="{{ route('submit_c4', ['go_to' => 'display_c4', 'open_docs' => 1]) }}" method="POST" enctype="multipart/form-data">
             @csrf
             @if(request()->boolean('simple'))
                 <input type="hidden" name="simple" value="1">

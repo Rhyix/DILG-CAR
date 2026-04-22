@@ -231,7 +231,7 @@
 
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <form id="other-info-form" class="space-y-8" method="POST" action="{{ route('submit_c4', ['go_to' => 'display_wes']) }}" enctype="multipart/form-data">
+        <form id="other-info-form" class="space-y-8" method="POST" action="{{ route('submit_c4', ['go_to' => 'display_c4', 'open_docs' => 1]) }}" enctype="multipart/form-data">
             @csrf
             <!-- Related Third Degree Section -->
             <section class="bg-white rounded-2xl shadow-xl p-8 animate-slide-in">

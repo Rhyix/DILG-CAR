@@ -114,11 +114,13 @@ class WorkExpSheetController extends Controller
         }
 
         if ($request->input('after_action') === 'next') {
-            return redirect()->route('display_c5');
+            return redirect()
+                ->route('display_wes', ['open_docs' => 1])
+                ->with('success', 'Work Experience Sheet Saved!');
         }
 
         return redirect()
-            ->route('wes.preview')
+            ->route('display_wes', ['open_docs' => 1])
             ->with('success', 'Work Experience Sheet Saved!');
     }
 
