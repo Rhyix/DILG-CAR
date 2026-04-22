@@ -73,8 +73,15 @@
         $missingQualificationLabelsForPanel = is_array($missingQualificationLabels ?? null)
             ? array_values(array_filter(array_map(fn($value) => trim((string) $value), $missingQualificationLabels)))
             : [];
+        // Check if initial assessment is already completed (manually or auto-populated)
+        $initialAssessmentSessionKey = 'initial_assessment_answers.' . trim((string) $vacancy->vacancy_id);
+        $existingAssessment = session($initialAssessmentSessionKey, []);
+        $hasCompletedInitialAssessment = is_array($existingAssessment)
+            && array_key_exists('has_subscribed_pds', $existingAssessment);
+
         $showInitialAssessmentFlow = !$isClosed
-            && !$hasApplied;
+            && !$hasApplied
+            && !$hasCompletedInitialAssessment;
         $qualificationLabelMap = [
             'education' => 'Education',
             'training' => 'Training',
@@ -258,7 +265,7 @@
                             </button>
                         @endif
 
-                        @if(!$isClosed && !$hasApplied && ($hasIncompletePdsForApply || $isEligibilityQualifiedForPanel))
+                        @if(!$isClosed && !$hasApplied && !$hasIncompletePdsForApply)
                             <div class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700">
                                 <p class="font-semibold">Before applying, complete the initial assessment first.</p>
                                 <p class="mt-1">This runs each time you submit an application for this vacancy.</p>

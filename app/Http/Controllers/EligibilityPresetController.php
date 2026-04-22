@@ -11,18 +11,22 @@ use Illuminate\Support\Collection;
 class EligibilityPresetController extends Controller
 {
     private const DEFAULT_PRESETS = [
+        ['name' => 'CSC Professional Eligibility', 'legal_basis' => 'CSR 2017 / PD 807', 'level' => 'Second Level'],
+        ['name' => 'CSC Subprofessional Eligibility', 'legal_basis' => 'CSR 2017 / PD 807', 'level' => 'First Level'],
         ['name' => 'Bar/Board Eligibility', 'legal_basis' => 'RA 1080', 'level' => 'Second Level'],
-        ['name' => 'CSC Professional Eligibility', 'legal_basis' => 'CSR 2017/PD 807', 'level' => 'Second Level'],
         ['name' => 'Honor Graduate Eligibility', 'legal_basis' => 'PD 907', 'level' => 'Second Level'],
-        ['name' => 'Foreign School Honor Graduate Eligibility', 'legal_basis' => 'CSC Res. 1302714', 'level' => 'Second Level'],
+        ['name' => 'Foreign School Honor Graduate Eligibility', 'legal_basis' => 'CSC Resolution No. 1302714', 'level' => 'Second Level'],
         ['name' => 'Scientific and Technological Specialist Eligibility', 'legal_basis' => 'PD 997', 'level' => 'Second Level'],
-        ['name' => 'Electronic Data Processing Specialist Eligibility', 'legal_basis' => 'CSC Res. 90-083', 'level' => 'Second Level'],
-        ['name' => 'Subprofessional (Sub-Prof) Eligibility', 'legal_basis' => 'CSR 2017/PD 807', 'level' => 'First Level'],
-        ['name' => 'Skills Eligibility-Category II', 'legal_basis' => 'CSC MC 11, s.1996', 'level' => 'First Level'],
+        ['name' => 'Electronic Data Processing Specialist Eligibility', 'legal_basis' => 'CSC Resolution No. 90-083', 'level' => 'Second Level'],
+        ['name' => 'Skills Eligibility – Category II', 'legal_basis' => 'CSC MC No. 11, s. 1996, as amended', 'level' => 'First Level'],
         ['name' => 'Barangay Official Eligibility', 'legal_basis' => 'RA 7160', 'level' => 'First Level'],
-        ['name' => 'Sanggunian Member Eligibility', 'legal_basis' => 'RA 10156', 'level' => 'First Level'],
         ['name' => 'Barangay Health Worker Eligibility', 'legal_basis' => 'RA 7883', 'level' => 'First Level'],
         ['name' => 'Barangay Nutrition Scholar Eligibility', 'legal_basis' => 'PD 1569', 'level' => 'First Level'],
+        ['name' => 'Sanggunian Member First Level Eligibility', 'legal_basis' => 'RA 10156', 'level' => 'First Level'],
+        ['name' => 'Sanggunian Member Second Level Eligibility', 'legal_basis' => 'RA 10156', 'level' => 'Second Level'],
+        ['name' => 'Veteran Preference Rating Eligibility', 'legal_basis' => 'Professional or Subprofessional, depending on exam/rating', 'level' => 'Second Level'],
+        ['name' => 'Career Service Eligibility – Preference Rating', 'legal_basis' => 'CSE-PR', 'level' => 'Second Level'],
+        ['name' => 'Career Service Eligibility – Preference Rating for Military and Uniformed Personnel', 'legal_basis' => 'CSE-PR for MUP', 'level' => 'Second Level'],
     ];
 
     private function levelRank(?string $level): int
@@ -45,18 +49,22 @@ class EligibilityPresetController extends Controller
         $normalized = strtolower(trim((string) $name));
 
         return match (true) {
-            str_contains($normalized, 'bar/board') || (str_contains($normalized, 'bar') && str_contains($normalized, 'board')) => 10,
-            str_contains($normalized, 'csc professional') || str_contains($normalized, 'career service professional') => 20,
-            str_contains($normalized, 'honor graduate') && !str_contains($normalized, 'foreign') => 30,
-            str_contains($normalized, 'foreign school honor graduate') => 40,
-            str_contains($normalized, 'scientific and technological specialist') => 50,
-            str_contains($normalized, 'electronic data processing specialist') => 60,
-            str_contains($normalized, 'subprofessional') || str_contains($normalized, 'sub-prof') => 110,
-            str_contains($normalized, 'skills eligibility-category ii') || (str_contains($normalized, 'skills eligibility') && str_contains($normalized, 'category ii')) => 120,
-            str_contains($normalized, 'barangay official') => 130,
-            str_contains($normalized, 'sanggunian member') => 140,
-            str_contains($normalized, 'barangay health worker') => 150,
-            str_contains($normalized, 'barangay nutrition scholar') => 160,
+            str_contains($normalized, 'csc professional') || str_contains($normalized, 'career service professional') => 10,
+            str_contains($normalized, 'csc subprofessional') => 20,
+            str_contains($normalized, 'bar/board') || (str_contains($normalized, 'bar') && str_contains($normalized, 'board')) => 30,
+            str_contains($normalized, 'honor graduate') && !str_contains($normalized, 'foreign') => 40,
+            str_contains($normalized, 'foreign school honor graduate') => 50,
+            str_contains($normalized, 'scientific and technological specialist') => 60,
+            str_contains($normalized, 'electronic data processing specialist') => 70,
+            str_contains($normalized, 'skills eligibility') && str_contains($normalized, 'category ii') => 80,
+            str_contains($normalized, 'barangay official') => 90,
+            str_contains($normalized, 'barangay health worker') => 100,
+            str_contains($normalized, 'barangay nutrition scholar') => 110,
+            str_contains($normalized, 'sanggunian member') && str_contains($normalized, 'first level') => 120,
+            str_contains($normalized, 'sanggunian member') && str_contains($normalized, 'second level') => 130,
+            str_contains($normalized, 'veteran preference rating') => 140,
+            str_contains($normalized, 'career service eligibility') && str_contains($normalized, 'military') => 160,
+            str_contains($normalized, 'career service eligibility') && str_contains($normalized, 'preference rating') => 150,
             default => 999,
         };
     }

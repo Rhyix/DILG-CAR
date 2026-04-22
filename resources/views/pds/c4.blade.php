@@ -5,7 +5,13 @@
         @php
             $hasWorkExperience = !empty($data['work_experience'] ?? []) || !empty($data['work_exp'] ?? []) || !empty($data['work_exps'] ?? []);
         @endphp
-        <form id="other-info-form" class="space-y-8" action="{{ route('submit_c4', ['go_to' => 'display_c4', 'open_docs' => 1]) }}" method="POST" enctype="multipart/form-data">
+        @php
+            $c4GoTo = (request()->boolean('simple') || request()->boolean('open_docs')) ? 'display_wes' : 'display_c5';
+            $c4RouteParams = ['go_to' => $c4GoTo];
+            if (request()->boolean('open_docs')) { $c4RouteParams['open_docs'] = 1; }
+            if (request()->boolean('simple'))    { $c4RouteParams['simple'] = 1; }
+        @endphp
+        <form id="other-info-form" class="space-y-8" action="{{ route('submit_c4', $c4RouteParams) }}" method="POST" enctype="multipart/form-data">
             @csrf
             @if(request()->boolean('simple'))
                 <input type="hidden" name="simple" value="1">

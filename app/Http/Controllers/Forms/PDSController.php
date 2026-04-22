@@ -124,16 +124,17 @@ class PDSController extends Controller
 
     private function normalizeDateForDatabase(?string $value): ?string
     {
-        if (empty($value)) {
-            return $value;
+        $raw = trim((string) ($value ?? ''));
+        if ($raw === '') {
+            return null;
         }
 
-        $parsed = $this->parseFlexibleDate($value);
+        $parsed = $this->parseFlexibleDate($raw);
         if ($parsed) {
             return $parsed->format('Y-m-d');
         }
 
-        return $value;
+        return $raw;
     }
 
     private function parseFlexibleDate(?string $value): ?Carbon
@@ -169,7 +170,7 @@ class PDSController extends Controller
     {
         $raw = trim((string) ($value ?? ''));
         if ($raw === '') {
-            return $value;
+            return null;
         }
 
         if (strtolower($raw) === 'present') {
@@ -2702,18 +2703,22 @@ class PDSController extends Controller
     private function c2EligibilityLevelMap(): array
     {
         $fallback = [
-            'bar/board eligibility' => 'Second Level',
             'csc professional eligibility' => 'Second Level',
+            'csc subprofessional eligibility' => 'First Level',
+            'bar/board eligibility' => 'Second Level',
             'honor graduate eligibility' => 'Second Level',
             'foreign school honor graduate eligibility' => 'Second Level',
             'scientific and technological specialist eligibility' => 'Second Level',
             'electronic data processing specialist eligibility' => 'Second Level',
-            'subprofessional (sub-prof) eligibility' => 'First Level',
-            'skills eligibility-category ii' => 'First Level',
+            'skills eligibility – category ii' => 'First Level',
             'barangay official eligibility' => 'First Level',
-            'sanggunian member eligibility' => 'First Level',
             'barangay health worker eligibility' => 'First Level',
             'barangay nutrition scholar eligibility' => 'First Level',
+            'sanggunian member first level eligibility' => 'First Level',
+            'sanggunian member second level eligibility' => 'Second Level',
+            'veteran preference rating eligibility' => 'Second Level',
+            'career service eligibility – preference rating' => 'Second Level',
+            'career service eligibility – preference rating for military and uniformed personnel' => 'Second Level',
         ];
 
         if (!Schema::hasTable('eligibility_presets')) {
@@ -2801,11 +2806,15 @@ class PDSController extends Controller
         //dd($request->except('_token'));
         $validator = Validator::make($request->all(), [
             'work_exp_from' => 'nullable|array',
-            'work_exp_from.*' => 'nullable|date_format:Y-m-d',
+            'work_exp_from.*' => ['nullable', function ($attribute, $value, $fail) {
+                $v = trim((string) ($value ?? ''));
+                if ($v === '') return;
+                try { \Carbon\Carbon::createFromFormat('Y-m-d', $v); } catch (\Throwable $e) { $fail('Invalid date format (YYYY-MM-DD).'); }
+            }],
             'work_exp_to' => 'nullable|array',
             'work_exp_to.*' => ['nullable', 'string', function ($attribute, $value, $fail) {
-                $normalized = strtolower(trim((string) $value));
-                if ($normalized === 'present') {
+                $normalized = strtolower(trim((string) ($value ?? '')));
+                if ($normalized === '' || $normalized === 'present') {
                     return;
                 }
 
@@ -2824,18 +2833,26 @@ class PDSController extends Controller
             'work_exp_govt_service' => 'nullable|array',
             'work_exp_govt_service.*' => 'nullable|in:Y,N',
 
-            'cs_eligibility_career' => 'required|array|min:1',
-            'cs_eligibility_career.*' => 'required|string|max:255',
-            'cs_eligibility_rating' => 'required|array|min:1',
-            'cs_eligibility_rating.*' => 'required|string|max:255',
-            'cs_eligibility_date' => 'required|array|min:1',
-            'cs_eligibility_date.*' => 'required|date_format:Y-m-d',
-            'cs_eligibility_place' => 'required|array|min:1',
-            'cs_eligibility_place.*' => 'required|string|max:255',
-            'cs_eligibility_license' => 'required|array|min:1',
-            'cs_eligibility_license.*' => 'required|string|max:255',
-            'cs_eligibility_validity' => 'required|array|min:1',
-            'cs_eligibility_validity.*' => 'required|date_format:Y-m-d',
+            'cs_eligibility_career' => 'nullable|array',
+            'cs_eligibility_career.*' => 'nullable|string|max:255',
+            'cs_eligibility_rating' => 'nullable|array',
+            'cs_eligibility_rating.*' => 'nullable|string|max:255',
+            'cs_eligibility_date' => 'nullable|array',
+            'cs_eligibility_date.*' => ['nullable', function ($attribute, $value, $fail) {
+                $v = trim((string) ($value ?? ''));
+                if ($v === '') return;
+                try { \Carbon\Carbon::createFromFormat('Y-m-d', $v); } catch (\Throwable $e) { $fail('Invalid date format (YYYY-MM-DD).'); }
+            }],
+            'cs_eligibility_place' => 'nullable|array',
+            'cs_eligibility_place.*' => 'nullable|string|max:255',
+            'cs_eligibility_license' => 'nullable|array',
+            'cs_eligibility_license.*' => 'nullable|string|max:255',
+            'cs_eligibility_validity' => 'nullable|array',
+            'cs_eligibility_validity.*' => ['nullable', function ($attribute, $value, $fail) {
+                $v = trim((string) ($value ?? ''));
+                if ($v === '') return;
+                try { \Carbon\Carbon::createFromFormat('Y-m-d', $v); } catch (\Throwable $e) { $fail('Invalid date format (YYYY-MM-DD).'); }
+            }],
         ]);
 
         $validator->after(function (\Illuminate\Validation\Validator $validator) use ($request) {
@@ -2861,16 +2878,16 @@ class PDSController extends Controller
                     continue;
                 }
 
-                // "Plus 1 day" rule: FROM must be strictly earlier than TO.
-                if (!$fromDate->lt($toDate)) {
+                // FROM must not be after TO (same day is allowed).
+                if ($fromDate->gt($toDate)) {
                     $rowNumber = $i + 1;
                     $validator->errors()->add(
                         "work_exp_from.$i",
-                        "Work Experience row {$rowNumber}: The FROM date must be at least one day earlier than the TO date."
+                        "Work Experience row {$rowNumber}: The FROM date must not be later than the TO date."
                     );
                     $validator->errors()->add(
                         "work_exp_to.$i",
-                        "Work Experience row {$rowNumber}: The TO date must be at least one day later than the FROM date."
+                        "Work Experience row {$rowNumber}: The TO date must not be earlier than the FROM date."
                     );
                 }
             }
@@ -2939,9 +2956,9 @@ class PDSController extends Controller
 
             $data_work_exp = [
                 'user_id' => Auth::id(), // store the id of the current user
-                'work_exp_from' => $workExpFrom,
+                'work_exp_from' => $this->normalizeDateForDatabase($workExpFrom),
                 // DB column is DATE. Keep schema unchanged by converting PRESENT to a valid date.
-                'work_exp_to' => $isPresentWorkExpTo ? Carbon::today()->toDateString() : $workExpToRaw,
+                'work_exp_to' => $this->normalizeWorkExperienceEndDateForDatabase($workExpToRaw),
                 'work_exp_position' => trim(strip_tags((string) ($c2_form_data['work_exp_position'][$i] ?? ''))),
                 'work_exp_department' => trim(strip_tags((string) ($c2_form_data['work_exp_department'][$i] ?? ''))),
                 'work_exp_status' => trim(strip_tags((string) ($c2_form_data['work_exp_status'][$i] ?? ''))),
@@ -3024,10 +3041,10 @@ class PDSController extends Controller
                 'user_id' => Auth::id(), // store the id of the current user
                 'cs_eligibility_career' => trim(strip_tags($c2_form_data['cs_eligibility_career'][$i])),
                 'cs_eligibility_rating' => trim(strip_tags($c2_form_data['cs_eligibility_rating'][$i])),
-                'cs_eligibility_date' => trim(strip_tags($c2_form_data['cs_eligibility_date'][$i])),
+                'cs_eligibility_date' => $this->normalizeDateForDatabase(trim(strip_tags($c2_form_data['cs_eligibility_date'][$i]))),
                 'cs_eligibility_place' => trim(strip_tags($c2_form_data['cs_eligibility_place'][$i])),
                 'cs_eligibility_license' => trim(strip_tags($c2_form_data['cs_eligibility_license'][$i])),
-                'cs_eligibility_validity' => trim(strip_tags($c2_form_data['cs_eligibility_validity'][$i]))
+                'cs_eligibility_validity' => $this->normalizeDateForDatabase(trim(strip_tags($c2_form_data['cs_eligibility_validity'][$i])))
             ];
 
             $cs_id_temp = $c2_form_data['cs_eligibility_id'][$i] ?? null;
@@ -3256,8 +3273,8 @@ $rules_data_learning["learning_to_$i"] = 'required|date';
             $data_learning_arrays[] = [
                 'learning_title' => $validated_data_learning["learning_title_$i"],
                 'learning_type' => $validated_data_learning["learning_type_$i"],
-                'learning_from' => $validated_data_learning["learning_from_$i"],
-                'learning_to' => $validated_data_learning["learning_to_$i"],
+                'learning_from' => $this->normalizeDateForDatabase($validated_data_learning["learning_from_$i"]),
+                'learning_to' => $this->normalizeDateForDatabase($validated_data_learning["learning_to_$i"]),
                 'learning_hours' => $validated_data_learning["learning_hours_$i"],
                 'learning_conducted' => $validated_data_learning["learning_conducted_$i"],
                 'user_id' => Auth::id(),
@@ -3318,8 +3335,8 @@ $rules_data_vol["voluntary_to_$i"] = 'required|date';
         foreach ($voluntaryIndexes as $i) {
             $data_voluntary_arrays[] = [
                 'voluntary_org' => $validated_data_vol["voluntary_org_$i"],
-                'voluntary_from' => $validated_data_vol["voluntary_from_$i"],
-                'voluntary_to' => $validated_data_vol["voluntary_to_$i"],
+                'voluntary_from' => $this->normalizeDateForDatabase($validated_data_vol["voluntary_from_$i"]),
+                'voluntary_to' => $this->normalizeDateForDatabase($validated_data_vol["voluntary_to_$i"]),
                 'voluntary_hours' => $validated_data_vol["voluntary_hours_$i"],
                 'voluntary_position' => $validated_data_vol["voluntary_position_$i"],
                 'user_id' => Auth::id(),

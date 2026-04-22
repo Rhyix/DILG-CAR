@@ -107,7 +107,13 @@ class WorkExpSheetController extends Controller
             ])
             ->log($action . 'd Work Experience Sheet');
 
-        if ($request->boolean('simple_mode') || $request->input('after_action') === 'dashboard') {
+        if ($request->input('after_action') === 'preview') {
+            return redirect()
+                ->route('pds.preview')
+                ->with('success', 'Work Experience Sheet Saved!');
+        }
+
+        if ($request->input('after_action') === 'dashboard') {
             return redirect()
                 ->route('dashboard_user')
                 ->with('success', 'Work Experience Sheet Saved!');

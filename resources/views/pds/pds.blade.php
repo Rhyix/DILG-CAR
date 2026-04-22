@@ -1,4 +1,4 @@
-﻿@extends('layout.pds_layout')
+@extends('layout.pds_layout')
 @section('title', 'PDS - Personal Data Sheet')
 @section('content')
     <style>
@@ -964,8 +964,39 @@
         jhsFrom.min = formatPdsEducationDateForInput(elemToDate);
         if (jhsFromDate.getTime() < elemToDate.getTime()) {
             jhsFrom.setCustomValidity('Secondary "From" date must not be before Elementary "To" date.');
+            jhsFrom.reportValidity();
         }
     }
+
+    function validateSecondaryToAndCollegeFrom() {
+        const jhsTo = document.getElementById('jhs_to');
+        if (!jhsTo) return;
+
+        const jhsToDate = parsePdsEducationDate(jhsTo.value);
+
+        const collegeContainer = document.getElementById('college-container');
+        if (!collegeContainer) return;
+
+        const collegeFromInputs = collegeContainer.querySelectorAll('[data-education-date-role="from"]');
+
+        collegeFromInputs.forEach(collegeFrom => {
+            collegeFrom.setCustomValidity('');
+
+            const collegeFromDate = parsePdsEducationDate(collegeFrom.value);
+
+            if (!jhsToDate || !collegeFromDate) {
+                collegeFrom.removeAttribute('min');
+                return;
+            }
+
+            collegeFrom.min = formatPdsEducationDateForInput(jhsToDate);
+            if (collegeFromDate.getTime() < jhsToDate.getTime()) {
+                collegeFrom.setCustomValidity('College "From" date must not be before Secondary "To" date.');
+                collegeFrom.reportValidity();
+            }
+        });
+    }
+
     function togglePdsEducationDateRangeState(rangeEl, state) {
         const fromInput = rangeEl.querySelector('[data-education-date-role="from"]');
         const toInput = rangeEl.querySelector('[data-education-date-role="to"]');
@@ -1206,7 +1237,7 @@
         updateSecondaryBasicEducation();
         const elemTo = document.getElementById('elem_to');
         if (elemTo) {
-            ['change', 'blur'].forEach((evt) => {
+            ['input', 'change', 'blur'].forEach((evt) => {
                 elemTo.addEventListener(evt, updateSecondaryBasicEducation);
                 elemTo.addEventListener(evt, validateElementaryToAndSecondaryFrom);
             });
@@ -1215,6 +1246,24 @@
         if (jhsFrom) {
             ['input', 'change', 'blur'].forEach((evt) => {
                 jhsFrom.addEventListener(evt, validateElementaryToAndSecondaryFrom);
+            });
+        }
+
+        const jhsTo = document.getElementById('jhs_to');
+        if (jhsTo) {
+            ['input', 'change', 'blur'].forEach((evt) => {
+                jhsTo.addEventListener(evt, validateSecondaryToAndCollegeFrom);
+            });
+        }
+
+        const collegeContainer = document.getElementById('college-container');
+        if (collegeContainer) {
+            ['input', 'change', 'blur'].forEach((evt) => {
+                collegeContainer.addEventListener(evt, (e) => {
+                    if (e.target && e.target.matches('[data-education-date-role="from"]')) {
+                        validateSecondaryToAndCollegeFrom();
+                    }
+                });
             });
         }
 
@@ -1233,6 +1282,7 @@
 
         syncElementaryYearGraduatedState();
         validateElementaryToAndSecondaryFrom();
+        validateSecondaryToAndCollegeFrom();
 
         const dobInput = document.querySelector('[data-dob-input]');
         if (dobInput) {

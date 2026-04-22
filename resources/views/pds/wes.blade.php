@@ -3,11 +3,13 @@
 @section('content')
   @php
     $isSimpleMode = request()->boolean('simple');
+    $isOpenDocs   = request()->boolean('open_docs');
+    $wesAfterAction = $isSimpleMode ? 'preview' : 'next';
   @endphp
   <form id="workExperienceForm" action="{{ route('work_experience_store') }}" method="POST">
     @csrf
     <input type="hidden" name="simple_mode" value="{{ $isSimpleMode ? 1 : 0 }}">
-    <input type="hidden" name="after_action" id="after_action" value="{{ $isSimpleMode ? 'dashboard' : 'next' }}">
+    <input type="hidden" name="after_action" id="after_action" value="{{ $wesAfterAction }}">
 
     <main class="max-w-full md:max-w-6xl mx-auto bg-white border border-gray-200 p-6 md:p-8 rounded-2xl shadow-lg" x-data="{
                 entries: (() => {
@@ -185,7 +187,7 @@
       </button>
 
       <div class="flex flex-col sm:flex-row gap-4 w-full md:w-auto justify-end">
-        <button type="submit" onclick="document.getElementById('after_action').value = '{{ $isSimpleMode ? 'dashboard' : 'next' }}';"
+        <button type="submit" onclick="document.getElementById('after_action').value = '{{ $wesAfterAction }}';"
           class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-1 justify-center">
           Save
         </button>

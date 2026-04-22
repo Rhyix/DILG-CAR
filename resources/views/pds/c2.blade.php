@@ -268,18 +268,22 @@
 
     <script>
         const DEFAULT_CIVIL_SERVICE_ELIGIBILITY_OPTIONS = [
+            { name: 'CSC Professional Eligibility', legalBasis: 'CSR 2017 / PD 807', level: 'Second Level' },
+            { name: 'CSC Subprofessional Eligibility', legalBasis: 'CSR 2017 / PD 807', level: 'First Level' },
             { name: 'Bar/Board Eligibility', legalBasis: 'RA 1080', level: 'Second Level' },
-            { name: 'CSC Professional Eligibility', legalBasis: 'CSR 2017/PD 807', level: 'Second Level' },
             { name: 'Honor Graduate Eligibility', legalBasis: 'PD 907', level: 'Second Level' },
-            { name: 'Foreign School Honor Graduate Eligibility', legalBasis: 'CSC Res. 1302714', level: 'Second Level' },
+            { name: 'Foreign School Honor Graduate Eligibility', legalBasis: 'CSC Resolution No. 1302714', level: 'Second Level' },
             { name: 'Scientific and Technological Specialist Eligibility', legalBasis: 'PD 997', level: 'Second Level' },
-            { name: 'Electronic Data Processing Specialist Eligibility', legalBasis: 'CSC Res. 90-083', level: 'Second Level' },
-            { name: 'Subprofessional (Sub-Prof) Eligibility', legalBasis: 'CSR 2017/PD 807', level: 'First Level' },
-            { name: 'Skills Eligibility-Category II', legalBasis: 'CSC MC 11, s.1996', level: 'First Level' },
+            { name: 'Electronic Data Processing Specialist Eligibility', legalBasis: 'CSC Resolution No. 90-083', level: 'Second Level' },
+            { name: 'Skills Eligibility \u2013 Category II', legalBasis: 'CSC MC No. 11, s. 1996, as amended', level: 'First Level' },
             { name: 'Barangay Official Eligibility', legalBasis: 'RA 7160', level: 'First Level' },
-            { name: 'Sanggunian Member Eligibility', legalBasis: 'RA 10156', level: 'First Level' },
             { name: 'Barangay Health Worker Eligibility', legalBasis: 'RA 7883', level: 'First Level' },
             { name: 'Barangay Nutrition Scholar Eligibility', legalBasis: 'PD 1569', level: 'First Level' },
+            { name: 'Sanggunian Member First Level Eligibility', legalBasis: 'RA 10156', level: 'First Level' },
+            { name: 'Sanggunian Member Second Level Eligibility', legalBasis: 'RA 10156', level: 'Second Level' },
+            { name: 'Veteran Preference Rating Eligibility', legalBasis: 'Professional or Subprofessional, depending on exam/rating', level: 'Second Level' },
+            { name: 'Career Service Eligibility \u2013 Preference Rating', legalBasis: 'CSE-PR', level: 'Second Level' },
+            { name: 'Career Service Eligibility \u2013 Preference Rating for Military and Uniformed Personnel', legalBasis: 'CSE-PR for MUP', level: 'Second Level' },
         ];
         let CIVIL_SERVICE_ELIGIBILITY_OPTIONS = [...DEFAULT_CIVIL_SERVICE_ELIGIBILITY_OPTIONS];
 
@@ -299,7 +303,21 @@
             return normalized === '1' || normalized === 'true' || normalized === 'on' || normalized === 'yes';
         }
 
-        const IS_ELEMENTARY_ONLY_APPLICANT = !isTruthyGraduateFlag(C1_ELEMENTARY_GRADUATE_RAW);
+        function isExplicitlyFalsyGraduateFlag(value) {
+            if (value === null || value === undefined) {
+                return false;
+            }
+            if (typeof value === 'boolean') {
+                return value === false;
+            }
+            if (typeof value === 'number') {
+                return value === 0;
+            }
+            const normalized = String(value).trim().toLowerCase();
+            return normalized === '0' || normalized === 'false' || normalized === 'no' || normalized === 'off';
+        }
+
+        const IS_ELEMENTARY_ONLY_APPLICANT = isExplicitlyFalsyGraduateFlag(C1_ELEMENTARY_GRADUATE_RAW);
 
         async function loadCivilServiceEligibilityOptions() {
             try {
@@ -619,10 +637,10 @@
                     return true;
                 }
 
-                // Plus 1 day rule: FROM must be earlier than TO by at least one day.
-                if (fromDate.getTime() >= toDate.getTime()) {
-                    setWorkDateErrorState(fromInput, 'FROM date must be at least 1 day earlier than TO date.');
-                    setWorkDateErrorState(toInput, 'TO date must be at least 1 day later than FROM date.');
+                // FROM must not be after TO.
+                if (fromDate.getTime() > toDate.getTime()) {
+                    setWorkDateErrorState(fromInput, 'FROM date must not be later than TO date.');
+                    setWorkDateErrorState(toInput, 'TO date must not be earlier than FROM date.');
                     if (showMessage) {
                         toInput.reportValidity();
                     }
@@ -716,13 +734,11 @@
                     toInput.type = 'text';
                     toInput.value = 'PRESENT';
                     toInput.readOnly = true;
-                    toInput.required = false;
                     setWorkDateErrorState(toInput, '');
                 } else {
                     const restoreDate = toInput.dataset.lastDate || '';
                     toInput.type = 'date';
                     toInput.readOnly = false;
-                    toInput.required = true;
                     toInput.value = restoreDate;
                 }
             }
@@ -756,7 +772,7 @@
                     </td>
                     <td>
                         <div class="flex items-center gap-2">
-                            <input type="date" name="work_exp_to[]" class="form-input" value="${(!is_new && (String(work_exp_to).toLowerCase() !== 'present')) ? work_exp_to : ''}" data-work-to>
+                            <input type="date" name="work_exp_to[]" class="form-input" value="${(!is_new && work_exp_to != null && work_exp_to !== undefined && String(work_exp_to).toLowerCase() !== 'present' && String(work_exp_to).toLowerCase() !== 'null') ? work_exp_to : ''}" data-work-to>
                             <label class="inline-flex items-center gap-1 text-xs text-gray-700">
                                 <input type="checkbox" class="present-toggle h-4 w-4" data-present-toggle>
                                 <span>Present</span>
@@ -796,7 +812,9 @@
                 const presentToggle = newRow.querySelector('[data-present-toggle]');
                 if (presentToggle) {
                     presentToggle.checked = isPresentValue;
-                    applyPresentState(newRow, isPresentValue);
+                    if (isPresentValue) {
+                        applyPresentState(newRow, true);
+                    }
                 }
                 attachWorkExperienceDateValidation(newRow);
                 updateEmptyState();
@@ -832,7 +850,7 @@
                     <input type="hidden" name="cs_eligibility_id[]" value="${(!is_new && cs_eligibility_id !== null && cs_eligibility_id !== undefined && String(cs_eligibility_id).toLowerCase() !== 'null') ? cs_eligibility_id : ''}">
                     <td>
                         <div class="space-y-2">
-                            <select class="form-input" data-cs-career-select required>
+                            <select class="form-input" data-cs-career-select>
                                 ${renderCivilServiceEligibilityOptions((!is_new) ? cs_eligibility_career : '')}
                             </select>
                             <input type="text" class="form-input hidden" data-cs-career-custom placeholder="Specify eligibility not on list">
@@ -844,10 +862,10 @@
                         <input type="text" name="cs_eligibility_rating[]" placeholder="Rating %" class="form-input" value="${(!is_new) ? cs_eligibility_rating : ''}"/>
                     </td>
                     <td>
-                        <input type="date" name="cs_eligibility_date[]" class="form-input" required value="${(!is_new) ? cs_eligibility_date : ''}"/>
+                        <input type="date" name="cs_eligibility_date[]" class="form-input" value="${(!is_new) ? cs_eligibility_date : ''}"/>
                     </td>
                     <td>
-                        <input type="text" name="cs_eligibility_place[]" placeholder="Place of Examination / Conferment" class="form-input" required value="${(!is_new) ? cs_eligibility_place : ''}"/>
+                        <input type="text" name="cs_eligibility_place[]" placeholder="Place of Examination / Conferment" class="form-input" value="${(!is_new) ? cs_eligibility_place : ''}"/>
                     </td>
                     <td>
                         <input type="text" name="cs_eligibility_license[]" placeholder="License No. (if applicable)" class="form-input" value="${(!is_new) ? cs_eligibility_license : ''}"/>

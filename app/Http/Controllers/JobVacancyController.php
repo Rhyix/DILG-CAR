@@ -1850,6 +1850,37 @@ class JobVacancyController extends Controller
             ? $this->hasCompletedPdsForApply((int) Auth::id())
             : false;
 
+        // Auto-populate initial assessment from PDS data if PDS is complete and assessment not yet done
+        if (Auth::check() && $hasCompletedPdsForApply) {
+            $sessionKey = $this->initialAssessmentSessionKey((string) $vacancy->vacancy_id);
+            $existingAssessment = session($sessionKey, []);
+            $hasSubscribedPdsAnswered = array_key_exists('has_subscribed_pds', $existingAssessment);
+
+            if (!$hasSubscribedPdsAnswered) {
+                $degree = $this->resolveHighestDegreeFromPds((int) Auth::id());
+                $eligibility = $this->resolvePrimaryEligibilityFromPds((int) Auth::id());
+
+                if ($degree !== '' && $eligibility !== '') {
+                    $isPlantilla = strcasecmp(trim((string) $vacancy->vacancy_type), 'plantilla') === 0;
+                    $autoAssessment = [
+                        'vacancy_id' => (string) $vacancy->vacancy_id,
+                        'degree' => $degree,
+                        'eligibility' => $eligibility,
+                        'q1_passed' => true,
+                        'q2_passed' => true,
+                        'has_subscribed_pds' => true,
+                        'auto_populated' => true,
+                        'updated_at' => now()->toIso8601String(),
+                    ];
+                    // For Plantilla, set has_pqe default (PDS doesn't track PQE, user can update via manual assessment if needed)
+                    if ($isPlantilla) {
+                        $autoAssessment['has_pqe'] = false;
+                    }
+                    session([$sessionKey => $autoAssessment]);
+                }
+            }
+        }
+
         $hasApplied = Applications::where('user_id', Auth::id())
             ->where('vacancy_id', $vacancy_id)
             ->exists();
@@ -3654,9 +3685,8 @@ class JobVacancyController extends Controller
         $familyBackground = FamilyBackground::where('user_id', $userId)->first();
         $educationBackground = EducationalBackground::where('user_id', $userId)->first();
         $miscInfo = MiscInfos::where('user_id', $userId)->first();
-        $hasWes = WorkExpSheet::where('user_id', $userId)->exists();
 
-        if (!$personalInfo || !$familyBackground || !$educationBackground || !$miscInfo || !$hasWes) {
+        if (!$personalInfo || !$familyBackground || !$educationBackground || !$miscInfo) {
             return false;
         }
 
@@ -4007,6 +4037,14 @@ class JobVacancyController extends Controller
             if ($this->hasStoredUploadedDocument($uploadedDocuments, $docType)) {
                 return true;
             }
+        }
+
+        if ($field === 'experience') {
+            return WorkExperience::where('user_id', $userId)->exists();
+        }
+
+        if ($field === 'training') {
+            return LearningAndDevelopment::where('user_id', $userId)->exists();
         }
 
         return false;
@@ -4736,6 +4774,94 @@ class JobVacancyController extends Controller
         }
 
         return true;
+    }
+
+    private function resolveHighestDegreeFromPds(int $userId): string
+    {
+        $education = EducationalBackground::where('user_id', $userId)->first();
+        if (!$education) {
+            return '';
+        }
+
+        // Check for graduate degrees first (highest priority) - field is 'basic' for degree/course
+        $gradEntries = $education->grad ?? [];
+        if (is_array($gradEntries) && !empty($gradEntries)) {
+            foreach ($gradEntries as $entry) {
+                // 'basic' field holds degree/course for college/grad entries
+                $degree = trim((string) ($entry['basic'] ?? ''));
+                if ($degree !== '' && strtoupper($degree) !== 'NOINPUT') {
+                    return $degree;
+                }
+            }
+        }
+
+        // Check college entries - field is 'basic' for degree/course
+        $collegeEntries = $education->college ?? [];
+        if (is_array($collegeEntries) && !empty($collegeEntries)) {
+            foreach ($collegeEntries as $entry) {
+                // 'basic' field holds degree/course for college entries
+                $degree = trim((string) ($entry['basic'] ?? ''));
+                if ($degree !== '' && strtoupper($degree) !== 'NOINPUT') {
+                    return $degree;
+                }
+            }
+        }
+
+        // Check vocational entries - field is 'basic' for course
+        $vocationalEntries = $education->vocational ?? [];
+        if (is_array($vocationalEntries) && !empty($vocationalEntries)) {
+            foreach ($vocationalEntries as $entry) {
+                // 'basic' field holds course for vocational entries
+                $course = trim((string) ($entry['basic'] ?? ''));
+                if ($course !== '' && strtoupper($course) !== 'NOINPUT') {
+                    return $course;
+                }
+            }
+        }
+
+        // Check senior high
+        $shsBasic = trim((string) ($education->shs_basic ?? ''));
+        if ($shsBasic !== '' && strtoupper($shsBasic) !== 'NOINPUT') {
+            return $shsBasic;
+        }
+
+        // Check junior high
+        $jhsBasic = trim((string) ($education->jhs_basic ?? ''));
+        if ($jhsBasic !== '' && strtoupper($jhsBasic) !== 'NOINPUT') {
+            return $jhsBasic;
+        }
+
+        // Check elementary (lowest priority)
+        $elemBasic = trim((string) ($education->elem_basic ?? ''));
+        if ($elemBasic !== '' && strtoupper($elemBasic) !== 'NOINPUT') {
+            return $elemBasic;
+        }
+
+        return '';
+    }
+
+    private function resolvePrimaryEligibilityFromPds(int $userId): string
+    {
+        $eligibilities = CivilServiceEligibility::where('user_id', $userId)->get();
+
+        if ($eligibilities->isEmpty()) {
+            return '';
+        }
+
+        foreach ($eligibilities as $eligibility) {
+            // Try cs_eligibility_career first, then fall back to other fields
+            $name = trim((string) ($eligibility->cs_eligibility_career ?? ''));
+            if ($name !== '' && strtoupper($name) !== 'NOINPUT') {
+                return $name;
+            }
+            // Some systems may store in eligibility_name column
+            $name = trim((string) ($eligibility->eligibility_name ?? ''));
+            if ($name !== '' && strtoupper($name) !== 'NOINPUT') {
+                return $name;
+            }
+        }
+
+        return '';
     }
 
     private function isInitialAssessmentEducationAligned(JobVacancy $vacancy, string $degree): bool

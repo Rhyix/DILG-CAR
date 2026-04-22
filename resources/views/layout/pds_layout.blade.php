@@ -500,33 +500,47 @@
     @endif
 
     @if ($errors->any())
-    <div
-        x-data="{ show: true }"
-        x-init="setTimeout(() => show = false, 3000)"
-        x-show="show"
-        x-transition
-        class="fixed top-5 right-5 z-[2147483647] bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl shadow-lg w-full max-w-sm"
-    >
-        <strong class="font-bold">Whoops!</strong>
-        <ul class="list-disc list-inside text-sm mt-1">
-            @foreach ($errors->all() as $error)
-                <li>{{ $error }}</li>
-            @endforeach
-        </ul>
-    </div>
+    <script>
+        (function () {
+            const errors = @json($errors->all());
+            const delay = 350;
+            function fireToasts() {
+                if (typeof window.showAppToast === 'function') {
+                    errors.forEach(function (msg, i) {
+                        setTimeout(function () {
+                            window.showAppToast(msg, 'error', 7000);
+                        }, i * delay);
+                    });
+                } else {
+                    setTimeout(fireToasts, 80);
+                }
+            }
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', fireToasts);
+            } else {
+                fireToasts();
+            }
+        })();
+    </script>
     @endif
 
     @if (session('error'))
-        <div
-            x-data="{ show: true }"
-            x-init="setTimeout(() => show = false, 3000)"
-            x-show="show"
-            x-transition
-            class="fixed top-5 right-5 z-[2147483647] bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl shadow-lg w-full max-w-sm"
-        >
-            <strong class="font-bold">Whoops!</strong>
-                    {{ session('error') }}
-        </div>
+    <script>
+        (function () {
+            function fireError() {
+                if (typeof window.showAppToast === 'function') {
+                    window.showAppToast(@json(session('error')), 'error', 7000);
+                } else {
+                    setTimeout(fireError, 80);
+                }
+            }
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', fireError);
+            } else {
+                fireError();
+            }
+        })();
+    </script>
     @endif
 
     @if(!$simple)
