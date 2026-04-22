@@ -63,7 +63,7 @@ class DocumentUploadedNotification extends Notification
             ->line('The following documents have been uploaded by applicant ' . $this->applicantName . ' for the position of ' . $this->vacancyTitle . ':')
             ->line('Documents: ' . $docList)
             ->line('Timestamp: ' . $this->uploadTimestamp->toDayDateTimeString())
-            ->action('View Application', route('admin.applicant_status', ['user_id' => $this->applicantId, 'vacancy_id' => $this->vacancyId]))
+            ->action('View Application', $this->resolveAdminLink())
             ->line('Thank you for your attention.');
     }
 
@@ -77,10 +77,26 @@ class DocumentUploadedNotification extends Notification
         return [
             'title' => 'New Documents Uploaded',
             'message' => $this->applicantName . ' uploaded ' . count($this->documentTypes) . ' document(s).',
-            'link' => route('admin.applicant_status', ['user_id' => $this->applicantId, 'vacancy_id' => $this->vacancyId]),
+            'link' => $this->resolveAdminLink(),
             'section' => 'Application List',
             'user_id' => $this->applicantId,
             'vacancy_id' => $this->vacancyId
         ];
+    }
+
+    private function resolveAdminLink(): string
+    {
+        $userId = (string) ($this->applicantId ?? '');
+        $vacancyId = trim((string) ($this->vacancyId ?? ''));
+
+        if ($userId !== '' && $vacancyId !== '') {
+            return route('admin.applicant_status', ['user_id' => $userId, 'vacancy_id' => $vacancyId]);
+        }
+
+        if ($userId !== '') {
+            return route('admin.applicant_records.show', ['user' => $userId]);
+        }
+
+        return route('admin.applicant_records.index');
     }
 }

@@ -187,9 +187,22 @@
       line-height: 1.4;
     }
 
-    .email-actions a {
-      color: #0b3b87;
-      text-decoration: underline;
+    .email-actions .cta-label {
+      margin: 0 0 8px;
+      color: #333333;
+      font-size: 12px;
+    }
+
+    .email-actions .cta-button {
+      display: inline-block;
+      background: #0b3b87;
+      color: #ffffff !important;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 13px;
+      line-height: 1;
+      padding: 11px 16px;
+      border-radius: 6px;
     }
 
     .footnote {
@@ -456,8 +469,14 @@
     </table>
 
     <div class="email-actions">
-      View full status:
-      <a href="{{ route('application_status', ['user' => $user_id, 'vacancy' => $vacancy_id]) }}">Application Status Page</a>
+      <p class="cta-label">View full status:</p>
+      <a
+        href="{{ route('application_status', ['user' => $user_id, 'vacancy' => $vacancy_id]) }}"
+        class="cta-button"
+        style="display:inline-block;background:#0b3b87;color:#ffffff !important;text-decoration:none;font-weight:700;font-size:13px;line-height:1;padding:11px 16px;border-radius:6px;"
+      >
+        View Application Status
+      </a>
     </div>
 
     <p class="footnote">

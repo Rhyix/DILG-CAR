@@ -5502,8 +5502,12 @@ $rules_data_vol["voluntary_to_$i"] = 'required|date';
                             ->with('vacancy')
                             ->first();
 
-                        $vacancyTitle = $latestApplication ? $latestApplication->vacancy->position_title : 'General Update';
-                        $vacancyId = $latestApplication ? $latestApplication->vacancy_id : null;
+                        $vacancyId = !empty($applicationVacancyId)
+                            ? (string) $applicationVacancyId
+                            : ($latestApplication ? (string) $latestApplication->vacancy_id : null);
+                        $vacancyTitle = $latestApplication && $latestApplication->vacancy
+                            ? $latestApplication->vacancy->position_title
+                            : 'General Update';
 
                         $admins = \App\Models\Admin::all();
                         foreach ($admins as $admin) {
