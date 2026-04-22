@@ -2214,7 +2214,7 @@ class AdminController extends Controller
             }
         }
 
-        SendApplicantNotificationEmails::dispatch(
+        (new SendApplicantNotificationEmails(
             $userEmail,
             [
                 'user_id' => $user_id,
@@ -2236,11 +2236,11 @@ class AdminController extends Controller
                 'reviewer_name' => Auth::guard('admin')->user()->name,
             ],
             $adminMailPayloads
-        )->onConnection('database')->afterResponse();
+        ))->handle();
 
         return response()->json([
             'success' => true,
-            'message' => 'Applicant notified successfully. Email delivery is being processed in the background.',
+            'message' => 'Applicant notified successfully. Email sent directly.',
         ]);
     }
 
