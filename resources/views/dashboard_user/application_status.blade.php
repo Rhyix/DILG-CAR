@@ -259,17 +259,51 @@
                     </button>
                   </a>
                   @if($canCancelApplication)
-                    <form method="POST" action="{{ route('application_status.cancel', ['user' => $user_id, 'vacancy' => $vacancy_id]) }}" class="w-full">
+                    <form id="cancel-application-form" method="POST" action="{{ route('application_status.cancel', ['user' => $user_id, 'vacancy' => $vacancy_id]) }}" class="w-full">
                       @csrf
                       <button
-                        type="submit"
-                        onclick="return confirm('Cancel this application? This action cannot be undone.');"
+                        type="button"
+                        id="open-cancel-modal-btn"
                         class="w-full border-2 border-red-500 text-red-600 rounded-lg px-4 py-2 text-sm flex items-center justify-center gap-3 font-montserrat hover:bg-red-500 hover:text-white transition">
                         <i data-feather="x-circle" class="w-5 h-5"></i> Cancel Application
                       </button>
                     </form>
                   @endif
                 </div>
+
+                @if($canCancelApplication)
+                  <div id="cancel-application-modal" class="fixed inset-0 z-[70] hidden" aria-hidden="true">
+                    <div id="cancel-application-modal-backdrop" class="absolute inset-0 bg-black/50"></div>
+                    <div class="relative z-10 flex min-h-full items-center justify-center p-4">
+                      <div
+                        class="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="cancel-application-modal-title"
+                        aria-describedby="cancel-application-modal-desc"
+                      >
+                        <h3 id="cancel-application-modal-title" class="text-lg font-bold text-slate-900">Cancel this application?</h3>
+                        <p id="cancel-application-modal-desc" class="mt-2 text-sm text-slate-600">This action cannot be undone.</p>
+                        <div class="mt-6 flex items-center justify-end gap-3">
+                          <button
+                            type="button"
+                            id="cancel-application-modal-close-btn"
+                            class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                          >
+                            Keep Application
+                          </button>
+                          <button
+                            type="button"
+                            id="cancel-application-modal-confirm-btn"
+                            class="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
+                          >
+                            Yes, Cancel
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                @endif
 
                 <!-- Document Section -->
                 <div class="flex flex-col lg:flex-row gap-4">
@@ -549,6 +583,41 @@
 
           // Initialize
           document.addEventListener('DOMContentLoaded', function() {
+            const cancelModal = document.getElementById('cancel-application-modal');
+            const cancelModalOpenBtn = document.getElementById('open-cancel-modal-btn');
+            const cancelModalCloseBtn = document.getElementById('cancel-application-modal-close-btn');
+            const cancelModalConfirmBtn = document.getElementById('cancel-application-modal-confirm-btn');
+            const cancelModalBackdrop = document.getElementById('cancel-application-modal-backdrop');
+            const cancelApplicationForm = document.getElementById('cancel-application-form');
+
+            const openCancelModal = () => {
+              if (!cancelModal) return;
+              cancelModal.classList.remove('hidden');
+              cancelModal.setAttribute('aria-hidden', 'false');
+              cancelModalConfirmBtn?.focus();
+            };
+
+            const closeCancelModal = () => {
+              if (!cancelModal) return;
+              cancelModal.classList.add('hidden');
+              cancelModal.setAttribute('aria-hidden', 'true');
+              cancelModalOpenBtn?.focus();
+            };
+
+            cancelModalOpenBtn?.addEventListener('click', openCancelModal);
+            cancelModalCloseBtn?.addEventListener('click', closeCancelModal);
+            cancelModalBackdrop?.addEventListener('click', closeCancelModal);
+            cancelModalConfirmBtn?.addEventListener('click', function () {
+              if (!cancelApplicationForm) return;
+              cancelApplicationForm.submit();
+            });
+
+            document.addEventListener('keydown', function (event) {
+              if (event.key !== 'Escape') return;
+              if (!cancelModal || cancelModal.classList.contains('hidden')) return;
+              closeCancelModal();
+            });
+
             console.log("Documents from backend:", documents);
             documents = sortDocumentsForRequiredPriority(documents);
             renderDocuments(documents);

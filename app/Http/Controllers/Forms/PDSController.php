@@ -746,6 +746,38 @@ class PDSController extends Controller
         return Hash::check('google-oauth', $password);
     }
 
+    private function mergeC1RegistrationDefaults(array $c1Data, $user): array
+    {
+        if (!$user) {
+            return $c1Data;
+        }
+
+        $defaults = [
+            'mobile_no' => $this->normalizeMobileInput((string) ($user->phone_number ?? '')) ?: null,
+            'email_address' => trim((string) ($user->email ?? '')) ?: null,
+        ];
+
+        if (!$this->isGoogleOAuthUser($user)) {
+            $defaults = array_merge([
+                'surname' => trim((string) ($user->last_name ?? '')) ?: null,
+                'first_name' => trim((string) ($user->first_name ?? '')) ?: null,
+                'middle_name' => trim((string) ($user->middle_name ?? '')) ?: null,
+                'sex' => $this->normalizeSex((string) ($user->sex ?? '')) ?: null,
+            ], $defaults);
+        }
+
+        foreach ($defaults as $key => $value) {
+            $current = $c1Data[$key] ?? null;
+            $currentText = trim((string) $current);
+            $isMissing = $current === null || $currentText === '' || strtoupper($currentText) === 'NOINPUT';
+            if ($isMissing && $value !== null && trim((string) $value) !== '') {
+                $c1Data[$key] = $value;
+            }
+        }
+
+        return $c1Data;
+    }
+
     /**
      * Updates the C1 session data based on the database .If there is no data on the database,
      * the function should return an empty array.
@@ -801,23 +833,9 @@ class PDSController extends Controller
             $user_personal_info['per_zipcode'] = ($user_personal_info['per_zipcode'] != '{*}') ? $user_personal_info['per_zipcode'] : null;
 
             $c1_full_info = array_merge($c1_full_info, $user_personal_info);
-        } else {
-            $userContactDefaults = [
-                'mobile_no' => $this->normalizeMobileInput((string) ($current_user->phone_number ?? '')) ?: null,
-                'email_address' => trim((string) ($current_user->email ?? '')) ?: null,
-            ];
-
-            if (!$this->isGoogleOAuthUser($current_user)) {
-                $userContactDefaults = array_merge([
-                    'surname' => trim((string) ($current_user->last_name ?? '')) ?: null,
-                    'first_name' => trim((string) ($current_user->first_name ?? '')) ?: null,
-                    'middle_name' => trim((string) ($current_user->middle_name ?? '')) ?: null,
-                    'sex' => $this->normalizeSex((string) ($current_user->sex ?? '')) ?: null,
-                ], $userContactDefaults);
-            }
-
-            $c1_full_info = array_merge($c1_full_info, $userContactDefaults);
         }
+
+        $c1_full_info = $this->mergeC1RegistrationDefaults($c1_full_info, $current_user);
 
         $user_family_bg = $current_user->familyBackground?->attributesToArray();
         if ($user_family_bg != null) {
@@ -862,6 +880,11 @@ class PDSController extends Controller
         // If form in session already exists then no need to retireve data from the database.
         if (!session()->has('form.c1')) {
             session(['form.c1' => $this->c1GetFormFromDB()]);
+        } else {
+            $sessionC1 = session('form.c1', []);
+            if (is_array($sessionC1)) {
+                session(['form.c1' => $this->mergeC1RegistrationDefaults($sessionC1, Auth::user())]);
+            }
         }
         $vocational_schools = session('form.c1.vocational', []);
         $college_schools = session('form.c1.college', []);
