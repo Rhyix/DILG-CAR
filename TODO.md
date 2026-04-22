@@ -1,23 +1,10 @@
-# PDS Date Validation Fix - Allow Same Day ✅
+# Remove Exam Column from Job Vacancies Page - ✅ COMPLETE
 
-**Status: [3/6 complete]**
+## Completed Steps
+- [x] Step 1: Edit `resources/views/partials/vacancy_list.blade.php` - Remove exam div, PHP logic, update widths
+- [x] Step 2: Edit `resources/views/dashboard_user/job_vacancy.blade.php` - Remove exam header, update widths  
 
-## Approved Plan Breakdown:
+## Remaining
+- [ ] Step 3: Test page and filters at http://127.0.0.1:8000/job-vacancies (refresh browser)
 
-### 1. ✅ Create TODO.md 
-### 2. ✅ Edit PDSController.php - Backend Validation Rules
-   - Removed `after:` rules for both L&D and Voluntary Work
-   - Custom validator: `lte` → `lt` (allow same day)
-
-### 3. ✅ Edit c3.blade.php - Frontend Validation
-   - Updated `bindDateRangeValidation()`: `<=` → `<` comparison
-   - Removed frontend `min` date restriction
-
-### 4. [ ] Test Backend Submission
-### 5. [ ] Test Frontend Validation  
-### 6. [ ] Complete & Verify
-
-**Backend & Frontend now allow same-day dates!**
-
-**Next Step**: Test form submission with same-day dates.
-
+**Status: Ready for Testing**

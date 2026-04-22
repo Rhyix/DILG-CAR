@@ -119,21 +119,22 @@
 </section>
 
 <!-- Job Vacancies List -->
-<div class="bg-white rounded-xl border border-[#0D2B70] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0">
-    <!-- Desktop Header -->
-    <div class="hidden lg:flex flex-none bg-[#0D2B70] text-white text-xs font-bold uppercase tracking-wider sticky top-0 z-10">
-        <div class="py-3 px-4 w-[25%]">Job Title</div>
-        <div class="py-3 px-4 w-[12%]">Salary</div>
-        <div class="py-3 px-4 w-[18%]">Place of Assignment</div>
-        <div class="py-3 px-4 w-[15%] text-center">Deadline</div>
-        <div class="py-3 px-4 w-[10%] text-center">Status</div>
-        <div class="py-3 px-4 w-[10%] text-center">Exam</div>
-        <div class="py-3 px-4 w-[10%] text-center">Actions</div>
-    </div>
+<div class="bg-white rounded-xl border border-[#0D2B70] shadow-sm overflow-x-auto overflow-y-hidden flex flex-col flex-1 min-h-0" style="--vacancy-cols: 28% 12% 19% 16% 11% 14%;">
+    <div class="min-w-[980px] flex flex-col flex-1 min-h-0">
+        <!-- Desktop Header -->
+        <div class="hidden lg:grid flex-none bg-[#0D2B70] text-white text-xs font-bold uppercase tracking-wider sticky top-0 z-10" style="grid-template-columns: var(--vacancy-cols);">
+            <div class="py-3 px-4">Job Title</div>
+            <div class="py-3 px-4">Salary</div>
+            <div class="py-3 px-4">Place of Assignment</div>
+            <div class="py-3 px-4 text-center">Deadline</div>
+            <div class="py-3 px-4 text-center">Status</div>
+            <div class="py-3 px-4 text-center">Actions</div>
+        </div>
 
-    <!-- List Container -->
-    <div id="vacancy-list" class="flex-1 overflow-y-auto divide-y divide-gray-200 lg:divide-blue-100">
-        @include('partials.vacancy_list', ['vacancies' => $vacancies])
+        <!-- List Container -->
+        <div id="vacancy-list" class="flex-1 overflow-y-auto divide-y divide-gray-200 lg:divide-blue-100">
+            @include('partials.vacancy_list', ['vacancies' => $vacancies])
+        </div>
     </div>
 </div>
 </div>
