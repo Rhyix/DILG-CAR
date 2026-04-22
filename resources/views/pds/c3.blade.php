@@ -484,9 +484,8 @@
                 const fromDate = parseDateInput(fromVal);
 
                 if (fromDate) {
-                    const minToDate = new Date(fromDate.getTime());
-                    minToDate.setDate(minToDate.getDate() + 1);
-                    toInput.min = formatDateInputValue(minToDate);
+                    // No minimum date restriction (same day allowed)
+                    toInput.removeAttribute('min');
                 } else {
                     toInput.removeAttribute('min');
                 }
@@ -504,7 +503,7 @@
                 }
 
                 // Plus 1 day rule: TO must be at least one day after FROM.
-                if (toDate.getTime() <= fromDate.getTime()) {
+                if (toDate.getTime() < fromDate.getTime()) {
                     setErrorState(fromInput, 'The "From" date must be at least one day earlier than the "To" date.');
                     setErrorState(toInput, 'The "To" date must be at least one day later than the "From" date.');
                     if (showMessage) {

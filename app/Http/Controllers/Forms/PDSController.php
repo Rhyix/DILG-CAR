@@ -3210,7 +3210,7 @@ class PDSController extends Controller
             $rules_data_learning["learning_title_$i"] = 'required|string|max:255';
             $rules_data_learning["learning_type_$i"] = 'required|string|max:100';
             $rules_data_learning["learning_from_$i"] = 'required|date';
-            $rules_data_learning["learning_to_$i"] = "required|date|after:learning_from_$i";
+$rules_data_learning["learning_to_$i"] = 'required|date';
             $rules_data_learning["learning_hours_$i"] = 'required|integer|min:1|max:' . self::SMALLINT_MAX;
             $rules_data_learning["learning_conducted_$i"] = 'required|string|max:255';
         }
@@ -3273,7 +3273,7 @@ class PDSController extends Controller
         foreach ($voluntaryIndexes as $i) {
             $rules_data_vol["voluntary_org_$i"] = 'required|string|max:255';
             $rules_data_vol["voluntary_from_$i"] = 'required|date';
-            $rules_data_vol["voluntary_to_$i"] = "required|date|after:voluntary_from_$i";
+$rules_data_vol["voluntary_to_$i"] = 'required|date';
             $rules_data_vol["voluntary_hours_$i"] = 'required|integer|min:1|max:' . self::SMALLINT_MAX;
             $rules_data_vol["voluntary_position_$i"] = 'required|string|max:255';
         }
