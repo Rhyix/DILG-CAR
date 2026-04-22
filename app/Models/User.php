@@ -25,6 +25,8 @@ class User extends Authenticatable
     protected $fillable = [
         'applicant_code',
         'pending_deletion_at',
+        'deletion_requested_by_applicant_at',
+        'deletion_request_received_by_admin_at',
         'deletion_due_at',
         'deletion_warning_sent_at',
         'deletion_requested_by_admin_id',
@@ -61,6 +63,8 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'pending_deletion_at' => 'datetime',
+            'deletion_requested_by_applicant_at' => 'datetime',
+            'deletion_request_received_by_admin_at' => 'datetime',
             'deletion_due_at' => 'datetime',
             'deletion_warning_sent_at' => 'datetime',
             'password' => 'hashed',

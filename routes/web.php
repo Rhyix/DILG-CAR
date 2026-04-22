@@ -419,6 +419,7 @@ Route::middleware(['auth', BlockIfAdmin::class])->group(function () {
     Route::delete('/profile/document-gallery/{item}', [ProfileController::class, 'deleteGalleryDocument'])->name('profile.document_gallery.delete');
     Route::get('/profile/password', fn() => redirect()->route('account.settings'))->name('profile.password.form');
     Route::post('/profile/password', [ProfileController::class, 'password'])->name('profile.password');
+    Route::post('/profile/request-account-deletion', [ProfileController::class, 'requestAccountDeletion'])->name('profile.request_account_deletion');
 });
 
 // ==================================================================================================

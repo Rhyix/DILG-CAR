@@ -81,9 +81,11 @@ class ApplicantDeletionWorkflowService
     public function deleteImmediately(User $user, ?Admin $admin = null): void
     {
         $mailPayload = $this->buildMailPayload($user);
+        $deletedAt = now();
 
         $this->deletionService->delete($user, $admin);
         $this->sendImmediateDeletionEmail($mailPayload['email'], $mailPayload['name'], $mailPayload['code']);
+        $this->notifySuperadminsOfCompletedDeletions([$mailPayload['label']], $deletedAt, 'immediate');
     }
 
     /**
@@ -105,6 +107,10 @@ class ApplicantDeletionWorkflowService
             ->get();
 
         foreach ($warningCandidates as $user) {
+            if (!$user instanceof User) {
+                continue;
+            }
+
             $mailPayload = $this->buildMailPayload($user);
             $this->sendScheduledDeletionWarningEmail($mailPayload['email'], $mailPayload['name'], $mailPayload['code'], $mailPayload['deadline_text']);
 
@@ -122,6 +128,10 @@ class ApplicantDeletionWorkflowService
             ->get();
 
         foreach ($dueUsers as $user) {
+            if (!$user instanceof User) {
+                continue;
+            }
+
             $mailPayload = $this->buildMailPayload($user);
 
             $this->deletionService->delete($user, null);
@@ -131,7 +141,7 @@ class ApplicantDeletionWorkflowService
         }
 
         if ($deleted !== []) {
-            $this->notifySuperadminsOfCompletedDeletions($deleted);
+            $this->notifySuperadminsOfCompletedDeletions($deleted, $now, 'scheduled');
         }
 
         return [
@@ -280,12 +290,13 @@ class ApplicantDeletionWorkflowService
     /**
      * @param  array<int, string>  $deleted
      */
-    private function notifySuperadminsOfCompletedDeletions(array $deleted): void
+    private function notifySuperadminsOfCompletedDeletions(array $deleted, ?Carbon $deletedAt = null, string $mode = 'scheduled'): void
     {
         $title = 'Applicant Records';
+        $timestampText = ($deletedAt ?? now())->format('M d, Y h:i A');
         $message = count($deleted) === 1
-            ? 'Scheduled deletion completed for ' . $deleted[0] . '.'
-            : 'Scheduled deletions completed for ' . $this->summarizeLabels($deleted) . '.';
+            ? 'Account deletion completed for ' . $deleted[0] . ' at ' . $timestampText . '.'
+            : 'Account deletions completed for ' . $this->summarizeLabels($deleted) . ' at ' . $timestampText . '.';
 
         $admins = Admin::query()
             ->where('role', 'superadmin')
@@ -302,6 +313,8 @@ class ApplicantDeletionWorkflowService
                     'message' => $message,
                     'link' => route('admin.applicant_records.index', [], false),
                     'category' => 'applicant_records',
+                    'deletion_made_at' => ($deletedAt ?? now())->toIso8601String(),
+                    'deletion_mode' => $mode,
                 ],
             ]);
         }

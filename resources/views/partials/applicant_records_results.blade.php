@@ -43,6 +43,12 @@
                         $deletionDeadline = $applicant->deletion_due_at
                             ? \Illuminate\Support\Carbon::parse($applicant->deletion_due_at)->format('M d, Y h:i A')
                             : null;
+                        $deletionRequestAt = $applicant->deletion_requested_by_applicant_at
+                            ? \Illuminate\Support\Carbon::parse($applicant->deletion_requested_by_applicant_at)->format('M d, Y h:i A')
+                            : null;
+                        $deletionRequestReceivedAt = $applicant->deletion_request_received_by_admin_at
+                            ? \Illuminate\Support\Carbon::parse($applicant->deletion_request_received_by_admin_at)->format('M d, Y h:i A')
+                            : null;
                     @endphp
                     <tr class="hover:bg-slate-50/80">
                         <td class="px-5 py-4 align-top">
@@ -63,6 +69,12 @@
                                     Set for Deletion
                                 </span>
                                 <div class="mt-2 text-sm font-medium text-slate-700">Deadline: {{ $deletionDeadline }}</div>
+                            @elseif ($deletionRequestAt)
+                                <span class="inline-flex items-center rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-rose-700 ring-1 ring-rose-200">
+                                    Requested by Applicant
+                                </span>
+                                <div class="mt-2 text-sm font-medium text-slate-700">Requested: {{ $deletionRequestAt }}</div>
+                                <div class="mt-1 text-xs text-slate-500">Received: {{ $deletionRequestReceivedAt ?: 'N/A' }}</div>
                             @else
                                 <span class="inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-emerald-700 ring-1 ring-emerald-200">
                                     Active

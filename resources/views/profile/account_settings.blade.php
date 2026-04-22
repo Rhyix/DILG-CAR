@@ -69,6 +69,12 @@
             </div>
         @endif
 
+        @if ($errors->has('account_deletion_request'))
+            <div class="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                {{ $errors->first('account_deletion_request') }}
+            </div>
+        @endif
+
         @php
             $hasStoredAvatar = filled($user->avatar_path) && \Illuminate\Support\Facades\Storage::disk('public')->exists($user->avatar_path);
             $avatar = $hasStoredAvatar ? asset('storage/' . $user->avatar_path) : null;
@@ -174,6 +180,49 @@
                     class="rounded-xl bg-[#0D2B70] px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-900">
                     Reset Password
                 </button>
+            </div>
+
+            <div class="mt-4 rounded-xl border border-rose-200 bg-rose-50/70 p-4">
+                <p class="text-xs font-semibold uppercase tracking-wide text-rose-700">Account Deletion Request</p>
+                @if($user->deletion_due_at)
+                    <p class="mt-2 text-sm text-rose-800">
+                        Your account is already set for deletion by admin.
+                    </p>
+                    <p class="mt-1 text-xs text-rose-700">
+                        Deletion deadline: {{ optional($user->deletion_due_at)->format('M d, Y h:i A') ?: 'N/A' }}
+                    </p>
+                @elseif($user->deletion_requested_by_applicant_at)
+                    <p class="mt-2 text-sm text-rose-800">
+                        Your deletion request has been sent and is pending admin action.
+                    </p>
+                    <p class="mt-1 text-xs text-rose-700">
+                        Requested at: {{ optional($user->deletion_requested_by_applicant_at)->format('M d, Y h:i A') ?: 'N/A' }}
+                    </p>
+                    <p class="mt-1 text-xs text-rose-700">
+                        Received by admin at: {{ optional($user->deletion_request_received_by_admin_at)->format('M d, Y h:i A') ?: 'N/A' }}
+                    </p>
+                @else
+                    <p class="mt-2 text-sm text-rose-800">
+                        Send a request to admin if you want your applicant account permanently deleted. Only admin can perform the deletion.
+                    </p>
+                    <form id="request-account-deletion-form" method="POST" action="{{ route('profile.request_account_deletion') }}" class="mt-3">
+                        @csrf
+                        <button type="button"
+                            @click="$dispatch('open-request-account-deletion-modal')"
+                            class="rounded-xl border border-rose-500 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-600 hover:text-white">
+                            Request Account Deletion
+                        </button>
+                    </form>
+                    <x-confirm-modal
+                        title="Request Account Deletion"
+                        message="Send account deletion request to admin? Only admin can delete your applicant account."
+                        event="open-request-account-deletion-modal"
+                        confirm="confirm-request-account-deletion"
+                        confirmText="Send Request"
+                        cancelText="Keep Account"
+                        tone="danger"
+                    />
+                @endif
             </div>
         </section>
 
@@ -321,6 +370,13 @@
                             }
                         },
                     }));
+
+                    window.addEventListener('confirm-request-account-deletion', () => {
+                        const form = document.getElementById('request-account-deletion-form');
+                        if (form) {
+                            form.submit();
+                        }
+                    });
 
                     Alpine.data('savedDocumentsSearch', () => ({
                         searchTerm: '',

@@ -2,13 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Admin;
 use App\Models\DocumentGalleryItem;
+use App\Models\Notification;
 use App\Models\UploadedDocument;
 use App\Http\Requests\UpdateProfileRequest;
 use App\Http\Requests\ChangePasswordRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -153,6 +156,92 @@ class ProfileController extends Controller
         $user->password = Hash::make($request->input('password'));
         $user->save();
         return redirect()->route('account.settings')->with('password_success', 'Password updated successfully.');
+    }
+
+    public function requestAccountDeletion(Request $request)
+    {
+        $user = Auth::user();
+        $user->loadMissing('personalInformation');
+
+        if (
+            !Schema::hasColumn('users', 'deletion_requested_by_applicant_at')
+            || !Schema::hasColumn('users', 'deletion_request_received_by_admin_at')
+        ) {
+            return redirect()
+                ->route('account.settings')
+                ->withErrors(['account_deletion_request' => 'Account deletion request is unavailable right now. Please run the latest database migration.']);
+        }
+
+        if ($user->isPendingDeletion()) {
+            return redirect()
+                ->route('account.settings')
+                ->withErrors(['account_deletion_request' => 'Your account is already set for deletion by an administrator.']);
+        }
+
+        if (!is_null($user->deletion_requested_by_applicant_at)) {
+            $requestedAt = optional($user->deletion_requested_by_applicant_at)->format('M d, Y h:i A') ?: 'N/A';
+            return redirect()
+                ->route('account.settings')
+                ->withErrors(['account_deletion_request' => 'Deletion request already submitted on ' . $requestedAt . '.']);
+        }
+
+        $requestedAt = now();
+        $user->forceFill([
+            'deletion_requested_by_applicant_at' => $requestedAt,
+            'deletion_request_received_by_admin_at' => $requestedAt,
+        ])->save();
+
+        $displayName = trim((string) ($user->personalInformation?->first_name ?? ''));
+        $surname = trim((string) ($user->personalInformation?->surname ?? ''));
+        $fullName = trim($displayName . ' ' . $surname);
+        if ($fullName === '') {
+            $fullName = trim((string) ($user->name ?? 'Applicant'));
+        }
+
+        if (Schema::hasTable('notifications')) {
+            $requestTimestampText = $requestedAt->format('M d, Y h:i A');
+            $adminLink = route('admin.applicant_records.index', [], false);
+            $recipientAdmins = Admin::query()
+                ->where('role', 'superadmin')
+                ->where('is_active', 1)
+                ->get();
+
+            foreach ($recipientAdmins as $admin) {
+                Notification::create([
+                    'notifiable_type' => Admin::class,
+                    'notifiable_id' => $admin->id,
+                    'type' => 'warning',
+                    'data' => [
+                        'title' => 'Account Deletion Request',
+                        'message' => $fullName . ' requested account deletion on ' . $requestTimestampText . '.',
+                        'link' => $adminLink,
+                        'action_url' => $adminLink,
+                        'section' => 'Applicant Records',
+                        'category' => 'account_deletion_request',
+                        'user_id' => $user->id,
+                        'applicant_code' => $user->applicant_code,
+                        'requested_at' => $requestedAt->toIso8601String(),
+                        'received_at' => $requestedAt->toIso8601String(),
+                    ],
+                ]);
+            }
+        }
+
+        activity()
+            ->causedBy($user)
+            ->performedOn($user)
+            ->event('request_account_deletion')
+            ->withProperties([
+                'section' => 'Account Settings',
+                'user_id' => $user->id,
+                'applicant_code' => $user->applicant_code,
+                'requested_at' => $requestedAt->toDateTimeString(),
+            ])
+            ->log('Applicant requested account deletion.');
+
+        return redirect()
+            ->route('account.settings')
+            ->with('settings_success', 'Deletion request submitted on ' . $requestedAt->format('M d, Y h:i A') . '. Admin review is required.');
     }
 
     public function storeGalleryDocument(Request $request)
