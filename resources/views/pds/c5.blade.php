@@ -315,6 +315,8 @@
 @endsection
 
 <script>
+    const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+
     const lockDocTrack = @json($isApplicationFlow);
     const lockedTrack = @json($activeTrack);
 
@@ -378,7 +380,7 @@
                 ? `This application uses ${normalized} requirements.`
                 : normalized === 'COS'
                 ? 'COS requirements are active. Required documents are based on COS vacancy rules.'
-                : 'Plantilla requirements are active. All documents are required except TOR with masteral/doctorate, Certificate of Grades with masteral/doctorate, LGOO induction certificate, and Other Documents Submitted.';
+                : 'Plantilla requirements are active. Some supporting documents are optional and marked as (if any).';
         }
 
         document.querySelectorAll('.doc-required-badge').forEach((badge) => {
@@ -459,6 +461,16 @@
 
         document.querySelectorAll('.doc-upload-input').forEach((input) => {
             input.addEventListener('change', function () {
+                const selectedFile = input.files && input.files[0] ? input.files[0] : null;
+                if (selectedFile && selectedFile.size > MAX_UPLOAD_BYTES) {
+                    input.value = '';
+                    const message = 'Each file must be 10MB or smaller.';
+                    if (typeof showAppToast === 'function') {
+                        showAppToast(message);
+                    } else {
+                        alert(message);
+                    }
+                }
                 updateUploadState(input);
             });
             updateUploadState(input);

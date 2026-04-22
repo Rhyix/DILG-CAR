@@ -1161,7 +1161,17 @@ class AdminController extends Controller
             'COS' => self::COS_REQUIRED_DOCUMENTS,
             'Plantilla' => array_values(array_diff(
                 $allDocumentTypes,
-                ['tor_masteraldoctorate', 'grade_masteraldoctorate', 'cert_lgoo_induction', 'other_documents', 'pqe_result']
+                [
+                    'tor_masteraldoctorate',
+                    'grade_masteraldoctorate',
+                    'cert_lgoo_induction',
+                    'other_documents',
+                    'pqe_result',
+                    'ipcr',
+                    'non_academic',
+                    'designation_order',
+                    'cert_employment',
+                ]
             )),
         ];
     }

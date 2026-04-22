@@ -106,15 +106,15 @@
                                 <i data-feather="briefcase" class="w-5 h-5"></i>
                             </span>
                             <div>
-                                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Applications in Progress</p>
+                                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Pending Applications</p>
                                 <p class="text-3xl font-extrabold text-[#0D2B70]">
-                                    {{ $applications->filter(fn($a) => strtolower($a->status) !== 'closed')->count() }}
+                                    {{ $applications->filter(fn($a) => strtolower(trim((string) ($a->status ?? ''))) === 'pending')->count() }}
                                 </p>
                             </div>
                         </div>
                     </div>
                     <div class="pointer-events-none absolute right-4 top-4 max-w-xs rounded-xl bg-slate-900/90 px-3 py-2 text-[11px] text-slate-50 shadow-lg opacity-0 translate-y-2 transition duration-200 group-hover:opacity-100 group-hover:translate-y-0">
-                        Shows how many of your applications are still active and not yet closed.
+                        Shows how many of your applications are currently pending review.
                     </div>
                     <div class="absolute bottom-0 right-0 h-20 w-20 rounded-full bg-blue-50/60 blur-3xl transition-transform duration-500 group-hover:scale-110"></div>
                 </div>

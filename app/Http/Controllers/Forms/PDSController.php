@@ -52,6 +52,7 @@ class PDSController extends Controller
         'image/png',
     ];
     private const SMALLINT_MAX = 32767;
+    private const MAX_UPLOAD_BYTES = 10485760; // 10MB
     private const DOCUMENT_TYPE_ALIASES = [
         'cert_eligibility' => ['cert_elegibility'],
         'cert_employment' => ['certificate_employment'],
@@ -5931,6 +5932,10 @@ $rules_data_vol["voluntary_to_$i"] = 'required|date';
             return [false, 'The file appears to be empty.'];
         }
 
+        if ((int) $file->getSize() > self::MAX_UPLOAD_BYTES) {
+            return [false, 'Each file must be 10MB or smaller.'];
+        }
+
         $mimeType = $this->resolveMimeType($path) ?: $file->getClientMimeType();
 
         if ($allowImage && $this->isAllowedImageMime($mimeType)) {
@@ -5951,7 +5956,7 @@ $rules_data_vol["voluntary_to_$i"] = 'required|date';
     private function resolveUploadErrorMessage(UploadedFile $file): string
     {
         return match ($file->getError()) {
-            UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => 'Upload failed because the file is larger than the server limit.',
+            UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => 'Each file must be 10MB or smaller.',
             UPLOAD_ERR_PARTIAL => 'Upload was interrupted. Please try again.',
             UPLOAD_ERR_NO_FILE => 'No file was uploaded.',
             UPLOAD_ERR_NO_TMP_DIR => 'Upload failed because the server temporary folder is missing.',
@@ -6017,10 +6022,20 @@ $rules_data_vol["voluntary_to_$i"] = 'required|date';
                 'application_letter',
                 'cert_training',
             ],
-            // Requirement requested by user: all required except these 3.
+            // Plantilla optional docs: if any only.
             'Plantilla' => array_values(array_diff(
                 $allDocumentTypes,
-                ['tor_masteraldoctorate', 'grade_masteraldoctorate', 'cert_lgoo_induction', 'other_documents', 'pqe_result']
+                [
+                    'tor_masteraldoctorate',
+                    'grade_masteraldoctorate',
+                    'cert_lgoo_induction',
+                    'other_documents',
+                    'pqe_result',
+                    'ipcr',
+                    'non_academic',
+                    'designation_order',
+                    'cert_employment',
+                ]
             )),
         ];
     }
@@ -6037,13 +6052,13 @@ $rules_data_vol["voluntary_to_$i"] = 'required|date';
             'cert_lgoo_induction' => 'Certificate of Completion of LGOO Induction Training',
             'passport_photo' => '2\" x 2\" or Passport Size Picture',
             'cert_eligibility' => 'Certificate of Eligibility/Board Rating',
-            'ipcr' => 'Certification of Numerical Rating/Performance Rating/IPCR',
-            'non_academic' => 'Non-Academic Awards Received',
+            'ipcr' => 'Certification of Numerical Rating/Performance Rating/IPCR (If Any)',
+            'non_academic' => 'Non-Academic Awards Received (If Any)',
             'cert_training' => 'Certificates of Training/Participation',
-            'designation_order' => 'Confirmed Designation Order/s',
+            'designation_order' => 'Confirmed Designation Order/s (If Any)',
             'grade_masteraldoctorate' => 'Certificate of Grades with Masteral/Doctorate Units Earned',
             'tor_masteraldoctorate' => 'TOR with Masteral/Doctorate Degree',
-            'cert_employment' => 'Certificate of Employment',
+            'cert_employment' => 'Certificate of Employment (If Any)',
             'other_documents' => 'Other Documents Submitted',
         ];
     }

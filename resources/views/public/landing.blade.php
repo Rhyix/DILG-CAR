@@ -53,13 +53,13 @@
             'cert_lgoo_induction' => 'Certificate of Completion of LGOO Induction Training',
             'passport_photo' => '2" x 2" or Passport Size Picture',
             'cert_eligibility' => 'Certificate of Eligibility/Board Rating',
-            'ipcr' => 'Certification of Numerical Rating/Performance Rating/IPCR',
-            'non_academic' => 'Non-Academic Awards Received',
+            'ipcr' => 'Certification of Numerical Rating/Performance Rating/IPCR (If Any)',
+            'non_academic' => 'Non-Academic Awards Received (If Any)',
             'cert_training' => 'Certificates of Training/Participation Relevant to the Position',
-            'designation_order' => 'Confirmed Designation Order/s',
+            'designation_order' => 'Confirmed Designation Order/s (If Any)',
             'grade_masteraldoctorate' => 'Certificate of Grades with Masteral/Doctorate Units Earned',
             'tor_masteraldoctorate' => 'TOR with Masteral/Doctorate Degree',
-            'cert_employment' => 'Certificate of Employment',
+            'cert_employment' => 'Certificate of Employment (If Any)',
             'other_documents' => 'Other Documents Submitted',
         ];
 
@@ -75,7 +75,17 @@
             ],
             'Plantilla' => array_values(array_diff(
                 $allDocumentTypesForLanding,
-                ['tor_masteraldoctorate', 'grade_masteraldoctorate', 'cert_lgoo_induction', 'other_documents', 'pqe_result']
+                [
+                    'tor_masteraldoctorate',
+                    'grade_masteraldoctorate',
+                    'cert_lgoo_induction',
+                    'other_documents',
+                    'pqe_result',
+                    'ipcr',
+                    'non_academic',
+                    'designation_order',
+                    'cert_employment',
+                ]
             )),
         ];
     @endphp

@@ -108,12 +108,12 @@ class ExportWESController extends Controller
 
         $experiences = WorkExpSheet::where('user_id', $userId)
             ->where('isDisplayed', true)
-            ->orderByDesc('start_date')
             ->get();
+
+        $experiences = $this->sortWesEntriesByStartDate($experiences, 'start_date');
 
         if ($experiences->isEmpty()) {
             $experiences = WorkExperience::where('user_id', $userId)
-                ->orderByDesc('work_exp_from')
                 ->get()
                 ->map(function ($row) {
                     return (object) [
@@ -127,6 +127,8 @@ class ExportWESController extends Controller
                         'duties' => ['None specified'],
                     ];
                 });
+
+            $experiences = $this->sortWesEntriesByStartDate($experiences, 'start_date');
         }
 
         if ($experiences->isEmpty()) {
@@ -148,6 +150,57 @@ class ExportWESController extends Controller
             'full_name' => $fullName,
             'experiences' => $experiences,
         ];
+    }
+
+    private function sortWesEntriesByStartDate(Collection $entries, string $field): Collection
+    {
+        $toTimestamp = function ($value): ?int {
+            if ($value === null) {
+                return null;
+            }
+
+            $text = trim((string) $value);
+            if ($text === '' || strtoupper($text) === 'NOINPUT') {
+                return null;
+            }
+
+            try {
+                return Carbon::parse($text)->startOfDay()->getTimestamp();
+            } catch (\Throwable $e) {
+                return null;
+            }
+        };
+
+        return $entries->sort(function ($a, $b) use ($field, $toTimestamp) {
+            $aDate = $toTimestamp(data_get($a, $field));
+            $bDate = $toTimestamp(data_get($b, $field));
+
+            if ($aDate !== $bDate) {
+                if ($aDate === null) {
+                    return 1;
+                }
+                if ($bDate === null) {
+                    return -1;
+                }
+
+                return $aDate <=> $bDate;
+            }
+
+            $aEnd = $toTimestamp(data_get($a, 'end_date'));
+            $bEnd = $toTimestamp(data_get($b, 'end_date'));
+            if ($aEnd !== $bEnd) {
+                if ($aEnd === null) {
+                    return 1;
+                }
+                if ($bEnd === null) {
+                    return -1;
+                }
+
+                return $aEnd <=> $bEnd;
+            }
+
+            return ((int) data_get($a, 'id', 0)) <=> ((int) data_get($b, 'id', 0));
+        })->values();
     }
 
     private function buildWesPdf(string $fullName, Collection $experiences): \FPDF

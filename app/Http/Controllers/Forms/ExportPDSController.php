@@ -14,6 +14,7 @@ use App\Models\MiscInfos;
 use setasign\Fpdi\Fpdi;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\Process\Process;
@@ -36,6 +37,115 @@ class ExportPDSController
     private int $clampedCoordinates = 0;
     private array $clampSamples = [];
     private bool $forceAscii = false;
+
+    private function parseExportDateToTimestamp($value): ?int
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $text = trim((string) $value);
+        if ($text === '' || strtoupper($text) === 'NOINPUT') {
+            return null;
+        }
+
+        try {
+            return Carbon::parse($text)->startOfDay()->getTimestamp();
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    private function sortByDateAscendingForExport(Collection $rows, string $dateField): Collection
+    {
+        return $rows->sort(function ($a, $b) use ($dateField) {
+            $aDate = $this->parseExportDateToTimestamp(data_get($a, $dateField));
+            $bDate = $this->parseExportDateToTimestamp(data_get($b, $dateField));
+
+            if ($aDate !== $bDate) {
+                if ($aDate === null) {
+                    return 1;
+                }
+                if ($bDate === null) {
+                    return -1;
+                }
+
+                return $aDate <=> $bDate;
+            }
+
+            return ((int) data_get($a, 'id', 0)) <=> ((int) data_get($b, 'id', 0));
+        })->values();
+    }
+
+    private function resolveEligibilityLevelRankForExport($careerValue): int
+    {
+        $career = strtolower(trim((string) $careerValue));
+        if ($career === '') {
+            return 99;
+        }
+
+        if (
+            str_contains($career, 'first level')
+            || str_contains($career, 'subprofessional')
+            || str_contains($career, 'category ii')
+            || str_contains($career, 'category 2')
+        ) {
+            return 1;
+        }
+
+        if (
+            str_contains($career, 'second level')
+            || str_contains($career, 'professional')
+            || str_contains($career, 'board')
+            || str_contains($career, 'bar')
+            || str_contains($career, 'category i')
+            || str_contains($career, 'category 1')
+        ) {
+            return 2;
+        }
+
+        if (
+            str_contains($career, 'third level')
+            || str_contains($career, 'career executive')
+            || str_contains($career, 'ceso')
+        ) {
+            return 3;
+        }
+
+        return 99;
+    }
+
+    private function sortCivilServiceEligibilityForExport(Collection $rows): Collection
+    {
+        return $rows->sort(function ($a, $b) {
+            $aRank = $this->resolveEligibilityLevelRankForExport(data_get($a, 'cs_eligibility_career'));
+            $bRank = $this->resolveEligibilityLevelRankForExport(data_get($b, 'cs_eligibility_career'));
+            if ($aRank !== $bRank) {
+                return $aRank <=> $bRank;
+            }
+
+            $aDate = $this->parseExportDateToTimestamp(data_get($a, 'cs_eligibility_date'));
+            $bDate = $this->parseExportDateToTimestamp(data_get($b, 'cs_eligibility_date'));
+            if ($aDate !== $bDate) {
+                if ($aDate === null) {
+                    return 1;
+                }
+                if ($bDate === null) {
+                    return -1;
+                }
+
+                return $aDate <=> $bDate;
+            }
+
+            $aCareer = strtolower(trim((string) data_get($a, 'cs_eligibility_career', '')));
+            $bCareer = strtolower(trim((string) data_get($b, 'cs_eligibility_career', '')));
+            if ($aCareer !== $bCareer) {
+                return $aCareer <=> $bCareer;
+            }
+
+            return ((int) data_get($a, 'id', 0)) <=> ((int) data_get($b, 'id', 0));
+        })->values();
+    }
 
     private function getFooterDateY(): float
     {
@@ -113,22 +223,25 @@ class ExportPDSController
         $educationalBackground = EducationalBackground::where('user_id', $user->id)->first();
 
         // C2
-        $civilServiceEligibility = CivilServiceEligibility::where('user_id', $user->id)
-            ->orderByDesc('cs_eligibility_date')
-            ->get();
+        $civilServiceEligibility = $this->sortCivilServiceEligibilityForExport(
+            CivilServiceEligibility::where('user_id', $user->id)->get()
+        );
 
-        $workExperience = WorkExperience::where('user_id', $user->id)
-            ->orderByDesc('work_exp_from')
-            ->get();
+        $workExperience = $this->sortByDateAscendingForExport(
+            WorkExperience::where('user_id', $user->id)->get(),
+            'work_exp_from'
+        );
 
         // C3
-        $voluntaryWork = VoluntaryWork::where('user_id', $user->id)
-            ->orderByDesc('voluntary_from')
-            ->get();
+        $voluntaryWork = $this->sortByDateAscendingForExport(
+            VoluntaryWork::where('user_id', $user->id)->get(),
+            'voluntary_from'
+        );
 
-        $learningAndDev = LearningAndDevelopment::where('user_id', $user->id)
-            ->orderByDesc('learning_from')
-            ->get();
+        $learningAndDev = $this->sortByDateAscendingForExport(
+            LearningAndDevelopment::where('user_id', $user->id)->get(),
+            'learning_from'
+        );
 
         $otherInfo = OtherInformation::where('user_id', $user->id)->first();
 

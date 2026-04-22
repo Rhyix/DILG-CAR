@@ -391,6 +391,7 @@
 
 
         <script>
+          const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
           let documents = @json($documents);
           const requiredDocumentIds = @json($requiredDocumentIds ?? []);
           let requiredDocumentSet = new Set(requiredDocumentIds);
@@ -640,6 +641,19 @@
             uploadInput?.addEventListener('change', function () {
               if (isFinalRevisionDisqualified || isPastDeadline) return;
               if (!uploadInput.files || uploadInput.files.length === 0) return;
+
+              const selectedFile = uploadInput.files[0];
+              if (selectedFile && selectedFile.size > MAX_UPLOAD_BYTES) {
+                uploadInput.value = '';
+                const message = 'Each file must be 10MB or smaller.';
+                if (typeof showAppToast === 'function') {
+                  showAppToast(message);
+                } else {
+                  alert(message);
+                }
+                return;
+              }
+
               if (!currentSelectedDoc || !isRevisionStatus(currentSelectedDoc.status)) return;
               if (!uploadForm) return;
 
