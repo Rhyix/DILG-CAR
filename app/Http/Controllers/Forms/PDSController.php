@@ -633,6 +633,16 @@ class PDSController extends Controller
         return $normalized !== '' && $normalized !== 'null' && $normalized !== 'noinput';
     }
 
+    private function isTruthyFlag($value): bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        $normalized = strtolower(trim((string) ($value ?? '')));
+        return in_array($normalized, ['1', 'true', 'on', 'yes'], true);
+    }
+
     private function addHighestLevelRequiredWhenNoYearError(
         \Illuminate\Validation\Validator $validator,
         array $payload,
@@ -657,6 +667,10 @@ class PDSController extends Controller
         $this->addHighestLevelRequiredWhenNoYearError($validator, $payload, 'elem_year_graduated', 'elem_earned');
         if ($isElementaryGraduate) {
             $this->addHighestLevelRequiredWhenNoYearError($validator, $payload, 'jhs_year_graduated', 'jhs_earned');
+        }
+
+        if ($this->isTruthyFlag($payload['college_not_attended'] ?? null)) {
+            return;
         }
 
         $collegeRows = $payload['college'] ?? [];
@@ -1530,6 +1544,19 @@ class PDSController extends Controller
     public function c1UpdateFormSession(Request $request, $go_to)
     {
         //dd($request->all());
+        $collegeNotAttended = $this->isTruthyFlag($request->input('college_not_attended'));
+        $normalizedCollegeEntries = $this->normalizeEducationEntriesForForm($request->input('college'));
+        if ($collegeNotAttended && is_array($normalizedCollegeEntries)) {
+            foreach ($normalizedCollegeEntries as $index => $entry) {
+                if (!is_array($entry)) {
+                    continue;
+                }
+
+                $normalizedCollegeEntries[$index]['from'] = null;
+                $normalizedCollegeEntries[$index]['to'] = null;
+            }
+        }
+
         $request->merge([
             'telephone_no' => $this->normalizeTelephoneInput($request->input('telephone_no')),
             'mobile_no' => $this->normalizeMobileInput($request->input('mobile_no')),
@@ -1538,7 +1565,7 @@ class PDSController extends Controller
             'jhs_from' => $this->normalizeDateForForm($request->input('jhs_from')),
             'jhs_to' => $this->normalizeDateForForm($request->input('jhs_to')),
             'vocational' => $this->normalizeEducationEntriesForForm($request->input('vocational')),
-            'college' => $this->normalizeEducationEntriesForForm($request->input('college')),
+            'college' => $normalizedCollegeEntries,
             'grad' => $this->normalizeEducationEntriesForForm($request->input('grad')),
         ]);
 
@@ -1559,6 +1586,12 @@ class PDSController extends Controller
             'email_address' => 'required|email:rfc',
             'height' => 'required|numeric|max:999',
             'weight' => 'required|numeric|max:999',
+            'res_province' => 'required|string|max:255',
+            'res_city' => 'required|string|max:255',
+            'res_brgy' => 'required|string|max:255',
+            'per_province' => 'required|string|max:255',
+            'per_city' => 'required|string|max:255',
+            'per_brgy' => 'required|string|max:255',
             'res_zipcode' => 'nullable|string|max:4',
             'per_zipcode' => 'nullable|string|max:4',
             'elem_from' => 'required|date_format:d-m-Y',
@@ -1601,6 +1634,8 @@ class PDSController extends Controller
             $c1_form_data_valid[$dateField] = (is_string($normalizedDate) && trim($normalizedDate) === '') ? null : $normalizedDate;
         }
 
+        $existingC1FormData = (array) session('form.c1', []);
+
         // get all key-value pairs for non validated fields.
         $c1_form_data = $request->except([
             '_token',
@@ -1626,8 +1661,9 @@ class PDSController extends Controller
 
         ]);
 
-        // join all request data
-        $c1_form_data = array_merge($c1_form_data_valid, $c1_form_data);
+        // Join current request data while preserving existing session fields that may not be present
+        // in this payload (e.g., dynamically loaded address selects on intermittent submits).
+        $c1_form_data = array_merge($existingC1FormData, $c1_form_data, $c1_form_data_valid);
 
         // check if there is data for children
         if (!$request->has('children')) {

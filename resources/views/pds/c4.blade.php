@@ -617,7 +617,7 @@
             <p>CS FORM 212 (Revised 2025), Page 4 of 4.</p>
         </footer>
     </main>
-    <!--include('partials.loader')-->
+    @include('partials.loader')
     @endsection
     <style>
     body {
@@ -928,6 +928,24 @@
             const modalConfirm = document.getElementById('other-info-confirm');
             const modalCancel = document.getElementById('other-info-cancel');
             const focusTargets = [modalConfirm, modalCancel];
+            const showSystemLoader = (message = 'Loading...') => {
+                const loader = document.getElementById('loader');
+                if (!loader) return;
+
+                loader.classList.remove('hidden');
+                loader.classList.remove('pds-loading-nonblocking');
+                loader.setAttribute('aria-busy', 'true');
+
+                const loaderText = document.getElementById('loader-text');
+                if (loaderText) {
+                    loaderText.textContent = message;
+                }
+
+                const loaderLive = document.getElementById('loader-live');
+                if (loaderLive) {
+                    loaderLive.textContent = message;
+                }
+            };
             const toggleModal = (show) => {
                 if (!modal) return;
                 modal.classList.toggle('hidden', !show);
@@ -1108,6 +1126,8 @@
                     submitBtn.disabled = true;
                     submitBtn.innerHTML = '<span class="material-icons mr-2 animate-spin">refresh</span>Submitting...';
                 }
+
+                showSystemLoader('Saving changes...');
 
                 form.submit();
             });

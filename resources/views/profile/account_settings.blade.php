@@ -3,7 +3,7 @@
 
 @section('content')
     @php
-        $editErrorKeys = ['first_name', 'middle_name', 'last_name', 'email', 'phone', 'address', 'bio'];
+        $editErrorKeys = ['first_name', 'middle_name', 'last_name', 'email', 'phone', 'address', 'bio', 'avatar'];
         $passwordErrorKeys = ['current_password', 'password', 'password_confirmation'];
         $editErrors = collect($editErrorKeys)->flatMap(fn($key) => $errors->get($key))->all();
         $passwordErrors = collect($passwordErrorKeys)->flatMap(fn($key) => $errors->get($key))->all();
@@ -452,7 +452,7 @@
                         </button>
                     </div>
 
-                    <form method="POST" action="{{ route('profile.update') }}" enctype="multipart/form-data" id="editProfileForm" class="space-y-5 p-6">
+                    <form method="POST" action="{{ route('profile.update') }}" enctype="multipart/form-data" id="editProfileForm" class="no-spinner space-y-5 p-6">
                         @csrf
 
                         @if (!empty($editErrors))
@@ -618,6 +618,8 @@
             confirmText="Discard"
             tone="danger"
         />
+
+        @include('partials.loader')
     </main>
 
     @push('scripts')
@@ -635,6 +637,7 @@
                 const hasInitialAvatar = avatarPreviewCircle.dataset.hasAvatar === '1';
                 let editFormDirty = false;
                 let pendingConfirmationForm = null;
+                let isSaveSubmitting = false;
 
                 const buildInitials = () => {
                     const first = (form.querySelector('input[name="first_name"]')?.value || '').trim();
@@ -663,6 +666,25 @@
 
                 const hasTextChanges = () => trackedInputs.some((input) => (input.value ?? '') !== (input.dataset.initial ?? ''));
                 const hasAvatarChange = () => !!(avatarInput.files && avatarInput.files.length > 0);
+                const showSystemLoader = (message = 'Loading...') => {
+                    const loader = document.getElementById('loader');
+                    if (!loader) return;
+
+                    loader.classList.remove('hidden');
+                    loader.classList.remove('pds-loading-nonblocking');
+                    loader.setAttribute('aria-busy', 'true');
+
+                    const loaderText = document.getElementById('loader-text');
+                    if (loaderText) {
+                        loaderText.textContent = message;
+                    }
+
+                    const loaderLive = document.getElementById('loader-live');
+                    if (loaderLive) {
+                        loaderLive.textContent = message;
+                    }
+                };
+
                 const updateSaveState = () => {
                     const changed = hasTextChanges() || hasAvatarChange();
                     editFormDirty = changed;
@@ -697,14 +719,31 @@
 
                 form.addEventListener('submit', (event) => {
                     event.preventDefault();
+
+                    if (isSaveSubmitting) {
+                        return;
+                    }
+
+                    if (!form.checkValidity()) {
+                        if (typeof form.reportValidity === 'function') {
+                            form.reportValidity();
+                        }
+                        return;
+                    }
+
                     pendingConfirmationForm = form;
                     window.dispatchEvent(new CustomEvent('open-account-settings-save-confirm'));
                 });
 
                 window.addEventListener('confirm-account-settings-save', () => {
                     if (!pendingConfirmationForm) return;
+                    if (isSaveSubmitting) return;
+
+                    isSaveSubmitting = true;
                     const submitForm = pendingConfirmationForm;
                     pendingConfirmationForm = null;
+                    saveBtn.disabled = true;
+                    showSystemLoader('Saving changes...');
                     submitForm.submit();
                 });
 

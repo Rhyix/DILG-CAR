@@ -40,7 +40,7 @@
     </style>
     <!-- Main Content -->
     <main class="pds-responsive-font max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-8 mb-20 sm:mb-0" style="padding-top: 0px;">
-        <form id="myForm" class="space-y-4 sm:space-y-8" action="/pds/submit_c1/display_c2" method="POST" x-data="{ civilStatus: '{{ old('civil_status', session('form.c1.civil_status')) }}' }">
+        <form id="myForm" class="no-spinner space-y-4 sm:space-y-8" action="/pds/submit_c1/display_c2" method="POST" x-data="{ civilStatus: '{{ old('civil_status', session('form.c1.civil_status')) }}' }">
             @csrf
             <!-- Personal Information Section -->
             <section class="bg-white rounded-lg sm:rounded-2xl shadow-xl p-4 sm:p-8 animate-slide-in">
@@ -387,7 +387,7 @@
             </section>
 
             <!-- Family Background Section -->
-            <section class="bg-white rounded-lg sm:rounded-2xl shadow-xl p-4 sm:p-8 animate-slide-in">
+            <section id="family-background" class="bg-white rounded-lg sm:rounded-2xl shadow-xl p-4 sm:p-8 animate-slide-in">
                 <div class="flex items-center mb-4 sm:mb-6">
                     <span class="material-icons text-blue-600 mr-2 sm:mr-3 text-2xl sm:text-3xl">family_restroom</span>
                     <h2 class="text-lg sm:text-2xl font-bold text-gray-900">II. FAMILY BACKGROUND</h2>
@@ -515,7 +515,7 @@
             </section>
 
             <!-- Educational Background Section -->
-            <section class="bg-white rounded-lg sm:rounded-2xl shadow-xl p-4 sm:p-8 animate-slide-in">
+            <section id="educational-background" class="bg-white rounded-lg sm:rounded-2xl shadow-xl p-4 sm:p-8 animate-slide-in">
                 <div class="flex items-center mb-4 sm:mb-6">
                     <span class="material-icons text-blue-600 mr-2 sm:mr-3 text-2xl sm:text-3xl">school</span>
                     <h2 class="text-lg sm:text-2xl font-bold text-gray-900">III. EDUCATIONAL BACKGROUND</h2>
@@ -1300,13 +1300,35 @@
             validateDobAge(false, true, dobPicker);
         }
 
+        const showSystemLoader = (message = 'Loading...') => {
+            const loader = document.getElementById('loader');
+            if (!loader) return;
+
+            loader.classList.remove('hidden');
+            loader.classList.remove('pds-loading-nonblocking');
+            loader.setAttribute('aria-busy', 'true');
+
+            const loaderText = document.getElementById('loader-text');
+            if (loaderText) {
+                loaderText.textContent = message;
+            }
+
+            const loaderLive = document.getElementById('loader-live');
+            if (loaderLive) {
+                loaderLive.textContent = message;
+            }
+        };
+
         const form = document.querySelector('#myForm');
         if (form) {
             form.addEventListener('submit', (event) => {
                 if (!validateDobAge(true, true, dobPicker)) {
                     event.preventDefault();
                     event.stopPropagation();
+                    return;
                 }
+
+                showSystemLoader('Saving changes...');
             });
         }
     });
@@ -2517,4 +2539,5 @@
         </div>
     </div>
 </div>
+@include('partials.loader')
 @endsection

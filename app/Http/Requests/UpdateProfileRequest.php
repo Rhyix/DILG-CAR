@@ -27,4 +27,13 @@ class UpdateProfileRequest extends FormRequest
             'preferences' => ['nullable', 'array'],
         ];
     }
+
+    public function messages(): array
+    {
+        return [
+            'avatar.image' => 'Avatar must be a valid image file.',
+            'avatar.mimes' => 'Avatar must be a JPG or PNG image.',
+            'avatar.max' => 'Avatar must not be greater than 2MB.',
+        ];
+    }
 }

@@ -50,6 +50,19 @@ class ProfileController extends Controller
 
     public function update(UpdateProfileRequest $request)
     {
+        $avatarUpload = $request->file('avatar');
+        if ($avatarUpload && !$avatarUpload->isValid()) {
+            return back()->withErrors([
+                'avatar' => 'Avatar upload failed. Please upload a valid PNG or JPG image up to 2MB.',
+            ])->withInput();
+        }
+
+        if ($avatarUpload && $avatarUpload->getSize() > (2 * 1024 * 1024)) {
+            return back()->withErrors([
+                'avatar' => 'Avatar must not be greater than 2MB.',
+            ])->withInput();
+        }
+
         $user = Auth::user();
         $validated = $request->validated();
         $firstName = trim((string) ($validated['first_name'] ?? ''));
@@ -80,8 +93,8 @@ class ProfileController extends Controller
         if (array_key_exists('phone', $validated)) {
             $validated['phone_number'] = preg_replace('/\D+/', '', (string) $validated['phone']);
         }
-        if ($request->hasFile('avatar')) {
-            $file = $request->file('avatar');
+        if ($avatarUpload) {
+            $file = $avatarUpload;
             $path = 'avatars/' . Auth::id() . '-' . time() . '.png';
             $imageData = file_get_contents($file->getPathname());
             // Attempt simple square resize via GD if available.
@@ -121,8 +134,25 @@ class ProfileController extends Controller
     {
         $request->validate([
             'avatar' => ['required', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
+        ], [
+            'avatar.required' => 'Please choose an avatar image to upload.',
+            'avatar.image' => 'Avatar must be a valid image file.',
+            'avatar.mimes' => 'Avatar must be a JPG or PNG image.',
+            'avatar.max' => 'Avatar must not be greater than 2MB.',
         ]);
         $file = $request->file('avatar');
+        if (!$file || !$file->isValid()) {
+            return back()->withErrors([
+                'avatar' => 'Avatar upload failed. Please upload a valid PNG or JPG image up to 2MB.',
+            ])->withInput();
+        }
+
+        if ($file->getSize() > (2 * 1024 * 1024)) {
+            return back()->withErrors([
+                'avatar' => 'Avatar must not be greater than 2MB.',
+            ])->withInput();
+        }
+
         $path = 'avatars/'.Auth::id().'-'.time().'.png';
         $imageData = file_get_contents($file->getPathname());
         // Attempt simple square resize via GD if available

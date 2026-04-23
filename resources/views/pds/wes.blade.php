@@ -333,5 +333,6 @@
       }
     })();
   </script>
+  @include('partials.loader')
 @endsection
 

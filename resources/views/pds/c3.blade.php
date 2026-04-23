@@ -736,6 +736,8 @@
         form.requestSubmit();
     }
 </script>
+
+@include('partials.loader')
 <script>
     (function () {
         function initAutosave() {

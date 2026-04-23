@@ -3,11 +3,11 @@
 @section('content')
 <!-- Main Content -->
 <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <form id="myForm" method="POST" action='/pds/submit_c2/display_c3'>
+        <form id="myForm" class="no-spinner" method="POST" action='/pds/submit_c2/display_c3'>
             @csrf
 
             <!-- Civil Service Eligibility Section -->
-            <section class="bg-white rounded-2xl shadow-xl p-4 sm:p-8 mb-8 animate-slide-in">
+            <section id="civil-service-eligibility" class="bg-white rounded-2xl shadow-xl p-4 sm:p-8 mb-8 animate-slide-in">
                 <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6">
                     <div class="flex items-center mb-3 sm:mb-0">
                         <span class="material-icons text-blue-600 mr-3 text-2xl sm:text-3xl">verified</span>
@@ -444,6 +444,24 @@
             const form = document.getElementById('myForm');
             const workExpTable = document.getElementById('work-exp-table');
             const civilServiceTable = document.getElementById('civil-service-table');
+            const showSystemLoader = (message = 'Loading...') => {
+                const loader = document.getElementById('loader');
+                if (!loader) return;
+
+                loader.classList.remove('hidden');
+                loader.classList.remove('pds-loading-nonblocking');
+                loader.setAttribute('aria-busy', 'true');
+
+                const loaderText = document.getElementById('loader-text');
+                if (loaderText) {
+                    loaderText.textContent = message;
+                }
+
+                const loaderLive = document.getElementById('loader-live');
+                if (loaderLive) {
+                    loaderLive.textContent = message;
+                }
+            };
             const workExpEmpty = document.getElementById('work-exp-empty');
             const civilServiceEmpty = document.getElementById('civil-service-empty');
 
@@ -586,6 +604,7 @@
                 });
 
                 if (!firstInvalidInput) {
+                    showSystemLoader('Saving changes...');
                     return;
                 }
 
@@ -1034,6 +1053,8 @@
         form.requestSubmit();
     }
     </script>
+
+    @include('partials.loader')
     <script>
         (function () {
             function initAutosave() {

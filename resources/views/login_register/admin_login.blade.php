@@ -40,7 +40,7 @@
                         DEPARTMENT OF THE INTERIOR AND LOCAL GOVERNMENT CORDILLERA ADMINISTRATIVE REGION
                     </p> -->
                     <p class="mt-4 text-sm font-semibold uppercase tracking-[0.24em] text-yellow-200 xl:text-base">
-                        Matino, Mahusay, Maaasahan.
+                        Matino, Mahusay, AT Maaasahan.
                     </p>
                 </div>
             </section>

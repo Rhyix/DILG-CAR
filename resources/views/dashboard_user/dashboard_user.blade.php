@@ -300,16 +300,19 @@
                         @php
                             $pdsLinks = [
                                 ['name' => 'Personal Information', 'route' => 'display_c1', 'icon' => 'user'],
-                                ['name' => 'Family Background', 'route' => 'display_c2', 'icon' => 'users'],
-                                ['name' => 'Educational Background', 'route' => 'display_c2', 'icon' => 'book'],
-                                ['name' => 'Civil Service & Work Exp.', 'route' => 'display_c3', 'icon' => 'briefcase'],
+                                ['name' => 'Family Background', 'route' => 'display_c1', 'icon' => 'users', 'fragment' => 'family-background'],
+                                ['name' => 'Educational Background', 'route' => 'display_c1', 'icon' => 'book', 'fragment' => 'educational-background'],
+                                ['name' => 'Civil Service & Work Exp.', 'route' => 'display_c2', 'icon' => 'briefcase', 'fragment' => 'civil-service-eligibility'],
                                 ['name' => 'Voluntary Work & Training', 'route' => 'display_c3', 'icon' => 'award'],
                                 ['name' => 'Other Information', 'route' => 'display_c4', 'icon' => 'info'],
                             ];
                         @endphp
                         <div class="space-y-2">
                             @foreach($pdsLinks as $link)
-                                <a href="{{ route($link['route']) }}" class="flex items-center gap-3 rounded-lg border border-slate-100 px-3 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-blue-200 hover:bg-blue-50">
+                                @php
+                                    $linkHref = route($link['route']) . (isset($link['fragment']) ? ('#' . $link['fragment']) : '');
+                                @endphp
+                                <a href="{{ $linkHref }}" class="flex items-center gap-3 rounded-lg border border-slate-100 px-3 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-blue-200 hover:bg-blue-50">
                                     <span class="flex h-9 w-9 items-center justify-center rounded-full bg-slate-50 text-slate-500">
                                         <i data-feather="{{ $link['icon'] }}" class="h-4 w-4"></i>
                                     </span>
