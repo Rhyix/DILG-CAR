@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\JobVacancy;
 use App\Services\ApplicantDeletionWorkflowService;
+use App\Services\ApplicantRevisionDeadlineService;
 use Carbon\Carbon;
 use Closure;
 use Illuminate\Support\Facades\Auth;
@@ -22,11 +23,20 @@ class RunDailyTask
 
             $workflow = app(ApplicantDeletionWorkflowService::class);
             $deletionResults = $workflow->processDailyTasks();
+            $deadlineService = app(ApplicantRevisionDeadlineService::class);
+            $deadlineResults = $deadlineService->processDailyTasks();
 
             if (!empty($deletionResults['deleted']) && $request->hasSession() && Auth::guard('admin')->check()) {
                 $request->session()->flash(
                     'applicant_deletion_daily_notice',
                     'Scheduled deletion completed for ' . $workflow->summarizeLabels($deletionResults['deleted']) . '.'
+                );
+            }
+
+            if (!empty($deadlineResults['expired']) && $request->hasSession() && Auth::guard('admin')->check()) {
+                $request->session()->flash(
+                    'applicant_revision_deadline_notice',
+                    'Revision deadline expired for ' . implode(', ', array_slice($deadlineResults['expired'], 0, 3)) . (count($deadlineResults['expired']) > 3 ? ' and others' : '') . '.'
                 );
             }
 

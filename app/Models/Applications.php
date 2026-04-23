@@ -29,6 +29,7 @@ class Applications extends Model
         'file_revision_requested_count',
         'file_revision_requested_at',
         'file_revision_submitted_at',
+        'deadline_warning_sent_at',
         'file_size_8b',
         'qs_education',
         'education_requirement_snapshot',
@@ -69,6 +70,7 @@ class Applications extends Model
         'initial_assessment_q1_passed' => 'boolean',
         'initial_assessment_q2_passed' => 'boolean',
         'initial_assessment_has_pqe' => 'boolean',
+        'deadline_warning_sent_at' => 'datetime',
         'exam_attendance_responded_at' => 'datetime',
     ];
 

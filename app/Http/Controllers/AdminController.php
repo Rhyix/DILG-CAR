@@ -2033,6 +2033,7 @@ class AdminController extends Controller
         if (!$deadlineEnabled) {
             $application->deadline_date = null;
             $application->deadline_time = null;
+            $application->deadline_warning_sent_at = null;
         } else {
             if ($request->exists('deadline_date')) {
                 $application->deadline_date = !empty($validatedData['deadline_date'])
@@ -2044,6 +2045,7 @@ class AdminController extends Controller
                     ? date('H:i', strtotime($validatedData['deadline_time']))
                     : '17:00';
             }
+            $application->deadline_warning_sent_at = null;
         }
 
         foreach (['qs_education', 'qs_eligibility', 'qs_experience', 'qs_training', 'qs_result'] as $field) {
@@ -2100,6 +2102,7 @@ class AdminController extends Controller
             $application->qs_result = 'Not Qualified';
             $application->deadline_date = null;
             $application->deadline_time = null;
+            $application->deadline_warning_sent_at = null;
         } elseif ($isNeedsRevisionsByQs) {
             $application->qs_result = 'Needs Revisions';
         }
@@ -2108,6 +2111,7 @@ class AdminController extends Controller
             // Qualified applicants no longer need a compliance deadline.
             $application->deadline_date = null;
             $application->deadline_time = null;
+            $application->deadline_warning_sent_at = null;
         }
 
         $complianceNoticeMode = $isRejectedByQs
