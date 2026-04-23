@@ -311,7 +311,7 @@
                   <section aria-label="Required Documents Panel"
                     class="w-full lg:w-72 flex-none bg-white rounded-lg border border-gray-300 p-3 shadow-lg flex flex-col">
                     <h2 class="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide flex-none">Required Documents</h2>
-                    <p class="text-xs font-semibold mb-2 text-red-600">* Required for {{ $application->vacancy->vacancy_type }} vacancy</p>
+                    <p class="text-xs font-semibold mb-2 text-gray-600">Documents marked <span class="text-red-600 font-bold">(required)</span> must be uploaded for this vacancy.</p>
                     <p class="text-xs font-semibold mb-3 text-gray-600">Upload your documents below. If you need to upload multiple files for a single document, please combine them into one file.</p>
                     <div class="pr-1">
                       <form id="document-upload-form" method="POST" data-upload-retry="1"
@@ -407,6 +407,20 @@
             const div = document.createElement('div');
             div.textContent = value ?? '';
             return div.innerHTML;
+          }
+
+          function getDocumentLabelHtml(doc) {
+            const label = escapeHtml(doc?.text || doc?.name || '');
+            const docId = doc?.id || '';
+            let suffix = '<span class="text-blue-500 font-semibold ml-1">(if any)</span>';
+
+            if (docId === 'pqe_result') {
+              suffix = '<span class="text-blue-500 font-semibold ml-1">(if taken and passed)</span>';
+            } else if (isRequiredDocument(docId)) {
+              suffix = '<span class="text-red-600 font-semibold ml-1">(required)</span>';
+            }
+
+            return `${label} ${suffix}`;
           }
 
           function sortDocumentsForRequiredPriority(docList) {
@@ -567,7 +581,7 @@
 
               const textWrapper = document.createElement('span');
               textWrapper.className = `${textColorClass} text-xs flex-1 break-words`;
-              textWrapper.innerHTML = `${escapeHtml(doc.text || doc.name)}${isRequiredDocument(doc.id) ? ' <span class="text-red-600 font-extrabold">*</span>' : ''}`;
+              textWrapper.innerHTML = getDocumentLabelHtml(doc);
 
               btn.appendChild(iconWrapper);
               btn.appendChild(textWrapper);

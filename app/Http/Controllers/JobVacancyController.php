@@ -281,6 +281,7 @@ class JobVacancyController extends Controller
             'qualification_training',
             'qualification_experience',
             'qualification_eligibility',
+            'supporting_documents_required',
             'competencies',
             'expected_output',
             'scope_of_work',
@@ -1235,7 +1236,11 @@ class JobVacancyController extends Controller
 
         foreach ($optionalPayload as $column) {
             if (Schema::hasColumn('vacancy_titles', $column)) {
-                $data[$column] = $validated[$column] ?? null;
+                if ($column === 'supporting_documents_required') {
+                    $data[$column] = $this->normalizeSupportingDocumentSelection($validated[$column] ?? null);
+                } else {
+                    $data[$column] = $validated[$column] ?? null;
+                }
             }
         }
 
@@ -1370,6 +1375,7 @@ class JobVacancyController extends Controller
             'qualification_experience' => 'required|string',
             'qualification_training' => 'required|string',
             'qualification_eligibility' => 'nullable|string|required_if:vacancy_type,Plantilla',
+            'supporting_documents_required' => 'nullable|json',
 
             // Plantilla-only
             'competencies' => 'nullable|string',
@@ -1437,6 +1443,9 @@ class JobVacancyController extends Controller
             'qualification_experience' => $validated['qualification_experience'],
             'qualification_training' => $validated['qualification_training'],
             'qualification_eligibility' => $validated['qualification_eligibility'] ?? '',
+            'supporting_documents_required' => $this->normalizeSupportingDocumentSelection(
+                $validated['supporting_documents_required'] ?? null
+            ),
 
             // Plantilla only
             'competencies' => $validated['competencies'] ?? null,
@@ -1600,6 +1609,7 @@ class JobVacancyController extends Controller
                 'qualification_training' => 'required|string',
                 'qualification_experience' => 'required|string',
                 'qualification_eligibility' => 'nullable|string|required_if:vacancy_type,Plantilla',
+                'supporting_documents_required' => 'nullable|json',
                 'competencies' => 'nullable|string',
                 'expected_output' => 'nullable|string|required_if:vacancy_type,COS',
                 'scope_of_work' => 'nullable|string|required_if:vacancy_type,COS',
@@ -1660,6 +1670,7 @@ class JobVacancyController extends Controller
             'qualification_training' => 'required|string',
             'qualification_experience' => 'required|string',
             'qualification_eligibility' => 'nullable|string|required_if:vacancy_type,Plantilla',
+            'supporting_documents_required' => 'nullable|json',
 
             // Plantilla-only
             'competencies' => 'nullable|string',
@@ -1737,6 +1748,9 @@ class JobVacancyController extends Controller
             'qualification_training' => $validated['qualification_training'],
             'qualification_experience' => $validated['qualification_experience'],
             'qualification_eligibility' => $validated['qualification_eligibility'] ?? '',
+            'supporting_documents_required' => $this->normalizeSupportingDocumentSelection(
+                $validated['supporting_documents_required'] ?? null
+            ),
 
             // Plantilla only
             'competencies' => $validated['competencies'] ?? null,
@@ -1912,7 +1926,7 @@ class JobVacancyController extends Controller
 
         if (Auth::check()) {
             $docTrackMismatchState = $this->getDocumentTrackMismatchState((int) Auth::id(), (string) $vacancy->vacancy_type, (string) $vacancy->vacancy_id);
-            $requiredDocsModalState = $this->getRequiredDocsModalState((int) Auth::id(), (string) $vacancy->vacancy_type, (string) $vacancy->vacancy_id);
+            $requiredDocsModalState = $this->getRequiredDocsModalState((int) Auth::id(), $vacancy, (string) $vacancy->vacancy_id);
             $qualificationGateState = $this->evaluateApplicantQualificationGateForVacancy((int) Auth::id(), $vacancy);
         }
 
@@ -2639,7 +2653,7 @@ class JobVacancyController extends Controller
                 ->with('error', 'Please complete the initial assessment for this position before applying.');
         }
 
-        $requiredDocsModalState = $this->getRequiredDocsModalState((int) Auth::id(), (string) $vacancy->vacancy_type, (string) $vacancy->vacancy_id);
+        $requiredDocsModalState = $this->getRequiredDocsModalState((int) Auth::id(), $vacancy, (string) $vacancy->vacancy_id);
         if ($requiredDocsModalState['hasMissing']) {
             Log::info('Apply blocked: required docs missing', [
                 'user_id' => Auth::id(),
@@ -2694,7 +2708,7 @@ class JobVacancyController extends Controller
             }
         }
 
-        $requiredDocumentIds = $this->getRequiredDocumentIdsForVacancyType((string) $vacancy->vacancy_type);
+        $requiredDocumentIds = $this->getRequiredDocumentIdsForVacancyType((string) $vacancy->vacancy_type, $vacancy);
         $this->seedVacancyDocumentsFromReusableUploads(
             (int) Auth::id(),
             (string) $vacancy->vacancy_id,
@@ -3059,7 +3073,7 @@ class JobVacancyController extends Controller
             }
         }
 
-        $requiredDocumentIds = $this->getRequiredDocumentIdsForVacancyType($application->vacancy?->vacancy_type);
+        $requiredDocumentIds = $this->getRequiredDocumentIdsForVacancyType($application->vacancy?->vacancy_type, $application->vacancy);
         $documents = $this->sortDocumentsForRequiredPriority($documents, $requiredDocumentIds);
 
         $displayApplicationStatus = $application->status ?? 'Pending';
@@ -3360,7 +3374,7 @@ class JobVacancyController extends Controller
             }
         }
 
-        $requiredDocumentIds = $this->getRequiredDocumentIdsForVacancyType($application->vacancy?->vacancy_type);
+        $requiredDocumentIds = $this->getRequiredDocumentIdsForVacancyType($application->vacancy?->vacancy_type, $application->vacancy);
         $documents = $this->sortDocumentsForRequiredPriority($documents, $requiredDocumentIds);
 
         \Log::info("Final documents array in getUpdatedDocumentsUser", ['count' => count($documents)]);
@@ -3587,10 +3601,46 @@ class JobVacancyController extends Controller
         ]));
     }
 
-    private function getRequiredDocumentIdsForVacancyType(?string $vacancyType): array
+    private function getSupportingDocumentTypes(): array
     {
-        $vacancyTrack = $this->normalizeTrack($vacancyType);
-        $requiredDocumentIds = $this->getRequiredDocsByTrack()[$vacancyTrack] ?? [];
+        return array_values(array_filter(
+            UploadedDocument::DOCUMENTS,
+            fn ($doc) => $doc !== 'isApproved'
+        ));
+    }
+
+    private function normalizeSupportingDocumentSelection($selection): array
+    {
+        if (is_string($selection)) {
+            $decodedSelection = json_decode($selection, true);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $selection = $decodedSelection;
+            }
+        }
+
+        if (!is_array($selection)) {
+            return [];
+        }
+
+        $allowedTypes = array_fill_keys($this->getSupportingDocumentTypes(), true);
+        $normalizedSelection = [];
+
+        foreach ($selection as $documentType) {
+            $documentType = (string) $documentType;
+            if (isset($allowedTypes[$documentType])) {
+                $normalizedSelection[] = $documentType;
+            }
+        }
+
+        return array_values(array_unique($normalizedSelection));
+    }
+
+    private function getRequiredDocumentIdsForVacancyType(?string $vacancyType, ?JobVacancy $vacancy = null): array
+    {
+        $hasStoredSelection = $vacancy && $vacancy->getAttribute('supporting_documents_required') !== null;
+        $requiredDocumentIds = $hasStoredSelection
+            ? $this->normalizeSupportingDocumentSelection($vacancy->supporting_documents_required)
+            : ($this->getRequiredDocsByTrack()[$this->normalizeTrack($vacancyType)] ?? []);
 
         usort($requiredDocumentIds, function ($a, $b) {
             $labelA = strtolower($this->getDocumentLabelMap()[$a] ?? $a);
@@ -3675,11 +3725,10 @@ class JobVacancyController extends Controller
         return strcasecmp((string) $track, 'COS') === 0 ? 'COS' : 'Plantilla';
     }
 
-    private function getRequiredDocsModalState(int $userId, ?string $vacancyType, ?string $vacancyId = null): array
+    private function getRequiredDocsModalState(int $userId, ?JobVacancy $vacancy, ?string $vacancyId = null): array
     {
-        $vacancyTrack = $this->normalizeTrack($vacancyType);
-        $requiredDocsByTrack = $this->getRequiredDocsByTrack();
-        $requiredDocs = $requiredDocsByTrack[$vacancyTrack] ?? [];
+        $vacancyTrack = $this->normalizeTrack($vacancy?->vacancy_type);
+        $requiredDocs = $this->getRequiredDocumentIdsForVacancyType($vacancy?->vacancy_type, $vacancy);
         $documentLabels = $this->getDocumentLabelMap();
 
         $previewDocs = array_map(function (string $docType) use ($documentLabels) {

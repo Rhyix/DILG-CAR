@@ -62,6 +62,45 @@
     $fieldInput = 'h-11 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm text-slate-900 shadow-sm outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100';
     $fieldTextarea = 'min-h-[108px] w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100';
     $helperText = 'mt-1 text-xs leading-5 text-slate-500';
+    $allSupportingDocumentTypes = collect(\App\Models\UploadedDocument::DOCUMENTS)
+      ->reject(fn ($doc) => $doc === 'isApproved')
+      ->values()
+      ->all();
+    $defaultRequiredSupportingDocuments = strtoupper((string) old('vacancy_type', $formSource?->vacancy_type ?? 'COS')) === 'COS'
+      ? ['passport_photo', 'signed_pds', 'signed_work_exp_sheet', 'photocopy_diploma', 'application_letter', 'cert_training']
+      : collect($allSupportingDocumentTypes)
+          ->reject(fn ($doc) => in_array($doc, ['tor_masteraldoctorate', 'grade_masteraldoctorate', 'cert_lgoo_induction', 'other_documents', 'pqe_result', 'ipcr', 'non_academic', 'designation_order', 'cert_employment'], true))
+          ->values()
+          ->all();
+    $persistedSupportingDocumentSelection = old('supporting_documents_required', $formSource?->supporting_documents_required);
+    if (is_string($persistedSupportingDocumentSelection)) {
+      $decodedSelection = json_decode($persistedSupportingDocumentSelection, true);
+      if (json_last_error() === JSON_ERROR_NONE) {
+        $persistedSupportingDocumentSelection = $decodedSelection;
+      }
+    }
+    $selectedSupportingDocuments = is_array($persistedSupportingDocumentSelection)
+      ? array_values(array_unique(array_values(array_filter($persistedSupportingDocumentSelection, fn ($doc) => in_array((string) $doc, $allSupportingDocumentTypes, true)))))
+      : $defaultRequiredSupportingDocuments;
+    $documentLabelMap = [
+      'application_letter' => 'Application Letter',
+      'pqe_result' => 'Pre-Qualifying Exam (PQE) Result',
+      'transcript_records' => 'Transcript of Records (Baccalaureate Degree)',
+      'photocopy_diploma' => 'Diploma',
+      'signed_pds' => 'Signed and Subscribed Personal Data Sheet',
+      'signed_work_exp_sheet' => 'Signed Work Experience Sheet',
+      'cert_lgoo_induction' => 'Certificate of Completion of LGOO Induction Training',
+      'passport_photo' => '2" x 2" or Passport Size Picture',
+      'cert_eligibility' => 'Certificate of Eligibility/Board Rating',
+      'ipcr' => 'Certification of Numerical Rating/Performance Rating/IPCR',
+      'non_academic' => 'Non-Academic Awards Received',
+      'cert_training' => 'Certificates of Training/Participation',
+      'designation_order' => 'Confirmed Designation Order/s',
+      'grade_masteraldoctorate' => 'Certificate of Grades with Masteral/Doctorate Units Earned',
+      'tor_masteraldoctorate' => 'TOR with Masteral/Doctorate Degree',
+      'cert_employment' => 'Certificate of Employment',
+      'other_documents' => 'Other Documents Submitted',
+    ];
   @endphp
 
   <div class="w-full min-w-0">
@@ -95,6 +134,11 @@
       <input type="hidden" name="vacancy_type" value="COS">
       <input type="hidden" name="position_mode" value="{{ $positionMode ? '1' : '0' }}">
       <input type="hidden" name="position_title_id" value="{{ old('position_title_id', $positionMode ? ($formSource?->id ?? '') : '') }}">
+      <input
+        type="hidden"
+        id="supporting_documents_required"
+        name="supporting_documents_required"
+        value='@json($selectedSupportingDocuments)'>
 
       <section class="w-full overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <div class="mb-6 border-b border-slate-200 pb-5">
@@ -278,6 +322,33 @@
 
       <section class="w-full overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <div class="mb-6 border-b border-slate-200 pb-5">
+          <h2 class="{{ $sectionTitle }}">Supporting Documents</h2>
+          <p class="mt-1 text-sm text-slate-600">
+            Mark documents as required for this vacancy. Unchecked documents are optional (if any).
+          </p>
+        </div>
+
+        <div class="grid gap-3 md:grid-cols-2">
+          @foreach($allSupportingDocumentTypes as $supportingDocType)
+            @php
+              $supportingDocKey = (string) $supportingDocType;
+              $isChecked = in_array($supportingDocKey, $selectedSupportingDocuments, true);
+              $documentLabel = $documentLabelMap[$supportingDocKey] ?? ucwords(str_replace('_', ' ', $supportingDocKey));
+            @endphp
+            <label class="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3">
+              <input
+                type="checkbox"
+                value="{{ $supportingDocKey }}"
+                class="supporting-document-checkbox mt-1 h-4 w-4 rounded border-slate-300 text-blue-700 focus:ring-blue-600"
+                {{ $isChecked ? 'checked' : '' }}>
+              <span class="text-sm text-slate-700">{{ $documentLabel }}</span>
+            </label>
+          @endforeach
+        </div>
+      </section>
+
+      <section class="w-full overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div class="mb-6 border-b border-slate-200 pb-5">
           <h2 class="{{ $sectionTitle }}">Expected Output / Deliverables</h2>
           <p class="mt-1 text-sm text-slate-600">
             Describe deliverables, scope of work, and engagement duration.
@@ -442,6 +513,33 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {
+  const supportingDocumentsHidden = document.getElementById('supporting_documents_required');
+  const supportingDocumentCheckboxes = document.querySelectorAll('.supporting-document-checkbox');
+  const vacancyForm = document.getElementById('vacancy-form');
+
+  const syncSupportingDocumentSelection = () => {
+    if (!supportingDocumentsHidden) {
+      return;
+    }
+
+    const selected = Array.from(supportingDocumentCheckboxes)
+      .filter((checkbox) => checkbox.checked)
+      .map((checkbox) => checkbox.value);
+
+    supportingDocumentsHidden.value = JSON.stringify(selected);
+
+    if (typeof checkAllFieldsFilled === 'function') {
+      checkAllFieldsFilled();
+    }
+  };
+
+  supportingDocumentCheckboxes.forEach((checkbox) => {
+    checkbox.addEventListener('change', syncSupportingDocumentSelection);
+  });
+
+  vacancyForm?.addEventListener('submit', syncSupportingDocumentSelection);
+  syncSupportingDocumentSelection();
+
     const closingDateInput = document.getElementById('closing_date');
     if (closingDateInput && !closingDateInput.disabled) {
       flatpickr("#closing_date", {

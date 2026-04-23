@@ -249,7 +249,7 @@
 						Documents
 					</h2>
 					<p class="text-[11px] text-gray-500 mb-2">
-						<span class="text-red-600 font-bold">*</span> Required for {{ $vacancy_type }} vacancy
+						Documents marked <span class="text-red-600 font-bold">(required)</span> must be uploaded for this vacancy.
 					</p>
 					<div class="pr-1">
 						<ul class="text-xs text-gray-700 space-y-1" id="document-list">
@@ -489,7 +489,7 @@
 					<div class="px-5 py-3 bg-gray-50/80 border-b border-gray-100 flex items-center justify-between">
 						<h4 class="text-xs font-bold text-gray-600 uppercase tracking-wider">Required Documents</h4>
 						<div class="text-[10px] text-gray-400 font-medium text-right">
-							<div><span class="text-red-600 font-bold">*</span> Required for {{ $vacancy_type }} vacancy</div>
+							<div>Documents marked <span class="text-red-600 font-bold">(required)</span> must be uploaded for this vacancy.</div>
 							<div>With remarks only for items needing revision</div>
 						</div>
 					</div>

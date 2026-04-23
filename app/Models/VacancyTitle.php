@@ -27,6 +27,7 @@ class VacancyTitle extends Model
         'qualification_training',
         'qualification_experience',
         'qualification_eligibility',
+        'supporting_documents_required',
         'competencies',
         'expected_output',
         'scope_of_work',
@@ -41,5 +42,6 @@ class VacancyTitle extends Model
     protected $casts = [
         'education_rule_compiled' => 'array',
         'education_rule_compiled_at' => 'datetime',
+        'supporting_documents_required' => 'array',
     ];
 }

@@ -1196,6 +1196,56 @@ class AdminController extends Controller
         ];
     }
 
+    private function getSupportingDocumentTypes(): array
+    {
+        return array_values(array_filter(
+            UploadedDocument::DOCUMENTS,
+            fn ($doc) => $doc !== 'isApproved'
+        ));
+    }
+
+    private function normalizeSupportingDocumentSelection($selection): array
+    {
+        if (is_string($selection)) {
+            $decodedSelection = json_decode($selection, true);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $selection = $decodedSelection;
+            }
+        }
+
+        if (!is_array($selection)) {
+            return [];
+        }
+
+        $allowedTypes = array_fill_keys($this->getSupportingDocumentTypes(), true);
+        $normalizedSelection = [];
+
+        foreach ($selection as $documentType) {
+            $documentType = (string) $documentType;
+            if (isset($allowedTypes[$documentType])) {
+                $normalizedSelection[] = $documentType;
+            }
+        }
+
+        return array_values(array_unique($normalizedSelection));
+    }
+
+    private function getRequiredDocumentIdsForVacancy(?JobVacancy $vacancy = null): array
+    {
+        $hasStoredSelection = $vacancy && $vacancy->getAttribute('supporting_documents_required') !== null;
+        $requiredDocumentIds = $hasStoredSelection
+            ? $this->normalizeSupportingDocumentSelection($vacancy->supporting_documents_required)
+            : ($this->getRequiredDocsByTrack()[$this->normalizeTrack($vacancy?->vacancy_type)] ?? []);
+
+        usort($requiredDocumentIds, function ($a, $b) {
+            $labelA = strtolower(self::DOCUMENT_LABELS[$a] ?? $a);
+            $labelB = strtolower(self::DOCUMENT_LABELS[$b] ?? $b);
+            return $labelA <=> $labelB;
+        });
+
+        return $requiredDocumentIds;
+    }
+
     private function normalizeTrack(?string $track): string
     {
         return strcasecmp((string) $track, 'COS') === 0 ? 'COS' : 'Plantilla';
@@ -1431,13 +1481,7 @@ class AdminController extends Controller
 
         $documents = $this->sortDocumentsAscending($this->getApplicantDocuments($user_id, $application));
         $isCancelledApplication = $this->isCancelledApplication($application);
-        $vacancyTrack = $this->normalizeTrack($vacancy->vacancy_type);
-        $requiredDocumentIds = $this->getRequiredDocsByTrack()[$vacancyTrack] ?? [];
-        usort($requiredDocumentIds, function ($a, $b) {
-            $labelA = strtolower(self::DOCUMENT_LABELS[$a] ?? $a);
-            $labelB = strtolower(self::DOCUMENT_LABELS[$b] ?? $b);
-            return $labelA <=> $labelB;
-        });
+        $requiredDocumentIds = $this->getRequiredDocumentIdsForVacancy($vacancy);
 
         activity()
             ->causedBy(auth('admin')->user())
@@ -2059,8 +2103,7 @@ class AdminController extends Controller
         // Removed recalculateQualificationStatus from here to respect the modal's selected radio buttons.
 
         $vacancy = JobVacancy::where('vacancy_id', $vacancy_id)->first();
-        $vacancyTrack = $this->normalizeTrack($vacancy->vacancy_type ?? null);
-        $requiredDocumentIds = $this->getRequiredDocsByTrack()[$vacancyTrack] ?? [];
+        $requiredDocumentIds = $this->getRequiredDocumentIdsForVacancy($vacancy);
 
         $documents = $this->sortDocumentsAscending($this->getApplicantDocuments($user_id, $application));
         $userDocumentsSnapshot = $this->sortDocumentsAscending($this->buildUserDocumentsSnapshot($user_id, $application));

@@ -24,6 +24,9 @@
 
     $isApplicationFlow = !empty($applicationVacancyId);
     $requiredDocsByTrack = $requiredDocsByTrack ?? ['COS' => [], 'Plantilla' => []];
+    $vacancyRequiredDocumentIds = is_array($vacancyRequiredDocumentIds ?? null)
+        ? array_values(array_unique($vacancyRequiredDocumentIds))
+        : [];
     // In application flow, always lock UI track to vacancy track to match backend validation.
     $activeTrack = $isApplicationFlow
         ? ($defaultDocTrack ?? 'Plantilla')
@@ -173,8 +176,12 @@
                         }
                         $hasStoredDoc = $previewUrl !== '' || ($docType === 'application_letter' && !empty($hasExistingApplicationLetter));
                         $hasExisting = $hasStoredDoc;
-                        $requiredCos = in_array($docType, $requiredDocsByTrack['COS'] ?? [], true);
-                        $requiredPlantilla = in_array($docType, $requiredDocsByTrack['Plantilla'] ?? [], true);
+                        $requiredCos = $isApplicationFlow
+                            ? in_array($docType, $vacancyRequiredDocumentIds, true)
+                            : in_array($docType, $requiredDocsByTrack['COS'] ?? [], true);
+                        $requiredPlantilla = $isApplicationFlow
+                            ? in_array($docType, $vacancyRequiredDocumentIds, true)
+                            : in_array($docType, $requiredDocsByTrack['Plantilla'] ?? [], true);
                         $requiredNow = $activeTrack === 'COS' ? $requiredCos : $requiredPlantilla;
                         $inputId = 'cert-upload-' . str_replace('_', '-', $docType);
                     @endphp

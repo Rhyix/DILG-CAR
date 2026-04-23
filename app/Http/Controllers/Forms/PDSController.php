@@ -4800,10 +4800,8 @@ $rules_data_vol["voluntary_to_$i"] = 'required|date';
     private function hasCompleteRequiredDocsForVacancy(
         int $userId,
         string $vacancyId,
-        string $docTrack,
-        array $requiredDocsByTrack
+        array $requiredDocs
     ): bool {
-        $requiredDocs = $requiredDocsByTrack[$docTrack] ?? [];
         if (empty($requiredDocs)) {
             return false;
         }
@@ -4825,6 +4823,53 @@ $rules_data_vol["voluntary_to_$i"] = 'required|date';
         }
 
         return true;
+    }
+
+    private function getSupportingDocumentTypes(): array
+    {
+        return array_values(array_filter(
+            UploadedDocument::DOCUMENTS,
+            fn ($doc) => $doc !== 'isApproved'
+        ));
+    }
+
+    private function normalizeSupportingDocumentSelection($selection): array
+    {
+        if (is_string($selection)) {
+            $decodedSelection = json_decode($selection, true);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $selection = $decodedSelection;
+            }
+        }
+
+        if (!is_array($selection)) {
+            return [];
+        }
+
+        $allowedTypes = array_fill_keys($this->getSupportingDocumentTypes(), true);
+        $normalizedSelection = [];
+
+        foreach ($selection as $documentType) {
+            $documentType = (string) $documentType;
+            if (isset($allowedTypes[$documentType])) {
+                $normalizedSelection[] = $documentType;
+            }
+        }
+
+        return array_values(array_unique($normalizedSelection));
+    }
+
+    private function getRequiredDocumentIdsForVacancy(?Models\JobVacancy $vacancy = null, ?string $docTrack = null): array
+    {
+        $hasStoredSelection = $vacancy && $vacancy->getAttribute('supporting_documents_required') !== null;
+        $normalizedTrack = strcasecmp((string) $docTrack, 'COS') === 0 ? 'COS' : 'Plantilla';
+        $requiredByTrack = $this->getRequiredDocsByTrack();
+
+        $requiredDocs = $hasStoredSelection
+            ? $this->normalizeSupportingDocumentSelection($vacancy->supporting_documents_required)
+            : ($requiredByTrack[$normalizedTrack] ?? []);
+
+        return array_values(array_unique($requiredDocs));
     }
 
 
@@ -4883,6 +4928,7 @@ $rules_data_vol["voluntary_to_$i"] = 'required|date';
         }
 
         $requiredDocsByTrack = $this->getRequiredDocsByTrack();
+        $vacancyRequiredDocumentIds = $this->getRequiredDocumentIdsForVacancy($vacancyForApplication, $defaultDocTrack);
         $documentLabels = $this->getDocumentLabelMap();
         $isFreshUpload = in_array(request('fresh_upload'), [1, '1', true, 'true'], true) || !empty($applicationVacancyId);
         $hasFreshUploadForVacancy = false;
@@ -4890,8 +4936,7 @@ $rules_data_vol["voluntary_to_$i"] = 'required|date';
             $hasFreshUploadForVacancy = $this->hasCompleteRequiredDocsForVacancy(
                 (int) $user->id,
                 (string) $applicationVacancyId,
-                (string) $defaultDocTrack,
-                $requiredDocsByTrack
+                $vacancyRequiredDocumentIds
             );
 
             Log::info('C5 display with vacancy context', [
@@ -4908,6 +4953,7 @@ $rules_data_vol["voluntary_to_$i"] = 'required|date';
             'documentsResolved',
             'defaultDocTrack',
             'requiredDocsByTrack',
+            'vacancyRequiredDocumentIds',
             'documentLabels',
             'hasExistingApplicationLetter',
             'applicationLetterPreviewUrl',
@@ -4976,7 +5022,9 @@ $rules_data_vol["voluntary_to_$i"] = 'required|date';
         }
 
         $requiredDocsByTrack = $this->getRequiredDocsByTrack();
-        $requiredDocs = $requiredDocsByTrack[$docTrack];
+        $requiredDocs = !empty($applicationVacancyId)
+            ? $this->getRequiredDocumentIdsForVacancy($vacancyForApplication, $docTrack)
+            : ($requiredDocsByTrack[$docTrack] ?? []);
         $documentLabels = $this->getDocumentLabelMap();
         $uploadedFilesPayload = $request->file('cert_uploads', []);
         if (!is_array($uploadedFilesPayload)) {
