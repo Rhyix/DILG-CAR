@@ -771,9 +771,15 @@
             ? ['HIGH SCHOOL']
             : ['JUNIOR HIGH SCHOOL', 'SENIOR HIGH SCHOOL'];
 
-        const optionsWithNa = ['N/A', ...desiredOptions];
+        const currentValue = String(jhsBasic.value || '').trim();
+        const normalizedCurrent = currentValue.toUpperCase();
+        const knownSecondaryValues = ['HIGH SCHOOL', 'JUNIOR HIGH SCHOOL', 'SENIOR HIGH SCHOOL'];
 
-        const currentValue = jhsBasic.value || '';
+        const optionsWithNa = ['N/A', ...desiredOptions];
+        if (knownSecondaryValues.includes(normalizedCurrent) && !optionsWithNa.includes(normalizedCurrent)) {
+            optionsWithNa.push(normalizedCurrent);
+        }
+
         const existingOptions = Array.from(jhsBasic.options).map((o) => o.value);
         const optionsChanged = optionsWithNa.length !== existingOptions.length || optionsWithNa.some((v, i) => v !== existingOptions[i]);
 
@@ -789,8 +795,10 @@
             });
         }
 
-        const hasCurrent = optionsWithNa.includes(currentValue);
-        if (!hasCurrent) {
+        const matchingOption = optionsWithNa.find((value) => value.toUpperCase() === normalizedCurrent);
+        if (matchingOption) {
+            jhsBasic.value = matchingOption;
+        } else {
             jhsBasic.value = optionsWithNa[0];
         }
     }

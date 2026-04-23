@@ -124,11 +124,30 @@
             rounded-md text-sm transition-all duration:300 hover:scal-105 hover:bg-white
             hover:text-[#002C76] hover:shadow-md inline-flex items-center gap-2
             w-full sm:w-auto justify-center sm:justify-start" 
+            data-education-add="{{ $education_type }}"
             onclick="addEducationRow('{{ $education_type }}')">
                 <span class="material-icons" style="font-size: 20px;">add</span>
                 Add {{ ucfirst($education_type) }}
             </button>
         </div>
+
+        @if ($education_type === 'college')
+            <div class="mb-4">
+                <input type="hidden" name="college_not_attended" value="0">
+                <label class="inline-flex items-center gap-2 text-sm font-medium text-gray-700">
+                    <input
+                        type="checkbox"
+                        id="college_not_attended"
+                        name="college_not_attended"
+                        value="1"
+                        data-college-not-attended-toggle
+                        {{ old('college_not_attended', session('form.c1.college_not_attended')) ? 'checked' : '' }}
+                        class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    >
+                    I did not attend college
+                </label>
+            </div>
+        @endif
 
         @php
             $oldEducationData = old($education_type, $education_data ?? []);
@@ -777,6 +796,97 @@
                     });
                 } catch (e) {}
             }
+
+            function setCollegeNotAttendedValues(row) {
+                if (!row) return;
+
+                const textFieldSelectors = [
+                    'input[name*="[school]"]',
+                    'input[name*="[basic]"]',
+                    'input[name*="[year_graduated]"]',
+                    'input[name*="[earned]"]',
+                    'input[name*="[academic_honors]"]',
+                ];
+
+                textFieldSelectors.forEach((selector) => {
+                    const field = row.querySelector(selector);
+                    if (field) {
+                        field.value = 'N/A';
+                    }
+                });
+
+                row.querySelectorAll('input[type="date"][name^="college["]').forEach((field) => {
+                    field.value = '';
+                });
+            }
+
+            function clearCollegeRowValues(row) {
+                if (!row) return;
+                row.querySelectorAll('input, select, textarea').forEach((field) => {
+                    if (field.type === 'hidden') {
+                        return;
+                    }
+                    if (field.type === 'checkbox' || field.type === 'radio') {
+                        field.checked = false;
+                        return;
+                    }
+                    field.value = '';
+                });
+            }
+
+            function applyCollegeNotAttendedState(clearWhenUnchecked = false) {
+                const checkbox = document.getElementById('college_not_attended');
+                const container = document.getElementById('college-container');
+                if (!checkbox || !container) {
+                    return;
+                }
+
+                const isChecked = checkbox.checked;
+                const addBtn = document.querySelector('[data-education-add="college"]');
+                if (addBtn) {
+                    addBtn.disabled = isChecked;
+                    addBtn.classList.toggle('opacity-60', isChecked);
+                    addBtn.classList.toggle('cursor-not-allowed', isChecked);
+                }
+
+                container.querySelectorAll('.education-entry').forEach((row) => {
+                    const removeBtn = row.querySelector('.remove-btn');
+                    if (removeBtn) {
+                        removeBtn.disabled = isChecked;
+                        removeBtn.classList.toggle('opacity-50', isChecked);
+                        removeBtn.classList.toggle('pointer-events-none', isChecked);
+                    }
+
+                    row.querySelectorAll('input, select, textarea').forEach((field) => {
+                        if (field.type === 'hidden') {
+                            return;
+                        }
+
+                        if (!Object.prototype.hasOwnProperty.call(field.dataset, 'wasRequired')) {
+                            field.dataset.wasRequired = field.required ? '1' : '0';
+                        }
+
+                        if (isChecked) {
+                            field.required = false;
+                            if (!(field.id === 'college_not_attended' || field.dataset.collegeNotAttendedToggle === '')) {
+                                field.disabled = true;
+                            }
+                        } else {
+                            field.disabled = false;
+                            field.required = field.dataset.wasRequired === '1';
+                        }
+                    });
+
+                    if (isChecked) {
+                        setCollegeNotAttendedValues(row);
+                    } else if (clearWhenUnchecked) {
+                        clearCollegeRowValues(row);
+                    }
+                });
+
+                syncCollegeEarnedRequired('college');
+            }
+
             function addEducationRow(type) {
                 const container = document.getElementById(`${type}-container`);
                 const template = document.getElementById(`${type}-template`).innerHTML;
@@ -796,6 +906,9 @@
                 if (type === 'college' || type === 'grad') {
                     const programSource = type === 'grad' ? 'grad' : 'college';
                     bindProgramDropdownRows(container, programSource);
+                }
+                if (type === 'college') {
+                    applyCollegeNotAttendedState(false);
                 }
             }
 
@@ -835,6 +948,9 @@
                     const programSource = type === 'grad' ? 'grad' : 'college';
                     bindProgramDropdownRows(container, programSource);
                 }
+                if (type === 'college') {
+                    applyCollegeNotAttendedState(false);
+                }
             }
             document.addEventListener('DOMContentLoaded', () => {
                 const container = document.getElementById('{{ $education_type }}-container');
@@ -869,6 +985,17 @@
                     form.addEventListener('submit', () => {
                         syncCollegeEarnedRequired('college');
                     });
+                }
+
+                if (educationType === 'college') {
+                    const checkbox = document.getElementById('college_not_attended');
+                    if (checkbox && checkbox.dataset.bound !== '1') {
+                        checkbox.dataset.bound = '1';
+                        checkbox.addEventListener('change', () => {
+                            applyCollegeNotAttendedState(true);
+                        });
+                    }
+                    applyCollegeNotAttendedState(false);
                 }
             });
         </script>

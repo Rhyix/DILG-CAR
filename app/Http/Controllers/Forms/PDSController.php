@@ -848,8 +848,21 @@ class PDSController extends Controller
 
         $user_educational_bg = $current_user->educationalBackground?->attributesToArray();
         if ($user_educational_bg != null) {
-            foreach (['elem_from', 'elem_to', 'jhs_from', 'jhs_to'] as $dateField) {
+            foreach (['elem_from', 'elem_to', 'jhs_from', 'jhs_to', 'shs_from', 'shs_to'] as $dateField) {
                 $user_educational_bg[$dateField] = $this->normalizeDateForForm($user_educational_bg[$dateField] ?? null);
+            }
+
+            // If Senior High data exists but Junior High doesn't, copy SHS data to JHS fields for form display
+            $hasShsBasic = !empty(trim((string) ($user_educational_bg['shs_basic'] ?? '')));
+            $hasJhsBasic = !empty(trim((string) ($user_educational_bg['jhs_basic'] ?? '')));
+            if ($hasShsBasic && !$hasJhsBasic) {
+                $user_educational_bg['jhs_basic'] = $user_educational_bg['shs_basic'];
+                $user_educational_bg['jhs_school'] = $user_educational_bg['shs_school'] ?? '';
+                $user_educational_bg['jhs_from'] = $user_educational_bg['shs_from'] ?? null;
+                $user_educational_bg['jhs_to'] = $user_educational_bg['shs_to'] ?? null;
+                $user_educational_bg['jhs_year_graduated'] = $user_educational_bg['shs_year_graduated'] ?? '';
+                $user_educational_bg['jhs_academic_honors'] = $user_educational_bg['shs_academic_honors'] ?? '';
+                $user_educational_bg['jhs_earned'] = $user_educational_bg['shs_earned'] ?? '';
             }
 
             foreach (['vocational', 'college', 'grad'] as $_key) {
@@ -1760,6 +1773,9 @@ class PDSController extends Controller
             ]
         );
 
+        // Determine if this is Senior High School data
+        $isSeniorHigh = strtoupper(trim((string) ($c1_form_data_db['jhs_basic'] ?? ''))) === 'SENIOR HIGH SCHOOL';
+
         // Save EducationalBackground
         Models\EducationalBackground::updateOrCreate(
             ['user_id' => Auth::id()],
@@ -1771,13 +1787,20 @@ class PDSController extends Controller
                 'elem_basic' => $c1_form_data_db['elem_basic'],
                 'elem_earned' => $c1_form_data_db['elem_earned'],
                 'elem_year_graduated' => $c1_form_data_db['elem_year_graduated'],
-                'jhs_from' => $c1_form_data_db['jhs_from'],
-                'jhs_to' => $c1_form_data_db['jhs_to'],
-                'jhs_school' => $c1_form_data_db['jhs_school'],
-                'jhs_academic_honors' => $c1_form_data_db['jhs_academic_honors'],
-                'jhs_basic' => $c1_form_data_db['jhs_basic'],
-                'jhs_earned' => $c1_form_data_db['jhs_earned'],
-                'jhs_year_graduated' => $c1_form_data_db['jhs_year_graduated'],
+                'jhs_from' => $isSeniorHigh ? null : $c1_form_data_db['jhs_from'],
+                'jhs_to' => $isSeniorHigh ? null : $c1_form_data_db['jhs_to'],
+                'jhs_school' => $isSeniorHigh ? '' : $c1_form_data_db['jhs_school'],
+                'jhs_academic_honors' => $isSeniorHigh ? '' : $c1_form_data_db['jhs_academic_honors'],
+                'jhs_basic' => $isSeniorHigh ? '' : $c1_form_data_db['jhs_basic'],
+                'jhs_earned' => $isSeniorHigh ? '' : $c1_form_data_db['jhs_earned'],
+                'jhs_year_graduated' => $isSeniorHigh ? '' : $c1_form_data_db['jhs_year_graduated'],
+                'shs_from' => $isSeniorHigh ? $c1_form_data_db['jhs_from'] : null,
+                'shs_to' => $isSeniorHigh ? $c1_form_data_db['jhs_to'] : null,
+                'shs_school' => $isSeniorHigh ? $c1_form_data_db['jhs_school'] : '',
+                'shs_academic_honors' => $isSeniorHigh ? $c1_form_data_db['jhs_academic_honors'] : '',
+                'shs_basic' => $isSeniorHigh ? $c1_form_data_db['jhs_basic'] : '',
+                'shs_earned' => $isSeniorHigh ? $c1_form_data_db['jhs_earned'] : '',
+                'shs_year_graduated' => $isSeniorHigh ? $c1_form_data_db['jhs_year_graduated'] : '',
                 'vocational' => $c1_form_data_db['vocational'] ?? null,
                 'college' => $c1_form_data_db['college'] ?? null,
                 'grad' => $c1_form_data_db['grad'] ?? null,
@@ -2695,10 +2718,50 @@ class PDSController extends Controller
         return strtolower(trim($normalized));
     }
 
-    private function isC2ElementaryOnlyApplicant(Request $request): bool
+    private function hasMeaningfulC1EducationText(mixed $value): bool
     {
-        $yearGraduated = $request->session()->get('form.c1.elem_year_graduated');
-        return $this->valueIsEmptyOrNa($yearGraduated);
+        $normalized = trim((string) ($value ?? ''));
+        if ($normalized === '') {
+            return false;
+        }
+
+        $upper = strtoupper($normalized);
+        return $upper !== 'NOINPUT' && $upper !== 'N/A' && $upper !== 'NA';
+    }
+
+    private function hasMeaningfulC1EducationEntries(mixed $entries): bool
+    {
+        if (!is_array($entries)) {
+            return false;
+        }
+
+        foreach ($entries as $entry) {
+            if (!is_array($entry)) {
+                continue;
+            }
+
+            if ($this->hasMeaningfulC1EducationText($entry['basic'] ?? null)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function isC2HighSchoolOnlyApplicant(Request $request): bool
+    {
+        $c1 = (array) $request->session()->get('form.c1', []);
+
+        $hasSecondary = $this->hasMeaningfulC1EducationText($c1['jhs_basic'] ?? null)
+            || $this->hasMeaningfulC1EducationText($c1['shs_basic'] ?? null)
+            || $this->hasMeaningfulC1EducationText($c1['jhs_school'] ?? null)
+            || $this->hasMeaningfulC1EducationText($c1['shs_school'] ?? null);
+
+        $hasHigherEducation = $this->hasMeaningfulC1EducationEntries($c1['college'] ?? null)
+            || $this->hasMeaningfulC1EducationEntries($c1['grad'] ?? null)
+            || $this->hasMeaningfulC1EducationEntries($c1['vocational'] ?? null);
+
+        return $hasSecondary && !$hasHigherEducation;
     }
 
     private function c2EligibilityLevelMap(): array
@@ -2761,7 +2824,7 @@ class PDSController extends Controller
 
     private function validateC2EligibilityByEducation(\Illuminate\Validation\Validator $validator, Request $request): void
     {
-        if (!$this->isC2ElementaryOnlyApplicant($request)) {
+        if (!$this->isC2HighSchoolOnlyApplicant($request)) {
             return;
         }
 
@@ -2789,7 +2852,7 @@ class PDSController extends Controller
 
             $validator->errors()->add(
                 "cs_eligibility_career.$index",
-                'For elementary-level applicants, only First Level eligibilities and CSC Professional are allowed.'
+                'For high school-level applicants, only First Level eligibilities and CSC Professional are allowed.'
             );
         }
     }

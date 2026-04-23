@@ -2049,13 +2049,20 @@ class JobVacancyController extends Controller
                 : (Schema::hasTable('eligibility_presets') ? 'eligibility_presets' : null);
 
             if ($eligibilityPresetTable !== null) {
-                $assessmentEligibilityOptions = DB::table($eligibilityPresetTable)
+                $eligibilityRows = DB::table($eligibilityPresetTable)
                     ->orderBy('name')
-                    ->pluck('name')
-                    ->map(fn($value) => trim((string) $value))
-                    ->filter(fn($value) => $value !== '')
-                    ->values()
-                    ->all();
+                    ->get(['name', 'legal_basis', 'level']);
+
+                foreach ($eligibilityRows as $row) {
+                    $name = trim((string) ($row->name ?? ''));
+                    if ($name !== '') {
+                        $assessmentEligibilityOptions[] = [
+                            'name' => $name,
+                            'legal_basis' => trim((string) ($row->legal_basis ?? '')),
+                            'level' => trim((string) ($row->level ?? '')),
+                        ];
+                    }
+                }
             }
         } catch (\Throwable $e) {
             Log::warning('Unable to load eligibility preset options for initial assessment.', [
@@ -2069,15 +2076,40 @@ class JobVacancyController extends Controller
             $vacancyEligibilityItems = $this->extractVacancyEligibilityItems(
                 (string) ($vacancy->qualification_eligibility ?? '')
             );
-            $vacancyEligibilityNames = array_map(static function (array $item): string {
-                return trim((string) ($item['name'] ?? ''));
-            }, $vacancyEligibilityItems);
 
-            $assessmentEligibilityOptions = collect(array_merge($assessmentEligibilityOptions, $vacancyEligibilityNames))
-                ->map(static fn($value) => trim((string) $value))
-                ->filter(static fn($value) => $value !== '')
-                ->unique(static fn($value) => strtolower($value))
-                ->sort(static fn($a, $b) => strnatcasecmp((string) $a, (string) $b))
+            // Build a lookup map from eligibility name to level for vacancy items
+            $eligibilityLevelLookup = [];
+            if ($eligibilityPresetTable !== null) {
+                $presetLevels = DB::table($eligibilityPresetTable)
+                    ->get(['name', 'level']);
+                foreach ($presetLevels as $preset) {
+                    $presetName = trim((string) ($preset->name ?? ''));
+                    $presetLevel = trim((string) ($preset->level ?? ''));
+                    if ($presetName !== '' && $presetLevel !== '') {
+                        $eligibilityLevelLookup[strtolower($presetName)] = $presetLevel;
+                    }
+                }
+            }
+
+            foreach ($vacancyEligibilityItems as $item) {
+                $name = trim((string) ($item['name'] ?? ''));
+                if ($name !== '' && !collect($assessmentEligibilityOptions)->contains(fn($opt) => strcasecmp($opt['name'], $name) === 0)) {
+                    // Look up level from presets if not provided
+                    $level = trim((string) ($item['level'] ?? ''));
+                    if ($level === '') {
+                        $level = $eligibilityLevelLookup[strtolower($name)] ?? '';
+                    }
+                    $assessmentEligibilityOptions[] = [
+                        'name' => $name,
+                        'legal_basis' => trim((string) ($item['legal_basis'] ?? '')),
+                        'level' => $level,
+                    ];
+                }
+            }
+
+            // Sort by name
+            $assessmentEligibilityOptions = collect($assessmentEligibilityOptions)
+                ->sortBy(fn($item) => strnatcasecmp($item['name'], $item['name']))
                 ->values()
                 ->all();
         } catch (\Throwable $e) {
@@ -2104,7 +2136,10 @@ class JobVacancyController extends Controller
             'qualificationChecks' => $qualificationGateState['checks'],
             'missingQualificationLabels' => $missingQualificationLabels,
             'assessmentProgramOptions' => $assessmentProgramOptions,
-            'assessmentEligibilityOptions' => $assessmentEligibilityOptions,
+            'assessmentEligibilityOptions' => $this->filterEligibilityOptionsByEducation(
+                $assessmentEligibilityOptions,
+                Auth::id()
+            ),
         ]);
 
 
@@ -4872,6 +4907,95 @@ class JobVacancyController extends Controller
         }
 
         return '';
+    }
+
+    /**
+     * Check if user has only high school education (no college/graduate/vocational).
+     * Used to filter eligibility options.
+     */
+    private function hasOnlyHighSchoolEducation(int $userId): bool
+    {
+        $education = EducationalBackground::where('user_id', $userId)->first();
+        if (!$education) {
+            return false;
+        }
+
+        // Check if user has any college, graduate, or vocational education
+        $collegeEntries = $education->college ?? [];
+        if (is_array($collegeEntries) && !empty($collegeEntries)) {
+            foreach ($collegeEntries as $entry) {
+                $degree = trim((string) ($entry['basic'] ?? ''));
+                if ($degree !== '' && strtoupper($degree) !== 'NOINPUT') {
+                    return false; // Has college education
+                }
+            }
+        }
+
+        $gradEntries = $education->grad ?? [];
+        if (is_array($gradEntries) && !empty($gradEntries)) {
+            foreach ($gradEntries as $entry) {
+                $degree = trim((string) ($entry['basic'] ?? ''));
+                if ($degree !== '' && strtoupper($degree) !== 'NOINPUT') {
+                    return false; // Has graduate education
+                }
+            }
+        }
+
+        $vocationalEntries = $education->vocational ?? [];
+        if (is_array($vocationalEntries) && !empty($vocationalEntries)) {
+            foreach ($vocationalEntries as $entry) {
+                $course = trim((string) ($entry['basic'] ?? ''));
+                if ($course !== '' && strtoupper($course) !== 'NOINPUT') {
+                    return false; // Has vocational education
+                }
+            }
+        }
+
+        // Check if they have at least high school (JHS or SHS)
+        $jhsBasic = trim((string) ($education->jhs_basic ?? ''));
+        $shsBasic = trim((string) ($education->shs_basic ?? ''));
+        $hasHighSchool = ($jhsBasic !== '' && strtoupper($jhsBasic) !== 'NOINPUT') ||
+                         ($shsBasic !== '' && strtoupper($shsBasic) !== 'NOINPUT');
+
+        return $hasHighSchool;
+    }
+
+    /**
+     * Filter eligibility options based on user's education level.
+     * If user has only high school, show ONLY First Level eligibilities.
+     * Exception: CSC Professional (Second Level) is allowed for high school graduates.
+     *
+     * @param array $options Array of eligibility objects with name, legal_basis, level
+     * @param int|null $userId Current user ID
+     * @return array Filtered eligibility options
+     */
+    private function filterEligibilityOptionsByEducation(array $options, ?int $userId): array
+    {
+        if (!$userId || !$this->hasOnlyHighSchoolEducation($userId)) {
+            return $options;
+        }
+
+        // High school only: show First Level + CSC Professional (Second Level exception)
+        return collect($options)
+            ->filter(function (array $option) {
+                $level = strtolower(trim((string) ($option['level'] ?? '')));
+                $name = strtolower(trim((string) ($option['name'] ?? '')));
+
+                // Always allow First Level
+                if (str_contains($level, 'first')) {
+                    return true;
+                }
+
+                // Exception: Allow CSC Professional for high school graduates
+                if (str_contains($level, 'second') && str_contains($name, 'csc professional')) {
+                    return true;
+                }
+
+                // Exclude other Second Level eligibilities
+                return false;
+            })
+            ->values()
+            ->all();
     }
 
     private function isInitialAssessmentEducationAligned(JobVacancy $vacancy, string $degree): bool

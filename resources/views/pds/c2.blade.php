@@ -288,36 +288,40 @@
         let CIVIL_SERVICE_ELIGIBILITY_OPTIONS = [...DEFAULT_CIVIL_SERVICE_ELIGIBILITY_OPTIONS];
 
         const CIVIL_SERVICE_ELIGIBILITY_OTHERS_VALUE = '__OTHERS__';
-        const C1_ELEMENTARY_GRADUATE_RAW = @json(session('form.c1.elem_is_graduate'));
+        const C1_FORM = @json(session('form.c1', []));
 
-        function isTruthyGraduateFlag(value) {
-            if (typeof value === 'boolean') {
-                return value;
-            }
-
-            if (typeof value === 'number') {
-                return value === 1;
-            }
-
-            const normalized = String(value || '').trim().toLowerCase();
-            return normalized === '1' || normalized === 'true' || normalized === 'on' || normalized === 'yes';
-        }
-
-        function isExplicitlyFalsyGraduateFlag(value) {
-            if (value === null || value === undefined) {
+        function hasMeaningfulEducationText(value) {
+            const normalized = String(value || '').trim();
+            if (!normalized) {
                 return false;
             }
-            if (typeof value === 'boolean') {
-                return value === false;
-            }
-            if (typeof value === 'number') {
-                return value === 0;
-            }
-            const normalized = String(value).trim().toLowerCase();
-            return normalized === '0' || normalized === 'false' || normalized === 'no' || normalized === 'off';
+
+            const upper = normalized.toUpperCase();
+            return upper !== 'NOINPUT' && upper !== 'N/A' && upper !== 'NA';
         }
 
-        const IS_ELEMENTARY_ONLY_APPLICANT = isExplicitlyFalsyGraduateFlag(C1_ELEMENTARY_GRADUATE_RAW);
+        function hasMeaningfulEducationEntries(entries) {
+            if (Array.isArray(entries)) {
+                return entries.some((entry) => hasMeaningfulEducationText(entry?.basic));
+            }
+
+            if (entries && typeof entries === 'object') {
+                return Object.values(entries).some((entry) => hasMeaningfulEducationText(entry?.basic));
+            }
+
+            return false;
+        }
+
+        const HAS_SECONDARY_EDUCATION = hasMeaningfulEducationText(C1_FORM?.jhs_basic)
+            || hasMeaningfulEducationText(C1_FORM?.shs_basic)
+            || hasMeaningfulEducationText(C1_FORM?.jhs_school)
+            || hasMeaningfulEducationText(C1_FORM?.shs_school);
+
+        const HAS_HIGHER_EDUCATION = hasMeaningfulEducationEntries(C1_FORM?.college)
+            || hasMeaningfulEducationEntries(C1_FORM?.grad)
+            || hasMeaningfulEducationEntries(C1_FORM?.vocational);
+
+        const IS_HIGH_SCHOOL_ONLY_APPLICANT = HAS_SECONDARY_EDUCATION && !HAS_HIGHER_EDUCATION;
 
         async function loadCivilServiceEligibilityOptions() {
             try {
@@ -367,7 +371,7 @@
         }
 
         function getSelectableCivilServiceEligibilityOptions() {
-            if (!IS_ELEMENTARY_ONLY_APPLICANT) {
+            if (!IS_HIGH_SCHOOL_ONLY_APPLICANT) {
                 return CIVIL_SERVICE_ELIGIBILITY_OPTIONS;
             }
 
@@ -391,8 +395,8 @@
             ) || null;
         }
 
-        function isDisallowedElementaryOnlyPreset(name) {
-            if (!IS_ELEMENTARY_ONLY_APPLICANT) {
+        function isDisallowedHighSchoolOnlyPreset(name) {
+            if (!IS_HIGH_SCHOOL_ONLY_APPLICANT) {
                 return false;
             }
 
@@ -906,7 +910,7 @@
                 const matchedPreset = getSelectableCivilServiceEligibilityOptions().find(
                     (item) => normalizeCivilServiceEligibilityName(item.name) === normalizedInitial
                 );
-                const initialPresetBlocked = isDisallowedElementaryOnlyPreset(initialCareerValue);
+                const initialPresetBlocked = isDisallowedHighSchoolOnlyPreset(initialCareerValue);
 
                 if (initialPresetBlocked) {
                     selectEl.value = '';

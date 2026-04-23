@@ -788,8 +788,38 @@
     };
     const initialAssessmentOptions = {
         degreeByLevel: @json($assessmentProgramOptions ?? ['COLLEGE' => [], 'MASTERAL' => [], 'DOCTORATE' => []]),
-        eligibility: @json(array_values($assessmentEligibilityOptions ?? [])),
+        eligibility: @json($assessmentEligibilityOptions ?? []),
     };
+
+    // Helper to format eligibility display text from structured data
+    function formatEligibilityDisplay(item) {
+        if (typeof item === 'string') {
+            return item; // Fallback for legacy string format
+        }
+        if (!item || typeof item !== 'object') {
+            return '';
+        }
+        const name = item.name || '';
+        const legalBasis = item.legal_basis || '';
+        const level = item.level || '';
+
+        if (legalBasis && level) {
+            return `${name} (${legalBasis} | ${level})`;
+        } else if (legalBasis) {
+            return `${name} (${legalBasis})`;
+        } else if (level) {
+            return `${name} (${level})`;
+        }
+        return name;
+    }
+
+    // Helper to get eligibility name for comparison
+    function getEligibilityName(item) {
+        if (typeof item === 'string') {
+            return item;
+        }
+        return item?.name || '';
+    }
 
     function escapeAssessmentOptionHtml(value) {
         return String(value || '')
@@ -898,6 +928,22 @@
 
         const raw = initialAssessmentOptions[type];
         const options = Array.isArray(raw) ? raw : [];
+        // For eligibility, keep structured objects; for others, use string normalization
+        if (type === 'eligibility') {
+            // Filter unique by name, keeping the full object structure
+            const seen = new Set();
+            const unique = options.filter((item) => {
+                const name = getEligibilityName(item);
+                const normalized = normalizeAssessmentInput(name).toLowerCase();
+                if (normalized === '' || seen.has(normalized)) {
+                    return false;
+                }
+                seen.add(normalized);
+                return true;
+            });
+            return unique;
+        }
+        // Legacy string handling for other types
         const unique = Array.from(new Set(options.map((item) => normalizeAssessmentInput(item)).filter((item) => item !== '')));
         if (!unique.includes(ASSESSMENT_OTHERS_LABEL)) {
             unique.push(ASSESSMENT_OTHERS_LABEL);
@@ -912,6 +958,16 @@
             return options;
         }
 
+        // For eligibility, search in both name and formatted display
+        if (type === 'eligibility') {
+            return options.filter((item) => {
+                const displayText = formatEligibilityDisplay(item).toLowerCase();
+                const name = getEligibilityName(item).toLowerCase();
+                return displayText.includes(normalizedQuery) || name.includes(normalizedQuery);
+            });
+        }
+
+        // Legacy string handling for other types
         return options.filter((item) => String(item || '').toLowerCase().includes(normalizedQuery));
     }
 
@@ -960,7 +1016,17 @@
         }
 
         const selectedValue = normalizeAssessmentInput(input.value).toLowerCase();
-        optionsWrap.innerHTML = filtered.map((name) => {
+        optionsWrap.innerHTML = filtered.map((item) => {
+            // For eligibility, use structured data formatting
+            if (type === 'eligibility') {
+                const displayText = formatEligibilityDisplay(item);
+                const name = getEligibilityName(item);
+                const label = normalizeAssessmentInput(name);
+                const selectedClass = selectedValue === label.toLowerCase() ? ' bg-slate-100 font-medium' : '';
+                return `<button type="button" class="block w-full px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-100 focus:bg-slate-100${selectedClass}" data-assessment-option="${type}" data-label="${escapeAssessmentOptionHtml(label)}" data-display="${escapeAssessmentOptionHtml(displayText)}">${escapeAssessmentOptionHtml(displayText)}</button>`;
+            }
+            // Legacy string handling for other types
+            const name = item;
             const label = normalizeAssessmentInput(name);
             const selectedClass = selectedValue === label.toLowerCase() ? ' bg-slate-100 font-medium' : '';
             return `<button type="button" class="block w-full px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-100 focus:bg-slate-100${selectedClass}" data-assessment-option="${type}" data-label="${escapeAssessmentOptionHtml(label)}">${escapeAssessmentOptionHtml(label)}</button>`;
@@ -992,7 +1058,13 @@
         input.setAttribute('aria-expanded', 'false');
         input.addEventListener('focus', () => openAssessmentMenu(type));
         input.addEventListener('click', () => openAssessmentMenu(type));
-        input.addEventListener('input', () => openAssessmentMenu(type));
+        input.addEventListener('input', () => {
+            // Clear data-value when user types their own value
+            if (type === 'eligibility') {
+                input.removeAttribute('data-value');
+            }
+            openAssessmentMenu(type);
+        });
         input.addEventListener('keydown', (event) => {
             if (event.key === 'Escape') {
                 closeAssessmentMenu(type);
@@ -1048,7 +1120,15 @@
                 return;
             }
 
-            input.value = label;
+            // For eligibility, use the formatted display text for visual, but store just the name
+            if (type === 'eligibility') {
+                const displayText = target.getAttribute('data-display') || label;
+                input.value = displayText;
+                // Store the actual name as a data attribute for form submission
+                input.setAttribute('data-value', label);
+            } else {
+                input.value = label;
+            }
             closeAssessmentMenu(type);
             input.focus();
         });
@@ -1222,13 +1302,26 @@
 
     async function completeInitialAssessmentEligibility() {
         const eligibilityInput = document.getElementById('initialAssessmentEligibilityInput');
-        const eligibility = normalizeAssessmentInput(eligibilityInput ? eligibilityInput.value : '');
+        let eligibility = normalizeAssessmentInput(eligibilityInput ? eligibilityInput.value : '');
         if (eligibility === '') {
             showInitialAssessmentNotice(
                 'Eligibility is Required',
                 'Please enter your civil service eligibility to continue with the initial assessment.'
             );
             return;
+        }
+
+        // If data-value exists (from dropdown selection), use that; otherwise use input value
+        const dataValue = eligibilityInput.getAttribute('data-value');
+        if (dataValue) {
+            eligibility = normalizeAssessmentInput(dataValue);
+        } else {
+            // Extract name from formatted text like "Name (Legal Basis | Level)"
+            // by taking everything before the first " ("
+            const parenIndex = eligibility.indexOf(' (');
+            if (parenIndex > 0) {
+                eligibility = normalizeAssessmentInput(eligibility.substring(0, parenIndex));
+            }
         }
 
         initialAssessmentState.eligibility = eligibility;
