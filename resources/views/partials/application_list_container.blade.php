@@ -47,20 +47,29 @@
                     <div class="lg:py-4 lg:px-6 lg:w-[10%] mb-4 lg:mb-0 flex items-center lg:justify-center">
                         <span class="lg:hidden text-xs font-bold text-slate-400 uppercase tracking-wide w-32 shrink-0">Status</span>
                         @php
-                            $status = $application->status;
-                            $statusNormalized = strtolower(trim((string) $status));
+                            $rawStatus = (string) ($application->status ?? '');
+                            $statusNormalized = strtolower(trim($rawStatus));
+                            $displayStatus = match ($statusNormalized) {
+                                'submitted', 'in-progress', 'completed', 'complete' => 'Completed',
+                                'compliance', 'needs revision', 'disapproved with deficiency' => 'Needs Revision',
+                                'pending' => 'Pending',
+                                'cancelled' => 'Cancelled',
+                                'closed' => 'Closed',
+                                default => trim($rawStatus) !== '' ? $rawStatus : 'Pending',
+                            };
+                            $displayStatusNormalized = strtolower(trim($displayStatus));
                             $isNotQualified = $statusNormalized === 'not qualified';
-                            $isCancelled = $statusNormalized === 'cancelled';
+                            $isCancelled = $statusNormalized === 'cancelled' || $statusNormalized === 'closed';
                             $badge = 'bg-gray-100 text-gray-800';
-                            if ($status === 'Complete') $badge = 'bg-green-100 text-green-800';
-                            elseif ($status === 'Incomplete') $badge = 'bg-orange-100 text-orange-800';
-                            elseif ($status === 'Closed') $badge = 'bg-red-100 text-red-800';
-                            elseif ($status === 'Pending') $badge = 'bg-yellow-100 text-yellow-800';
+                            if ($displayStatusNormalized === 'completed') $badge = 'bg-green-100 text-green-800';
+                            elseif ($displayStatusNormalized === 'needs revision') $badge = 'bg-orange-100 text-orange-800';
+                            elseif ($displayStatusNormalized === 'closed') $badge = 'bg-red-100 text-red-800';
+                            elseif ($displayStatusNormalized === 'pending') $badge = 'bg-yellow-100 text-yellow-800';
                             elseif ($isNotQualified) $badge = 'bg-red-100 text-red-800';
                             elseif ($isCancelled) $badge = 'bg-red-100 text-red-800';
                         @endphp
                         <span class="px-3 py-1 rounded-full text-xs font-semibold {{ $badge }}">
-                            {{ $status }}
+                            {{ $displayStatus }}
                         </span>
                     </div>
 

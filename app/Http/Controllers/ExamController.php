@@ -81,8 +81,8 @@ class ExamController extends Controller
     private function attendanceStatusLabel(?string $status): string
     {
         return match ($status) {
-            self::ATTENDANCE_WILL_ATTEND => 'Will Attend',
-            self::ATTENDANCE_WILL_NOT_ATTEND => 'Will Not Attend',
+            self::ATTENDANCE_WILL_ATTEND => 'I Will Attend',
+            self::ATTENDANCE_WILL_NOT_ATTEND => 'I Will Not Attend',
             default => 'No Response',
         };
     }

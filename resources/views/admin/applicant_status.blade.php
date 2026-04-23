@@ -5,6 +5,9 @@
 @section('content')
 	<div id="page-content" class="space-y-6"> <!-- Main container with spacing -->
 		<div class="bg-white p-6 rounded-xl shadow-lg mx-auto font-montserrat">
+			@php
+				$isCancelledApplication = (bool) ($isCancelledApplication ?? false);
+			@endphp
 			@if (session('success'))
 				<div class="mb-6 px-4 py-3 bg-green-100 border border-green-400 text-green-800 rounded-lg shadow text-sm font-semibold flex items-center justify-between"
 					role="alert">
@@ -31,16 +34,23 @@
 
 			<form method="POST" action="{{ route('admin.applicant_status.update', [$user_id, $vacancy_id]) }}">
 				@csrf
+				@if($isCancelledApplication)
+					<div class="mb-4 px-4 py-3 bg-red-100 border border-red-300 text-red-800 rounded-lg text-sm font-semibold">
+						This application was cancelled by the applicant. Admin actions are locked for this record.
+					</div>
+				@endif
 				<!-- Applicant Header -->
 				<div class="mb-6">
 					<!-- applicant name and notify applicant button -->
 					<div class="flex flex-row justify-between items-center mb-4">
 						<h1 class="text-2xl font-bold text-[#002C76]">{{ $applicant_name }}</h1>
 						<!-- Save Applicant Remarks button removed as per Phase 3 -->
-						<button id="notify-applicant-btn" type="button" onclick="openNotifyModal()"
-							class="text-sm py-1 border bg-[#002C76] text-white px-6 rounded-md hover:scale-105 hover:shadow-md transition duration-150 flex items-center justify-center">
-							Notify Applicant
-						</button>
+						@if(!$isCancelledApplication)
+							<button id="notify-applicant-btn" type="button" onclick="openNotifyModal()"
+								class="text-sm py-1 border bg-[#002C76] text-white px-6 rounded-md hover:scale-105 hover:shadow-md transition duration-150 flex items-center justify-center">
+								Notify Applicant
+							</button>
+						@endif
 					</div>
 					<!-- Job Details Grid -->
 					<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -69,67 +79,97 @@
 							<div
 								class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 pb-2 border-b border-gray-50">
 								Qualification Standards</div>
-							<div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
-								@php
-									$qsFields = [
-										'qs_education' => 'Education',
-										'qs_eligibility' => 'Eligibility',
-										'qs_experience' => 'Experience',
-										'qs_training' => 'Training'
-									];
-								@endphp
-
-								@foreach($qsFields as $field => $label)
+							@if(!$isCancelledApplication)
+								<div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
 									@php
-										$val = old($field, $application->$field ?? 'no');
+										$qsFields = [
+											'qs_education' => 'Education',
+											'qs_eligibility' => 'Eligibility',
+											'qs_experience' => 'Experience',
+											'qs_training' => 'Training'
+										];
 									@endphp
-									<div class="flex flex-col gap-2 pb-3 border-b border-gray-50 last:border-0">
-										<span class="text-sm font-semibold text-gray-800">{{ $label }}</span>
-										<div class="flex items-center gap-2">
-											<label
-												class="flex items-center gap-1 cursor-pointer text-xs text-green-600 font-medium">
-												<input type="radio" name="{{ $field }}" value="yes"
-													class="w-3.5 h-3.5 text-green-600 bg-gray-100 border-gray-300 focus:ring-green-500"
-													{{ $val === 'yes' ? 'checked' : '' }}> Qualified
+
+									@foreach($qsFields as $field => $label)
+										@php
+											$val = old($field, $application->$field ?? 'no');
+										@endphp
+										<div class="flex flex-col gap-2 pb-3 border-b border-gray-50 last:border-0">
+											<span class="text-sm font-semibold text-gray-800">{{ $label }}</span>
+											<div class="flex items-center gap-2">
+												<label class="flex items-center gap-1 cursor-pointer text-xs text-green-600 font-medium">
+													<input type="radio" name="{{ $field }}" value="yes"
+														class="w-3.5 h-3.5 text-green-600 bg-gray-100 border-gray-300 focus:ring-green-500"
+														{{ $val === 'yes' ? 'checked' : '' }}> Qualified
+												</label>
+												<label class="flex items-center gap-1 cursor-pointer text-xs text-red-600 font-medium ml-1">
+													<input type="radio" name="{{ $field }}" value="no"
+														class="w-3.5 h-3.5 text-red-600 bg-gray-100 border-gray-300 focus:ring-red-500"
+														{{ $val === 'no' ? 'checked' : '' }}> Not Qualified
+												</label>
+											</div>
+										</div>
+									@endforeach
+
+									<div class="col-span-1 md:col-span-2 flex items-center justify-between bg-blue-50/50 p-4 rounded-lg">
+										<span class="text-sm font-bold text-[#002C76]">Overall Standard</span>
+										@php
+											$selectedQsResult = old('qs_result', $application->qs_result ?? 'Not Qualified');
+										@endphp
+										<div class="flex items-center gap-4 ml-auto">
+											<label class="flex items-center gap-2 cursor-pointer result-radio-grp text-green-700 font-semibold text-sm">
+												<input type="radio" name="qs_result" value="Qualified"
+													class="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 focus:ring-green-500"
+													{{ $selectedQsResult === 'Qualified' ? 'checked' : '' }}> Qualified
 											</label>
-											<label
-												class="flex items-center gap-1 cursor-pointer text-xs text-red-600 font-medium ml-1">
-												<input type="radio" name="{{ $field }}" value="no"
-													class="w-3.5 h-3.5 text-red-600 bg-gray-100 border-gray-300 focus:ring-red-500"
-													{{ $val === 'no' ? 'checked' : '' }}> Not Qualified
+											<label class="flex items-center gap-2 cursor-pointer result-radio-grp text-amber-700 font-semibold text-sm">
+												<input type="radio" name="qs_result" value="Needs Revisions"
+													class="w-4 h-4 text-amber-600 bg-gray-100 border-gray-300 focus:ring-amber-500"
+													{{ $selectedQsResult === 'Needs Revisions' ? 'checked' : '' }}> Needs Revisions
+											</label>
+											<label class="flex items-center gap-2 cursor-pointer result-radio-grp text-red-700 font-semibold text-sm">
+												<input type="radio" name="qs_result" value="Not Qualified"
+													class="w-4 h-4 text-red-600 bg-gray-100 border-gray-300 focus:ring-red-500"
+													{{ $selectedQsResult === 'Not Qualified' ? 'checked' : '' }}> Not Qualified
 											</label>
 										</div>
 									</div>
-								@endforeach
-								<!-- Overall Result -->
-								<div
-									class="col-span-1 md:col-span-2 flex items-center justify-between bg-blue-50/50 p-4 rounded-lg">
-									<span class="text-sm font-bold text-[#002C76]">Overall Standard</span>
+								</div>
+							@else
+								<div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
 									@php
-										$selectedQsResult = old('qs_result', $application->qs_result ?? 'Not Qualified');
+										$qsFieldsReadonly = [
+											'qs_education' => 'Education',
+											'qs_eligibility' => 'Eligibility',
+											'qs_experience' => 'Experience',
+											'qs_training' => 'Training'
+										];
 									@endphp
-									<div class="flex items-center gap-4 ml-auto">
-										<label
-											class="flex items-center gap-2 cursor-pointer result-radio-grp text-green-700 font-semibold text-sm">
-											<input type="radio" name="qs_result" value="Qualified"
-												class="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 focus:ring-green-500"
-												{{ $selectedQsResult === 'Qualified' ? 'checked' : '' }}> Qualified
-										</label>
-										<label
-											class="flex items-center gap-2 cursor-pointer result-radio-grp text-amber-700 font-semibold text-sm">
-											<input type="radio" name="qs_result" value="Needs Revisions"
-												class="w-4 h-4 text-amber-600 bg-gray-100 border-gray-300 focus:ring-amber-500"
-												{{ $selectedQsResult === 'Needs Revisions' ? 'checked' : '' }}> Needs Revisions
-										</label>
-										<label
-											class="flex items-center gap-2 cursor-pointer result-radio-grp text-red-700 font-semibold text-sm">
-											<input type="radio" name="qs_result" value="Not Qualified"
-												class="w-4 h-4 text-red-600 bg-gray-100 border-gray-300 focus:ring-red-500"
-												{{ $selectedQsResult === 'Not Qualified' ? 'checked' : '' }}> Not Qualified
-										</label>
+									@foreach($qsFieldsReadonly as $field => $label)
+										@php
+											$val = strtolower(trim((string) ($application->$field ?? 'no')));
+											$display = $val === 'yes' ? 'Qualified' : 'Not Qualified';
+											$color = $val === 'yes' ? 'text-green-600' : 'text-red-600';
+										@endphp
+										<div class="flex flex-col gap-2 pb-3 border-b border-gray-50 last:border-0">
+											<span class="text-sm font-semibold text-gray-800">{{ $label }}</span>
+											<span class="text-xs font-semibold {{ $color }}">{{ $display }}</span>
+										</div>
+									@endforeach
+									@php
+										$overall = trim((string) ($application->qs_result ?? 'Not Qualified'));
+										$overallColor = match ($overall) {
+											'Qualified' => 'text-green-700',
+											'Needs Revisions' => 'text-amber-700',
+											default => 'text-red-700',
+										};
+									@endphp
+									<div class="col-span-1 md:col-span-2 flex items-center justify-between bg-blue-50/50 p-4 rounded-lg">
+										<span class="text-sm font-bold text-[#002C76]">Overall Standard</span>
+										<span class="text-sm font-semibold {{ $overallColor }}">{{ $overall }}</span>
 									</div>
 								</div>
-							</div>
+							@endif
 						</div>
 
 						<!-- Application Progress Card -->
@@ -256,26 +296,29 @@
 
               <!-- buttons -->
               <div class="flex flex-row sm:flex-col items-end gap-2 shrink-0">
-                <div class="w-full sm:w-auto">
-                  <button id="btn-revision" type="button"
-                    class="w-full sm:w-40 border border-[#BC0000] text-[#BC0000] py-2 px-4 rounded-md text-sm hover:bg-red-50 transition duration-150 disabled:opacity-50 disabled:cursor-not-allowed">
-                    Needs Revisions
-                  </button>
-                </div>
+							@if(!$isCancelledApplication)
+								<div class="w-full sm:w-auto">
+									<button id="btn-revision" type="button"
+										class="w-full sm:w-40 border border-[#BC0000] text-[#BC0000] py-2 px-4 rounded-md text-sm hover:bg-red-50 transition duration-150 disabled:opacity-50 disabled:cursor-not-allowed">
+										Needs Revisions
+									</button>
+								</div>
 
-                <div class="w-full sm:w-auto">
-                  <button id="btn-verify" type="button"
-                    class="w-full sm:w-40 border border-[#00730A] text-[#00730A] py-2 px-4 rounded-md text-sm hover:bg-green-50 transition duration-150 disabled:opacity-50 disabled:cursor-not-allowed">
-                    Verify
-                  </button>
-                </div>
-				<div>
-				 <p class="text-[#00730A] text-sm mr-0.5">If Verified - No need revisions</p>
-				</div>	
+								<div class="w-full sm:w-auto">
+									<button id="btn-verify" type="button"
+										class="w-full sm:w-40 border border-[#00730A] text-[#00730A] py-2 px-4 rounded-md text-sm hover:bg-green-50 transition duration-150 disabled:opacity-50 disabled:cursor-not-allowed">
+										Verify
+									</button>
+								</div>
+								<div>
+								 <p class="text-[#00730A] text-sm mr-0.5">If Verified - No need revisions</p>
+								</div>
+							@endif
               </div>
 						
 						</div>
 						<!-- Remarks and Buttons Row -->
+						@if(!$isCancelledApplication)
 						<div id="document-remarks-section"
 							class="mb-4 flex flex-col justify-between gap-3 hidden flex-none">
 							<!-- Remarks Textarea -->
@@ -291,10 +334,12 @@
 								<div class="w-full">
 									<textarea id="remarks" rows="3"
 										class="w-full text-sm text-gray-700 rounded-lg p-3 resize-none border border-[#002C76] focus:border-[#0066CC] focus:ring-2 focus:ring-blue-200 transition bg-gray-50"
+										{{ $isCancelledApplication ? 'disabled' : '' }}
 										placeholder="Add remarks for this document..."></textarea>
 								</div>
 							</div>
 						</div>
+						@endif
 
 						<!-- Preview Frame -->
 						<div class="flex-1 bg-gray-50 rounded-xl border border-[#002C76] p-0 overflow-hidden relative">
@@ -317,6 +362,7 @@
 
 	</div>
 
+	@if(!$isCancelledApplication)
 	<div id="notify-modal" class="fixed inset-0 z-[9998] flex items-center justify-center bg-black/50 hidden">
 		<div class="bg-white rounded-lg shadow-2xl w-full h-full md:w-[95%] md:h-[95%] md:rounded-xl flex flex-col">
 			<div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center flex-none">
@@ -458,12 +504,14 @@
 					Cancel
 				</button>
 				<button type="button" onclick="notifyApplicant()" id="confirm-notify-btn"
-					class="px-4 py-2 text-xs font-medium text-white bg-[#002C76] rounded-md hover:bg-[#003b9c] flex items-center gap-2">
+					class="px-4 py-2 text-xs font-medium text-white bg-[#002C76] rounded-md hover:bg-[#003b9c] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+					{{ $isCancelledApplication ? 'disabled title=Application cancelled. Notifications are disabled.' : '' }}>
 					<span>Send Email</span>
 				</button>
 			</div>
 		</div>
 	</div>
+	@endif
 
 	@include('partials.loader')
 	</div>
@@ -474,6 +522,7 @@
 		const userId = "{{ $user_id }}";
 		const vacancyId = "{{ $vacancy_id }}";
 		const vacancyType = "{{ $vacancy_type }}"; // Plantilla or COS
+		const isCancelledApplication = @json($isCancelledApplication ?? false);
 		let documents = @json($documents);
 		const requiredDocumentIds = @json($requiredDocumentIds ?? []);
 		const requiredDocumentSet = new Set(requiredDocumentIds);
@@ -497,6 +546,10 @@
 			const percentage = totalDocs > 0 ? Math.round((confirmedDocs / totalDocs) * 100) : 0;
 
 			return { totalDocs, confirmedDocs, percentage };
+		}
+
+		function showCancelledActionBlocked() {
+			showAppToast('This application was cancelled by the applicant. No further actions are allowed.');
 		}
 
 		function escapeHtml(value) {
@@ -781,6 +834,11 @@
 		}
 
 		function openDocumentContextMenu(event, doc) {
+			if (isCancelledApplication) {
+				showCancelledActionBlocked();
+				return;
+			}
+
 			if (!documentContextMenu || !doc) return;
 
 			event.preventDefault();
@@ -942,10 +1000,16 @@
 			// Enable/Disable Buttons and Update Text
 			if (btnVerify) {
 				const isVerified = (doc.status === 'Verified' || doc.status === 'Okay/Confirmed');
-				btnVerify.disabled = false;
+				btnVerify.disabled = !!isCancelledApplication;
 				btnVerify.textContent = isVerified ? 'Verified' : 'Verify';
-				btnVerify.classList.remove('opacity-50', 'cursor-not-allowed');
-				btnVerify.classList.add('hover:bg-green-50');
+				btnVerify.classList.toggle('opacity-50', !!isCancelledApplication);
+				btnVerify.classList.toggle('cursor-not-allowed', !!isCancelledApplication);
+				btnVerify.classList.toggle('hover:bg-green-50', !isCancelledApplication);
+				if (isCancelledApplication) {
+					btnVerify.title = 'Application cancelled. Document actions are disabled.';
+				} else {
+					btnVerify.removeAttribute('title');
+				}
 				if (isVerified) {
 					btnVerify.classList.add('bg-green-50');
 				} else {
@@ -956,14 +1020,16 @@
 			if (btnRevision) {
 				const needsRevision = (doc.status === 'Needs Revision' || doc.status === 'Disapproved With Deficiency');
 				const revisionLocked = !!doc.revision_locked;
-				btnRevision.disabled = needsRevision || revisionLocked;
+				btnRevision.disabled = !!isCancelledApplication || needsRevision || revisionLocked;
 				btnRevision.textContent = needsRevision ? 'Needs Revisions' : 'Needs Revisions';
-				if (revisionLocked) {
+				if (isCancelledApplication) {
+					btnRevision.title = 'Application cancelled. Document actions are disabled.';
+				} else if (revisionLocked) {
 					btnRevision.title = doc.revision_lock_reason || 'Needs Revision is currently locked for this document.';
 				} else {
 					btnRevision.removeAttribute('title');
 				}
-				if (needsRevision || revisionLocked) {
+				if (isCancelledApplication || needsRevision || revisionLocked) {
 					btnRevision.classList.add('opacity-50', 'cursor-not-allowed', 'bg-red-50');
 					btnRevision.classList.remove('hover:bg-red-50');
 				} else {
@@ -1005,6 +1071,11 @@
 		}
 
 		async function updateDocumentStatus(newStatus) {
+			if (isCancelledApplication) {
+				showCancelledActionBlocked();
+				return;
+			}
+
 			if (!currentSelectedDoc) {
 				showAppToast("Please select a document first.");
 				return;
@@ -1156,6 +1227,11 @@
 		}
 
 		async function quickVerifyDocument(doc) {
+			if (isCancelledApplication) {
+				showCancelledActionBlocked();
+				return;
+			}
+
 			if (!doc) return;
 
 			// Keep preview/header in sync with the item being quick-verified.
@@ -1169,8 +1245,10 @@
 
 		// Auto-save Document Remarks
 		let docRemarksTimeout;
-		document.getElementById('remarks').addEventListener('input', function (e) {
-			if (!currentSelectedDoc) return;
+		const remarksInputEl = document.getElementById('remarks');
+		if (remarksInputEl) {
+			remarksInputEl.addEventListener('input', function (e) {
+				if (!currentSelectedDoc) return;
 
 			const value = e.target.value;
 			currentSelectedDoc.remarks = value;
@@ -1217,12 +1295,13 @@
 					statusEl.classList.add('text-red-600');
 				}
 			}, 500); // 500ms delay to batch keystrokes slightly but feel responsive
-		});
+			});
+		}
 
 		// Auto-save Application Remarks (Moved to Modal)
 		let appRemarksTimeout;
 		const notifyRemarksInput = document.getElementById('notify-applicant-remarks');
-		if (notifyRemarksInput) {
+		if (notifyRemarksInput && !isCancelledApplication) {
 			notifyRemarksInput.addEventListener('input', function (e) {
 				const value = e.target.value;
 
@@ -1262,6 +1341,11 @@
 		}
 
 		async function notifyApplicant() {
+			if (isCancelledApplication) {
+				showCancelledActionBlocked();
+				return;
+			}
+
 			const selectedQsResult = getSelectedQsResult();
 			const deadlineEnabled = selectedQsResult === QS_RESULT_VALUES.NEEDS_REVISIONS;
 			if (deadlineEnabled) {
@@ -1350,6 +1434,11 @@
 		}
 
 		function openNotifyModal() {
+			if (isCancelledApplication) {
+				showCancelledActionBlocked();
+				return;
+			}
+
 			const bodyEl = document.getElementById('notify-documents-body');
 			const remarksSummaryEl = document.getElementById('notify-applicant-remarks');
 			if (!bodyEl || !remarksSummaryEl) return;

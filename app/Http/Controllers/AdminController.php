@@ -909,6 +909,26 @@ class AdminController extends Controller
         return redirect()->route('applications_list')->with('error', $message);
     }
 
+    private function isCancelledApplication(?Applications $application): bool
+    {
+        return strtolower(trim((string) ($application->status ?? ''))) === 'cancelled';
+    }
+
+    private function cancelledApplicationActionResponse(Request $request)
+    {
+        $message = 'This application was cancelled by the applicant. No further actions are allowed.';
+
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => false,
+                'message' => $message,
+                'application_status' => 'Cancelled',
+            ], 422);
+        }
+
+        return redirect()->back()->with('error', $message);
+    }
+
     private function deactivateOtherSuperadmins(int $activeSuperadminId): void
     {
         Admin::where('role', 'superadmin')
@@ -1410,6 +1430,7 @@ class AdminController extends Controller
         $adminName = $application->updatedByAdmin?->username ?? null;
 
         $documents = $this->sortDocumentsAscending($this->getApplicantDocuments($user_id, $application));
+        $isCancelledApplication = $this->isCancelledApplication($application);
         $vacancyTrack = $this->normalizeTrack($vacancy->vacancy_type);
         $requiredDocumentIds = $this->getRequiredDocsByTrack()[$vacancyTrack] ?? [];
         usort($requiredDocumentIds, function ($a, $b) {
@@ -1439,6 +1460,7 @@ class AdminController extends Controller
             'admin_name' => $adminName,
             'vacancy_type' => $vacancy->vacancy_type, // Needed for Phase 4
             'requiredDocumentIds' => $requiredDocumentIds,
+            'isCancelledApplication' => $isCancelledApplication,
         ]);
     }
 
@@ -1469,6 +1491,11 @@ class AdminController extends Controller
         $application = Applications::where('user_id', $user_id)
             ->where('vacancy_id', $vacancy_id)
             ->firstOrFail();
+
+        if ($this->isCancelledApplication($application)) {
+            return $this->cancelledApplicationActionResponse($request);
+        }
+
         $supportsAppRevisionTracking = Schema::hasColumn('applications', 'file_revision_requested_count')
             && Schema::hasColumn('applications', 'file_revision_requested_at');
         $supportsDocRevisionTracking = Schema::hasColumn('uploaded_documents', 'revision_requested_count')
@@ -1696,6 +1723,10 @@ class AdminController extends Controller
             ->where('vacancy_id', $vacancy_id)
             ->firstOrFail();
 
+        if ($this->isCancelledApplication($application)) {
+            return $this->cancelledApplicationActionResponse($request);
+        }
+
         // Get applicant name
         $applicantName = User::find($user_id)->name ?? 'Applicant';
         $docName = $documentType === 'application_letter' ? 'Application Letter' : ucwords(str_replace('_', ' ', $documentType));
@@ -1902,6 +1933,7 @@ class AdminController extends Controller
             'documents' => $documents,
             'application' => [
                 'status' => $application->status ?? 'Pending',
+                'is_cancelled' => $this->isCancelledApplication($application),
                 'file_last_modified_by' => $application->file_last_modified_by ?? null,
                 'deadline_date' => $application->deadline_date ?? null,
                 'deadline_time' => $application->deadline_time ?? null,
@@ -1922,6 +1954,10 @@ class AdminController extends Controller
         $application = Applications::where('user_id', $user_id)
             ->where('vacancy_id', $vacancy_id)
             ->firstOrFail();
+
+        if ($this->isCancelledApplication($application)) {
+            return $this->cancelledApplicationActionResponse($request);
+        }
 
         $application->application_remarks = $request->input('application_remarks');
         $application->updated_by_admin_id = Auth::guard('admin')->id();
@@ -1955,6 +1991,10 @@ class AdminController extends Controller
         $application = Applications::where('user_id', $user_id)
             ->where('vacancy_id', $vacancy_id)
             ->firstOrFail();
+
+        if ($this->isCancelledApplication($application)) {
+            return $this->cancelledApplicationActionResponse($request);
+        }
 
         // Update Deadline and QS data if provided in request
         // Only normalize empty strings when the field is explicitly submitted.

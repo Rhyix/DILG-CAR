@@ -145,6 +145,24 @@ class ShowApplicantsProfile extends Controller
         return strtolower(trim((string) $value));
     }
 
+    private function resolveApplicantName($application): string
+    {
+        $pi = $application->personalInformation;
+
+        $fullName = trim(implode(' ', array_filter([
+            trim((string) ($pi?->first_name ?? '')),
+            filled($pi?->middle_name) ? strtoupper(substr((string) $pi->middle_name, 0, 1)) . '.' : '',
+            trim((string) ($pi?->surname ?? '')),
+            trim((string) ($pi?->name_extension ?? '')),
+        ])));
+
+        if ($fullName !== '') {
+            return $fullName;
+        }
+
+        return trim((string) ($application->user?->name ?? '')) ?: 'N/A';
+    }
+
     private function hasInitialAssessmentPqeColumn(): bool
     {
         static $hasColumn = null;
@@ -293,18 +311,13 @@ class ShowApplicantsProfile extends Controller
     private function formatApplicants($applications)
     {
         return $applications->map(function ($application) {
-            $pi = $application->personalInformation;
             $vacancy = $application->vacancy;
 
             return [
                 'user_id' => $application->user_id,
                 'applicant_code' => $application->user?->applicant_code,
                 'vacancy_id' => $application->vacancy_id,
-                'name' => $pi
-                    ? trim("{$pi->first_name} " .
-                        ($pi->middle_name ? strtoupper(substr($pi->middle_name, 0, 1)) . '. ' : '') .
-                        "{$pi->surname} {$pi->name_extension}")
-                    : ($application->user?->name ?? 'N/A'),
+                'name' => $this->resolveApplicantName($application),
                 'job_applied' => $vacancy->position_title ?? 'N/A',
                 'place_of_assignment' => $vacancy->place_of_assignment ?? 'N/A',
                 'status' => $application->status ?? 'N/A',

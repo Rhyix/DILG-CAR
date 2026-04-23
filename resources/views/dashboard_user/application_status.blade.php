@@ -210,8 +210,8 @@
                 @php
                   $attendanceStatus = $application->exam_attendance_status;
                   $attendanceLabel = match ($attendanceStatus) {
-                    'will_attend' => 'Will Attend',
-                    'will_not_attend' => 'Will Not Attend',
+                    'will_attend' => 'I Will Attend',
+                    'will_not_attend' => 'I Will Not Attend',
                     default => 'No Response Yet',
                   };
                   $attendanceBadgeClass = match ($attendanceStatus) {

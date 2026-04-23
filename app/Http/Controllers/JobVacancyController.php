@@ -2609,14 +2609,24 @@ class JobVacancyController extends Controller
             ->first();
 
         if ($existing) {
+            $existingStatus = strtolower(trim((string) ($existing->status ?? '')));
+
             Log::info('Apply skipped: already applied', [
                 'user_id' => Auth::id(),
                 'vacancy_id' => $vacancy_id,
                 'application_id' => $existing->id,
+                'status' => $existing->status,
             ]);
+
+            if ($existingStatus === 'cancelled') {
+                return redirect()
+                    ->route('my_applications')
+                    ->with('error', 'You cancelled this application and can no longer apply to this position again.');
+            }
+
             return redirect()
                 ->route('my_applications')
-                ->with('success', 'Application already exists for this vacancy.');
+                ->with('error', 'Application already exists for this vacancy.');
         }
 
         if (!$this->hasCompletedInitialAssessmentForVacancy($vacancy, (array) $initialAssessment)) {
@@ -3054,7 +3064,8 @@ class JobVacancyController extends Controller
 
         $displayApplicationStatus = $application->status ?? 'Pending';
         $applicationStatusNormalized = strtolower(trim((string) $displayApplicationStatus));
-        $canCancelApplication = !in_array($applicationStatusNormalized, ['qualified', 'closed', 'not qualified', 'cancelled'], true);
+        // Cancellation is allowed only while application is still pending.
+        $canCancelApplication = ($applicationStatusNormalized === 'pending');
         $hasAdminValidatedDocuments = trim((string) ($application->qs_result ?? '')) !== '';
 
         if ($hasAdminValidatedDocuments) {
@@ -3122,18 +3133,46 @@ class JobVacancyController extends Controller
             ->firstOrFail();
 
         $currentStatus = strtolower(trim((string) ($application->status ?? '')));
-        if (in_array($currentStatus, ['qualified', 'closed', 'not qualified', 'cancelled'], true)) {
+        if ($currentStatus !== 'pending') {
             return redirect()
                 ->route('application_status', ['user' => $user_id, 'vacancy' => $vacancy_id])
-                ->with('error', 'This application can no longer be cancelled.');
+                ->with('error', 'Only pending applications can be cancelled.');
         }
 
         $application->update(['status' => 'Cancelled']);
 
+        $vacancy = JobVacancy::query()
+            ->where('vacancy_id', (string) $vacancy_id)
+            ->first();
+
+        // Keep cancellation response fast by writing DB notifications directly for admins.
+        $admins = \App\Models\Admin::all();
+        foreach ($admins as $admin) {
+            \App\Models\Notification::create([
+                'notifiable_type' => 'App\\Models\\Admin',
+                'notifiable_id' => $admin->id,
+                'type' => 'warning',
+                'data' => [
+                    'title' => 'Application Cancelled',
+                    'message' => (Auth::user()->name ?? 'Applicant') . ' cancelled an application for ' . ($vacancy->position_title ?? 'a vacancy') . '.',
+                    'link' => route('admin.applicant_status', ['user_id' => $user_id, 'vacancy_id' => $vacancy_id], false),
+                    'section' => 'Application List',
+                    'category' => 'application_status_update',
+                    'user_id' => $user_id,
+                    'vacancy_id' => $vacancy_id,
+                ],
+                'read_at' => null,
+            ]);
+        }
+
         activity()
             ->causedBy(Auth::user())
             ->performedOn($application)
-            ->withProperties(['vacancy_id' => $vacancy_id, 'section' => 'Application Status'])
+            ->withProperties([
+                'user_id' => $user_id,
+                'vacancy_id' => $vacancy_id,
+                'section' => 'Application List',
+            ])
             ->log('Cancelled application.');
 
         return redirect()
@@ -6092,13 +6131,41 @@ class JobVacancyController extends Controller
         }
 
         if ($status !== '') {
-            $query->whereRaw("LOWER(TRIM(COALESCE(status, ''))) = ?", [strtolower($status)]);
+            $statusFilter = strtolower($status);
+            if ($statusFilter === 'completed') {
+                $query->whereRaw("LOWER(TRIM(COALESCE(status, ''))) IN (?, ?, ?, ?)", ['submitted', 'in-progress', 'completed', 'complete']);
+            } elseif ($statusFilter === 'needs revision') {
+                $query->whereRaw("LOWER(TRIM(COALESCE(status, ''))) IN (?, ?, ?)", ['compliance', 'needs revision', 'disapproved with deficiency']);
+            } else {
+                $query->whereRaw("LOWER(TRIM(COALESCE(status, ''))) = ?", [$statusFilter]);
+            }
         }
 
-        $query->orderByRaw("CASE WHEN LOWER(TRIM(COALESCE(status, ''))) = 'not qualified' THEN 1 ELSE 0 END");
+        $query->orderByRaw("CASE
+            WHEN LOWER(TRIM(COALESCE(status, ''))) = 'pending' THEN 0
+            WHEN LOWER(TRIM(COALESCE(status, ''))) IN ('compliance', 'needs revision', 'disapproved with deficiency') THEN 1
+            WHEN LOWER(TRIM(COALESCE(status, ''))) IN ('submitted', 'in-progress', 'completed', 'complete') THEN 2
+            WHEN LOWER(TRIM(COALESCE(status, ''))) = 'not qualified' THEN 3
+            WHEN LOWER(TRIM(COALESCE(status, ''))) IN ('cancelled', 'closed') THEN 4
+            ELSE 5
+        END");
         $query->orderBy('created_at', $sortOrder === 'oldest' ? 'asc' : 'desc');
 
         return $query;
+    }
+
+    private function mapMyApplicationsStatusLabel(?string $status): string
+    {
+        $normalized = strtolower(trim((string) $status));
+
+        return match ($normalized) {
+            'submitted', 'in-progress', 'completed', 'complete' => 'Completed',
+            'compliance', 'needs revision', 'disapproved with deficiency' => 'Needs Revision',
+            'pending' => 'Pending',
+            'cancelled' => 'Cancelled',
+            'closed' => 'Closed',
+            default => trim((string) $status) !== '' ? (string) $status : 'Pending',
+        };
     }
 
     private function getMyApplicationFilterOptions(): array
@@ -6109,10 +6176,21 @@ class JobVacancyController extends Controller
             ->where('user_id', $userId)
             ->whereNotNull('status')
             ->pluck('status')
-            ->map(fn($status) => trim((string) $status))
+            ->map(fn($status) => $this->mapMyApplicationsStatusLabel($status))
             ->filter()
             ->unique(fn($status) => strtolower($status))
-            ->sortBy(fn($status) => strtolower($status))
+            ->sortBy(function ($status) {
+                $key = strtolower(trim((string) $status));
+                return match ($key) {
+                    'pending' => 1,
+                    'needs revision' => 2,
+                    'completed' => 3,
+                    'not qualified' => 4,
+                    'closed' => 5,
+                    'cancelled' => 6,
+                    default => 99,
+                };
+            })
             ->values();
 
         return [
