@@ -265,7 +265,7 @@
                             </button>
                         @endif
 
-                        @if(!$isClosed && !$hasApplied && !$hasIncompletePdsForApply)
+                        @if(!$isClosed && !$hasApplied && !$hasIncompletePdsForApply && !$hasCompletedInitialAssessment)
                             <div class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700">
                                 <p class="font-semibold">Before applying, complete the initial assessment first.</p>
                                 <p class="mt-1">This runs each time you submit an application for this vacancy.</p>
@@ -403,7 +403,7 @@
                     <button type="button" onclick="closePdsRequiredModal()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
                         Close
                     </button>
-                    <button type="button" onclick="window.location.href='{{ route('display_c1') }}'" class="use-loader px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                    <button type="button" onclick="window.location.href='{{ route('display_c1', ['simple' => 1]) }}'" class="use-loader px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
                         Go to PDS
                     </button>
                 </div>
@@ -718,7 +718,7 @@
     };
 
     const initialAssessmentSubmitUrl = @json(route('initial_assessment.submit', ['vacancy_id' => $vacancy->vacancy_id]));
-    const pdsRedirectUrl = @json(route('display_c1'));
+    const pdsRedirectUrl = @json(route('display_c1', ['simple' => 1]));
     const hasIncompletePds = @json($hasIncompletePdsForApply);
     const hasDocTrackMismatch = @json($hasDocTrackMismatch);
     const initialAssessmentEducationAttainmentMeta = {

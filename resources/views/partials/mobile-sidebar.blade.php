@@ -46,7 +46,7 @@
             <x-mobile-nav-link icon="home" label="Home" :active="request()->routeIs('dashboard_user')" href="{{ route('dashboard_user') }}" />
             <x-mobile-nav-link icon="archive" label="Job Vacancies" :active="request()->routeIs('job_vacancy')" href="{{ route('job_vacancy') }}" />
             <x-mobile-nav-link icon="user" label="My Applications" :active="request()->routeIs('my_applications')" href="{{ route('my_applications') }}" />
-            <x-mobile-nav-link icon="file-text" label="Personal Data Sheet" :active="request()->routeIs('display_c1')" href="{{ route('display_c1') }}" />
+            <x-mobile-nav-link icon="file-text" label="Personal Data Sheet" :active="request()->routeIs('display_c1')" href="{{ route('display_c1', ['simple' => 1]) }}" />
             <x-mobile-nav-link icon="info" label="About This Website" :active="request()->routeIs('about')" href="{{ route('about') }}" />
             <x-mobile-nav-link icon="book-open" label="Manual" :active="request()->routeIs('manual.user')" href="{{ route('manual.user') }}" />
         </nav>

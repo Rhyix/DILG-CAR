@@ -94,7 +94,13 @@
 @section('content')
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <form id="learning-form" class="space-y-8" action="/pds/submit_c3/display_c4" method="POST">
+        @php
+    $c3RouteParams = ['go_to' => 'display_c4'];
+    if (request()->query('simple')) {
+        $c3RouteParams['simple'] = 1;
+    }
+@endphp
+<form id="learning-form" class="space-y-8" action="{{ route('submit_c3', $c3RouteParams) }}" method="POST">
             @csrf
             @if(request()->boolean('simple'))
                 <input type="hidden" name="simple" value="1">
@@ -247,7 +253,7 @@
 
             <!-- Navigation -->
             <div class="flex flex-col sm:flex-row justify-between items-center mt-8 gap-4">
-                <button type="button" onclick="window.location.href='{{ route('display_c2') }}'"
+                <button type="button" onclick="window.location.href='{{ route('display_c2', ['simple' => 1]) }}'"
                     class="use-loader w-full sm:w-auto px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors duration-200 flex items-center justify-center">
                     <span class="material-icons mr-2">arrow_back</span>
                     Previous
@@ -732,7 +738,9 @@
 
     function submit(location) {
         const form = document.querySelector('#learning-form');
-        form.action = `/pds/submit_c3/${location}`;
+        const simpleParam = new URLSearchParams(window.location.search).get('simple');
+        const simpleQuery = simpleParam ? `?simple=${simpleParam}` : '';
+        form.action = `/pds/submit_c3/${location}${simpleQuery}`;
         form.requestSubmit();
     }
 </script>

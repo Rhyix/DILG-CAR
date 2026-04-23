@@ -92,7 +92,8 @@
             });
             window.addEventListener('pageshow', function(event){
                 if (event.persisted) {
-                    window.location.reload();
+                    // Hide loader when page is restored from cache instead of reloading
+                    document.getElementById('loader')?.classList.add('hidden');
                 }
             });
         })();

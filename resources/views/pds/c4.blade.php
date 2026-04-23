@@ -575,7 +575,7 @@
 
             <!-- Navigation and Submit -->
             <div class="flex flex-col sm:flex-row justify-between items-center mt-8 gap-4">
-                <button type="button" onclick="window.location.href='{{ route('display_c3') }}'" class="use-loader w-full sm:w-auto px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors duration-200 flex items-center justify-center">
+                <button type="button" onclick="window.location.href='{{ route('display_c3', ['simple' => 1]) }}'" class="use-loader w-full sm:w-auto px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors duration-200 flex items-center justify-center">
                     <span class="material-icons mr-2">arrow_back</span>
                     Previous
                 </button>
@@ -1251,7 +1251,9 @@
 
     function submit(location){
         const form = document.querySelector('#other-info-form');
-        form.action = `/pds/submit_c4/${location}`;
+        const simpleParam = new URLSearchParams(window.location.search).get('simple');
+        const simpleQuery = simpleParam ? `?simple=${simpleParam}` : '';
+        form.action = `/pds/submit_c4/${location}${simpleQuery}`;
 
         skipValidation = true; // Set flag before submitting
         form.requestSubmit();

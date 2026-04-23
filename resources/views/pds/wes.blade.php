@@ -180,7 +180,7 @@
     </main>
 
     <div class="max-w-full md:max-w-5xl mx-auto mt-6 flex flex-col md:flex-row gap-4 justify-between items-center">
-      <button type="button" onclick="window.location.href='{{ route('display_c4') }}'"
+      <button type="button" onclick="window.location.href='{{ route('display_c4', ['simple' => 1]) }}'"
         class="use-loader w-full sm:w-auto px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors duration-200 flex items-center justify-center">
         <span class="material-icons mr-2">arrow_back</span>
         Previous

@@ -651,7 +651,7 @@
         function editForm() {
             // Navigate back to the form with data
             if (confirm('Are you sure you want to edit your submission? Your current data will be preserved.')) {
-                window.location.href = '{{ route('display_c1') }}';
+                window.location.href = '{{ route('display_c1', ['simple' => 1]) }}';
             }
         }
 
@@ -659,7 +659,7 @@
             if (confirm('Are you sure you want to submit another form? This will clear the current form data.')) {
                 // Clear localStorage if used
                 localStorage.removeItem('pdsFormData');
-                window.location.href = '{{ route('display_c1') }}';
+                window.location.href = '{{ route('display_c1', ['simple' => 1]) }}';
             }
         }
 

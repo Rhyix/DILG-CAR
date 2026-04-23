@@ -252,7 +252,7 @@
                       <i data-feather="eye" class="w-5 h-5"></i> View Job Description
                     </button>
                   </a>
-                  <a href="{{ route('display_c1') }}" class="w-full">
+                  <a href="{{ route('display_c1', ['simple' => 1]) }}" class="w-full">
                     <button
                       class="use-loader w-full border-2 border-[#002C76] text-[#002C76] rounded-lg px-4 py-2 text-sm flex items-center justify-center gap-3 font-montserrat hover:bg-[#002C76] hover:text-white transition">
                       <i data-feather="eye" class="w-5 h-5"></i> View or Edit PDS

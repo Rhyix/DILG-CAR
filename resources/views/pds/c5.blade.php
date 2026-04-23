@@ -301,7 +301,7 @@
             </section>
 
             <div class="flex flex-col sm:flex-row justify-between items-center mt-8 gap-4">
-                <button type="button" onclick="window.location.href='{{ $isApplicationFlow ? route('job_description', ['id' => $applicationVacancyId]) : route('display_wes') }}'" class="use-loader w-full sm:w-auto px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors duration-200 flex items-center justify-center">
+                <button type="button" onclick="window.location.href='{{ $isApplicationFlow ? route('job_description', ['id' => $applicationVacancyId]) : route('display_wes', ['simple' => 1]) }}'" class="use-loader w-full sm:w-auto px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors duration-200 flex items-center justify-center">
                     <span class="material-icons mr-2">arrow_back</span>
                     Previous
                 </button>

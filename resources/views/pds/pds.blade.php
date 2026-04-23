@@ -40,7 +40,13 @@
     </style>
     <!-- Main Content -->
     <main class="pds-responsive-font max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-8 mb-20 sm:mb-0" style="padding-top: 0px;">
-        <form id="myForm" class="no-spinner space-y-4 sm:space-y-8" action="/pds/submit_c1/display_c2" method="POST" x-data="{ civilStatus: '{{ old('civil_status', session('form.c1.civil_status')) }}' }">
+        @php
+    $c1RouteParams = ['go_to' => 'display_c2'];
+    if (request()->query('simple')) {
+        $c1RouteParams['simple'] = 1;
+    }
+@endphp
+<form id="myForm" class="no-spinner space-y-4 sm:space-y-8" action="{{ route('submit_c1', $c1RouteParams) }}" method="POST" x-data="{ civilStatus: '{{ old('civil_status', session('form.c1.civil_status')) }}' }">
             @csrf
             <!-- Personal Information Section -->
             <section class="bg-white rounded-lg sm:rounded-2xl shadow-xl p-4 sm:p-8 animate-slide-in">
@@ -710,7 +716,9 @@
 <script>
     function submit(location) {
         const form = document.querySelector('#myForm');
-        form.action = `/pds/submit_c1/${location}`;
+        const simpleParam = new URLSearchParams(window.location.search).get('simple');
+        const simpleQuery = simpleParam ? `?simple=${simpleParam}` : '';
+        form.action = `/pds/submit_c1/${location}${simpleQuery}`;
         form.requestSubmit();
     }
     function parsePdsEducationDate(value) {

@@ -328,7 +328,7 @@
 
             <!-- Navigation and Submit -->
             <div class="flex justify-between items-center mt-8">
-                <button type="button" onclick="window.location.href='{{ route('display_c4') }}'" class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors duration-200 flex items-center">
+                <button type="button" onclick="window.location.href='{{ route('display_c4', ['simple' => 1]) }}'" class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors duration-200 flex items-center">
                     <span class="material-icons mr-2">arrow_back</span>
                     Previous
                 </button>

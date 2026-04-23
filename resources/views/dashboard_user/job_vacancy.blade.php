@@ -143,7 +143,7 @@
 
         <script>
             function debounce(fn, ms) { let t; return function(){ clearTimeout(t); const a=arguments, self=this; t=setTimeout(function(){ fn.apply(self,a); }, ms); }; }
-          Certification of Numerical Rating/Performance Rating/IPCR  function fetchVacancies() {
+            function fetchVacancies() {
                 const status = document.getElementById('statusFilter').value;
                 const sort = document.getElementById('sortFilter').value;
                 const type = document.getElementById('typeFilter').value;
@@ -177,26 +177,33 @@
             }
             const fetchVacanciesDebounced = debounce(fetchVacancies, 300);
 
-            // Attach change event listeners to all filters
-            document.getElementById('statusFilter').addEventListener('change', fetchVacancies);
-            document.getElementById('sortFilter').addEventListener('change', fetchVacancies);
-            document.getElementById('typeFilter').addEventListener('change', fetchVacancies);
-            document.getElementById('salaryFilter').addEventListener('change', fetchVacancies);
-            document.getElementById('placeFilter').addEventListener('change', fetchVacancies);
-            document.getElementById('searchInput').addEventListener('input', fetchVacanciesDebounced);
-            document.getElementById('clearFilters')?.addEventListener('click', () => {
-                document.getElementById('searchInput').value = '';
-                document.getElementById('sortFilter').value = 'latest';
-                document.getElementById('statusFilter').value = '';
-                document.getElementById('typeFilter').value = '';
-                document.getElementById('salaryFilter').value = '';
-                document.getElementById('placeFilter').value = '';
-                fetchVacancies();
-            });
+            function attachFilterListeners() {
+                document.getElementById('statusFilter')?.addEventListener('change', fetchVacancies);
+                document.getElementById('sortFilter')?.addEventListener('change', fetchVacancies);
+                document.getElementById('typeFilter')?.addEventListener('change', fetchVacancies);
+                document.getElementById('salaryFilter')?.addEventListener('change', fetchVacancies);
+                document.getElementById('placeFilter')?.addEventListener('change', fetchVacancies);
+                document.getElementById('searchInput')?.addEventListener('input', fetchVacanciesDebounced);
+                document.getElementById('clearFilters')?.addEventListener('click', () => {
+                    document.getElementById('searchInput').value = '';
+                    document.getElementById('sortFilter').value = 'latest';
+                    document.getElementById('statusFilter').value = '';
+                    document.getElementById('typeFilter').value = '';
+                    document.getElementById('salaryFilter').value = '';
+                    document.getElementById('placeFilter').value = '';
+                    fetchVacancies();
+                });
+            }
 
-            window.addEventListener('DOMContentLoaded', () => {
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', () => {
+                    attachFilterListeners();
+                    fetchVacancies();
+                });
+            } else {
+                attachFilterListeners();
                 fetchVacancies();
-            });
+            }
         </script>
 
 @endsection

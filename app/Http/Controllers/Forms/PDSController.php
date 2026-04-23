@@ -669,10 +669,6 @@ class PDSController extends Controller
             $this->addHighestLevelRequiredWhenNoYearError($validator, $payload, 'jhs_year_graduated', 'jhs_earned');
         }
 
-        if ($this->isTruthyFlag($payload['college_not_attended'] ?? null)) {
-            return;
-        }
-
         $collegeRows = $payload['college'] ?? [];
         if (is_array($collegeRows)) {
             foreach ($collegeRows as $index => $entry) {
@@ -1544,18 +1540,7 @@ class PDSController extends Controller
     public function c1UpdateFormSession(Request $request, $go_to)
     {
         //dd($request->all());
-        $collegeNotAttended = $this->isTruthyFlag($request->input('college_not_attended'));
         $normalizedCollegeEntries = $this->normalizeEducationEntriesForForm($request->input('college'));
-        if ($collegeNotAttended && is_array($normalizedCollegeEntries)) {
-            foreach ($normalizedCollegeEntries as $index => $entry) {
-                if (!is_array($entry)) {
-                    continue;
-                }
-
-                $normalizedCollegeEntries[$index]['from'] = null;
-                $normalizedCollegeEntries[$index]['to'] = null;
-            }
-        }
 
         $request->merge([
             'telephone_no' => $this->normalizeTelephoneInput($request->input('telephone_no')),

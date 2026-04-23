@@ -235,10 +235,8 @@
         });
 
         window.addEventListener('pageshow', function (event) {
-            if (event.persisted) {
-                window.location.reload();
-                return;
-            }
+            // Hide loader when page is restored from cache
+            document.getElementById('loader')?.classList.add('hidden');
             document.querySelector('.background')?.classList.add('hidden');
         });
     </script>

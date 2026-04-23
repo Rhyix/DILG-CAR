@@ -78,7 +78,7 @@
                         {{ (request()->routeIs('display_c1') || request()->routeIs('display_c2') || request()->routeIs('display_c3') || request()->routeIs('display_c4') || request()->routeIs('display_wes') || request()->routeIs('display_c5'))
                             ? 'bg-[#002C76] text-white'
                             : 'text-[#002C76] hover:text-white hover:bg-[#002C76]' }}">
-                        <a href="{{ route('display_c1') }}" class="flex items-center use-loader">
+                        <a href="{{ route('display_c1', ['simple' => 1]) }}" class="flex items-center use-loader">
                             <i data-feather="file-text" class="w-5 h-5 stroke-[3] flex-shrink-0"></i>
                             <span id="textPersonalDataSheet" class="sidebar-text-hidden ml-3">PERSONAL DATA SHEET</span>
                         </a>
@@ -88,7 +88,7 @@
                     </div>
                     <div id="pdsMenu" class="pds-menu {{ (request()->routeIs('display_c1') || request()->routeIs('display_c2') || request()->routeIs('display_c3') || request()->routeIs('display_c4') || request()->routeIs('display_wes') || request()->routeIs('display_c5')) ? 'show' : '' }} mt-1 pl-10 space-y-1">
                         <a href="{{ route('display_c1', ['simple' => 1]) }}"
-                            class="flex items-center rounded-md px-3 py-2 text-sm font-semibold transition
+                            class="flex items-center rounded-md px-3 py-2 text-sm font-semibold transition use-loader
                                 {{ request()->routeIs('display_c1')
                                     ? 'bg-[#002C76] text-white'
                                     : 'text-[#002C76] hover:text-white hover:bg-[#002C76]' }}">
@@ -96,7 +96,7 @@
                             <span class="ml-3">PERSONAL INFORMATION</span>
                         </a>
                         <a href="{{ route('display_c2', ['simple' => 1]) }}"
-                            class="flex items-center rounded-md px-3 py-2 text-sm font-semibold transition
+                            class="flex items-center rounded-md px-3 py-2 text-sm font-semibold transition use-loader
                                 {{ request()->routeIs('display_c2')
                                     ? 'bg-[#002C76] text-white'
                                     : 'text-[#002C76] hover:text-white hover:bg-[#002C76]' }}">
@@ -104,7 +104,7 @@
                             <span class="ml-3">WORK EXPERIENCE</span>
                         </a>
                         <a href="{{ route('display_c3', ['simple' => 1]) }}"
-                            class="flex items-center rounded-md px-3 py-2 text-sm font-semibold transition
+                            class="flex items-center rounded-md px-3 py-2 text-sm font-semibold transition use-loader
                                 {{ request()->routeIs('display_c3')
                                     ? 'bg-[#002C76] text-white'
                                     : 'text-[#002C76] hover:text-white hover:bg-[#002C76]' }}">
@@ -112,7 +112,7 @@
                             <span class="ml-3">LEARNING &amp; DEVELOPMENT</span>
                         </a>
                         <a href="{{ route('display_c4', ['simple' => 1]) }}"
-                            class="flex items-center rounded-md px-3 py-2 text-sm font-semibold transition
+                            class="flex items-center rounded-md px-3 py-2 text-sm font-semibold transition use-loader
                                 {{ request()->routeIs('display_c4')
                                     ? 'bg-[#002C76] text-white'
                                     : 'text-[#002C76] hover:text-white hover:bg-[#002C76]' }}">
@@ -120,7 +120,7 @@
                             <span class="ml-3">OTHER INFORMATION</span>
                         </a>
                         <a href="{{ route('display_wes', ['simple' => 1]) }}"
-                            class="flex items-center rounded-md px-3 py-2 text-sm font-semibold transition
+                            class="flex items-center rounded-md px-3 py-2 text-sm font-semibold transition use-loader
                                 {{ request()->routeIs('display_wes')
                                     ? 'bg-[#002C76] text-white'
                                     : 'text-[#002C76] hover:text-white hover:bg-[#002C76]' }}">
@@ -142,12 +142,12 @@
                     </div>
                     <div id="docsMenu" class="pds-menu mt-1 pl-10 space-y-1">
                         <a href="{{ route('pds.preview') }}" target="_blank" rel="noopener"
-                            class="flex items-center rounded-md px-3 py-2 text-sm font-semibold transition text-[#002C76] hover:text-white hover:bg-[#002C76]">
+                            class="flex items-center rounded-md px-3 py-2 text-sm font-semibold transition use-loader text-[#002C76] hover:text-white hover:bg-[#002C76]">
                             <i data-feather="file-text" class="w-4 h-4 stroke-[3] flex-shrink-0"></i>
                             <span class="ml-3">PERSONAL DATA SHEET</span>
                         </a>
                         <a href="{{ route('wes.preview') }}" target="_blank" rel="noopener"
-                            class="flex items-center rounded-md px-3 py-2 text-sm font-semibold transition text-[#002C76] hover:text-white hover:bg-[#002C76]">
+                            class="flex items-center rounded-md px-3 py-2 text-sm font-semibold transition use-loader text-[#002C76] hover:text-white hover:bg-[#002C76]">
                             <i data-feather="file" class="w-4 h-4 stroke-[3] flex-shrink-0"></i>
                             <span class="ml-3">WORK EXPERIENCE SHEET</span>
                         </a>

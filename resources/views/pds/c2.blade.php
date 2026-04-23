@@ -3,7 +3,7 @@
 @section('content')
 <!-- Main Content -->
 <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <form id="myForm" class="no-spinner" method="POST" action='/pds/submit_c2/display_c3'>
+        <form id="myForm" class="no-spinner" method="POST" action="{{ route('submit_c2', ['go_to' => 'display_c3', 'simple' => request()->query('simple') ? 1 : null]) }}">
             @csrf
 
             <!-- Civil Service Eligibility Section -->
@@ -126,7 +126,7 @@
 
             <!-- Navigation -->
             <div class="flex flex-col sm:flex-row justify-between items-center mt-8 gap-4">
-                <button type="button" onclick="window.location.href='{{ route('display_c1') }}'" class="use-loader w-full sm:w-auto px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors duration-200 flex items-center justify-center">
+                <button type="button" onclick="window.location.href='{{ route('display_c1', ['simple' => 1]) }}'" class="use-loader w-full sm:w-auto px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors duration-200 flex items-center justify-center">
                     <span class="material-icons mr-2">arrow_back</span>
                     Previous
                 </button>
@@ -1049,7 +1049,9 @@
 
     function submit(location){
         const form = document.querySelector('#myForm');
-        form.action = `/pds/submit_c2/${location}`;
+        const simpleParam = new URLSearchParams(window.location.search).get('simple');
+        const simpleQuery = simpleParam ? `?simple=${simpleParam}` : '';
+        form.action = `/pds/submit_c2/${location}${simpleQuery}`;
         form.requestSubmit();
     }
     </script>

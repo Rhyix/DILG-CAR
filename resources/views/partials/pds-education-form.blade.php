@@ -131,24 +131,6 @@
             </button>
         </div>
 
-        @if ($education_type === 'college')
-            <div class="mb-4">
-                <input type="hidden" name="college_not_attended" value="0">
-                <label class="inline-flex items-center gap-2 text-sm font-medium text-gray-700">
-                    <input
-                        type="checkbox"
-                        id="college_not_attended"
-                        name="college_not_attended"
-                        value="1"
-                        data-college-not-attended-toggle
-                        {{ old('college_not_attended', session('form.c1.college_not_attended')) ? 'checked' : '' }}
-                        class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    >
-                    I did not attend college
-                </label>
-            </div>
-        @endif
-
         @php
             $oldEducationData = old($education_type, $education_data ?? []);
 
@@ -797,7 +779,7 @@
                 } catch (e) {}
             }
 
-            function setCollegeNotAttendedValues(row) {
+            function setCollegeNotAttendedValues(row, type = 'college') {
                 if (!row) return;
 
                 const textFieldSelectors = [
@@ -815,7 +797,7 @@
                     }
                 });
 
-                row.querySelectorAll('input[type="date"][name^="college["]').forEach((field) => {
+                row.querySelectorAll('input[type="date"][name*="[' + type + ']"], .edu-date[name*="[' + type + ']"]').forEach((field) => {
                     field.value = '';
                 });
             }
@@ -832,59 +814,6 @@
                     }
                     field.value = '';
                 });
-            }
-
-            function applyCollegeNotAttendedState(clearWhenUnchecked = false) {
-                const checkbox = document.getElementById('college_not_attended');
-                const container = document.getElementById('college-container');
-                if (!checkbox || !container) {
-                    return;
-                }
-
-                const isChecked = checkbox.checked;
-                const addBtn = document.querySelector('[data-education-add="college"]');
-                if (addBtn) {
-                    addBtn.disabled = isChecked;
-                    addBtn.classList.toggle('opacity-60', isChecked);
-                    addBtn.classList.toggle('cursor-not-allowed', isChecked);
-                }
-
-                container.querySelectorAll('.education-entry').forEach((row) => {
-                    const removeBtn = row.querySelector('.remove-btn');
-                    if (removeBtn) {
-                        removeBtn.disabled = isChecked;
-                        removeBtn.classList.toggle('opacity-50', isChecked);
-                        removeBtn.classList.toggle('pointer-events-none', isChecked);
-                    }
-
-                    row.querySelectorAll('input, select, textarea').forEach((field) => {
-                        if (field.type === 'hidden') {
-                            return;
-                        }
-
-                        if (!Object.prototype.hasOwnProperty.call(field.dataset, 'wasRequired')) {
-                            field.dataset.wasRequired = field.required ? '1' : '0';
-                        }
-
-                        if (isChecked) {
-                            field.required = false;
-                            if (!(field.id === 'college_not_attended' || field.dataset.collegeNotAttendedToggle === '')) {
-                                field.disabled = true;
-                            }
-                        } else {
-                            field.disabled = false;
-                            field.required = field.dataset.wasRequired === '1';
-                        }
-                    });
-
-                    if (isChecked) {
-                        setCollegeNotAttendedValues(row);
-                    } else if (clearWhenUnchecked) {
-                        clearCollegeRowValues(row);
-                    }
-                });
-
-                syncCollegeEarnedRequired('college');
             }
 
             function addEducationRow(type) {
@@ -987,16 +916,6 @@
                     });
                 }
 
-                if (educationType === 'college') {
-                    const checkbox = document.getElementById('college_not_attended');
-                    if (checkbox && checkbox.dataset.bound !== '1') {
-                        checkbox.dataset.bound = '1';
-                        checkbox.addEventListener('change', () => {
-                            applyCollegeNotAttendedState(true);
-                        });
-                    }
-                    applyCollegeNotAttendedState(false);
-                }
             });
         </script>
     </div>
