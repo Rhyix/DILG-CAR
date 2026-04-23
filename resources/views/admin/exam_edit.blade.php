@@ -32,8 +32,7 @@
         <div class="flex flex-row justify-between items-center gap-2">
             <span class="text-[#0D2B70] text-2xl font-montserrat whitespace-nowrap">{{ $vacancy->position_title }},
                 {{ $vacancy->vacancy_type }} position</span>
-            <button
-                onclick="window.location.href='{{ url('/admin/exam-library/select') }}?return={{ urlencode(url()->current()) }}'"
+            <button type="button" @click="openExamLibrary()"
                 class="border border-[#002C76] hover:bg-blue-900 text-[#002C76] hover:text-white font-bold py-2 px-6 rounded inline-flex items-center gap-2">
                 <span>Add from Exam Library</span>
             </button>
@@ -723,6 +722,12 @@
                     this.originalQuestionsSnapshot = JSON.stringify(this.questions);
                     this.hasChanges = false;
 
+                    const restoredDraft = this.restoreDraftFromStorage();
+                    if (restoredDraft) {
+                        this.questions = restoredDraft;
+                        this.checkForChanges();
+                    }
+
                     // If there are imported questions from Exam Library, merge them
                     try {
                         const imported = localStorage.getItem('importedQuestions');
@@ -766,6 +771,50 @@
                     this.$nextTick(() => {
                         if (window.feather) feather.replace();
                     });
+                },
+
+                getDraftStorageKey() {
+                    return 'examEditorDraft_{{ $vacancy_id }}';
+                },
+
+                persistDraftToStorage() {
+                    try {
+                        const normalized = this.questions.map(question => this.normalizeQuestion(question));
+                        localStorage.setItem(this.getDraftStorageKey(), JSON.stringify({
+                            vacancy_id: '{{ $vacancy_id }}',
+                            questions: normalized
+                        }));
+                    } catch (error) {
+                        console.error('Failed to persist exam draft', error);
+                    }
+                },
+
+                restoreDraftFromStorage() {
+                    try {
+                        const raw = localStorage.getItem(this.getDraftStorageKey());
+                        if (!raw) {
+                            return null;
+                        }
+
+                        const payload = JSON.parse(raw);
+                        if (!payload || !Array.isArray(payload.questions)) {
+                            return null;
+                        }
+
+                        return payload.questions.map(question => this.normalizeQuestion(question));
+                    } catch (error) {
+                        console.error('Failed to restore exam draft', error);
+                        return null;
+                    }
+                },
+
+                clearDraftStorage() {
+                    localStorage.removeItem(this.getDraftStorageKey());
+                },
+
+                openExamLibrary() {
+                    this.persistDraftToStorage();
+                    window.location.href = "{{ url('/admin/exam-library/select') }}?return={{ urlencode(url()->current()) }}";
                 },
 
                 addQuestion() {
@@ -940,11 +989,13 @@
 
                 async confirmAction() {
                     if (this.modalType === 'back') {
+                        this.clearDraftStorage();
                         window.location.href = this.pendingBackUrl;
                     } else if (this.modalType === 'discard') {
                         this.questions = [];
                         this.originalQuestionsSnapshot = JSON.stringify(this.questions);
                         this.hasChanges = false;
+                        this.clearDraftStorage();
                         this.showConfirmModal = false;
                         this.modalType = '';
                         setModalScreenFocusLock();
@@ -981,6 +1032,7 @@
 
                             if (data.success || data.message) {
                                 this.markCurrentStateAsSaved();
+                                this.clearDraftStorage();
                                 this.showConfirmModal = false;
                                 this.modalType = '';
                                 setModalScreenFocusLock();

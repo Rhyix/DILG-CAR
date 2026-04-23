@@ -106,7 +106,20 @@
                 const questions = await response.json();
 
                 // store in localStorage for the caller to pick up
-                localStorage.setItem('importedQuestions', JSON.stringify({ series_id: id, questions }));
+                let pendingQuestions = [];
+                try {
+                    const existingPayload = JSON.parse(localStorage.getItem('importedQuestions') || '{}');
+                    if (existingPayload && Array.isArray(existingPayload.questions)) {
+                        pendingQuestions = existingPayload.questions;
+                    }
+                } catch (storageError) {
+                    pendingQuestions = [];
+                }
+
+                localStorage.setItem('importedQuestions', JSON.stringify({
+                    series_id: id,
+                    questions: [...pendingQuestions, ...questions]
+                }));
 
                 // redirect back to caller
                 if (returnUrl) window.location.href = returnUrl;

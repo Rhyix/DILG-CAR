@@ -42,6 +42,47 @@ class ExamController extends Controller
         return now()->greaterThan($cutoff);
     }
 
+    private function autoCloseExamIfAllParticipantsDone(string $vacancyId): void
+    {
+        $examDetail = ExamDetail::where('vacancy_id', $vacancyId)->first();
+        if (!$examDetail || !$examDetail->is_started) {
+            return;
+        }
+
+        $participants = Applications::query()
+            ->where('vacancy_id', $vacancyId)
+            ->whereNotNull('read_at')
+            ->get(['status']);
+
+        if ($participants->isEmpty()) {
+            return;
+        }
+
+        $hasUnfinishedParticipants = $participants->contains(function (Applications $participant) {
+            return !ApplicationStatus::equals($participant->status, ApplicationStatus::SUBMITTED);
+        });
+
+        if ($hasUnfinishedParticipants) {
+            return;
+        }
+
+        $closeTime = now()->subSecond();
+        $examDetail->update([
+            'is_started' => false,
+            'time_end' => $closeTime->format('H:i:s'),
+        ]);
+
+        activity()
+            ->causedBy(auth('admin')->user() ?? auth()->user())
+            ->event('auto_close')
+            ->withProperties([
+                'vacancy_id' => $vacancyId,
+                'participants_count' => $participants->count(),
+                'section' => 'Exam Management',
+            ])
+            ->log('Exam auto-closed because all active examinees submitted.');
+    }
+
     private function qualifiedApplicationsQuery(string $vacancy_id)
     {
         return Applications::query()
@@ -430,6 +471,7 @@ class ExamController extends Controller
                     'exam_submitted_at' => $answerRecord->exam_submitted_at ?? now(),
                 ]);
                 $this->broadcastExamProgress($answerRecord, 'expired-window-submit-blocked');
+                $this->autoCloseExamIfAllParticipantsDone((string) $vacancy_id);
             }
 
             Log::warning('Blocked late exam submission beyond grace window.', [
@@ -487,15 +529,17 @@ class ExamController extends Controller
         $resultStr = $totalMcq > 0 ? ($correctMcq . '/' . $totalMcq) : null;
 
         // Update the answers and scores fields
-        $answerRecord->answers = $validated['answers'] ?? [];
-        $answerRecord->scores = $scores;
-        $answerRecord->result = $resultStr;
-        $answerRecord->status = 'submitted'; // Ensure status is updated to 'submitted'
-        $answerRecord->exam_submitted_at = now();
-        $answerRecord->save();
+        $answerRecord->update([
+            'answers' => $validated['answers'] ?? [],
+            'scores' => $scores,
+            'result' => $resultStr,
+            'status' => ApplicationStatus::SUBMITTED->value,
+            'exam_submitted_at' => now(),
+        ]);
         $this->broadcastExamProgress($answerRecord, 'submitted', [
             'result' => $resultStr,
         ]);
+        $this->autoCloseExamIfAllParticipantsDone((string) $vacancy_id);
 
         //$message = "submitted successfully";
         //info($message);
@@ -545,6 +589,7 @@ class ExamController extends Controller
                     'exam_submitted_at' => $answerRecord->exam_submitted_at ?? now(),
                 ]);
                 $this->broadcastExamProgress($answerRecord, 'expired-window-autosave-blocked');
+                $this->autoCloseExamIfAllParticipantsDone((string) $vacancy_id);
             }
 
             return response()->json([
@@ -1707,6 +1752,7 @@ class ExamController extends Controller
                 $payload['exam_submitted_at'] = now();
             }
             $application->update($payload);
+            $this->autoCloseExamIfAllParticipantsDone((string) $vacancy_id);
             return redirect()->route('user.exam_thankyou', ['vacancy_id' => $vacancy_id]);
         }
 
