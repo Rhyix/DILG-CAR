@@ -22,6 +22,7 @@ use App\Models\EligibilityPreset;
 use App\Models\ProgramSuggestion;
 use App\Models\Notification;
 use App\Models\Admin;
+use App\Models\DocumentGalleryItem;
 use Illuminate\Http\UploadedFile;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\JobVacancyController;
@@ -138,6 +139,17 @@ class PDSController extends Controller
         return $raw;
     }
 
+    private function normalizeStrictDateForDatabase($value): ?string
+    {
+        $raw = is_scalar($value) ? trim((string) $value) : '';
+        if ($raw === '') {
+            return null;
+        }
+
+        $parsed = $this->parseFlexibleDate($raw);
+        return $parsed ? $parsed->format('Y-m-d') : null;
+    }
+
     private function parseFlexibleDate(?string $value): ?Carbon
     {
         $raw = trim((string) ($value ?? ''));
@@ -159,6 +171,19 @@ class PDSController extends Controller
                 if ($date && $date->format($format) === $raw) {
                     return $date;
                 }
+            } catch (\Throwable $e) {
+                // Try the next format.
+            }
+        }
+        private function normalizeEducationMonthYearForDatabase($value): ?string
+        {
+            $raw = is_scalar($value) ? trim((string) $value) : '';
+            if ($raw === '') {
+                return null;
+            }
+            $parsed = $this->parseFlexibleDate($raw);
+            return $parsed ? $parsed->format('m-Y') : null;
+        }
             } catch (\Throwable $e) {
                 // Try the next format.
             }
@@ -1660,7 +1685,7 @@ class PDSController extends Controller
         // START DB SAVING LOGIC
         $c1_form_data_db = $c1_form_data;
         foreach (['elem_from', 'elem_to', 'jhs_from', 'jhs_to'] as $dateField) {
-            $c1_form_data_db[$dateField] = $this->normalizeDateForDatabase($c1_form_data_db[$dateField] ?? null);
+            $c1_form_data_db[$dateField] = $this->normalizeStrictDateForDatabase($c1_form_data_db[$dateField] ?? null);
         }
         $c1_form_data_db = array_merge([
             'surname' => '',
@@ -1796,27 +1821,35 @@ class PDSController extends Controller
 
         // Determine if this is Senior High School data
         $isSeniorHigh = strtoupper(trim((string) ($c1_form_data_db['jhs_basic'] ?? ''))) === 'SENIOR HIGH SCHOOL';
+        $elemFromDb = $this->normalizeStrictDateForDatabase($c1_form_data_db['elem_from'] ?? null);
+        $elemToDb = $this->normalizeStrictDateForDatabase($c1_form_data_db['elem_to'] ?? null);
+        $jhsFromDb = $this->normalizeStrictDateForDatabase($c1_form_data_db['jhs_from'] ?? null);
+        $jhsToDb = $this->normalizeStrictDateForDatabase($c1_form_data_db['jhs_to'] ?? null);
+        $elemFromDb = $this->normalizeEducationMonthYearForDatabase($c1_form_data_db['elem_from'] ?? null);
+        $elemToDb = $this->normalizeEducationMonthYearForDatabase($c1_form_data_db['elem_to'] ?? null);
+        $jhsFromDb = $this->normalizeEducationMonthYearForDatabase($c1_form_data_db['jhs_from'] ?? null);
+        $jhsToDb = $this->normalizeEducationMonthYearForDatabase($c1_form_data_db['jhs_to'] ?? null);
 
         // Save EducationalBackground
         Models\EducationalBackground::updateOrCreate(
             ['user_id' => Auth::id()],
             [
-                'elem_from' => $c1_form_data_db['elem_from'],
-                'elem_to' => $c1_form_data_db['elem_to'],
+                'elem_from' => $elemFromDb,
+                'elem_to' => $elemToDb,
                 'elem_school' => $c1_form_data_db['elem_school'],
                 'elem_academic_honors' => $c1_form_data_db['elem_academic_honors'],
                 'elem_basic' => $c1_form_data_db['elem_basic'],
                 'elem_earned' => $c1_form_data_db['elem_earned'],
                 'elem_year_graduated' => $c1_form_data_db['elem_year_graduated'],
-                'jhs_from' => $isSeniorHigh ? null : $c1_form_data_db['jhs_from'],
-                'jhs_to' => $isSeniorHigh ? null : $c1_form_data_db['jhs_to'],
+                'jhs_from' => $isSeniorHigh ? null : $jhsFromDb,
+                'jhs_to' => $isSeniorHigh ? null : $jhsToDb,
                 'jhs_school' => $isSeniorHigh ? '' : $c1_form_data_db['jhs_school'],
                 'jhs_academic_honors' => $isSeniorHigh ? '' : $c1_form_data_db['jhs_academic_honors'],
                 'jhs_basic' => $isSeniorHigh ? '' : $c1_form_data_db['jhs_basic'],
                 'jhs_earned' => $isSeniorHigh ? '' : $c1_form_data_db['jhs_earned'],
                 'jhs_year_graduated' => $isSeniorHigh ? '' : $c1_form_data_db['jhs_year_graduated'],
-                'shs_from' => $isSeniorHigh ? $c1_form_data_db['jhs_from'] : null,
-                'shs_to' => $isSeniorHigh ? $c1_form_data_db['jhs_to'] : null,
+                'shs_from' => $isSeniorHigh ? $jhsFromDb : null,
+                'shs_to' => $isSeniorHigh ? $jhsToDb : null,
                 'shs_school' => $isSeniorHigh ? $c1_form_data_db['jhs_school'] : '',
                 'shs_academic_honors' => $isSeniorHigh ? $c1_form_data_db['jhs_academic_honors'] : '',
                 'shs_basic' => $isSeniorHigh ? $c1_form_data_db['jhs_basic'] : '',
@@ -4724,6 +4757,47 @@ $rules_data_vol["voluntary_to_$i"] = 'required|date';
         return $doc instanceof UploadedDocument ? $doc : null;
     }
 
+    private function resolveDocumentGalleryItem($documents, string $docType): ?DocumentGalleryItem
+    {
+        $doc = $documents[$docType] ?? null;
+        if ($doc && !empty($doc->storage_path) && $doc->storage_path !== 'NOINPUT') {
+            return $doc;
+        }
+
+        foreach (self::DOCUMENT_TYPE_ALIASES[$docType] ?? [] as $alias) {
+            $aliasDoc = $documents[$alias] ?? null;
+            if ($aliasDoc && !empty($aliasDoc->storage_path) && $aliasDoc->storage_path !== 'NOINPUT') {
+                return $aliasDoc;
+            }
+        }
+
+        return $doc instanceof DocumentGalleryItem ? $doc : null;
+    }
+
+    private function loadDocumentGalleryMap(int $userId)
+    {
+        return DocumentGalleryItem::query()
+            ->where('user_id', $userId)
+            ->whereNotNull('storage_path')
+            ->where('storage_path', '!=', 'NOINPUT')
+            ->orderByDesc('updated_at')
+            ->get()
+            ->unique('document_type')
+            ->keyBy('document_type');
+    }
+
+    private function hasGalleryDocumentForType($documents, string $docType): bool
+    {
+        $candidates = array_merge([$docType], self::DOCUMENT_TYPE_ALIASES[$docType] ?? []);
+        foreach ($candidates as $candidate) {
+            $doc = $documents[$candidate] ?? null;
+            if ($doc && !empty($doc->storage_path) && $doc->storage_path !== 'NOINPUT') {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private function loadReusableUploadedDocumentsMap(int $userId, ?string $vacancyId = null)
     {
         $supportsVacancyScopedDocs = Schema::hasColumn('uploaded_documents', 'vacancy_id');
@@ -4827,18 +4901,10 @@ $rules_data_vol["voluntary_to_$i"] = 'required|date';
             return false;
         }
 
-        $documents = $this->loadReusableUploadedDocumentsMap($userId, $vacancyId);
-
-        $hasApplicationLetterInApplications = Applications::where('user_id', $userId)
-            ->whereNotNull('file_storage_path')
-            ->exists();
+        $documents = $this->loadDocumentGalleryMap($userId);
 
         foreach ($requiredDocs as $docType) {
-            if ($docType === 'application_letter' && $hasApplicationLetterInApplications) {
-                continue;
-            }
-
-            if (!$this->hasUploadedDocumentForType($documents, $docType)) {
+            if (!$this->hasGalleryDocumentForType($documents, $docType)) {
                 return false;
             }
         }
@@ -4937,6 +5003,13 @@ $rules_data_vol["voluntary_to_$i"] = 'required|date';
             $documentsResolved[$docType] = $this->resolveUploadedDocument($documents, (string) $docType);
         }
 
+        // Supporting-document existence should always mirror current document gallery state.
+        $galleryDocuments = $this->loadDocumentGalleryMap((int) $user->id);
+        $galleryDocumentsResolved = [];
+        foreach (array_keys($this->getDocumentLabelMap()) as $docType) {
+            $galleryDocumentsResolved[$docType] = $this->resolveDocumentGalleryItem($galleryDocuments, (string) $docType);
+        }
+
         $defaultDocTrack = request('doc_track');
         if ($vacancyForApplication) {
             $defaultDocTrack = strcasecmp((string) $vacancyForApplication->vacancy_type, 'COS') === 0 ? 'COS' : 'Plantilla';
@@ -4972,6 +5045,7 @@ $rules_data_vol["voluntary_to_$i"] = 'required|date';
         return view('pds.c5', compact(
             'documents',
             'documentsResolved',
+            'galleryDocumentsResolved',
             'defaultDocTrack',
             'requiredDocsByTrack',
             'vacancyRequiredDocumentIds',
@@ -5082,25 +5156,12 @@ $rules_data_vol["voluntary_to_$i"] = 'required|date';
             'cert_uploads.*.max' => 'Each file must be 10MB or smaller.',
         ]);
 
-        $existingDocs = $this->loadReusableUploadedDocumentsMap(
-            (int) Auth::id(),
-            !empty($applicationVacancyId) ? (string) $applicationVacancyId : null
-        );
+        $existingDocs = $this->loadDocumentGalleryMap((int) Auth::id());
 
         $existingDocLookup = [];
         foreach ($requiredDocs as $docType) {
-            if ($this->hasUploadedDocumentForType($existingDocs, $docType)) {
+            if ($this->hasGalleryDocumentForType($existingDocs, $docType)) {
                 $existingDocLookup[$docType] = true;
-            }
-        }
-
-        // Count previously uploaded application letter from Applications records as existing.
-        if (in_array('application_letter', $requiredDocs, true) && !isset($existingDocLookup['application_letter'])) {
-            $hasApplicationLetter = Applications::where('user_id', Auth::id())
-                ->whereNotNull('file_storage_path')
-                ->exists();
-            if ($hasApplicationLetter) {
-                $existingDocLookup['application_letter'] = true;
             }
         }
 
@@ -5451,17 +5512,28 @@ $rules_data_vol["voluntary_to_$i"] = 'required|date';
                     'user_id' => Auth::id()
                 ]);
 
+                $elemFromDb = $this->normalizeStrictDateForDatabase($c1_form_data['elem_from'] ?? null);
+                $elemToDb = $this->normalizeStrictDateForDatabase($c1_form_data['elem_to'] ?? null);
+                $jhsFromDb = $this->normalizeStrictDateForDatabase($c1_form_data['jhs_from'] ?? null);
+                $jhsToDb = $this->normalizeStrictDateForDatabase($c1_form_data['jhs_to'] ?? null);
+                $elemFromDb = $this->normalizeEducationMonthYearForDatabase($c1_form_data['elem_from'] ?? null);
+                $elemToDb = $this->normalizeEducationMonthYearForDatabase($c1_form_data['elem_to'] ?? null);
+                $jhsFromDb = $this->normalizeEducationMonthYearForDatabase($c1_form_data['jhs_from'] ?? null);
+                $jhsToDb = $this->normalizeEducationMonthYearForDatabase($c1_form_data['jhs_to'] ?? null);
+                $shsFromDb = $this->normalizeEducationMonthYearForDatabase($c1_form_data['shs_from'] ?? null);
+                $shsToDb = $this->normalizeEducationMonthYearForDatabase($c1_form_data['shs_to'] ?? null);
+
                 $user_educational_bg->update([
-                    'elem_from' => $c1_form_data['elem_from'],
-                    'elem_to' => $c1_form_data['elem_to'],
+                    'elem_from' => $elemFromDb,
+                    'elem_to' => $elemToDb,
                     'elem_school' => $c1_form_data['elem_school'],
                     'elem_academic_honors' => $c1_form_data['elem_academic_honors'],
                     'elem_basic' => $c1_form_data['elem_basic'],
                     'elem_earned' => $c1_form_data['elem_earned'],
                     'elem_year_graduated' => $c1_form_data['elem_year_graduated'],
 
-                    'jhs_from' => $c1_form_data['jhs_from'],
-                    'jhs_to' => $c1_form_data['jhs_to'],
+                    'jhs_from' => $jhsFromDb,
+                    'jhs_to' => $jhsToDb,
                     'jhs_school' => $c1_form_data['jhs_school'],
                     'jhs_academic_honors' => $c1_form_data['jhs_academic_honors'],
                     'jhs_basic' => $c1_form_data['jhs_basic'],
@@ -5471,9 +5543,12 @@ $rules_data_vol["voluntary_to_$i"] = 'required|date';
                     /*
                     'shs_from'                  => $c1_form_data['shs_from'],
                     'shs_to'                    => $c1_form_data['shs_to'],
+                    'shs_from'                  => $shsFromDb,
+                    'shs_to'                    => $shsToDb,
                     'shs_school'                => $c1_form_data['shs_school'],
                     'shs_academic_honors'       => $c1_form_data['shs_academic_honors'],
                     'shs_basic'                 => $c1_form_data['shs_basic'],
+                    'shs_earned'                => $c1_form_data['shs_earned'],
                     'shs_earned'                => $c1_form_data['shs_earned'],
                     'shs_year_graduated'        => $c1_form_data['shs_year_graduated'],
                     */

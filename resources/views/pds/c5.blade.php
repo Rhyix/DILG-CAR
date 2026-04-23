@@ -165,17 +165,17 @@
                 @foreach ($documentMeta as $docType => $meta)
                     @php
                         $doc = ($documentsResolved[$docType] ?? null) ?: ($documents[$docType] ?? null);
+                        $galleryDoc = $galleryDocumentsResolved[$docType] ?? null;
                         $status = trim((string) ($doc->status ?? ''));
                         $isApproved = strcasecmp($status, 'Okay/Confirmed') === 0;
-                        $docStoragePath = trim((string) ($doc->storage_path ?? ''));
+                        $docStoragePath = trim((string) ($galleryDoc->storage_path ?? ''));
                         $previewUrl = '';
                         if ($docStoragePath !== '' && $docStoragePath !== 'NOINPUT') {
                             $previewUrl = \App\Support\PreviewUrl::forPath($docStoragePath);
-                        } elseif ($docType === 'application_letter' && !empty($applicationLetterPreviewUrl)) {
-                            $previewUrl = $applicationLetterPreviewUrl;
                         }
-                        $hasStoredDoc = $previewUrl !== '' || ($docType === 'application_letter' && !empty($hasExistingApplicationLetter));
+                        $hasStoredDoc = $previewUrl !== '';
                         $hasExisting = $hasStoredDoc;
+                        $isApproved = $isApproved && $hasExisting;
                         $requiredCos = $isApplicationFlow
                             ? in_array($docType, $vacancyRequiredDocumentIds, true)
                             : in_array($docType, $requiredDocsByTrack['COS'] ?? [], true);

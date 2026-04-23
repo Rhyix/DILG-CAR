@@ -167,6 +167,103 @@ class ExamController extends Controller
         return trim((string) config('mail.from.name', 'DILG-CAR Recruitment Team'));
     }
 
+    private function pauseSecondsSince(?string $pausedAt): int
+    {
+        if (empty($pausedAt)) {
+            return 0;
+        }
+
+        try {
+            return max(0, \Carbon\Carbon::parse((string) $pausedAt)->diffInSeconds(now(), false));
+        } catch (\Throwable) {
+            return 0;
+        }
+    }
+
+    private function accumulatedPauseSeconds(?string $pausedAt, int $storedPauseSeconds): int
+    {
+        return max(0, $storedPauseSeconds) + $this->pauseSecondsSince($pausedAt);
+    }
+
+    private function isExamGloballyPaused(?ExamDetail $examDetail): bool
+    {
+        return !empty($examDetail?->exam_paused_at);
+    }
+
+    private function isApplicationPaused(?Applications $application): bool
+    {
+        return !empty($application?->exam_paused_at);
+    }
+
+    private function resolvePauseState(?object $application = null, ?ExamDetail $examDetail = null): array
+    {
+        return [
+            'global_paused' => $this->isExamGloballyPaused($examDetail),
+            'global_pause_seconds' => $examDetail ? $this->accumulatedPauseSeconds($examDetail->exam_paused_at, (int) ($examDetail->exam_pause_seconds ?? 0)) : 0,
+            'application_paused' => $this->isApplicationPaused($application),
+            'application_pause_seconds' => $application ? $this->accumulatedPauseSeconds($application->exam_paused_at, (int) ($application->exam_pause_seconds ?? 0)) : 0,
+        ];
+    }
+
+    private function resolveExamRemainingSeconds(?object $application = null, ?ExamDetail $examDetail = null): int
+    {
+        if (!$application || empty($application->exam_end_time)) {
+            return 0;
+        }
+
+        try {
+            $endTime = \Carbon\Carbon::parse((string) $application->exam_end_time);
+            $pauseState = $this->resolvePauseState($application, $examDetail);
+            $endTime->addSeconds((int) $pauseState['global_pause_seconds'] + (int) $pauseState['application_pause_seconds']);
+
+            return max(0, now()->diffInSeconds($endTime, false));
+        } catch (\Throwable) {
+            return 0;
+        }
+    }
+
+    private function setApplicationPauseState(Applications $application, bool $paused): void
+    {
+        if ($paused) {
+            if (empty($application->exam_paused_at)) {
+                $application->update([
+                    'exam_paused_at' => now(),
+                    'exam_paused_by_admin_id' => auth('admin')->id(),
+                ]);
+            }
+
+            return;
+        }
+
+        $pauseSeconds = $this->accumulatedPauseSeconds($application->exam_paused_at, (int) ($application->exam_pause_seconds ?? 0));
+        $application->update([
+            'exam_paused_at' => null,
+            'exam_paused_by_admin_id' => null,
+            'exam_pause_seconds' => $pauseSeconds,
+        ]);
+    }
+
+    private function setGlobalExamPauseState(ExamDetail $examDetail, bool $paused): void
+    {
+        if ($paused) {
+            if (empty($examDetail->exam_paused_at)) {
+                $examDetail->update([
+                    'exam_paused_at' => now(),
+                    'exam_paused_by_admin_id' => auth('admin')->id(),
+                ]);
+            }
+
+            return;
+        }
+
+        $pauseSeconds = $this->accumulatedPauseSeconds($examDetail->exam_paused_at, (int) ($examDetail->exam_pause_seconds ?? 0));
+        $examDetail->update([
+            'exam_paused_at' => null,
+            'exam_paused_by_admin_id' => null,
+            'exam_pause_seconds' => $pauseSeconds,
+        ]);
+    }
+
     private function createAttendancePromptNotification(int $userId, string $vacancyId, ?JobVacancy $vacancy = null): void
     {
         $vacancy ??= JobVacancy::select('vacancy_id', 'position_title')->where('vacancy_id', $vacancyId)->first();
@@ -304,7 +401,7 @@ class ExamController extends Controller
         return sprintf('%02d:%02d', $minutes, $remainingSeconds);
     }
 
-    private function resolveResumeExamState(Applications $application, ?ExamDetail $examDetail = null): array
+    private function resolveResumeExamState(?object $application, ?ExamDetail $examDetail = null): array
     {
         $maxViolations = $this->resolveMaxViolations((string) $application->vacancy_id, $examDetail);
         $tabViolations = (int) ($application->tab_violations ?? 0);
@@ -1131,7 +1228,7 @@ class ExamController extends Controller
         // Only fetch participants who have entered the lobby (read_at is not null)
         $participants = Applications::where('vacancy_id', $vacancy_id)
             ->whereNotNull('read_at')
-            ->select('user_id', 'vacancy_id', 'status', 'scores', 'answers', 'result', 'read_at', 'exam_end_time', 'exam_submitted_at', 'tab_violations', 'exam_started_at')
+            ->select('user_id', 'vacancy_id', 'status', 'scores', 'answers', 'result', 'read_at', 'exam_end_time', 'exam_submitted_at', 'tab_violations', 'exam_started_at', 'exam_paused_at', 'exam_paused_by_admin_id', 'exam_pause_seconds')
             ->with('user:id,name')
             ->get();
 
@@ -1162,7 +1259,7 @@ class ExamController extends Controller
 
         $user_name = [];
         foreach ($participants as $p) {
-            $user_id = $p['user_id'];
+            $user_id = $p->user_id;
             $user = User::find($user_id);
             $user_name[] = $user ? $user->name : 'Unknown User';
         }
@@ -1215,6 +1312,9 @@ class ExamController extends Controller
             $p->essay_score_str = $essayString;
             $p->tab_switch_count = (int) ($p->tab_violations ?? 0);
             $p->tamper_logs_count = (int) ($tamperCountsByUser[(int) $p->user_id] ?? 0);
+            $p->is_paused = !empty($p->exam_paused_at);
+            $p->pause_state = $this->resolvePauseState($p, $examDetails);
+            $p->remaining_seconds = $this->resolveExamRemainingSeconds($p, $examDetails);
             $p->resume_action = $this->resolveResumeExamState($p, $examDetails);
         }
 
@@ -1244,8 +1344,10 @@ class ExamController extends Controller
                 ->values();
         }
 
+        $causer = auth('admin')->user() ?? auth()->user();
+
         activity()
-            ->causedBy(auth()->user())
+            ->causedBy($causer)
             ->withProperties(['vacancy_id' => $vacancy_id, 'section' => 'Exam Management'])
             ->log('Managed exam participants and details.');
 
@@ -1281,6 +1383,7 @@ class ExamController extends Controller
                 'participants' => $participants,
                 'user_name' => $user_name,
                 'examDetails' => $examDetails,
+                'examPauseState' => $this->resolvePauseState(null, $examDetails),
             ]);
         }
 
@@ -1575,13 +1678,116 @@ class ExamController extends Controller
                 'vacancy_id' => $p->vacancy_id,
                 'tab_switch_count' => (int) ($p->tab_violations ?? 0),
                 'tamper_logs_count' => (int) ($tamperCountsByUser[(int) $p->user_id] ?? 0),
+                'is_paused' => !empty($p->exam_paused_at),
+                'pause_state' => $this->resolvePauseState($p, $examDetail),
                 'resume_action' => $this->resolveResumeExamState($p, $examDetail),
             ];
         });
 
         return response()->json([
             'success' => true,
+            'exam' => [
+                'is_started' => (bool) ($examDetail?->is_started ?? false),
+                'is_paused' => $this->isExamGloballyPaused($examDetail),
+                'pause_state' => $this->resolvePauseState(null, $examDetail),
+            ],
             'participants' => $lobbyData
+        ]);
+    }
+
+    public function toggleApplicantPause(Request $request, string $vacancy_id, int $user_id)
+    {
+        if ($denied = $this->denyViewerAccess($request, 'Viewer cannot pause examinees.')) {
+            return $denied;
+        }
+
+        $application = Applications::where('vacancy_id', $vacancy_id)
+            ->where('user_id', $user_id)
+            ->firstOrFail();
+
+        $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->first();
+        if ($this->isExamGloballyPaused($examDetail) && !$this->isApplicationPaused($application)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Resume the entire examination before pausing individual examinees.',
+            ], 409);
+        }
+
+        $isPaused = $this->isApplicationPaused($application);
+
+        $this->setApplicationPauseState($application, !$isPaused);
+        $application->refresh();
+
+        activity()
+            ->causedBy(auth('admin')->user())
+            ->event($isPaused ? 'resume' : 'pause')
+            ->withProperties([
+                'vacancy_id' => $vacancy_id,
+                'user_id' => $user_id,
+                'scope' => 'individual',
+                'section' => 'Exam Management',
+            ])
+            ->log($isPaused
+                ? 'Resumed an individual examinee from pause.'
+                : 'Paused an individual examinee during the exam.');
+
+        return response()->json([
+            'success' => true,
+            'paused' => !$isPaused,
+            'message' => !$isPaused
+                ? 'Examinee paused successfully.'
+                : 'Examinee resumed successfully.',
+            'remaining_seconds' => $this->resolveExamRemainingSeconds($application, $examDetail),
+        ]);
+    }
+
+    public function toggleExamPause(Request $request, string $vacancy_id)
+    {
+        if ($denied = $this->denyViewerAccess($request, 'Viewer cannot pause the entire exam.')) {
+            return $denied;
+        }
+
+        $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->firstOrFail();
+
+        if (!$examDetail->is_started) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Start the exam before pausing it.',
+            ], 400);
+        }
+
+        $isPaused = $this->isExamGloballyPaused($examDetail);
+        $participantPauseExists = Applications::where('vacancy_id', $vacancy_id)
+            ->whereNotNull('exam_paused_at')
+            ->exists();
+
+        if (!$isPaused && $participantPauseExists) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Resume all individually paused examinees before pausing the entire exam.',
+            ], 409);
+        }
+
+        $this->setGlobalExamPauseState($examDetail, !$isPaused);
+
+        activity()
+            ->causedBy(auth('admin')->user())
+            ->event($isPaused ? 'resume' : 'pause')
+            ->withProperties([
+                'vacancy_id' => $vacancy_id,
+                'scope' => 'entire_exam',
+                'section' => 'Exam Management',
+            ])
+            ->log($isPaused
+                ? 'Resumed the entire examination.'
+                : 'Paused the entire examination.');
+
+        return response()->json([
+            'success' => true,
+            'paused' => !$isPaused,
+            'message' => !$isPaused
+                ? 'The entire exam has been paused.'
+                : 'The entire exam has been resumed.',
         ]);
     }
 
@@ -1657,6 +1863,8 @@ class ExamController extends Controller
 
         $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->first();
         $vacancy = JobVacancy::select('position_title')->where('vacancy_id', $vacancy_id)->first();
+        $examPauseState = $this->resolvePauseState($application, $examDetail);
+        $remainingSeconds = $this->resolveExamRemainingSeconds($application, $examDetail);
 
         // If admin has already started the exam, route user straight to questions
         if ($examDetail && $examDetail->is_started) {
@@ -1675,7 +1883,7 @@ class ExamController extends Controller
         $examineeName = auth()->user()->name ?? 'Examinee';
         $examineeNumber = strtoupper('EXM-' . substr(hash('sha256', $vacancy_id . '-' . $user_id), 0, 8));
 
-        return view('exam_user.exam_lobby', compact('vacancy_id', 'examDetail', 'vacancy', 'examineeName', 'examineeNumber'));
+        return view('exam_user.exam_lobby', compact('vacancy_id', 'examDetail', 'vacancy', 'examineeName', 'examineeNumber', 'examPauseState', 'remainingSeconds'));
     }
 
     public function examQuestion(Request $request, $vacancy_id)
@@ -1725,6 +1933,8 @@ class ExamController extends Controller
             return redirect()->route('user.exam_lobby', ['vacancy_id' => $vacancy_id]);
         }
 
+        $examPauseState = $this->resolvePauseState($application, $examDetail);
+
         // Initialize exam start time for the user if not set yet
         if (!$application->exam_started_at) {
             $now = now();
@@ -1742,7 +1952,9 @@ class ExamController extends Controller
         }
 
         $now = now();
-        $endTime = \Carbon\Carbon::parse($application->exam_end_time);
+        $pauseState = $this->resolvePauseState($application, $examDetail);
+        $endTime = \Carbon\Carbon::parse($application->exam_end_time)
+            ->addSeconds((int) $pauseState['global_pause_seconds'] + (int) $pauseState['application_pause_seconds']);
         $remaining_seconds = $now->diffInSeconds($endTime, false);
 
         // If time is up (allow 1 minute grace period for latency)
@@ -1783,7 +1995,7 @@ class ExamController extends Controller
         $examineeName = auth()->user()->name ?? 'Examinee';
         $examineeNumber = strtoupper('EXM-' . substr(hash('sha256', $vacancy_id . '-' . $user_id), 0, 8));
 
-        return view('exam_user.exam_question_page', compact('vacancy_id', 'examItems', 'remaining_seconds', 'vacancy', 'total_seconds', 'savedAnswers', 'examineeName', 'examineeNumber', 'maxViolations', 'examEndTimeTs', 'serverNowTs'));
+        return view('exam_user.exam_question_page', compact('vacancy_id', 'examItems', 'remaining_seconds', 'vacancy', 'total_seconds', 'savedAnswers', 'examineeName', 'examineeNumber', 'maxViolations', 'examEndTimeTs', 'serverNowTs', 'examPauseState'));
     }
 
     public function viewExam(Request $request, $vacancy_id, $user_id)
@@ -2862,8 +3074,14 @@ class ExamController extends Controller
             return response()->json(['started' => false]);
         }
 
+        $application = Applications::where('vacancy_id', $vacancy_id)
+            ->where('user_id', auth()->id())
+            ->first();
+
         return response()->json([
-            'started' => (bool) $examDetail->is_started
+            'started' => (bool) $examDetail->is_started,
+            'paused' => $this->isExamGloballyPaused($examDetail) || $this->isApplicationPaused($application),
+            'remaining_seconds' => $application ? $this->resolveExamRemainingSeconds($application, $examDetail) : null,
         ]);
     }
 

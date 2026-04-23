@@ -1,4 +1,4 @@
-@php
+a@php
     $galleryItems = $galleryItems ?? collect();
     $documentTypeOptions = $documentTypeOptions ?? [];
     $formatGalleryBytes = function ($bytes) {
@@ -53,6 +53,67 @@
             </div>
         @endforeach
     </div>
+</div>
+
+<!-- Document Delete Confirmation Modal -->
+<div x-data="{ 
+  confirmOpen: false, 
+  targetForm: null, 
+  docName: '', 
+  docType: '',
+  confirmDelete() {
+    if (this.targetForm) {
+      this.targetForm.submit();
+    }
+    this.confirmOpen = false;
+    this.targetForm = null;
+  },
+  closeModal() {
+    this.confirmOpen = false;
+    this.targetForm = null;
+  }
+}" 
+  x-on:open-delete-confirm.window="const detail = $event.detail; docName = detail.docName; docType = detail.docType; targetForm = $event.target.closest('form'); confirmOpen = true" 
+  x-show="confirmOpen" 
+class="fixed inset-0 z-[9999] overflow-y-auto" 
+  x-transition:enter="ease-out duration-300"
+  x-transition:enter-start="opacity-0"
+  x-transition:enter-end="opacity-100"
+  x-transition:leave="ease-in duration-200"
+  x-transition:leave-start="opacity-100"
+  x-transition:leave-end="opacity-0"
+  @keyup.escape="closeModal()"
+  style="display: none;">
+  <!-- Backdrop -->
+<div class="fixed inset-0 z-[9998] bg-black/40" @click="closeModal()"></div>
+  
+  <!-- Modal panel -->
+  <div class="fixed inset-0 flex min-h-full items-end justify-center p-4 md:items-center sm:p-6">
+class="w-full max-w-md z-[10000] transform overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-slate-200 transition-all">
+      <div class="p-6">
+        <h3 class="text-lg font-bold text-slate-900 mb-2">Delete Document?</h3>
+        <p class="text-sm text-slate-600 mb-6 leading-relaxed">This will permanently remove the document record from your gallery. This action cannot be undone.</p>
+        
+        <div class="mb-6 rounded-xl bg-gradient-to-r from-slate-50 to-slate-100 p-4">
+          <div class="font-semibold text-slate-900 text-base mb-1" x-text="docType"></div>
+          <div class="text-slate-600 text-sm truncate max-w-full" x-text="docName"></div>
+        </div>
+        
+        <div class="flex items-center gap-3 justify-end">
+          <button 
+            @click="closeModal()"
+            class="px-4 py-2.5 rounded-xl border border-slate-200 font-semibold text-sm text-slate-700 hover:border-slate-300 hover:bg-slate-50 transition-all">
+            Cancel
+          </button>
+          <button 
+            @click="confirmDelete()"
+            class="px-6 py-2.5 rounded-xl bg-rose-500 hover:bg-rose-600 font-semibold text-sm text-white shadow-sm hover:shadow-md transition-all">
+            Delete Document
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div class="mt-4 rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50 to-slate-50 p-4">
@@ -313,9 +374,12 @@
                             <form method="POST" action="{{ route('profile.document_gallery.delete', $item->id) }}" data-gallery-async>
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit"
-                                    onclick="return confirm('Remove this saved document record?')"
-                                    class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50">
+                                <button type="button"
+                                    @click="$dispatch('open-delete-confirm', { 
+                                      docName: @js($item->original_name), 
+                                      docType: @js($documentTypeLabel)
+                                    })"
+                                    class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"> 
                                     Remove from List
                                 </button>
                             </form>
@@ -422,9 +486,12 @@
                                 <form method="POST" action="{{ route('profile.document_gallery.delete', $item->id) }}" data-gallery-async>
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit"
-                                        onclick="return confirm('Remove this saved document record?')"
-                                        class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50">
+                                <button type="button"
+                                    @click="$dispatch('open-delete-confirm', { 
+                                      docName: @js($item->original_name), 
+                                      docType: @js($documentTypeLabel)
+                                    })"
+                                    class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"> 
                                         Remove from List
                                     </button>
                                 </form>

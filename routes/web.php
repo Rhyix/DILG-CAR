@@ -694,6 +694,8 @@ Route::middleware([ViewerAccess::class, 'admin.ability:admin.exam.monitor'])->gr
     //Route::get('/admin/exam_management/{vacancy_id}/notify', [ExamController::class, 'notifyApplicants'])->name('admin.exam_notify');
     Route::post('/admin/exam_management/{vacancy_id}/details/save', [ExamController::class, 'saveExamDetails'])->name('admin.exam.details.save')->middleware(RedirectIfNotAdmin::class);
     Route::post('/admin/exam_management/{vacancy_id}/start', [ExamController::class, 'startExam'])->name('admin.exam_start')->middleware(RedirectIfNotAdmin::class);
+    Route::post('/admin/exam_management/{vacancy_id}/pause', [ExamController::class, 'toggleExamPause'])->name('admin.exam.pause')->middleware(RedirectIfNotAdmin::class);
+    Route::post('/admin/exam_management/{vacancy_id}/pause/{user_id}', [ExamController::class, 'toggleApplicantPause'])->name('admin.exam.pause_applicant')->middleware(RedirectIfNotAdmin::class);
     Route::post('/admin/exam_management/{vacancy_id}/notify-selected', [ExamController::class, 'notifySelectedApplicants'])->name('admin.exam.notify_selected')->middleware(RedirectIfNotAdmin::class);
     Route::post('/admin/exam_management/{vacancy_id}/attendance/{user_id}', [ExamController::class, 'updateAttendanceStatus'])->name('admin.exam.attendance.update')->middleware(RedirectIfNotAdmin::class);
     Route::post('/admin/exam_management/{vacancy_id}/resume/{user_id}', [ExamController::class, 'resumeApplicantExam'])->name('admin.exam.resume')->middleware(RedirectIfNotAdmin::class);

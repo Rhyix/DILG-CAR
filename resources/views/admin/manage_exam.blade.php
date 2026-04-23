@@ -29,7 +29,7 @@
             $qualifiedCount = isset($qualifiedApplicants) ? $qualifiedApplicants->count() : 0;
             $attendanceCount = isset($attendanceApplicants) ? $attendanceApplicants->count() : 0;
             $willAttendCount = isset($attendanceApplicants) ? $attendanceApplicants->where('attendance_status', 'will_attend')->count() : 0;
-            $lobbyCount = isset($participants) ? $participants->count() : 0;
+            $lobbyCount = count($participants ?? []);
             $questionsCount = \App\Models\ExamItems::where('vacancy_id', $vacancy->vacancy_id)->count();
             $hasQuestions = $questionsCount > 0;
 
@@ -348,10 +348,16 @@
                         <div class="flex items-center gap-3">
                             <span id="lobbyLastUpdated" class="text-xs text-gray-400"></span>
                         </div>
-                        <button id="refreshLobbyBtn" onclick="fetchLobbyData(true)" class="text-xs bg-white border border-[#0D2B70] text-[#0D2B70] hover:bg-[#0D2B70] hover:text-white px-3 py-1 rounded transition-colors duration-200 flex items-center gap-1">
-                            <x-heroicon-o-arrow-path class="w-3 h-3" />
-                            Refresh Now
-                        </button>
+                        <div class="flex items-center gap-2">
+                            <button id="pauseExamBtn" onclick="toggleExamPause()" class="text-xs bg-amber-500 border border-amber-600 text-white hover:bg-amber-600 px-3 py-1 rounded transition-colors duration-200 flex items-center gap-1">
+                                <x-heroicon-o-pause class="w-3 h-3" />
+                                Pause Exam
+                            </button>
+                            <button id="refreshLobbyBtn" onclick="fetchLobbyData(true)" class="text-xs bg-white border border-[#0D2B70] text-[#0D2B70] hover:bg-[#0D2B70] hover:text-white px-3 py-1 rounded transition-colors duration-200 flex items-center gap-1">
+                                <x-heroicon-o-arrow-path class="w-3 h-3" />
+                                Refresh Now
+                            </button>
+                        </div>
                     </div>
                     <table class="w-full text-left border-collapse">
                         <tbody id="exam-lobby-tbody" class="bg-white divide-y divide-gray-200">
@@ -411,6 +417,12 @@
                                                 <x-heroicon-o-eye class="w-3 h-3 md:w-4 md:h-4" />
                                                 <span class="hidden sm:inline">View</span>
                                             </a>
+                                            <button type="button"
+                                                onclick="toggleApplicantPause({{ $p->user_id }})"
+                                                class="inline-flex items-center gap-1 rounded-md border border-amber-600 px-3 py-1.5 text-xs font-bold text-amber-700 transition-all duration-150 hover:bg-amber-600 hover:text-white">
+                                                <x-heroicon-o-pause class="w-3 h-3" />
+                                                <span>{{ !empty($p->exam_paused_at) ? 'Resume' : 'Pause' }}</span>
+                                            </button>
                                             @if(!empty($resumeAction['can_resume']))
                                                 <button
                                                     type="button"
@@ -902,6 +914,10 @@
         .then((data) => {
             showAppToast(data.message || 'Exam resumed successfully.');
             queueLobbyFetch('resume-success', 0, true);
+                if (data.exam && typeof data.exam.is_paused !== 'undefined') {
+                    examPausedClient = !!data.exam.is_paused;
+                    updatePauseButtonState();
+                }
         })
         .catch((error) => {
             console.error('Resume exam error:', error);
@@ -1076,11 +1092,12 @@
     const currentAdminDisplayName = @json(optional(auth('admin')->user())->name ?? optional(auth('admin')->user())->email ?? 'An admin');
     let attendanceResponseCountClient = @json(isset($attendanceApplicants) ? $attendanceApplicants->count() : 0);
     let willAttendCountClient = @json(isset($attendanceApplicants) ? $attendanceApplicants->where('attendance_status', 'will_attend')->count() : 0);
-    let currentLobbyCount = @json(isset($participants) ? $participants->count() : 0);
+    let currentLobbyCount = @json(count($participants ?? []));
     let hasExamDetailsClient = @json(!is_null($examDetails ?? null));
     let detailsSavedClient = @json($examDetails && $examDetails->details_saved);
     const linkSentConst = @json($examDetails && $examDetails->link_sent);
     let linkSentClient = linkSentConst;
+    let examPausedClient = @json((bool) ($examDetails?->exam_paused_at ?? false));
     const isExamActiveConst = @json($isExamActive);
     const isExamCompletedConst = @json($isExamCompleted);
     const isExamDayConst = @json($isExamDay);
@@ -1183,6 +1200,76 @@
         btn.classList.toggle('cursor-not-allowed', !shouldEnable);
     }
 
+    function updatePauseButtonState() {
+        const btn = document.getElementById('pauseExamBtn');
+        if (!btn) return;
+
+        btn.innerHTML = examPausedClient
+            ? '<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-4.586-2.65A1 1 0 009 9.385v5.23a1 1 0 001.166.967l4.586-2.65a1 1 0 000-1.732z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v18"></path></svg> Resume Exam'
+            : '<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 21a9 9 0 100-18 9 9 0 000 18z"></path></svg> Pause Exam';
+        btn.classList.toggle('bg-emerald-600', examPausedClient);
+        btn.classList.toggle('border-emerald-700', examPausedClient);
+        btn.classList.toggle('hover:bg-emerald-700', examPausedClient);
+        btn.classList.toggle('bg-amber-500', !examPausedClient);
+        btn.classList.toggle('border-amber-600', !examPausedClient);
+        btn.classList.toggle('hover:bg-amber-600', !examPausedClient);
+    }
+
+    function toggleExamPause() {
+        const action = examPausedClient ? 'resume' : 'pause';
+        fetch(`/admin/exam_management/{{ $vacancy->vacancy_id }}/pause`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({})
+        })
+        .then(async (response) => {
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok || !data.success) {
+                throw new Error(data.message || `Failed to ${action} exam`);
+            }
+            return data;
+        })
+        .then((data) => {
+            examPausedClient = !!data.paused;
+            updatePauseButtonState();
+            showAppToast(data.message || (examPausedClient ? 'Exam paused.' : 'Exam resumed.'));
+            queueLobbyFetch('pause-toggle', 0, true);
+        })
+        .catch((error) => {
+            showAppToast(error.message || 'Unable to update exam pause state.');
+        });
+    }
+
+    function toggleApplicantPause(userId) {
+        fetch(`/admin/exam_management/{{ $vacancy->vacancy_id }}/pause/${userId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({})
+        })
+        .then(async (response) => {
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok || !data.success) {
+                throw new Error(data.message || 'Failed to update examinee pause state');
+            }
+            return data;
+        })
+        .then((data) => {
+            showAppToast(data.message || 'Examinee pause state updated.');
+            queueLobbyFetch('applicant-pause', 0, true);
+        })
+        .catch((error) => {
+            showAppToast(error.message || 'Unable to update examinee pause state.');
+        });
+    }
+
     // Form validation - enable Save button only when all required fields are filled
     function validateForm() {
         const venue = document.getElementById('venue').value.trim();
@@ -1233,6 +1320,7 @@
     validateForm();
     updateSendLinkButtonState(currentLobbyCount);
     updateStartButtonState();
+    updatePauseButtonState();
     renderMonitorRecipients(initialQualifiedApplicants);
     updateSelectedCount();
     // Sync initial state

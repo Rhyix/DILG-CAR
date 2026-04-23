@@ -4,10 +4,12 @@ namespace App\Providers;
 
 use App\Jobs\ProcessAdminActivityNotification;
 use App\Models\Applications;
+use App\Models\EmailLog;
 use App\Models\UploadedDocument;
 use App\Observers\ApplicationObserver;
 use App\Observers\UploadedDocumentObserver;
 use Illuminate\Auth\Events\Logout;
+use Illuminate\Mail\Events\MessageSent;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -70,6 +72,47 @@ class AppServiceProvider extends ServiceProvider
                     ->log('logged out');
             }
         });
+
+            Event::listen(MessageSent::class, function (MessageSent $event) {
+                $message = $event->message;
+                $recipients = collect($message->getTo() ?? [])
+                    ->map(fn($address, $email) => is_string($email) ? $email : (string) ($address->getAddress() ?? ''))
+                    ->filter()
+                    ->values()
+                    ->all();
+
+                if ($recipients === []) {
+                    $recipients = collect($message->getTo() ?? [])
+                        ->map(fn($address) => method_exists($address, 'getAddress') ? (string) $address->getAddress() : '')
+                        ->filter()
+                        ->values()
+                        ->all();
+                }
+
+                $subject = (string) ($message->getSubject() ?? '(no subject)');
+                $causer = auth('admin')->user() ?? auth()->user();
+
+                activity()
+                    ->causedBy($causer)
+                    ->event('email_sent')
+                    ->withProperties([
+                        'section' => 'Email Logs',
+                        'recipients' => $recipients,
+                        'subject' => $subject,
+                        'mailer' => config('mail.default'),
+                    ])
+                    ->log('Sent email to ' . implode(', ', $recipients));
+
+                foreach ($recipients as $recipientEmail) {
+                    EmailLog::create([
+                        'vacancy_id' => 'system',
+                        'user_id' => 0,
+                        'recipient_email' => $recipientEmail,
+                        'status' => 'sent',
+                        'error_message' => null,
+                    ]);
+                }
+            });
 
         Activity::created(function (Activity $activity) {
             ProcessAdminActivityNotification::dispatch($activity->id)

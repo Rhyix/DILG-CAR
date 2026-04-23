@@ -154,9 +154,20 @@
     </div>
 </div>
 
+<div id="examPausedOverlay" class="hidden fixed inset-0 z-[90] bg-slate-950/70 backdrop-blur-sm">
+    <div class="flex h-full items-center justify-center p-4">
+        <div class="w-full max-w-lg rounded-2xl border border-amber-200 bg-white p-8 text-center shadow-2xl">
+            <p class="text-sm font-semibold uppercase tracking-widest text-amber-600">Examination Paused</p>
+            <h3 class="mt-3 text-2xl font-bold text-[#002C76]">The administrator has paused this exam.</h3>
+            <p class="mt-2 text-sm text-slate-600">Your progress remains saved. Please wait here until the exam resumes.</p>
+        </div>
+    </div>
+</div>
+
 <script>
     const Questions = @json($examItems);
     const savedAnswers = @json($savedAnswers ?? []);
+    const examPauseState = @json($examPauseState ?? ['global_paused' => false, 'application_paused' => false]);
 
     // Questions are shown in original order
 
@@ -180,6 +191,8 @@
     let lastSavedFingerprint = '';
     let unloadSaveTriggered = false;
     let restoredNoticeShown = false;
+    let examPaused = !!(examPauseState.global_paused || examPauseState.application_paused);
+    let examStatusPollInterval = null;
 
     Questions.forEach((q, idx) => q.number = idx + 1);
 
@@ -296,6 +309,10 @@
     }
 
     timerInterval = setInterval(() => {
+        if (examPaused) {
+            return;
+        }
+
         duration = computeRemainingSecondsFromServerClock();
         updateTimerDisplay(duration);
 
@@ -374,12 +391,84 @@
         setTimeout(() => { notif.style.opacity = 0; setTimeout(() => notif.classList.add('hidden'), 300); }, 2000);
     }
 
+    function showPausedOverlay(shouldShow) {
+        const overlay = document.getElementById('examPausedOverlay');
+        if (!overlay) return;
+
+        overlay.classList.toggle('hidden', !shouldShow);
+    }
+
+    function syncPauseState(nextState, remainingSeconds = null) {
+        examPaused = !!nextState;
+        showPausedOverlay(examPaused);
+
+        if (examPaused) {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            if (confirmSubmitBtn) {
+                confirmSubmitBtn.disabled = true;
+            }
+            return;
+        }
+
+        if (typeof remainingSeconds === 'number' && remainingSeconds >= 0) {
+            duration = remainingSeconds;
+            updateTimerDisplay(duration);
+        }
+
+        updateSubmitEnabled();
+
+        if (!timerInterval) {
+            timerInterval = setInterval(() => {
+                if (examPaused) {
+                    return;
+                }
+
+                duration = computeRemainingSecondsFromServerClock();
+                updateTimerDisplay(duration);
+
+                if (duration <= 0) {
+                    handleTimesUp();
+                }
+            }, 1000);
+        }
+    }
+
+    function pollExamStatus() {
+        fetch("{{ route('exam.status.check', ['vacancy_id' => $vacancy_id]) }}", {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            },
+            cache: 'no-store',
+            credentials: 'same-origin'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (!data) return;
+            syncPauseState(!!data.paused, typeof data.remaining_seconds === 'number' ? data.remaining_seconds : null);
+        })
+        .catch(() => {});
+    }
+
+    function startExamStatusPolling() {
+        if (examStatusPollInterval) return;
+
+        pollExamStatus();
+        examStatusPollInterval = setInterval(pollExamStatus, 3000);
+    }
+
     function timesUpModal() {
         return {
             showTimesUp: false,
             init() { window.triggerTimesUp = () => { this.showTimesUp = true; }; }
         };
     }
+
+    syncPauseState(examPaused, duration);
+    startExamStatusPolling();
 
     window.allowFocusLoss = false;
     window.isSubmitting = false;

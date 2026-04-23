@@ -59,6 +59,9 @@ class Applications extends Model
         'exam_started_at',
         'exam_end_time',
         'exam_submitted_at',
+        'exam_paused_at',
+        'exam_paused_by_admin_id',
+        'exam_pause_seconds',
         'tab_violations',
         'last_tab_violation_at'
     ];

@@ -13,6 +13,7 @@ use App\Models\AdminVacancyAccess;
 use App\Models\VacancyTitle;
 use Illuminate\Http\Request;
 use App\Models\Vacancy;
+use App\Models\DocumentGalleryItem;
 use App\Models\UploadedDocument;
 use App\Models\PersonalInformation;
 use App\Models\WorkExperience;
@@ -3531,6 +3532,41 @@ class JobVacancyController extends Controller
         return $doc && !empty($doc->storage_path) && $doc->storage_path !== 'NOINPUT';
     }
 
+    private function resolveDocumentGalleryItem($documents, string $docType): ?DocumentGalleryItem
+    {
+        $doc = $documents->get($docType);
+        if ($doc && !empty($doc->storage_path) && $doc->storage_path !== 'NOINPUT') {
+            return $doc;
+        }
+
+        foreach (self::DOCUMENT_TYPE_ALIASES[$docType] ?? [] as $alias) {
+            $aliasDoc = $documents->get($alias);
+            if ($aliasDoc && !empty($aliasDoc->storage_path) && $aliasDoc->storage_path !== 'NOINPUT') {
+                return $aliasDoc;
+            }
+        }
+
+        return $doc ?: null;
+    }
+
+    private function loadDocumentGalleryMap(int $userId)
+    {
+        return DocumentGalleryItem::query()
+            ->where('user_id', $userId)
+            ->whereNotNull('storage_path')
+            ->where('storage_path', '!=', 'NOINPUT')
+            ->orderByDesc('updated_at')
+            ->get()
+            ->unique('document_type')
+            ->keyBy('document_type');
+    }
+
+    private function hasStoredDocumentGalleryItem($documents, string $docType): bool
+    {
+        $doc = $this->resolveDocumentGalleryItem($documents, $docType);
+        return $doc && !empty($doc->storage_path) && $doc->storage_path !== 'NOINPUT';
+    }
+
     private function seedVacancyDocumentsFromReusableUploads(int $userId, string $vacancyId, array $requiredDocs): void
     {
         if (
@@ -3738,17 +3774,10 @@ class JobVacancyController extends Controller
             ];
         }, $requiredDocs);
 
-        $uploadedDocuments = $this->loadReusableUploadedDocumentsMap($userId, $vacancyId);
-        $hasApplicationLetterInApplications = Applications::where('user_id', $userId)
-            ->whereNotNull('file_storage_path')
-            ->exists();
+        $galleryDocuments = $this->loadDocumentGalleryMap($userId);
 
-        $hasMissing = collect($requiredDocs)->contains(function (string $docType) use ($uploadedDocuments, $hasApplicationLetterInApplications) {
-            if ($docType === 'application_letter' && $hasApplicationLetterInApplications) {
-                return false;
-            }
-
-            return !$this->hasStoredUploadedDocument($uploadedDocuments, $docType);
+        $hasMissing = collect($requiredDocs)->contains(function (string $docType) use ($galleryDocuments) {
+            return !$this->hasStoredDocumentGalleryItem($galleryDocuments, $docType);
         });
 
         return [
@@ -3765,28 +3794,12 @@ class JobVacancyController extends Controller
     private function getTrackCompletenessByUser(int $userId): array
     {
         $requiredDocsByTrack = $this->getRequiredDocsByTrack();
-        $uploadedDocuments = UploadedDocument::where('user_id', $userId)
-            ->orderByDesc('updated_at')
-            ->get()
-            ->unique('document_type')
-            ->keyBy('document_type');
-        $hasApplicationLetter = Applications::where('user_id', $userId)
-            ->whereNotNull('file_storage_path')
-            ->exists();
+        $galleryDocuments = $this->loadDocumentGalleryMap($userId);
 
         $isComplete = [];
         foreach ($requiredDocsByTrack as $track => $requiredDocs) {
-            $isComplete[$track] = collect($requiredDocs)->every(function (string $docType) use ($uploadedDocuments, $hasApplicationLetter) {
-                if ($docType === 'application_letter') {
-                    if ($hasApplicationLetter) {
-                        return true;
-                    }
-                    $appLetterDoc = $this->resolveUploadedDocument($uploadedDocuments, $docType);
-                    return $appLetterDoc && !empty($appLetterDoc->storage_path) && $appLetterDoc->storage_path !== 'NOINPUT';
-                }
-
-                $doc = $this->resolveUploadedDocument($uploadedDocuments, $docType);
-                return $doc && !empty($doc->storage_path) && $doc->storage_path !== 'NOINPUT';
+            $isComplete[$track] = collect($requiredDocs)->every(function (string $docType) use ($galleryDocuments) {
+                return $this->hasStoredDocumentGalleryItem($galleryDocuments, $docType);
             });
         }
 
@@ -4159,7 +4172,7 @@ class JobVacancyController extends Controller
 
     private function hasQualificationDocumentSubmission(int $userId, string $field): bool
     {
-        $uploadedDocuments = $this->loadReusableUploadedDocumentsMap($userId);
+        $galleryDocuments = $this->loadDocumentGalleryMap($userId);
         $docTypes = match ($field) {
             'experience' => ['signed_work_exp_sheet', 'cert_employment', 'other_documents'],
             'training' => ['cert_training', 'cert_lgoo_induction', 'other_documents'],
@@ -4167,7 +4180,7 @@ class JobVacancyController extends Controller
         };
 
         foreach ($docTypes as $docType) {
-            if ($this->hasStoredUploadedDocument($uploadedDocuments, $docType)) {
+            if ($this->hasStoredDocumentGalleryItem($galleryDocuments, $docType)) {
                 return true;
             }
         }

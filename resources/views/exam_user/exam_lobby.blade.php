@@ -58,6 +58,10 @@
                     <p class="text-lg text-gray-600">Waiting for the Admin to start the exam.</p>
                 </div>
 
+                <div id="pausedMessage" class="hidden mt-6 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-center text-lg font-semibold text-amber-800">
+                    The examination is currently paused by the administrator. Please wait for it to resume.
+                </div>
+
                 <div id="examStartedMessage" class="hidden mt-6 text-green-600 font-semibold text-lg text-center">
                     The exam has started! Redirecting in <span id="startCountdown">5</span> seconds...
                 </div>
@@ -83,6 +87,7 @@
 <script>
     let pollInterval = null;
     let countdownInterval = null;
+    let lastPausedState = @json((bool) ($examPauseState['global_paused'] ?? false));
 
     function startPolling() {
         if (pollInterval) return; // Prevent multiple pollers
@@ -107,8 +112,17 @@
             return response.json();
         })
         .then(data => {
+            const paused = !!data.paused;
+            if (paused) {
+                showPausedState();
+                lastPausedState = true;
+                return;
+            }
+
             if (data && data.started === true) {
                  markExamStarted();
+            } else {
+                showWaitingState();
             }
         })
         .catch(error => {
@@ -123,10 +137,38 @@
         }
     }
 
+    function showWaitingState() {
+        const waiting = document.getElementById('waitingMessage');
+        const paused = document.getElementById('pausedMessage');
+        const started = document.getElementById('examStartedMessage');
+        if (waiting) waiting.classList.remove('hidden');
+        if (paused) paused.classList.add('hidden');
+        if (started) started.classList.add('hidden');
+    }
+
+    function showPausedState() {
+        const waiting = document.getElementById('waitingMessage');
+        const paused = document.getElementById('pausedMessage');
+        const started = document.getElementById('examStartedMessage');
+        if (waiting) waiting.classList.add('hidden');
+        if (paused) paused.classList.remove('hidden');
+        if (started) started.classList.add('hidden');
+        if (countdownInterval) {
+            clearInterval(countdownInterval);
+            countdownInterval = null;
+        }
+    }
+
     function markExamStarted() {
+        if (lastPausedState) {
+            showPausedState();
+            return;
+        }
+
         if (countdownInterval) return; // Prevent multiple intervals
 
         document.getElementById('waitingMessage').classList.add('hidden');
+        document.getElementById('pausedMessage').classList.add('hidden');
         document.getElementById('examStartedMessage').classList.remove('hidden');
         stopPolling();
 

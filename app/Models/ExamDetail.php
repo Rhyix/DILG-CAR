@@ -23,6 +23,9 @@ class ExamDetail extends Model
         'details_saved',
         'link_sent',
         'link_sent_at',
+        'exam_paused_at',
+        'exam_paused_by_admin_id',
+        'exam_pause_seconds',
     ];
 
     public function vacancy()
