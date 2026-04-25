@@ -882,7 +882,7 @@ class PDSController extends Controller
             }
 
             foreach (['vocational', 'college', 'grad'] as $_key) {
-                $c1_full_info[$_key] = $user_educational_bg[$_key];
+                $c1_full_info[$_key] = $this->normalizeEducationEntriesForForm($user_educational_bg[$_key] ?? []);
             }
             $c1_full_info = array_merge($c1_full_info, $user_educational_bg);
         }
@@ -1632,12 +1632,27 @@ class PDSController extends Controller
             'vocational' => 'nullable|array',
             'vocational.*.from' => 'nullable|date_format:d-m-Y',
             'vocational.*.to' => 'nullable|date_format:d-m-Y',
+            'vocational.*.school' => 'nullable|string|max:255',
+            'vocational.*.basic' => 'nullable|string|max:255',
+            'vocational.*.earned' => 'nullable|string|max:255',
+            'vocational.*.year_graduated' => 'nullable|string|max:255',
+            'vocational.*.academic_honors' => 'nullable|string|max:255',
             'college' => 'nullable|array',
             'college.*.from' => 'nullable|date_format:d-m-Y',
             'college.*.to' => 'nullable|date_format:d-m-Y',
+            'college.*.school' => 'nullable|string|max:255',
+            'college.*.basic' => 'nullable|string|max:255',
+            'college.*.earned' => 'nullable|string|max:255',
+            'college.*.year_graduated' => 'nullable|string|max:255',
+            'college.*.academic_honors' => 'nullable|string|max:255',
             'grad' => 'nullable|array',
             'grad.*.from' => 'nullable|date_format:d-m-Y',
             'grad.*.to' => 'nullable|date_format:d-m-Y',
+            'grad.*.school' => 'nullable|string|max:255',
+            'grad.*.basic' => 'nullable|string|max:255',
+            'grad.*.earned' => 'nullable|string|max:255',
+            'grad.*.year_graduated' => 'nullable|string|max:255',
+            'grad.*.academic_honors' => 'nullable|string|max:255',
 
         ], [
             'date_of_birth.date_format' => 'The date of birth field must match the format dd-mm-yyyy.',
@@ -5497,6 +5512,9 @@ $rules_data_vol["voluntary_to_$i"] = 'required|date';
                     'user_id' => Auth::id()
                 ]);
 
+                // Determine if this is Senior High School data
+                $isSeniorHigh = strtoupper(trim((string) ($c1_form_data['jhs_basic'] ?? ''))) === 'SENIOR HIGH SCHOOL';
+
                 $user_educational_bg->update([
                     'elem_from' => $c1_form_data['elem_from'],
                     'elem_to' => $c1_form_data['elem_to'],
@@ -5506,13 +5524,21 @@ $rules_data_vol["voluntary_to_$i"] = 'required|date';
                     'elem_earned' => $c1_form_data['elem_earned'],
                     'elem_year_graduated' => $c1_form_data['elem_year_graduated'],
 
-                    'jhs_from' => $c1_form_data['jhs_from'],
-                    'jhs_to' => $c1_form_data['jhs_to'],
-                    'jhs_school' => $c1_form_data['jhs_school'],
-                    'jhs_academic_honors' => $c1_form_data['jhs_academic_honors'],
-                    'jhs_basic' => $c1_form_data['jhs_basic'],
-                    'jhs_earned' => $c1_form_data['jhs_earned'],
-                    'jhs_year_graduated' => $c1_form_data['jhs_year_graduated'],
+                    'jhs_from' => $isSeniorHigh ? null : $c1_form_data['jhs_from'],
+                    'jhs_to' => $isSeniorHigh ? null : $c1_form_data['jhs_to'],
+                    'jhs_school' => $isSeniorHigh ? '' : $c1_form_data['jhs_school'],
+                    'jhs_academic_honors' => $isSeniorHigh ? '' : $c1_form_data['jhs_academic_honors'],
+                    'jhs_basic' => $isSeniorHigh ? '' : $c1_form_data['jhs_basic'],
+                    'jhs_earned' => $isSeniorHigh ? '' : $c1_form_data['jhs_earned'],
+                    'jhs_year_graduated' => $isSeniorHigh ? '' : $c1_form_data['jhs_year_graduated'],
+
+                    'shs_from' => $isSeniorHigh ? $c1_form_data['jhs_from'] : null,
+                    'shs_to' => $isSeniorHigh ? $c1_form_data['jhs_to'] : null,
+                    'shs_school' => $isSeniorHigh ? $c1_form_data['jhs_school'] : '',
+                    'shs_academic_honors' => $isSeniorHigh ? $c1_form_data['jhs_academic_honors'] : '',
+                    'shs_basic' => $isSeniorHigh ? $c1_form_data['jhs_basic'] : '',
+                    'shs_earned' => $isSeniorHigh ? $c1_form_data['jhs_earned'] : '',
+                    'shs_year_graduated' => $isSeniorHigh ? $c1_form_data['jhs_year_graduated'] : '',
 
                     /*
                     'shs_from'                  => $c1_form_data['shs_from'],

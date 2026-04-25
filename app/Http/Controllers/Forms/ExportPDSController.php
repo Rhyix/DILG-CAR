@@ -1318,7 +1318,17 @@ private function writeEducationalBackground($pdf, $education)
         $writeWide($this->valueOrNa($education?->elem_academic_honors), $elemXHonors, 263.0, $elemWidthHonors, 7.0, 5.0);
     }
 
-    // === Junior High Section ===
+    // === Secondary Section (JHS/SHS) ===
+    $hasSHSData = $this->hasEducationObjectData($education, [
+        'shs_school',
+        'shs_basic',
+        'shs_from',
+        'shs_to',
+        'shs_earned',
+        'shs_year_graduated',
+        'shs_academic_honors',
+    ]);
+
     $hasJHSData = $this->hasEducationObjectData($education, [
         'jhs_school',
         'jhs_basic',
@@ -1329,7 +1339,7 @@ private function writeEducationalBackground($pdf, $education)
         'jhs_academic_honors',
     ]);
 
-    if (!$hasJHSData) {
+    if (!$hasJHSData && !$hasSHSData) {
         $writeWide('N/A', $jhsXSchool, 271.0, $jhsWidthSchool, 8.0, 5.0); // School
         $writeWide('N/A', $jhsXBasic, 271.0, $jhsWidthBasic, 8.0, 4.5); // Basic Education
         $writeNarrow('N/A', $jhsXFrom, 271.0, $jhsWidthFrom, 8.0, 5.0); // From
@@ -1338,13 +1348,24 @@ private function writeEducationalBackground($pdf, $education)
         $writeNarrow('N/A', $jhsXYearGraduated, 271.0, $jhsWidthYearGraduated, 8.0, 5.0); // Year Graduated
         $writeWide('N/A', $jhsXHonors, 271.0, $jhsWidthHonors, 8.0, 5.0); // Academic Honors
     } else {
-        $writeWide($this->valueOrNa($education?->jhs_school), $jhsXSchool, 271.0, $jhsWidthSchool, 7.0, 4.5);
-        $writeWide($this->valueOrNa($education?->jhs_basic), $jhsXBasic, 271.0, $jhsWidthBasic, 7.0, 4.5);
-        $writeNarrow($this->dateOrNa($education?->jhs_from, 'm/Y'), $jhsXFrom, 271.0, $jhsWidthFrom, 7.0, 5.0);
-        $writeNarrow($this->dateOrNa($education?->jhs_to, 'm/Y'), $jhsXTo, 271.0, $jhsWidthTo, 7.0, 5.0);
-        $writeWide($this->valueOrNa($education?->jhs_earned), $jhsXEarned, 271.0, $jhsWidthEarned, 7.0, 5.0);
-        $writeNarrow($this->valueOrNa($education?->jhs_year_graduated), $jhsXYearGraduated, 271.0, $jhsWidthYearGraduated, 7.0, 5.0);
-        $writeWide($this->valueOrNa($education?->jhs_academic_honors), $jhsXHonors, 271.0, $jhsWidthHonors, 7.0, 5.0);
+        // Prioritize SHS data if present, otherwise use JHS
+        if ($hasSHSData) {
+            $writeWide($this->valueOrNa($education?->shs_school), $jhsXSchool, 271.0, $jhsWidthSchool, 7.0, 4.5);
+            $writeWide($this->valueOrNa($education?->shs_basic), $jhsXBasic, 271.0, $jhsWidthBasic, 7.0, 4.5);
+            $writeNarrow($this->dateOrNa($education?->shs_from, 'm/Y'), $jhsXFrom, 271.0, $jhsWidthFrom, 7.0, 5.0);
+            $writeNarrow($this->dateOrNa($education?->shs_to, 'm/Y'), $jhsXTo, 271.0, $jhsWidthTo, 7.0, 5.0);
+            $writeWide($this->valueOrNa($education?->shs_earned), $jhsXEarned, 271.0, $jhsWidthEarned, 7.0, 5.0);
+            $writeNarrow($this->valueOrNa($education?->shs_year_graduated), $jhsXYearGraduated, 271.0, $jhsWidthYearGraduated, 7.0, 5.0);
+            $writeWide($this->valueOrNa($education?->shs_academic_honors), $jhsXHonors, 271.0, $jhsWidthHonors, 7.0, 5.0);
+        } else {
+            $writeWide($this->valueOrNa($education?->jhs_school), $jhsXSchool, 271.0, $jhsWidthSchool, 7.0, 4.5);
+            $writeWide($this->valueOrNa($education?->jhs_basic), $jhsXBasic, 271.0, $jhsWidthBasic, 7.0, 4.5);
+            $writeNarrow($this->dateOrNa($education?->jhs_from, 'm/Y'), $jhsXFrom, 271.0, $jhsWidthFrom, 7.0, 5.0);
+            $writeNarrow($this->dateOrNa($education?->jhs_to, 'm/Y'), $jhsXTo, 271.0, $jhsWidthTo, 7.0, 5.0);
+            $writeWide($this->valueOrNa($education?->jhs_earned), $jhsXEarned, 271.0, $jhsWidthEarned, 7.0, 5.0);
+            $writeNarrow($this->valueOrNa($education?->jhs_year_graduated), $jhsXYearGraduated, 271.0, $jhsWidthYearGraduated, 7.0, 5.0);
+            $writeWide($this->valueOrNa($education?->jhs_academic_honors), $jhsXHonors, 271.0, $jhsWidthHonors, 7.0, 5.0);
+        }
     }
 }
 

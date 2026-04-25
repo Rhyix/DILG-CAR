@@ -2264,17 +2264,33 @@
         }
         const openBtn = document.getElementById('pdsPreviewBtn');
         if (openBtn) {
-            openBtn.addEventListener('click', function () {
+            openBtn.addEventListener('click', async function () {
                 if (openBtn.disabled) return;
-                populatePreview();
-                const frame = document.getElementById('pdsPdfPreviewFrame');
-                if (frame) {
-                    const previewSrc = frame.dataset.previewSrc || '/export-pds?preview=1';
-                    const separator = previewSrc.includes('?') ? '&' : '?';
-                    frame.src = previewSrc + separator + 'ts=' + Date.now();
+                
+                // Show a small indication that we are preparing the preview
+                const originalText = openBtn.innerHTML;
+                openBtn.innerHTML = '<span class="material-icons text-sm animate-spin mr-1">autorenew</span>Preparing...';
+                openBtn.disabled = true;
+
+                try {
+                    // Force an immediate autosave so the preview reflects the latest changes
+                    if (window.__pdsAutosaveNow) {
+                        await window.__pdsAutosaveNow({ force: true, maxWaitMs: 5000 });
+                    }
+
+                    populatePreview();
+                    const frame = document.getElementById('pdsPdfPreviewFrame');
+                    if (frame) {
+                        const previewSrc = frame.dataset.previewSrc || '/export-pds?preview=1';
+                        const separator = previewSrc.includes('?') ? '&' : '?';
+                        frame.src = previewSrc + separator + 'ts=' + Date.now();
+                    }
+                    const overlay = document.getElementById('pdsPreviewOverlay');
+                    if (overlay) overlay.classList.remove('hidden');
+                } finally {
+                    openBtn.innerHTML = originalText;
+                    openBtn.disabled = false;
                 }
-                const overlay = document.getElementById('pdsPreviewOverlay');
-                if (overlay) overlay.classList.remove('hidden');
             });
         }
         document.addEventListener('click', function (e) {
