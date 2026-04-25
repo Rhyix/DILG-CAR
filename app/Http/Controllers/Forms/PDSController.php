@@ -630,7 +630,13 @@ class PDSController extends Controller
     private function hasMeaningfulEducationValue($value): bool
     {
         $normalized = strtolower(trim((string) ($value ?? '')));
-        return $normalized !== '' && $normalized !== 'null' && $normalized !== 'noinput';
+        // Also consider N/A variations as non-meaningful data
+        return $normalized !== '' 
+            && $normalized !== 'null' 
+            && $normalized !== 'noinput' 
+            && $normalized !== 'n/a' 
+            && $normalized !== 'na' 
+            && $normalized !== 'n\\a';
     }
 
     private function isTruthyFlag($value): bool
@@ -1540,7 +1546,25 @@ class PDSController extends Controller
     public function c1UpdateFormSession(Request $request, $go_to)
     {
         //dd($request->all());
-        $normalizedCollegeEntries = $this->normalizeEducationEntriesForForm($request->input('college'));
+
+        // Determine if the user has any secondary education data.
+        // We gate college/grad data on this — but we must also accept jhs_earned
+        // (Highest Level/Units Earned) as a valid indicator, not just jhs_year_graduated.
+        $jhsYearGraduated = trim((string) $request->input('jhs_year_graduated'));
+        $jhsEarned        = trim((string) $request->input('jhs_earned'));
+        $jhsSchool        = trim((string) $request->input('jhs_school'));
+        $jhsBasic         = trim((string) $request->input('jhs_basic'));
+
+        $hasSecondaryData = !$this->valueIsEmptyOrNa($jhsYearGraduated)
+            || $this->hasMeaningfulEducationValue($jhsEarned)
+            || $this->hasMeaningfulEducationValue($jhsSchool)
+            || (!$this->valueIsEmptyOrNa($jhsBasic) && strtoupper($jhsBasic) !== 'N/A');
+
+        // Only discard college/grad data when there is truly no secondary education at all.
+        $collegeData = $hasSecondaryData ? $request->input('college') : [];
+        $gradData    = $hasSecondaryData ? $request->input('grad') : [];
+
+        $normalizedCollegeEntries = $this->normalizeEducationEntriesForForm($collegeData);
 
         $request->merge([
             'telephone_no' => $this->normalizeTelephoneInput($request->input('telephone_no')),
@@ -1551,8 +1575,30 @@ class PDSController extends Controller
             'jhs_to' => $this->normalizeDateForForm($request->input('jhs_to')),
             'vocational' => $this->normalizeEducationEntriesForForm($request->input('vocational')),
             'college' => $normalizedCollegeEntries,
-            'grad' => $this->normalizeEducationEntriesForForm($request->input('grad')),
+            'grad' => $this->normalizeEducationEntriesForForm($gradData),
         ]);
+
+        // For dynamically-loaded address selects (province/city/barangay), the browser may
+        // submit an empty value if the PSGC API hasn't finished loading the options yet.
+        // Fall back to the previously-saved session value so validation doesn't fail.
+        $existingC1Session = (array) session('form.c1', []);
+        $addressFallbackFields = [
+            'res_province', 'res_city', 'res_brgy',
+            'per_province', 'per_city', 'per_brgy',
+        ];
+        $addressMerge = [];
+        foreach ($addressFallbackFields as $addrField) {
+            $submitted = trim((string) $request->input($addrField, ''));
+            if ($submitted === '') {
+                $fromSession = trim((string) ($existingC1Session[$addrField] ?? ''));
+                if ($fromSession !== '') {
+                    $addressMerge[$addrField] = $fromSession;
+                }
+            }
+        }
+        if (!empty($addressMerge)) {
+            $request->merge($addressMerge);
+        }
 
         // get key-value pairs only for fields that need validation.
         $validator = Validator::make($request->all(), [

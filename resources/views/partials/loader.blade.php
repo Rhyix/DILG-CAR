@@ -389,6 +389,16 @@
 
     document.addEventListener('DOMContentLoaded', hideWhenInteractive);
     window.addEventListener('load', hideWhenInteractive);
-    window.addEventListener('pageshow', hideWhenInteractive);
+
+    // Robustness: hide the loader if the user navigates back (bfcache) or returns to the tab.
+    window.addEventListener('pageshow', function (event) {
+      hideOverlay();
+      restoreSubmitButtons();
+    });
+
+    window.addEventListener('focus', function() {
+      // If user comes back from another tab/window, ensure loader is gone.
+      setTimeout(hideOverlay, 100);
+    });
   })();
 </script>

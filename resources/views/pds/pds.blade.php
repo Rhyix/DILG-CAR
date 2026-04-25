@@ -302,14 +302,18 @@
                         <label for="res_sub_vil" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Subdivision/Village</label>
                     </div>
                     <div class="relative">
+                        {{-- Hidden fallback so the value is submitted even if the async PSGC select hasn't loaded yet --}}
+                        <input type="hidden" id="res_province_hidden" value="{{ old('res_province', session('form.c1.res_province')) }}">
                         <select required id="res_province" name="res_province" class="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all appearance-none bg-white text-sm sm:text-base"></select>
                         <label for="res_province" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">Province <span class="text-red-500">*</span></label>
                     </div>
                     <div class="relative">
+                        <input type="hidden" id="res_city_hidden" value="{{ old('res_city', session('form.c1.res_city')) }}">
                         <select required id="res_city" name="res_city" class="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all appearance-none bg-white text-sm sm:text-base"></select>
                         <label for="res_city" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">City/Municipality <span class="text-red-500">*</span></label>
                     </div>
                     <div class="relative">
+                        <input type="hidden" id="res_brgy_hidden" value="{{ old('res_brgy', session('form.c1.res_brgy')) }}">
                         <select required id="res_brgy" name="res_brgy" class="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all appearance-none bg-white text-sm sm:text-base"></select>
                         <label for="res_brgy" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">Barangay <span class="text-red-500">*</span></label>
                     </div>
@@ -347,14 +351,17 @@
                         <label for="per_sub_vil" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Subdivision/Village</label>
                     </div>
                     <div class="relative">
+                        <input type="hidden" id="per_province_hidden" value="{{ old('per_province', session('form.c1.per_province')) }}">
                         <select required id="per_province" name="per_province" class="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all appearance-none bg-white text-sm sm:text-base"></select>
                         <label for="per_province" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">Province<span class="text-red-500">*</span></label>
                     </div>
                     <div class="relative">
+                        <input type="hidden" id="per_city_hidden" value="{{ old('per_city', session('form.c1.per_city')) }}">
                         <select required id="per_city" name="per_city" class="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all appearance-none bg-white text-sm sm:text-base"></select>
                         <label for="per_city" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">City/Municipality<span class="text-red-500">*</span></label>
                     </div>
                     <div class="relative">
+                        <input type="hidden" id="per_brgy_hidden" value="{{ old('per_brgy', session('form.c1.per_brgy')) }}">
                         <select required id="per_brgy" name="per_brgy" class="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all appearance-none bg-white text-sm sm:text-base"></select>
                         <label for="per_brgy" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">Barangay<span class="text-red-500">*</span></label>
                     </div>
@@ -610,24 +617,29 @@
                     <h3 class="text-base sm:text-lg font-semibold text-gray-700 mb-4">SECONDARY</h3>
                     <div class="mobile-stack md:grid md:grid-cols-4 gap-4 sm:gap-6" data-education-date-range>
                         <div class="relative md:col-span-2">
-                            <input required type="text" id="jhs_school" name="jhs_school" value="{{ old('jhs_school', session('form.c1.jhs_school')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                            <label for="jhs_school" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">School Name<span class="text-red-500">*</span></label>
+                            <input type="text" id="jhs_school" name="jhs_school" value="{{ old('jhs_school', session('form.c1.jhs_school')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
+                            <label for="jhs_school" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">School Name</label>
                         </div>
                         <div class="relative md:col-span-2">
                             <label for="jhs_basic" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">Basic Education/Degree/Course</label>
+                            @php
+                                $jhsBasicValue = trim((string) $jhsBasicPrefill);
+                                $validJhsValues = ['JUNIOR HIGH SCHOOL', 'SENIOR HIGH SCHOOL', 'HIGH SCHOOL'];
+                                $isJhsFirst = !in_array(strtoupper($jhsBasicValue), $validJhsValues);
+                            @endphp
                             <select id="jhs_basic" name="jhs_basic" class="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all bg-white text-sm sm:text-base">
-                                <option value="N/A" {{ strtoupper((string) $jhsBasicPrefill) === 'N/A' ? 'selected' : '' }}>N/A</option>
-                                <option value="JUNIOR HIGH SCHOOL" {{ $jhsBasicPrefill === 'JUNIOR HIGH SCHOOL' ? 'selected' : '' }}>Junior High School</option>
-                                <option value="SENIOR HIGH SCHOOL" {{ $jhsBasicPrefill === 'SENIOR HIGH SCHOOL' ? 'selected' : '' }}>Senior High School</option>
+                                <option value="JUNIOR HIGH SCHOOL" {{ strtoupper($jhsBasicValue) === 'JUNIOR HIGH SCHOOL' ? 'selected' : ($isJhsFirst ? 'selected' : '') }}>Junior High School</option>
+                                <option value="SENIOR HIGH SCHOOL" {{ strtoupper($jhsBasicValue) === 'SENIOR HIGH SCHOOL' ? 'selected' : '' }}>Senior High School</option>
+                                <option value="HIGH SCHOOL" {{ strtoupper($jhsBasicValue) === 'HIGH SCHOOL' ? 'selected' : '' }}>High School</option>
                             </select>
                         </div>
                         <div class="relative">
-                            <input required type="date" id="jhs_from" name="jhs_from" value="{{ $normalizeEducationDateForInput(old('jhs_from', session('form.c1.jhs_from'))) }}" data-education-date-role="from" autocomplete="off" class="edu-date w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base">
-                            <label for="jhs_from" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">From<span class="text-red-500">*</span></label>
+                            <input type="date" id="jhs_from" name="jhs_from" value="{{ $normalizeEducationDateForInput(old('jhs_from', session('form.c1.jhs_from'))) }}" data-education-date-role="from" autocomplete="off" class="edu-date w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base">
+                            <label for="jhs_from" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">From</label>
                         </div>
                         <div class="relative">
-                            <input required type="date" id="jhs_to" name="jhs_to" value="{{ $normalizeEducationDateForInput(old('jhs_to', session('form.c1.jhs_to'))) }}" data-education-date-role="to" autocomplete="off" class="edu-date w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base">
-                            <label for="jhs_to" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">To<span class="text-red-500">*</span></label>
+                            <input type="date" id="jhs_to" name="jhs_to" value="{{ $normalizeEducationDateForInput(old('jhs_to', session('form.c1.jhs_to'))) }}" data-education-date-role="to" autocomplete="off" class="edu-date w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base">
+                            <label for="jhs_to" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">To</label>
                             <p class="error-message hidden" data-education-date-error aria-live="polite"></p>
                         </div>
                         <div class="relative md:col-span-2">
@@ -775,41 +787,135 @@
         const year = parsed ? parsed.getFullYear() : null;
         const beforeSeniorSplit = year && year < 2016;
 
+        // No N/A option — always show meaningful education types.
         const desiredOptions = beforeSeniorSplit
             ? ['HIGH SCHOOL']
             : ['JUNIOR HIGH SCHOOL', 'SENIOR HIGH SCHOOL'];
 
         const currentValue = String(jhsBasic.value || '').trim();
         const normalizedCurrent = currentValue.toUpperCase();
-        const knownSecondaryValues = ['HIGH SCHOOL', 'JUNIOR HIGH SCHOOL', 'SENIOR HIGH SCHOOL'];
+        const knownSecondaryValues = ['HIGH SCHOOL', 'JUNIOR HIGH SCHOOL', 'SENIOR HIGH SCHOOL', 'N/A'];
 
-        const optionsWithNa = ['N/A', ...desiredOptions];
-        if (knownSecondaryValues.includes(normalizedCurrent) && !optionsWithNa.includes(normalizedCurrent)) {
-            optionsWithNa.push(normalizedCurrent);
+        // Build options list (no N/A).
+        const optionsList = [...desiredOptions];
+        if (knownSecondaryValues.includes(normalizedCurrent) && !optionsList.includes(normalizedCurrent) && normalizedCurrent !== 'N/A') {
+            optionsList.push(normalizedCurrent);
         }
 
         const existingOptions = Array.from(jhsBasic.options).map((o) => o.value);
-        const optionsChanged = optionsWithNa.length !== existingOptions.length || optionsWithNa.some((v, i) => v !== existingOptions[i]);
+        const optionsChanged = optionsList.length !== existingOptions.length || optionsList.some((v, i) => v !== existingOptions[i]);
 
         if (optionsChanged) {
             jhsBasic.innerHTML = '';
-            optionsWithNa.forEach((val) => {
+            optionsList.forEach((val) => {
                 const opt = document.createElement('option');
                 opt.value = val;
-                opt.textContent = val === 'N/A'
-                    ? 'N/A'
-                    : val.replace(/\bHIGH SCHOOL\b/, 'High School').replace(/JUNIOR/i, 'Junior').replace(/SENIOR/i, 'Senior');
+                opt.textContent = val
+                    .replace(/\bHIGH SCHOOL\b/, 'High School')
+                    .replace(/JUNIOR/i, 'Junior')
+                    .replace(/SENIOR/i, 'Senior');
                 jhsBasic.appendChild(opt);
             });
         }
 
-        const matchingOption = optionsWithNa.find((value) => value.toUpperCase() === normalizedCurrent);
+        // Select current value if valid, otherwise default to first option.
+        const matchingOption = optionsList.find((value) => value.toUpperCase() === normalizedCurrent);
         if (matchingOption) {
             jhsBasic.value = matchingOption;
         } else {
-            jhsBasic.value = optionsWithNa[0];
+            jhsBasic.value = optionsList[0];
         }
     }
+
+    /**
+     * When the secondary "Highest Level/Units Earned" field has a value, the user
+     * hasn't completed secondary education. Auto-set all College and Graduate Studies
+     * fields to N/A and remove date required constraints, because those levels are
+     * not applicable. Vocational/Trade Course is left untouched.
+     */
+    function syncCollegeGradWhenSecondaryEarned() {
+        const jhsEarned = document.getElementById('jhs_earned');
+        if (!jhsEarned) return;
+
+        const hasEarned = jhsEarned.value !== null &&
+            String(jhsEarned.value || '').trim() !== '' &&
+            !isEmptyOrNaEducationValue(String(jhsEarned.value || '').trim());
+
+        ['college', 'grad'].forEach((section) => {
+            const container = document.querySelector('[data-education-section="' + section + '"]');
+            if (!container) return;
+
+            container.querySelectorAll('input, select, textarea').forEach((el) => {
+                if (el.type === 'hidden') return;
+
+                if (hasEarned) {
+                    // Save original required state and remove it.
+                    if (el.required) el.dataset.earnedDisabledRequired = '1';
+                    el.required = false;
+                    el.setCustomValidity && el.setCustomValidity('');
+
+                    // Set field value to N/A (skip date/number inputs — clear them instead).
+                    if (el.type === 'date' || el.type === 'number') {
+                        el.value = '';
+                    } else if (el.tagName === 'SELECT') {
+                        // Try to select an N/A option; if none, use first option.
+                        const naOpt = Array.from(el.options).find(
+                            (o) => String(o.value).trim().toLowerCase().replace(/\s/g, '') === 'n/a' ||
+                                   String(o.value).trim().toLowerCase().replace(/\s/g, '') === 'na'
+                        );
+                        if (naOpt) { el.value = naOpt.value; }
+                        else if (el.options.length > 0) { el.selectedIndex = 0; }
+                    } else {
+                        el.value = 'N/A';
+                    }
+                } else {
+                    // Restore required state.
+                    if (el.dataset.earnedDisabledRequired === '1') {
+                        el.required = true;
+                        delete el.dataset.earnedDisabledRequired;
+                    }
+                    // Only clear N/A values that were auto-set (leave user-entered values).
+                    if (el.tagName !== 'SELECT' && el.type !== 'date' && el.type !== 'number') {
+                        if (String(el.value || '').trim() === 'N/A') {
+                            el.value = '';
+                        }
+                    }
+                }
+            });
+        });
+    }
+
+    function toggleSecondaryRequired() {
+        const jhsBasic = document.getElementById('jhs_basic');
+        const jhsSchool = document.getElementById('jhs_school');
+        const jhsFrom = document.getElementById('jhs_from');
+        const jhsTo = document.getElementById('jhs_to');
+
+        if (!jhsBasic) return;
+
+        const isNa = jhsBasic.value === 'N/A' || jhsBasic.value === '';
+
+        // Toggle required attribute based on N/A selection
+        if (jhsSchool) jhsSchool.required = !isNa;
+        if (jhsFrom) jhsFrom.required = !isNa;
+        if (jhsTo) jhsTo.required = !isNa;
+
+        // Update labels to show/hide required asterisk
+        const schoolLabel = jhsSchool ? jhsSchool.closest('.relative')?.querySelector('label') : null;
+        const fromLabel = jhsFrom ? jhsFrom.closest('.relative')?.querySelector('label') : null;
+        const toLabel = jhsTo ? jhsTo.closest('.relative')?.querySelector('label') : null;
+
+        if (schoolLabel) {
+            schoolLabel.innerHTML = isNa ? 'School Name' : 'School Name<span class="text-red-500">*</span>';
+        }
+        if (fromLabel) {
+            fromLabel.innerHTML = isNa ? 'From' : 'From<span class="text-red-500">*</span>';
+        }
+        if (toLabel) {
+            toLabel.innerHTML = isNa ? 'To' : 'To<span class="text-red-500">*</span>';
+        }
+    }
+
     function setSecondaryAndHigherEducationEnabled(enabled) {
         // Vocational remains available even when elementary is marked as not graduated.
         const sectionNames = ['secondary', 'college', 'grad'];
@@ -915,7 +1021,7 @@
             });
         });
     }
-    function syncElementaryYearGraduatedState() {
+    function syncElementaryYearGraduatedState(isUserChange = false) {
         const elemYearInput = document.getElementById('elem_year_graduated');
         if (!elemYearInput) return;
 
@@ -923,17 +1029,33 @@
 
         if (hasYearGraduated) {
             setSecondaryAndHigherEducationEnabled(true);
+            toggleSecondaryRequired(); // Ensure required state matches N/A selection
             syncHighestLevelVisibilityByYear('jhs_year_graduated', 'jhs_earned');
         } else {
-            clearEducationSectionsForGraduateTransition();
-            setSecondaryAndHigherEducationEnabled(false);
+            // Only clear secondary/college/grad data when the user actively clears the
+            // elementary year field AND those sections are currently empty (no existing data).
+            // On initial page load, we must NOT wipe pre-filled secondary/college/grad data.
+            const alreadyHasData = hasSecondaryOrHigherEducationValues();
+            if (isUserChange && !alreadyHasData) {
+                clearEducationSectionsForGraduateTransition();
+            }
+            // Always disable the sections when elementary year is absent so validation
+            // is not enforced on them, but do NOT overwrite any existing values.
+            const sectionNames = ['secondary', 'college', 'grad'];
+            sectionNames.forEach((section) => {
+                const container = document.querySelector('[data-education-section="' + section + '"]');
+                if (!container) return;
+                container.querySelectorAll('input, select, textarea').forEach((el) => {
+                    if (el.required) el.dataset.wasRequired = '1';
+                    el.required = false;
+                    // Do NOT set el.disabled here — that strips values from form submission.
+                });
+            });
 
             const jhsEarnedInput = document.getElementById('jhs_earned');
             const jhsEarnedWrapper = document.querySelector('[data-earned-wrapper-for="jhs_earned"]');
             if (jhsEarnedInput) {
-                jhsEarnedInput.disabled = true;
                 jhsEarnedInput.required = false;
-                jhsEarnedInput.value = '';
                 jhsEarnedInput.setCustomValidity('');
             }
             if (jhsEarnedWrapper) {
@@ -1286,7 +1408,8 @@
         const elemYearGraduated = document.getElementById('elem_year_graduated');
         if (elemYearGraduated) {
             ['input', 'change', 'blur'].forEach((evt) => {
-                elemYearGraduated.addEventListener(evt, syncElementaryYearGraduatedState);
+                // Pass isUserChange=true so clearing the field only wipes empty sections
+                elemYearGraduated.addEventListener(evt, () => syncElementaryYearGraduatedState(true));
             });
         }
         const jhsYearGraduated = document.getElementById('jhs_year_graduated');
@@ -1296,9 +1419,27 @@
             });
         }
 
-        syncElementaryYearGraduatedState();
+        // Initial page load — pass false so existing secondary/college/grad data is preserved.
+        syncElementaryYearGraduatedState(false);
         validateElementaryToAndSecondaryFrom();
         validateSecondaryToAndCollegeFrom();
+
+        // Wire: when jhs_earned (Highest Level/Units Earned) changes, auto-fill college/grad with N/A.
+        const jhsEarnedInput = document.getElementById('jhs_earned');
+        if (jhsEarnedInput) {
+            ['input', 'change', 'blur'].forEach((evt) => {
+                jhsEarnedInput.addEventListener(evt, syncCollegeGradWhenSecondaryEarned);
+            });
+        }
+        // Apply on initial load too (in case jhs_earned is already filled from session).
+        syncCollegeGradWhenSecondaryEarned();
+
+        // Toggle secondary fields required state based on basic education selection
+        const jhsBasic = document.getElementById('jhs_basic');
+        if (jhsBasic) {
+            jhsBasic.addEventListener('change', toggleSecondaryRequired);
+            toggleSecondaryRequired(); // Initial call on page load
+        }
 
         const dobInput = document.querySelector('[data-dob-input]');
         if (dobInput) {
@@ -1789,6 +1930,55 @@
     resBrgy.addEventListener('change', e => {
         writeState('res_brgy', resBrgy.value);
     });
+
+    // --- Hidden fallback sync for address selects ---
+    // When a select gets a value, keep the hidden input in sync so the fallback is current.
+    // On form submit, if a select is still empty (PSGC API not yet resolved), inject the
+    // fallback value as a real option so the form posts the correct address text.
+    const addressSelectPairs = [
+        { selectId: 'res_province', hiddenId: 'res_province_hidden' },
+        { selectId: 'res_city',     hiddenId: 'res_city_hidden' },
+        { selectId: 'res_brgy',     hiddenId: 'res_brgy_hidden' },
+        { selectId: 'per_province', hiddenId: 'per_province_hidden' },
+        { selectId: 'per_city',     hiddenId: 'per_city_hidden' },
+        { selectId: 'per_brgy',     hiddenId: 'per_brgy_hidden' },
+    ];
+
+    addressSelectPairs.forEach(({ selectId, hiddenId }) => {
+        const sel = document.getElementById(selectId);
+        const hid = document.getElementById(hiddenId);
+        if (!sel || !hid) return;
+
+        // Keep hidden input in sync whenever the select changes.
+        sel.addEventListener('change', () => {
+            if (sel.value) hid.value = sel.value;
+        });
+    });
+
+    // Before the form submits, ensure every address select has a value.
+    // If the select is empty but the hidden fallback has a value, inject it as a selected option.
+    const myForm = document.getElementById('myForm');
+    if (myForm) {
+        myForm.addEventListener('submit', function () {
+            addressSelectPairs.forEach(({ selectId, hiddenId }) => {
+                const sel = document.getElementById(selectId);
+                const hid = document.getElementById(hiddenId);
+                if (!sel || !hid) return;
+                const fallback = (hid.value || '').trim();
+                if (!sel.value && fallback) {
+                    // Check if this option already exists to avoid duplicates.
+                    const existing = Array.from(sel.options).find(o => o.value === fallback);
+                    if (!existing) {
+                        const opt = document.createElement('option');
+                        opt.value = fallback;
+                        opt.textContent = fallback;
+                        sel.appendChild(opt);
+                    }
+                    sel.value = fallback;
+                }
+            });
+        }, true); // capture phase so it runs before validation
+    }
     document.querySelector('#copy_res_to_per').addEventListener('click', async () => {
         document.querySelector('#per_house_no').value = document.querySelector('#res_house_no').value;
         document.querySelector('#per_street').value = document.querySelector('#res_street').value;
