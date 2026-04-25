@@ -262,9 +262,9 @@
 
                             <div class="relative md:col-span-2">
                                 <input type="text"
-                                       pattern="\d{4}"
+                                       pattern="(?:[0-9]{4}|[Nn][/]?[Aa])"
                                        maxlength="4"
-                                       inputmode="numeric"
+                                       inputmode="text"
                                        name="{{ $education_type }}[{{ $index }}][year_graduated]"
                                        value="{{ old($education_type.'.'.$index.'.year_graduated', $data['year_graduated'] ?? '') }}"
                                        placeholder=" "
@@ -395,9 +395,9 @@
 
                         <div class="relative md:col-span-2">
                             <input type="text"
-                                   pattern="\d{4}"
+                                   pattern="(?:[0-9]{4}|[Nn][/]?[Aa])"
                                    maxlength="4"
-                                   inputmode="numeric"
+                                   inputmode="text"
                                    name="{{ $education_type }}[__INDEX__][year_graduated]"
                                    value=""
                                    placeholder=" "
