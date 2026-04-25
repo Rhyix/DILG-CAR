@@ -4928,7 +4928,7 @@ $rules_data_vol["voluntary_to_$i"] = 'required|date';
 
     private function getRequiredDocumentIdsForVacancy(?Models\JobVacancy $vacancy = null, ?string $docTrack = null): array
     {
-        $hasStoredSelection = $vacancy && $vacancy->getAttribute('supporting_documents_required') !== null;
+        $hasStoredSelection = $vacancy && $vacancy->supporting_documents_required !== null;
         $normalizedTrack = strcasecmp((string) $docTrack, 'COS') === 0 ? 'COS' : 'Plantilla';
         $requiredByTrack = $this->getRequiredDocsByTrack();
 
