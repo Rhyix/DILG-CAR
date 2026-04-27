@@ -1926,7 +1926,7 @@ class JobVacancyController extends Controller
         ];
 
         if (Auth::check()) {
-            $docTrackMismatchState = $this->getDocumentTrackMismatchState((int) Auth::id(), (string) $vacancy->vacancy_type, (string) $vacancy->vacancy_id);
+            $docTrackMismatchState = $this->getDocumentTrackMismatchState((int) Auth::id(), $vacancy);
             $requiredDocsModalState = $this->getRequiredDocsModalState((int) Auth::id(), $vacancy, (string) $vacancy->vacancy_id);
             $qualificationGateState = $this->evaluateApplicantQualificationGateForVacancy((int) Auth::id(), $vacancy);
         }
@@ -2670,7 +2670,7 @@ class JobVacancyController extends Controller
                 ]);
         }
 
-        $docTrackMismatchState = $this->getDocumentTrackMismatchState((int) Auth::id(), (string) $vacancy->vacancy_type, (string) $vacancy->vacancy_id);
+        $docTrackMismatchState = $this->getDocumentTrackMismatchState((int) Auth::id(), $vacancy);
         if ($docTrackMismatchState['hasMismatch']) {
             Log::info('Apply blocked: doc track mismatch', [
                 'user_id' => Auth::id(),
@@ -3673,7 +3673,7 @@ class JobVacancyController extends Controller
 
     private function getRequiredDocumentIdsForVacancyType(?string $vacancyType, ?JobVacancy $vacancy = null): array
     {
-        $hasStoredSelection = $vacancy && $vacancy->getAttribute('supporting_documents_required') !== null;
+        $hasStoredSelection = $vacancy && $vacancy->supporting_documents_required !== null;
         $requiredDocumentIds = $hasStoredSelection
             ? $this->normalizeSupportingDocumentSelection($vacancy->supporting_documents_required)
             : ($this->getRequiredDocsByTrack()[$this->normalizeTrack($vacancyType)] ?? []);
@@ -3791,9 +3791,16 @@ class JobVacancyController extends Controller
         ];
     }
 
-    private function getTrackCompletenessByUser(int $userId): array
+    private function getTrackCompletenessByUser(int $userId, ?JobVacancy $vacancy = null): array
     {
         $requiredDocsByTrack = $this->getRequiredDocsByTrack();
+        
+        // If a specific vacancy is provided, use its custom requirements for its track
+        if ($vacancy) {
+            $track = $this->normalizeTrack($vacancy->vacancy_type);
+            $requiredDocsByTrack[$track] = $this->getRequiredDocumentIdsForVacancyType($vacancy->vacancy_type, $vacancy);
+        }
+
         $galleryDocuments = $this->loadDocumentGalleryMap($userId);
 
         $isComplete = [];
@@ -3806,11 +3813,14 @@ class JobVacancyController extends Controller
         return $isComplete;
     }
 
-    private function getDocumentTrackMismatchState(int $userId, ?string $vacancyType, ?string $vacancyId = null): array
+    private function getDocumentTrackMismatchState(int $userId, ?JobVacancy $vacancy = null): array
     {
+        $vacancyType = $vacancy?->vacancy_type;
+        $vacancyId = $vacancy?->vacancy_id;
+
         $vacancyTrack = $this->normalizeTrack($vacancyType);
         $otherTrack = $vacancyTrack === 'COS' ? 'Plantilla' : 'COS';
-        $trackCompleteness = $this->getTrackCompletenessByUser($userId);
+        $trackCompleteness = $this->getTrackCompletenessByUser($userId, $vacancy);
 
         $hasMismatch = ($trackCompleteness[$otherTrack] ?? false) && !($trackCompleteness[$vacancyTrack] ?? false);
 
@@ -6067,15 +6077,24 @@ class JobVacancyController extends Controller
             ->unique()
             ->values();
 
-        if ($applicationTracks->isEmpty()) {
-            $applicationTracks = collect(['Plantilla']);
+        $allRequiredDocs = collect();
+        $userApplications = Applications::where('user_id', $userId)
+            ->with('vacancy')
+            ->get();
+
+        if ($userApplications->isEmpty()) {
+            // Fallback to default Plantilla track if no applications exist
+            $allRequiredDocs = collect($this->getRequiredDocsByTrack()['Plantilla'] ?? []);
+        } else {
+            foreach ($userApplications as $app) {
+                if ($app->vacancy) {
+                    $docs = $this->getRequiredDocumentIdsForVacancyType($app->vacancy->vacancy_type, $app->vacancy);
+                    $allRequiredDocs = $allRequiredDocs->merge($docs);
+                }
+            }
         }
 
-        $requiredDocsByTrack = $this->getRequiredDocsByTrack();
-        $requiredDocumentIds = $applicationTracks
-            ->flatMap(fn($track) => $requiredDocsByTrack[$track] ?? [])
-            ->unique()
-            ->values();
+        $requiredDocumentIds = $allRequiredDocs->unique()->values();
 
         $totalRequiredDocs = $requiredDocumentIds->count();
         if ($totalRequiredDocs === 0) {

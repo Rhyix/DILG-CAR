@@ -1232,7 +1232,7 @@ class AdminController extends Controller
 
     private function getRequiredDocumentIdsForVacancy(?JobVacancy $vacancy = null): array
     {
-        $hasStoredSelection = $vacancy && $vacancy->getAttribute('supporting_documents_required') !== null;
+        $hasStoredSelection = $vacancy && $vacancy->supporting_documents_required !== null;
         $requiredDocumentIds = $hasStoredSelection
             ? $this->normalizeSupportingDocumentSelection($vacancy->supporting_documents_required)
             : ($this->getRequiredDocsByTrack()[$this->normalizeTrack($vacancy?->vacancy_type)] ?? []);
@@ -1243,7 +1243,7 @@ class AdminController extends Controller
             return $labelA <=> $labelB;
         });
 
-        return $requiredDocumentIds;
+        return array_values(array_unique($requiredDocumentIds));
     }
 
     private function normalizeTrack(?string $track): string

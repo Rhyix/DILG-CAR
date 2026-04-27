@@ -655,7 +655,13 @@ class PDSController extends Controller
     private function hasMeaningfulEducationValue($value): bool
     {
         $normalized = strtolower(trim((string) ($value ?? '')));
-        return $normalized !== '' && $normalized !== 'null' && $normalized !== 'noinput';
+        // Also consider N/A variations as non-meaningful data
+        return $normalized !== '' 
+            && $normalized !== 'null' 
+            && $normalized !== 'noinput' 
+            && $normalized !== 'n/a' 
+            && $normalized !== 'na' 
+            && $normalized !== 'n\\a';
     }
 
     private function isTruthyFlag($value): bool
@@ -901,7 +907,7 @@ class PDSController extends Controller
             }
 
             foreach (['vocational', 'college', 'grad'] as $_key) {
-                $c1_full_info[$_key] = $user_educational_bg[$_key];
+                $c1_full_info[$_key] = $this->normalizeEducationEntriesForForm($user_educational_bg[$_key] ?? []);
             }
             $c1_full_info = array_merge($c1_full_info, $user_educational_bg);
         }
@@ -1565,7 +1571,25 @@ class PDSController extends Controller
     public function c1UpdateFormSession(Request $request, $go_to)
     {
         //dd($request->all());
-        $normalizedCollegeEntries = $this->normalizeEducationEntriesForForm($request->input('college'));
+
+        // Determine if the user has any secondary education data.
+        // We gate college/grad data on this — but we must also accept jhs_earned
+        // (Highest Level/Units Earned) as a valid indicator, not just jhs_year_graduated.
+        $jhsYearGraduated = trim((string) $request->input('jhs_year_graduated'));
+        $jhsEarned        = trim((string) $request->input('jhs_earned'));
+        $jhsSchool        = trim((string) $request->input('jhs_school'));
+        $jhsBasic         = trim((string) $request->input('jhs_basic'));
+
+        $hasSecondaryData = !$this->valueIsEmptyOrNa($jhsYearGraduated)
+            || $this->hasMeaningfulEducationValue($jhsEarned)
+            || $this->hasMeaningfulEducationValue($jhsSchool)
+            || (!$this->valueIsEmptyOrNa($jhsBasic) && strtoupper($jhsBasic) !== 'N/A');
+
+        // Only discard college/grad data when there is truly no secondary education at all.
+        $collegeData = $hasSecondaryData ? $request->input('college') : [];
+        $gradData    = $hasSecondaryData ? $request->input('grad') : [];
+
+        $normalizedCollegeEntries = $this->normalizeEducationEntriesForForm($collegeData);
 
         $request->merge([
             'telephone_no' => $this->normalizeTelephoneInput($request->input('telephone_no')),
@@ -1576,8 +1600,30 @@ class PDSController extends Controller
             'jhs_to' => $this->normalizeDateForForm($request->input('jhs_to')),
             'vocational' => $this->normalizeEducationEntriesForForm($request->input('vocational')),
             'college' => $normalizedCollegeEntries,
-            'grad' => $this->normalizeEducationEntriesForForm($request->input('grad')),
+            'grad' => $this->normalizeEducationEntriesForForm($gradData),
         ]);
+
+        // For dynamically-loaded address selects (province/city/barangay), the browser may
+        // submit an empty value if the PSGC API hasn't finished loading the options yet.
+        // Fall back to the previously-saved session value so validation doesn't fail.
+        $existingC1Session = (array) session('form.c1', []);
+        $addressFallbackFields = [
+            'res_province', 'res_city', 'res_brgy',
+            'per_province', 'per_city', 'per_brgy',
+        ];
+        $addressMerge = [];
+        foreach ($addressFallbackFields as $addrField) {
+            $submitted = trim((string) $request->input($addrField, ''));
+            if ($submitted === '') {
+                $fromSession = trim((string) ($existingC1Session[$addrField] ?? ''));
+                if ($fromSession !== '') {
+                    $addressMerge[$addrField] = $fromSession;
+                }
+            }
+        }
+        if (!empty($addressMerge)) {
+            $request->merge($addressMerge);
+        }
 
         // get key-value pairs only for fields that need validation.
         $validator = Validator::make($request->all(), [
@@ -1611,12 +1657,27 @@ class PDSController extends Controller
             'vocational' => 'nullable|array',
             'vocational.*.from' => 'nullable|date_format:d-m-Y',
             'vocational.*.to' => 'nullable|date_format:d-m-Y',
+            'vocational.*.school' => 'nullable|string|max:255',
+            'vocational.*.basic' => 'nullable|string|max:255',
+            'vocational.*.earned' => 'nullable|string|max:255',
+            'vocational.*.year_graduated' => 'nullable|string|max:255',
+            'vocational.*.academic_honors' => 'nullable|string|max:255',
             'college' => 'nullable|array',
             'college.*.from' => 'nullable|date_format:d-m-Y',
             'college.*.to' => 'nullable|date_format:d-m-Y',
+            'college.*.school' => 'nullable|string|max:255',
+            'college.*.basic' => 'nullable|string|max:255',
+            'college.*.earned' => 'nullable|string|max:255',
+            'college.*.year_graduated' => 'nullable|string|max:255',
+            'college.*.academic_honors' => 'nullable|string|max:255',
             'grad' => 'nullable|array',
             'grad.*.from' => 'nullable|date_format:d-m-Y',
             'grad.*.to' => 'nullable|date_format:d-m-Y',
+            'grad.*.school' => 'nullable|string|max:255',
+            'grad.*.basic' => 'nullable|string|max:255',
+            'grad.*.earned' => 'nullable|string|max:255',
+            'grad.*.year_graduated' => 'nullable|string|max:255',
+            'grad.*.academic_honors' => 'nullable|string|max:255',
 
         ], [
             'date_of_birth.date_format' => 'The date of birth field must match the format dd-mm-yyyy.',
@@ -4948,7 +5009,7 @@ $rules_data_vol["voluntary_to_$i"] = 'required|date';
 
     private function getRequiredDocumentIdsForVacancy(?Models\JobVacancy $vacancy = null, ?string $docTrack = null): array
     {
-        $hasStoredSelection = $vacancy && $vacancy->getAttribute('supporting_documents_required') !== null;
+        $hasStoredSelection = $vacancy && $vacancy->supporting_documents_required !== null;
         $normalizedTrack = strcasecmp((string) $docTrack, 'COS') === 0 ? 'COS' : 'Plantilla';
         $requiredByTrack = $this->getRequiredDocsByTrack();
 
@@ -5512,6 +5573,9 @@ $rules_data_vol["voluntary_to_$i"] = 'required|date';
                     'user_id' => Auth::id()
                 ]);
 
+                // Determine if this is Senior High School data
+                $isSeniorHigh = strtoupper(trim((string) ($c1_form_data['jhs_basic'] ?? ''))) === 'SENIOR HIGH SCHOOL';
+
                 $elemFromDb = $this->normalizeStrictDateForDatabase($c1_form_data['elem_from'] ?? null);
                 $elemToDb = $this->normalizeStrictDateForDatabase($c1_form_data['elem_to'] ?? null);
                 $jhsFromDb = $this->normalizeStrictDateForDatabase($c1_form_data['jhs_from'] ?? null);
@@ -5532,8 +5596,8 @@ $rules_data_vol["voluntary_to_$i"] = 'required|date';
                     'elem_earned' => $c1_form_data['elem_earned'],
                     'elem_year_graduated' => $c1_form_data['elem_year_graduated'],
 
-                    'jhs_from' => $jhsFromDb,
-                    'jhs_to' => $jhsToDb,
+                    'jhs_from' => $c1_form_data['jhs_from'],
+                    'jhs_to' => $c1_form_data['jhs_to'],
                     'jhs_school' => $c1_form_data['jhs_school'],
                     'jhs_academic_honors' => $c1_form_data['jhs_academic_honors'],
                     'jhs_basic' => $c1_form_data['jhs_basic'],
