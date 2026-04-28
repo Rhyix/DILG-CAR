@@ -192,6 +192,7 @@
     let unloadSaveTriggered = false;
     let restoredNoticeShown = false;
     let examPaused = !!(examPauseState.global_paused || examPauseState.application_paused);
+    let lastSyncedExamPaused = null;
     let examStatusPollInterval = null;
 
     Questions.forEach((q, idx) => q.number = idx + 1);
@@ -402,7 +403,14 @@
         examPaused = !!nextState;
         showPausedOverlay(examPaused);
 
-        if (examPaused) {
+        const pauseStateChanged = lastSyncedExamPaused === null || lastSyncedExamPaused !== examPaused;
+
+        if (examPaused && pauseStateChanged) {
+            if (typeof remainingSeconds === 'number' && remainingSeconds >= 0) {
+                duration = remainingSeconds;
+                updateTimerDisplay(duration);
+            }
+
             if (timerInterval) {
                 clearInterval(timerInterval);
                 timerInterval = null;
@@ -410,10 +418,11 @@
             if (confirmSubmitBtn) {
                 confirmSubmitBtn.disabled = true;
             }
+            lastSyncedExamPaused = examPaused;
             return;
         }
 
-        if (typeof remainingSeconds === 'number' && remainingSeconds >= 0) {
+        if (!examPaused && pauseStateChanged && typeof remainingSeconds === 'number' && remainingSeconds >= 0) {
             duration = remainingSeconds;
             updateTimerDisplay(duration);
         }
@@ -434,6 +443,8 @@
                 }
             }, 1000);
         }
+
+        lastSyncedExamPaused = examPaused;
     }
 
     function pollExamStatus() {

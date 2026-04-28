@@ -690,6 +690,7 @@ Route::middleware([ViewerAccess::class, 'admin.ability:admin.exam.monitor'])->gr
     Route::get('/admin/exam_management/{vacancy_id}/view_exam/{user_id}/pdf', [ExamController::class, 'downloadExamPdf'])->name('admin.view_exam.pdf')->middleware(RedirectIfNotAdmin::class);
     Route::post('/admin/exam_management/{vacancy_id}/view_exam/{user_id}', [ExamController::class, 'saveResult'])->name('admin.save_result')->middleware(RedirectIfNotAdmin::class);
     Route::get('/admin/exam_management/{vacancy_id}/qualified', [ExamController::class, 'getQualifiedApplicants'])->name('admin.exam.qualified')->middleware(RedirectIfNotAdmin::class);
+    Route::get('/admin/exam_management/{vacancy_id}/attendance-data', [ExamController::class, 'getAttendanceApplicants'])->name('admin.exam.attendance_data')->middleware(RedirectIfNotAdmin::class);
     Route::post('/admin/exam_management/{vacancy_id}/notify', [ExamController::class, 'notifyApplicants'])->name('admin.exam_notify')->middleware(RedirectIfNotAdmin::class);
     //Route::get('/admin/exam_management/{vacancy_id}/notify', [ExamController::class, 'notifyApplicants'])->name('admin.exam_notify');
     Route::post('/admin/exam_management/{vacancy_id}/details/save', [ExamController::class, 'saveExamDetails'])->name('admin.exam.details.save')->middleware(RedirectIfNotAdmin::class);

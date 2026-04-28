@@ -349,7 +349,9 @@
                             <span id="lobbyLastUpdated" class="text-xs text-gray-400"></span>
                         </div>
                         <div class="flex items-center gap-2">
-                            <button id="pauseExamBtn" onclick="toggleExamPause()" class="text-xs bg-amber-500 border border-amber-600 text-white hover:bg-amber-600 px-3 py-1 rounded transition-colors duration-200 flex items-center gap-1">
+                            <button id="pauseExamBtn" onclick="toggleExamPause()" @if(!($isExamActive ?? false)) disabled @endif
+                                title="@if($isExamActive) Pause exam @else Exam not started @endif"
+                                class="text-xs bg-amber-500 border border-amber-600 text-white hover:bg-amber-600 px-3 py-1 rounded transition-colors duration-200 flex items-center gap-1 @if(!($isExamActive ?? false)) opacity-50 cursor-not-allowed @endif">
                                 <x-heroicon-o-pause class="w-3 h-3" />
                                 Pause Exam
                             </button>
@@ -1136,6 +1138,12 @@
         wrapper.classList.remove('hidden');
     }
 
+    function syncAttendanceSummaryCounts(applicants) {
+        const rows = Array.isArray(applicants) ? applicants : [];
+        attendanceResponseCountClient = rows.length;
+        willAttendCountClient = rows.filter((applicant) => applicant?.attendance_status === 'will_attend').length;
+    }
+
     function refreshAttendanceSummary() {
         const responsesEl = document.getElementById('attendanceResponsesCount');
         const willAttendEl = document.getElementById('attendanceWillAttendCount');
@@ -1432,17 +1440,20 @@
                     if (panelMonitor) panelMonitor.classList.add('hidden');
                     if (panelAttendance) panelAttendance.classList.add('hidden');
                     stopLobbyPolling();
+                    stopAttendancePolling();
                 } else if (t === 'attendance') {
                     if (panelSchedule) panelSchedule.classList.add('hidden');
                     if (panelMonitor) panelMonitor.classList.add('hidden');
                     if (panelAttendance) panelAttendance.classList.remove('hidden');
                     stopLobbyPolling();
+                    startAttendancePolling();
                 } else if (t === 'lobby') {
                     if (panelSchedule) panelSchedule.classList.add('hidden');
                     if (panelMonitor) panelMonitor.classList.remove('hidden');
                     if (panelAttendance) panelAttendance.classList.add('hidden');
                     queueLobbyFetch('tab-open', 0);
                     startLobbyPolling();
+                    stopAttendancePolling();
                     // Sync Monitor fields
                     syncMonitorFields();
                 }
@@ -1615,7 +1626,8 @@
             fetchQualifiedApplicants(document.getElementById('searchInputQualified')?.value || '');
             refreshMonitorRecipients();
         })
-        .catch((error) => {
+            .then(() => fetchAttendanceApplicants())
+            .catch((error) => {
             console.error('Attendance override failed:', error);
             showAppToast(error.message || 'Unable to update attendance status.');
         });
@@ -1912,6 +1924,138 @@
             positionAttendanceRemarkTooltip(activeAttendanceRemarkTrigger);
         }
     });
+
+    // ========================================
+    // ATTENDANCE POLLING & AJAX
+    // ========================================
+    let attendanceFetchInFlight = null;
+    let attendancePollingInterval = null;
+    const ATTENDANCE_POLL_MS = 2000; // Poll every 2 seconds
+
+    function fetchAttendanceApplicants() {
+        if (attendanceFetchInFlight) {
+            return attendanceFetchInFlight;
+        }
+
+        attendanceFetchInFlight = fetch(`/admin/exam_management/{{ $vacancy->vacancy_id }}/attendance-data`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            },
+            credentials: 'same-origin'
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                const applicants = Array.isArray(data.applicants) ? data.applicants : [];
+                syncAttendanceSummaryCounts(applicants);
+                updateAttendanceApplicantsTable(applicants);
+                refreshAttendanceSummary();
+                updateSendLinkButtonState(currentLobbyCount);
+                updateStartButtonState();
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching attendance data:', error);
+        })
+        .finally(() => {
+            attendanceFetchInFlight = null;
+        });
+
+        return attendanceFetchInFlight;
+    }
+
+    function startAttendancePolling() {
+        if (attendancePollingInterval) clearInterval(attendancePollingInterval);
+        attendancePollingInterval = setInterval(() => fetchAttendanceApplicants(), ATTENDANCE_POLL_MS);
+        // Fetch immediately on start
+        fetchAttendanceApplicants();
+    }
+
+    function stopAttendancePolling() {
+        if (attendancePollingInterval) clearInterval(attendancePollingInterval);
+        attendancePollingInterval = null;
+    }
+
+    function updateAttendanceApplicantsTable(applicants) {
+        const tbody = document.getElementById('attendance-applicants-list');
+        
+        if (applicants.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="py-10 text-center text-gray-500 text-xl">
+                        No attendance responses yet.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        tbody.innerHTML = applicants.map(app => {
+            const isWillAttend = app.attendance_status === 'will_attend';
+            const isWillNotAttend = app.attendance_status === 'will_not_attend';
+            const attendanceRemark = (app.attendance_remark || 'None provided').trim();
+            const hasAttendanceRemark = !!app.attendance_remark;
+
+            return `
+                <tr id="attendance-row-${app.user_id}" class="group text-[#0D2B70] hover:bg-blue-50 transition-colors duration-200">
+                    <td class="w-[24%] py-2.5 px-6 font-semibold whitespace-nowrap overflow-hidden text-ellipsis">${app.name}</td>
+                    <td class="w-[18%] py-2.5 px-6 text-center">
+                        <span class="attendance-status-badge inline-flex whitespace-nowrap px-3 py-1 rounded-full text-xs font-semibold ${app.attendance_badge_class}">
+                            ${app.attendance_label}
+                        </span>
+                    </td>
+                    <td class="w-[20%] py-2.5 px-6 text-center text-sm text-slate-600 whitespace-nowrap">
+                        ${app.attendance_responded_at || '-'}
+                    </td>
+                    <td class="w-[24%] py-2.5 px-6 text-sm text-slate-600">
+                        <button
+                            type="button"
+                            class="attendance-remark-trigger inline-flex max-w-full items-center rounded-full border px-3 py-1 text-xs font-medium ${hasAttendanceRemark ? 'border-slate-200 bg-slate-50 text-slate-700 shadow-sm hover:border-[#0D2B70]/30 hover:bg-white' : 'border-slate-200 bg-slate-100 text-slate-500 italic'}"
+                            data-tooltip-title="Attendance Remark"
+                            data-tooltip-content="${attendanceRemark}"
+                            aria-label="View full attendance remark"
+                        >
+                            <span class="block max-w-full truncate whitespace-nowrap">${attendanceRemark}</span>
+                        </button>
+                    </td>
+                    <td class="w-[14%] py-2.5 px-6">
+                        <div class="flex items-center justify-center gap-2">
+                            <button type="button"
+                                onclick="overrideAttendanceStatus(${app.user_id}, 'will_attend')"
+                                title="${isWillAttend ? 'Already marked as Will Attend' : 'Mark as Will Attend'}"
+                                aria-label="Mark as Will Attend"
+                                ${isWillAttend ? 'disabled' : ''}
+                                class="inline-flex h-10 w-10 items-center justify-center rounded-md border border-green-700 text-green-700 transition hover:bg-green-700 hover:text-white disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-green-700">
+                                <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                    <path fill-rule="evenodd" d="M16.704 5.29a1 1 0 010 1.42l-7.2 7.2a1 1 0 01-1.415.005L3.3 9.206a1 1 0 111.4-1.428l4.08 4.002 6.5-6.49a1 1 0 011.424 0z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                            <button type="button"
+                                onclick="overrideAttendanceStatus(${app.user_id}, 'will_not_attend', '${(app.attendance_remark || '').replace(/'/g, "\\'")}')"
+                                title="${isWillNotAttend ? 'Already marked as Will Not Attend' : 'Mark as Will Not Attend'}"
+                                aria-label="Mark as Will Not Attend"
+                                ${isWillNotAttend ? 'disabled' : ''}
+                                class="inline-flex h-10 w-10 items-center justify-center rounded-md border border-red-700 text-red-700 transition hover:bg-red-700 hover:text-white disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-red-700">
+                                <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                    <path fill-rule="evenodd" d="M5.293 5.293a1 1 0 011.414 0L10 8.586l3.293-3.293a1 1 0 111.414 1.414L11.414 10l3.293 3.293a1 1 0 01-1.414 1.414L10 11.414l-3.293 3.293a1 1 0 01-1.414-1.414L8.586 10 5.293 6.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        // Re-bind tooltips after table update
+        bindAttendanceRemarkTooltips();
+    }
+
     // ========================================
     // LOBBY POLLING & AJAX
     // ========================================
@@ -2059,7 +2203,17 @@
             });
 
             const monitorChannel = realtimeClient.subscribe(`private-exam-monitor.${vacancyId}`);
-            monitorChannel.bind('exam.progress.updated', () => {
+            monitorChannel.bind('exam.progress.updated', (data) => {
+                console.log('exam.progress.updated event received:', data);
+                
+                // Handle attendance updates - trigger immediate fetch
+                if (data.type === 'attendance_updated') {
+                    console.log('Attendance update detected, fetching latest data immediately...');
+                    fetchAttendanceApplicants();
+                    return;
+                }
+
+                // Handle other exam progress updates (lobby visibility-dependent)
                 if (document.getElementById('content-lobby').classList.contains('hidden')) return;
                 queueLobbyFetch('realtime-event', 80);
             });
