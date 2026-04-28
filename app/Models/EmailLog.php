@@ -13,7 +13,24 @@ class EmailLog extends Model
         'vacancy_id',
         'user_id',
         'recipient_email',
+        'mailer',
+        'from_email',
+        'from_name',
+        'subject',
+        'mailable_class',
+        'notification_class',
+        'template_name',
+        'message_id',
+        'body_html',
+        'body_text',
+        'metadata',
+        'sent_at',
         'status',
         'error_message',
+    ];
+
+    protected $casts = [
+        'metadata' => 'array',
+        'sent_at' => 'datetime',
     ];
 }

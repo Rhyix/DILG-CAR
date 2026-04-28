@@ -1100,6 +1100,8 @@
     const linkSentConst = @json($examDetails && $examDetails->link_sent);
     let linkSentClient = linkSentConst;
     let examPausedClient = @json((bool) ($examDetails?->exam_paused_at ?? false));
+    let examPauseResumeCountdownTimer = null;
+    let examPauseActionInProgress = false;
     const isExamActiveConst = @json($isExamActive);
     const isExamCompletedConst = @json($isExamCompleted);
     const isExamDayConst = @json($isExamDay);
@@ -1225,6 +1227,66 @@
 
     function toggleExamPause() {
         const action = examPausedClient ? 'resume' : 'pause';
+        const pauseButton = document.getElementById('pauseExamBtn');
+
+        if (examPauseActionInProgress) {
+            return;
+        }
+
+        if (examPausedClient) {
+            examPauseActionInProgress = true;
+            if (pauseButton) {
+                pauseButton.disabled = true;
+                pauseButton.innerHTML = '<span class="inline-flex items-center gap-2"><span class="h-2 w-2 animate-pulse rounded-full bg-white"></span>Resuming in 2s</span>';
+            }
+
+            let secondsRemaining = 2;
+            examPauseResumeCountdownTimer = window.setInterval(() => {
+                secondsRemaining -= 1;
+                if (pauseButton) {
+                    pauseButton.innerHTML = `<span class="inline-flex items-center gap-2"><span class="h-2 w-2 animate-pulse rounded-full bg-white"></span>Resuming in ${Math.max(secondsRemaining, 0)}s</span>`;
+                }
+
+                if (secondsRemaining <= 0) {
+                    window.clearInterval(examPauseResumeCountdownTimer);
+                    examPauseResumeCountdownTimer = null;
+
+                    fetch(`/admin/exam_management/{{ $vacancy->vacancy_id }}/pause`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({})
+                    })
+                    .then(async (response) => {
+                        const data = await response.json().catch(() => ({}));
+                        if (!response.ok || !data.success) {
+                            throw new Error(data.message || `Failed to ${action} exam`);
+                        }
+                        return data;
+                    })
+                    .then((data) => {
+                        examPausedClient = !!data.paused;
+                        updatePauseButtonState();
+                        showAppToast(data.message || (examPausedClient ? 'Exam paused.' : 'Exam resumed.'));
+                        queueLobbyFetch('pause-toggle', 0, true);
+                    })
+                    .catch((error) => {
+                        showAppToast(error.message || 'Unable to update exam pause state.');
+                        updatePauseButtonState();
+                    })
+                    .finally(() => {
+                        examPauseActionInProgress = false;
+                    });
+                }
+            }, 1000);
+
+            return;
+        }
+
+        examPauseActionInProgress = true;
         fetch(`/admin/exam_management/{{ $vacancy->vacancy_id }}/pause`, {
             method: 'POST',
             headers: {
@@ -1249,6 +1311,9 @@
         })
         .catch((error) => {
             showAppToast(error.message || 'Unable to update exam pause state.');
+        })
+        .finally(() => {
+            examPauseActionInProgress = false;
         });
     }
 

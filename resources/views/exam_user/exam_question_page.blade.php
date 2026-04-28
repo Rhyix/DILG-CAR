@@ -160,6 +160,7 @@
             <p class="text-sm font-semibold uppercase tracking-widest text-amber-600">Examination Paused</p>
             <h3 class="mt-3 text-2xl font-bold text-[#002C76]">The administrator has paused this exam.</h3>
             <p class="mt-2 text-sm text-slate-600">Your progress remains saved. Please wait here until the exam resumes.</p>
+            <p id="examResumeCountdown" class="mt-4 hidden text-lg font-semibold text-amber-600"></p>
         </div>
     </div>
 </div>
@@ -194,6 +195,8 @@
     let examPaused = !!(examPauseState.global_paused || examPauseState.application_paused);
     let lastSyncedExamPaused = null;
     let examStatusPollInterval = null;
+    let examResumeCountdownInterval = null;
+    let examResumeCountdownActive = false;
 
     Questions.forEach((q, idx) => q.number = idx + 1);
 
@@ -399,13 +402,100 @@
         overlay.classList.toggle('hidden', !shouldShow);
     }
 
+    function clearResumeCountdown() {
+        if (examResumeCountdownInterval) {
+            clearInterval(examResumeCountdownInterval);
+            examResumeCountdownInterval = null;
+        }
+
+        examResumeCountdownActive = false;
+
+        const countdownEl = document.getElementById('examResumeCountdown');
+        if (countdownEl) {
+            countdownEl.classList.add('hidden');
+            countdownEl.textContent = '';
+        }
+    }
+
+    function finishResumeCountdown(remainingSeconds = null) {
+        clearResumeCountdown();
+
+        examPaused = false;
+        lastSyncedExamPaused = false;
+        showPausedOverlay(false);
+
+        if (typeof remainingSeconds === 'number' && remainingSeconds >= 0) {
+            duration = remainingSeconds;
+        } else {
+            duration = computeRemainingSecondsFromServerClock();
+        }
+
+        updateTimerDisplay(duration);
+        updateSubmitEnabled();
+
+        if (!timerInterval) {
+            timerInterval = setInterval(() => {
+                if (examPaused) {
+                    return;
+                }
+
+                duration = computeRemainingSecondsFromServerClock();
+                updateTimerDisplay(duration);
+
+                if (duration <= 0) {
+                    handleTimesUp();
+                }
+            }, 1000);
+        }
+    }
+
+    function startResumeCountdown(remainingSeconds = null) {
+        if (examResumeCountdownActive) {
+            return;
+        }
+
+        examResumeCountdownActive = true;
+        showPausedOverlay(true);
+
+        const countdownEl = document.getElementById('examResumeCountdown');
+        let secondsRemaining = 2;
+
+        if (countdownEl) {
+            countdownEl.textContent = 'Resuming in 2 seconds...';
+            countdownEl.classList.remove('hidden');
+        }
+
+        examResumeCountdownInterval = window.setInterval(() => {
+            secondsRemaining -= 1;
+
+            if (countdownEl) {
+                countdownEl.textContent = secondsRemaining > 0
+                    ? `Resuming in ${secondsRemaining} second${secondsRemaining === 1 ? '' : 's'}...`
+                    : 'Resuming now...';
+            }
+
+            if (secondsRemaining <= 0) {
+                finishResumeCountdown(remainingSeconds);
+            }
+        }, 1000);
+    }
+
     function syncPauseState(nextState, remainingSeconds = null) {
-        examPaused = !!nextState;
-        showPausedOverlay(examPaused);
+        const nextPaused = !!nextState;
 
-        const pauseStateChanged = lastSyncedExamPaused === null || lastSyncedExamPaused !== examPaused;
+        if (!nextPaused && examResumeCountdownActive) {
+            return;
+        }
 
-        if (examPaused && pauseStateChanged) {
+        if (nextPaused) {
+            clearResumeCountdown();
+            examPaused = true;
+            showPausedOverlay(true);
+        }
+
+        const pauseStateChanged = lastSyncedExamPaused === null || lastSyncedExamPaused !== nextPaused;
+
+        if (nextPaused && pauseStateChanged) {
             if (typeof remainingSeconds === 'number' && remainingSeconds >= 0) {
                 duration = remainingSeconds;
                 updateTimerDisplay(duration);
@@ -418,13 +508,26 @@
             if (confirmSubmitBtn) {
                 confirmSubmitBtn.disabled = true;
             }
-            lastSyncedExamPaused = examPaused;
+            lastSyncedExamPaused = nextPaused;
             return;
         }
 
-        if (!examPaused && pauseStateChanged && typeof remainingSeconds === 'number' && remainingSeconds >= 0) {
-            duration = remainingSeconds;
-            updateTimerDisplay(duration);
+        if (!nextPaused && pauseStateChanged && lastSyncedExamPaused === true) {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+
+            startResumeCountdown(remainingSeconds);
+            lastSyncedExamPaused = nextPaused;
+            return;
+        }
+
+        if (!nextPaused) {
+            examPaused = false;
+            lastSyncedExamPaused = nextPaused;
+            updateSubmitEnabled();
+            return;
         }
 
         updateSubmitEnabled();
