@@ -2800,7 +2800,7 @@ class PDSController extends Controller
      *
      * @return \Illuminate\Contracts\View\View
      */
-    public function c2DisplayForm()
+    public function c2DisplayForm(Request $request)
     {
 
         // Run if session does not exists. get data from database. if database has no data
@@ -2809,15 +2809,32 @@ class PDSController extends Controller
             session(['form.c2' => $this->c2GetFormFromDB()]);
         }
 
+        // Ensure C1 data is loaded for education level checking
+        if (!session()->has('form.c1')) {
+            session(['form.c1' => $this->c1GetFormFromDB()]);
+        }
+
         // Run if session exists
         $all_user_work_exps = session('form.c2.all_user_work_exps');
         $all_user_civil_service_eligibility = session('form.c2.all_user_civil_service_eligibility');
+
+        // Determine education level for eligibility filtering
+        $has_college_degree = $this->hasC2CollegeDegree($request);
+        $is_high_school_only = $this->isC2HighSchoolOnlyApplicant($request);
+        $is_elementary_only = $this->isC2ElementaryOnlyApplicant($request);
+
         /*
                 activity()
                     ->causedBy(Auth::user())
                     ->log('Viewed C2 form.');
         */
-        return view('pds.c2', compact('all_user_work_exps', 'all_user_civil_service_eligibility'));
+        return view('pds.c2', compact(
+            'all_user_work_exps',
+            'all_user_civil_service_eligibility',
+            'has_college_degree',
+            'is_high_school_only',
+            'is_elementary_only'
+        ));
     }
 
     private function normalizeEligibilityNameForComparison($value): string
@@ -2853,8 +2870,12 @@ class PDSController extends Controller
                 continue;
             }
 
-            if ($this->hasMeaningfulC1EducationText($entry['basic'] ?? null)) {
-                return true;
+            // Check multiple fields for meaningful data
+            $fieldsToCheck = ['basic', 'school', 'from', 'to', 'year_graduated', 'earned'];
+            foreach ($fieldsToCheck as $field) {
+                if ($this->hasMeaningfulC1EducationText($entry[$field] ?? null)) {
+                    return true;
+                }
             }
         }
 
@@ -2875,6 +2896,78 @@ class PDSController extends Controller
             || $this->hasMeaningfulC1EducationEntries($c1['vocational'] ?? null);
 
         return $hasSecondary && !$hasHigherEducation;
+    }
+
+    private function hasC2CollegeDegree(Request $request): bool
+    {
+        $c1 = (array) $request->session()->get('form.c1', []);
+
+        // Check for graduate studies (any graduate level education implies college completion)
+        if ($this->hasMeaningfulC1EducationEntries($c1['grad'] ?? null)) {
+            return true;
+        }
+
+        // Check for college entries
+        $college = $c1['college'] ?? null;
+        if (is_array($college)) {
+            foreach ($college as $entry) {
+                if (!is_array($entry)) {
+                    continue;
+                }
+
+                // Check if this entry has any meaningful data
+                $hasMeaningfulData = false;
+                $fieldsToCheck = ['basic', 'school', 'from', 'to', 'year_graduated', 'earned'];
+                foreach ($fieldsToCheck as $field) {
+                    if ($this->hasMeaningfulC1EducationText($entry[$field] ?? null)) {
+                        $hasMeaningfulData = true;
+                        break;
+                    }
+                }
+
+                if (!$hasMeaningfulData) {
+                    continue;
+                }
+
+                // Has year graduated means completed degree
+                if ($this->hasMeaningfulC1EducationText($entry['year_graduated'] ?? null)) {
+                    return true;
+                }
+
+                // Check for degree-related keywords in earned field
+                $earned = strtolower(trim((string) ($entry['earned'] ?? '')));
+                if ($earned !== '' && str_contains($earned, 'graduate')) {
+                    return true;
+                }
+
+                // Check for degree-related keywords in basic field (course name)
+                $basic = strtolower(trim((string) ($entry['basic'] ?? '')));
+                if ($basic !== '' && (
+                    str_contains($basic, 'bachelor') ||
+                    str_contains($basic, 'bs ') ||
+                    str_contains($basic, 'ba ') ||
+                    str_contains($basic, 'b.s.') ||
+                    str_contains($basic, 'b.a.') ||
+                    str_contains($basic, 'degree')
+                )) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private function isC2ElementaryOnlyApplicant(Request $request): bool
+    {
+        $c1 = (array) $request->session()->get('form.c1', []);
+
+        $hasSecondary = $this->hasMeaningfulC1EducationText($c1['jhs_basic'] ?? null)
+            || $this->hasMeaningfulC1EducationText($c1['shs_basic'] ?? null)
+            || $this->hasMeaningfulC1EducationText($c1['jhs_school'] ?? null)
+            || $this->hasMeaningfulC1EducationText($c1['shs_school'] ?? null);
+
+        return !$hasSecondary;
     }
 
     private function c2EligibilityLevelMap(): array
@@ -2937,7 +3030,8 @@ class PDSController extends Controller
 
     private function validateC2EligibilityByEducation(\Illuminate\Validation\Validator $validator, Request $request): void
     {
-        if (!$this->isC2HighSchoolOnlyApplicant($request)) {
+        // College degree holders can select ALL eligibilities - no validation needed
+        if ($this->hasC2CollegeDegree($request)) {
             return;
         }
 
@@ -2947,6 +3041,8 @@ class PDSController extends Controller
         }
 
         $levelByName = $this->c2EligibilityLevelMap();
+        $isHighSchoolOnly = $this->isC2HighSchoolOnlyApplicant($request);
+        $isElementaryOnly = $this->isC2ElementaryOnlyApplicant($request);
 
         foreach ($submittedCareers as $index => $career) {
             $normalizedName = $this->normalizeEligibilityNameForComparison($career);
@@ -2955,18 +3051,31 @@ class PDSController extends Controller
             }
 
             $level = $levelByName[$normalizedName] ?? null;
+
+            // First Level is always allowed
             if (!$this->isSecondLevelEligibilityLabel($level)) {
                 continue;
             }
 
-            if ($this->isCscProfessionalEligibilityName($normalizedName)) {
+            // High school only: allow Second Level only if it's CSC Professional
+            if ($isHighSchoolOnly) {
+                if ($this->isCscProfessionalEligibilityName($normalizedName)) {
+                    continue;
+                }
+                $validator->errors()->add(
+                    "cs_eligibility_career.$index",
+                    'For high school-level applicants, only First Level eligibilities and CSC Professional are allowed.'
+                );
                 continue;
             }
 
-            $validator->errors()->add(
-                "cs_eligibility_career.$index",
-                'For high school-level applicants, only First Level eligibilities and CSC Professional are allowed.'
-            );
+            // Elementary only: disallow ALL Second Level eligibilities
+            if ($isElementaryOnly) {
+                $validator->errors()->add(
+                    "cs_eligibility_career.$index",
+                    'For elementary-level applicants, only First Level eligibilities are allowed.'
+                );
+            }
         }
     }
 

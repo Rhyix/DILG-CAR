@@ -284,22 +284,11 @@
         let CIVIL_SERVICE_ELIGIBILITY_OPTIONS = [...DEFAULT_CIVIL_SERVICE_ELIGIBILITY_OPTIONS];
 
         const CIVIL_SERVICE_ELIGIBILITY_OTHERS_VALUE = '__OTHERS__';
-        const C1_ELEMENTARY_GRADUATE_RAW = @json(session('form.c1.elem_is_graduate'));
 
-        function isTruthyGraduateFlag(value) {
-            if (typeof value === 'boolean') {
-                return value;
-            }
-
-            if (typeof value === 'number') {
-                return value === 1;
-            }
-
-            const normalized = String(value || '').trim().toLowerCase();
-            return normalized === '1' || normalized === 'true' || normalized === 'on' || normalized === 'yes';
-        }
-
-        const IS_ELEMENTARY_ONLY_APPLICANT = !isTruthyGraduateFlag(C1_ELEMENTARY_GRADUATE_RAW);
+        // Education level flags passed from controller
+        const HAS_COLLEGE_DEGREE = @json($has_college_degree ?? false);
+        const IS_HIGH_SCHOOL_ONLY = @json($is_high_school_only ?? false);
+        const IS_ELEMENTARY_ONLY = @json($is_elementary_only ?? false);
 
         async function loadCivilServiceEligibilityOptions() {
             try {
@@ -349,17 +338,31 @@
         }
 
         function getSelectableCivilServiceEligibilityOptions() {
-            if (!IS_ELEMENTARY_ONLY_APPLICANT) {
+            // College degree holders can see ALL eligibilities (First and Second Level)
+            if (HAS_COLLEGE_DEGREE) {
                 return CIVIL_SERVICE_ELIGIBILITY_OPTIONS;
             }
 
-            return CIVIL_SERVICE_ELIGIBILITY_OPTIONS.filter((option) => {
-                if (!isCivilServiceSecondLevelOption(option)) {
-                    return true;
-                }
+            // High school only: First Level + CSC Professional only
+            if (IS_HIGH_SCHOOL_ONLY) {
+                return CIVIL_SERVICE_ELIGIBILITY_OPTIONS.filter((option) => {
+                    if (!isCivilServiceSecondLevelOption(option)) {
+                        return true; // First Level is allowed
+                    }
+                    // Only CSC Professional is allowed from Second Level
+                    return isCivilServiceCscProfessionalOption(option);
+                });
+            }
 
-                return isCivilServiceCscProfessionalOption(option);
-            });
+            // Elementary only: First Level only (no Second Level at all)
+            if (IS_ELEMENTARY_ONLY) {
+                return CIVIL_SERVICE_ELIGIBILITY_OPTIONS.filter((option) => {
+                    return !isCivilServiceSecondLevelOption(option);
+                });
+            }
+
+            // Default: show all (fallback)
+            return CIVIL_SERVICE_ELIGIBILITY_OPTIONS;
         }
 
         function findCivilServicePresetByName(name) {
@@ -374,7 +377,8 @@
         }
 
         function isDisallowedElementaryOnlyPreset(name) {
-            if (!IS_ELEMENTARY_ONLY_APPLICANT) {
+            // College degree holders have no restrictions
+            if (HAS_COLLEGE_DEGREE) {
                 return false;
             }
 
@@ -383,7 +387,17 @@
                 return false;
             }
 
-            return isCivilServiceSecondLevelOption(preset) && !isCivilServiceCscProfessionalOption(preset);
+            // High school only: disallow Second Level except CSC Professional
+            if (IS_HIGH_SCHOOL_ONLY) {
+                return isCivilServiceSecondLevelOption(preset) && !isCivilServiceCscProfessionalOption(preset);
+            }
+
+            // Elementary only: disallow ALL Second Level
+            if (IS_ELEMENTARY_ONLY) {
+                return isCivilServiceSecondLevelOption(preset);
+            }
+
+            return false;
         }
 
         function escapeCivilServiceOptionHtml(value) {
