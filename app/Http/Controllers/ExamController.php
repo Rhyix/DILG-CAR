@@ -1447,6 +1447,28 @@ class ExamController extends Controller
         return $qualifiedApplicants;
     }
 
+    public function getAttendanceApplicants(Request $request, $vacancy_id)
+    {
+        if ($denied = $this->denyViewerAccess($request, 'Viewer cannot access attendance applicants list.')) {
+            return $denied;
+        }
+
+        $qualifiedApplications = $this->qualifiedApplicationsQuery($vacancy_id)
+            ->with(['user'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $attendanceApplicants = $qualifiedApplications
+            ->filter(fn(Applications $app) => !empty($app->exam_attendance_status))
+            ->map(fn(Applications $app) => $this->mapAttendanceApplicant($app))
+            ->values();
+
+        return response()->json([
+            'success' => true,
+            'applicants' => $attendanceApplicants
+        ]);
+    }
+
     public function attendancePrompt(Request $request, $vacancy_id)
     {
         if (!auth()->check()) {
@@ -1518,6 +1540,15 @@ class ExamController extends Controller
                 ? 'Updated exam attendance response.'
                 : 'Submitted exam attendance response.');
 
+        // Broadcast attendance update to monitor
+        broadcast(new ExamProgressUpdated(
+            vacancyId: (string) $vacancy_id,
+            userId: (int) auth()->id(),
+            type: 'attendance_updated',
+            status: $attendanceStatus,
+            occurredAt: now()->toIso8601String(),
+        ));
+
         if ($hadExistingAttendanceResponse) {
             $message = $attendanceStatus === self::ATTENDANCE_WILL_ATTEND
                 ? 'Your exam attendance response has been updated to Will Attend.'
@@ -1568,6 +1599,15 @@ class ExamController extends Controller
                 'section' => 'Exam Management',
             ])
             ->log('Overrode applicant exam attendance status.');
+
+        // Broadcast attendance update to monitor
+        broadcast(new ExamProgressUpdated(
+            vacancyId: (string) $vacancy_id,
+            userId: (int) $user_id,
+            type: 'attendance_updated',
+            status: $attendanceStatus,
+            occurredAt: now()->toIso8601String(),
+        ));
 
         return response()->json([
             'success' => true,
