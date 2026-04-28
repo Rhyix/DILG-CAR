@@ -349,7 +349,9 @@
                             <span id="lobbyLastUpdated" class="text-xs text-gray-400"></span>
                         </div>
                         <div class="flex items-center gap-2">
-                            <button id="pauseExamBtn" onclick="toggleExamPause()" class="text-xs bg-amber-500 border border-amber-600 text-white hover:bg-amber-600 px-3 py-1 rounded transition-colors duration-200 flex items-center gap-1">
+                            <button id="pauseExamBtn" onclick="toggleExamPause()" @if(!($isExamActive ?? false)) disabled @endif
+                                title="@if($isExamActive) Pause exam @else Exam not started @endif"
+                                class="text-xs bg-amber-500 border border-amber-600 text-white hover:bg-amber-600 px-3 py-1 rounded transition-colors duration-200 flex items-center gap-1 @if(!($isExamActive ?? false)) opacity-50 cursor-not-allowed @endif">
                                 <x-heroicon-o-pause class="w-3 h-3" />
                                 Pause Exam
                             </button>
