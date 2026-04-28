@@ -159,7 +159,6 @@ class PDSController extends Controller
 
         $formats = [
             'd-m-Y',
-            'Y-m',
             'Y-m-d',
             'm/d/Y',
             'd/m/Y',
@@ -3576,15 +3575,15 @@ $rules_data_learning["learning_to_$i"] = 'required|date';
                     continue;
                 }
 
-                // Same-day attendance is allowed; only reject inverted date ranges.
-                if ($toDate->lt($fromDate)) {
+                // Plus 1 day rule: TO must be at least one day later than FROM.
+                if ($toDate->lte($fromDate)) {
                     $validator->errors()->add(
                         "learning_from_$i",
-                        "Learning and Development row {$i}: FROM date must be the same day or earlier than TO date."
+                        "Learning and Development row {$i}: FROM date must be at least one day earlier than TO date."
                     );
                     $validator->errors()->add(
                         "learning_to_$i",
-                        "Learning and Development row {$i}: TO date must be the same day or later than FROM date."
+                        "Learning and Development row {$i}: TO date must be at least one day later than FROM date."
                     );
                 }
             }
@@ -3639,15 +3638,15 @@ $rules_data_vol["voluntary_to_$i"] = 'required|date';
                     continue;
                 }
 
-                // Same-day attendance is allowed; only reject inverted date ranges.
+                // TO date cannot be before FROM date (same day is allowed)
                 if ($toDate->lt($fromDate)) {
                     $validator->errors()->add(
                         "voluntary_from_$i",
-                        "Voluntary Work row {$i}: FROM date must be the same day or earlier than TO date."
+                        "Voluntary Work row {$i}: FROM date must not be later than TO date."
                     );
                     $validator->errors()->add(
                         "voluntary_to_$i",
-                        "Voluntary Work row {$i}: TO date must be the same day or later than FROM date."
+                        "Voluntary Work row {$i}: TO date must not be earlier than FROM date."
                     );
                 }
             }
@@ -3733,13 +3732,8 @@ $rules_data_vol["voluntary_to_$i"] = 'required|date';
         return redirect()->route($go_to, $routeParams);
     }
 
-    public function c3ShowForm(Request $request)
+    public function c3ShowForm()
     {
-        // Check if test data parameter is present
-        if ($request->has('populate_test_data')) {
-            $this->populateC3TestData();
-        }
-
         if (empty(session('data_learning')) && empty(session('data_voluntary')) && empty(session('data_otherInfo'))) {
             $this->c3GetDatabase();
         }
@@ -3752,86 +3746,6 @@ $rules_data_vol["voluntary_to_$i"] = 'required|date';
                     ->log('Viewed C3 form.');
         */
         return view('pds.c3', compact('data_learning', 'data_voluntary', 'data_otherInfo'));
-    }
-
-    private function populateC3TestData(): void
-    {
-        // 10 Voluntary Work entries
-        $voluntaryData = [];
-        for ($i = 1; $i <= 10; $i++) {
-            $voluntaryData[] = [
-                'voluntary_org' => "Test Organization {$i}, Address {$i}",
-                'voluntary_from' => "202" . (($i % 3) + 1) . "-01-01",
-                'voluntary_to' => "202" . (($i % 3) + 1) . "-12-31",
-                'voluntary_hours' => ($i * 10) + 20,
-                'voluntary_position' => "Volunteer Position {$i}",
-            ];
-        }
-
-        // 20 Learning and Development entries
-        $trainingTypes = ['Managerial', 'Supervisory', 'Technical', 'Others'];
-        $trainingTitles = [
-            'Leadership and Management Training',
-            'Project Management Fundamentals',
-            'Public Service Excellence',
-            'Crisis Management Workshop',
-            'Digital Transformation Training',
-            'Data Privacy and Security',
-            'Effective Communication Skills',
-            'Team Building and Collaboration',
-            'Customer Service Excellence',
-            'Strategic Planning Workshop',
-            'Budget Management Training',
-            'Human Resource Development',
-            'Policy Implementation Workshop',
-            'Ethics and Governance Training',
-            'Disaster Preparedness Training',
-            'Environmental Management',
-            'Community Development Training',
-            'Records Management System',
-            'Public Financial Management',
-            'Performance Management Workshop',
-        ];
-        $learningData = [];
-        for ($i = 1; $i <= 20; $i++) {
-            $learningData[] = [
-                'learning_title' => $trainingTitles[$i - 1] ?? "Training Program {$i}",
-                'learning_type' => $trainingTypes[$i % 4],
-                'learning_from' => "202" . (($i % 4) + 1) . "-01-01",
-                'learning_to' => "202" . (($i % 4) + 1) . "-12-31",
-                'learning_hours' => ($i * 5) + 10,
-                'learning_conducted' => "Conducted by Agency {$i}",
-            ];
-        }
-
-        // Other Information
-        $otherInfo = [
-            'skill' => [
-                'Computer Programming',
-                'Data Analysis',
-                'Project Management',
-                'Public Speaking',
-                'Research and Documentation',
-            ],
-            'distinction' => [
-                'Employee of the Year 2023',
-                'Outstanding Public Service Award',
-                'Civic Achievement Recognition',
-            ],
-            'organization' => [
-                'Philippine Red Cross - Local Chapter',
-                'Rotary Club of Metro City',
-                'Local Government League',
-                'Public Service Association',
-            ],
-            'user_id' => Auth::id(),
-        ];
-
-        session([
-            'data_learning' => $learningData,
-            'data_voluntary' => $voluntaryData,
-            'data_otherInfo' => $otherInfo,
-        ]);
     }
 
     private function syncLearningSessionFromDatabaseIfStale(): void
@@ -5237,64 +5151,15 @@ $rules_data_vol["voluntary_to_$i"] = 'required|date';
         return array_values(array_unique($normalizedSelection));
     }
 
-    private function resolveVacancySupportingDocumentSelection(?Models\JobVacancy $vacancy = null): array
-    {
-        if (!$vacancy) {
-            return [];
-        }
-
-        if ($vacancy->supporting_documents_required !== null) {
-            return $this->normalizeSupportingDocumentSelection($vacancy->supporting_documents_required);
-        }
-
-        if (!Schema::hasTable('vacancy_titles')) {
-            return [];
-        }
-
-        $positionTitleCandidates = array_values(array_unique(array_filter([
-            trim((string) $vacancy->getRawOriginal('position_title')),
-            trim((string) $vacancy->position_title),
-        ])));
-
-        if (empty($positionTitleCandidates)) {
-            return [];
-        }
-
-        $normalizedTrack = $this->normalizeTrack($vacancy->vacancy_type ?? null);
-        $templateVacancy = Models\VacancyTitle::query()
-            ->where(function ($query) use ($positionTitleCandidates) {
-                foreach ($positionTitleCandidates as $index => $positionTitle) {
-                    if ($index === 0) {
-                        $query->where('position_title', $positionTitle);
-                    } else {
-                        $query->orWhere('position_title', $positionTitle);
-                    }
-                }
-            })
-            ->whereRaw("UPPER(TRIM(COALESCE(vacancy_type, ''))) = ?", [strtoupper($normalizedTrack)])
-            ->orderByDesc('updated_at')
-            ->orderByDesc('id')
-            ->first();
-
-        if (!$templateVacancy || $templateVacancy->supporting_documents_required === null) {
-            return [];
-        }
-
-        return $this->normalizeSupportingDocumentSelection($templateVacancy->supporting_documents_required);
-    }
-
     private function getRequiredDocumentIdsForVacancy(?Models\JobVacancy $vacancy = null, ?string $docTrack = null): array
     {
+        $hasStoredSelection = $vacancy && $vacancy->supporting_documents_required !== null;
         $normalizedTrack = strcasecmp((string) $docTrack, 'COS') === 0 ? 'COS' : 'Plantilla';
         $requiredByTrack = $this->getRequiredDocsByTrack();
 
-        $requiredDocs = $vacancy
-            ? $this->resolveVacancySupportingDocumentSelection($vacancy)
-            : [];
-
-        if (empty($requiredDocs)) {
-            $requiredDocs = $requiredByTrack[$normalizedTrack] ?? [];
-        }
+        $requiredDocs = $hasStoredSelection
+            ? $this->normalizeSupportingDocumentSelection($vacancy->supporting_documents_required)
+            : ($requiredByTrack[$normalizedTrack] ?? []);
 
         return array_values(array_unique($requiredDocs));
     }
@@ -6257,11 +6122,6 @@ $rules_data_vol["voluntary_to_$i"] = 'required|date';
             ];
         }
 
-        $requiredDocs = $this->getRequiredDocumentIdsForVacancy(
-            $vacancy,
-            (string) ($vacancy->vacancy_type ?? 'Plantilla')
-        );
-
         $initialAssessment = $this->getInitialAssessmentForVacancy($vacancy);
 
         $application = Applications::where('user_id', Auth::id())
@@ -6324,8 +6184,6 @@ $rules_data_vol["voluntary_to_$i"] = 'required|date';
             }
         }
 
-        $requiresApplicationLetter = in_array('application_letter', $requiredDocs, true);
-
         $applicationLetterDocQuery = UploadedDocument::where('user_id', Auth::id())
             ->where('document_type', 'application_letter')
             ->whereNotNull('storage_path')
@@ -6375,7 +6233,7 @@ $rules_data_vol["voluntary_to_$i"] = 'required|date';
             }
         }
 
-        if (!$applicationLetterDoc && $requiresApplicationLetter) {
+        if (!$applicationLetterDoc) {
             return [
                 'ok' => false,
                 'created' => false,
@@ -6385,8 +6243,7 @@ $rules_data_vol["voluntary_to_$i"] = 'required|date';
         }
 
         if (
-            $applicationLetterDoc
-            && $supportsVacancyScopedDocs
+            $supportsVacancyScopedDocs
             && (string) ($applicationLetterDoc->vacancy_id ?? '') !== $vacancyId
         ) {
             $applicationLetterDoc = $this->upsertVacancyDocumentFromSource(
@@ -6397,20 +6254,15 @@ $rules_data_vol["voluntary_to_$i"] = 'required|date';
         }
 
         $applicationPayload = [
+            'file_original_name' => $applicationLetterDoc->original_name,
+            'file_stored_name' => $applicationLetterDoc->stored_name,
+            'file_storage_path' => $applicationLetterDoc->storage_path,
+            // Re-applies should always return application-letter validation to pending.
+            'file_status' => 'Pending',
+            'file_remarks' => null,
+            'file_size_8b' => $applicationLetterDoc->file_size_8b,
             'is_valid' => true,
         ];
-
-        if ($applicationLetterDoc) {
-            $applicationPayload = array_merge($applicationPayload, [
-                'file_original_name' => $applicationLetterDoc->original_name,
-                'file_stored_name' => $applicationLetterDoc->stored_name,
-                'file_storage_path' => $applicationLetterDoc->storage_path,
-                // Re-applies should always return application-letter validation to pending.
-                'file_status' => 'Pending',
-                'file_remarks' => null,
-                'file_size_8b' => $applicationLetterDoc->file_size_8b,
-            ]);
-        }
 
         if ($application) {
             if (ApplicationStatus::equals($application->status, ApplicationStatus::COMPLIANCE)) {

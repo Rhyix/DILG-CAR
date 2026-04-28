@@ -330,9 +330,9 @@
                 }
             });
         }
-        window.addSkillEntry = function(value) {
+        function addSkillEntry(value) {
             addField('skills-container', 'skills[]', 'Enter special skill or hobby', value);
-        }; // END ADD SKILL
+        } // END ADD SKILL
 
         // -----------------------------------------------------------------------------------------------------------------------------------
         // ADD DISTICTION FUNCTION (Add Other Information)
@@ -344,9 +344,9 @@
             });
         }
 
-        window.addDistinctionEntry = function(value) {
+        function addDistinctionEntry(value) {
             addField('distinctions-container', 'distinctions[]', 'Enter non-academic distinction or recognition', value);
-        }; // END ADD DISTINCTION
+        } // END ADD DISTICTION
         // -----------------------------------------------------------------------------------------------------------------------------------
 
         // ADD ORGANIZATION FUNCTION (Add Other Information)
@@ -358,9 +358,9 @@
             });
         }
 
-        window.addOrganizationEntry = function(value) {
+        function addOrganizationEntry(value) {
             addField('organizations-container', 'organizations[]', 'Enter organization name', value);
-        }; // END ADD ORGANIZATION
+        } // END ADD ORGANIZATION
         // END ADD DATA FOR OTHER INFORMATION
         // ==================================================================================================================================
 
@@ -387,7 +387,7 @@
         });
 
         // TODO: add too in voluntary works [CHECKED]
-        window.updateEntryCount = function() {
+        function updateEntryCount() {
             entryCount_learning = learningContainer.querySelectorAll('.entry-card').length;
             entryCount_voluntary = voluntaryContainer.querySelectorAll('.entry-card').length;
             updateHiddenEntryCount_learning();
@@ -405,7 +405,7 @@
         }
 
         // TODO: add too in voluntary works [CHECKED]
-        window.reindexEntries_learning = function() {
+        function reindexEntries_learning() {
             //const entries = document.querySelectorAll('.entry-card'); NEW TODO
             const entries = learningContainer.querySelectorAll('.entry-card');
             entries.forEach((entry, index) => {
@@ -427,7 +427,7 @@
 
             updateHiddenEntryCount_learning();
         }
-        window.reindexEntries_voluntary = function() {
+        function reindexEntries_voluntary() {
             //const entries = document.querySelectorAll('.entry-card'); NEW TODO
             const entries = voluntaryContainer.querySelectorAll('.entry-card');
             // DELETE UPPER CODE
@@ -502,10 +502,10 @@
                     return true;
                 }
 
-                // Same-day attendance is allowed; only reject inverted date ranges.
+                // TO date cannot be before FROM date (same day is allowed)
                 if (toDate.getTime() < fromDate.getTime()) {
-                    setErrorState(fromInput, 'The "From" date must be the same day or earlier than the "To" date.');
-                    setErrorState(toInput, 'The "To" date must be the same day or later than the "From" date.');
+                    setErrorState(fromInput, 'The "From" date must not be later than the "To" date.');
+                    setErrorState(toInput, 'The "To" date must not be earlier than the "From" date.');
                     if (showMessage) {
                         toInput.reportValidity();
                     }
@@ -529,7 +529,7 @@
         }
 
         const learningData = @json($data_learning);
-        window.addLearningEntry = function(data = null) {
+        function addLearningEntry(data = null) {
             const rowCount = learningContainer.children.length + 1;
             //const entryCount = learningContainer.querySelectorAll('.entry-card').length;
             // the <input..$rowCount is for the C3Controller for monitoring the rowCount :: FOR DATABASE
@@ -603,7 +603,7 @@
         }
 
         const voluntaryData = @json($data_voluntary);
-        window.addVoluntaryEntry = function(data = null) {
+        function addVoluntaryEntry(data = null) {
             const rowCount = voluntaryContainer.children.length + 1;
             //const entryCount = voluntaryContainer.querySelectorAll('.entry-card').length;
             // the <input..$rowCount is for the C3Controller for monitoring the rowCount :: FOR DATABASE
@@ -698,7 +698,7 @@
 
 
 
-        window.addField = function(containerId, fieldName, placeholder, value = '') {
+        function addField(containerId, fieldName, placeholder, value = '') {
             const container = document.getElementById(containerId);
             const fieldHtml = `
                     <div class="other-info-row flex flex-col sm:flex-row gap-3 animate-fade-in">
@@ -711,7 +711,7 @@
             container.insertAdjacentHTML('beforeend', fieldHtml);
         }
 
-        window.checkEmptyStates = function() {
+        function checkEmptyStates() {
             const addLearningBtn = document.getElementById('add-learning-btn');
             const addVoluntaryBtn = document.getElementById('add-voluntary-btn');
 
@@ -865,8 +865,3 @@
         }
     })();
 </script>
-
-{{-- Test Data Populator - Remove in production --}}
-@if(request()->has('populate_test_data'))
-    @include('pds.c3_test_data')
-@endif
