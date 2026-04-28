@@ -8,7 +8,7 @@
         </h1>
 
         @if ($errors->any())
-            <div class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+            <div class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded relative z-50">
                 <ul>
                     @foreach ($errors->all() as $error)
                         <li>{{ $error }}</li>

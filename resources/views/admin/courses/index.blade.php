@@ -28,7 +28,7 @@
     </section>
 
     @if ($errors->any())
-        <div class="rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-red-700">
+        <div class="rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-red-700 relative z-50">
             <ul class="list-inside list-disc text-sm">
                 @foreach ($errors->all() as $error)
                     <li>{{ $error }}</li>
@@ -38,7 +38,7 @@
     @endif
 
     @if (session('success'))
-        <div id="programSuccessAlert" class="flex items-start justify-between gap-3 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+        <div id="programSuccessAlert" class="flex items-start justify-between gap-3 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 relative z-50">
             <div class="flex items-start gap-2">
                 <i class="fa-solid fa-circle-check mt-0.5"></i>
                 <span>{{ session('success') }}</span>

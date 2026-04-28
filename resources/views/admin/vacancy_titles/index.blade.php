@@ -3,7 +3,7 @@
 @section('content')
 <div class="p-6 max-w-5xl mx-auto space-y-6 font-montserrat">
     @if ($errors->any())
-        <div class="bg-red-50 border border-red-300 text-red-700 px-4 py-3 rounded">
+      <div class="bg-red-50 border border-red-300 text-red-700 px-4 py-3 rounded relative z-50">
             <ul class="list-disc list-inside text-sm">
                 @foreach ($errors->all() as $error)
                     <li>{{ $error }}</li>
@@ -12,7 +12,7 @@
         </div>
     @endif
     @if (session('success'))
-        <div class="bg-green-50 border border-green-300 text-green-700 px-4 py-3 rounded text-sm">
+      <div class="bg-green-50 border border-green-300 text-green-700 px-4 py-3 rounded text-sm relative z-50">
             {{ session('success') }}
         </div>
     @endif

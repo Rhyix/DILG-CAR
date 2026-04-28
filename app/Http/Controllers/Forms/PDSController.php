@@ -159,6 +159,7 @@ class PDSController extends Controller
 
         $formats = [
             'd-m-Y',
+            'Y-m',
             'Y-m-d',
             'm/d/Y',
             'd/m/Y',
@@ -3575,15 +3576,15 @@ $rules_data_learning["learning_to_$i"] = 'required|date';
                     continue;
                 }
 
-                // Plus 1 day rule: TO must be at least one day later than FROM.
-                if ($toDate->lte($fromDate)) {
+                // Same-day attendance is allowed; only reject inverted date ranges.
+                if ($toDate->lt($fromDate)) {
                     $validator->errors()->add(
                         "learning_from_$i",
-                        "Learning and Development row {$i}: FROM date must be at least one day earlier than TO date."
+                        "Learning and Development row {$i}: FROM date must be the same day or earlier than TO date."
                     );
                     $validator->errors()->add(
                         "learning_to_$i",
-                        "Learning and Development row {$i}: TO date must be at least one day later than FROM date."
+                        "Learning and Development row {$i}: TO date must be the same day or later than FROM date."
                     );
                 }
             }
@@ -3638,15 +3639,15 @@ $rules_data_vol["voluntary_to_$i"] = 'required|date';
                     continue;
                 }
 
-                // Plus 1 day rule: TO must be at least one day later than FROM.
-                if ($toDate->lte($fromDate)) {
+                // Same-day attendance is allowed; only reject inverted date ranges.
+                if ($toDate->lt($fromDate)) {
                     $validator->errors()->add(
                         "voluntary_from_$i",
-                        "Voluntary Work row {$i}: FROM date must be at least one day earlier than TO date."
+                        "Voluntary Work row {$i}: FROM date must be the same day or earlier than TO date."
                     );
                     $validator->errors()->add(
                         "voluntary_to_$i",
-                        "Voluntary Work row {$i}: TO date must be at least one day later than FROM date."
+                        "Voluntary Work row {$i}: TO date must be the same day or later than FROM date."
                     );
                 }
             }
@@ -5151,15 +5152,64 @@ $rules_data_vol["voluntary_to_$i"] = 'required|date';
         return array_values(array_unique($normalizedSelection));
     }
 
+    private function resolveVacancySupportingDocumentSelection(?Models\JobVacancy $vacancy = null): array
+    {
+        if (!$vacancy) {
+            return [];
+        }
+
+        if ($vacancy->supporting_documents_required !== null) {
+            return $this->normalizeSupportingDocumentSelection($vacancy->supporting_documents_required);
+        }
+
+        if (!Schema::hasTable('vacancy_titles')) {
+            return [];
+        }
+
+        $positionTitleCandidates = array_values(array_unique(array_filter([
+            trim((string) $vacancy->getRawOriginal('position_title')),
+            trim((string) $vacancy->position_title),
+        ])));
+
+        if (empty($positionTitleCandidates)) {
+            return [];
+        }
+
+        $normalizedTrack = $this->normalizeTrack($vacancy->vacancy_type ?? null);
+        $templateVacancy = Models\VacancyTitle::query()
+            ->where(function ($query) use ($positionTitleCandidates) {
+                foreach ($positionTitleCandidates as $index => $positionTitle) {
+                    if ($index === 0) {
+                        $query->where('position_title', $positionTitle);
+                    } else {
+                        $query->orWhere('position_title', $positionTitle);
+                    }
+                }
+            })
+            ->whereRaw("UPPER(TRIM(COALESCE(vacancy_type, ''))) = ?", [strtoupper($normalizedTrack)])
+            ->orderByDesc('updated_at')
+            ->orderByDesc('id')
+            ->first();
+
+        if (!$templateVacancy || $templateVacancy->supporting_documents_required === null) {
+            return [];
+        }
+
+        return $this->normalizeSupportingDocumentSelection($templateVacancy->supporting_documents_required);
+    }
+
     private function getRequiredDocumentIdsForVacancy(?Models\JobVacancy $vacancy = null, ?string $docTrack = null): array
     {
-        $hasStoredSelection = $vacancy && $vacancy->supporting_documents_required !== null;
         $normalizedTrack = strcasecmp((string) $docTrack, 'COS') === 0 ? 'COS' : 'Plantilla';
         $requiredByTrack = $this->getRequiredDocsByTrack();
 
-        $requiredDocs = $hasStoredSelection
-            ? $this->normalizeSupportingDocumentSelection($vacancy->supporting_documents_required)
-            : ($requiredByTrack[$normalizedTrack] ?? []);
+        $requiredDocs = $vacancy
+            ? $this->resolveVacancySupportingDocumentSelection($vacancy)
+            : [];
+
+        if (empty($requiredDocs)) {
+            $requiredDocs = $requiredByTrack[$normalizedTrack] ?? [];
+        }
 
         return array_values(array_unique($requiredDocs));
     }
@@ -6122,6 +6172,11 @@ $rules_data_vol["voluntary_to_$i"] = 'required|date';
             ];
         }
 
+        $requiredDocs = $this->getRequiredDocumentIdsForVacancy(
+            $vacancy,
+            (string) ($vacancy->vacancy_type ?? 'Plantilla')
+        );
+
         $initialAssessment = $this->getInitialAssessmentForVacancy($vacancy);
 
         $application = Applications::where('user_id', Auth::id())
@@ -6184,6 +6239,8 @@ $rules_data_vol["voluntary_to_$i"] = 'required|date';
             }
         }
 
+        $requiresApplicationLetter = in_array('application_letter', $requiredDocs, true);
+
         $applicationLetterDocQuery = UploadedDocument::where('user_id', Auth::id())
             ->where('document_type', 'application_letter')
             ->whereNotNull('storage_path')
@@ -6233,7 +6290,7 @@ $rules_data_vol["voluntary_to_$i"] = 'required|date';
             }
         }
 
-        if (!$applicationLetterDoc) {
+        if (!$applicationLetterDoc && $requiresApplicationLetter) {
             return [
                 'ok' => false,
                 'created' => false,
@@ -6243,7 +6300,8 @@ $rules_data_vol["voluntary_to_$i"] = 'required|date';
         }
 
         if (
-            $supportsVacancyScopedDocs
+            $applicationLetterDoc
+            && $supportsVacancyScopedDocs
             && (string) ($applicationLetterDoc->vacancy_id ?? '') !== $vacancyId
         ) {
             $applicationLetterDoc = $this->upsertVacancyDocumentFromSource(
@@ -6254,15 +6312,20 @@ $rules_data_vol["voluntary_to_$i"] = 'required|date';
         }
 
         $applicationPayload = [
-            'file_original_name' => $applicationLetterDoc->original_name,
-            'file_stored_name' => $applicationLetterDoc->stored_name,
-            'file_storage_path' => $applicationLetterDoc->storage_path,
-            // Re-applies should always return application-letter validation to pending.
-            'file_status' => 'Pending',
-            'file_remarks' => null,
-            'file_size_8b' => $applicationLetterDoc->file_size_8b,
             'is_valid' => true,
         ];
+
+        if ($applicationLetterDoc) {
+            $applicationPayload = array_merge($applicationPayload, [
+                'file_original_name' => $applicationLetterDoc->original_name,
+                'file_stored_name' => $applicationLetterDoc->stored_name,
+                'file_storage_path' => $applicationLetterDoc->storage_path,
+                // Re-applies should always return application-letter validation to pending.
+                'file_status' => 'Pending',
+                'file_remarks' => null,
+                'file_size_8b' => $applicationLetterDoc->file_size_8b,
+            ]);
+        }
 
         if ($application) {
             if (ApplicationStatus::equals($application->status, ApplicationStatus::COMPLIANCE)) {

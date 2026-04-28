@@ -618,10 +618,10 @@
                     return true;
                 }
 
-                // Plus 1 day rule: FROM must be earlier than TO by at least one day.
-                if (fromDate.getTime() >= toDate.getTime()) {
-                    setWorkDateErrorState(fromInput, 'FROM date must be at least 1 day earlier than TO date.');
-                    setWorkDateErrorState(toInput, 'TO date must be at least 1 day later than FROM date.');
+                // Same-day attendance is allowed; only reject inverted date ranges.
+                if (fromDate.getTime() > toDate.getTime()) {
+                    setWorkDateErrorState(fromInput, 'FROM date must be the same day or earlier than TO date.');
+                    setWorkDateErrorState(toInput, 'TO date must be the same day or later than FROM date.');
                     if (showMessage) {
                         toInput.reportValidity();
                     }

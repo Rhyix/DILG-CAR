@@ -508,10 +508,10 @@
                     return true;
                 }
 
-                // Plus 1 day rule: TO must be at least one day after FROM.
+                // Same-day attendance is allowed; only reject inverted date ranges.
                 if (toDate.getTime() < fromDate.getTime()) {
-                    setErrorState(fromInput, 'The "From" date must be at least one day earlier than the "To" date.');
-                    setErrorState(toInput, 'The "To" date must be at least one day later than the "From" date.');
+                    setErrorState(fromInput, 'The "From" date must be the same day or earlier than the "To" date.');
+                    setErrorState(toInput, 'The "To" date must be the same day or later than the "From" date.');
                     if (showMessage) {
                         toInput.reportValidity();
                     }

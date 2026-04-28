@@ -500,48 +500,35 @@
     </div>
     @endif
 
-    @if ($errors->any())
-    <script>
-        (function () {
-            const errors = @json($errors->all());
-            const delay = 350;
-            function fireToasts() {
-                if (typeof window.showAppToast === 'function') {
-                    errors.forEach(function (msg, i) {
-                        setTimeout(function () {
-                            window.showAppToast(msg, 'error', 7000);
-                        }, i * delay);
-                    });
-                } else {
-                    setTimeout(fireToasts, 80);
-                }
-            }
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', fireToasts);
-            } else {
-                fireToasts();
-            }
-        })();
-    </script>
-    @endif
+    @php
+        $pdsErrorMessages = collect();
+        if ($errors->any()) {
+            $pdsErrorMessages = $pdsErrorMessages->merge($errors->all());
+        }
+        if (session('error')) {
+            $pdsErrorMessages = $pdsErrorMessages->push(session('error'));
+        }
+    @endphp
 
-    @if (session('error'))
-    <script>
-        (function () {
-            function fireError() {
-                if (typeof window.showAppToast === 'function') {
-                    window.showAppToast(@json(session('error')), 'error', 7000);
-                } else {
-                    setTimeout(fireError, 80);
-                }
-            }
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', fireError);
-            } else {
-                fireError();
-            }
-        })();
-    </script>
+    @if ($pdsErrorMessages->isNotEmpty())
+    <div id="pds-error-banner" class="mx-auto max-w-7xl px-2 pt-4 sm:px-4 lg:px-8 md:ml-20 lg:ml-[20.5rem] relative z-[60]">
+        <div class="rounded-2xl border border-red-200 bg-red-50 text-red-800 shadow-lg">
+            <div class="flex items-start gap-3 px-4 py-4">
+                <span class="material-icons mt-0.5 text-red-600">error</span>
+                <div class="min-w-0 flex-1">
+                    <p class="text-sm font-semibold uppercase tracking-wide">Error</p>
+                    <ul class="mt-2 list-disc space-y-1 pl-5 text-sm leading-6">
+                        @foreach ($pdsErrorMessages as $message)
+                            <li>{{ $message }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+                <button type="button" onclick="dismissPdsErrorBanner()" class="ml-auto rounded-lg p-1 text-red-500 transition hover:bg-red-100 hover:text-red-700" aria-label="Dismiss error message">
+                    <span class="material-icons text-xl">close</span>
+                </button>
+            </div>
+        </div>
+    </div>
     @endif
 
     @if(!$simple)
@@ -737,6 +724,13 @@
                     }
                 }, 300);
             }, duration);
+        }
+
+        function dismissPdsErrorBanner() {
+            const banner = document.getElementById('pds-error-banner');
+            if (banner) {
+                banner.remove();
+            }
         }
 
         // Form validation functions (optional - for form quality but not navigation blocking)

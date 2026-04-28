@@ -1225,6 +1225,7 @@ class JobVacancyController extends Controller
             'qualification_training',
             'qualification_experience',
             'qualification_eligibility',
+            'supporting_documents_required',
             'competencies',
             'expected_output',
             'scope_of_work',
@@ -1236,12 +1237,14 @@ class JobVacancyController extends Controller
         ];
 
         foreach ($optionalPayload as $column) {
-            if (Schema::hasColumn('vacancy_titles', $column)) {
-                if ($column === 'supporting_documents_required') {
-                    $data[$column] = $this->normalizeSupportingDocumentSelection($validated[$column] ?? null);
-                } else {
-                    $data[$column] = $validated[$column] ?? null;
-                }
+            if (!Schema::hasColumn('vacancy_titles', $column)) {
+                continue;
+            }
+
+            if ($column === 'supporting_documents_required') {
+                $data[$column] = $this->normalizeSupportingDocumentSelection($validated[$column] ?? null);
+            } else {
+                $data[$column] = $validated[$column] ?? null;
             }
         }
 
@@ -3671,12 +3674,59 @@ class JobVacancyController extends Controller
         return array_values(array_unique($normalizedSelection));
     }
 
+    private function resolveVacancySupportingDocumentSelection(?JobVacancy $vacancy = null): array
+    {
+        if (!$vacancy) {
+            return [];
+        }
+
+        if ($vacancy->supporting_documents_required !== null) {
+            return $this->normalizeSupportingDocumentSelection($vacancy->supporting_documents_required);
+        }
+
+        if (!Schema::hasTable('vacancy_titles')) {
+            return [];
+        }
+
+        $positionTitleCandidates = array_values(array_unique(array_filter([
+            trim((string) $vacancy->getRawOriginal('position_title')),
+            trim((string) $vacancy->position_title),
+        ])));
+
+        if (empty($positionTitleCandidates)) {
+            return [];
+        }
+
+        $normalizedTrack = $this->normalizeTrack($vacancy->vacancy_type ?? null);
+        $templateVacancy = VacancyTitle::query()
+            ->where(function ($query) use ($positionTitleCandidates) {
+                foreach ($positionTitleCandidates as $index => $positionTitle) {
+                    if ($index === 0) {
+                        $query->where('position_title', $positionTitle);
+                    } else {
+                        $query->orWhere('position_title', $positionTitle);
+                    }
+                }
+            })
+            ->whereRaw("UPPER(TRIM(COALESCE(vacancy_type, ''))) = ?", [strtoupper($normalizedTrack)])
+            ->orderByDesc('updated_at')
+            ->orderByDesc('id')
+            ->first();
+
+        if (!$templateVacancy || $templateVacancy->supporting_documents_required === null) {
+            return [];
+        }
+
+        return $this->normalizeSupportingDocumentSelection($templateVacancy->supporting_documents_required);
+    }
+
     private function getRequiredDocumentIdsForVacancyType(?string $vacancyType, ?JobVacancy $vacancy = null): array
     {
-        $hasStoredSelection = $vacancy && $vacancy->supporting_documents_required !== null;
-        $requiredDocumentIds = $hasStoredSelection
-            ? $this->normalizeSupportingDocumentSelection($vacancy->supporting_documents_required)
-            : ($this->getRequiredDocsByTrack()[$this->normalizeTrack($vacancyType)] ?? []);
+        $requiredDocumentIds = $this->resolveVacancySupportingDocumentSelection($vacancy);
+
+        if (empty($requiredDocumentIds)) {
+            $requiredDocumentIds = $this->getRequiredDocsByTrack()[$this->normalizeTrack($vacancyType)] ?? [];
+        }
 
         usort($requiredDocumentIds, function ($a, $b) {
             $labelA = strtolower($this->getDocumentLabelMap()[$a] ?? $a);

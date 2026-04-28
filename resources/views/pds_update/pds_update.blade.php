@@ -544,36 +544,67 @@
                     Continue on separate sheet if necessary. Write full name of school and honors.
                 </p>
 
+                @php
+                    $formatMonthValue = static function ($value) {
+                        $value = is_string($value) ? trim($value) : '';
+
+                        if ($value === '') {
+                            return '';
+                        }
+
+                        try {
+                            if (preg_match('/^\d{4}-\d{2}$/', $value)) {
+                                return $value;
+                            }
+
+                            if (preg_match('/^\d{2}-\d{2}-\d{4}$/', $value)) {
+                                return \Carbon\Carbon::createFromFormat('d-m-Y', $value)->format('Y-m');
+                            }
+
+                            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+                                return \Carbon\Carbon::createFromFormat('Y-m-d', $value)->format('Y-m');
+                            }
+                        } catch (\Throwable $e) {
+                            return '';
+                        }
+
+                        return '';
+                    };
+
+                    $collegeEducation = $college_schools[0] ?? [];
+                    $gradEducation = $grad_schools[0] ?? [];
+                @endphp
+
                 <!-- Elementary -->
                 <div class="mb-6">
                     <h3 class="text-lg font-semibold text-gray-700 mb-4">Elementary</h3>
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                         <div class="relative">
-                            <input type="text" aria-label="From date" id="elem_from" name="elem_from" value="{{ old('elem_from', session('form.elem_from')) }}" class="edu-date w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
+                            <input type="text" aria-label="From date" id="elem_from" name="elem_from" value="{{ old('elem_from', session('form.c1.elem_from')) }}" class="edu-date w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
                             <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">From</label>
                         </div>
                         <div class="relative">
-                            <input type="text" aria-label="To date" id="elem_to" name="elem_to" value="{{ old('elem_to', session('form.elem_to')) }}" class="edu-date w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
+                            <input type="text" aria-label="To date" id="elem_to" name="elem_to" value="{{ old('elem_to', session('form.c1.elem_to')) }}" class="edu-date w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
                             <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">To</label>
                         </div>
                         <div class="relative col-span-2">
-                            <input type="text" id="elem_school" name="elem_school" value="{{ old('elem_school', session('form.elem_school')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
+                            <input type="text" id="elem_school" name="elem_school" value="{{ old('elem_school', session('form.c1.elem_school')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
                             <label for="elem_school" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">School Name</label>
                         </div>
                         <div class="relative col-span-2">
-                            <input type="text" id="elem_basic" name="elem_basic" value="{{ old('elem_basic', session('form.elem_basic')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
+                            <input type="text" id="elem_basic" name="elem_basic" value="{{ old('elem_basic', session('form.c1.elem_basic')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
                             <label for="elem_basic" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Basic Education/Degree/Course</label>
                         </div>
                         <div class="relative col-span-2">
-                            <input type="text" id="elem_earned" name="elem_earned" value="{{ old('elem_earned', session('form.elem_earned')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
+                            <input type="text" id="elem_earned" name="elem_earned" value="{{ old('elem_earned', session('form.c1.elem_earned')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
                             <label for="elem_earned" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Highest Level Units Earned</label>
                         </div>
                         <div class="relative col-span-2">
-                            <input type="text" id="elem_year_graduated" name="elem_year_graduated" value="{{ old('elem_year_graduated', session('form.elem_year_graduated')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
+                            <input type="text" id="elem_year_graduated" name="elem_year_graduated" value="{{ old('elem_year_graduated', session('form.c1.elem_year_graduated')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
                             <label for="elem_year_graduated" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Year Graduated</label>
                         </div>
                         <div class="relative col-span-2">
-                            <input type="text" id="elem_academic_honors" name="elem_academic_honors" value="{{ old('elem_academic_honors', session('form.elem_academic_honors')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
+                            <input type="text" id="elem_academic_honors" name="elem_academic_honors" value="{{ old('elem_academic_honors', session('form.c1.elem_academic_honors')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
                             <label for="elem_academic_honors" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Scholarship/Academic Honors Recieved</label>
                         </div>
                     </div>
@@ -619,32 +650,32 @@
                     <h3 class="text-lg font-semibold text-gray-700 mb-4">College</h3>
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                         <div class="relative">
-                            <input type="month" id="college_from" name="college_from" value="{{ old('college_from', session('form.college_from')) }}" class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
+                            <input type="month" id="college_from" name="college[0][from]" value="{{ old('college.0.from', $formatMonthValue($collegeEducation['from'] ?? '')) }}" class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
                             <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">From</label>
                         </div>
                         <div class="relative">
-                            <input type="month" id="college_to" name="college_to" value="{{ old('college_to', session('form.college_to')) }}" class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
+                            <input type="month" id="college_to" name="college[0][to]" value="{{ old('college.0.to', $formatMonthValue($collegeEducation['to'] ?? '')) }}" class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
                             <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">To</label>
                         </div>
                         <div class="relative col-span-2">
-                            <input type="text" id="college_school" name="college_school" value="{{ old('college_school', session('form.college_school')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
+                            <input type="text" id="college_school" name="college[0][school]" value="{{ old('college.0.school', $collegeEducation['school'] ?? '') }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
                             <label for="college_school" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">School Name</label>
                         </div>
                         <div class="relative col-span-2">
-                            <input type="text" id="elem_school" name="elem_school" value="{{ old('elem_school', session('form.elem_school')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
-                            <label for="elem_school" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Basic Education/Degree/Course</label>
+                            <input type="text" id="college_basic" name="college[0][basic]" value="{{ old('college.0.basic', $collegeEducation['basic'] ?? '') }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
+                            <label for="college_basic" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Basic Education/Degree/Course</label>
                         </div>
                         <div class="relative col-span-2">
-                            <input type="text" id="elem_school" name="elem_school" value="{{ old('elem_school', session('form.elem_school')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
-                            <label for="elem_school" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Highest Level Units Earned</label>
+                            <input type="text" id="college_earned" name="college[0][earned]" value="{{ old('college.0.earned', $collegeEducation['earned'] ?? '') }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
+                            <label for="college_earned" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Highest Level Units Earned</label>
                         </div>
                         <div class="relative col-span-2">
-                            <input type="text" id="elem_school" name="elem_school" value="{{ old('elem_school', session('form.elem_school')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
-                            <label for="elem_school" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Year Graduated</label>
+                            <input type="text" id="college_year_graduated" name="college[0][year_graduated]" value="{{ old('college.0.year_graduated', $collegeEducation['year_graduated'] ?? '') }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
+                            <label for="college_year_graduated" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Year Graduated</label>
                         </div>
                         <div class="relative col-span-2">
-                            <input type="text" id="elem_school" name="elem_school" value="{{ old('elem_school', session('form.elem_school')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
-                            <label for="elem_school" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Scholarship/Academic Honors Recieved</label>
+                            <input type="text" id="college_academic_honors" name="college[0][academic_honors]" value="{{ old('college.0.academic_honors', $collegeEducation['academic_honors'] ?? '') }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
+                            <label for="college_academic_honors" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Scholarship/Academic Honors Recieved</label>
                         </div>
                     </div>
                 </div>
@@ -654,32 +685,32 @@
                     <h3 class="text-lg font-semibold text-gray-700 mb-4">Graduate Studies</h3>
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                         <div class="relative">
-                            <input type="month" id="grad_from" name="grad_from" value="{{ old('grad_from', session('form.grad_from')) }}" class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
+                            <input type="month" id="grad_from" name="grad[0][from]" value="{{ old('grad.0.from', $formatMonthValue($gradEducation['from'] ?? '')) }}" class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
                             <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">From</label>
                         </div>
                         <div class="relative">
-                            <input type="month" id="grad_to" name="grad_to" value="{{ old('grad_to', session('form.grad_to')) }}" class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
+                            <input type="month" id="grad_to" name="grad[0][to]" value="{{ old('grad.0.to', $formatMonthValue($gradEducation['to'] ?? '')) }}" class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
                             <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">To</label>
                         </div>
                         <div class="relative col-span-2">
-                            <input type="text" id="grad_school" name="grad_school" value="{{ old('grad_school', session('form.grad_school')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
+                            <input type="text" id="grad_school" name="grad[0][school]" value="{{ old('grad.0.school', $gradEducation['school'] ?? '') }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
                             <label for="grad_school" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">School Name</label>
                         </div>  
                         <div class="relative col-span-2">
-                            <input type="text" id="elem_school" name="elem_school" value="{{ old('elem_school', session('form.elem_school')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
-                            <label for="elem_school" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Basic Education/Degree/Course</label>
+                            <input type="text" id="grad_basic" name="grad[0][basic]" value="{{ old('grad.0.basic', $gradEducation['basic'] ?? '') }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
+                            <label for="grad_basic" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Basic Education/Degree/Course</label>
                         </div>
                         <div class="relative col-span-2">
-                            <input type="text" id="elem_school" name="elem_school" value="{{ old('elem_school', session('form.elem_school')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
-                            <label for="elem_school" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Highest Level Units Earned</label>
+                            <input type="text" id="grad_earned" name="grad[0][earned]" value="{{ old('grad.0.earned', $gradEducation['earned'] ?? '') }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
+                            <label for="grad_earned" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Highest Level Units Earned</label>
                         </div>
                         <div class="relative col-span-2">
-                            <input type="text" id="elem_school" name="elem_school" value="{{ old('elem_school', session('form.elem_school')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
-                            <label for="elem_school" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Year Graduated</label>
+                            <input type="text" id="grad_year_graduated" name="grad[0][year_graduated]" value="{{ old('grad.0.year_graduated', $gradEducation['year_graduated'] ?? '') }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
+                            <label for="grad_year_graduated" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Year Graduated</label>
                         </div>
                         <div class="relative col-span-2">
-                            <input type="text" id="elem_school" name="elem_school" value="{{ old('elem_school', session('form.elem_school')) }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
-                            <label for="elem_school" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Scholarship/Academic Honors Recieved</label>
+                            <input type="text" id="grad_academic_honors" name="grad[0][academic_honors]" value="{{ old('grad.0.academic_honors', $gradEducation['academic_honors'] ?? '') }}" placeholder=" " class="floating-label-input w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer">
+                            <label for="grad_academic_honors" class="floating-label absolute left-4 top-3 text-gray-500 pointer-events-none">Scholarship/Academic Honors Recieved</label>
                         </div>
                     </div>
                 </div>

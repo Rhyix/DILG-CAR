@@ -37,7 +37,7 @@
 
     <hr>
 
-    <div class="rounded-xl border {{ $backupReminder['is_overdue'] ? 'border-amber-200 bg-amber-50' : 'border-emerald-200 bg-emerald-50' }} px-4 py-3">
+    <div class="rounded-xl border {{ $backupReminder['is_overdue'] ? 'border-amber-200 bg-amber-50' : 'border-emerald-200 bg-emerald-50' }} px-4 py-3 relative z-40">
         <div class="flex items-start gap-3">
             <span class="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full {{ $backupReminder['is_overdue'] ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700' }}">
                 <i data-feather="{{ $backupReminder['is_overdue'] ? 'alert-triangle' : 'shield' }}" class="w-4 h-4"></i>
@@ -65,7 +65,7 @@
     </div>
 
     @if ($errors->any())
-        <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-700">
+        <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-700 relative z-50">
             <div class="flex items-start gap-3">
                 <span class="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-red-100 text-red-700">
                     <i data-feather="alert-triangle" class="w-4 h-4"></i>
