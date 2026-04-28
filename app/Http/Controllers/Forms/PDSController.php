@@ -124,6 +124,36 @@ class PDSController extends Controller
         return $value;
     }
 
+    private function normalizeEducationYearForForm(?string $value): ?string
+    {
+        $raw = trim((string) ($value ?? ''));
+        if ($raw === '') {
+            return '';
+        }
+
+        if (preg_match('/^\d{4}$/', $raw)) {
+            return $raw;
+        }
+
+        try {
+            if (preg_match('/^\d{2}-\d{4}$/', $raw)) {
+                return Carbon::createFromFormat('m-Y', $raw)->format('Y');
+            }
+
+            if (preg_match('/^\d{2}-\d{2}-\d{4}$/', $raw)) {
+                return Carbon::createFromFormat('d-m-Y', $raw)->format('Y');
+            }
+
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $raw)) {
+                return Carbon::createFromFormat('Y-m-d', $raw)->format('Y');
+            }
+        } catch (\Throwable $e) {
+            return $raw;
+        }
+
+        return $raw;
+    }
+
     private function normalizeDateForDatabase(?string $value): ?string
     {
         $raw = trim((string) ($value ?? ''));
@@ -158,6 +188,8 @@ class PDSController extends Controller
         }
 
         $formats = [
+            'Y',
+            'm-Y',
             'd-m-Y',
             'Y-m-d',
             'm/d/Y',
@@ -226,7 +258,7 @@ class PDSController extends Controller
             }
 
             foreach (['from', 'to'] as $dateKey) {
-                $entries[$index][$dateKey] = $this->normalizeDateForForm($entry[$dateKey] ?? null);
+                $entries[$index][$dateKey] = $this->normalizeEducationYearForForm($entry[$dateKey] ?? null);
             }
         }
 
@@ -585,17 +617,31 @@ class PDSController extends Controller
         $fromValue,
         $toValue,
         string $fromField,
-        string $toField
+        string $toField,
+        bool $allowSameYear = false
     ): void {
         $fromDate = $this->parseEducationDateForValidation($fromValue);
         $toDate = $this->parseEducationDateForValidation($toValue);
 
-        if (!$fromDate || !$toDate || !$fromDate->gte($toDate)) {
+        if (!$fromDate || !$toDate) {
             return;
         }
 
-        $validator->errors()->add($fromField, 'The "From" date must be at least one day earlier than the "To" date.');
-        $validator->errors()->add($toField, 'The "To" date must be at least one day later than the "From" date.');
+        if ($allowSameYear) {
+            if ($fromDate->gt($toDate)) {
+                $validator->errors()->add($fromField, 'The "From" year must be earlier than or the same as the "To" year.');
+                $validator->errors()->add($toField, 'The "To" year must be later than or the same as the "From" year.');
+            }
+
+            return;
+        }
+
+        if (!$fromDate->gte($toDate)) {
+            return;
+        }
+
+        $validator->errors()->add($fromField, 'The "From" year must be earlier than the "To" year.');
+        $validator->errors()->add($toField, 'The "To" year must be later than the "From" year.');
     }
 
     private function validateEducationDateRanges(\Illuminate\Validation\Validator $validator, array $payload): void
@@ -619,7 +665,7 @@ class PDSController extends Controller
         $elemToDate = $this->parseEducationDateForValidation($payload['elem_to'] ?? null);
         $jhsFromDate = $this->parseEducationDateForValidation($payload['jhs_from'] ?? null);
         if ($elemToDate && $jhsFromDate && $jhsFromDate->lt($elemToDate)) {
-            $validator->errors()->add('jhs_from', 'Secondary "From" date must not be before Elementary "To" date.');
+            $validator->errors()->add('jhs_from', 'Secondary "From" year must not be before Elementary "To" year.');
         }
 
         foreach (['vocational', 'college', 'grad'] as $educationType) {
@@ -638,7 +684,8 @@ class PDSController extends Controller
                     $entry['from'] ?? null,
                     $entry['to'] ?? null,
                     "{$educationType}.{$index}.from",
-                    "{$educationType}.{$index}.to"
+                    "{$educationType}.{$index}.to",
+                    $educationType === 'vocational'
                 );
             }
         }
@@ -888,7 +935,7 @@ class PDSController extends Controller
         $user_educational_bg = $current_user->educationalBackground?->attributesToArray();
         if ($user_educational_bg != null) {
             foreach (['elem_from', 'elem_to', 'jhs_from', 'jhs_to', 'shs_from', 'shs_to'] as $dateField) {
-                $user_educational_bg[$dateField] = $this->normalizeDateForForm($user_educational_bg[$dateField] ?? null);
+                $user_educational_bg[$dateField] = $this->normalizeEducationYearForForm($user_educational_bg[$dateField] ?? null);
             }
 
             // If Senior High data exists but Junior High doesn't, copy SHS data to JHS fields for form display
@@ -1592,10 +1639,10 @@ class PDSController extends Controller
         $request->merge([
             'telephone_no' => $this->normalizeTelephoneInput($request->input('telephone_no')),
             'mobile_no' => $this->normalizeMobileInput($request->input('mobile_no')),
-            'elem_from' => $this->normalizeDateForForm($request->input('elem_from')),
-            'elem_to' => $this->normalizeDateForForm($request->input('elem_to')),
-            'jhs_from' => $this->normalizeDateForForm($request->input('jhs_from')),
-            'jhs_to' => $this->normalizeDateForForm($request->input('jhs_to')),
+            'elem_from' => $this->normalizeEducationYearForForm($request->input('elem_from')),
+            'elem_to' => $this->normalizeEducationYearForForm($request->input('elem_to')),
+            'jhs_from' => $this->normalizeEducationYearForForm($request->input('jhs_from')),
+            'jhs_to' => $this->normalizeEducationYearForForm($request->input('jhs_to')),
             'vocational' => $this->normalizeEducationEntriesForForm($request->input('vocational')),
             'college' => $normalizedCollegeEntries,
             'grad' => $this->normalizeEducationEntriesForForm($gradData),
@@ -1648,29 +1695,29 @@ class PDSController extends Controller
             'per_brgy' => 'required|string|max:255',
             'res_zipcode' => 'nullable|string|max:4',
             'per_zipcode' => 'nullable|string|max:4',
-            'elem_from' => 'required|date_format:d-m-Y',
-            'elem_to' => 'required|date_format:d-m-Y',
-            'jhs_from' => 'nullable|date_format:d-m-Y',
-            'jhs_to' => 'nullable|date_format:d-m-Y',
+            'elem_from' => ['required', 'digits:4'],
+            'elem_to' => ['required', 'digits:4'],
+            'jhs_from' => ['nullable', 'digits:4'],
+            'jhs_to' => ['nullable', 'digits:4'],
             'vocational' => 'nullable|array',
-            'vocational.*.from' => 'nullable|date_format:d-m-Y',
-            'vocational.*.to' => 'nullable|date_format:d-m-Y',
+            'vocational.*.from' => ['nullable', 'digits:4'],
+            'vocational.*.to' => ['nullable', 'digits:4'],
             'vocational.*.school' => 'nullable|string|max:255',
             'vocational.*.basic' => 'nullable|string|max:255',
             'vocational.*.earned' => 'nullable|string|max:255',
             'vocational.*.year_graduated' => 'nullable|string|max:255',
             'vocational.*.academic_honors' => 'nullable|string|max:255',
             'college' => 'nullable|array',
-            'college.*.from' => 'nullable|date_format:d-m-Y',
-            'college.*.to' => 'nullable|date_format:d-m-Y',
+            'college.*.from' => ['nullable', 'digits:4'],
+            'college.*.to' => ['nullable', 'digits:4'],
             'college.*.school' => 'nullable|string|max:255',
             'college.*.basic' => 'nullable|string|max:255',
             'college.*.earned' => 'nullable|string|max:255',
             'college.*.year_graduated' => 'nullable|string|max:255',
             'college.*.academic_honors' => 'nullable|string|max:255',
             'grad' => 'nullable|array',
-            'grad.*.from' => 'nullable|date_format:d-m-Y',
-            'grad.*.to' => 'nullable|date_format:d-m-Y',
+            'grad.*.from' => ['nullable', 'digits:4'],
+            'grad.*.to' => ['nullable', 'digits:4'],
             'grad.*.school' => 'nullable|string|max:255',
             'grad.*.basic' => 'nullable|string|max:255',
             'grad.*.earned' => 'nullable|string|max:255',
@@ -1679,16 +1726,16 @@ class PDSController extends Controller
 
         ], [
             'date_of_birth.date_format' => 'The date of birth field must match the format dd-mm-yyyy.',
-            'elem_from.date_format' => 'The elem from field must match the format dd-mm-yyyy.',
-            'elem_to.date_format' => 'The elem to field must match the format dd-mm-yyyy.',
-            'jhs_from.date_format' => 'The jhs from field must match the format dd-mm-yyyy.',
-            'jhs_to.date_format' => 'The jhs to field must match the format dd-mm-yyyy.',
-            'vocational.*.from.date_format' => 'The vocational from field must match the format dd-mm-yyyy.',
-            'vocational.*.to.date_format' => 'The vocational to field must match the format dd-mm-yyyy.',
-            'college.*.from.date_format' => 'The college from field must match the format dd-mm-yyyy.',
-            'college.*.to.date_format' => 'The college to field must match the format dd-mm-yyyy.',
-            'grad.*.from.date_format' => 'The graduate studies from field must match the format dd-mm-yyyy.',
-            'grad.*.to.date_format' => 'The graduate studies to field must match the format dd-mm-yyyy.',
+            'elem_from.digits' => 'The elem from field must be a 4-digit year (YYYY).',
+            'elem_to.digits' => 'The elem to field must be a 4-digit year (YYYY).',
+            'jhs_from.digits' => 'The jhs from field must be a 4-digit year (YYYY).',
+            'jhs_to.digits' => 'The jhs to field must be a 4-digit year (YYYY).',
+            'vocational.*.from.digits' => 'The vocational from field must be a 4-digit year (YYYY).',
+            'vocational.*.to.digits' => 'The vocational to field must be a 4-digit year (YYYY).',
+            'college.*.from.digits' => 'The college from field must be a 4-digit year (YYYY).',
+            'college.*.to.digits' => 'The college to field must be a 4-digit year (YYYY).',
+            'grad.*.from.digits' => 'The graduate studies from field must be a 4-digit year (YYYY).',
+            'grad.*.to.digits' => 'The graduate studies to field must be a 4-digit year (YYYY).',
         ]);
 
         $validator->after(function (\Illuminate\Validation\Validator $validator) use ($request) {
@@ -1698,8 +1745,13 @@ class PDSController extends Controller
 
         $c1_form_data_valid = $validator->validate();
 
-        foreach (['date_of_birth', 'elem_from', 'elem_to', 'jhs_from', 'jhs_to'] as $dateField) {
+        foreach (['date_of_birth'] as $dateField) {
             $normalizedDate = $this->normalizeDateForForm($c1_form_data_valid[$dateField] ?? null);
+            $c1_form_data_valid[$dateField] = (is_string($normalizedDate) && trim($normalizedDate) === '') ? null : $normalizedDate;
+        }
+
+        foreach (['elem_from', 'elem_to', 'jhs_from', 'jhs_to'] as $dateField) {
+            $normalizedDate = $this->normalizeEducationYearForForm($c1_form_data_valid[$dateField] ?? null);
             $c1_form_data_valid[$dateField] = (is_string($normalizedDate) && trim($normalizedDate) === '') ? null : $normalizedDate;
         }
 

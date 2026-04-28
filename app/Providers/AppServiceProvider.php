@@ -92,22 +92,9 @@ class AppServiceProvider extends ServiceProvider
             $userId = $this->extractUserId($event->data ?? []);
             $causer = auth('admin')->user() ?? auth()->user();
 
-            activity()
-                ->causedBy($causer)
-                ->event('email_sent')
-                ->withProperties([
-                    'section' => 'Email Logs',
-                    'recipients' => $recipients,
-                    'subject' => $subject,
-                    'mailer' => $mailer,
-                    'mailable_class' => $mailableClass,
-                    'notification_class' => $notificationClass,
-                    'template_name' => $templateName,
-                ])
-                ->log('Sent email to ' . implode(', ', $recipients));
-
+            $emailLogIds = [];
             foreach ($recipients as $recipientEmail) {
-                EmailLog::create([
+                $emailLog = EmailLog::create([
                     'vacancy_id' => $vacancyId,
                     'user_id' => $userId,
                     'recipient_email' => $recipientEmail,
@@ -131,7 +118,23 @@ class AppServiceProvider extends ServiceProvider
                     'status' => 'sent',
                     'error_message' => null,
                 ]);
+                $emailLogIds[] = $emailLog->id;
             }
+
+            activity()
+                ->causedBy($causer)
+                ->event('email_sent')
+                ->withProperties([
+                    'section' => 'Email Logs',
+                    'recipients' => $recipients,
+                    'subject' => $subject,
+                    'mailer' => $mailer,
+                    'mailable_class' => $mailableClass,
+                    'notification_class' => $notificationClass,
+                    'template_name' => $templateName,
+                    'email_log_ids' => $emailLogIds,
+                ])
+                ->log('Sent email to ' . implode(', ', $recipients));
         });
 
         Activity::created(function (Activity $activity) {

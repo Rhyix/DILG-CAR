@@ -204,6 +204,13 @@
       });
     }
 
+    function restoreSubmitButtons() {
+      document.querySelectorAll('form').forEach((form) => {
+        enableSubmitButtons(form);
+        form.dataset.retrySubmitting = '0';
+      });
+    }
+
     function hideWhenInteractive() {
       // Small delay to ensure smooth transition out
       setTimeout(() => {

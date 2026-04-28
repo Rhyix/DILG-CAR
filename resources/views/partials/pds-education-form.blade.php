@@ -155,13 +155,21 @@
                     return '';
                 }
 
+                if (preg_match('/^\d{4}$/', $value)) {
+                    return $value;
+                }
+
                 try {
                     if (preg_match('/^\d{2}-\d{2}-\d{4}$/', $value)) {
-                        return \Carbon\Carbon::createFromFormat('d-m-Y', $value)->format('Y-m-d');
+                        return \Carbon\Carbon::createFromFormat('d-m-Y', $value)->format('Y');
                     }
 
                     if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
-                        return \Carbon\Carbon::createFromFormat('Y-m-d', $value)->format('Y-m-d');
+                        return \Carbon\Carbon::createFromFormat('Y-m-d', $value)->format('Y');
+                    }
+
+                    if (preg_match('/^\d{2}-\d{4}$/', $value)) {
+                        return \Carbon\Carbon::createFromFormat('m-Y', $value)->format('Y');
                     }
                 } catch (\Throwable $e) {
                     return '';
@@ -232,12 +240,16 @@
                             @endif
 
                             <div class="relative">
-                                <input type="date"
+                                <input type="text"
                                        aria-label="From date"
                                        name="{{ $education_type }}[{{ $index }}][from]"
                                        value="{{ $normalizeEducationDateForInput(old($education_type.'.'.$index.'.from', $data['from'] ?? '')) }}"
                                        data-education-date-role="from"
                                        autocomplete="off"
+                                    maxlength="4"
+                                    pattern="[0-9]{4}"
+                                    inputmode="numeric"
+                                    placeholder="YYYY"
                                        class="edu-date w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base"
                                        {{ $education_type == 'college' ? 'required' : '' }}>
                                 <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">
@@ -246,12 +258,16 @@
                             </div>
 
                             <div class="relative">
-                                <input type="date"
+                                <input type="text"
                                        aria-label="To date"
                                        name="{{ $education_type }}[{{ $index }}][to]"
                                        value="{{ $normalizeEducationDateForInput(old($education_type.'.'.$index.'.to', $data['to'] ?? '')) }}"
                                        data-education-date-role="to"
                                        autocomplete="off"
+                                    maxlength="4"
+                                    pattern="[0-9]{4}"
+                                    inputmode="numeric"
+                                    placeholder="YYYY"
                                        class="edu-date w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base"
                                        {{ $education_type == 'college' ? 'required' : '' }}>
                                 <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">
@@ -365,12 +381,16 @@
                         @endif
 
                         <div class="relative">
-                             <input type="date"
+                             <input type="text"
                                     aria-label="From date"
                                     name="{{ $education_type }}[__INDEX__][from]"
                                     value=""
                                     data-education-date-role="from"
                                     autocomplete="off"
+                                 maxlength="4"
+                                 pattern="[0-9]{4}"
+                                 inputmode="numeric"
+                                 placeholder="YYYY"
                                     class="edu-date w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base"
                                     {{ $education_type == 'college' ? 'required' : '' }}>
                             <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">
@@ -379,12 +399,16 @@
                         </div>
 
                         <div class="relative">
-                             <input type="date"
+                             <input type="text"
                                     aria-label="To date"
                                     name="{{ $education_type }}[__INDEX__][to]"
                                     value=""
                                     data-education-date-role="to"
                                     autocomplete="off"
+                                 maxlength="4"
+                                 pattern="[0-9]{4}"
+                                 inputmode="numeric"
+                                 placeholder="YYYY"
                                     class="edu-date w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base"
                                     {{ $education_type == 'college' ? 'required' : '' }}>
                              <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">

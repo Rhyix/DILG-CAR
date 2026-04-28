@@ -930,8 +930,30 @@ class ExportPDSController
         }
 
         try {
+            if ($format === 'Y') {
+                if (preg_match('/^\d{4}$/', $text)) {
+                    return $text;
+                }
+
+                if (preg_match('/^\d{2}-\d{4}$/', $text)) {
+                    return Carbon::createFromFormat('m-Y', $text)->format('Y');
+                }
+
+                if (preg_match('/^\d{2}-\d{2}-\d{4}$/', $text)) {
+                    return Carbon::createFromFormat('d-m-Y', $text)->format('Y');
+                }
+
+                if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $text)) {
+                    return Carbon::createFromFormat('Y-m-d', $text)->format('Y');
+                }
+            }
+
             return Carbon::parse($text)->format($format);
         } catch (\Throwable $e) {
+            if ($format === 'Y' && preg_match('/^(?:\d{2}-)?(\d{4})$/', $text, $matches)) {
+                return $matches[1];
+            }
+
             return $text;
         }
     }
@@ -1311,8 +1333,8 @@ private function writeEducationalBackground($pdf, $education)
             2.0,
             1.3
         );
-        $writeNarrow($this->dateOrNa($education?->elem_from, 'm/Y'), $elemXFrom, 263.0, $elemWidthFrom, 7.0, 5.0);
-        $writeNarrow($this->dateOrNa($education?->elem_to, 'm/Y'), $elemXTo, 263.0, $elemWidthTo, 7.0, 5.0);
+        $writeNarrow($this->dateOrNa($education?->elem_from, 'Y'), $elemXFrom, 263.0, $elemWidthFrom, 7.0, 5.0);
+        $writeNarrow($this->dateOrNa($education?->elem_to, 'Y'), $elemXTo, 263.0, $elemWidthTo, 7.0, 5.0);
         $writeWide($this->valueOrNa($education?->elem_earned), $elemXEarned, 263.0, $elemWidthEarned, 7.0, 5.0);
         $writeNarrow($this->valueOrNa($education?->elem_year_graduated), $elemXYearGraduated, 263.0, $elemWidthYearGraduated, 7.0, 5.0);
         $writeWide($this->valueOrNa($education?->elem_academic_honors), $elemXHonors, 263.0, $elemWidthHonors, 7.0, 5.0);
@@ -1352,16 +1374,16 @@ private function writeEducationalBackground($pdf, $education)
         if ($hasSHSData) {
             $writeWide($this->valueOrNa($education?->shs_school), $jhsXSchool, 271.0, $jhsWidthSchool, 7.0, 4.5);
             $writeWide($this->valueOrNa($education?->shs_basic), $jhsXBasic, 271.0, $jhsWidthBasic, 7.0, 4.5);
-            $writeNarrow($this->dateOrNa($education?->shs_from, 'm/Y'), $jhsXFrom, 271.0, $jhsWidthFrom, 7.0, 5.0);
-            $writeNarrow($this->dateOrNa($education?->shs_to, 'm/Y'), $jhsXTo, 271.0, $jhsWidthTo, 7.0, 5.0);
+            $writeNarrow($this->dateOrNa($education?->shs_from, 'Y'), $jhsXFrom, 271.0, $jhsWidthFrom, 7.0, 5.0);
+            $writeNarrow($this->dateOrNa($education?->shs_to, 'Y'), $jhsXTo, 271.0, $jhsWidthTo, 7.0, 5.0);
             $writeWide($this->valueOrNa($education?->shs_earned), $jhsXEarned, 271.0, $jhsWidthEarned, 7.0, 5.0);
             $writeNarrow($this->valueOrNa($education?->shs_year_graduated), $jhsXYearGraduated, 271.0, $jhsWidthYearGraduated, 7.0, 5.0);
             $writeWide($this->valueOrNa($education?->shs_academic_honors), $jhsXHonors, 271.0, $jhsWidthHonors, 7.0, 5.0);
         } else {
             $writeWide($this->valueOrNa($education?->jhs_school), $jhsXSchool, 271.0, $jhsWidthSchool, 7.0, 4.5);
             $writeWide($this->valueOrNa($education?->jhs_basic), $jhsXBasic, 271.0, $jhsWidthBasic, 7.0, 4.5);
-            $writeNarrow($this->dateOrNa($education?->jhs_from, 'm/Y'), $jhsXFrom, 271.0, $jhsWidthFrom, 7.0, 5.0);
-            $writeNarrow($this->dateOrNa($education?->jhs_to, 'm/Y'), $jhsXTo, 271.0, $jhsWidthTo, 7.0, 5.0);
+            $writeNarrow($this->dateOrNa($education?->jhs_from, 'Y'), $jhsXFrom, 271.0, $jhsWidthFrom, 7.0, 5.0);
+            $writeNarrow($this->dateOrNa($education?->jhs_to, 'Y'), $jhsXTo, 271.0, $jhsWidthTo, 7.0, 5.0);
             $writeWide($this->valueOrNa($education?->jhs_earned), $jhsXEarned, 271.0, $jhsWidthEarned, 7.0, 5.0);
             $writeNarrow($this->valueOrNa($education?->jhs_year_graduated), $jhsXYearGraduated, 271.0, $jhsWidthYearGraduated, 7.0, 5.0);
             $writeWide($this->valueOrNa($education?->jhs_academic_honors), $jhsXHonors, 271.0, $jhsWidthHonors, 7.0, 5.0);
@@ -1480,8 +1502,8 @@ private function writeVocationalChunk($pdf, $chunk)
             2
         );
 
-        $writeNarrow($this->dateOrNa($voc['from'] ?? null, 'm/Y'), $startX_from, $currentYOther, $fromWidth, 7.0, 5.0);
-        $writeNarrow($this->dateOrNa($voc['to'] ?? null, 'm/Y'), $startX_to, $currentYOther, $toWidth, 7.0, 5.0);
+        $writeNarrow($this->dateOrNa($voc['from'] ?? null, 'Y'), $startX_from, $currentYOther, $fromWidth, 7.0, 5.0);
+        $writeNarrow($this->dateOrNa($voc['to'] ?? null, 'Y'), $startX_to, $currentYOther, $toWidth, 7.0, 5.0);
 
         $writeWide($this->valueOrNa($voc['earned'] ?? null), $startX_earned, $currentYOther, $earnedWidth, 7.0, 5.0);
 
@@ -1604,8 +1626,8 @@ private function writeCollegeChunk($pdf, $chunk)
             2
         );
 
-        $writeNarrow($this->dateOrNa($college['from'] ?? null, 'm/Y'), $startX_from, $currentYOther, $fromWidth, 7.0, 5.0);
-        $writeNarrow($this->dateOrNa($college['to'] ?? null, 'm/Y'), $startX_to, $currentYOther, $toWidth, 7.0, 5.0);
+        $writeNarrow($this->dateOrNa($college['from'] ?? null, 'Y'), $startX_from, $currentYOther, $fromWidth, 7.0, 5.0);
+        $writeNarrow($this->dateOrNa($college['to'] ?? null, 'Y'), $startX_to, $currentYOther, $toWidth, 7.0, 5.0);
 
         $writeWide($this->valueOrNa($college['earned'] ?? null), $startX_earned, $currentYOther, $earnedWidth, 7.0, 5.0);
 
@@ -1728,9 +1750,9 @@ private function writeGraduateChunk($pdf, $chunk)
             2
         );
 
-        $writeNarrow($this->dateOrNa($grad['from'] ?? null, 'm/Y'), $startX_from, $currentYOther, $fromWidth, 7.0, 5.0);
+        $writeNarrow($this->dateOrNa($grad['from'] ?? null, 'Y'), $startX_from, $currentYOther, $fromWidth, 7.0, 5.0);
 
-        $writeNarrow($this->dateOrNa($grad['to'] ?? null, 'm/Y'), $startX_to, $currentYOther, $toWidth, 7.0, 5.0);
+        $writeNarrow($this->dateOrNa($grad['to'] ?? null, 'Y'), $startX_to, $currentYOther, $toWidth, 7.0, 5.0);
 
         $writeWide($this->valueOrNa($grad['earned'] ?? null), $startX_earned, $currentYOther, $earnedWidth, 7.0, 5.0);
 
@@ -3613,18 +3635,35 @@ private function excelDate($value): string
     }
 }
 
-private function excelDateMonthYear($value): string
-{
-    $raw = $this->excelValue($value);
-    if ($raw === '') {
-        return '';
+    private function excelDateMonthYear($value): string
+    {
+        $raw = trim((string) $this->excelValue($value));
+        if ($raw === '') {
+            return '';
+        }
+
+        if (preg_match('/^\d{4}$/', $raw)) {
+            return $raw;
+        }
+
+        try {
+            if (preg_match('/^\d{2}-\d{4}$/', $raw)) {
+                return Carbon::createFromFormat('m-Y', $raw)->format('Y');
+            }
+
+            if (preg_match('/^\d{2}-\d{2}-\d{4}$/', $raw)) {
+                return Carbon::createFromFormat('d-m-Y', $raw)->format('Y');
+            }
+
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $raw)) {
+                return Carbon::createFromFormat('Y-m-d', $raw)->format('Y');
+            }
+
+            return Carbon::parse($raw)->format('Y');
+        } catch (\Throwable $e) {
+            return $raw;
+        }
     }
-    try {
-        return Carbon::parse($raw)->format('m/Y');
-    } catch (\Throwable $e) {
-        return $raw;
-    }
-}
 
 private function formatGovtIssuePlaceAndDate($place, $date): string
 {

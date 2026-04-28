@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Spatie\Activitylog\Models\Activity;
 use App\Models\Admin;
+use App\Models\EmailLog;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 
@@ -185,11 +186,57 @@ class activityLogController extends Controller
                 })(),
                 'vacancy_id' => $activity->properties['vacancy_id'] ?? null,
                 'subject' => $activity->subject ? $activity->subject : 'N/A',
+                'has_email_preview' => (function () use ($activity) {
+                    $ids = $activity->properties['email_log_ids'] ?? null;
+                    if (is_array($ids) && ! empty($ids)) {
+                        return true;
+                    }
+                    $event = strtolower(trim((string) ($activity->event ?? '')));
+                    $section = $activity->properties['section'] ?? '';
+                    if ($event === 'email_sent' || $section === 'Email Logs') {
+                        return EmailLog::where('subject', $activity->properties['subject'] ?? '')
+                            ->whereBetween('sent_at', [
+                                $activity->created_at->clone()->subSeconds(5),
+                                $activity->created_at->clone()->addSeconds(5),
+                            ])
+                            ->exists();
+                    }
+                    return false;
+                })(),
+                'email_log_id' => (function () use ($activity) {
+                    $ids = $activity->properties['email_log_ids'] ?? null;
+                    if (is_array($ids) && ! empty($ids)) {
+                        return (int) $ids[0];
+                    }
+                    $event = strtolower(trim((string) ($activity->event ?? '')));
+                    $section = $activity->properties['section'] ?? '';
+                    if ($event === 'email_sent' || $section === 'Email Logs') {
+                        $log = EmailLog::where('subject', $activity->properties['subject'] ?? '')
+                            ->whereBetween('sent_at', [
+                                $activity->created_at->clone()->subSeconds(5),
+                                $activity->created_at->clone()->addSeconds(5),
+                            ])
+                            ->first();
+                        return $log ? $log->id : null;
+                    }
+                    return null;
+                })(),
             ];
         });
 
         //info($logs);
 
         return response()->json($logs);
+    }
+
+    public function showEmail(EmailLog $emailLog)
+    {
+        return response()->json([
+            'id' => $emailLog->id,
+            'subject' => $emailLog->subject,
+            'recipient_email' => $emailLog->recipient_email,
+            'sent_at' => $emailLog->sent_at?->format('Y-m-d H:i:s'),
+            'body_html' => $emailLog->body_html ?? '<p>No HTML content available.</p>',
+        ]);
     }
 }

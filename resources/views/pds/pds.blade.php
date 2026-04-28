@@ -528,170 +528,171 @@
             </section>
 
             <!-- Educational Background Section -->
-            <section id="educational-background" class="bg-white rounded-lg sm:rounded-2xl shadow-xl p-4 sm:p-8 animate-slide-in">
-                <div class="flex items-center mb-4 sm:mb-6">
-                    <span class="material-icons text-blue-600 mr-2 sm:mr-3 text-2xl sm:text-3xl">school</span>
-                    <h2 class="text-lg sm:text-2xl font-bold text-gray-900">III. EDUCATIONAL BACKGROUND</h2>
-                </div>
+            <!-- Educational Background Section -->
+<section id="educational-background" class="bg-white rounded-lg sm:rounded-2xl shadow-xl p-4 sm:p-8 animate-slide-in">
+    <div class="flex items-center mb-4 sm:mb-6">
+        <span class="material-icons text-blue-600 mr-2 sm:mr-3 text-2xl sm:text-3xl">school</span>
+        <h2 class="text-lg sm:text-2xl font-bold text-gray-900">III. EDUCATIONAL BACKGROUND</h2>
+    </div>
 
-                <!-- Elementary -->
+    <!-- Elementary -->
+    @php
+        $educationBg = auth()->user()?->educationalBackground;
+
+        $elemBasicPrefill = old('elem_basic');
+        if ($elemBasicPrefill === null || trim((string) $elemBasicPrefill) === '') {
+            $elemBasicPrefill = session('form.c1.elem_basic');
+        }
+        if (($elemBasicPrefill === null || trim((string) $elemBasicPrefill) === '') && $educationBg) {
+            $elemBasicPrefill = $educationBg->elem_basic;
+        }
+
+        $jhsBasicPrefill = old('jhs_basic');
+        if ($jhsBasicPrefill === null || trim((string) $jhsBasicPrefill) === '') {
+            $jhsBasicPrefill = session('form.c1.jhs_basic');
+        }
+        if (($jhsBasicPrefill === null || trim((string) $jhsBasicPrefill) === '') && $educationBg) {
+            $jhsBasicPrefill = $educationBg->jhs_basic;
+        }
+    @endphp
+    @php
+        $normalizeEducationDateForInput = static function ($value) {
+            $value = is_string($value) ? trim($value) : '';
+
+            if ($value === '') {
+                return '';
+            }
+
+            // Return just the year if it's a 4-digit number
+            if (preg_match('/^\d{4}$/', $value)) {
+                return $value;
+            }
+
+            // Extract year from full date formats
+            try {
+                if (preg_match('/^\d{2}-\d{2}-\d{4}$/', $value)) {
+                    return \Carbon\Carbon::createFromFormat('d-m-Y', $value)->format('Y');
+                }
+
+                if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+                    return \Carbon\Carbon::createFromFormat('Y-m-d', $value)->format('Y');
+                }
+            } catch (\Throwable $e) {
+                return '';
+            }
+
+            return '';
+        };
+    @endphp
+    <div class="mb-8" data-education-section="elementary">
+        <h3 class="text-base sm:text-lg font-semibold text-gray-700 mb-4">ELEMENTARY</h3>
+        <div class="mobile-stack md:grid md:grid-cols-4 gap-4 sm:gap-6" data-education-date-range>
+            <div class="relative md:col-span-2">
+                <input required type="text" id="elem_school" name="elem_school" value="{{ old('elem_school', session('form.c1.elem_school')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
+                <label for="elem_school" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">School Name<span class="text-red-500">*</span></label>
+            </div>
+            <div class="relative md:col-span-2">
+                <label for="elem_basic" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">Basic Education/Degree/Course</label>
+                <input type="text" id="elem_basic" name="elem_basic" value="PRIMARY" readonly aria-readonly="true" class="text-gray-700 bg-gray-100 w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base">
+            </div>
+            <div class="relative">
+                <input required type="text" id="elem_from" name="elem_from" maxlength="4" pattern="[0-9]{4}" inputmode="numeric" placeholder="YYYY" value="{{ $normalizeEducationDateForInput(old('elem_from', session('form.c1.elem_from'))) }}" data-education-date-role="from" autocomplete="off" class="edu-date w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base">
+                <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">From<span class="text-red-500">*</span></label>
+            </div>
+            <div class="relative">
+                <input required type="text" id="elem_to" name="elem_to" maxlength="4" pattern="[0-9]{4}" inputmode="numeric" placeholder="YYYY" value="{{ $normalizeEducationDateForInput(old('elem_to', session('form.c1.elem_to'))) }}" data-education-date-role="to" autocomplete="off" class="edu-date w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base">
+                <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">To<span class="text-red-500">*</span></label>
+                <p class="error-message hidden" data-education-date-error aria-live="polite"></p>
+            </div>
+            <div class="relative md:col-span-2">
+                <input pattern="(?:[0-9]{4}|[Nn][\/]?[Aa])" maxlength="4" type="text" inputmode="text" id="elem_year_graduated" name="elem_year_graduated" value="{{ old('elem_year_graduated', session('form.c1.elem_year_graduated')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
+                <label for="elem_year_graduated" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Year Graduated</label>
+            </div>
+            <div class="relative md:col-span-2 hidden" data-earned-wrapper-for="elem_earned">
+                <input type="text" id="elem_earned" name="elem_earned" value="{{ old('elem_earned', session('form.c1.elem_earned')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
+                <label for="elem_earned" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-xs sm:text-sm">Highest Level/Units Earned (if not graduated) <span class="text-red-500">*</span></label>
+            </div>
+            <div class="relative md:col-span-2">
+                <input type="text" id="elem_academic_honors" name="elem_academic_honors" value="{{ old('elem_academic_honors', session('form.c1.elem_academic_honors')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
+                <label for="elem_academic_honors" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Scholarship/Academic Honors Received</label>
+            </div>
+        </div>
+    </div>
+
+    <!-- Secondary -->
+    <div class="my-6" data-education-section="secondary">
+        <h3 class="text-base sm:text-lg font-semibold text-gray-700 mb-4">SECONDARY</h3>
+        <div class="mobile-stack md:grid md:grid-cols-4 gap-4 sm:gap-6" data-education-date-range>
+            <div class="relative md:col-span-2">
+                <input type="text" id="jhs_school" name="jhs_school" value="{{ old('jhs_school', session('form.c1.jhs_school')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
+                <label for="jhs_school" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">School Name</label>
+            </div>
+            <div class="relative md:col-span-2">
+                <label for="jhs_basic" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">Basic Education/Degree/Course</label>
                 @php
-                    $educationBg = auth()->user()?->educationalBackground;
-
-                    $elemBasicPrefill = old('elem_basic');
-                    if ($elemBasicPrefill === null || trim((string) $elemBasicPrefill) === '') {
-                        $elemBasicPrefill = session('form.c1.elem_basic');
-                    }
-                    if (($elemBasicPrefill === null || trim((string) $elemBasicPrefill) === '') && $educationBg) {
-                        $elemBasicPrefill = $educationBg->elem_basic;
-                    }
-
-                    $jhsBasicPrefill = old('jhs_basic');
-                    if ($jhsBasicPrefill === null || trim((string) $jhsBasicPrefill) === '') {
-                        $jhsBasicPrefill = session('form.c1.jhs_basic');
-                    }
-                    if (($jhsBasicPrefill === null || trim((string) $jhsBasicPrefill) === '') && $educationBg) {
-                        $jhsBasicPrefill = $educationBg->jhs_basic;
-                    }
+                    $jhsBasicValue = trim((string) $jhsBasicPrefill);
+                    $validJhsValues = ['JUNIOR HIGH SCHOOL', 'SENIOR HIGH SCHOOL', 'HIGH SCHOOL'];
+                    $isJhsFirst = !in_array(strtoupper($jhsBasicValue), $validJhsValues);
                 @endphp
-                @php
-                    $normalizeEducationDateForInput = static function ($value) {
-                        $value = is_string($value) ? trim($value) : '';
+                <select id="jhs_basic" name="jhs_basic" class="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all bg-white text-sm sm:text-base">
+                    <option value="JUNIOR HIGH SCHOOL" {{ strtoupper($jhsBasicValue) === 'JUNIOR HIGH SCHOOL' ? 'selected' : ($isJhsFirst ? 'selected' : '') }}>Junior High School</option>
+                    <option value="SENIOR HIGH SCHOOL" {{ strtoupper($jhsBasicValue) === 'SENIOR HIGH SCHOOL' ? 'selected' : '' }}>Senior High School</option>
+                    <option value="HIGH SCHOOL" {{ strtoupper($jhsBasicValue) === 'HIGH SCHOOL' ? 'selected' : '' }}>High School</option>
+                </select>
+            </div>
+            <div class="relative">
+                <input type="text" id="jhs_from" name="jhs_from" maxlength="4" pattern="[0-9]{4}" inputmode="numeric" placeholder="YYYY" value="{{ $normalizeEducationDateForInput(old('jhs_from', session('form.c1.jhs_from'))) }}" data-education-date-role="from" autocomplete="off" class="edu-date w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base">
+                <label for="jhs_from" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">From</label>
+            </div>
+            <div class="relative">
+                <input type="text" id="jhs_to" name="jhs_to" maxlength="4" pattern="[0-9]{4}" inputmode="numeric" placeholder="YYYY" value="{{ $normalizeEducationDateForInput(old('jhs_to', session('form.c1.jhs_to'))) }}" data-education-date-role="to" autocomplete="off" class="edu-date w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base">
+                <label for="jhs_to" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">To</label>
+                <p class="error-message hidden" data-education-date-error aria-live="polite"></p>
+            </div>
+            <div class="relative md:col-span-2">
+                <input pattern="(?:[0-9]{4}|[Nn][\/]?[Aa])" maxlength="4" type="text" inputmode="text" id="jhs_year_graduated" name="jhs_year_graduated" value="{{ old('jhs_year_graduated', session('form.c1.jhs_year_graduated')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
+                <label for="jhs_year_graduated" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Year Graduated</label>
+            </div>
 
-                        if ($value === '') {
-                            return '';
-                        }
+            <div class="relative md:col-span-2 hidden" data-earned-wrapper-for="jhs_earned">
+                <input type="text" id="jhs_earned" name="jhs_earned" value="{{ old('jhs_earned', session('form.c1.jhs_earned')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
+                <label for="jhs_earned" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-xs sm:text-sm">Highest Level/Units Earned (if not graduated) <span class="text-red-500">*</span></label>
+            </div>
 
-                        try {
-                            if (preg_match('/^\d{2}-\d{2}-\d{4}$/', $value)) {
-                                return \Carbon\Carbon::createFromFormat('d-m-Y', $value)->format('Y-m-d');
-                            }
+            <div class="relative md:col-span-2">
+                <input type="text" id="jhs_academic_honors" name="jhs_academic_honors" value="{{ old('jhs_academic_honors', session('form.c1.jhs_academic_honors')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
+                <label for="jhs_academic_honors" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Scholarship/Academic Honors Received</label>
+            </div>
+        </div>
+    </div>
 
-                            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
-                                return \Carbon\Carbon::createFromFormat('Y-m-d', $value)->format('Y-m-d');
-                            }
-                        } catch (\Throwable $e) {
-                            return '';
-                        }
+    <!-- Vocational / Trade Course Placeholder -->
+    <div class="mb-6 mt-[80px]" data-education-section="vocational">
+        @include('partials.pds-education-form', [
+            'education_type' => 'vocational',
+            'education_type_meta' => ['title' => 'Vocational / Trade Course'],
+            'education_data' => $vocational_schools
+        ])
+    </div>
 
-                        return '';
-                    };
-                @endphp
-                <div class="mb-8" data-education-section="elementary">
-                    <h3 class="text-base sm:text-lg font-semibold text-gray-700 mb-4">ELEMENTARY</h3>
-                    <div class="mobile-stack md:grid md:grid-cols-4 gap-4 sm:gap-6" data-education-date-range>
-                        <div class="relative md:col-span-2">
-                            <input required type="text" id="elem_school" name="elem_school" value="{{ old('elem_school', session('form.c1.elem_school')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                            <label for="elem_school" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">School Name<span class="text-red-500">*</span></label>
-                        </div>
-                        <div class="relative md:col-span-2">
-                            <label for="elem_basic" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">Basic Education/Degree/Course</label>
-                            <input type="text" id="elem_basic" name="elem_basic" value="PRIMARY" readonly aria-readonly="true" class="text-gray-700 bg-gray-100 w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base">
-                        </div>
-                        <div class="relative">
-                            <input required type="date" id="elem_from" name="elem_from" value="{{ $normalizeEducationDateForInput(old('elem_from', session('form.c1.elem_from'))) }}" data-education-date-role="from" autocomplete="off" class="edu-date w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base">
-                            <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">From<span class="text-red-500">*</span></label>
-                        </div>
-                        <div class="relative">
-                            <input required type="date" id="elem_to" name="elem_to" value="{{ $normalizeEducationDateForInput(old('elem_to', session('form.c1.elem_to'))) }}" data-education-date-role="to" autocomplete="off" class="edu-date w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base">
-                            <label class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">To<span class="text-red-500">*</span></label>
-                            <p class="error-message hidden" data-education-date-error aria-live="polite"></p>
-                        </div>
-                        <div class="relative md:col-span-2">
-                            <input pattern="(?:[0-9]{4}|[Nn][/]?[Aa])" maxlength="4" type="text" inputmode="text" id="elem_year_graduated" name="elem_year_graduated" value="{{ old('elem_year_graduated', session('form.c1.elem_year_graduated')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                            <label for="elem_year_graduated" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Year Graduated</label>
-                        </div>
-                        <div class="relative md:col-span-2 hidden" data-earned-wrapper-for="elem_earned">
-                            <input type="text" id="elem_earned" name="elem_earned" value="{{ old('elem_earned', session('form.c1.elem_earned')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                            <label for="elem_earned" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-xs sm:text-sm">Highest Level/Units Earned (if not graduated) <span class="text-red-500">*</span></label>
-                        </div>
-                        <div class="relative md:col-span-2">
-                            <input type="text" id="elem_academic_honors" name="elem_academic_honors" value="{{ old('elem_academic_honors', session('form.c1.elem_academic_honors')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                            <label for="elem_academic_honors" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Scholarship/Academic Honors Received</label>
-                        </div>
-                    </div>
-                </div>
+    <!-- College Placeholder -->
+    <div class="mb-6 mt-[80px]" data-education-section="college">
+        @include('partials.pds-education-form', [
+            'education_type' => 'college',
+            'education_type_meta' => ['title' => 'College'],
+            'education_data' => $college_schools
+        ])
+    </div>
 
-                <!-- Secondary -->
-                <div class="my-6" data-education-section="secondary">
-                    <h3 class="text-base sm:text-lg font-semibold text-gray-700 mb-4">SECONDARY</h3>
-                    <div class="mobile-stack md:grid md:grid-cols-4 gap-4 sm:gap-6" data-education-date-range>
-                        <div class="relative md:col-span-2">
-                            <input type="text" id="jhs_school" name="jhs_school" value="{{ old('jhs_school', session('form.c1.jhs_school')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                            <label for="jhs_school" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">School Name</label>
-                        </div>
-                        <div class="relative md:col-span-2">
-                            <label for="jhs_basic" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">Basic Education/Degree/Course</label>
-                            @php
-                                $jhsBasicValue = trim((string) $jhsBasicPrefill);
-                                $validJhsValues = ['JUNIOR HIGH SCHOOL', 'SENIOR HIGH SCHOOL', 'HIGH SCHOOL'];
-                                $isJhsFirst = !in_array(strtoupper($jhsBasicValue), $validJhsValues);
-                            @endphp
-                            <select id="jhs_basic" name="jhs_basic" class="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all bg-white text-sm sm:text-base">
-                                <option value="JUNIOR HIGH SCHOOL" {{ strtoupper($jhsBasicValue) === 'JUNIOR HIGH SCHOOL' ? 'selected' : ($isJhsFirst ? 'selected' : '') }}>Junior High School</option>
-                                <option value="SENIOR HIGH SCHOOL" {{ strtoupper($jhsBasicValue) === 'SENIOR HIGH SCHOOL' ? 'selected' : '' }}>Senior High School</option>
-                                <option value="HIGH SCHOOL" {{ strtoupper($jhsBasicValue) === 'HIGH SCHOOL' ? 'selected' : '' }}>High School</option>
-                            </select>
-                        </div>
-                        <div class="relative">
-                            <input type="date" id="jhs_from" name="jhs_from" value="{{ $normalizeEducationDateForInput(old('jhs_from', session('form.c1.jhs_from'))) }}" data-education-date-role="from" autocomplete="off" class="edu-date w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base">
-                            <label for="jhs_from" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">From</label>
-                        </div>
-                        <div class="relative">
-                            <input type="date" id="jhs_to" name="jhs_to" value="{{ $normalizeEducationDateForInput(old('jhs_to', session('form.c1.jhs_to'))) }}" data-education-date-role="to" autocomplete="off" class="edu-date w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm sm:text-base">
-                            <label for="jhs_to" class="absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600">To</label>
-                            <p class="error-message hidden" data-education-date-error aria-live="polite"></p>
-                        </div>
-                        <div class="relative md:col-span-2">
-                            <input pattern="(?:[0-9]{4}|[Nn][/]?[Aa])" maxlength="4" type="text" inputmode="text" id="jhs_year_graduated" name="jhs_year_graduated" value="{{ old('jhs_year_graduated', session('form.c1.jhs_year_graduated')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                            <label for="jhs_year_graduated" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Year Graduated</label>
-                        </div>
-
-                        <div class="relative md:col-span-2 hidden" data-earned-wrapper-for="jhs_earned">
-                            <input type="text" id="jhs_earned" name="jhs_earned" value="{{ old('jhs_earned', session('form.c1.jhs_earned')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                            <label for="jhs_earned" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-xs sm:text-sm">Highest Level/Units Earned (if not graduated) <span class="text-red-500">*</span></label>
-                        </div>
-
-                        <div class="relative md:col-span-2">
-                            <input type="text" id="jhs_academic_honors" name="jhs_academic_honors" value="{{ old('jhs_academic_honors', session('form.c1.jhs_academic_honors')) }}" placeholder=" " class="floating-label-input w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all peer text-sm sm:text-base">
-                            <label for="jhs_academic_honors" class="floating-label absolute left-3 sm:left-4 top-2 sm:top-3 text-gray-500 pointer-events-none text-sm sm:text-base">Scholarship/Academic Honors Received</label>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Vocational / Trade Course Placeholder -->
-                <div class="mb-6 mt-[80px]" data-education-section="vocational">
-                    @include('partials.pds-education-form', [
-                        'education_type' => 'vocational',
-                        'education_type_meta' => ['title' => 'Vocational / Trade Course'],
-                        'education_data' => $vocational_schools
-                    ])
-                </div>
-
-                <!-- College Placeholder -->
-                <div class="mb-6 mt-[80px]" data-education-section="college">
-                    @include('partials.pds-education-form', [
-                        'education_type' => 'college',
-                        'education_type_meta' => ['title' => 'College'],
-                        'education_data' => $college_schools
-                    ])
-                </div>
-
-                <!-- Graduate Studies Placeholder -->
-                <div class="mb-6 mt-[80px]" data-education-section="grad">
-                @include('partials.pds-education-form', [
-                        'education_type' => 'grad',
-                        'education_type_meta' => ['title' => 'Graduate Studies'],
-                        'education_data' => $grad_schools
-                    ])
-                </div>
-                <!-- <div class="mt-4 sm:mt-6 flex justify-end">
-                    <button type="button" id="pdsPreviewBtn" disabled class="px-4 sm:px-6 py-3 bg-gray-400 text-white rounded-lg font-semibold cursor-not-allowed opacity-60 transition-colors duration-200 flex items-center gap-2">
-                        <span class="material-icons text-lg sm:text-xl">visibility</span>
-                        View Personal Data Sheet
-                    </button>
-                </div> -->
-            </section>
+    <!-- Graduate Studies Placeholder -->
+    <div class="mb-6 mt-[80px]" data-education-section="grad">
+        @include('partials.pds-education-form', [
+            'education_type' => 'grad',
+            'education_type_meta' => ['title' => 'Graduate Studies'],
+            'education_data' => $grad_schools
+        ])
+    </div>
+</section>
 
             <!-- Navigation -->
             <div class="flex flex-col sm:flex-row justify-between items-center mt-6 sm:mt-8 gap-4">
@@ -734,37 +735,22 @@
         form.requestSubmit();
     }
     function parsePdsEducationDate(value) {
-        const normalized = String(value || '').trim();
-        if (!normalized) {
-            return null;
-        }
+    const normalized = String(value || '').trim();
+    if (!normalized) {
+        return null;
+    }
 
-        let parsed;
+    // Handle year-only input (YYYY)
+    if (/^\d{4}$/.test(normalized)) {
+        const year = parseInt(normalized, 10);
+        // Return a date object set to Dec 31 of that year for comparison purposes
+        return new Date(year, 11, 31);
+    }
 
-        if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
-            const [year, month, day] = normalized.split('-').map(Number);
-            parsed = new Date(year, month - 1, day);
+    let parsed;
 
-            if (
-                Number.isNaN(parsed.getTime()) ||
-                parsed.getFullYear() !== year ||
-                parsed.getMonth() !== month - 1 ||
-                parsed.getDate() !== day
-            ) {
-                return null;
-            }
-
-            return parsed;
-        }
-
-        const match = normalized.match(/^(\d{2})-(\d{2})-(\d{4})$/);
-        if (!match) {
-            return null;
-        }
-
-        const day = Number(match[1]);
-        const month = Number(match[2]);
-        const year = Number(match[3]);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+        const [year, month, day] = normalized.split('-').map(Number);
         parsed = new Date(year, month - 1, day);
 
         if (
@@ -778,6 +764,29 @@
 
         return parsed;
     }
+
+    const match = normalized.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+    if (!match) {
+        return null;
+    }
+
+    const day = Number(match[1]);
+    const month = Number(match[2]);
+    const year = Number(match[3]);
+    parsed = new Date(year, month - 1, day);
+
+    if (
+        Number.isNaN(parsed.getTime()) ||
+        parsed.getFullYear() !== year ||
+        parsed.getMonth() !== month - 1 ||
+        parsed.getDate() !== day
+    ) {
+        return null;
+    }
+
+    return parsed;
+}
+
     function updateSecondaryBasicEducation() {
         const elemTo = document.getElementById('elem_to');
         const jhsBasic = document.getElementById('jhs_basic');
@@ -1165,90 +1174,78 @@
             errorEl.classList.toggle('hidden', !state.inlineMessage);
         }
     }
-    function formatPdsEducationDateForInput(date) {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
+function formatPdsEducationDateForInput(date) {
+    if (!date) return '';
+    const year = date.getFullYear();
+    return `${year}`;  // Return just the year
+}
 
-        return `${year}-${month}-${day}`;
-    }
-    function addPdsEducationDays(date, days) {
-        const shifted = new Date(date);
-        shifted.setDate(shifted.getDate() + days);
-        return shifted;
-    }
+function addPdsEducationDays(date, days) {
+    const shifted = new Date(date);
+    shifted.setDate(shifted.getDate() + days);
+    return shifted;
+}
+
     function validatePdsEducationDateRange(rangeEl) {
-        if (!rangeEl) {
-            return;
-        }
+    if (!rangeEl) return;
 
-        const fromInput = rangeEl.querySelector('[data-education-date-role="from"]');
-        const toInput = rangeEl.querySelector('[data-education-date-role="to"]');
-        if (!fromInput || !toInput) {
-            return;
-        }
+    const fromInput = rangeEl.querySelector('[data-education-date-role="from"]');
+    const toInput = rangeEl.querySelector('[data-education-date-role="to"]');
+    if (!fromInput || !toInput) return;
 
-        const fromValue = (fromInput.value || '').trim();
-        const toValue = (toInput.value || '').trim();
-        const fromDate = parsePdsEducationDate(fromValue);
-        const toDate = parsePdsEducationDate(toValue);
-        const fromHasInvalidFormat = Boolean(fromValue && !fromDate);
-        const toHasInvalidFormat = Boolean(toValue && !toDate);
-        const hasRangeError = Boolean(fromValue && toValue && fromDate && toDate && fromDate.getTime() >= toDate.getTime());
+    const fromValue = (fromInput.value || '').trim();
+    const toValue = (toInput.value || '').trim();
+    
+    const fromYear = /^\d{4}$/.test(fromValue) ? parseInt(fromValue, 10) : null;
+    const toYear = /^\d{4}$/.test(toValue) ? parseInt(toValue, 10) : null;
+    
+    const fromHasInvalidFormat = Boolean(fromValue && !fromYear);
+    const toHasInvalidFormat = Boolean(toValue && !toYear);
+    const hasRangeError = Boolean(fromYear && toYear && fromYear >= toYear);
 
-        if (toDate) {
-            fromInput.max = formatPdsEducationDateForInput(addPdsEducationDays(toDate, -1));
-        } else {
-            fromInput.removeAttribute('max');
-        }
+    if (fromHasInvalidFormat) {
+        togglePdsEducationDateRangeState(rangeEl, {
+            fromInvalid: true,
+            toInvalid: false,
+            fromMessage: 'Enter a valid year (YYYY).',
+            toMessage: '',
+            inlineMessage: 'Enter a valid From year (YYYY).',
+        });
+        return;
+    }
 
-        if (fromDate) {
-            toInput.min = formatPdsEducationDateForInput(addPdsEducationDays(fromDate, 1));
-        } else {
-            toInput.removeAttribute('min');
-        }
-
-        if (fromHasInvalidFormat) {
-            togglePdsEducationDateRangeState(rangeEl, {
-                fromInvalid: true,
-                toInvalid: false,
-                fromMessage: 'Enter a valid date in dd-mm-yyyy format.',
-                toMessage: '',
-                inlineMessage: 'Enter a valid From date in dd-mm-yyyy format.',
-            });
-            return;
-        }
-
-        if (toHasInvalidFormat) {
-            togglePdsEducationDateRangeState(rangeEl, {
-                fromInvalid: false,
-                toInvalid: true,
-                fromMessage: '',
-                toMessage: 'Enter a valid date in dd-mm-yyyy format.',
-                inlineMessage: 'Enter a valid To date in dd-mm-yyyy format.',
-            });
-            return;
-        }
-
-        if (hasRangeError) {
-            togglePdsEducationDateRangeState(rangeEl, {
-                fromInvalid: true,
-                toInvalid: true,
-                fromMessage: 'The "From" date must be at least one day earlier than the "To" date.',
-                toMessage: 'The "To" date must be at least one day later than the "From" date.',
-                inlineMessage: 'From date must be at least one day earlier than To date.',
-            });
-            return;
-        }
-
+    if (toHasInvalidFormat) {
         togglePdsEducationDateRangeState(rangeEl, {
             fromInvalid: false,
-            toInvalid: false,
+            toInvalid: true,
             fromMessage: '',
-            toMessage: '',
-            inlineMessage: '',
+            toMessage: 'Enter a valid year (YYYY).',
+            inlineMessage: 'Enter a valid To year (YYYY).',
         });
+        return;
     }
+
+    if (hasRangeError) {
+        togglePdsEducationDateRangeState(rangeEl, {
+            fromInvalid: true,
+            toInvalid: true,
+            fromMessage: 'The "From" year must be earlier than the "To" year.',
+            toMessage: 'The "To" year must be later than the "From" year.',
+            inlineMessage: 'From year must be earlier than To year.',
+        });
+        return;
+    }
+
+    togglePdsEducationDateRangeState(rangeEl, {
+        fromInvalid: false,
+        toInvalid: false,
+        fromMessage: '',
+        toMessage: '',
+        inlineMessage: '',
+    });
+}
+
+
     function bindPdsEducationDateRange(rangeEl) {
         if (!rangeEl || rangeEl.dataset.educationDateBound === '1') {
             validatePdsEducationDateRange(rangeEl);
