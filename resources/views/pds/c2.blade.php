@@ -3,11 +3,7 @@
 @section('content')
 <!-- Main Content -->
 <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-<<<<<<< Updated upstream
-        <form id="myForm" class="no-spinner" method="POST" action="{{ route('submit_c2', ['go_to' => 'display_c3', 'simple' => request()->query('simple') ? 1 : null]) }}">
-=======
         <form id="myForm" method="POST" action='/pds/submit_c2/display_c3'>
->>>>>>> Stashed changes
             @csrf
 
             <!-- Civil Service Eligibility Section -->

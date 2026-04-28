@@ -175,21 +175,19 @@ class PDSController extends Controller
                 // Try the next format.
             }
         }
-        private function normalizeEducationMonthYearForDatabase($value): ?string
-        {
-            $raw = is_scalar($value) ? trim((string) $value) : '';
-            if ($raw === '') {
-                return null;
-            }
-            $parsed = $this->parseFlexibleDate($raw);
-            return $parsed ? $parsed->format('m-Y') : null;
-        }
-            } catch (\Throwable $e) {
-                // Try the next format.
-            }
-        }
 
         return null;
+    }
+
+    private function normalizeEducationMonthYearForDatabase($value): ?string
+    {
+        $raw = is_scalar($value) ? trim((string) $value) : '';
+        if ($raw === '') {
+            return null;
+        }
+
+        $parsed = $this->parseFlexibleDate($raw);
+        return $parsed ? $parsed->format('m-Y') : null;
     }
 
     private function normalizeWorkExperienceEndDateForDatabase(?string $value): ?string
@@ -3042,10 +3040,43 @@ class PDSController extends Controller
                 return;
             }
 
-            $rowCount = max(count($fromDates), count($toDates));
+            $positions = $request->input('work_exp_position', []);
+            $departments = $request->input('work_exp_department', []);
+            $statuses = $request->input('work_exp_status', []);
+            $govtServiceFlags = $request->input('work_exp_govt_service', []);
+
+            $rowCount = max(
+                count($fromDates),
+                count($toDates),
+                is_array($positions) ? count($positions) : 0,
+                is_array($departments) ? count($departments) : 0,
+                is_array($statuses) ? count($statuses) : 0,
+                is_array($govtServiceFlags) ? count($govtServiceFlags) : 0
+            );
             for ($i = 0; $i < $rowCount; $i++) {
                 $fromRaw = trim((string) ($fromDates[$i] ?? ''));
                 $toRaw = trim((string) ($toDates[$i] ?? ''));
+                $positionRaw = trim((string) ($positions[$i] ?? ''));
+                $departmentRaw = trim((string) ($departments[$i] ?? ''));
+                $statusRaw = trim((string) ($statuses[$i] ?? ''));
+                $govtServiceRaw = trim((string) ($govtServiceFlags[$i] ?? ''));
+
+                $hasAnyWorkExperienceValue = $fromRaw !== ''
+                    || $toRaw !== ''
+                    || $positionRaw !== ''
+                    || $departmentRaw !== ''
+                    || $statusRaw !== ''
+                    || $govtServiceRaw !== '';
+
+                if ($hasAnyWorkExperienceValue && $fromRaw === '') {
+                    $rowNumber = $i + 1;
+                    $validator->errors()->add(
+                        "work_exp_from.$i",
+                        "Work Experience row {$rowNumber}: FROM date is required when any work experience details are entered."
+                    );
+                    continue;
+                }
+
                 if ($fromRaw === '' || $toRaw === '' || strtolower($toRaw) === 'present') {
                     continue;
                 }
@@ -3154,6 +3185,10 @@ class PDSController extends Controller
             ], static fn($v) => trim((string) $v) !== '');
 
             if (empty($hasWorkData)) {
+                continue;
+            }
+
+            if ($data_work_exp['work_exp_from'] === null) {
                 continue;
             }
 
