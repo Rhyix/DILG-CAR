@@ -3733,8 +3733,13 @@ $rules_data_vol["voluntary_to_$i"] = 'required|date';
         return redirect()->route($go_to, $routeParams);
     }
 
-    public function c3ShowForm()
+    public function c3ShowForm(Request $request)
     {
+        // Check if test data parameter is present
+        if ($request->has('populate_test_data')) {
+            $this->populateC3TestData();
+        }
+
         if (empty(session('data_learning')) && empty(session('data_voluntary')) && empty(session('data_otherInfo'))) {
             $this->c3GetDatabase();
         }
@@ -3747,6 +3752,86 @@ $rules_data_vol["voluntary_to_$i"] = 'required|date';
                     ->log('Viewed C3 form.');
         */
         return view('pds.c3', compact('data_learning', 'data_voluntary', 'data_otherInfo'));
+    }
+
+    private function populateC3TestData(): void
+    {
+        // 10 Voluntary Work entries
+        $voluntaryData = [];
+        for ($i = 1; $i <= 10; $i++) {
+            $voluntaryData[] = [
+                'voluntary_org' => "Test Organization {$i}, Address {$i}",
+                'voluntary_from' => "202" . (($i % 3) + 1) . "-01-01",
+                'voluntary_to' => "202" . (($i % 3) + 1) . "-12-31",
+                'voluntary_hours' => ($i * 10) + 20,
+                'voluntary_position' => "Volunteer Position {$i}",
+            ];
+        }
+
+        // 20 Learning and Development entries
+        $trainingTypes = ['Managerial', 'Supervisory', 'Technical', 'Others'];
+        $trainingTitles = [
+            'Leadership and Management Training',
+            'Project Management Fundamentals',
+            'Public Service Excellence',
+            'Crisis Management Workshop',
+            'Digital Transformation Training',
+            'Data Privacy and Security',
+            'Effective Communication Skills',
+            'Team Building and Collaboration',
+            'Customer Service Excellence',
+            'Strategic Planning Workshop',
+            'Budget Management Training',
+            'Human Resource Development',
+            'Policy Implementation Workshop',
+            'Ethics and Governance Training',
+            'Disaster Preparedness Training',
+            'Environmental Management',
+            'Community Development Training',
+            'Records Management System',
+            'Public Financial Management',
+            'Performance Management Workshop',
+        ];
+        $learningData = [];
+        for ($i = 1; $i <= 20; $i++) {
+            $learningData[] = [
+                'learning_title' => $trainingTitles[$i - 1] ?? "Training Program {$i}",
+                'learning_type' => $trainingTypes[$i % 4],
+                'learning_from' => "202" . (($i % 4) + 1) . "-01-01",
+                'learning_to' => "202" . (($i % 4) + 1) . "-12-31",
+                'learning_hours' => ($i * 5) + 10,
+                'learning_conducted' => "Conducted by Agency {$i}",
+            ];
+        }
+
+        // Other Information
+        $otherInfo = [
+            'skill' => [
+                'Computer Programming',
+                'Data Analysis',
+                'Project Management',
+                'Public Speaking',
+                'Research and Documentation',
+            ],
+            'distinction' => [
+                'Employee of the Year 2023',
+                'Outstanding Public Service Award',
+                'Civic Achievement Recognition',
+            ],
+            'organization' => [
+                'Philippine Red Cross - Local Chapter',
+                'Rotary Club of Metro City',
+                'Local Government League',
+                'Public Service Association',
+            ],
+            'user_id' => Auth::id(),
+        ];
+
+        session([
+            'data_learning' => $learningData,
+            'data_voluntary' => $voluntaryData,
+            'data_otherInfo' => $otherInfo,
+        ]);
     }
 
     private function syncLearningSessionFromDatabaseIfStale(): void

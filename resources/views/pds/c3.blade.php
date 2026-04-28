@@ -116,11 +116,11 @@
                             INVOLVEMENT IN CIVIC /<br class="hidden sm:block">NON-GOVERNMENT / PEOPLE / VOLUNTARY ORGANIZATION/S
                         </h2>
                     </div>
-                    <!-- <button type="button" id="add-voluntary-btn"
-                        class="w-full sm:w-auto flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 text-sm sm:text-base">
+                    <button type="button" id="add-voluntary-btn"
+                        class="hidden w-full sm:w-auto flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 text-sm sm:text-base">
                             <span class="material-icons mr-2 text-sm sm:text-base">add_circle</span>
                         Add Voluntary Work
-                    </button> -->
+                    </button>
                 </div>
 
                 <p class="text-gray-600 mb-6 text-xs sm:text-sm">
@@ -153,11 +153,11 @@
                         <h2 class="text-lg sm:text-2xl font-bold text-gray-900 leading-tight">VII. LEARNING AND DEVELOPMENT
                             (L&D) INTERVENTIONS /<br class="hidden sm:block">TRAINING PROGRAMS ATTENDED</h2>
                     </div>
-                    <!-- <button type="button" id="add-learning-btn"
-                        class="w-full sm:w-auto flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 text-sm sm:text-base">
+                    <button type="button" id="add-learning-btn"
+                        class="hidden w-full sm:w-auto flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 text-sm sm:text-base">
                         <span class="material-icons mr-2 text-sm sm:text-base">add_circle</span>
                         Add Training
-                    </button> -->
+                    </button>
                 </div>
 
                 <p class="text-gray-600 mb-6 text-xs sm:text-sm">
@@ -296,17 +296,11 @@
 
         // Add Learning Event Listeners
         bindClick('#add-learning-btn', addLearningEntry);
-        bindClick('.add-learning-trigger', function () {
-            addLearningEntry();
-            if (learningEmpty) learningEmpty.style.display = 'none';
-        });
+        bindClick('.add-learning-trigger', addLearningEntry);
 
         // Add Voluntary Work Event Listeners
         bindClick('#add-voluntary-btn', addVoluntaryEntry);
-        bindClick('.add-voluntary-trigger', function () {
-            addVoluntaryEntry();
-            if (voluntaryEmpty) voluntaryEmpty.style.display = 'none';
-        });
+        bindClick('.add-voluntary-trigger', addVoluntaryEntry);
 
         // Add Other Information Event Listeners
         bindClick('.add-skill', function () {
@@ -336,9 +330,9 @@
                 }
             });
         }
-        function addSkillEntry(value) {
+        window.addSkillEntry = function(value) {
             addField('skills-container', 'skills[]', 'Enter special skill or hobby', value);
-        } // END ADD SKILL
+        }; // END ADD SKILL
 
         // -----------------------------------------------------------------------------------------------------------------------------------
         // ADD DISTICTION FUNCTION (Add Other Information)
@@ -350,9 +344,9 @@
             });
         }
 
-        function addDistinctionEntry(value) {
+        window.addDistinctionEntry = function(value) {
             addField('distinctions-container', 'distinctions[]', 'Enter non-academic distinction or recognition', value);
-        } // END ADD DISTICTION
+        }; // END ADD DISTINCTION
         // -----------------------------------------------------------------------------------------------------------------------------------
 
         // ADD ORGANIZATION FUNCTION (Add Other Information)
@@ -364,9 +358,9 @@
             });
         }
 
-        function addOrganizationEntry(value) {
+        window.addOrganizationEntry = function(value) {
             addField('organizations-container', 'organizations[]', 'Enter organization name', value);
-        } // END ADD ORGANIZATION
+        }; // END ADD ORGANIZATION
         // END ADD DATA FOR OTHER INFORMATION
         // ==================================================================================================================================
 
@@ -393,7 +387,7 @@
         });
 
         // TODO: add too in voluntary works [CHECKED]
-        function updateEntryCount() {
+        window.updateEntryCount = function() {
             entryCount_learning = learningContainer.querySelectorAll('.entry-card').length;
             entryCount_voluntary = voluntaryContainer.querySelectorAll('.entry-card').length;
             updateHiddenEntryCount_learning();
@@ -411,7 +405,7 @@
         }
 
         // TODO: add too in voluntary works [CHECKED]
-        function reindexEntries_learning() {
+        window.reindexEntries_learning = function() {
             //const entries = document.querySelectorAll('.entry-card'); NEW TODO
             const entries = learningContainer.querySelectorAll('.entry-card');
             entries.forEach((entry, index) => {
@@ -433,7 +427,7 @@
 
             updateHiddenEntryCount_learning();
         }
-        function reindexEntries_voluntary() {
+        window.reindexEntries_voluntary = function() {
             //const entries = document.querySelectorAll('.entry-card'); NEW TODO
             const entries = voluntaryContainer.querySelectorAll('.entry-card');
             // DELETE UPPER CODE
@@ -535,7 +529,7 @@
         }
 
         const learningData = @json($data_learning);
-        function addLearningEntry(data = null) {
+        window.addLearningEntry = function(data = null) {
             const rowCount = learningContainer.children.length + 1;
             //const entryCount = learningContainer.querySelectorAll('.entry-card').length;
             // the <input..$rowCount is for the C3Controller for monitoring the rowCount :: FOR DATABASE
@@ -600,9 +594,8 @@
             learningContainer.insertAdjacentHTML('beforeend', entryHtml);
             const newEntry = learningContainer.lastElementChild;
             bindDateRangeValidation(newEntry, 'learning');
-            //learningEmpty.style.display = 'none';
-            if (learningEmpty) learningEmpty.style.display = 'none';
-            updateEntryCount(); // TODO [CHEKCED]
+            updateEntryCount();
+            checkEmptyStates();
         }
         // Load entries from session if available
         if (Array.isArray(learningData) && learningData.length > 0) {
@@ -610,7 +603,7 @@
         }
 
         const voluntaryData = @json($data_voluntary);
-        function addVoluntaryEntry(data = null) {
+        window.addVoluntaryEntry = function(data = null) {
             const rowCount = voluntaryContainer.children.length + 1;
             //const entryCount = voluntaryContainer.querySelectorAll('.entry-card').length;
             // the <input..$rowCount is for the C3Controller for monitoring the rowCount :: FOR DATABASE
@@ -664,9 +657,8 @@
             voluntaryContainer.insertAdjacentHTML('beforeend', entryHtml);
             const newEntry = voluntaryContainer.lastElementChild;
             bindDateRangeValidation(newEntry, 'voluntary');
-            //voluntaryEmpty.style.display = 'none';
-            if (voluntaryEmpty) voluntaryEmpty.style.display = 'none';
             updateEntryCount();
+            checkEmptyStates();
         }
         // Load entries from session if available
         if (Array.isArray(voluntaryData) && voluntaryData.length > 0) {
@@ -706,7 +698,7 @@
 
 
 
-        function addField(containerId, fieldName, placeholder, value = '') {
+        window.addField = function(containerId, fieldName, placeholder, value = '') {
             const container = document.getElementById(containerId);
             const fieldHtml = `
                     <div class="other-info-row flex flex-col sm:flex-row gap-3 animate-fade-in">
@@ -719,21 +711,29 @@
             container.insertAdjacentHTML('beforeend', fieldHtml);
         }
 
-        function checkEmptyStates() {
+        window.checkEmptyStates = function() {
+            const addLearningBtn = document.getElementById('add-learning-btn');
+            const addVoluntaryBtn = document.getElementById('add-voluntary-btn');
+
             // Check learning entries
-            if (learningContainer.children.length === 0) {
+            if (learningContainer.querySelectorAll('.entry-card').length === 0) {
                 learningEmpty.style.display = 'block';
+                if (addLearningBtn) addLearningBtn.classList.add('hidden');
             } else {
                 learningEmpty.style.display = 'none';
+                if (addLearningBtn) addLearningBtn.classList.remove('hidden');
             }
 
             // Check voluntary entries
-            if (voluntaryContainer.children.length === 0) {
+            if (voluntaryContainer.querySelectorAll('.entry-card').length === 0) {
                 voluntaryEmpty.style.display = 'block';
+                if (addVoluntaryBtn) addVoluntaryBtn.classList.add('hidden');
             } else {
                 voluntaryEmpty.style.display = 'none';
+                if (addVoluntaryBtn) addVoluntaryBtn.classList.remove('hidden');
             }
         }
+        checkEmptyStates(); // Initial check
     });
 
     function submit(location) {
@@ -865,3 +865,8 @@
         }
     })();
 </script>
+
+{{-- Test Data Populator - Remove in production --}}
+@if(request()->has('populate_test_data'))
+    @include('pds.c3_test_data')
+@endif
