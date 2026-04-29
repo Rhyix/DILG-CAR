@@ -959,7 +959,7 @@
         collectCurrentAnswers(); // updates 'answers' object with current screen inputs
 
         // Remove old hidden inputs if re-preparing
-        form.querySelectorAll('input[type="hidden"][name^="answers["]').forEach(el => el.remove());
+        form.querySelectorAll('input[type="hidden"][name^="answers["]]').forEach(el => el.remove());
 
         // For each collected answer, create a hidden input
         Object.entries(answers).forEach(([questionId, value]) => {
@@ -970,6 +970,13 @@
             input.value = value;
             form.appendChild(input);
         });
+
+        // Pause the timer while submitting
+        if (timerInterval) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+        }
+        examPaused = true;
 
         window.isSubmitting = true;
         window.allowFocusLoss = true;
