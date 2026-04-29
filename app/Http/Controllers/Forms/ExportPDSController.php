@@ -1903,7 +1903,7 @@ private function writeWorkExperienceChunk($pdf, $chunk)
         $this->writeTightSingleLine($pdf, $this->dateOrNa($we['work_exp_from'] ?? null), 7, $rowY, $fromWidth, 7.0, 5.0);
         $this->writeTightSingleLine($pdf, $this->dateOrNa($we['work_exp_to'] ?? null), 26, $rowY, $toWidth, 7.0, 5.0);
         $this->writeTightSingleLine($pdf, $this->valueOrNa($we['work_exp_position'] ?? null), 45, $rowY, $positionWidth, 7.0, 4.5);
-        $this->writeTightSingleLine($pdf, $this->valueOrNa($we['work_exp_department'] ?? null), 103, $rowY, $agencyWidth, 6.0, 4.4);
+        $this->writeWrappedAt($pdf, $this->valueOrNa($we['work_exp_department'] ?? null), 103, $rowY, $agencyWidth, 6.0, 2.5, 1.5, 3);
         $this->writeTightSingleLine($pdf, $this->valueOrNa($we['work_exp_status'] ?? null), 160, $rowY, $statusWidth, 7.0, 5.0);
         $this->writeTightSingleLine($pdf, $this->normalizeGovServiceFlag($we['work_exp_govt_service'] ?? null, 'N/A'), 195, $rowY, $govWidth, 7.0, 5.0);
     }

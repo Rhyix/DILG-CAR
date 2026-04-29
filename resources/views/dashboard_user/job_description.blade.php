@@ -604,7 +604,7 @@
             <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 border border-[#0D2B70]/10">
                 <p class="text-xs uppercase tracking-[0.15em] text-[#0D2B70]/70 font-semibold">Initial Assessment</p>
                 <h2 class="text-lg font-semibold text-[#002C76] mt-1">Question 3</h2>
-                <p class="text-sm text-gray-700 mt-3 font-medium">Do you already have PQE (Pre Qualifying Exam)?</p>
+                <p class="text-sm text-gray-700 mt-3 font-medium">Have you taken and passed the PQE (Pre Qualifying Exam)?</p>
                 <div class="mt-6 flex justify-end gap-2">
                     <button type="button" onclick="closeInitialAssessmentPqeModal()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
                         Close
