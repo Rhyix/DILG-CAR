@@ -191,9 +191,11 @@
                 <div class="relative">
                   <span
                     class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-500">PHP</span>
-                  <input id="monthly_salary" required type="number" step="0.01" min="0" max="1000000" inputmode="decimal"
-                    name="monthly_salary" value="{{ old('monthly_salary', $formSource?->monthly_salary ?? '') }}"
+                  <input id="monthly_salary_display" type="text" inputmode="decimal"
+                    value="{{ old('monthly_salary', $formSource?->monthly_salary ?? '') }}"
                     class="h-11 w-full rounded-xl border border-slate-300 bg-white pl-14 pr-4 text-sm text-slate-900 shadow-sm outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100">
+                  <input id="monthly_salary" required type="hidden" name="monthly_salary"
+                    value="{{ old('monthly_salary', $formSource?->monthly_salary ?? '') }}">
                 </div>
                 <p id="monthly_salary_error" class="mt-1 hidden text-sm text-red-600"></p>
               </div>
@@ -635,6 +637,37 @@
       const titleSelect = document.getElementById('position_title_select');
       const sgField = document.getElementById('salary_grade');
       const salField = document.getElementById('monthly_salary');
+      const salDisplayField = document.getElementById('monthly_salary_display');
+
+      const formatMoney = (val) => {
+        if (!val) return '';
+        const num = parseFloat(val.toString().replace(/,/g, ''));
+        if (isNaN(num)) return '';
+        return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      };
+
+      if (salDisplayField && salField) {
+        if (salField.value) salDisplayField.value = formatMoney(salField.value);
+        salDisplayField.addEventListener('input', (e) => {
+          let raw = e.target.value.replace(/[^0-9.]/g, '');
+          const parts = raw.split('.');
+          if (parts.length > 2) raw = parts[0] + '.' + parts.slice(1).join('');
+          salField.value = raw;
+          triggerFieldEvents(salField);
+        });
+        salDisplayField.addEventListener('blur', () => {
+          if (salField.value) salDisplayField.value = formatMoney(salField.value);
+        });
+        salDisplayField.addEventListener('focus', () => {
+          salDisplayField.value = salField.value;
+        });
+        salField.addEventListener('change', () => {
+          if (document.activeElement !== salDisplayField) {
+            salDisplayField.value = formatMoney(salField.value);
+          }
+        });
+      }
+
       const isCreateMode = @json($isCreateMode);
       const cscInputField = document.getElementById('csc_form_upload_plantilla');
       const cscFilenameField = document.getElementById('csc_form_filename_plantilla');

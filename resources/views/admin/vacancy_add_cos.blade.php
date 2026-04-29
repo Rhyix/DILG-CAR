@@ -179,7 +179,11 @@
               <label class="{{ $fieldLabel }}">Monthly Salary <span class="text-red-600">*</span></label>
               <div class="relative">
                 <span class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-500">PHP</span>
-                <input id="monthly_salary" required type="number" step="0.01" min="0" max="1000000" inputmode="decimal" name="monthly_salary" value="{{ old('monthly_salary', $formSource?->monthly_salary ?? '') }}" class="h-11 w-full rounded-xl border border-slate-300 bg-white pl-14 pr-4 text-sm text-slate-900 shadow-sm outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100">
+                <input id="monthly_salary_display" type="text" inputmode="decimal"
+                  value="{{ old('monthly_salary', $formSource?->monthly_salary ?? '') }}"
+                  class="h-11 w-full rounded-xl border border-slate-300 bg-white pl-14 pr-4 text-sm text-slate-900 shadow-sm outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100">
+                <input id="monthly_salary" required type="hidden" name="monthly_salary"
+                  value="{{ old('monthly_salary', $formSource?->monthly_salary ?? '') }}">
               </div>
               <p id="monthly_salary_error" class="mt-1 hidden text-sm text-red-600"></p>
             </div>
@@ -1200,6 +1204,36 @@ document.addEventListener('DOMContentLoaded', async () => {
     field.dispatchEvent(new Event('input', { bubbles: true }));
     field.dispatchEvent(new Event('change', { bubbles: true }));
   };
+
+  const salDisplay = document.getElementById('monthly_salary_display');
+  const formatMoney = (val) => {
+    if (!val) return '';
+    const num = parseFloat(val.toString().replace(/,/g, ''));
+    if (isNaN(num)) return '';
+    return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
+  if (salDisplay && sal) {
+    if (sal.value) salDisplay.value = formatMoney(sal.value);
+    salDisplay.addEventListener('input', (e) => {
+      let raw = e.target.value.replace(/[^0-9.]/g, '');
+      const parts = raw.split('.');
+      if (parts.length > 2) raw = parts[0] + '.' + parts.slice(1).join('');
+      sal.value = raw;
+      triggerFieldEvents(sal);
+    });
+    salDisplay.addEventListener('blur', () => {
+      if (sal.value) salDisplay.value = formatMoney(sal.value);
+    });
+    salDisplay.addEventListener('focus', () => {
+      salDisplay.value = sal.value;
+    });
+    sal.addEventListener('change', () => {
+      if (document.activeElement !== salDisplay) {
+        salDisplay.value = formatMoney(sal.value);
+      }
+    });
+  }
 
   const setSelectValue = (field, value) => {
     if (!field) return;
