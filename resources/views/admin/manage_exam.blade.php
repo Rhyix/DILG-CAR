@@ -170,7 +170,7 @@
             
             <!-- Tab Content: Exam Questions -->
             <div id="content-exam-questions" class="tab-content flex-1 flex flex-col min-h-0 overflow-hidden">
-                <div class="flex flex-col gap-4">
+                <div class="flex flex-col gap-4 overflow-y-auto pr-2">
                     <h2 class="text-xl font-bold text-[#0D2B70] mb-2">Examination Questions</h2>
                     @php
                         $examQuestions = \App\Models\ExamItems::where('vacancy_id', $vacancy->vacancy_id)->orderBy('created_at', 'asc')->get();
@@ -208,7 +208,7 @@
                                 <p class="mt-2 text-sm text-slate-600">
                                     Add a question to start building the exam, or open the editor to manage, update, and remove questions.
                                 </p>
-                                <div class="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
+                                <!-- <div class="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
                                     <button type="button" onclick="handleEditClick(event)"
                                         {{ (($isExamActive && $isExamDay) || $isExamCompleted) ? 'disabled' : '' }}
                                         class="inline-flex items-center justify-center gap-2 rounded-lg bg-[#002C76] px-6 py-3 font-bold text-white transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100">
@@ -216,7 +216,7 @@
                                         <span>Add Your First Question</span>
                                     </button>
                                     <span class="text-sm font-medium text-slate-400">or use the library button on the right</span>
-                                </div>
+                                </div> -->
                             </div>
                         </div>
                     @endif
@@ -538,11 +538,11 @@
 
             <!-- PANEL 1: EXAM QUESTIONS -->
             <div id="panel-questions" class="flex flex-col gap-3">
-                <!-- <button type="button" onclick="handleEditClick(event)"
+                <button type="button" onclick="handleEditClick(event)"
                         {{ (($isExamActive && $isExamDay) || $isExamCompleted) ? 'disabled' : '' }}
                         class="w-full py-3 bg-white border-2 border-[#0D2B70] rounded-lg text-[#0D2B70] font-bold text-sm hover:scale-[1.02] flex items-center justify-center gap-2 transition-transform disabled:opacity-50 disabled:hover:scale-100">
-                    Add from Exam Library
-                </button> -->
+                    Manage Questions
+                </button>
             </div>
 
             <!-- PANEL 2: SCHEDULE FORM (Qualified Applicants tab) -->
