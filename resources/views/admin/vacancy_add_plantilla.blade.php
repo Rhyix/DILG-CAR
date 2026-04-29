@@ -243,8 +243,8 @@
             <div class="grid gap-5 md:grid-cols-2">
               <div>
                 <label class="{{ $fieldLabel }}">Position Control Number</label>
-                <input type="text" name="pcn_no" value="{{ old('pcn_no', $formSource?->pcn_no ?? '') }}"
-                  class="{{ $fieldInput }}">
+                  <input type="text" id="pcn_no" name="pcn_no" value="{{ old('pcn_no', $formSource?->pcn_no ?? '') }}"
+                    class="{{ $fieldInput }}" autocomplete="off">
               </div>
               <div>
                 <label class="{{ $fieldLabel }}">Plantilla Item No.</label>
@@ -547,6 +547,63 @@
       });
       return dirty;
     }
+  </script>
+
+  <script>
+  // --- PCN Auto-fill Mechanism ---
+  document.addEventListener('DOMContentLoaded', function () {
+    const pcnField = document.getElementById('pcn_no');
+    const form = document.getElementById('plantillaForm');
+    // Only auto-fill if creating (not editing existing)
+    const isCreateMode = @json($isCreateMode);
+    if (!pcnField || !isCreateMode) return;
+
+    // Helper to pad number
+    function pad(num, size) {
+      let s = String(num);
+      while (s.length < size) s = '0' + s;
+      return s;
+    }
+
+    // Fetch the current count of plantilla job postings for the year
+    async function fetchPCNCount() {
+      try {
+        // You should create this endpoint in your backend to return the count for the year/month
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = pad(now.getMonth() + 1, 2);
+        // Optionally, you can use the selected month if you want to base on closing_date
+        const res = await fetch(`/admin/plantilla/pcn-count?year=${year}&month=${month}`);
+        const data = await res.json();
+        if (data && typeof data.count === 'number') {
+          return data.count;
+        }
+      } catch (e) {}
+      return 0;
+    }
+
+    async function autoFillPCN() {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = pad(now.getMonth() + 1, 2);
+      const count = await fetchPCNCount();
+      // The next posting is count+1
+      const nth = pad(count + 1, 3);
+      const pcn = `PCN-${year}-${month}-${nth}`;
+      if (pcnField.value === '' || pcnField.value.startsWith('PCN-')) {
+        pcnField.value = pcn;
+      }
+    }
+
+    // Auto-fill on page load
+    autoFillPCN();
+
+    // Optionally, re-auto-fill when closing_date changes (if you want to base PCN on closing_date)
+    const closingDateInput = document.getElementById('closing_date');
+    if (closingDateInput) {
+      closingDateInput.addEventListener('change', autoFillPCN);
+    }
+  });
   </script>
 
 
