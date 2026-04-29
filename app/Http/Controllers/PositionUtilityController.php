@@ -68,6 +68,7 @@ class PositionUtilityController extends Controller
             'to_office',
             'to_office_address',
             'csc_form_path',
+            'supporting_documents_required',
         ] as $optionalColumn) {
             if ($this->hasPositionsColumn($optionalColumn)) {
                 $columns[] = $optionalColumn;
@@ -156,6 +157,10 @@ class PositionUtilityController extends Controller
 
         if (Schema::hasColumn('job_vacancies', 'csc_form_path')) {
             $query->addSelect('csc_form_path');
+        }
+
+        if (Schema::hasColumn('job_vacancies', 'supporting_documents_required')) {
+            $query->addSelect('supporting_documents_required');
         }
 
         $type = strtoupper(trim($vacancyType));
@@ -318,6 +323,7 @@ class PositionUtilityController extends Controller
                 'to_office' => $this->firstNonEmptyString($row->to_office, $fallback?->to_office),
                 'to_office_address' => $this->firstNonEmptyString($row->to_office_address, $fallback?->to_office_address),
                 'csc_form_path' => $this->firstNonEmptyString($row->csc_form_path, $fallback?->csc_form_path),
+                'supporting_documents_required' => $row->supporting_documents_required ?? $fallback?->supporting_documents_required,
             ];
         })->values();
 

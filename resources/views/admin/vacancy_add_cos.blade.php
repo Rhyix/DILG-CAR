@@ -1347,6 +1347,23 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }
 
+    if (hasProp('supporting_documents_required')) {
+      let reqDocs = record.supporting_documents_required;
+      if (typeof reqDocs === 'string') {
+        try { reqDocs = JSON.parse(reqDocs); } catch(e) { reqDocs = []; }
+      }
+      if (Array.isArray(reqDocs)) {
+        const checkboxes = document.querySelectorAll('.supporting-document-checkbox');
+        checkboxes.forEach(cb => {
+          cb.checked = reqDocs.includes(cb.value);
+        });
+        const hiddenInput = document.getElementById('supporting_documents_required');
+        if (hiddenInput) {
+          hiddenInput.value = JSON.stringify(reqDocs);
+        }
+      }
+    }
+
     if (typeof checkAllFieldsFilled === 'function') {
       checkAllFieldsFilled();
     }
