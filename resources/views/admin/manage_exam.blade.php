@@ -135,8 +135,17 @@
         <div class="w-full lg:w-[70%] flex flex-col overflow-hidden border-r border-gray-200 pr-4">
             <!-- Tab Navigation (Moved inside left col) -->
             <div class="flex-none flex gap-6 border-b border-gray-200 mb-4">
-                <button id="tab-qualified" onclick="switchTab('qualified')"
+                <button id="tab-questions" onclick="switchTab('exam-questions')"
                     class="tab-button pb-2 font-bold text-[#0D2B70] border-b-2 border-[#0D2B70] transition-all duration-200 text-sm uppercase tracking-wide">
+                    Exam Questions
+                    <!-- @if($qualifiedApplicants->count() > 0)
+                        <span class="ml-2 bg-[#0D2B70] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full align-middle">
+                            {{ $qualifiedApplicants->count() }}
+                        </span>
+                    @endif -->
+                </button>
+                <button id="tab-qualified" onclick="switchTab('qualified')"
+                    class="tab-button pb-2 font-bold text-gray-400 border-b-2 border-transparent hover:text-[#0D2B70] transition-all duration-200 text-sm uppercase tracking-wide">
                     Qualified Applicants
                     @if($qualifiedApplicants->count() > 0)
                         <span class="ml-2 bg-[#0D2B70] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full align-middle">
@@ -159,8 +168,63 @@
                 </button>
             </div>
             
+            <!-- Tab Content: Exam Questions -->
+            <div id="content-exam-questions" class="tab-content flex-1 flex flex-col min-h-0 overflow-hidden">
+                <div class="flex flex-col gap-4">
+                    <h2 class="text-xl font-bold text-[#0D2B70] mb-2">Examination Questions</h2>
+                    @php
+                        $examQuestions = \App\Models\ExamItems::where('vacancy_id', $vacancy->vacancy_id)->orderBy('created_at', 'asc')->get();
+                    @endphp
+                    @if($examQuestions->count() > 0)
+                        <ol class="list-decimal pl-6 space-y-4">
+                            @foreach($examQuestions as $q)
+                                <li class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                                    <div class="font-semibold text-[#0D2B70] mb-2">{!! nl2br(e($q->question)) !!}</div>
+                                    @if(($q->is_essay ?? false) || ($q->type ?? '') === 'essay')
+                                        <div class="italic text-slate-600">Essay Question</div>
+                                    @else
+                                        @php
+                                            $questionChoices = is_array($q->choices)
+                                                ? $q->choices
+                                                : (json_decode($q->choices, true) ?? []);
+                                        @endphp
+                                        <ul class="list-disc pl-6 space-y-1">
+                                            @foreach($questionChoices as $choice)
+                                                <li class="mb-1">{!! nl2br(e($choice)) !!}</li>
+                                            @endforeach
+                                        </ul>
+                                        @if(!empty($q->ans))
+                                            <div class="mt-2 text-xs text-green-700">Correct Answer: <span class="font-bold">{!! nl2br(e($q->ans)) !!}</span></div>
+                                        @endif
+                                    @endif
+                                    <div class="mt-2 text-xs text-gray-400">Question #{{ $loop->iteration }}</div>
+                                </li>
+                            @endforeach
+                        </ol>
+                    @else
+                        <div class="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center">
+                            <div class="max-w-md">
+                                <h3 class="text-2xl font-bold text-[#0D2B70]">There are no questions yet.</h3>
+                                <p class="mt-2 text-sm text-slate-600">
+                                    Add a question to start building the exam, or open the editor to manage, update, and remove questions.
+                                </p>
+                                <div class="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
+                                    <button type="button" onclick="handleEditClick(event)"
+                                        {{ (($isExamActive && $isExamDay) || $isExamCompleted) ? 'disabled' : '' }}
+                                        class="inline-flex items-center justify-center gap-2 rounded-lg bg-[#002C76] px-6 py-3 font-bold text-white transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100">
+                                        <x-heroicon-o-plus class="w-5 h-5" />
+                                        <span>Add Your First Question</span>
+                                    </button>
+                                    <span class="text-sm font-medium text-slate-400">or use the library button on the right</span>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+                </div>
+            </div>
+            
             <!-- Tab Content: Qualified Applicants -->
-            <div id="content-qualified" class="tab-content flex-1 flex flex-col min-h-0 overflow-hidden">
+            <div id="content-qualified" class="tab-content hidden flex-1 flex flex-col min-h-0 overflow-hidden">
                 <div class="flex-none flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
                     <!-- Search Bar -->
                     <form onsubmit="return false;" class="relative w-full max-w-xs">
@@ -471,15 +535,22 @@
         <div class="w-full lg:w-[30%] lg:min-w-[320px] flex flex-col mt-4 lg:mt-0 pl-2 overflow-y-auto">
             <form id="examDetailsForm" class="flex flex-col gap-4">
             @csrf
-            
-            <!-- PANEL 1: SCHEDULE EXAM (Default Visible) -->
-            <div id="panel-schedule" class="flex flex-col gap-3">
-                <!-- Header -->
+
+            <!-- PANEL 1: EXAM QUESTIONS -->
+            <div id="panel-questions" class="flex flex-col gap-3">
+                <!-- <button type="button" onclick="handleEditClick(event)"
+                        {{ (($isExamActive && $isExamDay) || $isExamCompleted) ? 'disabled' : '' }}
+                        class="w-full py-3 bg-white border-2 border-[#0D2B70] rounded-lg text-[#0D2B70] font-bold text-sm hover:scale-[1.02] flex items-center justify-center gap-2 transition-transform disabled:opacity-50 disabled:hover:scale-100">
+                    Add from Exam Library
+                </button> -->
+            </div>
+
+            <!-- PANEL 2: SCHEDULE FORM (Qualified Applicants tab) -->
+            <div id="panel-schedule" class="flex flex-col gap-3 hidden">
                 <span class="text-xl text-[#0D2B70] font-bold border-b border-gray-200 pb-2 mb-1">
                     Schedule Exam
                 </span>
-                
-                <!-- VENUE -->
+
                 <div class="flex flex-col">
                     <label for="venue" class="text-[#0D2B70] font-bold text-xs mb-1">Venue <span class="text-red-500">*</span></label>
                     <input type="text" id="venue" name="place" required
@@ -490,7 +561,6 @@
                 </div>
 
                 <div class="grid grid-cols-2 gap-2">
-                    <!-- DATE -->
                     <div class="flex flex-col">
                         <label for="date" class="text-[#0D2B70] font-bold text-xs mb-1">Date <span class="text-red-500">*</span></label>
                         <input type="date" id="date" name="date" required
@@ -498,8 +568,7 @@
                             {{ ($isExamActive || $isExamCompleted || ($examDetails && $examDetails->details_saved)) ? 'disabled' : '' }}
                             class="w-full px-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-[#0D2B70] disabled:bg-gray-100" />
                     </div>
-    
-                    <!-- TIME (Start) -->
+
                     <div class="flex flex-col">
                         <label for="time" class="text-[#0D2B70] font-bold text-xs mb-1">Time <span class="text-red-500">*</span></label>
                         <input class="font-sm h-full" type="time" id="time" name="time" required
@@ -509,7 +578,6 @@
                     </div>
                 </div>
 
-                <!-- MESSAGE (New Field) -->
                 <div class="flex flex-col">
                     <label for="message" class="text-[#0D2B70] font-bold text-xs mb-1">Message <span class="text-red-500">*</span></label>
                     <textarea id="message" name="message" rows="3" required
@@ -518,11 +586,9 @@
                         placeholder="Enter message for applicants">{{ $examDetails->message ?? '' }}</textarea>
                 </div>
 
-                <!-- HIDDEN FIELDS FOR BACKEND COMPATIBILITY -->
                 <input type="hidden" id="time_end_hidden" name="time_end" value="{{ $examDetails->time_end ?? '' }}">
                 <input type="hidden" id="duration" name="duration" value="{{ $examDetails->duration ?? '' }}">
 
-                <!-- ACTION BUTTONS: SCHEDULE -->
                 <div class="flex flex-col gap-2 mt-4">
                     <div class="flex flex-col">
                         <div>
@@ -541,7 +607,7 @@
                             </p>
                         </div>
                     </div>
-                    
+
                     <button type="button" onclick="handleEditClick(event)"
                             {{ (($isExamActive && $isExamDay) || $isExamCompleted) ? 'disabled' : '' }}
                             class="w-full py-2 bg-white border-2 border-[#0D2B70] rounded-lg text-[#0D2B70] font-bold text-sm hover:scale-[1.02] flex items-center justify-center gap-2 transition-transform disabled:opacity-50 disabled:hover:scale-100">
@@ -1484,49 +1550,77 @@
     // TAB SWITCHING
     // ========================================
     function switchTab(tab) {
-        const tabs = ['qualified', 'attendance', 'lobby'];
+        const tabs = ['exam-questions', 'qualified', 'attendance', 'lobby'];
+        const panelQuestions = document.getElementById('panel-questions');
         const panelSchedule = document.getElementById('panel-schedule');
         const panelMonitor = document.getElementById('panel-monitor');
         const panelAttendance = document.getElementById('panel-attendance');
 
-        tabs.forEach(t => {
-            const tabBtn = document.getElementById(`tab-${t}`);
-            const content = document.getElementById(`content-${t}`);
+            // First, hide ALL tab content panels and deactivate all buttons
+            tabs.forEach(t => {
+                const tabBtnId = t === 'exam-questions' ? 'tab-questions' : `tab-${t}`;
+                const tabBtn = document.getElementById(tabBtnId);
+                const content = document.getElementById(`content-${t}`);
 
-            if (t === tab) {
+                if (tabBtn) {
+                    tabBtn.classList.remove('border-[#0D2B70]', 'text-[#0D2B70]');
+                    tabBtn.classList.add('border-transparent', 'text-gray-400');
+                }
+                if (content) {
+                    content.classList.add('hidden');
+                }
+            });
+
+            // Then, activate only the selected tab
+            const tabBtnId = tab === 'exam-questions' ? 'tab-questions' : `tab-${tab}`;
+            const tabBtn = document.getElementById(tabBtnId);
+            const content = document.getElementById(`content-${tab}`);
+
+            if (tabBtn) {
                 tabBtn.classList.add('border-[#0D2B70]', 'text-[#0D2B70]');
                 tabBtn.classList.remove('border-transparent', 'text-gray-400');
-                content.classList.remove('hidden');
-                
-                // Toggle Right Panel
-                if (t === 'qualified') {
-                    if (panelSchedule) panelSchedule.classList.remove('hidden');
-                    if (panelMonitor) panelMonitor.classList.add('hidden');
-                    if (panelAttendance) panelAttendance.classList.add('hidden');
-                    stopLobbyPolling();
-                    stopAttendancePolling();
-                } else if (t === 'attendance') {
-                    if (panelSchedule) panelSchedule.classList.add('hidden');
-                    if (panelMonitor) panelMonitor.classList.add('hidden');
-                    if (panelAttendance) panelAttendance.classList.remove('hidden');
-                    stopLobbyPolling();
-                    startAttendancePolling();
-                } else if (t === 'lobby') {
-                    if (panelSchedule) panelSchedule.classList.add('hidden');
-                    if (panelMonitor) panelMonitor.classList.remove('hidden');
-                    if (panelAttendance) panelAttendance.classList.add('hidden');
-                    queueLobbyFetch('tab-open', 0);
-                    startLobbyPolling();
-                    stopAttendancePolling();
-                    // Sync Monitor fields
-                    syncMonitorFields();
-                }
-            } else {
-                tabBtn.classList.remove('border-[#0D2B70]', 'text-[#0D2B70]');
-                tabBtn.classList.add('border-transparent', 'text-gray-400');
-                content.classList.add('hidden');
             }
-        });
+            if (content) {
+                content.classList.remove('hidden');
+            }
+
+            // Toggle Right Panels based on active tab
+            if (tab === 'exam-questions') {
+                // Exam Questions tab has only the edit button
+                if (panelQuestions) panelQuestions.classList.remove('hidden');
+                if (panelSchedule) panelSchedule.classList.add('hidden');
+                if (panelMonitor) panelMonitor.classList.add('hidden');
+                if (panelAttendance) panelAttendance.classList.add('hidden');
+                stopLobbyPolling();
+                stopAttendancePolling();
+            } else if (tab === 'qualified') {
+                // Qualified tab: show scheduling form
+                if (panelQuestions) panelQuestions.classList.add('hidden');
+                if (panelSchedule) panelSchedule.classList.remove('hidden');
+                if (panelMonitor) panelMonitor.classList.add('hidden');
+                if (panelAttendance) panelAttendance.classList.add('hidden');
+                stopLobbyPolling();
+                stopAttendancePolling();
+            } else if (tab === 'attendance') {
+                // Attendance tab: show attendance panel
+                if (panelQuestions) panelQuestions.classList.add('hidden');
+                if (panelSchedule) panelSchedule.classList.add('hidden');
+                if (panelMonitor) panelMonitor.classList.add('hidden');
+                if (panelAttendance) panelAttendance.classList.remove('hidden');
+                stopLobbyPolling();
+                startAttendancePolling();
+            } else if (tab === 'lobby') {
+                // Lobby/Monitor tab: show monitor panel
+                if (panelQuestions) panelQuestions.classList.add('hidden');
+                if (panelSchedule) panelSchedule.classList.add('hidden');
+                if (panelMonitor) panelMonitor.classList.remove('hidden');
+                if (panelAttendance) panelAttendance.classList.add('hidden');
+                queueLobbyFetch('tab-open', 0);
+                startLobbyPolling();
+                stopAttendancePolling();
+                // Sync Monitor fields
+                syncMonitorFields();
+            }
     }
 
     function syncMonitorFields() {
