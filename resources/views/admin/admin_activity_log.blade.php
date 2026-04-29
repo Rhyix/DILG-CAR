@@ -158,7 +158,21 @@
                                 <td class="w-[16%] px-4 py-3 text-sm text-center truncate" x-text="log.admin_name"></td>
                                 <td class="w-[12%] px-4 py-3 text-sm text-center" x-text="log.role"></td>
                                 <td class="w-[15%] px-4 py-3 text-sm text-center" x-text="log.section"></td>
-                                <td class="w-[40%] px-4 py-3 text-sm text-left whitespace-normal break-words" x-html="log.description_html"></td>
+                                <td class="w-[40%] px-4 py-3 text-sm text-left whitespace-normal break-words">
+                                    <div x-html="log.description_html"></div>
+                                    <template x-if="log.email_log_id">
+                                        <div class="mt-1">
+                                            <a
+                                                class="inline-flex items-center gap-2 text-xs font-semibold text-[#0D2B70] underline hover:no-underline"
+                                                :href="`${emailLogBaseUrl}/${log.email_log_id}`"
+                                                target="_blank"
+                                                rel="noopener"
+                                            >
+                                                View email
+                                            </a>
+                                        </div>
+                                    </template>
+                                </td>
                             </tr>
                         </template>
                     </tbody>
@@ -172,6 +186,8 @@
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
+    const emailLogBaseUrl = @json(url('/admin/email-logs'));
+
     function logTable() {
         return {
             logsData: [],

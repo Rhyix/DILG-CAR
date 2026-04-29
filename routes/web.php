@@ -11,6 +11,7 @@ use App\Http\Controllers\Auth\{
 };
 use App\Http\Controllers\{
     activityLogController,
+    AdminEmailLogController,
     VacancyController,
     JobVacancyController,
     ExamController,
@@ -626,6 +627,9 @@ Route::middleware([RedirectIfNotAdmin::class])->group(function () {
 
     Route::get("/admin/activity_log", [activityLogController::class, 'view'])->name('admin_activity_log');
     Route::get('/admin/activity-log/data', [activityLogController::class, 'fetch'])->name('admin.activity_log.fetch');
+
+    Route::get('/admin/email-logs/{emailLog}', [AdminEmailLogController::class, 'show'])->name('admin.email_logs.show');
+    Route::get('/admin/email-logs/{emailLog}/html', [AdminEmailLogController::class, 'html'])->name('admin.email_logs.html');
 
     // ==================================================================================================
     // REPORT ROUTES

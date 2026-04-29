@@ -9,6 +9,7 @@ use App\Models\Admin;
 use App\Models\Vacancy;
 use App\Models\ExamDetail;
 use App\Models\JobVacancy;
+use App\Models\VacancyTitle;
 use App\Models\Applications;
 use App\Models\Notification;
 use App\Models\UploadedDocument;
