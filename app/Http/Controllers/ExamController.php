@@ -1153,7 +1153,16 @@ class ExamController extends Controller
         $isViewer = $this->isViewerRole();
         $search = $request->input('search');
         $jobType = $isViewer ? null : $request->input('job_type');
-        $examStatus = $isViewer ? 'Ongoing' : $request->input('exam_status');
+        $examStatus = $request->input('exam_status');
+
+        if ($isViewer) {
+            $allowedStatuses = ['Scheduled', 'Ongoing', 'Completed'];
+            if ($examStatus === null || $examStatus === '') {
+                $examStatus = $allowedStatuses;
+            } elseif (!is_array($examStatus) && !in_array($examStatus, $allowedStatuses, true)) {
+                $examStatus = 'Ongoing';
+            }
+        }
 
         $jobVacancies = JobVacancy::query()
             ->with(['examDetail']) // Eager load the relationship
@@ -1182,6 +1191,9 @@ class ExamController extends Controller
         // Filter by Exam Status (PHP-side filtering since status is calculated)
         if ($examStatus) {
             $jobVacancies = $jobVacancies->filter(function ($vacancy) use ($examStatus) {
+                if (is_array($examStatus)) {
+                    return in_array($vacancy->exam_status, $examStatus, true);
+                }
                 return $vacancy->exam_status === $examStatus;
             })->values(); // Reset keys
         }
@@ -1238,10 +1250,10 @@ class ExamController extends Controller
 
         if ($isViewer) {
             $viewerExamStatus = $examDetails ? $this->getExamStatus($examDetails) : 'Unscheduled';
-            if ($viewerExamStatus !== 'Ongoing') {
+            if (!in_array($viewerExamStatus, ['Ongoing', 'Completed'])) {
                 return redirect()
                     ->route('admin_exam_management')
-                    ->with('error', 'Viewer can only monitor ongoing exams.');
+                    ->with('error', 'Viewer can only monitor ongoing or completed exams.');
             }
         }
 

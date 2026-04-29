@@ -1,6 +1,6 @@
-@extends('layout.viewer')
+@extends('layout.admin')
 
-@section('title', 'Juan Dela Cruz - Answers')
+@section('title', ($user->name ?? 'Examinee') . ' - Answers')
 
 @push('styles')
     <!-- Montserrat Font -->
@@ -25,9 +25,9 @@
         </button>
 
         <div>
-            <h2 id="applicant-name" class="text-2xl font-bold uppercase text-[#002C76]">Juan Dela Cruz</h2>
+            <h2 id="applicant-name" class="text-2xl font-bold uppercase text-[#002C76]">{{ $user->name }}</h2>
             <p class="uppercase text-sm font-semibold text-gray-700 tracking-wide">Examination Answers</p>
-            <p class="text-xs font-medium text-gray-500">For Position: <span class="font-semibold text-[#002C76]">Engineer III</span></p>
+            <p class="text-xs font-medium text-gray-500">For Position: <span class="font-semibold text-[#002C76]">{{ $vacancy->position_title }}</span></p>
         </div>
     </div>
 
@@ -50,29 +50,8 @@
 <div id="question-container" class="px-6 pb-10 font-montserrat"></div>
 
 <script>
-    const mockQuestions = [
-        { id: 1, type: 'mcq', number: 1, question: 'Which of the following is a programming language?' },
-        { id: 2, type: 'mcq', number: 2, question: 'Which is used to style web pages?' },
-        { id: 3, type: 'essay', number: 3, question: 'Explain the concept of inheritance in object-oriented programming.' },
-        { id: 4, type: 'mcq', number: 4, question: 'What does CPU stand for?' },
-        { id: 5, type: 'essay', number: 5, question: 'Describe your most challenging software project and how you overcame it.' }
-    ];
-
-    const mockAnswers = {
-        1: 'Python',
-        2: 'HTML',
-        3: 'Inheritance allows a class to inherit properties and behaviors from another class.',
-        4: 'Central Processing Unit',
-        5: 'The most challenging project was building a real-time chat app using sockets and load balancing.'
-    };
-
-    const correctAnswers = {
-        1: 'Python',
-        2: 'CSS',
-        3: 'Inheritance allows a class to inherit properties and behaviors from another class.',
-        4: 'Central Processing Unit',
-        5: 'The most challenging project was building a real-time chat app using sockets and load balancing.'
-    };
+    const questions = @json($questions);
+    const answers = @json($answers);
 
     function renderAnswers() {
         const container = document.getElementById('question-container');
@@ -81,27 +60,37 @@
         container.innerHTML = '';
 
         let correctCount = 0;
+        let totalMcqs = 0;
 
-        mockQuestions.forEach((q, index) => {
-            const userAnswer = mockAnswers[q.id] ?? 'No answer yet';
-            const correctAnswer = correctAnswers[q.id];
-            const isCorrect = userAnswer.trim().toLowerCase() === correctAnswer.trim().toLowerCase();
+        questions.forEach((q, index) => {
+            const userAnswer = (answers[q.id] || answers[q.question_id] || '').trim();
+            let isCorrect = false;
+            let statusBadge = '';
 
-            if (isCorrect) correctCount++;
+            if (q.type === 'mcq' || q.type === 'multiple_choice') {
+                totalMcqs++;
+                isCorrect = userAnswer.toLowerCase() === (q.correct_answer || '').trim().toLowerCase();
+                if (isCorrect) correctCount++;
+                
+                statusBadge = `
+                    <span class="text-sm font-semibold px-3 py-1 rounded-full ${isCorrect ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
+                        ${isCorrect ? 'Correct' : 'Incorrect'}
+                    </span>`;
+            } else {
+                statusBadge = `<span class="text-sm font-semibold px-3 py-1 rounded-full bg-blue-100 text-blue-700">Essay</span>`;
+            }
 
             const div = document.createElement('div');
             div.className = 'bg-white rounded-xl border border-blue-200 shadow-md p-6 mb-6 max-w-3xl mx-auto';
 
             div.innerHTML = `
                 <div class="flex justify-between items-center mb-1">
-                    <p class="text-lg font-semibold text-gray-800">QUESTION ${index + 1} of ${mockQuestions.length}</p>
-                    <span class="text-sm font-semibold px-3 py-1 rounded-full ${isCorrect ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
-                        ${isCorrect ? 'Correct' : 'Incorrect'}
-                    </span>
+                    <p class="text-lg font-semibold text-gray-800">QUESTION ${index + 1} of ${questions.length}</p>
+                    ${statusBadge}
                 </div>
-                <p class="mb-3 text-gray-700">${q.question}</p>
+                <p class="mb-3 text-gray-700">${q.question_text || q.question}</p>
                 <div class="bg-gray-100 text-gray-900 rounded px-4 py-3">
-                    <p class="whitespace-pre-line"><strong class="mr-1">Answer:</strong>${userAnswer}</p>
+                    <p class="whitespace-pre-line"><strong class="mr-1">Answer:</strong>${userAnswer || '<span class="text-gray-400 italic">No answer provided</span>'}</p>
                 </div>
             `;
             container.appendChild(div);
@@ -109,7 +98,7 @@
 
         // Update refreshed time and score
         refreshedEl.textContent = new Date().toLocaleString();
-        scoreEl.textContent = `${correctCount} / ${mockQuestions.length}`;
+        scoreEl.textContent = totalMcqs > 0 ? `${correctCount} / ${totalMcqs} (MCQs)` : 'N/A';
     }
 
     document.addEventListener('DOMContentLoaded', renderAnswers);

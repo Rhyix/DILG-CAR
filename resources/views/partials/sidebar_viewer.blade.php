@@ -26,7 +26,13 @@
         <!-- Only Exam Management Link -->
         <nav class="mt-8 space-y-1 px-2 font-montserrat">
             <a href="{{ route('viewer') }}"
-                class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold text-[#002C76] hover:text-white hover:bg-[#002c76] active:bg-[#002c76] active:text-white transition">
+                class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold {{ request()->routeIs('viewer') ? 'bg-[#002C76] text-white shadow-md' : 'text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md' }} transition-all duration-200">
+                <i data-feather="home" class="w-5 h-5 stroke-[3] flex-shrink-0"></i>
+                <span id="textHome" class="sidebar-text-hidden ml-3">HOME</span>
+            </a>
+
+            <a href="{{ route('admin_exam_management') }}"
+                class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold {{ request()->routeIs('admin_exam_management') ? 'bg-[#002C76] text-white shadow-md' : 'text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md' }} transition-all duration-200">
                 <i data-feather="file-text" class="w-5 h-5 stroke-[3] flex-shrink-0"></i>
                 <span id="textExamManagement" class="sidebar-text-hidden ml-3">EXAM MANAGEMENT</span>
             </a>

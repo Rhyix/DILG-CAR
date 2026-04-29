@@ -128,7 +128,7 @@
                 el.classList.add('sidebar-text-visible');
             });
             isOpen = true;
-            localStorage.setItem('sidebarOpen', 'false'); // Save state to localStorage
+            localStorage.setItem('sidebarOpen', 'true'); // Save state to localStorage
         }
 
         function closeSidebar() {

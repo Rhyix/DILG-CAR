@@ -1,6 +1,6 @@
-﻿@extends('layout.admin')
+@extends('layout.admin')
 
-@section('title', 'Juan Dela Cruz - Answers')
+@section('title', ($userName->name ?? 'Examinee') . ' - Answers')
 
 @push('styles')
     <!-- Montserrat Font -->

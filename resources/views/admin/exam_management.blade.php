@@ -75,10 +75,12 @@
                                 Status
                             </label>
                             <select id="examStatusFilter"
-                                    {{ $isViewerMode ? 'disabled' : '' }}
                                     class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 shadow-sm outline-none transition focus:border-[#0D2B70] focus:ring-2 focus:ring-[#0D2B70]/20">
                                 @if($isViewerMode)
-                                    <option value="Ongoing" selected>Ongoing</option>
+                                    <option value="" selected>All</option>
+                                    <option value="Scheduled">Scheduled</option>
+                                    <option value="Ongoing">Ongoing</option>
+                                    <option value="Completed">Completed</option>
                                 @else
                                     <option value="">All</option>
                                     <option value="Unscheduled">Unscheduled</option>
@@ -160,16 +162,31 @@
                                 </span>
                             </td>
                             <td class=" px-6 text-center w-[15%]">
-                                <button onclick="window.location.href='{{ route('admin.manage_exam', $vacancy->vacancy_id) }}'" 
-                                        class="text-[#0D2B70] border border-[#0D2B70] font-bold py-2 px-6 rounded-md text-sm
-                                        transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
-                                        hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md"
+                                @php
+                                    $canMonitor = !$isViewerMode || in_array($vacancy->exam_status, ['Ongoing', 'Completed']);
+                                @endphp
+                                <button 
+                                    @if($canMonitor)
+                                        onclick="window.location.href='{{ route('admin.manage_exam', $vacancy->vacancy_id) }}'"
+                                    @else
+                                        disabled
+                                    @endif
+                                    class="text-[#0D2B70] border border-[#0D2B70] font-bold py-2 px-6 rounded-md text-sm
+                                    transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
+                                    {{ $canMonitor ? 'hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md' : 'opacity-50 cursor-not-allowed' }}"
                                 >
                                     {{ $isViewerMode ? 'Monitor' : 'Manage' }}
                                 </button>
                             </td>
                         </tr>
                         @endforeach
+                        @if($vacancies->isEmpty())
+                        <tr>
+                            <td colspan="5" class="py-10 text-center text-gray-500 font-medium">
+                                No records found.
+                            </td>
+                        </tr>
+                        @endif
                     </tbody>
                 </table>
             </div>
@@ -324,10 +341,11 @@
                         </span>
                     </td>
                     <td class="py-4 px-6 text-center w-[15%]">
-                        <button onclick="window.location.href='/admin/exam_management/${encodeURIComponent(vacancy.vacancy_id)}/manage'" 
+                        <button 
+                                ${isViewerMode && !['Ongoing', 'Completed'].includes(vacancy.exam_status) ? 'disabled' : `onclick="window.location.href='/admin/exam_management/${encodeURIComponent(vacancy.vacancy_id)}/manage'"`} 
                                 class="text-[#0D2B70] border border-[#0D2B70] font-bold py-2 px-6 rounded-md text-sm
                                 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
-                                hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md">
+                                ${isViewerMode && !['Ongoing', 'Completed'].includes(vacancy.exam_status) ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 hover:bg-[#0D2B70] hover:text-white hover:shadow-md'}">
                             ${isViewerMode ? 'Monitor' : 'Manage'}
                         </button>
                     </td>

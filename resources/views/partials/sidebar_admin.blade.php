@@ -31,9 +31,9 @@
         </a>
 
         <nav class="mt-8 space-y-1 px-2 font-montserrat pb-4">
-            @if(in_array($adminRole, ['superadmin', 'admin', 'hr_division'], true))
-                <a href="{{ route('dashboard_admin') }}" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200
-                        {{ request()->routeIs('dashboard_admin')
+            @if(in_array($adminRole, ['superadmin', 'admin', 'hr_division', 'viewer'], true))
+                <a href="{{ $adminRole === 'viewer' ? route('viewer') : route('dashboard_admin') }}" class="use-loader group flex items-center rounded-md px-4 py-2 text-sm font-bold transition-all duration-200
+                        {{ (request()->routeIs('dashboard_admin') || request()->routeIs('viewer'))
         ? 'bg-[#002C76] text-white shadow-md'
         : 'text-[#002C76] hover:text-white hover:bg-[#002C76] hover:shadow-md' }}">
                     <i data-feather="home" class="w-5 h-5 stroke-[3] flex-shrink-0"></i>

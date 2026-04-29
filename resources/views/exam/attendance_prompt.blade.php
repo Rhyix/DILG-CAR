@@ -94,7 +94,7 @@
                                 required
                                 class="mt-1 h-4 w-4 border-slate-300 text-green-600 focus:ring-green-500">
                             <span>
-                                <span class="block text-sm font-semibold text-slate-900">Yes, I can attend</span>
+                                <span class="block text-sm font-semibold text-slate-900">Yes, I will attend</span>
                                 <span class="mt-1 block text-xs text-slate-500">You will be eligible to receive the exam link.</span>
                             </span>
                         </label>
@@ -105,7 +105,7 @@
                                 required
                                 class="mt-1 h-4 w-4 border-slate-300 text-red-600 focus:ring-red-500">
                             <span>
-                                <span class="block text-sm font-semibold text-slate-900">No, I cannot attend</span>
+                                <span class="block text-sm font-semibold text-slate-900">No, I will not attend</span>
                                 <span class="mt-1 block text-xs text-slate-500">Please provide a short remark so the admin can review it.</span>
                             </span>
                         </label>
