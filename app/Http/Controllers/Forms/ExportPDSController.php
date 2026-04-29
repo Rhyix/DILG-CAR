@@ -77,6 +77,27 @@ class ExportPDSController
         })->values();
     }
 
+    private function sortByDateDescendingForExport(Collection $rows, string $dateField): Collection
+    {
+        return $rows->sort(function ($a, $b) use ($dateField) {
+            $aDate = $this->parseExportDateToTimestamp(data_get($a, $dateField));
+            $bDate = $this->parseExportDateToTimestamp(data_get($b, $dateField));
+
+            if ($aDate !== $bDate) {
+                if ($aDate === null) {
+                    return -1; // null (like PRESENT) should be at the top
+                }
+                if ($bDate === null) {
+                    return 1;
+                }
+
+                return $bDate <=> $aDate;
+            }
+
+            return ((int) data_get($b, 'id', 0)) <=> ((int) data_get($a, 'id', 0));
+        })->values();
+    }
+
     private function resolveEligibilityLevelRankForExport($careerValue): int
     {
         $career = strtolower(trim((string) $careerValue));
@@ -233,14 +254,14 @@ class ExportPDSController
         );
 
         // C3
-        $voluntaryWork = $this->sortByDateAscendingForExport(
+        $voluntaryWork = $this->sortByDateDescendingForExport(
             VoluntaryWork::where('user_id', $user->id)->get(),
-            'voluntary_from'
+            'voluntary_to'
         );
 
-        $learningAndDev = $this->sortByDateAscendingForExport(
+        $learningAndDev = $this->sortByDateDescendingForExport(
             LearningAndDevelopment::where('user_id', $user->id)->get(),
-            'learning_from'
+            'learning_to'
         );
 
         $otherInfo = OtherInformation::where('user_id', $user->id)->first();

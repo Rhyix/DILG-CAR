@@ -207,8 +207,7 @@
                         <div class="rounded-xl border border-slate-200 p-3 bg-slate-50/70">
                             <p class="font-semibold text-[#0D2B70]">How to Apply</p>
                             <p class="mt-1">
-                                Qualified applicants are advised to apply online through
-                                <a target="_blank" href="https://car.dilg.gov.ph/dilg-car-vacancy/" class="text-[#0D2B70] font-bold underline">this portal</a>.
+                                Complete your application in this system by reviewing the qualification standards, uploading all required documents, and clicking Apply for This Position before the deadline. Ensure that all submitted information and documents are complete, accurate, and truthful.
                             </p>
                         </div>
 

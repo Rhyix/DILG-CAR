@@ -3627,15 +3627,15 @@ $rules_data_learning["learning_to_$i"] = 'required|date';
                     continue;
                 }
 
-                // Plus 1 day rule: TO must be at least one day later than FROM.
-                if ($toDate->lte($fromDate)) {
+                // TO date cannot be before FROM date (same day is allowed)
+                if ($toDate->lt($fromDate)) {
                     $validator->errors()->add(
                         "learning_from_$i",
-                        "Learning and Development row {$i}: FROM date must be at least one day earlier than TO date."
+                        "Learning and Development row {$i}: FROM date must not be later than TO date."
                     );
                     $validator->errors()->add(
                         "learning_to_$i",
-                        "Learning and Development row {$i}: TO date must be at least one day later than FROM date."
+                        "Learning and Development row {$i}: TO date must not be earlier than FROM date."
                     );
                 }
             }
@@ -3727,8 +3727,33 @@ $rules_data_vol["voluntary_to_$i"] = 'required|date';
             ->causedBy(Auth::user())
             ->log('Submitted C3 form data.');
 */
-        $c3_learning_and_development_data = session('data_learning', []);
-        $c3_voluntary_data = session('data_voluntary', []);
+        $sortByDateDesc = function($data, $fieldTo, $fieldFrom) {
+            if (!is_array($data)) return [];
+            usort($data, function($a, $b) use ($fieldTo, $fieldFrom) {
+                $dateA = trim((string) ($a[$fieldTo] ?? ($a[$fieldFrom] ?? '')));
+                $dateB = trim((string) ($b[$fieldTo] ?? ($b[$fieldFrom] ?? '')));
+                
+                $valA = strtoupper($dateA) === 'PRESENT' ? PHP_INT_MAX : (empty($dateA) ? 0 : strtotime($dateA));
+                $valB = strtoupper($dateB) === 'PRESENT' ? PHP_INT_MAX : (empty($dateB) ? 0 : strtotime($dateB));
+                
+                if ($valA === $valB) {
+                    $dateAFrom = trim((string) ($a[$fieldFrom] ?? ''));
+                    $dateBFrom = trim((string) ($b[$fieldFrom] ?? ''));
+                    $valAFrom = strtoupper($dateAFrom) === 'PRESENT' ? PHP_INT_MAX : (empty($dateAFrom) ? 0 : strtotime($dateAFrom));
+                    $valBFrom = strtoupper($dateBFrom) === 'PRESENT' ? PHP_INT_MAX : (empty($dateBFrom) ? 0 : strtotime($dateBFrom));
+                    return $valBFrom <=> $valAFrom;
+                }
+                return $valB <=> $valA;
+            });
+            return $data;
+        };
+
+        $c3_learning_and_development_data = $sortByDateDesc(session('data_learning', []), 'learning_to', 'learning_from');
+        $c3_voluntary_data = $sortByDateDesc(session('data_voluntary', []), 'voluntary_to', 'voluntary_from');
+        
+        session(['data_learning' => $c3_learning_and_development_data]);
+        session(['data_voluntary' => $c3_voluntary_data]);
+        
         $c3_other_information_data = session('data_otherInfo');
         try {
             DB::transaction(function () use ($c3_learning_and_development_data, $c3_voluntary_data, $c3_other_information_data) {

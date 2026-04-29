@@ -74,7 +74,7 @@
                     </div>
 
                     <!-- Actions -->
-                    <div class="lg:py-4 lg:px-6 lg:w-[15%] flex lg:justify-center">
+                    <div class="lg:py-4 lg:px-6 lg:w-[15%] flex lg:justify-center gap-2">
                         @if($isNotQualified)
                             <button
                                 type="button"
@@ -91,6 +91,16 @@
                                 <i data-feather="eye" class="w-4 h-4"></i>
                                 <span>View</span>
                             </button>
+                            
+                            @if($displayStatusNormalized === 'pending')
+                            <form id="cancel-application-form-{{ $application->vacancy_id }}" method="POST" action="{{ route('application_status.cancel', ['user' => $application->user_id, 'vacancy' => $application->vacancy_id]) }}">
+                                @csrf
+                                <button type="button" onclick="if(confirm('Cancel this application? This action cannot be undone.')) document.getElementById('cancel-application-form-{{ $application->vacancy_id }}').submit();" class="w-full lg:w-auto justify-center text-red-600 border border-red-500 font-bold py-2.5 lg:py-1 px-4 rounded-md text-sm transition-all duration-300 hover:scale-105 hover:bg-red-500 hover:text-white hover:shadow-md inline-flex items-center gap-2">
+                                    <i data-feather="x-circle" class="w-4 h-4"></i>
+                                    <span>Cancel</span>
+                                </button>
+                            </form>
+                            @endif
                         @endif
                     </div>
                 </div>
