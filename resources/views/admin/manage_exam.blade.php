@@ -2,7 +2,7 @@
 @section('title', 'DILG - Manage Exam')
 @section('content')
 
-<main class="w-full h-full min-h-0 mx-auto flex flex-col gap-2 overflow-hidden px-4 lg:px-0">
+<main class="w-full h-full flex flex-col overflow-hidden px-4 lg:px-0">
     <!-- header -->
     <section class="flex-none flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 max-w-full border-b border-[#0D2B70] pb-2">
         <div class="flex items-center gap-4">
@@ -129,11 +129,10 @@
         <div class="border-t border-gray-300 my-2"></div>
 
     </section>
-
-    <div class="flex-1 flex flex-col lg:flex-row min-h-0 gap-4 overflow-hidden pt-1">
+    <div class="flex-1 flex flex-col lg:flex-row gap-4 overflow-hidden">
         
         <!-- LEFT COLUMN: Tabs + Content (70% width) -->
-        <div class="w-full lg:w-[70%] flex flex-col min-h-0 border-r border-gray-200 pr-4">
+        <div class="w-full lg:w-[70%] flex flex-col overflow-hidden border-r border-gray-200 pr-4">
             <!-- Tab Navigation (Moved inside left col) -->
             <div class="flex-none flex gap-6 border-b border-gray-200 mb-4">
                 <button id="tab-qualified" onclick="switchTab('qualified')"
@@ -469,8 +468,8 @@
 
         <!--     scheduling form, buttons -->
         <!-- RIGHT COLUMN: Scheduling form -->
-        <div class="w-full lg:w-[30%] lg:min-w-[320px] flex flex-col mt-4 lg:mt-0 pl-2 min-h-0">
-            <form id="examDetailsForm" class="flex flex-col h-full justify-between">
+        <div class="w-full lg:w-[30%] lg:min-w-[320px] flex flex-col mt-4 lg:mt-0 pl-2 overflow-y-auto">
+            <form id="examDetailsForm" class="flex flex-col gap-4">
             @csrf
             
             <!-- PANEL 1: SCHEDULE EXAM (Default Visible) -->
@@ -515,7 +514,7 @@
                     <label for="message" class="text-[#0D2B70] font-bold text-xs mb-1">Message <span class="text-red-500">*</span></label>
                     <textarea id="message" name="message" rows="3" required
                         {{ ($isExamActive || $isExamCompleted || ($examDetails && $examDetails->details_saved)) ? 'disabled' : '' }}
-                        class="w-full px-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-[#0D2B70] disabled:bg-gray-100 placeholder-gray-400 resize-none"
+                        class="w-full px-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-[#0D2B70] disabled:bg-gray-100 placeholder-gray-400 resize"
                         placeholder="Enter message for applicants">{{ $examDetails->message ?? '' }}</textarea>
                 </div>
 
@@ -579,7 +578,7 @@
                 <!-- ACTION BUTTONS: MONITOR -->
                 <div class="flex flex-col gap-2 mt-4">
                     <button type="button" id="openMonitorRecipientModalButton" onclick="openMonitorRecipientModal()"
-                            {{ ($qualifiedCount < 1) ? 'disabled' : '' }}
+                            {{ ($qualifiedCount < 1 || $examDetails->link_sent || $isExamActive || $isExamCompleted || !$isExamDay || ($willAttendCount < 1)) ? 'disabled' : '' }}
                             title="{{ $qualifiedCount < 1 ? 'No qualified applicants are available yet.' : 'Choose which applicants should receive exam links.' }}"
                             class="w-full py-2 bg-white border-2 border-[#0D2B70] rounded-lg text-[#0D2B70] font-bold text-sm hover:scale-[1.02] flex items-center justify-center gap-2 transition-transform disabled:opacity-50 disabled:hover:scale-100">
                         <x-heroicon-o-user-group class="w-4 h-4" />
