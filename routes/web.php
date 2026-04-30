@@ -49,12 +49,27 @@ use Illuminate\Support\Facades\Response;
 // ==================================================================================================
 // HOME ROUTE - Smart redirect based on authentication
 // ==================================================================================================
-Route::get('/', function () {
-    $openVacancies = \App\Models\JobVacancy::where('status', 'OPEN')
-        ->whereRaw('DATE(closing_date) >= DATE(NOW())')
-        ->orderByRaw("CASE WHEN DATE_ADD(closing_date, INTERVAL -1 DAY) <= NOW() THEN 0 ELSE 1 END")
+Route::get('/', function (\Illuminate\Http\Request $request) {
+    $baseQuery = \App\Models\JobVacancy::query()
+        ->whereIn('status', ['OPEN', 'ASSESSMENT', 'DELIBERATION', 'CONCLUDED']);
+
+    $allCount = (clone $baseQuery)->where('status', 'OPEN')->count();
+    $plantillaCount = (clone $baseQuery)->where('status', 'OPEN')->whereIn('vacancy_type', ['plantilla', 'permanent'])->count();
+    $cosCount = (clone $baseQuery)->where('status', 'OPEN')->whereIn('vacancy_type', ['cos', 'contract of service', 'contract'])->count();
+
+    $vacancies = $baseQuery->with(['hiredApplications', 'qualifiedApplications'])
+        ->orderByRaw("
+            CASE 
+                WHEN status = 'OPEN' THEN 1
+                WHEN status = 'ASSESSMENT' THEN 2
+                WHEN status = 'DELIBERATION' THEN 3
+                WHEN status = 'CONCLUDED' THEN 4
+                ELSE 5 
+            END
+        ")
         ->orderByDesc('created_at')
-        ->paginate(12);
+        ->paginate(100);
+
     if (Auth::guard('admin')->check()) {
         $user = Auth::guard('admin')->user();
         $approvalStatus = (string) ($user->approval_status ?? 'approved');
@@ -80,7 +95,12 @@ Route::get('/', function () {
     } elseif (Auth::check()) {
         return redirect()->route('dashboard_user');
     } else {
-        return view('public.landing', ['vacancies' => $openVacancies]);
+        return view('public.landing', [
+            'vacancies' => $vacancies,
+            'allCount' => $allCount,
+            'plantillaCount' => $plantillaCount,
+            'cosCount' => $cosCount
+        ]);
     }
 })->name('home');
 

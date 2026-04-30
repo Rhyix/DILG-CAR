@@ -104,7 +104,25 @@
             </div>
             
             <!-- Modal Body - Scrollable -->
-            <div class="flex-1 overflow-y-auto p-6 bg-red">
+            <div class="flex-1 overflow-y-auto p-6">
+                <!-- Recruitment Result (Concluded) -->
+                <div id="modalResultContainer" class="mb-6 hidden">
+                    <h4 class="font-bold text-[#0D2B70] mb-3 flex items-center gap-2">
+                        <i data-feather="award" class="w-5 h-5 text-green-600"></i>
+                        Recruitment Result
+                    </h4>
+                    <div class="bg-gray-50 rounded-xl p-5 border border-gray-100 space-y-4">
+                        <div id="modalHiredSection" class="hidden">
+                            <div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Hired Candidate(s):</div>
+                            <div id="modalHiredList" class="flex flex-wrap gap-2"></div>
+                        </div>
+                        <div id="modalQualifiedSection" class="hidden">
+                            <div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Final Selection Line-up:</div>
+                            <div id="modalQualifiedList" class="flex flex-wrap gap-2"></div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="mb-6">
                     <h4 class="font-bold text-[#0D2B70] mb-3 flex items-center gap-2">
                         <i data-feather="check-circle" class="w-5 h-5"></i>
@@ -226,22 +244,36 @@
                         </span>
                     </div>
 
-                    <div class="flex flex-col sm:flex-row border-b border-[#0D2B70] flex-wrap items-start sm:items-center gap-4 sm:gap-2">
-                        <div class="flex flex-wrap items-center gap-2 flex-1" id="filterButtons">
-                            <button type="button" class="filter-btn px-4 py-2.5 bg-[#0D2B70] text-white rounded-full font-semibold text-sm shadow-sm active" data-filter="all">All Vacancies ({{ $allCount }})</button>
-                            <button type="button" class="filter-btn px-4 py-2.5 text-gray-600 bg-gray-100 rounded-full font-semibold text-sm" data-filter="plantilla">Plantilla ({{ $plantillaCount }})</button>
-                            <button type="button" class="filter-btn px-4 py-2.5 text-gray-600 bg-gray-100 rounded-full font-semibold text-sm" data-filter="cos">Contract of Service ({{ $cosCount }})</button>
-                            <!-- <button type="button" class="filter-btn px-4 py-2.5 text-gray-600 bg-gray-100 rounded-full font-semibold text-sm" data-filter="ojt">On-the-Job Training ({{ $ojtCount }})</button> -->
-                            <!-- <button type="button" class="filter-btn px-4 py-2.5 text-gray-600 bg-gray-100 rounded-full font-semibold text-sm" data-filter="contractual">Contractual ({{ $contractualCount }})</button> -->
+                    <div class="flex flex-col gap-3">
+                        <div class="text-xs font-bold text-gray-400 uppercase tracking-widest">Vacancy Type:</div>
+                        <div class="flex flex-wrap items-center gap-2" id="filterButtons">
+                            <button type="button" class="filter-btn px-4 py-2 bg-[#0D2B70] text-white rounded-full font-semibold text-xs shadow-sm active" data-filter-group="type" data-filter="all">All Types</button>
+                            <button type="button" class="filter-btn px-4 py-2 text-gray-600 bg-gray-100 rounded-full font-semibold text-xs hover:bg-gray-200 transition-colors" data-filter-group="type" data-filter="plantilla">Plantilla</button>
+                            <button type="button" class="filter-btn px-4 py-2 text-gray-600 bg-gray-100 rounded-full font-semibold text-xs hover:bg-gray-200 transition-colors" data-filter-group="type" data-filter="cos">Contract of Service</button>
                         </div>
-                        <div class="relative w-full sm:w-auto">
+                    </div>
+
+                    <div class="flex flex-col gap-3">
+                        <div class="text-xs font-bold text-gray-400 uppercase tracking-widest">Recruitment Stage:</div>
+                        <div class="flex flex-wrap items-center gap-2" id="statusFilterButtons">
+                            <button type="button" class="status-filter-btn px-4 py-2 bg-[#0D2B70] text-white rounded-full font-semibold text-xs shadow-sm active" data-filter-group="status" data-filter="all">All Stages</button>
+                            <button type="button" class="status-filter-btn px-4 py-2 text-gray-600 bg-gray-100 rounded-full font-semibold text-xs hover:bg-black-200 transition-colors" data-filter-group="status" data-filter="OPEN">Open</button>
+                            <!-- <button type="button" class="status-filter-btn px-4 py-2 text-gray-600 bg-gray-100 rounded-full font-semibold text-xs hover:bg-black-200 transition-colors" data-filter-group="status" data-filter="CLOSING_SOON">Closing Soon</button> -->
+                            <button type="button" class="status-filter-btn px-4 py-2 text-gray-600 bg-gray-100 rounded-full font-semibold text-xs hover:bg-black-200 transition-colors" data-filter-group="status" data-filter="ASSESSMENT">For Assessment</button>
+                            <button type="button" class="status-filter-btn px-4 py-2 text-gray-600 bg-gray-100 rounded-full font-semibold text-xs hover:bg-black-200 transition-colors" data-filter-group="status" data-filter="DELIBERATION">For Deliberation</button>
+                            <button type="button" class="status-filter-btn px-4 py-2 text-gray-600 bg-gray-100 rounded-full font-semibold text-xs hover:bg-black-200 transition-colors" data-filter-group="status" data-filter="CONCLUDED">Concluded</button>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row border-b border-[#0D2B70]/20 pb-4 flex-wrap items-start sm:items-center gap-4 sm:gap-2">
+                        <div class="relative w-full">
                             <input 
                                 type="text" 
                                 id="searchInput" 
-                                placeholder="Search job titles..." 
-                                class="w-full px-6 py-3 pr-14 border-2 border-gray-200 rounded-full font-semibold text-sm placeholder-gray-400 bg-white focus:outline-none focus:border-[#0D2B70] focus:shadow-md transition-all"
+                                placeholder="Search job titles or offices..." 
+                                class="w-full px-6 py-3 pr-14 border-2 border-gray-100 rounded-full font-semibold text-sm placeholder-gray-400 bg-gray-50 focus:outline-none focus:border-[#0D2B70] focus:bg-white transition-all"
                             />
-                            <button type="button" id="searchBtn" class="absolute right-1 top-1/2 transform -translate-y-1/2 p-2 text-[#0D2B70] hover:bg-blue-50 rounded-full transition-all active:scale-95">
+                            <button type="button" id="searchBtn" class="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 text-[#0D2B70] hover:bg-blue-50 rounded-full transition-all">
                                 <i data-feather="search" class="w-5 h-5"></i>
                             </button>
                         </div>
@@ -251,9 +283,7 @@
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" id="vacancyGrid">
                     @forelse ($vacancies as $vacancy)
                         @php
-                            $closingDate = \Carbon\Carbon::parse($vacancy->closing_date)->setTime(17, 0, 0); // Set closing time to 5:00 PM
-                            $now = \Carbon\Carbon::now();
-                            $isClosed = $now->greaterThan($closingDate);
+                            $processStatus = $vacancy->getProcessStatus();
                             
                             $typeNormalized = strtolower(trim((string) ($vacancy->vacancy_type ?? '')));
                             $filterType = match($typeNormalized) {
@@ -265,15 +295,18 @@
                             // Expand vacancy type to full name
                             $vacancyTypeDisplay = match($typeNormalized) {
                                 'cos', 'contract of service', 'contract' => 'Contract of Service Position',
-                                'plantilla' => 'Plantilla Position',
-                                'permanent' => 'Plantilla Position',
+                                'plantilla', 'permanent' => 'Plantilla Position',
                                 default => strtoupper($vacancy->vacancy_type ?? '') . ' Position',
                             };
+
+                            // Get hired and qualified names for Concluded state
+                            $hiredNames = $vacancy->hiredApplications->map(fn($app) => $app->personalInformation->first_name . ' ' . $app->personalInformation->last_name)->toArray();
+                            $qualifiedNames = $vacancy->qualifiedApplications->map(fn($app) => $app->personalInformation->first_name . ' ' . $app->personalInformation->last_name)->toArray();
                         @endphp
-                        @if(!$isClosed)
                         <article
-                            class="vacancy-card bg-white rounded-xl border border-gray-200 hover:border-[#0D2B70]/40 hover:shadow-md transition-all duration-200 cursor-pointer"
+                            class="vacancy-card bg-white rounded-xl border border-gray-200 hover:border-[#0D2B70]/40 hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden group"
                             data-type="{{ $filterType }}"
+                            data-status="{{ $processStatus }}"
                             data-vacancy="{{ base64_encode(json_encode([
                                 'vacancy_id' => $vacancy->vacancy_id,
                                 'position_title' => $vacancy->position_title,
@@ -283,13 +316,12 @@
                                 'qualification_experience' => $vacancy->qualification_experience,
                                 'qualification_eligibility' => $vacancy->qualification_eligibility,
                                 'competencies' => $vacancy->competencies,
+                                'status' => $processStatus,
+                                'hired_names' => $hiredNames,
+                                'qualified_names' => $qualifiedNames
                             ])) }}"
                         >
                             <div class="p-5 sm:p-6">
-                                @php 
-                                    $closingSoonStart = $closingDate->copy()->subDay()->startOfDay(); 
-                                    $isDeadlineSoon = $now->greaterThanOrEqualTo($closingSoonStart) && !$isClosed;
-                                @endphp
                                 <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                                     <div>
                                         <h3 class="font-bold text-[#0D2B70] text-lg sm:text-xl">{{ $vacancy->position_title }}</h3>
@@ -309,6 +341,36 @@
                                     </span>
                                 </div>
 
+                                @if($processStatus === 'CONCLUDED')
+                                    <div class="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                                        @if(count($hiredNames) > 0)
+                                            <div class="mb-3">
+                                                <div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Hired Candidate(s):</div>
+                                                <div class="flex flex-wrap gap-2">
+                                                    @foreach($hiredNames as $name)
+                                                        <span class="px-2 py-1 bg-green-50 text-green-700 rounded text-xs font-bold border border-green-100 flex items-center gap-1.5">
+                                                            <i data-feather="check-circle" class="w-3.5 h-3.5"></i> {{ $name }}
+                                                        </span>
+                                                    @endforeach
+                                                </div>
+                                            </div>
+                                        @endif
+                                        
+                                        @if(count($qualifiedNames) > 0)
+                                            <div>
+                                                <div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Final Selection Line-up:</div>
+                                                <div class="flex flex-wrap gap-2">
+                                                    @foreach($qualifiedNames as $name)
+                                                        <span class="px-2 py-1 bg-blue-50 text-blue-700 rounded text-[10px] font-medium border border-blue-100">
+                                                            {{ $name }}
+                                                        </span>
+                                                    @endforeach
+                                                </div>
+                                            </div>
+                                        @endif
+                                    </div>
+                                @endif
+
                                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-5 pt-4 border-t border-gray-200">
                                     <div class="space-y-2">
                                         <div class="flex items-center gap-2 text-gray-600 text-sm sm:text-base">
@@ -317,27 +379,44 @@
                                         </div>
                                         <div class="flex items-center gap-2 text-gray-500 text-sm sm:text-base">
                                             <i data-feather="calendar" class="w-4 h-4"></i>
-                                            <span>Deadline: {{ \Carbon\Carbon::parse($vacancy->closing_date)->format('F d, Y') }}</span>
+                                            <span>{{ $processStatus === 'CONCLUDED' ? 'Concluded' : 'Deadline' }}: {{ \Carbon\Carbon::parse($vacancy->closing_date)->format('F d, Y') }}</span>
                                         </div>
                                     </div>
 
                                     <div class="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
-                                        @if($isClosed)
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800">
-                                                <span class="w-2 h-2 bg-red-500 rounded-full mr-1.5"></span>
-                                                Closed
-                                            </span>
-                                        @elseif($isDeadlineSoon)
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-800">
-                                                <span class="w-2 h-2 bg-orange-500 rounded-full mr-1.5"></span>
-                                                Closing Soon
-                                            </span>
-                                        @else
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">
-                                                <span class="w-2 h-2 bg-green-500 rounded-full mr-1.5"></span>
-                                                Open
-                                            </span>
-                                        @endif
+                                        @php
+                                            $badgeClasses = match($processStatus) {
+                                                'OPEN' => 'bg-green-100 text-green-800',
+                                                'CLOSING_SOON' => 'bg-orange-100 text-orange-800 animate-pulse',
+                                                'ASSESSMENT' => 'bg-blue-100 text-blue-800',
+                                                'DELIBERATION' => 'bg-indigo-100 text-indigo-800',
+                                                'CONCLUDED' => 'bg-gray-100 text-gray-800',
+                                                'CLOSED' => 'bg-red-100 text-red-800',
+                                                default => 'bg-gray-100 text-gray-800'
+                                            };
+                                            $statusLabel = match($processStatus) {
+                                                'OPEN' => 'Open',
+                                                'CLOSING_SOON' => 'Closing Soon',
+                                                'ASSESSMENT' => 'For Assessment',
+                                                'DELIBERATION' => 'For Deliberation',
+                                                'CONCLUDED' => 'Concluded',
+                                                'CLOSED' => 'Closed',
+                                                default => $processStatus
+                                            };
+                                            $dotColor = match($processStatus) {
+                                                'OPEN' => 'bg-green-500',
+                                                'CLOSING_SOON' => 'bg-orange-500',
+                                                'ASSESSMENT' => 'bg-blue-500',
+                                                'DELIBERATION' => 'bg-indigo-500',
+                                                'CONCLUDED' => 'bg-gray-500',
+                                                'CLOSED' => 'bg-red-500',
+                                                default => 'bg-gray-500'
+                                            };
+                                        @endphp
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold {{ $badgeClasses }}">
+                                            <span class="w-2 h-2 {{ $dotColor }} rounded-full mr-1.5"></span>
+                                            {{ $statusLabel }}
+                                        </span>
                                         <span class="text-[#0D2B70] font-semibold hover:underline inline-flex items-center gap-2">
                                             View details
                                             <i data-feather="arrow-right" class="w-4 h-4"></i>
@@ -346,7 +425,6 @@
                                 </div>
                             </div>
                         </article>
-                        @endif
                     @empty
                         <div class="text-center py-12 text-gray-500 flex flex-col items-center justify-center">
                             <div class="bg-gray-100 p-4 rounded-full mb-3">
@@ -487,6 +565,47 @@
             renderEligibility(document.getElementById('modalEligibility'), job.qualification_eligibility);
             
             const competencyContainer = document.getElementById('modalCompetencyContainer');
+            // Populate Recruitment Result for Concluded vacancies
+            const resultContainer = document.getElementById('modalResultContainer');
+            const hiredSection = document.getElementById('modalHiredSection');
+            const hiredList = document.getElementById('modalHiredList');
+            const qualifiedSection = document.getElementById('modalQualifiedSection');
+            const qualifiedList = document.getElementById('modalQualifiedList');
+
+            if (job.status === 'CONCLUDED') {
+                resultContainer.classList.remove('hidden');
+                
+                // Hired List
+                if (job.hired_names && job.hired_names.length > 0) {
+                    hiredSection.classList.remove('hidden');
+                    hiredList.innerHTML = '';
+                    job.hired_names.forEach(name => {
+                        const span = document.createElement('span');
+                        span.className = 'px-3 py-1 bg-green-50 text-green-700 rounded-lg text-xs font-bold border border-green-100 flex items-center gap-1.5';
+                        span.innerHTML = `<i data-feather="check-circle" class="w-3.5 h-3.5"></i> ${name}`;
+                        hiredList.appendChild(span);
+                    });
+                } else {
+                    hiredSection.classList.add('hidden');
+                }
+
+                // Qualified List
+                if (job.qualified_names && job.qualified_names.length > 0) {
+                    qualifiedSection.classList.remove('hidden');
+                    qualifiedList.innerHTML = '';
+                    job.qualified_names.forEach(name => {
+                        const span = document.createElement('span');
+                        span.className = 'px-3 py-1 bg-blue-50 text-blue-700 rounded-lg text-xs font-medium border border-blue-100';
+                        span.textContent = name;
+                        qualifiedList.appendChild(span);
+                    });
+                } else {
+                    qualifiedSection.classList.add('hidden');
+                }
+            } else {
+                resultContainer.classList.add('hidden');
+            }
+
             if (job.competencies) {
                 document.getElementById('modalCompetency').textContent = job.competencies;
                 competencyContainer.style.display = 'grid';
@@ -549,11 +668,30 @@
             });
         });
         
-        // Handle filter button clicks
+        // Handle filter button clicks (Vacancy Type)
         document.querySelectorAll('.filter-btn').forEach(button => {
             button.addEventListener('click', function() {
-                const filterType = this.getAttribute('data-filter');
-                const allButtons = document.querySelectorAll('.filter-btn');
+                const group = this.getAttribute('data-filter-group');
+                const allButtons = document.querySelectorAll(`.filter-btn[data-filter-group="${group}"]`);
+                
+                // Update active button styling
+                allButtons.forEach(btn => {
+                    btn.classList.remove('bg-[#0D2B70]', 'text-white', 'active');
+                    btn.classList.add('text-gray-600', 'bg-gray-100');
+                });
+                this.classList.remove('text-gray-600', 'bg-gray-100');
+                this.classList.add('bg-[#0D2B70]', 'text-white', 'active');
+                
+                // Trigger search to update results with new filter
+                performSearch();
+            });
+        });
+
+        // Handle status filter button clicks (Recruitment Stage)
+        document.querySelectorAll('.status-filter-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const group = this.getAttribute('data-filter-group');
+                const allButtons = document.querySelectorAll(`.status-filter-btn[data-filter-group="${group}"]`);
                 
                 // Update active button styling
                 allButtons.forEach(btn => {
@@ -575,29 +713,72 @@
         function performSearch() {
             const searchTerm = searchInput.value.toLowerCase().trim();
             const allCards = document.querySelectorAll('.vacancy-card');
-            const activeFilterBtn = document.querySelector('.filter-btn.active');
-            const currentFilter = activeFilterBtn ? activeFilterBtn.getAttribute('data-filter') : 'all';
             
+            const activeTypeBtn = document.querySelector('.filter-btn.active');
+            const currentTypeFilter = activeTypeBtn ? activeTypeBtn.getAttribute('data-filter') : 'all';
+            
+            const activeStatusBtn = document.querySelector('.status-filter-btn.active');
+            const currentStatusFilter = activeStatusBtn ? activeStatusBtn.getAttribute('data-filter') : 'all';
+            
+            let visibleCount = 0;
+
             allCards.forEach(card => {
                 const title = card.querySelector('h3').textContent.toLowerCase();
-                const office = card.querySelector('p:nth-of-type(1)').textContent.toLowerCase();
+                const office = card.querySelector('p:nth-of-type(1)') ? card.querySelector('p:nth-of-type(1)').textContent.toLowerCase() : '';
                 const cardType = card.getAttribute('data-type');
+                const cardStatus = card.getAttribute('data-status');
                 
                 // Check if card matches the search term
                 const matchesSearch = searchTerm === '' || title.includes(searchTerm) || office.includes(searchTerm);
                 
-                // Check if card matches the current filter
-                const matchesFilter = currentFilter === 'all' || cardType === currentFilter;
+                // Check if card matches the type filter
+                const matchesType = currentTypeFilter === 'all' || cardType === currentTypeFilter;
                 
-                // Show card only if it matches both search and filter
-                if (matchesSearch && matchesFilter) {
+                // Check if card matches the status filter
+                // If filter is 'OPEN', it should also show 'CLOSING_SOON'
+                let matchesStatus = false;
+                if (currentStatusFilter === 'all') {
+                    matchesStatus = true;
+                } else if (currentStatusFilter === 'OPEN') {
+                    matchesStatus = (cardStatus === 'OPEN' || cardStatus === 'CLOSING_SOON');
+                } else {
+                    matchesStatus = (cardStatus === currentStatusFilter);
+                }
+                
+                // Show card only if it matches all conditions
+                if (matchesSearch && matchesType && matchesStatus) {
                     card.classList.remove('hidden');
                     card.style.display = '';
+                    visibleCount++;
                 } else {
                     card.classList.add('hidden');
                     card.style.display = 'none';
                 }
             });
+
+            // Show empty state if no vacancies match
+            const emptyState = document.getElementById('emptyState');
+            if (visibleCount === 0) {
+                if (!emptyState) {
+                    const grid = document.getElementById('vacancyGrid');
+                    const div = document.createElement('div');
+                    div.id = 'emptyState';
+                    div.className = 'col-span-full text-center py-12 text-gray-500 flex flex-col items-center justify-center';
+                    div.innerHTML = `
+                        <div class="bg-gray-100 p-4 rounded-full mb-3">
+                            <i data-feather="inbox" class="w-8 h-8 text-gray-400"></i>
+                        </div>
+                        <span class="font-semibold text-lg">No Matching Vacancy Found</span>
+                        <p class="text-sm text-gray-400 mt-1">Try adjusting your filters or search terms.</p>
+                    `;
+                    grid.appendChild(div);
+                    feather.replace();
+                } else {
+                    emptyState.style.display = '';
+                }
+            } else if (emptyState) {
+                emptyState.style.display = 'none';
+            }
         }
         
         searchBtn.addEventListener('click', performSearch);

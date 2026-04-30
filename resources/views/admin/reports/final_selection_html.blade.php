@@ -58,7 +58,7 @@
         <p style="font-size: 13px; margin-bottom: 15px;">The above-named applicants shall undergo the Competency-Based Assessment (CBA) on the following dates:</p>
         
         <ul style="list-style-type: disc; margin-left: 60px; font-size: 13px; line-height: 2;">
-            <li><span style="font-weight: bold;">April 13, 2026 (Monday)</span> for {{ strtoupper($vacancy->position_title) }}.</li>
+            <li><span style="font-weight: bold;">{{ now()->format('F j, Y (l)') }}</span> for {{ strtoupper($vacancy->position_title) }}.</li>
         </ul>
 
         <p style="color: red; font-size: 13px; margin-top: 20px; font-weight: bold;">

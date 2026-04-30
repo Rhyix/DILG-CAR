@@ -115,12 +115,31 @@ class JobVacancy extends Model
         return implode('', $acronymParts);
     }
 
+    public const STATUS_OPEN = 'OPEN';
+    public const STATUS_ASSESSMENT = 'ASSESSMENT';
+    public const STATUS_DELIBERATION = 'DELIBERATION';
+    public const STATUS_CONCLUDED = 'CONCLUDED';
+
     /**
      * Relationship: Applications submitted for this vacancy.
      */
     public function applications()
     {
         return $this->hasMany(Applications::class, 'vacancy_id', 'vacancy_id');
+    }
+
+    public function hiredApplications()
+    {
+        return $this->applications()
+            ->where('status', 'Hired')
+            ->with('personalInformation');
+    }
+
+    public function qualifiedApplications()
+    {
+        return $this->applications()
+            ->where('qs_result', 'Qualified')
+            ->with('personalInformation');
     }
 
     public function creator()
@@ -138,4 +157,25 @@ class JobVacancy extends Model
         return $this->hasOne(ExamDetail::class, 'vacancy_id', 'vacancy_id');
     }
 
+    public function getProcessStatus()
+    {
+        $status = strtoupper($this->status);
+        if ($status !== self::STATUS_OPEN) {
+            return $status;
+        }
+
+        $closingDate = \Carbon\Carbon::parse($this->closing_date)->setTime(17, 0, 0);
+        $now = \Carbon\Carbon::now();
+        
+        if ($now->greaterThan($closingDate)) {
+            return 'CLOSED'; // Or map to ASSESSMENT if user wants
+        }
+
+        $closingSoonThreshold = $closingDate->copy()->subDays(3);
+        if ($now->greaterThanOrEqualTo($closingSoonThreshold)) {
+            return 'CLOSING_SOON';
+        }
+
+        return self::STATUS_OPEN;
+    }
 }
