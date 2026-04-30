@@ -752,6 +752,22 @@ Route::middleware([ViewerAccess::class, 'admin.ability:admin.exam.monitor'])->gr
         ->withoutMiddleware([ViewerAccess::class, \App\Http\Middleware\EnsureAdminAbility::class, 'admin.ability:admin.exam.monitor'])
         ->name('exportNotReviewed');
 
+    // New Applicant List Exports
+    Route::get('/export/final-selection-lineup/{vacancy_id}', [Forms\ApplicantListExportController::class, 'exportFinalSelection'])
+        ->middleware(RedirectIfNotAdmin::class)
+        ->name('export.final_selection');
+    Route::get('/export/list-of-applicants/{vacancy_id}', [Forms\ApplicantListExportController::class, 'exportListOfApplicants'])
+        ->middleware(RedirectIfNotAdmin::class)
+        ->name('export.list_of_applicants');
+
+    // Previews
+    Route::get('/preview/final-selection-lineup/{vacancy_id}', [Forms\ApplicantListExportController::class, 'previewFinalSelection'])
+        ->middleware(RedirectIfNotAdmin::class)
+        ->name('preview.final_selection');
+    Route::get('/preview/list-of-applicants/{vacancy_id}', [Forms\ApplicantListExportController::class, 'previewListOfApplicants'])
+        ->middleware(RedirectIfNotAdmin::class)
+        ->name('preview.list_of_applicants');
+
 
     //Import
     Route::post('/import-job-vacancy-cos', [ImportController::class, 'importCOS'])->middleware(RedirectIfNotAdmin::class)->name('importJobVacancyCOS');
