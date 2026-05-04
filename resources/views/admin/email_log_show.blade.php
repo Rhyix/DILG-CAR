@@ -32,7 +32,7 @@
             <div class="md:col-span-2">
                 <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Subject</div>
                 <div class="text-sm font-semibold text-slate-900 break-words">{{ $emailLog->subject ?? 'N/A' }}</div>
-      </div
+            </div>
             <div>
                 <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Status</div>
                 <div class="text-sm text-slate-800">{{ $emailLog->status ?? 'N/A' }}</div>
