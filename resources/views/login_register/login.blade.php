@@ -133,14 +133,14 @@
             </form>
 
             <div class="mt-5 border-t border-slate-200 pt-4">
-              <p class="text-xs uppercase tracking-wide text-slate-500">Alternative Access</p>
-              <a
+              <!-- <p class="text-xs uppercase tracking-wide text-slate-500">Alternative Access</p> -->
+              <!-- <a
                 href="{{ route('google.login', [], false) }}"
                 class="use-loader mt-2 flex w-full items-center justify-center gap-3 rounded-[0.85rem] border border-[#0d2b70]/20 bg-white px-4 py-2.5 text-sm font-semibold text-[#0D2B70] transition-[border-color,box-shadow,transform] hover:-translate-y-px hover:border-[#0d2b70]/35 hover:shadow-[0_10px_24px_rgba(13,43,112,0.12)]"
               >
                 <img src="{{ asset('images/google-icon.png') }}" alt="Google Icon" class="h-5 w-5">
                 Continue with Google
-              </a>
+              </a> -->
 
               @if (Route::has('register.form'))
                 <p class="mt-4 text-center text-sm text-slate-600">
