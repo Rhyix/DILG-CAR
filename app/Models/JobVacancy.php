@@ -168,7 +168,7 @@ class JobVacancy extends Model
         $now = \Carbon\Carbon::now();
         
         if ($now->greaterThan($closingDate)) {
-            return 'CLOSED'; // Or map to ASSESSMENT if user wants
+            return 'CLOSED';
         }
 
         $closingSoonThreshold = $closingDate->copy()->subDays(3);

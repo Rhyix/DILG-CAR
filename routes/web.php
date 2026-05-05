@@ -51,20 +51,18 @@ use Illuminate\Support\Facades\Response;
 // ==================================================================================================
 Route::get('/', function (\Illuminate\Http\Request $request) {
     $baseQuery = \App\Models\JobVacancy::query()
-        ->whereIn('status', ['OPEN', 'ASSESSMENT', 'DELIBERATION', 'CONCLUDED']);
+        ->whereIn('status', ['OPEN', 'ASSESSMENT']);
 
     $allCount = (clone $baseQuery)->where('status', 'OPEN')->count();
     $plantillaCount = (clone $baseQuery)->where('status', 'OPEN')->whereIn('vacancy_type', ['plantilla', 'permanent'])->count();
     $cosCount = (clone $baseQuery)->where('status', 'OPEN')->whereIn('vacancy_type', ['cos', 'contract of service', 'contract'])->count();
 
-    $vacancies = $baseQuery->with(['hiredApplications', 'qualifiedApplications'])
+    $vacancies = $baseQuery->with(['applications.personalInformation'])
         ->orderByRaw("
             CASE 
                 WHEN status = 'OPEN' THEN 1
                 WHEN status = 'ASSESSMENT' THEN 2
-                WHEN status = 'DELIBERATION' THEN 3
-                WHEN status = 'CONCLUDED' THEN 4
-                ELSE 5 
+                ELSE 3 
             END
         ")
         ->orderByDesc('created_at')

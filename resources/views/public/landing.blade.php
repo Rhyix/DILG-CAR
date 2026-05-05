@@ -105,84 +105,81 @@
             
             <!-- Modal Body - Scrollable -->
             <div class="flex-1 overflow-y-auto p-6">
-                <!-- Recruitment Result (Concluded) -->
-                <div id="modalResultContainer" class="mb-6 hidden">
+                <!-- Applicants (Assessment) -->
+                <div id="modalApplicantsContainer" class="mb-6 hidden">
                     <h4 class="font-bold text-[#0D2B70] mb-3 flex items-center gap-2">
-                        <i data-feather="award" class="w-5 h-5 text-green-600"></i>
-                        Recruitment Result
+                        <i data-feather="users" class="w-5 h-5 text-blue-600"></i>
+                        Applicants
                     </h4>
                     <div class="bg-gray-50 rounded-xl p-5 border border-gray-100 space-y-4">
-                        <div id="modalHiredSection" class="hidden">
-                            <div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Hired Candidate(s):</div>
-                            <div id="modalHiredList" class="flex flex-wrap gap-2"></div>
-                        </div>
-                        <div id="modalQualifiedSection" class="hidden">
-                            <div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Final Selection Line-up:</div>
-                            <div id="modalQualifiedList" class="flex flex-wrap gap-2"></div>
+                        <div id="modalApplicantSection" class="hidden">
+                            <ul class="list-disc pl-5 space-y-1 text-sm text-gray-700" id="modalApplicantList"></ul>
                         </div>
                     </div>
                 </div>
 
-                <div class="mb-6">
-                    <h4 class="font-bold text-[#0D2B70] mb-3 flex items-center gap-2">
-                        <i data-feather="check-circle" class="w-5 h-5"></i>
-                        Qualification Standards
-                    </h4>
-                    <div class="bg-gray-50 rounded-xl p-4 space-y-3 text-sm">
-                        <div class="grid grid-cols-[120px_1fr] gap-2">
-                            <span class="font-semibold text-gray-700">Education:</span>
-                            <span class="text-gray-600" id="modalEducation"></span>
-                        </div>
-                        <div class="grid grid-cols-[120px_1fr] gap-2">
-                            <span class="font-semibold text-gray-700">Training:</span>
-                            <span class="text-gray-600" id="modalTraining"></span>
-                        </div>
-                        <div class="grid grid-cols-[120px_1fr] gap-2">
-                            <span class="font-semibold text-gray-700">Experience:</span>
-                            <span class="text-gray-600" id="modalExperience"></span>
-                        </div>
-                        <div class="grid grid-cols-[120px_1fr] gap-2">
-                            <span class="font-semibold text-gray-700">Eligibility:</span>
-                            <div class="text-gray-600 break-words" id="modalEligibility"></div>
-                        </div>
-                        <div class="grid grid-cols-[120px_1fr] gap-2" id="modalCompetencyContainer">
-                            <span class="font-semibold text-gray-700">Competency:</span>
-                            <span class="text-gray-600" id="modalCompetency"></span>
+                <div id="modalJobInfoContainer">
+                    <div class="mb-6">
+                        <h4 class="font-bold text-[#0D2B70] mb-3 flex items-center gap-2">
+                            <i data-feather="check-circle" class="w-5 h-5"></i>
+                            Qualification Standards
+                        </h4>
+                        <div class="bg-gray-50 rounded-xl p-4 space-y-3 text-sm">
+                            <div class="grid grid-cols-[120px_1fr] gap-2">
+                                <span class="font-semibold text-gray-700">Education:</span>
+                                <span class="text-gray-600" id="modalEducation"></span>
+                            </div>
+                            <div class="grid grid-cols-[120px_1fr] gap-2">
+                                <span class="font-semibold text-gray-700">Training:</span>
+                                <span class="text-gray-600" id="modalTraining"></span>
+                            </div>
+                            <div class="grid grid-cols-[120px_1fr] gap-2">
+                                <span class="font-semibold text-gray-700">Experience:</span>
+                                <span class="text-gray-600" id="modalExperience"></span>
+                            </div>
+                            <div class="grid grid-cols-[120px_1fr] gap-2">
+                                <span class="font-semibold text-gray-700">Eligibility:</span>
+                                <div class="text-gray-600 break-words" id="modalEligibility"></div>
+                            </div>
+                            <div class="grid grid-cols-[120px_1fr] gap-2" id="modalCompetencyContainer">
+                                <span class="font-semibold text-gray-700">Competency:</span>
+                                <span class="text-gray-600" id="modalCompetency"></span>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="mb-4">
-                    <h4 class="font-bold text-[#0D2B70] mb-3 flex items-center gap-2">
-                        <i data-feather="file-text" class="w-5 h-5"></i>
-                        Required Documents
-                    </h4>
-                    <div class="bg-blue-50 rounded-xl p-4">
-                        <p id="requiredDocumentsHint" class="text-xs font-semibold text-gray-500 mb-3"></p>
-                        <ul id="requiredDocumentsList" class="space-y-3">
-                            <!-- Documents will be dynamically inserted here -->
-                        </ul>
+                    <div class="mb-4">
+                        <h4 class="font-bold text-[#0D2B70] mb-3 flex items-center gap-2">
+                            <i data-feather="file-text" class="w-5 h-5"></i>
+                            Required Documents
+                        </h4>
+                        <div class="bg-blue-50 rounded-xl p-4">
+                            <p id="requiredDocumentsHint" class="text-xs font-semibold text-gray-500 mb-3"></p>
+                            <ul id="requiredDocumentsList" class="space-y-3">
+                                <!-- Documents will be dynamically inserted here -->
+                            </ul>
+                        </div>
                     </div>
-                </div>
-                
-                <div class="mt-6">
-                    <h4 class="font-bold text-[#0D2B70] mb-3 flex items-center gap-2">
-                        <i data-feather="info" class="w-5 h-5"></i>
-                        Additional Information
-                    </h4>
-                    <div class="text-sm text-gray-600 space-y-2" id="additionalInfo">
-                        <p>• Ensure all documents are clear and legible</p>
-                        <p>• Upload in PDF or image format (max 2MB per file)</p>
-                        <p>• Incomplete requirements may delay application processing</p>
+                    
+                    <div class="mt-6">
+                        <h4 class="font-bold text-[#0D2B70] mb-3 flex items-center gap-2">
+                            <i data-feather="info" class="w-5 h-5"></i>
+                            Additional Information
+                        </h4>
+                        <div class="text-sm text-gray-600 space-y-2" id="additionalInfo">
+                            <p>• Ensure all documents are clear and legible</p>
+                            <p>• Upload in PDF or image format (max 2MB per file)</p>
+                            <p>• Incomplete requirements may delay application processing</p>
+                        </div>
                     </div>
-                </div>
-                
-                <!-- Login Prompt for Guest Users -->
-                <div class="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                    <p class="text-sm text-yellow-800 flex items-center gap-2">
-                        <i data-feather="info" class="w-4 h-4"></i>
-                        You need to be logged in to apply for this position.
-                    </p>
+                    
+                    <!-- Login Prompt for Guest Users -->
+                    <div class="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                        <p class="text-sm text-yellow-800 flex items-center gap-2">
+                            <i data-feather="info" class="w-4 h-4"></i>
+                            You need to be logged in to apply for this position.
+                        </p>
+                    </div>
                 </div>
             </div>
             
@@ -260,8 +257,6 @@
                             <button type="button" class="status-filter-btn px-4 py-2 text-gray-600 bg-gray-100 rounded-full font-semibold text-xs hover:bg-black-200 transition-colors" data-filter-group="status" data-filter="OPEN">Open</button>
                             <!-- <button type="button" class="status-filter-btn px-4 py-2 text-gray-600 bg-gray-100 rounded-full font-semibold text-xs hover:bg-black-200 transition-colors" data-filter-group="status" data-filter="CLOSING_SOON">Closing Soon</button> -->
                             <button type="button" class="status-filter-btn px-4 py-2 text-gray-600 bg-gray-100 rounded-full font-semibold text-xs hover:bg-black-200 transition-colors" data-filter-group="status" data-filter="ASSESSMENT">For Assessment</button>
-                            <button type="button" class="status-filter-btn px-4 py-2 text-gray-600 bg-gray-100 rounded-full font-semibold text-xs hover:bg-black-200 transition-colors" data-filter-group="status" data-filter="DELIBERATION">For Deliberation</button>
-                            <button type="button" class="status-filter-btn px-4 py-2 text-gray-600 bg-gray-100 rounded-full font-semibold text-xs hover:bg-black-200 transition-colors" data-filter-group="status" data-filter="CONCLUDED">Concluded</button>
                         </div>
                     </div>
 
@@ -299,9 +294,13 @@
                                 default => strtoupper($vacancy->vacancy_type ?? '') . ' Position',
                             };
 
-                            // Get hired and qualified names for Concluded state
-                            $hiredNames = $vacancy->hiredApplications->map(fn($app) => $app->personalInformation->first_name . ' ' . $app->personalInformation->last_name)->toArray();
-                            $qualifiedNames = $vacancy->qualifiedApplications->map(fn($app) => $app->personalInformation->first_name . ' ' . $app->personalInformation->last_name)->toArray();
+                            // Get applicants for Assessment state
+                            $applicantNames = $vacancy->applications->map(function($app) {
+                                $pi = $app->personalInformation;
+                                if (!$pi) return '';
+                                $lastName = $pi->last_name ? $pi->last_name . ',' : '';
+                                return trim(preg_replace('/\s+/', ' ', "{$lastName} {$pi->first_name} {$pi->middle_name} {$pi->name_extension}"));
+                            })->filter()->toArray();
                         @endphp
                         <article
                             class="vacancy-card bg-white rounded-xl border border-gray-200 hover:border-[#0D2B70]/40 hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden group"
@@ -317,8 +316,7 @@
                                 'qualification_eligibility' => $vacancy->qualification_eligibility,
                                 'competencies' => $vacancy->competencies,
                                 'status' => $processStatus,
-                                'hired_names' => $hiredNames,
-                                'qualified_names' => $qualifiedNames
+                                'applicant_names' => $applicantNames
                             ])) }}"
                         >
                             <div class="p-5 sm:p-6">
@@ -341,35 +339,6 @@
                                     </span>
                                 </div>
 
-                                @if($processStatus === 'CONCLUDED')
-                                    <div class="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                                        @if(count($hiredNames) > 0)
-                                            <div class="mb-3">
-                                                <div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Hired Candidate(s):</div>
-                                                <div class="flex flex-wrap gap-2">
-                                                    @foreach($hiredNames as $name)
-                                                        <span class="px-2 py-1 bg-green-50 text-green-700 rounded text-xs font-bold border border-green-100 flex items-center gap-1.5">
-                                                            <i data-feather="check-circle" class="w-3.5 h-3.5"></i> {{ $name }}
-                                                        </span>
-                                                    @endforeach
-                                                </div>
-                                            </div>
-                                        @endif
-                                        
-                                        @if(count($qualifiedNames) > 0)
-                                            <div>
-                                                <div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Final Selection Line-up:</div>
-                                                <div class="flex flex-wrap gap-2">
-                                                    @foreach($qualifiedNames as $name)
-                                                        <span class="px-2 py-1 bg-blue-50 text-blue-700 rounded text-[10px] font-medium border border-blue-100">
-                                                            {{ $name }}
-                                                        </span>
-                                                    @endforeach
-                                                </div>
-                                            </div>
-                                        @endif
-                                    </div>
-                                @endif
 
                                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-5 pt-4 border-t border-gray-200">
                                     <div class="space-y-2">
@@ -418,7 +387,7 @@
                                             {{ $statusLabel }}
                                         </span>
                                         <span class="text-[#0D2B70] font-semibold hover:underline inline-flex items-center gap-2">
-                                            View details
+                                            <span class="action-text">View details</span>
                                             <i data-feather="arrow-right" class="w-4 h-4"></i>
                                         </span>
                                     </div>
@@ -565,45 +534,42 @@
             renderEligibility(document.getElementById('modalEligibility'), job.qualification_eligibility);
             
             const competencyContainer = document.getElementById('modalCompetencyContainer');
-            // Populate Recruitment Result for Concluded vacancies
-            const resultContainer = document.getElementById('modalResultContainer');
-            const hiredSection = document.getElementById('modalHiredSection');
-            const hiredList = document.getElementById('modalHiredList');
-            const qualifiedSection = document.getElementById('modalQualifiedSection');
-            const qualifiedList = document.getElementById('modalQualifiedList');
+            const jobInfoContainer = document.getElementById('modalJobInfoContainer');
+            const applyNowBtn = document.getElementById('applyNowBtn');
+            
+            // Populate Applicants for Assessment vacancies
+            const applicantsContainer = document.getElementById('modalApplicantsContainer');
+            const applicantSection = document.getElementById('modalApplicantSection');
+            const applicantList = document.getElementById('modalApplicantList');
 
-            if (job.status === 'CONCLUDED') {
-                resultContainer.classList.remove('hidden');
+            const activeStatusBtn = document.querySelector('.status-filter-btn.active');
+            const currentStatusFilter = activeStatusBtn ? activeStatusBtn.getAttribute('data-filter') : 'all';
+
+            if (currentStatusFilter === 'ASSESSMENT' && (job.status === 'ASSESSMENT' || job.status === 'CLOSED')) {
+                // If it's in assessment tab, show applicants and hide job details
+                applicantsContainer.classList.remove('hidden');
                 
-                // Hired List
-                if (job.hired_names && job.hired_names.length > 0) {
-                    hiredSection.classList.remove('hidden');
-                    hiredList.innerHTML = '';
-                    job.hired_names.forEach(name => {
-                        const span = document.createElement('span');
-                        span.className = 'px-3 py-1 bg-green-50 text-green-700 rounded-lg text-xs font-bold border border-green-100 flex items-center gap-1.5';
-                        span.innerHTML = `<i data-feather="check-circle" class="w-3.5 h-3.5"></i> ${name}`;
-                        hiredList.appendChild(span);
+                if (job.applicant_names && job.applicant_names.length > 0) {
+                    applicantSection.classList.remove('hidden');
+                    applicantList.innerHTML = '';
+                    job.applicant_names.forEach(name => {
+                        const li = document.createElement('li');
+                        li.textContent = name;
+                        applicantList.appendChild(li);
                     });
                 } else {
-                    hiredSection.classList.add('hidden');
+                    applicantSection.classList.add('hidden');
                 }
 
-                // Qualified List
-                if (job.qualified_names && job.qualified_names.length > 0) {
-                    qualifiedSection.classList.remove('hidden');
-                    qualifiedList.innerHTML = '';
-                    job.qualified_names.forEach(name => {
-                        const span = document.createElement('span');
-                        span.className = 'px-3 py-1 bg-blue-50 text-blue-700 rounded-lg text-xs font-medium border border-blue-100';
-                        span.textContent = name;
-                        qualifiedList.appendChild(span);
-                    });
-                } else {
-                    qualifiedSection.classList.add('hidden');
-                }
+                // Hide standard job info and apply button
+                if (jobInfoContainer) jobInfoContainer.style.display = 'none';
+                if (applyNowBtn) applyNowBtn.style.display = 'none';
             } else {
-                resultContainer.classList.add('hidden');
+                // Standard mode: hide applicants, show job details
+                applicantsContainer.classList.add('hidden');
+                
+                if (jobInfoContainer) jobInfoContainer.style.display = 'block';
+                if (applyNowBtn) applyNowBtn.style.display = 'inline-flex';
             }
 
             if (job.competencies) {
@@ -741,6 +707,8 @@
                     matchesStatus = true;
                 } else if (currentStatusFilter === 'OPEN') {
                     matchesStatus = (cardStatus === 'OPEN' || cardStatus === 'CLOSING_SOON');
+                } else if (currentStatusFilter === 'ASSESSMENT') {
+                    matchesStatus = (cardStatus === 'ASSESSMENT' || cardStatus === 'CLOSED');
                 } else {
                     matchesStatus = (cardStatus === currentStatusFilter);
                 }
@@ -750,6 +718,11 @@
                     card.classList.remove('hidden');
                     card.style.display = '';
                     visibleCount++;
+
+                    const actionText = card.querySelector('.action-text');
+                    if (actionText) {
+                        actionText.textContent = (currentStatusFilter === 'ASSESSMENT') ? 'View Applicants' : 'View details';
+                    }
                 } else {
                     card.classList.add('hidden');
                     card.style.display = 'none';
