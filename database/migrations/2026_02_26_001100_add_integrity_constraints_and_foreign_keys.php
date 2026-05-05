@@ -13,8 +13,10 @@ return new class extends Migration
         $driver = DB::getDriverName();
 
         // Align legacy integer column with users.id (unsigned big integer) before FK creation.
-        if ($driver === 'mysql' && Schema::hasTable('applications') && Schema::hasColumn('applications', 'user_id')) {
+        if (in_array($driver, ['mysql', 'mariadb'], true) && Schema::hasTable('applications') && Schema::hasColumn('applications', 'user_id')) {
             DB::statement('ALTER TABLE applications MODIFY user_id BIGINT UNSIGNED NOT NULL');
+        } elseif ($driver === 'pgsql' && Schema::hasTable('applications') && Schema::hasColumn('applications', 'user_id')) {
+            DB::statement('ALTER TABLE applications ALTER COLUMN user_id TYPE BIGINT');
         }
 
         $this->addApplicationConstraints();
@@ -229,7 +231,7 @@ return new class extends Migration
     {
         // MySQL supports CHECK constraints in recent versions, but they can fail on older deployments.
         // Keep this best-effort and non-blocking.
-        if ($driver !== 'mysql' || !Schema::hasTable('job_vacancies')) {
+        if (!in_array($driver, ['mysql', 'mariadb'], true) || !Schema::hasTable('job_vacancies')) {
             return;
         }
 
@@ -277,4 +279,3 @@ return new class extends Migration
         }
     }
 };
-

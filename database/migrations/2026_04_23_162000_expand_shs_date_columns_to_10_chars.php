@@ -10,7 +10,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        if (DB::getDriverName() === 'sqlite') {
+        $driver = DB::getDriverName();
+        if (!in_array($driver, ['mysql', 'mariadb'], true)) {
             return;
         }
         DB::statement('ALTER TABLE educational_backgrounds MODIFY shs_from VARCHAR(10) NULL');
@@ -22,7 +23,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        if (DB::getDriverName() === 'sqlite') {
+        $driver = DB::getDriverName();
+        if (!in_array($driver, ['mysql', 'mariadb'], true)) {
             return;
         }
         DB::statement('ALTER TABLE educational_backgrounds MODIFY shs_from VARCHAR(7) NULL');
