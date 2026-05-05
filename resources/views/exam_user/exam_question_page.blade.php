@@ -116,6 +116,7 @@
 
     <input type="hidden" name="user_id" value="{{ Auth::id() }}">
     <input type="hidden" name="vacancy_id" value="{{ $vacancy_id }}">
+    <input type="hidden" name="batch" value="{{ (int) ($batchNo ?? request('batch', 1)) }}">
 
     <div id="question-container" class="px-6 pb-10"></div>
 
@@ -551,7 +552,7 @@
     }
 
     function pollExamStatus() {
-        fetch("{{ route('exam.status.check', ['vacancy_id' => $vacancy_id]) }}", {
+        fetch("{{ route('exam.status.check', ['vacancy_id' => $vacancy_id]) }}?batch={{ (int) ($batchNo ?? request('batch', 1)) }}", {
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
                 'Accept': 'application/json'
@@ -1058,7 +1059,7 @@
 
         autoSaveInFlight = true;
 
-        fetch("{{ route('exam.autosave', ['vacancy_id' => $vacancy_id]) }}", {
+        fetch("{{ route('exam.autosave', ['vacancy_id' => $vacancy_id]) }}?batch={{ (int) ($batchNo ?? request('batch', 1)) }}", {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -1097,7 +1098,7 @@
 
         unloadSaveTriggered = true;
 
-        const url = "{{ route('exam.autosave', ['vacancy_id' => $vacancy_id]) }}";
+        const url = "{{ route('exam.autosave', ['vacancy_id' => $vacancy_id]) }}?batch={{ (int) ($batchNo ?? request('batch', 1)) }}";
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
 
         try {
@@ -1105,6 +1106,7 @@
                 const formData = new FormData();
                 formData.append('_token', csrfToken);
                 formData.append('vacancy_id', '{{ $vacancy_id }}');
+                formData.append('batch', '{{ (int) ($batchNo ?? request('batch', 1)) }}');
                 formData.append('user_id', '{{ Auth::id() }}');
 
                 Object.entries(answers).forEach(([questionId, value]) => {

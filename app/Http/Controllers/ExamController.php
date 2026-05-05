@@ -25,6 +25,7 @@ use Spatie\Activitylog\Models\Activity;
 use Illuminate\Support\Facades\Cookie;
 use App\Models\ExamTabViolation;
 use App\Models\Notification;
+use App\Models\ApplicationExamAttempt;
 
 class ExamController extends Controller
 {
@@ -32,7 +33,45 @@ class ExamController extends Controller
     private const ATTENDANCE_WILL_NOT_ATTEND = 'will_not_attend';
     private const EXAM_SUBMISSION_GRACE_SECONDS = 60;
 
-    private function hasExamWindowExpired(Applications $application, int $graceSeconds = self::EXAM_SUBMISSION_GRACE_SECONDS): bool
+    private function resolveBatchNo(Request $request): int
+    {
+        $batch = (int) $request->input('batch', $request->query('batch', 1));
+        if ($batch < 1) {
+            return 1;
+        }
+        if ($batch > 3) {
+            return 3;
+        }
+        return $batch;
+    }
+
+    private function getExamDetailForBatch(string $vacancyId, int $batchNo): ?ExamDetail
+    {
+        return ExamDetail::where('vacancy_id', $vacancyId)
+            ->where('batch_no', $batchNo)
+            ->first();
+    }
+
+    private function getOrCreateAttempt(Applications $application, int $batchNo): ApplicationExamAttempt
+    {
+        return ApplicationExamAttempt::firstOrCreate(
+            [
+                'application_id' => $application->id,
+                'vacancy_id' => $application->vacancy_id,
+                'user_id' => $application->user_id,
+                'batch_no' => $batchNo,
+            ],
+            [
+                'status' => 'pending',
+                'answers' => [],
+                'scores' => [],
+                'tab_violations' => 0,
+                'exam_pause_seconds' => 0,
+            ]
+        );
+    }
+
+    private function hasExamWindowExpired(object $application, int $graceSeconds = self::EXAM_SUBMISSION_GRACE_SECONDS): bool
     {
         if (empty($application->exam_end_time)) {
             return false;
@@ -42,23 +81,25 @@ class ExamController extends Controller
         return now()->greaterThan($cutoff);
     }
 
-    private function autoCloseExamIfAllParticipantsDone(string $vacancyId): void
+    private function autoCloseExamIfAllParticipantsDone(string $vacancyId, int $batchNo = 1): void
     {
-        $examDetail = ExamDetail::where('vacancy_id', $vacancyId)->first();
+        $examDetail = ExamDetail::where('vacancy_id', $vacancyId)
+            ->where('batch_no', $batchNo)
+            ->first();
         if (!$examDetail || !$examDetail->is_started) {
             return;
         }
 
-        $participants = Applications::query()
+        $participants = ApplicationExamAttempt::query()
             ->where('vacancy_id', $vacancyId)
-            ->whereNotNull('read_at')
+            ->where('batch_no', $batchNo)
             ->get(['status']);
 
         if ($participants->isEmpty()) {
             return;
         }
 
-        $hasUnfinishedParticipants = $participants->contains(function (Applications $participant) {
+        $hasUnfinishedParticipants = $participants->contains(function (ApplicationExamAttempt $participant) {
             return !ApplicationStatus::equals($participant->status, ApplicationStatus::SUBMITTED);
         });
 
@@ -77,6 +118,7 @@ class ExamController extends Controller
             ->event('auto_close')
             ->withProperties([
                 'vacancy_id' => $vacancyId,
+                'batch_no' => $batchNo,
                 'participants_count' => $participants->count(),
                 'section' => 'Exam Management',
             ])
@@ -551,7 +593,9 @@ class ExamController extends Controller
             'vacancy_id' => 'required|string',
             'user_id' => 'nullable|integer',
             'answers' => 'nullable|array',
+            'batch' => 'nullable|integer|min:1|max:3',
         ]);
+        $batchNo = $this->resolveBatchNo($request);
 
         if ((string) $validated['vacancy_id'] !== (string) $vacancy_id) {
             abort(422, 'Exam payload vacancy mismatch.');
@@ -560,21 +604,23 @@ class ExamController extends Controller
         $answerRecord = Applications::where('vacancy_id', $validated['vacancy_id'])
             ->where('user_id', $authenticatedUserId)
             ->firstOrFail();
+        $attempt = $this->getOrCreateAttempt($answerRecord, $batchNo);
 
-        if ($this->hasExamWindowExpired($answerRecord)) {
-            if ($answerRecord->status !== ApplicationStatus::SUBMITTED->value || is_null($answerRecord->exam_submitted_at)) {
-                $answerRecord->update([
+        if ($this->hasExamWindowExpired($attempt)) {
+            if ($attempt->status !== ApplicationStatus::SUBMITTED->value || is_null($attempt->exam_submitted_at)) {
+                $attempt->update([
                     'status' => ApplicationStatus::SUBMITTED->value,
-                    'exam_submitted_at' => $answerRecord->exam_submitted_at ?? now(),
+                    'exam_submitted_at' => $attempt->exam_submitted_at ?? now(),
                 ]);
                 $this->broadcastExamProgress($answerRecord, 'expired-window-submit-blocked');
-                $this->autoCloseExamIfAllParticipantsDone((string) $vacancy_id);
+                $this->autoCloseExamIfAllParticipantsDone((string) $vacancy_id, $batchNo);
             }
 
             Log::warning('Blocked late exam submission beyond grace window.', [
                 'user_id' => $authenticatedUserId,
                 'vacancy_id' => $vacancy_id,
-                'exam_end_time' => $answerRecord->exam_end_time,
+                'batch_no' => $batchNo,
+                'exam_end_time' => $attempt->exam_end_time,
                 'now' => now()->toDateTimeString(),
                 'grace_seconds' => self::EXAM_SUBMISSION_GRACE_SECONDS,
             ]);
@@ -587,6 +633,7 @@ class ExamController extends Controller
         // Auto-check MCQ answers and compute per-item scores (tolerant to key/value mismatch and case)
         $items = ExamItems::select('id', 'ans', 'is_essay', 'choices')
             ->where('vacancy_id', $vacancy_id)
+            ->where('batch_no', $batchNo)
             ->get();
 
         $scores = [];
@@ -626,7 +673,7 @@ class ExamController extends Controller
         $resultStr = $totalMcq > 0 ? ($correctMcq . '/' . $totalMcq) : null;
 
         // Update the answers and scores fields
-        $answerRecord->update([
+        $attempt->update([
             'answers' => $validated['answers'] ?? [],
             'scores' => $scores,
             'result' => $resultStr,
@@ -635,8 +682,9 @@ class ExamController extends Controller
         ]);
         $this->broadcastExamProgress($answerRecord, 'submitted', [
             'result' => $resultStr,
+            'batch_no' => $batchNo,
         ]);
-        $this->autoCloseExamIfAllParticipantsDone((string) $vacancy_id);
+        $this->autoCloseExamIfAllParticipantsDone((string) $vacancy_id, $batchNo);
 
         //$message = "submitted successfully";
         //info($message);
@@ -644,7 +692,7 @@ class ExamController extends Controller
         activity()
             ->causedBy(auth()->user())
             ->event('submit')
-            ->withProperties(['vacancy_id' => $vacancy_id, 'user_id' => $authenticatedUserId, 'section' => 'Exam'])
+            ->withProperties(['vacancy_id' => $vacancy_id, 'user_id' => $authenticatedUserId, 'batch_no' => $batchNo, 'section' => 'Exam'])
             ->log('Submitted exam answers.');
 
         return redirect()->route('user.exam_thankyou', compact('vacancy_id', ));
@@ -661,7 +709,9 @@ class ExamController extends Controller
             'vacancy_id' => 'required|string',
             'user_id' => 'nullable|integer',
             'answers' => 'nullable|array',
+            'batch' => 'nullable|integer|min:1|max:3',
         ]);
+        $batchNo = $this->resolveBatchNo($request);
 
         if ((string) $validated['vacancy_id'] !== (string) $vacancy_id) {
             return response()->json([
@@ -673,20 +723,21 @@ class ExamController extends Controller
         $answerRecord = Applications::where('vacancy_id', $validated['vacancy_id'])
             ->where('user_id', $authenticatedUserId)
             ->firstOrFail();
+        $attempt = $this->getOrCreateAttempt($answerRecord, $batchNo);
 
         // If exam is already submitted, don't allow autosave
-        if ($answerRecord->status === 'submitted') {
+        if ($attempt->status === 'submitted') {
             return response()->json(['success' => false, 'message' => 'Exam already submitted']);
         }
 
-        if ($this->hasExamWindowExpired($answerRecord)) {
-            if ($answerRecord->status !== ApplicationStatus::SUBMITTED->value || is_null($answerRecord->exam_submitted_at)) {
-                $answerRecord->update([
+        if ($this->hasExamWindowExpired($attempt)) {
+            if ($attempt->status !== ApplicationStatus::SUBMITTED->value || is_null($attempt->exam_submitted_at)) {
+                $attempt->update([
                     'status' => ApplicationStatus::SUBMITTED->value,
-                    'exam_submitted_at' => $answerRecord->exam_submitted_at ?? now(),
+                    'exam_submitted_at' => $attempt->exam_submitted_at ?? now(),
                 ]);
                 $this->broadcastExamProgress($answerRecord, 'expired-window-autosave-blocked');
-                $this->autoCloseExamIfAllParticipantsDone((string) $vacancy_id);
+                $this->autoCloseExamIfAllParticipantsDone((string) $vacancy_id, $batchNo);
             }
 
             return response()->json([
@@ -699,6 +750,7 @@ class ExamController extends Controller
         // Calculate scores similar to submit, but don't finalize
         $items = ExamItems::select('id', 'ans', 'is_essay', 'choices')
             ->where('vacancy_id', $vacancy_id)
+            ->where('batch_no', $batchNo)
             ->get();
 
         $scores = [];
@@ -738,13 +790,14 @@ class ExamController extends Controller
         $resultStr = $totalMcq > 0 ? ($correctMcq . '/' . $totalMcq) : null;
 
         // Update the answers and scores fields
-        $answerRecord->answers = $validated['answers'] ?? [];
-        $answerRecord->scores = $scores;
-        $answerRecord->result = $resultStr;
+        $attempt->answers = $validated['answers'] ?? [];
+        $attempt->scores = $scores;
+        $attempt->result = $resultStr;
         // Do NOT change status to submitted
-        $answerRecord->save();
+        $attempt->save();
         $this->broadcastExamProgress($answerRecord, 'autosaved', [
             'result' => $resultStr,
+            'batch_no' => $batchNo,
         ]);
 
         return response()->json(['success' => true]);
@@ -1006,7 +1059,8 @@ class ExamController extends Controller
         }
 
         //info('edit_exam');
-        $exam_items = ExamItems::where('vacancy_id', $vacancy_id)->get();
+        $batchNo = $this->resolveBatchNo($request);
+        $exam_items = ExamItems::where('vacancy_id', $vacancy_id)->where('batch_no', $batchNo)->get();
         $vacancy = JobVacancy::select('position_title', 'vacancy_type')->where('vacancy_id', $vacancy_id)->firstOrFail();
 
         activity()
@@ -1015,7 +1069,7 @@ class ExamController extends Controller
             ->withProperties(['vacancy_id' => $vacancy_id, 'section' => 'Exam Management'])
             ->log('Accessed edit exam page.');
 
-        return view('admin.exam_edit', ['exam_items' => $exam_items, 'vacancy_id' => $vacancy_id, 'vacancy' => $vacancy]);
+        return view('admin.exam_edit', ['exam_items' => $exam_items, 'vacancy_id' => $vacancy_id, 'vacancy' => $vacancy, 'selectedBatch' => $batchNo]);
     }
 
     public function updateExam(Request $request, $vacancy_id)
@@ -1023,6 +1077,7 @@ class ExamController extends Controller
         if ($denied = $this->denyViewerAccess($request, 'Viewer cannot update exam content.')) {
             return $denied;
         }
+        $batchNo = $this->resolveBatchNo($request);
 
         // Handle both form-encoded and JSON requests
         $raw = $request->input('questions') ?? $request->getContent();
@@ -1066,10 +1121,10 @@ class ExamController extends Controller
             }
         }
 
-        $existingItemsCount = ExamItems::where('vacancy_id', $vacancy_id)->count();
+        $existingItemsCount = ExamItems::where('vacancy_id', $vacancy_id)->where('batch_no', $batchNo)->count();
 
         // Delete existing questions for this vacancy
-        ExamItems::where('vacancy_id', $vacancy_id)->delete();
+        ExamItems::where('vacancy_id', $vacancy_id)->where('batch_no', $batchNo)->delete();
 
         try {
             foreach ($questions as $q) {
@@ -1108,6 +1163,7 @@ class ExamController extends Controller
 
                 $created = ExamItems::create([
                     'vacancy_id' => $vacancy_id,
+                    'batch_no' => $batchNo,
                     'question' => $questionText,
                     'is_essay' => $isEssay ? 1 : 0,
                     'ans' => $ans,
@@ -1127,14 +1183,14 @@ class ExamController extends Controller
             return back()->withErrors(['msg' => $msg]);
         }
 
-        $exam_items = ExamItems::where('vacancy_id', $vacancy_id)->get();
+        $exam_items = ExamItems::where('vacancy_id', $vacancy_id)->where('batch_no', $batchNo)->get();
 
         $action = ($existingItemsCount > 0) ? 'update' : 'create';
 
         activity()
             ->causedBy(auth('admin')->user())
             ->event($action)
-            ->withProperties(['vacancy_id' => $vacancy_id, 'questions_count' => count($questions), 'section' => 'Exam Management'])
+            ->withProperties(['vacancy_id' => $vacancy_id, 'batch_no' => $batchNo, 'questions_count' => count($questions), 'section' => 'Exam Management'])
             ->log($action . 'd exam questions.');
 
         if ($request->isJson()) {
@@ -1236,17 +1292,40 @@ class ExamController extends Controller
     public function manageExam(Request $request, $vacancy_id)
     {
         $isViewer = $this->isViewerRole();
+        $batchNo = $this->resolveBatchNo($request);
         $vacancy = JobVacancy::select('vacancy_id', 'position_title', 'vacancy_type')->where('vacancy_id', $vacancy_id)->first();
-        // Only fetch participants who have entered the lobby (read_at is not null)
-        $participants = Applications::where('vacancy_id', $vacancy_id)
+        // Only fetch participants who have entered the lobby (read_at is not null), then merge attempt state per batch.
+        $baseParticipants = Applications::where('vacancy_id', $vacancy_id)
             ->whereNotNull('read_at')
-            ->select('user_id', 'vacancy_id', 'status', 'scores', 'answers', 'result', 'read_at', 'exam_end_time', 'exam_submitted_at', 'tab_violations', 'exam_started_at', 'exam_paused_at', 'exam_paused_by_admin_id', 'exam_pause_seconds')
+            ->select('id', 'user_id', 'vacancy_id', 'read_at')
             ->with('user:id,name')
             ->get();
 
+        $attemptsByApplication = ApplicationExamAttempt::where('vacancy_id', $vacancy_id)
+            ->where('batch_no', $batchNo)
+            ->whereIn('application_id', $baseParticipants->pluck('id')->all())
+            ->get()
+            ->keyBy('application_id');
+
+        $participants = $baseParticipants->map(function (Applications $app) use ($attemptsByApplication, $batchNo) {
+            $attempt = $attemptsByApplication->get($app->id) ?? $this->getOrCreateAttempt($app, $batchNo);
+            $app->status = $attempt->status;
+            $app->scores = $attempt->scores;
+            $app->answers = $attempt->answers;
+            $app->result = $attempt->result;
+            $app->exam_end_time = $attempt->exam_end_time;
+            $app->exam_submitted_at = $attempt->exam_submitted_at;
+            $app->tab_violations = $attempt->tab_violations;
+            $app->exam_started_at = $attempt->exam_started_at;
+            $app->exam_paused_at = $attempt->exam_paused_at;
+            $app->exam_paused_by_admin_id = $attempt->exam_paused_by_admin_id;
+            $app->exam_pause_seconds = $attempt->exam_pause_seconds;
+            return $app;
+        });
+
         $tamperCountsByUser = $this->examTamperCountsByUser((string) $vacancy_id, $participants->pluck('user_id')->all());
 
-        $examDetails = ExamDetail::where('vacancy_id', $vacancy_id)->first();
+        $examDetails = ExamDetail::where('vacancy_id', $vacancy_id)->where('batch_no', $batchNo)->first();
 
         if ($isViewer) {
             $viewerExamStatus = $examDetails ? $this->getExamStatus($examDetails) : 'Unscheduled';
@@ -1277,7 +1356,7 @@ class ExamController extends Controller
         }
 
         // Pre-calculate scores for view
-        $examItems = ExamItems::where('vacancy_id', $vacancy_id)->get(['id', 'is_essay']);
+        $examItems = ExamItems::where('vacancy_id', $vacancy_id)->where('batch_no', $batchNo)->get(['id', 'is_essay']);
         $mcItemIds = $examItems->where('is_essay', 0)->pluck('id')->toArray();
         $essayItemIds = $examItems->where('is_essay', 1)->pluck('id')->toArray();
 
@@ -1396,6 +1475,7 @@ class ExamController extends Controller
                 'user_name' => $user_name,
                 'examDetails' => $examDetails,
                 'examPauseState' => $this->resolvePauseState(null, $examDetails),
+                'selectedBatch' => $batchNo,
             ]);
         }
 
@@ -1410,6 +1490,7 @@ class ExamController extends Controller
             'scheduleNotifiedAt' => $scheduleNotifiedAt,
             'linkSentByName' => $linkSentByName,
             'linkSentAt' => $linkSentAt,
+            'selectedBatch' => $batchNo,
         ]);
     }
 
@@ -1633,8 +1714,9 @@ class ExamController extends Controller
 
     public function getLobbyData(Request $request, $vacancy_id)
     {
+        $batchNo = $this->resolveBatchNo($request);
         if ($this->isViewerRole()) {
-            $viewerExamDetail = ExamDetail::where('vacancy_id', $vacancy_id)->first();
+            $viewerExamDetail = ExamDetail::where('vacancy_id', $vacancy_id)->where('batch_no', $batchNo)->first();
             $viewerExamStatus = $viewerExamDetail ? $this->getExamStatus($viewerExamDetail) : 'Unscheduled';
             if ($viewerExamStatus !== 'Ongoing') {
                 return response()->json([
@@ -1646,19 +1728,40 @@ class ExamController extends Controller
 
         // Get all applications that are considered participants for this exam
         // Filter by those who have "read" the notification or entered the lobby (read_at is not null)
-        $participants = Applications::where('vacancy_id', $vacancy_id)
+        $baseParticipants = Applications::where('vacancy_id', $vacancy_id)
             ->whereNotNull('read_at')
             ->with('user')
             ->get();
 
+        $attemptsByApplication = ApplicationExamAttempt::where('vacancy_id', $vacancy_id)
+            ->where('batch_no', $batchNo)
+            ->whereIn('application_id', $baseParticipants->pluck('id')->all())
+            ->get()
+            ->keyBy('application_id');
+
+        $participants = $baseParticipants->map(function (Applications $app) use ($attemptsByApplication, $batchNo) {
+            $attempt = $attemptsByApplication->get($app->id) ?? $this->getOrCreateAttempt($app, $batchNo);
+            $app->status = $attempt->status;
+            $app->scores = $attempt->scores;
+            $app->answers = $attempt->answers;
+            $app->result = $attempt->result;
+            $app->tab_violations = $attempt->tab_violations;
+            $app->exam_paused_at = $attempt->exam_paused_at;
+            $app->exam_pause_seconds = $attempt->exam_pause_seconds;
+            $app->exam_started_at = $attempt->exam_started_at;
+            $app->exam_submitted_at = $attempt->exam_submitted_at;
+            $app->exam_end_time = $attempt->exam_end_time;
+            return $app;
+        });
+
         $tamperCountsByUser = $this->examTamperCountsByUser((string) $vacancy_id, $participants->pluck('user_id')->all());
 
         // Get Exam Items to distinguish MC vs Essay
-        $examItems = ExamItems::where('vacancy_id', $vacancy_id)->get(['id', 'is_essay']);
+        $examItems = ExamItems::where('vacancy_id', $vacancy_id)->where('batch_no', $batchNo)->get(['id', 'is_essay']);
         $mcItemIds = $examItems->where('is_essay', 0)->pluck('id')->toArray();
         $essayItemIds = $examItems->where('is_essay', 1)->pluck('id')->toArray();
 
-        $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->first();
+        $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->where('batch_no', $batchNo)->first();
         $isExamExpired = false;
         if ($examDetail && $examDetail->date && $examDetail->time) {
              $startDateTime = \Carbon\Carbon::parse($examDetail->date . ' ' . $examDetail->time);
@@ -1856,9 +1959,11 @@ class ExamController extends Controller
 
         // Mark the applicant as having entered the lobby
         $user_id = auth()->id();
+        $batchNo = $this->resolveBatchNo($request);
         $application = Applications::where('vacancy_id', $vacancy_id)
             ->where('user_id', $user_id)
             ->firstOrFail();
+        $attempt = $this->getOrCreateAttempt($application, $batchNo);
 
         if (!$this->canReceiveExamLink($application)) {
             return redirect()
@@ -1897,13 +2002,13 @@ class ExamController extends Controller
         }
 
         // If already submitted, redirect to thank you
-        if ($application->status === 'submitted') {
-            return redirect()->route('user.exam_thankyou', ['vacancy_id' => $vacancy_id]);
+        if ($attempt->status === 'submitted') {
+            return redirect()->route('user.exam_thankyou', ['vacancy_id' => $vacancy_id, 'batch' => $batchNo]);
         }
 
         // If already started, redirect to questions
-        if ($application->exam_started_at) {
-            return redirect()->route('user.exam_question_page', ['vacancy_id' => $vacancy_id]);
+        if ($attempt->exam_started_at) {
+            return redirect()->route('user.exam_question_page', ['vacancy_id' => $vacancy_id, 'batch' => $batchNo]);
         }
 
         $enteredLobby = false;
@@ -1913,14 +2018,14 @@ class ExamController extends Controller
             $enteredLobby = true;
         }
 
-        $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->first();
+        $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->where('batch_no', $batchNo)->first();
         $vacancy = JobVacancy::select('position_title')->where('vacancy_id', $vacancy_id)->first();
-        $examPauseState = $this->resolvePauseState($application, $examDetail);
-        $remainingSeconds = $this->resolveExamRemainingSeconds($application, $examDetail);
+        $examPauseState = $this->resolvePauseState($attempt, $examDetail);
+        $remainingSeconds = $this->resolveExamRemainingSeconds($attempt, $examDetail);
 
         // If admin has already started the exam, route user straight to questions
         if ($examDetail && $examDetail->is_started) {
-            return redirect()->route('user.exam_question_page', ['vacancy_id' => $vacancy_id]);
+            return redirect()->route('user.exam_question_page', ['vacancy_id' => $vacancy_id, 'batch' => $batchNo]);
         }
 
         activity()
@@ -1935,15 +2040,17 @@ class ExamController extends Controller
         $examineeName = auth()->user()->name ?? 'Examinee';
         $examineeNumber = strtoupper('EXM-' . substr(hash('sha256', $vacancy_id . '-' . $user_id), 0, 8));
 
-        return view('exam_user.exam_lobby', compact('vacancy_id', 'examDetail', 'vacancy', 'examineeName', 'examineeNumber', 'examPauseState', 'remainingSeconds'));
+        return view('exam_user.exam_lobby', compact('vacancy_id', 'examDetail', 'vacancy', 'examineeName', 'examineeNumber', 'examPauseState', 'remainingSeconds', 'batchNo'));
     }
 
     public function examQuestion(Request $request, $vacancy_id)
     {
         $user_id = auth()->id();
+        $batchNo = $this->resolveBatchNo($request);
         $application = Applications::where('vacancy_id', $vacancy_id)
             ->where('user_id', $user_id)
             ->firstOrFail();
+        $attempt = $this->getOrCreateAttempt($application, $batchNo);
 
         if (!$this->canReceiveExamLink($application)) {
             return redirect()
@@ -1961,7 +2068,7 @@ class ExamController extends Controller
 
         if (is_null($application->exam_token_used_at)) {
             return redirect()
-                ->route('user.exam_lobby', ['vacancy_id' => $vacancy_id])
+                ->route('user.exam_lobby', ['vacancy_id' => $vacancy_id, 'batch' => $batchNo])
                 ->with('error', 'Please open your exam link from the notification first.');
         }
 
@@ -1974,50 +2081,50 @@ class ExamController extends Controller
         }
 
         // Check if already submitted
-        if ($application->status === 'submitted') {
-            return redirect()->route('user.exam_thankyou', ['vacancy_id' => $vacancy_id]);
+        if ($attempt->status === 'submitted') {
+            return redirect()->route('user.exam_thankyou', ['vacancy_id' => $vacancy_id, 'batch' => $batchNo]);
         }
 
-        $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->firstOrFail();
+        $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->where('batch_no', $batchNo)->firstOrFail();
 
         // If admin hasn't started the exam yet, redirect back to lobby
         if (!$examDetail->is_started) {
-            return redirect()->route('user.exam_lobby', ['vacancy_id' => $vacancy_id]);
+            return redirect()->route('user.exam_lobby', ['vacancy_id' => $vacancy_id, 'batch' => $batchNo]);
         }
 
-        $examPauseState = $this->resolvePauseState($application, $examDetail);
+        $examPauseState = $this->resolvePauseState($attempt, $examDetail);
 
         // Initialize exam start time for the user if not set yet
-        if (!$application->exam_started_at) {
+        if (!$attempt->exam_started_at) {
             $now = now();
             $duration = $examDetail->duration; // in minutes
 
-            $application->update([
+            $attempt->update([
                 'exam_started_at' => $now,
                 'exam_end_time' => $now->copy()->addMinutes($duration),
                 'status' => 'in-progress'
             ]);
 
-            // Refresh application to get the new values
-            $application->refresh();
+            // Refresh attempt to get the new values
+            $attempt->refresh();
             $this->broadcastExamProgress($application, 'started-exam');
         }
 
         $now = now();
-        $pauseState = $this->resolvePauseState($application, $examDetail);
-        $endTime = \Carbon\Carbon::parse($application->exam_end_time)
+        $pauseState = $this->resolvePauseState($attempt, $examDetail);
+        $endTime = \Carbon\Carbon::parse($attempt->exam_end_time)
             ->addSeconds((int) $pauseState['global_pause_seconds'] + (int) $pauseState['application_pause_seconds']);
         $remaining_seconds = $now->diffInSeconds($endTime, false);
 
         // If time is up (allow 1 minute grace period for latency)
         if ($remaining_seconds < -60) {
             $payload = ['status' => 'submitted'];
-            if (!$application->exam_submitted_at) {
+            if (!$attempt->exam_submitted_at) {
                 $payload['exam_submitted_at'] = now();
             }
-            $application->update($payload);
-            $this->autoCloseExamIfAllParticipantsDone((string) $vacancy_id);
-            return redirect()->route('user.exam_thankyou', ['vacancy_id' => $vacancy_id]);
+            $attempt->update($payload);
+            $this->autoCloseExamIfAllParticipantsDone((string) $vacancy_id, $batchNo);
+            return redirect()->route('user.exam_thankyou', ['vacancy_id' => $vacancy_id, 'batch' => $batchNo]);
         }
 
         if ($remaining_seconds < 0)
@@ -2028,6 +2135,7 @@ class ExamController extends Controller
 
         $examItems = ExamItems::select($columns)
             ->where('vacancy_id', $vacancy_id)
+            ->where('batch_no', $batchNo)
             ->get();
 
         $vacancy = JobVacancy::select('position_title')->where('vacancy_id', $vacancy_id)->first();
@@ -2039,7 +2147,7 @@ class ExamController extends Controller
             ->log('Viewed exam questions page.');
 
         $total_seconds = $examDetail->duration * 60;
-        $savedAnswers = is_array($application->answers) ? $application->answers : [];
+        $savedAnswers = is_array($attempt->answers) ? $attempt->answers : [];
         $maxViolations = max(1, (int) ($examDetail->max_violations ?? 12));
         $examEndTimeTs = $endTime->timestamp;
         $serverNowTs = $now->timestamp;
@@ -2047,12 +2155,13 @@ class ExamController extends Controller
         $examineeName = auth()->user()->name ?? 'Examinee';
         $examineeNumber = strtoupper('EXM-' . substr(hash('sha256', $vacancy_id . '-' . $user_id), 0, 8));
 
-        return view('exam_user.exam_question_page', compact('vacancy_id', 'examItems', 'remaining_seconds', 'vacancy', 'total_seconds', 'savedAnswers', 'examineeName', 'examineeNumber', 'maxViolations', 'examEndTimeTs', 'serverNowTs', 'examPauseState'));
+        return view('exam_user.exam_question_page', compact('vacancy_id', 'examItems', 'remaining_seconds', 'vacancy', 'total_seconds', 'savedAnswers', 'examineeName', 'examineeNumber', 'maxViolations', 'examEndTimeTs', 'serverNowTs', 'examPauseState', 'batchNo'));
     }
 
     public function viewExam(Request $request, $vacancy_id, $user_id)
     {
-        $application = Applications::select('user_id', 'answers', 'scores', 'exam_started_at', 'exam_end_time', 'exam_submitted_at', 'tab_violations', 'last_tab_violation_at', 'status')
+        $batchNo = $this->resolveBatchNo($request);
+        $application = Applications::select('id', 'user_id')
             ->where('user_id', $user_id)
             ->where('vacancy_id', $vacancy_id)
             ->first();
@@ -2062,13 +2171,20 @@ class ExamController extends Controller
             }
             abort(404);
         }
-        $examItems = ExamItems::select('id', 'question', 'ans', 'is_essay', 'choices', 'essay_max_score')->where('vacancy_id', $vacancy_id)->get();
-        $examDetail = ExamDetail::select('vacancy_id', 'max_violations')->where('vacancy_id', $vacancy_id)->first();
+        $attempt = $this->getOrCreateAttempt($application, $batchNo);
+        $examItems = ExamItems::select('id', 'question', 'ans', 'is_essay', 'choices', 'essay_max_score')
+            ->where('vacancy_id', $vacancy_id)
+            ->where('batch_no', $batchNo)
+            ->get();
+        $examDetail = ExamDetail::select('vacancy_id', 'max_violations', 'batch_no')
+            ->where('vacancy_id', $vacancy_id)
+            ->where('batch_no', $batchNo)
+            ->first();
         $positionTitle = JobVacancy::select('position_title')->where('vacancy_id', $vacancy_id)->firstOrFail();
         $userName = User::select('name')->find($user_id);
 
-        $answers = $application->answers; 
-        $scores = $application->scores;   
+        $answers = $attempt->answers;
+        $scores = $attempt->scores;
         // $answers = json_decode($application->answers, true);
         // $scores = $application->scores;
 
@@ -2129,10 +2245,11 @@ class ExamController extends Controller
             'positionTitle' => $positionTitle,
             'vacancy_id' => $vacancy_id,
             'user_id' => $user_id,
+            'batch_no' => $batchNo,
             'userName' => $userName,
             'examineeCode' => $examineeCode,
-            'application' => $application,
-            'resumeAction' => $this->resolveResumeExamState($application, $examDetail),
+            'application' => $attempt,
+            'resumeAction' => $this->resolveResumeExamState($attempt, $examDetail),
         ]);
     }
 
@@ -2142,12 +2259,14 @@ class ExamController extends Controller
             return $denied;
         }
 
+        $batchNo = $this->resolveBatchNo($request);
         $application = Applications::where('vacancy_id', $vacancy_id)
             ->where('user_id', $user_id)
             ->firstOrFail();
+        $attempt = $this->getOrCreateAttempt($application, $batchNo);
 
-        $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->first();
-        $resumeAction = $this->resolveResumeExamState($application, $examDetail);
+        $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->where('batch_no', $batchNo)->first();
+        $resumeAction = $this->resolveResumeExamState($attempt, $examDetail);
 
         if (!($resumeAction['can_resume'] ?? false)) {
             return response()->json([
@@ -2159,7 +2278,7 @@ class ExamController extends Controller
         $remainingSeconds = (int) ($resumeAction['remaining_seconds'] ?? 0);
         $isTabThresholdSubmission = !empty($resumeAction['is_tab_threshold_submission']);
 
-        DB::transaction(function () use ($application, $remainingSeconds, $isTabThresholdSubmission) {
+        DB::transaction(function () use ($application, $attempt, $remainingSeconds, $isTabThresholdSubmission) {
             if ($isTabThresholdSubmission) {
                 ExamTabViolation::where('vacancy_id', $application->vacancy_id)
                     ->where('user_id', $application->user_id)
@@ -2177,12 +2296,13 @@ class ExamController extends Controller
                 $updatePayload['last_tab_violation_at'] = null;
             }
 
-            $application->update($updatePayload);
+            $attempt->update($updatePayload);
         });
 
-        $application->refresh();
+        $attempt->refresh();
         $this->broadcastExamProgress($application, 'resumed', [
             'remaining_seconds' => $remainingSeconds,
+            'batch_no' => $batchNo,
         ]);
 
         activity()
@@ -2191,8 +2311,9 @@ class ExamController extends Controller
             ->withProperties([
                 'vacancy_id' => $vacancy_id,
                 'user_id' => $user_id,
+                'batch_no' => $batchNo,
                 'remaining_seconds' => $remainingSeconds,
-                'tab_violations' => (int) ($application->tab_violations ?? 0),
+                'tab_violations' => (int) ($attempt->tab_violations ?? 0),
                 'reset_tab_violations' => $isTabThresholdSubmission,
                 'section' => 'Exam Management',
             ])
@@ -2203,18 +2324,19 @@ class ExamController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Exam resumed. The applicant can continue from the saved progress.',
-            'status' => $application->status,
+            'status' => $attempt->status,
             'remaining_seconds' => $remainingSeconds,
             'remaining_label' => $this->formatResumeDuration($remainingSeconds),
-            'exam_end_time' => $application->exam_end_time
-                ? \Carbon\Carbon::parse((string) $application->exam_end_time)->toDateTimeString()
+            'exam_end_time' => $attempt->exam_end_time
+                ? \Carbon\Carbon::parse((string) $attempt->exam_end_time)->toDateTimeString()
                 : null,
         ]);
     }
 
     public function getExamAnswersJson(Request $request, $vacancy_id, $user_id)
     {
-        $application = Applications::select('user_id', 'answers', 'scores', 'tab_violations', 'last_tab_violation_at')
+        $batchNo = $this->resolveBatchNo($request);
+        $application = Applications::select('id', 'user_id')
             ->where('user_id', $user_id)
             ->where('vacancy_id', $vacancy_id)
             ->first();
@@ -2224,10 +2346,14 @@ class ExamController extends Controller
                 'message' => 'Exam answers are unavailable for the selected applicant.',
             ], 404);
         }
-        $examItems = ExamItems::select('id', 'question', 'ans', 'is_essay', 'choices', 'essay_max_score')->where('vacancy_id', $vacancy_id)->get();
+        $attempt = $this->getOrCreateAttempt($application, $batchNo);
+        $examItems = ExamItems::select('id', 'question', 'ans', 'is_essay', 'choices', 'essay_max_score')
+            ->where('vacancy_id', $vacancy_id)
+            ->where('batch_no', $batchNo)
+            ->get();
 
-        $answers = $application->answers;
-        $scores = $application->scores;
+        $answers = $attempt->answers;
+        $scores = $attempt->scores;
 
         $examResults = [];
 
@@ -2327,8 +2453,8 @@ class ExamController extends Controller
         return response()->json([
             'success' => true,
             'examResults' => $examResults,
-            'tab_violations' => (int) ($application->tab_violations ?? 0),
-            'last_violation_at' => $application->last_tab_violation_at,
+            'tab_violations' => (int) ($attempt->tab_violations ?? 0),
+            'last_violation_at' => $attempt->last_tab_violation_at,
             'tab_violation_logs' => $logs,
             'exam_tamper_logs' => $tamperLogs,
         ]);
@@ -2340,16 +2466,18 @@ class ExamController extends Controller
             return $denied;
         }
 
-        $application = Applications::select('user_id', 'answers', 'scores', 'exam_started_at', 'exam_end_time', 'status')
+        $batchNo = $this->resolveBatchNo($request);
+        $application = Applications::select('id', 'user_id')
             ->where('user_id', $user_id)->where('vacancy_id', $vacancy_id)->firstOrFail();
+        $attempt = $this->getOrCreateAttempt($application, $batchNo);
         $examItems = ExamItems::select('id', 'question', 'is_essay', 'choices', 'essay_max_score', 'ans')
-            ->where('vacancy_id', $vacancy_id)->get();
+            ->where('vacancy_id', $vacancy_id)->where('batch_no', $batchNo)->get();
         $positionTitle = JobVacancy::select('position_title')->where('vacancy_id', $vacancy_id)->firstOrFail();
-        $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->first();
+        $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->where('batch_no', $batchNo)->first();
 
         $examineeCode = strtoupper('EXM-' . substr(hash('sha256', $vacancy_id . '-' . $user_id), 0, 8));
-        $answers = $application->answers ?? [];
-        $scores = $application->scores ?? [];
+        $answers = $attempt->answers ?? [];
+        $scores = $attempt->scores ?? [];
 
         // Build PDF inline using FPDF (installed via setasign/fpdf)
         $pdf = new \FPDF();
@@ -2405,15 +2533,15 @@ class ExamController extends Controller
         $pdf->Cell(0, 6, $toPdf($dateStr), 0, 1);
 
         $pdf->Cell(55, 6, 'Time Started:', 0, 0);
-        $startedStr = $application->exam_started_at
-            ? \Carbon\Carbon::parse($application->exam_started_at)->format('g:i A')
+        $startedStr = $attempt->exam_started_at
+            ? \Carbon\Carbon::parse($attempt->exam_started_at)->format('g:i A')
             : '-';
         $pdf->Cell(0, 6, $startedStr, 0, 1);
 
         $pdf->Cell(55, 6, 'Time Submitted:', 0, 0);
         // Use dedicated submission timestamp if available
-        $submittedStr = $application->exam_submitted_at
-            ? \Carbon\Carbon::parse($application->exam_submitted_at)->format('g:i A')
+        $submittedStr = $attempt->exam_submitted_at
+            ? \Carbon\Carbon::parse($attempt->exam_submitted_at)->format('g:i A')
             : '-';
         $pdf->Cell(0, 6, $submittedStr, 0, 1);
 
@@ -2530,6 +2658,7 @@ class ExamController extends Controller
             return $denied;
         }
 
+        $batchNo = $this->resolveBatchNo($request);
         $scores = $request->input('scores');
         $result = $request->input('result');
 
@@ -2538,7 +2667,7 @@ class ExamController extends Controller
         ]);
 
         // Clamp essay scores within [0, essay_max_score]
-        $items = ExamItems::where('vacancy_id', $vacancy_id)->get(['id', 'is_essay', 'essay_max_score']);
+        $items = ExamItems::where('vacancy_id', $vacancy_id)->where('batch_no', $batchNo)->get(['id', 'is_essay', 'essay_max_score']);
         $essayMaxMap = [];
         foreach ($items as $it) {
             if ((int)$it->is_essay === 1) {
@@ -2573,21 +2702,23 @@ class ExamController extends Controller
             }
         }
 
-        Applications::where('vacancy_id', $vacancy_id)
+        $application = Applications::where('vacancy_id', $vacancy_id)
             ->where('user_id', $user_id)
-            ->update([
-                'scores' => json_encode($scores),
-                'result' => $result,
-            ]);
+            ->firstOrFail();
+        $attempt = $this->getOrCreateAttempt($application, $batchNo);
+        $attempt->update([
+            'scores' => $scores,
+            'result' => $result,
+        ]);
 
         activity()
             ->causedBy(auth('admin')->user())
             ->event('save')
-            ->withProperties(['vacancy_id' => $vacancy_id, 'user_id' => $user_id, 'section' => 'Exam Management'])
+            ->withProperties(['vacancy_id' => $vacancy_id, 'user_id' => $user_id, 'batch_no' => $batchNo, 'section' => 'Exam Management'])
             ->log('Saved exam results.');
 
 
-        return redirect()->route('admin.manage_exam', ['vacancy_id' => $vacancy_id, 'massage' => 'Result Saved!']);
+        return redirect()->route('admin.manage_exam', ['vacancy_id' => $vacancy_id, 'batch' => $batchNo, 'massage' => 'Result Saved!']);
     }
 
     public function notifyApplicants(Request $request, $vacancy_id)
@@ -2597,13 +2728,14 @@ class ExamController extends Controller
         }
 
         try {
+            $batchNo = $this->resolveBatchNo($request);
             $validated = $request->validate([
                 'max_violations' => 'nullable|integer|min:1',
             ]);
 
             $publicBaseUrl = $this->resolvePublicBaseUrl($request);
             // Check if details have been saved first
-            $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->first();
+            $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->where('batch_no', $batchNo)->first();
 
             if (!$examDetail || !$examDetail->details_saved) {
                 return response()->json([
@@ -2696,9 +2828,10 @@ class ExamController extends Controller
     public function notifyApplicantsSchedule(Request $request, $vacancy_id)
     {
         try {
+            $batchNo = $this->resolveBatchNo($request);
             $publicBaseUrl = $this->resolvePublicBaseUrl($request);
             $senderName = $this->resolveNotificationSenderName();
-            $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->first();
+            $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->where('batch_no', $batchNo)->first();
             if (!$examDetail || !$examDetail->details_saved) {
                 return response()->json([
                     'success' => false,
@@ -2817,7 +2950,8 @@ class ExamController extends Controller
                 ->map(fn($id) => (int) $id)
                 ->unique()
                 ->values();
-            $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->firstOrFail();
+            $batchNo = $this->resolveBatchNo($request);
+            $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->where('batch_no', $batchNo)->firstOrFail();
 
             if (!$examDetail->details_saved) {
                 return response()->json([
@@ -2969,6 +3103,7 @@ class ExamController extends Controller
         }
 
         try {
+            $batchNo = $this->resolveBatchNo($request);
             Log::info('saveExamDetails called', ['vacancy_id' => $vacancy_id, 'notify' => $request->boolean('notify')]);
 
             $validated = $request->validate([
@@ -2985,11 +3120,11 @@ class ExamController extends Controller
             $validated['details_saved'] = true;
 
             ExamDetail::updateOrCreate(
-                ['vacancy_id' => $vacancy_id],
+                ['vacancy_id' => $vacancy_id, 'batch_no' => $batchNo],
                 $validated
             );
 
-            $examDetails = ExamDetail::where('vacancy_id', $vacancy_id)->first();
+            $examDetails = ExamDetail::where('vacancy_id', $vacancy_id)->where('batch_no', $batchNo)->first();
 
             $notified = false;
             $notified_at = null;
@@ -3067,7 +3202,8 @@ class ExamController extends Controller
         }
 
         try {
-            $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->first();
+            $batchNo = $this->resolveBatchNo($request);
+            $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->where('batch_no', $batchNo)->first();
 
             if (!$examDetail) {
                 return response()->json([
@@ -3120,7 +3256,8 @@ class ExamController extends Controller
             return response()->json(['started' => false], 404);
         }
 
-        $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->first();
+        $batchNo = $this->resolveBatchNo($request);
+        $examDetail = ExamDetail::where('vacancy_id', $vacancy_id)->where('batch_no', $batchNo)->first();
 
         if (!$examDetail) {
             return response()->json(['started' => false]);
@@ -3130,10 +3267,12 @@ class ExamController extends Controller
             ->where('user_id', auth()->id())
             ->first();
 
+        $attempt = $this->getOrCreateAttempt($application, $batchNo);
+
         return response()->json([
             'started' => (bool) $examDetail->is_started,
-            'paused' => $this->isExamGloballyPaused($examDetail) || $this->isApplicationPaused($application),
-            'remaining_seconds' => $application ? $this->resolveExamRemainingSeconds($application, $examDetail) : null,
+            'paused' => $this->isExamGloballyPaused($examDetail) || $this->isApplicationPaused($attempt),
+            'remaining_seconds' => $application ? $this->resolveExamRemainingSeconds($attempt, $examDetail) : null,
         ]);
     }
 
@@ -3147,7 +3286,8 @@ class ExamController extends Controller
             ], 401);
         }
 
-        $application = Applications::select('status', 'exam_started_at')
+        $batchNo = $this->resolveBatchNo($request);
+        $application = Applications::select('id', 'status')
             ->where('vacancy_id', $vacancy_id)
             ->where('user_id', auth()->id())
             ->first();
@@ -3160,14 +3300,15 @@ class ExamController extends Controller
             ], 404);
         }
 
-        $isInProgress = ApplicationStatus::equals($application->status, ApplicationStatus::IN_PROGRESS);
+        $attempt = $this->getOrCreateAttempt($application, $batchNo);
+        $isInProgress = ApplicationStatus::equals($attempt->status, ApplicationStatus::IN_PROGRESS);
 
         return response()->json([
             'authenticated' => true,
-            'status' => $application->status,
-            'resume_available' => $isInProgress && !empty($application->exam_started_at),
+            'status' => $attempt->status,
+            'resume_available' => $isInProgress && !empty($attempt->exam_started_at),
             'redirect_url' => $isInProgress
-                ? route('user.exam_question_page', ['vacancy_id' => $vacancy_id])
+                ? route('user.exam_question_page', ['vacancy_id' => $vacancy_id, 'batch' => $batchNo])
                 : null,
         ]);
     }

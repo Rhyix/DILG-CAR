@@ -11,6 +11,7 @@ class ExamItems extends Model
 
     protected $fillable = [
         'vacancy_id',
+        'batch_no',
         'question',
         'is_essay',
         'choices',

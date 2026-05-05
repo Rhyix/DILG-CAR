@@ -17,7 +17,7 @@
         <!-- Header -->
         <section class="flex items-center space-x-4 mb-4 max-w-full border-b border-[#0D2B70]">
             <!-- BACK BUTTON -->
-            <button aria-label="Back" @click.prevent="handleBackClick('{{ route('admin.manage_exam', $vacancy_id) }}')"
+            <button aria-label="Back" @click.prevent="handleBackClick('{{ route('admin.manage_exam', $vacancy_id) }}?batch={{ (int) ($selectedBatch ?? request('batch', 1)) }}')"
                 class="use-loader group">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-[#0D2B70] hover:opacity-80 transition"
                     fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
@@ -175,6 +175,7 @@
             action="{{ route('admin.exam.update', $vacancy_id) }}">
             @csrf
             <input type="hidden" name="questions" :value="JSON.stringify(questions)">
+            <input type="hidden" name="batch" value="{{ (int) ($selectedBatch ?? request('batch', 1)) }}">
 
             <!-- Empty state -->
             <div x-show="questions.length === 0" class="text-center text-gray-500 mt-10">
@@ -774,7 +775,7 @@
                 },
 
                 getDraftStorageKey() {
-                    return 'examEditorDraft_{{ $vacancy_id }}';
+                    return 'examEditorDraft_{{ $vacancy_id }}_batch_{{ (int) ($selectedBatch ?? request('batch', 1)) }}';
                 },
 
                 persistDraftToStorage() {
@@ -782,6 +783,7 @@
                         const normalized = this.questions.map(question => this.normalizeQuestion(question));
                         localStorage.setItem(this.getDraftStorageKey(), JSON.stringify({
                             vacancy_id: '{{ $vacancy_id }}',
+                            batch: '{{ (int) ($selectedBatch ?? request('batch', 1)) }}',
                             questions: normalized
                         }));
                     } catch (error) {
@@ -814,7 +816,7 @@
 
                 openExamLibrary() {
                     this.persistDraftToStorage();
-                    window.location.href = "{{ url('/admin/exam-library/select') }}?return={{ urlencode(url()->current()) }}";
+                    window.location.href = "{{ url('/admin/exam-library/select') }}?return={{ urlencode(url()->current() . '?batch=' . ((int) ($selectedBatch ?? request('batch', 1)))) }}";
                 },
 
                 addQuestion() {
@@ -1017,6 +1019,8 @@
                                     'X-CSRF-TOKEN': csrfToken,
                                 },
                                 body: JSON.stringify({
+                                    vacancy_id: '{{ $vacancy_id }}',
+                                    batch: '{{ (int) ($selectedBatch ?? request('batch', 1)) }}',
                                     questions: JSON.stringify(this.questions)
                                 })
                             });

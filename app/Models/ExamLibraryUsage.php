@@ -13,6 +13,7 @@ class ExamLibraryUsage extends Model
 
     protected $fillable = [
         'vacancy_id',
+        'batch_no',
         'library_question_id',
         'order',
     ];

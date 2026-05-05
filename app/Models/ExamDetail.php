@@ -11,6 +11,7 @@ class ExamDetail extends Model
 
     protected $fillable = [
         'vacancy_id',
+        'batch_no',
         'is_started',
         'time',
         'time_end',

@@ -30,7 +30,9 @@
             $attendanceCount = isset($attendanceApplicants) ? $attendanceApplicants->count() : 0;
             $willAttendCount = isset($attendanceApplicants) ? $attendanceApplicants->where('attendance_status', 'will_attend')->count() : 0;
             $lobbyCount = count($participants ?? []);
-            $questionsCount = \App\Models\ExamItems::where('vacancy_id', $vacancy->vacancy_id)->count();
+            $activeBatch = (int) ($selectedBatch ?? request('batch', 1));
+            $showQualifiedWorkflow = $activeBatch === 1;
+            $questionsCount = \App\Models\ExamItems::where('vacancy_id', $vacancy->vacancy_id)->where('batch_no', $activeBatch)->count();
             $hasQuestions = $questionsCount > 0;
 
             if(isset($examDetails->date) && isset($examDetails->time)) {
@@ -109,7 +111,7 @@
                         </span>
                     @endif
                 </span>
-                <p class="text-xs md:text-sm"><span class="font-bold">VACANCY ID:</span> {{ $vacancy->vacancy_id }}, {{ $vacancy->vacancy_type }} Position</p>
+                <p class="text-xs md:text-sm"><span class="font-bold">VACANCY ID:</span> {{ $vacancy->vacancy_id }}, {{ $vacancy->vacancy_type }} Position | <span class="font-bold">BATCH {{ $activeBatch }}</span></p>
                 <!-- <div class="mt-1">
                     @if($questionsCount > 0)
                         <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] md:text-xs font-bold bg-blue-100 text-blue-800 border border-blue-300">
@@ -121,6 +123,16 @@
                         </span>
                     @endif
                 </div> -->
+            </div>
+
+            <div class="flex items-center gap-2">
+                <span class="text-xs font-semibold text-slate-600 uppercase tracking-wide">Batch</span>
+                @for($batchNoBtn = 1; $batchNoBtn <= 3; $batchNoBtn++)
+                    <a href="{{ route('admin.manage_exam', ['vacancy_id' => $vacancy->vacancy_id, 'batch' => $batchNoBtn]) }}"
+                       class="px-3 py-1 rounded-md border text-sm font-semibold {{ $activeBatch === $batchNoBtn ? 'bg-[#0D2B70] text-white border-[#0D2B70]' : 'bg-white text-[#0D2B70] border-[#0D2B70]' }}">
+                        {{ $batchNoBtn }}
+                    </a>
+                @endfor
             </div>
 
         </div>
@@ -144,15 +156,17 @@
                         </span>
                     @endif -->
                 </button>
-                <button id="tab-qualified" onclick="switchTab('qualified')"
-                    class="tab-button pb-2 font-bold text-gray-400 border-b-2 border-transparent hover:text-[#0D2B70] transition-all duration-200 text-sm uppercase tracking-wide">
-                    Qualified Applicants
-                    @if($qualifiedApplicants->count() > 0)
-                        <span class="ml-2 bg-[#0D2B70] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full align-middle">
-                            {{ $qualifiedApplicants->count() }}
-                        </span>
-                    @endif
-                </button>
+                @if($showQualifiedWorkflow)
+                    <button id="tab-qualified" onclick="switchTab('qualified')"
+                        class="tab-button pb-2 font-bold text-gray-400 border-b-2 border-transparent hover:text-[#0D2B70] transition-all duration-200 text-sm uppercase tracking-wide">
+                        Qualified Applicants
+                        @if($qualifiedApplicants->count() > 0)
+                            <span class="ml-2 bg-[#0D2B70] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full align-middle">
+                                {{ $qualifiedApplicants->count() }}
+                            </span>
+                        @endif
+                    </button>
+                @endif
                 <button id="tab-attendance" onclick="switchTab('attendance')"
                     class="tab-button pb-2 font-bold text-gray-400 border-b-2 border-transparent hover:text-[#0D2B70] transition-all duration-200 text-sm uppercase tracking-wide">
                     Attendance
@@ -173,7 +187,7 @@
                 <div class="flex flex-col gap-4 overflow-y-auto pr-2">
                     <h2 class="text-xl font-bold text-[#0D2B70] mb-2">Examination Questions</h2>
                     @php
-                        $examQuestions = \App\Models\ExamItems::where('vacancy_id', $vacancy->vacancy_id)->orderBy('created_at', 'asc')->get();
+                        $examQuestions = \App\Models\ExamItems::where('vacancy_id', $vacancy->vacancy_id)->where('batch_no', $activeBatch)->orderBy('created_at', 'asc')->get();
                     @endphp
                     @if($examQuestions->count() > 0)
                         <ol class="list-decimal pl-6 space-y-4">
@@ -223,6 +237,7 @@
                 </div>
             </div>
             
+            @if($showQualifiedWorkflow)
             <!-- Tab Content: Qualified Applicants -->
             <div id="content-qualified" class="tab-content hidden flex-1 flex flex-col min-h-0 overflow-hidden">
                 <div class="flex-none flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
@@ -306,8 +321,16 @@
                     </div>
                 </div>
             </div>
+            @endif
 
             <div id="content-attendance" class="tab-content hidden flex-1 flex flex-col min-h-0 overflow-hidden">
+                @if(!$showQualifiedWorkflow)
+                    <div class="mb-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-[#0D2B70]">
+                        <p><span class="font-bold">Batch {{ $activeBatch }} Schedule:</span> {{ $examDetails->date ?? 'Not set' }} {{ $examDetails->time ?? '' }}</p>
+                        <p class="mt-1"><span class="font-bold">Message:</span> {{ $examDetails->message ?? 'No message yet.' }}</p>
+                        <p class="mt-1 text-xs text-slate-600">Use the right panel to update time/message and click <span class="font-semibold">Save and Notify Applicants</span>.</p>
+                    </div>
+                @endif
                 <div class="flex-1 flex flex-col min-h-0 overflow-hidden border border-[#0D2B70] rounded-xl">
                     <div class="flex-1 overflow-auto">
                         <table class="w-full table-fixed border-collapse text-left">
@@ -475,7 +498,7 @@
                                             $resumeAction = (array) ($p->resume_action ?? []);
                                         @endphp
                                         <div class="inline-flex flex-row flex-nowrap items-center justify-center gap-2">
-                                            <a href="{{ route('admin.view_exam', ['vacancy_id' => $p->vacancy_id, 'user_id' => $p->user_id]) }}" target="_blank"
+                                            <a href="{{ route('admin.view_exam', ['vacancy_id' => $p->vacancy_id, 'user_id' => $p->user_id]) }}?batch={{ $activeBatch }}" target="_blank"
                                                 class="text-[#0D2B70] border border-[#0D2B70] font-bold py-1.5 px-3 md:py-2 md:px-6 rounded-md text-xs md:text-sm
                                                     transition-all duration-150 ease-[cubic-bezier(0.4,0,0.2,1)]
                                                     hover:scale-105 hover:bg-[#002C76] hover:text-white hover:shadow-md inline-flex items-center gap-1 md:gap-2 whitespace-nowrap shrink-0">
@@ -548,7 +571,7 @@
             <!-- PANEL 2: SCHEDULE FORM (Qualified Applicants tab) -->
             <div id="panel-schedule" class="flex flex-col gap-3 hidden">
                 <span class="text-xl text-[#0D2B70] font-bold border-b border-gray-200 pb-2 mb-1">
-                    Schedule Exam
+                    {{ $showQualifiedWorkflow ? 'Schedule Exam' : 'Attendance Batch Schedule' }}
                 </span>
 
                 <div class="flex flex-col">
@@ -877,7 +900,7 @@
         sendLinkButton.disabled = true;
         sendLinkButton.innerHTML = '<span>Sending...</span>';
 
-        fetch(`/admin/exam_management/${vacancyId}/notify`, {
+        fetch(`/admin/exam_management/${vacancyId}/notify?${batchQuery}`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -928,7 +951,7 @@
         startButton.disabled = true;
         startButton.innerHTML = '<span>Starting...</span>';
 
-        fetch(`/admin/exam_management/${vacancyId}/start`, {
+        fetch(`/admin/exam_management/${vacancyId}/start?${batchQuery}`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -962,7 +985,7 @@
     }
 
     function resumeApplicantExam(userId) {
-        fetch(`/admin/exam_management/{{ $vacancy->vacancy_id }}/resume/${userId}`, {
+        fetch(`/admin/exam_management/{{ $vacancy->vacancy_id }}/resume/${userId}?${batchQuery}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -1070,7 +1093,7 @@
 
         console.log('Sending request to:', `/admin/exam_management/${vacancyId}/details/save`);
 
-        fetch(`/admin/exam_management/${vacancyId}/details/save`, {
+        fetch(`/admin/exam_management/${vacancyId}/details/save?${batchQuery}`, {
             method: 'POST',
             headers: {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
@@ -1316,7 +1339,7 @@
                     window.clearInterval(examPauseResumeCountdownTimer);
                     examPauseResumeCountdownTimer = null;
 
-                    fetch(`/admin/exam_management/{{ $vacancy->vacancy_id }}/pause`, {
+                    fetch(`/admin/exam_management/{{ $vacancy->vacancy_id }}/pause?${batchQuery}`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -1352,7 +1375,7 @@
         }
 
         examPauseActionInProgress = true;
-        fetch(`/admin/exam_management/{{ $vacancy->vacancy_id }}/pause`, {
+        fetch(`/admin/exam_management/{{ $vacancy->vacancy_id }}/pause?${batchQuery}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -1383,7 +1406,7 @@
     }
 
     function toggleApplicantPause(userId) {
-        fetch(`/admin/exam_management/{{ $vacancy->vacancy_id }}/pause/${userId}`, {
+        fetch(`/admin/exam_management/{{ $vacancy->vacancy_id }}/pause/${userId}?${batchQuery}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -1543,14 +1566,16 @@
         }
         
         
-        window.location.href = '{{ route('admin.exam.edit', $vacancy->vacancy_id) }}';
+        window.location.href = '{{ route('admin.exam.edit', $vacancy->vacancy_id) }}?batch=' + encodeURIComponent(selectedBatch);
     }
 
     // ========================================
     // TAB SWITCHING
     // ========================================
     function switchTab(tab) {
-        const tabs = ['exam-questions', 'qualified', 'attendance', 'lobby'];
+        const tabs = showQualifiedWorkflow
+            ? ['exam-questions', 'qualified', 'attendance', 'lobby']
+            : ['exam-questions', 'attendance', 'lobby'];
         const panelQuestions = document.getElementById('panel-questions');
         const panelSchedule = document.getElementById('panel-schedule');
         const panelMonitor = document.getElementById('panel-monitor');
@@ -1604,7 +1629,7 @@
             } else if (tab === 'attendance') {
                 // Attendance tab: show attendance panel
                 if (panelQuestions) panelQuestions.classList.add('hidden');
-                if (panelSchedule) panelSchedule.classList.add('hidden');
+                if (panelSchedule) panelSchedule.classList.toggle('hidden', showQualifiedWorkflow);
                 if (panelMonitor) panelMonitor.classList.add('hidden');
                 if (panelAttendance) panelAttendance.classList.remove('hidden');
                 stopLobbyPolling();
@@ -1755,7 +1780,7 @@
             }
         }
 
-        fetch(`/admin/exam_management/{{ $vacancy->vacancy_id }}/attendance/${userId}`, {
+        fetch(`/admin/exam_management/{{ $vacancy->vacancy_id }}/attendance/${userId}?${batchQuery}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -1805,7 +1830,7 @@
         btn.innerHTML = `<span class="animate-pulse">Sending...</span>`;
         btn.classList.add('opacity-75', 'cursor-wait');
 
-        fetch(`/admin/exam_management/{{ $vacancy->vacancy_id }}/notify-selected`, {
+        fetch(`/admin/exam_management/{{ $vacancy->vacancy_id }}/notify-selected?${batchQuery}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -1870,7 +1895,7 @@
             search: search
         });
 
-        fetch(`/admin/exam_management/{{ $vacancy->vacancy_id }}/qualified?${params.toString()}`, {
+        fetch(`/admin/exam_management/{{ $vacancy->vacancy_id }}/qualified?${params.toString()}&${batchQuery}`, {
             headers: { 
                 'X-Requested-With': 'XMLHttpRequest',
                 'Accept': 'application/json'
@@ -1936,7 +1961,7 @@
     }
 
     function refreshMonitorRecipients() {
-        fetch(`/admin/exam_management/{{ $vacancy->vacancy_id }}/qualified?`, {
+        fetch(`/admin/exam_management/{{ $vacancy->vacancy_id }}/qualified?${batchQuery}`, {
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
                 'Accept': 'application/json'
@@ -2095,7 +2120,7 @@
             return attendanceFetchInFlight;
         }
 
-        attendanceFetchInFlight = fetch(`/admin/exam_management/{{ $vacancy->vacancy_id }}/attendance-data`, {
+        attendanceFetchInFlight = fetch(`/admin/exam_management/{{ $vacancy->vacancy_id }}/attendance-data?${batchQuery}`, {
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
                 'Accept': 'application/json'
@@ -2218,6 +2243,13 @@
     // LOBBY POLLING & AJAX
     // ========================================
     const vacancyId = @json($vacancy->vacancy_id);
+    const selectedBatch = @json((int) ($selectedBatch ?? request('batch', 1)));
+    const showQualifiedWorkflow = @json((bool) ($showQualifiedWorkflow ?? false));
+    const batchQuery = `batch=${encodeURIComponent(selectedBatch)}`;
+
+    if (!showQualifiedWorkflow) {
+        switchTab('attendance');
+    }
     const examRealtimeConfig = @json($examRealtimeConfig);
     let lobbyPollingInterval = null;
     let lobbyFetchInFlight = null;
@@ -2424,7 +2456,7 @@
             icon?.classList.add('animate-spin');
         }
 
-        lobbyFetchInFlight = fetch(`/admin/exam_management/${vacancyId}/lobby-data`, {
+        lobbyFetchInFlight = fetch(`/admin/exam_management/${vacancyId}/lobby-data?${batchQuery}`, {
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
                 'Accept': 'application/json'
@@ -2508,7 +2540,7 @@
                 <!-- Action Button -->
                 <td class="py-2.5 px-3 md:py-3 md:px-6 text-center w-[25%]">
                     <div class="inline-flex flex-row flex-nowrap items-center justify-center gap-2">
-                        <a href="/admin/exam_management/${p.vacancy_id}/view_exam/${p.user_id}" target="_blank" rel="noopener noreferrer"
+                        <a href="/admin/exam_management/${p.vacancy_id}/view_exam/${p.user_id}?batch=${encodeURIComponent(selectedBatch)}" target="_blank" rel="noopener noreferrer"
                             class="text-[#0D2B70] border border-[#0D2B70] font-bold py-1.5 px-3 md:py-2 md:px-6 rounded-md text-xs md:text-sm
                                 transition-all duration-150 ease-[cubic-bezier(0.4,0,0.2,1)]
                                 hover:scale-105 hover:bg-[#002C76] hover:text-white hover:shadow-md inline-flex items-center gap-1 md:gap-2 whitespace-nowrap shrink-0">

@@ -82,7 +82,9 @@
     </div>
 </div>
 
-<form id="redirect-form" action="{{ route('user.exam_question_page', ['vacancy_id' => $vacancy_id]) }}" method="GET" class="hidden"></form>
+<form id="redirect-form" action="{{ route('user.exam_question_page', ['vacancy_id' => $vacancy_id]) }}" method="GET" class="hidden">
+    <input type="hidden" name="batch" value="{{ (int) ($batchNo ?? request('batch', 1)) }}">
+</form>
 
 <script>
     let pollInterval = null;
@@ -97,7 +99,7 @@
 
     function checkStatus() {
         console.log("Checking if admin started exam...");
-        fetch("{{ route('exam.status.check', ['vacancy_id' => $vacancy_id]) }}", {
+        fetch("{{ route('exam.status.check', ['vacancy_id' => $vacancy_id]) }}?batch={{ (int) ($batchNo ?? request('batch', 1)) }}", {
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
                 'Accept': 'application/json'
