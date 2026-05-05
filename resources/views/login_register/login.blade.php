@@ -120,10 +120,10 @@
               </div>
 
               <div class="flex flex-col gap-2 pt-1 text-sm sm:flex-row sm:items-center sm:justify-between">
-                <label class="inline-flex items-center gap-2 text-slate-600">
+                <!-- <label class="inline-flex items-center gap-2 text-slate-600">
                   <input type="checkbox" name="remember" {{ old('remember') ? 'checked' : '' }} class="rounded border-slate-300 text-[#0D2B70] focus:ring-[#0D2B70]/30">
                   <span class="font-semibold">Remember me</span>
-                </label>
+                </label> -->
                 <a href="{{ route('forgot.password.form') }}" class="font-semibold text-[#0D2B70] hover:underline">Forgot Password?</a>
               </div>
 
