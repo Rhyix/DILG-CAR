@@ -20,6 +20,59 @@
     $availableGalleryItems = $galleryItems->reject(fn ($item) => (bool) ($item->file_missing_from_storage ?? false))->values();
 @endphp
 
+<!-- Delete Confirmation Modal -->
+<div x-data="{
+  showDeleteModal: false,
+  deleteFormToSubmit: null,
+  deleteDocType: '',
+  deleteDocName: '',
+  openDeleteConfirm(formEl, docType, docName) {
+    this.deleteFormToSubmit = formEl;
+    this.deleteDocType = docType;
+    this.deleteDocName = docName;
+    this.showDeleteModal = true;
+  },
+  confirmDelete() {
+    if (this.deleteFormToSubmit) {
+      this.deleteFormToSubmit.submit();
+    }
+    this.showDeleteModal = false;
+  },
+  cancelDelete() {
+    this.showDeleteModal = false;
+    this.deleteFormToSubmit = null;
+  }
+}" class="relative">
+    <!-- Dark Backdrop (blurs and darkens background completely) -->
+    <div x-show="showDeleteModal" x-transition class="fixed inset-0 z-[70] bg-black/70 backdrop-blur-md" style="display: none;"></div>
+  
+    <!-- Modal Container (above backdrop and sidebar) -->
+    <div x-show="showDeleteModal" x-transition class="fixed inset-0 z-[80] flex items-center justify-center p-4" style="display: none;" @click="cancelDelete()">
+    <!-- Modal Dialog (stop propagation) -->
+    <div @click.stop class="w-full max-w-md rounded-2xl border border-slate-200 bg-white shadow-2xl">
+      <div class="border-b border-slate-200 px-6 py-4">
+        <h3 class="text-lg font-bold text-slate-900">Delete Document?</h3>
+      </div>
+      <div class="px-6 py-4">
+        <p class="text-sm text-slate-600">This will permanently remove the document from your gallery. This action cannot be undone.</p>
+        <div class="mt-4 rounded-lg bg-slate-50 p-3">
+          <p class="text-xs font-semibold text-slate-600" x-text="deleteDocType"></p>
+          <p class="mt-1 text-sm font-semibold text-slate-800 truncate" x-text="deleteDocName"></p>
+        </div>
+      </div>
+      <div class="flex justify-end gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4">
+        <button @click="cancelDelete()" type="button"
+          class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">
+          Cancel
+        </button>
+        <button @click="confirmDelete()" type="button"
+          class="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700">
+          Delete Document
+        </button>
+      </div>
+    </div>
+  </div>
+
 <div class="mt-2 rounded-xl border border-slate-200 bg-white p-4" x-data="{ showChecklist: false }">
     <button type="button" @click="showChecklist = !showChecklist"
         class="flex w-full items-center justify-between gap-3 text-left">
@@ -55,70 +108,7 @@
     </div>
 </div>
 
-<!-- Document Delete Confirmation Modal -->
-<div x-data="{ 
-  confirmOpen: false, 
-  targetForm: null, 
-  docName: '', 
-  docType: '',
-  confirmDelete() {
-    if (this.targetForm) {
-            if (typeof this.targetForm.requestSubmit === 'function') {
-                this.targetForm.requestSubmit();
-            } else {
-                this.targetForm.submit();
-            }
-    }
-    this.confirmOpen = false;
-    this.targetForm = null;
-  },
-  closeModal() {
-    this.confirmOpen = false;
-    this.targetForm = null;
-  }
-}" 
-  x-on:open-delete-confirm.window="const detail = $event.detail; docName = detail.docName; docType = detail.docType; targetForm = $event.target.closest('form'); confirmOpen = true" 
-  x-show="confirmOpen" 
-class="fixed inset-0 z-[9999] overflow-y-auto" 
-  x-transition:enter="ease-out duration-300"
-  x-transition:enter-start="opacity-0"
-  x-transition:enter-end="opacity-100"
-  x-transition:leave="ease-in duration-200"
-  x-transition:leave-start="opacity-100"
-  x-transition:leave-end="opacity-0"
-  @keyup.escape="closeModal()"
-  style="display: none;">
-    <!-- Backdrop -->
-<div class="fixed inset-0 z-[9998] bg-black/25" @click="closeModal()"></div>
-  
-    <!-- Modal panel -->
-    <div class="fixed inset-0 flex min-h-full items-end justify-center p-4 md:items-center sm:p-6">
-        <div class="w-full max-w-md z-[10000] transform overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-slate-200 transition-all">
-      <div class="p-6">
-        <h3 class="text-lg font-bold text-slate-900 mb-2">Delete Document?</h3>
-        <p class="text-sm text-slate-600 mb-6 leading-relaxed">This will permanently remove the document record from your gallery. This action cannot be undone.</p>
-        
-        <div class="mb-6 rounded-xl bg-gradient-to-r from-slate-50 to-slate-100 p-4">
-          <div class="font-semibold text-slate-900 text-base mb-1" x-text="docType"></div>
-          <div class="text-slate-600 text-sm truncate max-w-full" x-text="docName"></div>
-        </div>
-        
-        <div class="flex items-center gap-3 justify-end">
-          <button 
-            @click="closeModal()"
-            class="px-4 py-2.5 rounded-xl border border-slate-200 font-semibold text-sm text-slate-700 hover:border-slate-300 hover:bg-slate-50 transition-all">
-            Cancel
-          </button>
-          <button 
-            @click="confirmDelete()"
-            class="px-6 py-2.5 rounded-xl bg-rose-500 hover:bg-rose-600 font-semibold text-sm text-white shadow-sm hover:shadow-md transition-all">
-            Delete Document
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
+<!-- No modal overlay - use simple confirm() instead -->
 
 <div class="mt-4 rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50 to-slate-50 p-4">
     <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -379,11 +369,8 @@ class="fixed inset-0 z-[9999] overflow-y-auto"
                                 @csrf
                                 @method('DELETE')
                                 <button type="button"
-                                    @click="$dispatch('open-delete-confirm', { 
-                                      docName: @js($item->original_name), 
-                                      docType: @js($documentTypeLabel)
-                                    })"
-                                    class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"> 
+                                  @click="openDeleteConfirm($event.target.closest('form'), @js($documentTypeLabel), @js($item->original_name))"
+                                  class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"> 
                                     Remove from List
                                 </button>
                             </form>
@@ -490,12 +477,9 @@ class="fixed inset-0 z-[9999] overflow-y-auto"
                                 <form method="POST" action="{{ route('profile.document_gallery.delete', $item->id) }}" data-gallery-async>
                                     @csrf
                                     @method('DELETE')
-                                <button type="button"
-                                    @click="$dispatch('open-delete-confirm', { 
-                                      docName: @js($item->original_name), 
-                                      docType: @js($documentTypeLabel)
-                                    })"
-                                    class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"> 
+                                    <button type="button"
+                                      @click="openDeleteConfirm($event.target.closest('form'), @js($documentTypeLabel), @js($item->original_name))"
+                                      class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"> 
                                         Remove from List
                                     </button>
                                 </form>
