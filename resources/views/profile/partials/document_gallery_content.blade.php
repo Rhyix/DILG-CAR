@@ -1,4 +1,4 @@
-a@php
+@php
     $galleryItems = $galleryItems ?? collect();
     $documentTypeOptions = $documentTypeOptions ?? [];
     $formatGalleryBytes = function ($bytes) {
@@ -63,7 +63,11 @@ a@php
   docType: '',
   confirmDelete() {
     if (this.targetForm) {
-      this.targetForm.submit();
+            if (typeof this.targetForm.requestSubmit === 'function') {
+                this.targetForm.requestSubmit();
+            } else {
+                this.targetForm.submit();
+            }
     }
     this.confirmOpen = false;
     this.targetForm = null;
@@ -84,12 +88,12 @@ class="fixed inset-0 z-[9999] overflow-y-auto"
   x-transition:leave-end="opacity-0"
   @keyup.escape="closeModal()"
   style="display: none;">
-  <!-- Backdrop -->
-<div class="fixed inset-0 z-[9998] bg-black/40" @click="closeModal()"></div>
+    <!-- Backdrop -->
+<div class="fixed inset-0 z-[9998] bg-black/25" @click="closeModal()"></div>
   
-  <!-- Modal panel -->
-  <div class="fixed inset-0 flex min-h-full items-end justify-center p-4 md:items-center sm:p-6">
-class="w-full max-w-md z-[10000] transform overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-slate-200 transition-all">
+    <!-- Modal panel -->
+    <div class="fixed inset-0 flex min-h-full items-end justify-center p-4 md:items-center sm:p-6">
+        <div class="w-full max-w-md z-[10000] transform overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-slate-200 transition-all">
       <div class="p-6">
         <h3 class="text-lg font-bold text-slate-900 mb-2">Delete Document?</h3>
         <p class="text-sm text-slate-600 mb-6 leading-relaxed">This will permanently remove the document record from your gallery. This action cannot be undone.</p>
@@ -420,7 +424,7 @@ class="w-full max-w-md z-[10000] transform overflow-hidden rounded-2xl bg-white 
         @endif
 
         @if ($availableGalleryItems->isNotEmpty())
-            <div class="mt-6" x-data="savedDocumentsSearch()">
+            <div class="mt-6" x-data="savedDocumentsSearch">
                 <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
                     <div>
                         <h3 class="text-lg font-bold text-[#0D2B70]">Saved Documents Ready to Use</h3>

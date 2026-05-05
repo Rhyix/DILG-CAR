@@ -227,7 +227,7 @@
         </section>
 
         <section class="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" x-show="activeSection === 'gallery'" x-transition
-            x-data="documentGalleryManager()" @submit="handleSubmit($event)">
+            x-data="documentGalleryManager" @submit="handleSubmit($event)">
             <div class="mb-4 flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 pb-4">
                 <div>
                     <h2 class="text-lg font-bold text-[#0D2B70]">Document Gallery</h2>
