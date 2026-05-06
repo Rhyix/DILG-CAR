@@ -260,22 +260,13 @@
                 </label>
               </div>
 
-              <div class="mt-3 grid gap-2 sm:grid-cols-2">
+              <div class="mt-3">
                 <button type="submit"
                   :disabled="!checkboxChecked || isSubmitting"
                   :class="{ 'opacity-50 cursor-not-allowed': !checkboxChecked, 'cursor-wait': isSubmitting }"
                   class="w-full rounded-lg bg-[#0D2B70] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0A2259]">
                   <span x-text="isSubmitting ? 'Processing...' : 'Create Account'"></span>
                 </button>
-
-                <a :class="{
-                    'opacity-50 cursor-not-allowed pointer-events-none': !checkboxChecked,
-                    'use-loader flex w-full items-center justify-center gap-2 rounded-lg border border-[#c5d0e4] bg-[#f8faff] px-4 py-2.5 text-sm font-semibold text-[#0D2B70] transition hover:bg-[#eef3fb]': true
-                  }"
-                  :href="checkboxChecked ? '{{ route('google.login', [], false) }}' : '#'">
-                  <img src="{{ asset('images/google-icon.png') }}" alt="Google Icon" class="h-4 w-4">
-                  Continue with Google
-                </a>
               </div>
 
               <p class="mt-2.5 text-center text-xs text-slate-600 sm:text-sm">

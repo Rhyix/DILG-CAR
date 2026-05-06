@@ -62,7 +62,7 @@
 
                         <form id="pendingAdminLogoutForm" action="{{ route('admin.logout') }}" method="POST" class="mt-6">
                             @csrf
-                            <button type="button" @click.prevent="$dispatch('open-pending-logout-confirm')" class="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100">
+                            <button type="button" id="pendingLogoutBtn" onclick="window.dispatchEvent(new Event('open-pending-logout-confirm'))" class="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100">
                                 Logout
                             </button>
                         </form>
@@ -89,9 +89,12 @@
         event="open-pending-logout-confirm" confirm="confirm-pending-logout" />
 
     <script>
+        // Open the Alpine confirm modal by dispatching 'open-pending-logout-confirm'.
+        // When the modal dispatches 'confirm-pending-logout', submit the logout form.
         window.addEventListener('confirm-pending-logout', () => {
-            const logoutForm = document.getElementById('pendingAdminLogoutForm');
-            if (logoutForm) logoutForm.submit();
+            try { localStorage.clear(); sessionStorage.clear(); } catch (e) {}
+            const f = document.getElementById('pendingAdminLogoutForm');
+            if (f) f.submit();
         });
     </script>
 </body>

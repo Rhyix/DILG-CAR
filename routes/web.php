@@ -331,6 +331,7 @@ Route::middleware('auth:web')->group(function () {
 // ADMIN AUTH ROUTES
 // ==================================================================================================
 Route::get('/admin/login', [AdminAuthController::class, 'showLoginForm'])->name('admin.login');
+Route::get('/admin/register', [AdminAuthController::class, 'showRegisterForm'])->name('admin.register.form');
 Route::post('/admin/login', [AdminAuthController::class, 'login'])->name('admin.login.submit')->middleware('throttle:5,1');
 Route::post('/admin/register', [AdminAuthController::class, 'register'])->name('admin.register.submit')->middleware('throttle:5,1');
 // USER ROUTES (blocked if admin is logged in)

@@ -139,10 +139,10 @@
 
                         <div class="mt-5 border-t border-slate-200 pt-4">
                             <p class="text-xs uppercase tracking-wide text-slate-500">New Employee Account</p>
-                            <button id="openRegisterModalBtn" type="button"
-                                class="mt-2 w-full rounded-[0.85rem] border border-[#0d2b70]/45 bg-white px-4 py-2.5 text-sm font-semibold text-[#0D2B70] transition-[background-color,color,border-color] hover:border-[#0d2b70] hover:bg-[#0d2b70] hover:text-white">
+                            <a href="{{ route('admin.register.form') }}"
+                                class="mt-2 inline-block w-full rounded-[0.85rem] border border-[#0d2b70]/45 bg-white px-4 py-2.5 text-sm font-semibold text-[#0D2B70] transition-[background-color,color,border-color] hover:border-[#0d2b70] hover:bg-[#0d2b70] hover:text-white">
                                 Register Employee Account
-                            </button>
+                            </a>
                         </div>
                     </div>
                 </div>

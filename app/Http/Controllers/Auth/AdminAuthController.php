@@ -93,6 +93,19 @@ class AdminAuthController extends Controller
         return view('login_register.admin_login');
     }
 
+    public function showRegisterForm()
+    {
+        if (Auth::guard('admin')->check()) {
+            return $this->redirectByAdminRole(Auth::guard('admin')->user());
+        }
+
+        if (Auth::check()) {
+            return redirect()->route('dashboard_user');
+        }
+
+        return view('login_register.admin_register');
+    }
+
     public function register(Request $request)
     {
         if (Auth::check()) {
